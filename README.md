@@ -5,7 +5,7 @@ It is designed to be used in conjunction with XeLaTeX rendering engine. Currentl
 
 *simetri.graphics* can generate output files with .tex, .pdf, .ps, .eps, .svg, or .png extensions. It can also generate Jupyter notebook cells with the output embedded in them.
 
-The documentation is available at [simetri](https://github.com/mekanimo/simetri/blob/docs/). There is also a gallery of examples available at [simetri/gallery](https://github.com/mekanimo/simetri/blob/main/gallery.ipynb).
+The documentation is available at [simetri](https://github.com/mekanimo/simetri/blob/docs/). There is also a gallery of examples available at [simetri/gallery](https://github.com/mekanimo/simetri/blob/gallery.ipynb).
 
 ## Version
 
