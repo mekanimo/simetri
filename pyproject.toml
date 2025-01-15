@@ -1,0 +1,42 @@
+[project]
+name = "simetri"
+version = "0.0.3"
+description = "simetri is a Python library for creating and manipulating patterns."
+readme = "README.md"
+authors = [
+    { name = "Fahri Basegmez", email = "mangabasi@gmail.com" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "ipython>=8.18.1",
+    "matplotlib>=3.9.4",
+    "networkx>=3.2.1",
+    "numpy>=2.0.2",
+    "pillow>=11.1.0",
+    "pymupdf>=1.25.1",
+    "strenum>=0.4.15",
+    "typing-extensions>=4.12.2",
+]
+
+[project.scripts]
+simetri = "simetri:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GPLv3 License",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+    "Topic :: Computational Geometry :: 2D Symmetry :: Pattern Design",
+]
+
+[project.urls]
+Homepage = "https://github.com/mekanimo/simetri.graphics"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+]
