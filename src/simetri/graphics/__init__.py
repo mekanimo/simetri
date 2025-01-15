@@ -1,3 +1,4 @@
+'''simetri.graphics is a module that provides a simple and intuitive way to create geometric shapes and patterns.'''
 # status: prototype
 # This is a proof of concept.
 # Testing is incomplete.
