@@ -21,9 +21,11 @@ This will not install a LaTeX distribution, so you will need to install one sepa
 
 
 ### Install a LaTeX distribution
-There are several LaTeX distributions freely available for different operating systems. MikTeX handles package installations automatically, so it is recommended for users who are not familiar with LaTeX typesetting engines.
+There are several LaTeX distributions freely available for different operating systems. The recommended distribution is the MikTeX app.
 
-MiKTeX can be downloaded from https://miktex.org/download recommended.
+MikTeX handles package installations automatically, so it is recommended for users who are not familiar with LaTeX typesetting engines.
+
+MiKTeX can be downloaded from https://miktex.org/download.
 
 ## Requirements
 
