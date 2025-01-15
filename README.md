@@ -5,28 +5,20 @@ It is designed to be used in conjunction with XeLaTeX rendering engine. Currentl
 
 *simetri.graphics* can generate output files with .tex, .pdf, .ps, .eps, .svg, or .png extensions. It can also generate Jupyter notebook cells with the output embedded in them.
 
-The documentation is available at [simetri](https://simetri). There is also a gallery of examples available at [simetri/gallery](https://github.com/mekanimo/simetri/blob/main/gallery/gallery.md).
+The documentation is available at [simetri](https://github.com/mekanimo/simetri/blob/docs/). There is also a gallery of examples available at [simetri/gallery](https://github.com/mekanimo/simetri/blob/main/gallery.md).
 
 ## Version
 
 This is the first alpha version of the library and is not yet ready for production use. The library is still in its early stages of development and is likely to change significantly in the near future. The beta release is expected to be in March 2025.
 
 ## Installation
-### If you have Python installed
 If you have a Python version >= 3.9 installed, execute the following command in the terminal:
 
 ```pip install simetri```
 
 This will not install a LaTeX distribution, so you will need to install one separately.
 
-### If you don't have Python installed
 
-You can use `uv` to install both Python and the library.
-
-- First install `uv` https://docs.astral.sh/uv/getting-started/installation/
-- Then execute the following command in a project directory in the terminal:
-
-```uv python install 3.13 && uv install simetri```
 
 ### Install a LaTeX distribution
 There are several LaTeX distributions freely available for different operating systems. MikTeX handles package installations automatically, so it is recommended for users who are not familiar with LaTeX typesetting engines.
@@ -79,4 +71,4 @@ If you have any feedback or suggestions for the library, please feel free to ope
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 (GPLv3) - see the LICENSE file for details.
+This project is licensed under the GNU General Public License v2.0 (GPLv2) - see the LICENSE file for details.
