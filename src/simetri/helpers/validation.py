@@ -118,7 +118,7 @@ exclude = [
 ]
 for item in items:
     name = item[0]
-    if isinstance(item[1], enum.EnumType) and name not in exclude:
+    if isinstance(item[1], enum.EnumMeta) and name not in exclude:
         key = pattern.sub("_", name).lower()
         enum_map[key] = item[1]
 
