@@ -50,15 +50,17 @@ These extensions are installed automatically when you install the library using 
 import simetri.graphics as sg
 
 canvas = sg.Canvas()
-star = sg.stars.Star(n=12)
-swatch = sg.swatches_255[9]
-lace = sg.Lace(star.level(4), offset=5, swatch=swatch)
 
-canvas.draw(lace)
+for  i in range(8, 15, 2):
+    star = sg.stars.Star(n=i, circumradius=150).level(4)
+    star.translate(i * 170, 0)
+    swatch = sg.random_swatch()
+    lace = sg.Lace(star, swatch=swatch, offset=5)
+    canvas.draw(lace.scale(.75))
 
 canvas.display()
 ```
-![12 sided star](/images/star_example.svg)
+![12 sided star](/images/example.svg)
 
 > [!NOTE]
 > All examples use `canvas.display()` to show the results in a Jupyter notebook. If you are using it as a stand alone library, use `canvas.save("c:/temp/example.pdf")` to save the output as a pdf file. You can generate .pdf, .svg, .ps, .eps, .tex, and .png output.
