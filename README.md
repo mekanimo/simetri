@@ -61,7 +61,7 @@ canvas.display()
 ![12 sided star](/images/star_example.svg)
 ## Documentation
 > [!NOTE]
-> Never import the library using `from simetri import *` or `from simetri.graphics import *`.
+> All examples use `canvas.display()` to show the results in a Jupyter notebook. If you are using it as a stand alone library, use `canvas.save("c:/temp/example.pdf")` to save the output as a pdf file. You can generate .pdf, .svg, .ps, .eps, .tex, and .png output.
 
 ## Contact
 
