@@ -27,7 +27,7 @@ build-backend = "hatchling.build"
 
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GPLv3 License",
+    "License :: OSI Approved :: GPLv2 License",
     "Operating System :: OS Independent",
     "Development Status :: 3 - Alpha",
     "Topic :: Computational Geometry :: 2D Symmetry :: Pattern Design",
