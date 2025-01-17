@@ -2,7 +2,7 @@
 
 from typing import Sequence, Union
 
-from ..helpers.geometry import vec_along_line, point_to_line_vec
+from ..helpers.geometry import vec_along_line, point_to_line_vec, pi
 from ..graphics.common import VecType, Line, Point
 from ..graphics.batch import Batch
 

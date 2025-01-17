@@ -106,7 +106,7 @@ class Ellipse(Shape):
         width = self.width
         height = self.height
         ellipse = Ellipse(center, width, height)
-        ellipse.style = self.style.copy()
+        # ellipse.style = self.style.copy()
         custom_attribs = custom_attributes(self)
         for attrib in custom_attribs:
             setattr(ellipse, attrib, getattr(self, attrib))
@@ -429,7 +429,7 @@ def ellipse_points(
        with the given parameters.
        n is the total number of points in the ellipse.
     """
-    from affine import rotate
+    from .affine import rotate
 
     points = []
     for i in range(n):
@@ -438,7 +438,7 @@ def ellipse_points(
 
     if angle != 0:
         points = rotate(points, angle, (x, y))
-
+    return points
 
 def circle_points(x: float, y: float, radius: float, n: int = 30) -> list[Point]:
     """

@@ -971,15 +971,27 @@ def set_defaults():
     defaults["shape_style"] = ShapeStyle()
     defaults["tag_style"] = TagStyle()
 
-    logging.basicConfig(
-        filename=defaults["log_file"],
-        filemode="w",
-        format="%(levelname)s:%(message)s",
-        encoding="utf-8",
-        level=defaults["log_level"],
-    )
+
     if defaults["show_log_on_console"]:
-        logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+        logger = logging.getLogger()
+        logger.setLevel(defaults["log_level"])
+
+        file_handler = logging.FileHandler(defaults["log_file"], mode='w', encoding='utf-8')
+        file_handler.setLevel(defaults["log_level"])
+
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(defaults["log_level"])
+
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
+
+def close_logger(logger):
+    '''Close the logger and remove all handlers.'''
+    for handler in logger.handlers:
+        handler.close()
+        logger.removeHandler(handler)
+
+
     # packages = f'\\usepackage{{{",".join(defaults['packages'])}}}\n'
     # libraries = f'\\usetikzlibrary{{{",".join(defaults['tikz_libraries'])}}}\n'
 

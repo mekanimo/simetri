@@ -525,11 +525,11 @@ def wallpaper_pgg(
     """
     if horizontal:
         dist = rotocenter[0] - generator.center[0]
-        wallpaper = generator.glide(generator.horiz_center_line, 2 * dist, reps=1)
+        wallpaper = generator.glide(generator.horiz_centerline, 2 * dist, reps=1)
         wallpaper.rotate(pi, rotocenter, reps=1)
     else:
         dist = rotocenter[1] - generator.center[1]
-        wallpaper = generator.glide(generator.vert_center_line, 2 * dist, reps=1)
+        wallpaper = generator.glide(generator.vert_centerline, 2 * dist, reps=1)
         wallpaper.rotate(pi, rotocenter, reps=1)
     wallpaper.translate(dx, 0, reps1)
     wallpaper.translate(0, dy, reps2)

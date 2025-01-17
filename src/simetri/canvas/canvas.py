@@ -9,33 +9,33 @@ import webbrowser
 import subprocess
 import logging
 from typing import Optional, Any, Tuple, Sequence
-from typing_extensions import Self
 from pathlib import Path
 from dataclasses import dataclass
 
+from typing_extensions import Self
 from numpy import ndarray
 import networkx as nx
 import fitz
 
-from ..graphics.affine import (
+from simetri.graphics.affine import (
     rotation_matrix,
     translation_matrix,
     scale_matrix,
     identity_matrix,
 )
-from ..graphics.common import common_properties, _set_Nones, VOID, Point, Vec2
-from ..graphics.all_enums import Types, Drawable, Result, Anchor
-from ..settings.settings import defaults
-from ..graphics.bbox import bounding_box
-from ..graphics.batch import Batch
-from ..graphics.shape import Shape
-from ..colors import colors
-from ..canvas import draw
-from ..helpers.utilities import wait_for_file_availability
-from ..tikz.tikz import Tex, get_tex_code
-from ..helpers.validation import validate_args
-from ..canvas.style_map import canvas_args
-from ..notebook import display
+from simetri.graphics.common import common_properties, _set_Nones, VOID, Point, Vec2
+from simetri.graphics.all_enums import Types, Drawable, Result, Anchor
+from simetri.settings.settings import defaults
+from simetri.graphics.bbox import bounding_box
+from simetri.graphics.batch import Batch
+from simetri.graphics.shape import Shape
+from simetri.colors import colors
+from simetri.canvas import draw
+from simetri.helpers.utilities import wait_for_file_availability, is_file_empty, close_logger
+from simetri.tikz.tikz import Tex, get_tex_code
+from simetri.helpers.validation import validate_args
+from simetri.canvas.style_map import canvas_args
+from simetri.notebook import display
 
 Color = colors.Color
 
@@ -410,8 +410,10 @@ class Canvas:
                 print(output.split("\n")[-3:])
             return output
 
-        def remove_aux_files():
-            time_out = 10  # seconds
+        def remove_aux_files(file_path):
+            time_out = 1  # seconds
+            parent_dir, file_name = os.path.split(file_path)
+            file_name, extension = os.path.splitext(file_name)
             aux_file = os.path.join(parent_dir, file_name + ".aux")
             if os.path.exists(aux_file):
                 if not wait_for_file_availability(aux_file, time_out):
@@ -433,7 +435,8 @@ class Canvas:
                         )
                     )
                 else:
-                    os.remove(log_file)
+                    if is_file_empty(log_file) and not defaults['keep_log_files']:
+                        os.remove(log_file)
             tex_file = os.path.join(parent_dir, file_name + ".tex")
             if os.path.exists(tex_file):
                 if not wait_for_file_availability(tex_file, time_out):
@@ -445,6 +448,20 @@ class Canvas:
                     )
                 else:
                     os.remove(tex_file)
+            file_name, extension = os.path.splitext(file_name)
+            if extension not in ['.pdf', '.tex']:
+                pdf_file = os.path.join(parent_dir, file_name + ".pdf")
+                if os.path.exists(pdf_file):
+                    if not wait_for_file_availability(pdf_file, time_out):
+                        print(
+                            (
+                                f"File '{pdf_file}' is not available after waiting for "
+                                f"{time_out} seconds."
+                            )
+                        )
+                    else:
+                        os.remove(pdf_file)
+
 
         def run_job():
             output_path = os.path.join(parent_dir, file_name + extension)
@@ -487,24 +504,13 @@ class Canvas:
             return self
 
         run_job()
-        remove_aux_files()
+        close_logger(defaults['logger'])
+        remove_aux_files(file_path)
+
         # show the file in the browser
         self._show_browser(file_path=file_path, show_browser=show, multi_page_svg=False)
         return self
 
-        # for i, page in enumerate(pages):
-        #     sketches = page.sketches
-        #     back_color = f"\\pagecolor{color2tikz(page.back_color)}"
-        #     if i == 0:
-        #         code = [back_color]
-        #     else:
-        #         code.append(defaults['end_tikz'])
-        #         code.append('\\newpage')
-        #         code.append(defaults['begin_tikz'])
-        #     ind = 0
-        #     for sketch in sketches:
-        #         sketch_code, ind = get_sketch_code(sketch, canvas, ind)
-        #         code.append(sketch_code)
 
     def new_page(self, **kwargs) -> Self:
         """create a new page and add it to the canvas.pages"""

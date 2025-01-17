@@ -19,11 +19,28 @@ from ..settings.settings import defaults
 from ..graphics.common import get_defaults, Point
 
 
+def close_logger(logger):
+    '''Close the logger and remove all handlers.'''
+    for handler in logger.handlers:
+        handler.close()
+        logger.removeHandler(handler)
+
+def remove_file_handler(logger, handler):
+    '''Used for individually removing a handler from a logger.
+    Example: remove_file_handler(logger, file_handler)
+    '''
+    logger.removeHandler(handler)
+    handler.close()
+
 def pretty_print_coords(coords: Sequence[Point]) -> str:
     """Print the coordinates with a precision of 2"""
     return (
         "(" + ", ".join([f"({coord[0]:.2f}, {coord[1]:.2f})" for coord in coords]) + ")"
     )
+
+def is_file_empty(file_path):
+    '''Check if a file is empty.'''
+    return os.path.getsize(file_path) == 0
 
 
 def wait_for_file_availability(file_path, timeout=None, check_interval=1):

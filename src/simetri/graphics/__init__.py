@@ -33,6 +33,7 @@ from math import (
 )
 from itertools import cycle, combinations, permutations, product
 from random import choice, randint, random, uniform, shuffle
+import logging
 
 from numpy import linspace, arange, array, zeros, ones, full, eye, diag
 
@@ -73,3 +74,18 @@ style_map._set_pattern_style_alias_map()
 style_map._set_frame_style_alias_map()
 style_map._set_shape_args()
 style_map._set_batch_args()
+
+
+logger = logging.getLogger()
+logger.setLevel(defaults["log_level"]) # defaults comes from settings.py
+
+file_handler = logging.FileHandler(defaults["log_file"], mode='w', encoding='utf-8')
+file_handler.setLevel(defaults["log_level"])
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(defaults["log_level"])
+
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+defaults['logger'] = logger
