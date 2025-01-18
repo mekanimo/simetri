@@ -435,7 +435,7 @@ class Canvas:
                         )
                     )
                 else:
-                    if is_file_empty(log_file) and not defaults['keep_log_files']:
+                    if not defaults['keep_log_files']:
                         os.remove(log_file)
             tex_file = os.path.join(parent_dir, file_name + ".tex")
             if os.path.exists(tex_file):
@@ -460,9 +460,11 @@ class Canvas:
                             )
                         )
                     else:
-                        os.remove(pdf_file)
-
-
+                        # os.remove(pdf_file)
+                        pass
+            log_file = os.path.join(parent_dir, "simetri.log")
+            if os.path.exists(log_file):
+                os.remove(log_file)
         def run_job():
             output_path = os.path.join(parent_dir, file_name + extension)
             cmd = "xelatex " + tex_path

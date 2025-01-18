@@ -4,7 +4,7 @@
 # Testing is incomplete.
 # Everything is subject to change till we release a beta version.
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __author__ = "Fahri Basegmez"
 
 from math import (

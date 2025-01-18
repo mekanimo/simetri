@@ -475,6 +475,7 @@ class Shape(Base):
         self.primary_points = Points()
         self.xform_matrix = identity_matrix()
         self.style = ShapeStyle()
+        self._set_aliases()
         self._b_box = None
 
     def count(self, value):

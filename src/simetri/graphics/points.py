@@ -1,3 +1,8 @@
+'''Shape object uses the Points class to store the coordinates of the points that make up the shape.
+The Points class is a container for coordinates of multiple points.
+It provides conversion to homogeneous coordinates in nd_arrays.
+Shape.final_coords is computed by using the Points.homogen_coords property.'''
+
 import logging
 import copy
 from typing import Sequence
@@ -6,7 +11,7 @@ from numpy import allclose, ndarray
 from typing_extensions import Self
 
 
-from ..helpers.geometry import homogenize, close_points2
+from ..helpers.geometry import homogenize
 from .common import Point, common_properties
 from .all_enums import *
 from ..settings.settings import defaults
@@ -122,13 +127,6 @@ class Points:
 
     def __len__(self):
         return len(self.coords)
-
-    def __eq__(self, other):
-        return (
-            other.type == Types.POINTS
-            and len(self.coords) == len(other.coords)
-            and close_points2(self.nd_array, other.nd_array, dist2=self.dist_tol2)
-        )
 
     def __bool__(self):
         return bool(self.coords)
