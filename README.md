@@ -27,6 +27,12 @@ MikTeX handles package installations automatically, so it is recommended for use
 
 MiKTeX can be downloaded from https://miktex.org/download.
 
+
+### Install Jupyter notebooks
+If you would like to run the scripst from a notebook environment, you need to install Jupyter notebooks.
+
+See https://jupyter.org/install
+
 ## Requirements
 
 - Python version 3.9 or later.
