@@ -33,6 +33,21 @@ from ..graphics.common import Point
 Color = colors.Color
 
 
+def help_lines(
+    self,
+    pos: Point = None,
+    x_len: float = None,
+    y_len: float = None,
+    step_size=None,
+    cs_size: float = None,
+    **kwargs,
+):
+    """Draw a square grid with the given size."""
+    self.grid(pos, x_len, y_len, step_size, **kwargs)
+    self.draw_CS(cs_size, **kwargs)
+    return self
+
+
 def arc(
     self, center: Point, radius: float, start_angle: float, end_angle: float, **kwargs
 ) -> None:
@@ -100,22 +115,22 @@ def text(
     self,
     txt: str,
     pos: Point,
-    font_name: str = None,
+    font_family: str = None,
     font_size: int = None,
     font_color: Color = None,
     anchor: Anchor = None,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Draw the given text at the given position."""
     # first create a Tag object
     tag_obj = Tag(
         txt,
         pos,
-        font_name=font_name,
+        font_family=font_family,
         font_size=font_size,
         font_color=font_color,
         anchor=anchor,
-        **kwargs
+        **kwargs,
     )
     tag_obj.draw_frame = False
     # then call get_tag_sketch to create a TagSketch object
@@ -247,14 +262,6 @@ def grid(
     line_x = Shape([(x, y), (x, y + y_len)], **kwargs)
     lines_x = line_y.translate(0, step_size, reps=int(y_len / step_size))
     lines_y = line_x.translate(step_size, 0, reps=int(x_len / step_size))
-    # self.line((x, 0), (x+size, 0), **kwargs)
-    # # draw y-axis
-    # self.line((0, y), (0, y+size), **kwargs)
-    # for i in arange(step_size, size + 1, step_size):
-    #     self.line((i, -size), (i, size), **kwargs)
-    #     self.line((-size, i), (size, i), **kwargs)
-    #     self.line((-i, -size), (-i, size), **kwargs)
-    #     self.line((-size, -i), (size, -i), **kwargs)
     self.draw(lines_x)
     self.draw(lines_y)
     return self
@@ -313,6 +320,8 @@ def draw(self, item: Drawable, **kwargs) -> Self:
     # check if the item has any points
     if not item:
         return self
+    if item.type in [Types.SHAPE, Types.BATCH] and len(item) == 0:
+        return self
     active_sketches = self.active_page.sketches
     subtype = item.subtype
     extend_vertices(self, item)
@@ -340,8 +349,10 @@ def get_sketches(item: Drawable, canvas: "Canvas" = None, **kwargs) -> list["Ske
         sketches = create_sketch(item, canvas, **kwargs)
         if isinstance(sketches, list):
             res = sketches
-        else:
+        elif sketches is not None:
             res = [sketches]
+        else:
+            res = []
     else:
         res = []
     return res
@@ -479,6 +490,8 @@ def create_sketch(item, canvas, **kwargs):
         vertices = [
             (round(x[0], nround), round(x[1], nround)) for x in item.final_coords
         ]
+        if not vertices:
+            return None
         sketch = ShapeSketch(vertices, canvas._xform_matrix)
         for attrib_name in item._style_map:
             attrib_value = canvas._resolve_property(item, attrib_name)

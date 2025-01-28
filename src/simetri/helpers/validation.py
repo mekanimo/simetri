@@ -14,6 +14,10 @@ from ..colors import Color
 # Validation functions. They return True if the value is valid, False otherwise.
 
 
+def check_str(value: Any) -> bool:
+    """Check if the value is a string."""
+    return isinstance(value, str)
+
 def check_int(value: Any) -> bool:
     """Check if the value is an integer."""
     return isinstance(value, int)
@@ -119,13 +123,11 @@ exclude = [
 for item in items:
     name = item[0]
     if isinstance(item[1], enum.EnumMeta) and name not in exclude:
-        key = pattern.sub("_", name).lower()
-        enum_map[key] = item[1]
+        key_ = pattern.sub("_", name).lower()
+        enum_map[key_] = item[1]
 
 d_validators = {
     "alpha": check_number,
-    # "anchor": check_anchor,
-    # "back_style": check_back_style,
     "clip": check_bool,
     "color": check_color,
     "dist_tol": check_number,
@@ -142,26 +144,26 @@ d_validators = {
     "fill_color": check_color,
     "fillet_radius": check_number,
     "font_color": check_color,
+    "font_family": check_str,
+    "frame_inner_sep": check_number,
+    "frame_inner_xsep": check_number,
+    "frame_inner_ysep": check_number,
     "frame_min_height": check_number,
     "frame_min_width": check_number,
-    "frame_shape": check_enum,
     "grid_alpha": check_number,
     "grid_back_color": check_color,
     "grid_line_color": check_color,
     "grid_line_width": check_number,
     "line_alpha": check_number,
     "line_blend_mode": check_blend_mode,
-    # "line_cap": check_line_cap,
     "line_color": check_color,
     "line_dash_array": check_dash_array,
     "line_dash_phase": check_number,
-    # "line_join": check_line_join,
     "line_miter_limit": check_number,
     "line_width": check_number,
     "marker_color": check_color,
     "marker_radius": check_number,
     "marker_size": check_number,
-    # "marker_type": check_marker,
     "markers_only": check_bool,
     "mask": check_mask,
     "pattern_angle": check_number,
@@ -170,7 +172,6 @@ d_validators = {
     "pattern_line_width": check_number,
     "pattern_points": check_int,
     "pattern_radius": check_number,
-    # "pattern_type": check_pattern,
     "pattern_xshift": check_number,
     "pattern_yshift": check_number,
     "points": check_points,
@@ -191,11 +192,9 @@ d_validators = {
     "shade_top_color": check_color,
     "shade_upper_left_color": check_color,
     "shade_upper_right_color": check_color,
-    # "shade_type": check_shade_type,
     "smooth": check_bool,
     "stroke": check_bool,
     "xform_matrix": check_xform_matrix,
-    # "fill_mode": check_fill_mode,
     "subtype": check_subtype,
     "text_alpha": check_number,
     "transparency_group": check_bool,

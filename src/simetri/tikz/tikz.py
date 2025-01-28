@@ -6,7 +6,7 @@ Sketch objects are converted to TikZ code."""
 
 from __future__ import annotations
 
-from math import degrees, cos, sin
+from math import degrees, cos, sin, ceil
 from typing import List, Union
 from dataclasses import dataclass, field
 
@@ -17,11 +17,16 @@ from ..graphics.common import common_properties
 from ..graphics.all_enums import (
     BackStyle,
     FontSize,
+    FontFamily,
     MarkerType,
     ShadeType,
     Types,
     TexLoc,
     FrameShape,
+    DocumentClass,
+    Align,
+    ArrowLine,
+    BlendMode,
     get_enum_value,
 )
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
@@ -35,6 +40,9 @@ from ..colors import Color
 
 np.set_printoptions(legacy="1.21")
 array = np.array
+
+
+enum_map = {}
 
 
 def scope_code_required(item: Union["Canvas", "Batch"]) -> bool:
@@ -134,6 +142,7 @@ class Tex:
 \\setmainfont{{{defaults['main_font']}}}
 \\setsansfont{{{defaults['sans_font']}}}
 \\setmonofont{{{defaults['mono_font']}}}\n"""
+        libraries = '\\usetikzlibrary{patterns, patterns.meta, backgrounds}\n'
         if canvas.border is None:
             border = defaults["border"]
         elif isinstance(canvas.border, (int, float)):
@@ -148,8 +157,8 @@ class Tex:
         for font in fonts:
             if font is None:
                 continue
-            font_name = font.replace(" ", "")
-            fonts_section += f"\\newfontfamily\\{font_name}[Scale=1.0]{{{font}}}\n"
+            font_family = font.replace(" ", "")
+            fonts_section += f"\\newfontfamily\\{font_family}[Scale=1.0]{{{font}}}\n"
         preamble = f"{doc_class}{packages}{libraries}{fonts_section}"
 
         indices = False
@@ -285,43 +294,6 @@ class Grid(sg.Shape):
         super().__init__([p1, p2], xform_matrix=None, subtype=sg.Types.GRID, **kwargs)
 
 
-# fonts can be
-
-
-def get_font(tag: TagSketch) -> str:
-    """Get the font."""
-    if tag.font not in [
-        None,
-        "",
-        defaults["main_font"],
-        defaults["sans_font"],
-        defaults["mono_font"],
-    ]:
-        font = tag.font
-    else:
-        font = ""
-    return font
-
-
-def get_font_size(tag: TagSketch) -> Union[str, float]:
-    """Get the font size."""
-    font_size = defaults["font_size"]
-    if isinstance(tag.font_size, (float, int)):
-        font_size = tag.font_size
-    elif isinstance(tag.font_size, FontSize):
-        font_size = tag.font_size.value
-    return font_size
-
-
-def get_font_color(tag: TagSketch) -> str:
-    """Get the font color."""
-    if tag.font_color not in [None, "", defaults["font_color"]]:
-        font_color = color2tikz(tag.font_color)
-    else:
-        font_color = ""
-    return font_color
-
-
 def get_min_size(sketch: ShapeSketch) -> str:
     """Returns the minimum size of the tag node."""
     options = []
@@ -344,54 +316,6 @@ def get_min_size(sketch: ShapeSketch) -> str:
         options.append(f"minimum size = {min_size}")
 
     return options
-
-
-def font_details(sketch: TagSketch) -> str:
-    """Returns the font details for the tag node."""
-    font_size = get_font_size(sketch)
-    brace_count = 0
-    default_fonts = [
-        defaults["main_font"],
-        defaults["sans_font"],
-        defaults["mono_font"],
-    ]
-    alias = None
-    command = ""
-
-    d_families = {
-        defaults["main_font"]: "",
-        defaults["sans_font"]: "\\textsf{",
-        defaults["mono_font"]: "\\texttt{",
-    }
-    if sketch.font_name not in default_fonts and sketch.font_name:
-        alias = sketch.font_name.replace(" ", "")
-    else:
-        if sketch.font_name in default_fonts:
-            command = d_families[sketch.font_name]
-            brace_count += 1
-
-    if font_size in FontSize:
-        command += f"\\{font_size}{{"
-        brace_count += 1
-
-    attrib_map = {
-        "bold": "\\textbf{",
-        "italic": "\\textit{",
-        "small_caps": "\\textsc{",
-        "underline": "\\underline{",
-        "overline": "\\textoverline{",
-        "strike_through": "\\st{",
-    }
-    styles = ["bold", "italic", "small_caps", "underline", "overline", "strike_through"]
-
-    for style in styles:
-        if getattr(sketch, style):
-            command += attrib_map[style]
-            brace_count += 1
-
-    font_color = get_font_color(sketch)
-
-    return command, alias, brace_count, font_size, font_color
 
 
 def frame_options(sketch: TagSketch) -> List[str]:
@@ -566,55 +490,50 @@ def get_frame_options(sketch):
     return options
 
 
-def draw_tag_sketch_(sketch, canvas):
-    """Converts a TagSketch to TikZ code."""
-    # \node at (0,0) {some text};
-    # x, y = sketch.pos[:2]
-    pos = homogenize(sketch.pos) @ canvas.xform_matrix
-    x, y = pos[0][:2]
-    # \fontsize{32}{38}\selectfont
-    # f"\\node at ({x}, {y}) {{{text}}};\n" +
-    res = ""
-    color = ""
-    if sketch.font_color is not None:
-        color = f"[text={color2tikz(sketch.font_color)}] "
-    if sketch.back_color is not None:
-        back_color = color2tikz(sketch.back_color)
-        back_color = f"[fill={back_color}]"
-    else:
-        back_color = ""
-
-    if sketch.font_size is None or sketch.font_size == defaults["font_size"]:
-        # res += f"\\node at ({x}, {y}) {{{text}}};\n"
-        res += f"\\node{back_color} {color} at ({x}, {y}) {{{sketch.text}}};\n"
-    elif sketch.font or sketch.font_size or sketch.font_color:
-        alias = sketch.font.replace(" ", "")
-        text = sketch.text
-        font_size = sketch.font_size
-        skip = int(font_size * 1.2)  # baseline skip
-        if sketch.font_color:
-            color = color2tikz(sketch.font_color)
-            res = (
-                f"\\node [text={color}] at ({x}, {y}) "
-                f"{{\\fontsize{{{font_size}}}{{{skip}}}\\selectfont\\{alias} {text}}};"
-            )
-        else:
-            res = (
-                f"\\node at ({x}, {y}) {{\\fontsize{{{font_size}}}{{{skip}}}"
-                f"\\selectfont\\{alias} {text}}};"
-            )
-    else:
-        res += (
-            f"\\node{back_color} {color} at ({x}, {y}) {{\\fontsize{{{sketch.font_size}}}"
-            f"{{{sketch.font_size * 1.2}}}\\selectfont {sketch.text}}};\n"
-        )
-
-    return res
-
-
 def draw_tag_sketch(sketch, canvas):
     """Converts a TagSketch to TikZ code."""
     # \node at (0,0) {some text};
+    def get_font_family(sketch):
+        default_fonts = [defaults['main_font'], defaults['sans_font'], defaults['mono_font']]
+
+        if sketch.font_family in default_fonts:
+            if sketch.font_family == defaults['main_font']:
+                res = 'tex_family', ''
+            elif sketch.font_family == defaults['sans_font']:
+                res = 'tex_family', 'textsf'
+            else: # defaults['mono_font']
+                res = 'tex_family', 'texttt'
+        elif sketch.font_family:
+            if type(sketch.font_family) == FontFamily:
+                if sketch.font_family == FontFamily.SANSSERIF:
+                    res = 'tex_family', 'textsf'
+                elif sketch.font_family == FontFamily.MONOSPACE:
+                    res = 'tex_family', 'texttt'
+                else:
+                    res = 'tex_family', 'textrm'
+
+            elif isinstance(sketch.font_family, str):
+                res = 'new_family', sketch.font_family.replace(" ", "")
+
+            else:
+                raise ValueError(f"Font family {sketch.font_family} not supported.")
+        else:
+            res = 'no_family', None
+
+        return res
+
+    def get_font_size(sketch):
+
+        if sketch.font_size:
+            if isinstance(sketch.font_size, FontSize):
+                res = 'tex_size', sketch.font_size.value
+            else:
+                res = 'num_size', sketch.font_size
+        else:
+            res = 'no_size', None
+
+        return res
+
     pos = homogenize(sketch.pos) @ canvas.xform_matrix
     x, y = pos[0][:2]
 
@@ -624,35 +543,87 @@ def draw_tag_sketch(sketch, canvas):
         if sketch.stroke:
             if sketch.frame_shape != FrameShape.RECTANGLE:
                 options += f", {sketch.frame_shape}"
-            if sketch.line_width:  # defaults['line_width']
-                options += f", line width={sketch.line_width}"
-            if sketch.line_color:
-                options += f", color={color2tikz(sketch.line_color)}"
-            if sketch.line_dash_array:
-                options += f", dash pattern={get_dash_pattern(sketch.line_dash_array)}"
+            line_style_options = get_line_style_options(sketch)
+            if line_style_options:
+                options += ', '.join(line_style_options)
+            if sketch.frame_inner_sep:
+                options += f", inner sep={sketch.frame_inner_sep}"
+            if sketch.minimum_width:
+                options += f", minimum width={sketch.minimum_width}"
+            if sketch.smooth and sketch.frame_shape not in [
+                FrameShape.CIRCLE,
+                FrameShape.ELLIPSE,
+            ]:
+                options += ", smooth"
+
     if sketch.fill and sketch.back_color:
         options += f", fill={color2tikz(sketch.frame_back_color)}"
     if sketch.anchor:
         options += f", anchor={sketch.anchor.value}"
-    # #\fontsize{32}{38}\selectfont
-    # # f"\\node at ({x}, {y}) {{{sketch.text}}};\n" +
-    if sketch.font_color is not None:
-        text = f"{{\\textcolor{color2tikz(sketch.font_color)}{{{sketch.text}}}}}"
+    if sketch.back_style == BackStyle.SHADING and sketch.fill:
+        shading_options = get_shading_options(sketch)[0]
+        options += ", " + shading_options
+    if sketch.back_style == BackStyle.PATTERN and sketch.fill:
+        pattern_options = get_pattern_options(sketch)[0]
+        options += ", " + pattern_options
+    if sketch.align != Align.CENTER:
+        options += f", align={sketch.align.value}"
+
+
+# no_family, tex_family, new_family
+# no_size, tex_size, num_size
+
+# num_size and new_family {\fontsize{20}{24} \selectfont \Verdana ABCDEFG Hello, World! 25}
+# tex_size and new_family {\large{\selectfont \Verdana ABCDEFG Hello, World! 50}}
+# no_size and new_family {\selectfont \Verdana ABCDEFG Hello, World! 50}
+
+# tex_family {\textsc{\textit{\textbf{\Huge{\texttt{ABCDG Just a test -50}}}}}};
+
+# no_family {\textsc{\textit{\textbf{\Huge{ABCDG Just a test -50}}}}};
+
+    if sketch.font_color is not None and sketch.font_color != defaults["font_color"]:
+        options += f", text={color2tikz(sketch.font_color)}"
+    family, font_family = get_font_family(sketch)
+    size, font_size = get_font_size(sketch)
+    tex_text = ''
+    if sketch.small_caps:
+        tex_text += '\\textsc{'
+
+    if sketch.italic:
+        tex_text += '\\textit{'
+
+    if sketch.bold:
+        tex_text += '\\textbf{'
+
+    if size == 'num_size':
+        f_size = font_size
+        f_size2 = ceil(font_size * 1.2)
+        tex_text += f"\\fontsize{{{f_size}}}{{{f_size2}}}\\selectfont "
+
+    elif size == 'tex_size':
+        tex_text += f"\\{font_size}{{\\selectfont "
+
     else:
-        text = f"{{{sketch.text}}}"
-    res = ""
-    # if sketch.font:
-    #     res = f"\\fontspec{{{sketch.font}}};\n"
-    if sketch.font_size is None or sketch.font_size == defaults["font_size"]:
-        #     #res += f"\\node at ({x}, {y}) {{{sketch.text}}};\n"
-        res += f"\\node[{options}] at ({x}, {y}) {text};\n"
-    else:
-        #     # res += (f"\\node at ({x}, {y}) {{\\fontsize{{{sketch.font_size}}}"
-        #     #        f"{{{sketch.font_size * 1.2}}}\selectfont {{{sketch.text}}}}};\n")
-        res += (
-            f"\\node[{options}] at ({x}, {y}) {{\\fontsize{{{sketch.font_size}}}"
-            f"{{{sketch.font_size * 1.2}}}\\selectfont {text}}};\n"
-        )
+        tex_text += "\\selectfont "
+
+    if family == 'new_family':
+        tex_text += f"\\{font_family} {sketch.text}}}"
+
+    elif family == 'tex_family':
+        if font_family:
+            tex_text += f"\\{font_family}{{ {sketch.text}}}}}"
+        else:
+            tex_text += f"{{ {sketch.text}}}"
+    else: # no_family
+        tex_text += f"{{ {sketch.text}}}"
+
+    tex_text = '{' + tex_text
+
+    open_braces = tex_text.count('{')
+    close_braces = tex_text.count('}')
+    tex_text = tex_text + '}' * (open_braces - close_braces)
+
+    res = f"\\node[{options}] at ({x}, {y}) {tex_text};\n"
 
     return res
 
@@ -701,7 +672,7 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
     return options
 
 
-def get_line_style_options(sketch, exceptions=None, frame=False):
+def get_line_style_options(sketch, exceptions=None):
     """Returns the options for the line style."""
     attrib_map = {
         "line_color": "color",
@@ -715,16 +686,9 @@ def get_line_style_options(sketch, exceptions=None, frame=False):
         "smooth": "smooth",
         "fillet_radius": "rounded corners",
     }
-    if frame:
-        exceptions = ["line_color"]
-        attribs = list(line_style_map.keys())
-        attribs.remove("line_color")
-    else:
-        attribs = list(line_style_map.keys())
+    attribs = list(line_style_map.keys())
     if sketch.stroke:
         if exceptions and "draw_fillets" not in exceptions:
-            conditions = {"fillet_radius": sketch.draw_fillets}
-        elif frame:
             conditions = {"fillet_radius": sketch.draw_fillets}
         else:
             conditions = None
@@ -737,9 +701,6 @@ def get_line_style_options(sketch, exceptions=None, frame=False):
         if not sketch.smooth:
             attribs.remove("smooth")
         res = sg_to_tikz(sketch, attribs, attrib_map, conditions, exceptions)
-        if frame:
-            res = [f"draw = {color2tikz(getattr(sketch, 'line_color'))}"] + res
-
     else:
         res = []
 

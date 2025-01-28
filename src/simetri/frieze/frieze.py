@@ -9,7 +9,6 @@ from ..graphics.batch import Batch
 from ..graphics.shape import Shape
 
 
-
 def hop(design: Union[Batch, Shape], vector: VecType = (1, 0), reps: int = 3) -> Batch:
     """p1 symmetry group.
     vector argument's orientation is the direction of the hop.

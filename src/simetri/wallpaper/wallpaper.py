@@ -1,6 +1,7 @@
 """Simetri graphics library's wallpaper patterns.
 """
-#Only six of the 17 wallpaper groups are tested yet.
+
+# Only six of the 17 wallpaper groups are tested yet.
 
 from math import sqrt, pi, cos
 
@@ -290,7 +291,7 @@ def wallpaper_p3(
     directory = 'c:/tmp'
     canvas = sg.Canvas()
     F = sg.letter_F()
-    rotocenter = F.north_west
+    rotocenter = F.northwest
     distance = 100
 
     pattern = wp.wallpaper_p3(F, rotocenter, distance, reps1=4, reps2=4)
@@ -330,7 +331,7 @@ def wallpaper_p4(
     canvas = sg.Canvas()
 
     F = sg.letter_F()
-    x, y = F.north_west
+    x, y = F.northwest
     rotocenter = (x-5, y+5)
     distance = 170
     reps1 = 4

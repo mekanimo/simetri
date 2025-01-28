@@ -1,10 +1,11 @@
-'''simetri.graphics is a module that provides a simple and intuitive way to create geometric shapes and patterns.'''
+"""simetri.graphics is a module that provides a simple and intuitive way to create geometric shapes and patterns."""
+
 # status: prototype
 # This is a proof of concept.
 # Testing is incomplete.
 # Everything is subject to change till we release a beta version.
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 __author__ = "Fahri Basegmez"
 
 from math import (
@@ -44,6 +45,7 @@ from .affine import *
 from ..frieze import *
 from ..settings.settings import *
 from ..graphics.common import *
+
 set_defaults()
 from .dots import *
 from ..graphics.sketch import *
@@ -60,6 +62,8 @@ import simetri.stars as stars
 import simetri.wallpaper as wallpaper
 import simetri.frieze as frieze
 from ..graphics.all_enums import *
+from ..turtle.turtle_sg import Turtle, spirolateral
+
 
 set_tikz_defaults()
 
@@ -77,9 +81,9 @@ style_map._set_batch_args()
 
 
 logger = logging.getLogger()
-logger.setLevel(defaults["log_level"]) # defaults comes from settings.py
+logger.setLevel(defaults["log_level"])  # defaults comes from settings.py
 
-file_handler = logging.FileHandler(defaults["log_file"], mode='w', encoding='utf-8')
+file_handler = logging.FileHandler(defaults["log_file"], mode="w", encoding="utf-8")
 file_handler.setLevel(defaults["log_level"])
 
 console_handler = logging.StreamHandler()
@@ -88,4 +92,4 @@ console_handler.setLevel(defaults["log_level"])
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
-defaults['logger'] = logger
+defaults["logger"] = logger

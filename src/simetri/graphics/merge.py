@@ -7,6 +7,7 @@ from ..settings.settings import defaults
 from ..helpers.geometry import right_handed, fix_degen_points
 from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges2nodes
 
+
 def merge_shapes_(
     self,
     tol: float = None,
@@ -15,9 +16,10 @@ def merge_shapes_(
     dist_tol: float = None,
     n_round: int = None,
     **kwargs,
-) -> 'Batch':
+) -> "Batch":
     from .batch import Batch
     from .shape import Shape
+
     """Tries to merge the shapes in the batch. Returns a new batch
     with the merged shapes as well as the shapes that could not be merged."""
     # if all shapes have only one point
@@ -81,9 +83,7 @@ def merge_shapes_(
                 vertices = [d_node_id_coords[node] for node in nodes]
                 if not right_handed(vertices):
                     vertices.reverse()
-                vertices = fix_degen_points(
-                    vertices, closed=False, dist_tol=dist_tol
-                )
+                vertices = fix_degen_points(vertices, closed=False, dist_tol=dist_tol)
                 shape = Shape(vertices)
                 new_shapes.append(shape)
             else:

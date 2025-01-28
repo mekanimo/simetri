@@ -7,7 +7,7 @@ are not used in the main codebase or tested."""
 
 from __future__ import annotations
 
-from math import hypot, atan2, floor, pi, sin, cos, sqrt, exp
+from math import hypot, atan2, floor, pi, sin, cos, sqrt, exp, sqrt
 from itertools import cycle
 from typing import Any, Union, Sequence
 
@@ -114,6 +114,30 @@ def damping_function(amplitude, duration, sample_rate):
     for i in range(int(duration * sample_rate)):
         damping.append(amplitude * exp(-i / (duration * sample_rate)))
     return damping
+
+
+def circle_inversion(point, center, radius):
+    """Inverts a point with respect to a circle.
+    Args:
+    point: The point to invert, represented as a tuple (x, y).
+    center: The center of the circle, represented as a tuple (x, y).
+    radius: The radius of the circle.
+    Returns:
+    The inverted point, represented as a tuple (x, y).
+    """
+    x, y = point
+    cx, cy = center
+    # Calculate the distance from the point to the center of the circle
+    dist = sqrt((x - cx) ** 2 + (y - cy) ** 2)
+    # If the point is at the center of the circle, return the point at infinity
+    if dist == 0:
+        return float("inf"), float("inf")
+    # Calculate the distance from the inverted point to the center of the circle
+    inv_dist = radius**2 / dist
+    # Calculate the inverted point
+    inv_x = cx + inv_dist * (x - cx) / dist
+    inv_y = cy + inv_dist * (y - cy) / dist
+    return inv_x, inv_y
 
 
 def line_segment_bbox(

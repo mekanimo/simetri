@@ -3,8 +3,8 @@ arrows, dimensions, etc."""
 
 from dataclasses import dataclass
 from math import pi, atan2
+from PIL import ImageFont
 
-from matplotlib import pyplot as plt
 import numpy as np
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
@@ -15,7 +15,7 @@ from ..graphics.points import Points
 from ..graphics.batch import Batch
 from ..graphics.shape import Shape
 
-from ..graphics.shapes import Arc
+from ..graphics.shapes import Arc, reg_poly_points_side_length
 from ..graphics.common import get_defaults, common_properties, Point, _set_Nones
 from ..graphics.all_enums import (
     Types,
@@ -24,6 +24,8 @@ from ..graphics.all_enums import (
     FrameShape,
     HeadPos,
     ArrowLine,
+    Placement,
+    FontSize,
 )
 from ..canvas.style_map import shape_style_map, tag_style_map, TagStyle
 from ..graphics.affine import identity_matrix
@@ -112,6 +114,19 @@ def logo(scale=1):
     kernel2.fill_color = colors.white
 
     return Batch([kernel1, kernel2])
+def convert_latex_font_size(latex_font_size:FontSize):
+    d_font_size = {
+        FontSize.TINY:5,
+        FontSize.SMALL:7,
+        FontSize.NORMAL:10,
+        FontSize.LARGE:12,
+        FontSize.LARGE2:14,
+        FontSize.LARGE3:17,
+        FontSize.HUGE:20,
+        FontSize.HUGE2:25
+    }
+
+    return d_font_size[latex_font_size]
 
 
 def letter_F_points():
@@ -142,6 +157,20 @@ def letter_F(scale=1, **kwargs):
         else:
             raise AttributeError(f"{k}. Invalid attribute!")
     return F
+
+
+def cube(size: float = 100):
+    """Returns a Batch object representing a cube.
+    The cube is centered at the origin."""
+    points = reg_poly_points_side_length((0, 0), 6, size)
+    center = (0, 0)
+    face1 = Shape([points[0], center] + points[4:], closed=True)
+    cube_ = face1.rotate(-2 * pi / 3, (0, 0), reps=2)
+    cube_[0].fill_color = Color(0.3, 0.3, 0.3)
+    cube_[1].fill_color = Color(0.4, 0.4, 0.4)
+    cube_[2].fill_color = Color(0.6, 0.6, 0.6)
+
+    return cube_
 
 
 # To do: use a different name for the Annotation class
@@ -209,10 +238,15 @@ class Tag(Base):
         self,
         text: str,
         pos: Point,
-        font_name: str = None,
+        font_family: str = None,
         font_size: int = None,
         font_color: Color = None,
         anchor: Anchor = Anchor.CENTER,
+        text_width: float = None,
+        placement: Placement = None,
+        minimum_size: float = None,
+        minimum_width: float = None,
+        minimum_height: float = None,
         frame=None,
         xform_matrix=None,
         **kwargs,
@@ -224,10 +258,10 @@ class Tag(Base):
         tag_attribs.append("subtype")
         _set_Nones(
             self,
-            ["font_name", "font_size", "font_color", "anchor"],
-            [font_name, font_size, font_color, anchor],
+            ["font_family", "font_size", "font_color"],
+            [font_family, font_size, font_color],
         )
-        validate_args(kwargs, tag_style_map)
+        validate_args(kwargs, tag_attribs)
         x, y = pos[:2]
         self._init_pos = array([x, y, 1.0])
 
@@ -238,8 +272,8 @@ class Tag(Base):
         self.subtype = Types.TAG
         self.style = TagStyle()
         self.style.draw_frame = True
-        if font_name:
-            self.font_name = font_name
+        if font_family:
+            self.font_family = font_family
         if font_size:
             self.font_size = font_size
         else:
@@ -250,15 +284,19 @@ class Tag(Base):
             self.xform_matrix = get_transform(xform_matrix)
 
         self.anchor = anchor
+        self.text_width = text_width
+        self.placement = placement
+        self.minimum_size = minimum_size
+        self.minimum_width = minimum_width
+        self.minimum_height = minimum_height
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        x1, y1, x2, y2 = self.bounds()
+        x1, y1, x2, y2 = self.text_bounds()
         w = x2 - x1
         h = y2 - y1
         self.points = Points([(0, 0, 1), (w, 0, 1), (w, h, 1), (0, h, 1)])
         common_properties(self)
-        self._style_map = tag_style_map
 
     def __setattr__(self, name, value):
         obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
@@ -315,17 +353,23 @@ class Tag(Base):
         """Returns a copy of the Tag object."""
         return Tag(0, 0, self.text, self.font_style, self.xform_matrix)
 
-    def bounds(self) -> tuple[float, float, float, float]:
-        """Returns the bounding box of the text."""
-        # Use matplotlib to get the bounding box of the text
-        font_size = self.font_size
-        fig = plt.figure()
-        text_obj = fig.text(x=0, y=0, s=self.text, fontsize=font_size)
-        fig.canvas.draw()  # Ensure the text object is rendered
-        bbox = text_obj.get_window_extent()
-        plt.close(fig)
+    def text_bounds(self) -> tuple[float, float, float, float]:
+        """Returns the bounds of the text."""
+        if self.font_size is None:
+            font_size = defaults["font_size"]
+        elif type(self.font_size) in [int, float]:
+            font_size = self.font_size
+        elif self.font_size in FontSize:
+            font_size = convert_latex_font_size(self.font_size)
+        else:
+            raise ValueError("Invalid font size.")
+        try:
+            font = ImageFont.truetype(f"{self.font_family}.ttf", font_size)
+        except OSError:
+            font = ImageFont.load_default()
+        xmin, ymin, xmax, ymax = font.getbbox(self.text)
 
-        return bbox.x0, bbox.y0, bbox.x1, bbox.y1
+        return xmin, ymin, xmax, ymax
 
     @property
     def final_coords(self):

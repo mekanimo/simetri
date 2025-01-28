@@ -1,6 +1,6 @@
 """Shape objects are the main geometric entities in Simetri. They are created by providing a sequence of points (a list of (x, y) coordinates). If a style argument (a ShapeStyle object) is provided, then the style attributes of this ShapeStyle object will superseed the style attributes of the Shape object. The dist_tol argument is the distance tolerance for checking. The xform_matrix argument is the transformation matrix. Additional attributes can be provided as keyword arguments. The line_width, fill_color, line_style, etc. for style attributes can be provided as keyword arguments. The Shape object has a subtype attribute that can be set to one of the values in the shape_types dictionary. The Shape object has a dist_tol attribute that is the distance tolerance for checking. The Shape object has a dist_tol2 attribute that is the square of the distance tolerance. The Shape object has a primary_points attribute that is a Points object. The Shape object has a closed attribute that is a boolean value. The Shape object has an xform_matrix attribute that is a transformation matrix. The Shape object has a type attribute that is a Types.SHAPE object. The Shape object has a subtype attribute that is a Types.SHAPE object. The Shape object has a dist_tol attribute that is a distance tolerance for checking. The Shape object has a dist_tol2 attribute that is the square of the distance tolerance. The Shape object has a _b_box attribute that is a bounding box. The Shape object has a area attribute that is the area of the shape. The Shape object has a total_length attribute that is the total length of the shape. The Shape object has a is_polygon attribute that is a boolean value. The Shape object has a topology attribute that is a set of topology values. The Shape object has a merge method that merges two shapes if they are connected. The Shape object has a _chain_vertices method that chains two sets of vertices if they are connected. The Shape object has a _is_polygon method that returns True if the vertices form a polygon. The Shape object has an as_graph method that returns the shape as a graph object. The Shape object has an as_array method that returns the vertices as an array. The Shape object has an as_list method that returns the vertices as a list of tuples. The Shape object has a final_coords attribute that is the final coordinates of the shape. The Shape object has a vertices attribute that is the final coordinates of the shape. The Shape object has a vertex"""
 
-__all__=["Shape", "custom_attributes"]
+__all__ = ["Shape", "custom_attributes"]
 
 from typing import Sequence, Union, List
 import logging
@@ -37,6 +37,7 @@ from .core import Base
 from .bbox import bounding_box
 from .points import Points
 from .batch import Batch
+
 
 class Shape(Base):
     """The main class for all geometric entities in Simetri.
@@ -233,7 +234,13 @@ class Shape(Base):
         return res
 
     def __eq__(self, other):
-        if isinstance(other, Shape) and len(self) == len(other):
+        len1 = len(self)
+        len2 = len(other)
+        if len1 == 0 and len2 == 0:
+            res = True
+        elif len1 == 0 or len2 == 0:
+            res = False
+        elif isinstance(other, Shape) and len1 == len2:
             res = allclose(
                 self.xform_matrix,
                 other.xform_matrix,
@@ -433,7 +440,10 @@ class Shape(Base):
     @property
     def vertex_pairs(self):
         """Return a list of connected pairs of vertices."""
-        return connected_pairs(self.vertices)
+        vertices = list(self.vertices)
+        if self.closed:
+            vertices.append(vertices[0])
+        return connected_pairs(vertices)
 
     @property
     def orig_coords(self):
@@ -443,7 +453,10 @@ class Shape(Base):
     @property
     def b_box(self):
         """Return the bounding box of the shape."""
-        self._b_box = bounding_box(self.final_coords)
+        if self.primary_points:
+            self._b_box = bounding_box(self.final_coords)
+        else:
+            self._b_box = bounding_box([(0, 0)])
         return self._b_box
 
     @property
@@ -527,7 +540,8 @@ class Shape(Base):
         """Reverse the order of the vertices."""
         self.primary_points.reverse()
 
-def custom_attributes(item: Shape)-> List[str]:
+
+def custom_attributes(item: Shape) -> List[str]:
     """
     Return a list of custom attributes of a Shape or
     Batch instance.

@@ -31,7 +31,11 @@ from simetri.graphics.batch import Batch
 from simetri.graphics.shape import Shape
 from simetri.colors import colors
 from simetri.canvas import draw
-from simetri.helpers.utilities import wait_for_file_availability, is_file_empty, close_logger
+from simetri.helpers.utilities import (
+    wait_for_file_availability,
+    is_file_empty,
+    close_logger,
+)
 from simetri.tikz.tikz import Tex, get_tex_code
 from simetri.helpers.validation import validate_args
 from simetri.canvas.style_map import canvas_args
@@ -126,7 +130,7 @@ class Canvas:
         self,
         text: str,
         pos: Point,
-        font_name: str = None,
+        font_family: str = None,
         font_size: int = None,
         anchor: Anchor = None,
         **kwargs,
@@ -136,11 +140,24 @@ class Canvas:
             self,
             txt=text,
             pos=pos,
-            font_name=font_name,
+            font_family=font_family,
             font_size=font_size,
             anchor=anchor,
             **kwargs,
         )
+        return self
+
+    def help_lines(
+        self,
+        pos=(-100, -100),
+        x_len: float = 400,
+        y_len: float = 400,
+        spacing=25,
+        cs_size: float = 25,
+        **kwargs,
+    ):
+        """Draw help lines on the canvas."""
+        draw.help_lines(self, pos, x_len, y_len, spacing, cs_size, **kwargs)
         return self
 
     def grid(
@@ -328,10 +345,16 @@ class Canvas:
     def get_fonts_list(self) -> list[str]:
         """Get the list of fonts used in the canvas."""
         user_fonts = set(self._font_list)
-        latex_fonts = set(
-            [defaults["main_font"], defaults["sans_font"], defaults["mono_font"]]
-        )
 
+        latex_fonts = set(
+            [defaults["main_font"], defaults["sans_font"], defaults["mono_font"],
+            'serif', 'sansserif', 'monospace']
+        )
+        for sketch in self.active_page.sketches:
+            if sketch.subtype == Types.TAGSKETCH:
+                name = sketch.font_family
+                if name is not None and name not in latex_fonts:
+                    user_fonts.add(name)
         return list(user_fonts.difference(latex_fonts))
 
     def _calculate_size(self, border=None, b_box=None) -> Tuple[float, float]:
@@ -348,7 +371,7 @@ class Canvas:
                     border = self.border
             w = b_box.width + 2 * border
             h = b_box.height + 2 * border
-            offset_x, offset_y = b_box.south_west
+            offset_x, offset_y = b_box.southwest
             res = w, h, offset_x - border, offset_y - border
         else:
             logging.warning("No vertices to calculate the size.")
@@ -435,7 +458,7 @@ class Canvas:
                         )
                     )
                 else:
-                    if not defaults['keep_log_files']:
+                    if not defaults["keep_log_files"]:
                         os.remove(log_file)
             tex_file = os.path.join(parent_dir, file_name + ".tex")
             if os.path.exists(tex_file):
@@ -449,7 +472,7 @@ class Canvas:
                 else:
                     os.remove(tex_file)
             file_name, extension = os.path.splitext(file_name)
-            if extension not in ['.pdf', '.tex']:
+            if extension not in [".pdf", ".tex"]:
                 pdf_file = os.path.join(parent_dir, file_name + ".pdf")
                 if os.path.exists(pdf_file):
                     if not wait_for_file_availability(pdf_file, time_out):
@@ -464,7 +487,12 @@ class Canvas:
                         pass
             log_file = os.path.join(parent_dir, "simetri.log")
             if os.path.exists(log_file):
-                os.remove(log_file)
+                try:
+                    os.remove(log_file)
+                except PermissionError:
+                    # to do: log the error
+                    pass
+
         def run_job():
             output_path = os.path.join(parent_dir, file_name + extension)
             cmd = "xelatex " + tex_path
@@ -506,13 +534,12 @@ class Canvas:
             return self
 
         run_job()
-        close_logger(defaults['logger'])
+        close_logger(defaults["logger"])
         remove_aux_files(file_path)
 
         # show the file in the browser
         self._show_browser(file_path=file_path, show_browser=show, multi_page_svg=False)
         return self
-
 
     def new_page(self, **kwargs) -> Self:
         """create a new page and add it to the canvas.pages"""

@@ -1,9 +1,8 @@
-"""Main module for the simetri package."""
+"""Base class. This is the parent for Shape and Batch classes."""
 
 __all__ = [
     "Base",
 ]
-
 
 
 from typing import Sequence, Any, Union
@@ -44,10 +43,10 @@ class Base:
         #     return self
 
         _anchors = [
-            "south_east",
-            "south_west",
-            "north_east",
-            "north_west",
+            "southeast",
+            "southwest",
+            "northeast",
+            "northwest",
             "south",
             "north",
             "east",

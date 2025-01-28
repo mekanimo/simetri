@@ -1,7 +1,7 @@
-'''Shape object uses the Points class to store the coordinates of the points that make up the shape.
+"""Shape object uses the Points class to store the coordinates of the points that make up the shape.
 The Points class is a container for coordinates of multiple points.
 It provides conversion to homogeneous coordinates in nd_arrays.
-Shape.final_coords is computed by using the Points.homogen_coords property.'''
+Shape.final_coords is computed by using the Points.homogen_coords property."""
 
 import logging
 import copy
@@ -23,7 +23,6 @@ class Points:
     Used in Shape objects."""
 
     def __init__(self, coords: Sequence[Point] = None) -> None:
-        coords = [tuple(x[:2]) for x in coords]
         # coords are a list of (x, y) values
         if coords is None:
             coords = []

@@ -4,14 +4,6 @@ from typing import Union
 from typing_extensions import TypeAlias
 from strenum import StrEnum
 
-# from strenum.mixins import Comparable
-
-# # Case insensitive string enum
-# class CI_StrEnum(Comparable, StrEnum):
-#     '''Case insensitive string enum.'''
-#     def _cmp_values(self, other):
-#         return self.value.lower(), str(other).lower()
-
 
 def get_enum_value(enum_class: StrEnum, value: str) -> str:
     """Get the value of an enumeration."""
@@ -23,27 +15,42 @@ def get_enum_value(enum_class: StrEnum, value: str) -> str:
     return res
 
 
-# Anchor points
-class Anchor(StrEnum):
-    """Anchor is used to set the anchor point of the shapes."""
+# Tag text alignment options
+# Used for TikZ. VaLUeS are case sensitive.
+class Align(StrEnum):
+    """Align is used to set the alignment of the text in tags."""
+    CENTER = "center"
+    LEFT = "left"
+    RIGHT = "right"
+    FLUSH_RIGHT = "flush right"
+    FLUSH_LEFT = "flush_left"
+    FLUSH_CENTER = "flush center"
+    JUSTIFY = "justify"
 
-    BASE = "base"
-    BASE_EAST = "base east"
-    BASE_WEST = "base west"
+# Anchor points
+# Used for TikZ. VaLUeS are case sensitive.
+class Anchor(StrEnum):
+    """Anchor is used to set the anchor point of the shapes
+    relative to the boundary box of shapes/batches or
+    frames of tag objects."""
+
+    BASE = "base" # FOR TAGS ONLY
+    BASE_EAST = "base_east" # FOR TAGS ONLY
+    BASE_WEST = "base_west" # FOR TAGS ONLY
     BOTTOM = "bottom"
     CENTER = "center"
     EAST = "east"
     LEFT = "left"
     MID = "mid"
-    MIDEAST = "mid east"
-    MIDWEST = "mid west"
+    MIDEAST = "mideast"
+    MIDWEST = "midwest"
     NORTH = "north"
-    NORTHEAST = "north east"
-    NORTHWEST = "north west"
+    NORTHEAST = "northeast"
+    NORTHWEST = "northwest"
     RIGHT = "right"
     SOUTH = "south"
-    SOUTHEAST = "south east"
-    SOUTHWEST = "south west"
+    SOUTHEAST = "southeast"
+    SOUTHWEST = "southwest"
     TEXT = "text"
     TOP = "top"
     WEST = "west"
@@ -52,18 +59,18 @@ class Anchor(StrEnum):
 class ArrowLine(StrEnum):
     """ArrowLine is used to set the type of arrow line."""
 
-    FLATBASE_END = "flatbase_end"  # flat base, arrow at the end
-    FLATBASE_MIDDLE = "flatbase_middle"  # flat base, arrow at the middle
-    FLATBASE_START = "flatbase_start"  # flat base, arrow at the start
-    FLATBOTH_END = "flatboth_end"
-    FLATBOTH_MIDDLE = "flatboth_middle"
-    FLATBOTH_START = "flatboth_start"
-    FLATTOP_END = "flattop_end"  #  flat top, arrow at the end
-    FLATTOP_MIDDLE = "flattop_middle"
-    FLATTOP_START = "flattop_start"
-    STRAIGHT_END = "straight_end"  # default, straight line, arrow at the end
-    STRAIGHT_MIDDLE = "straight_middle"  # straight line, arrow at the middle
-    STRAIGHT_START = "straight_start"  # straight line, arrow at the start
+    FLATBASE_END = "flatbase end"  # FLAT BASE, ARROW AT THE END
+    FLATBASE_MIDDLE = "flatbase middle"  # FLAT BASE, ARROW AT THE MIDDLE
+    FLATBASE_START = "flatbase start"  # FLAT BASE, ARROW AT THE START
+    FLATBOTH_END = "flatboth end"
+    FLATBOTH_MIDDLE = "flatboth middle"
+    FLATBOTH_START = "flatboth start"
+    FLATTOP_END = "flattop end"  #  FLAT TOP, ARROW AT THE END
+    FLATTOP_MIDDLE = "flattop middle"
+    FLATTOP_START = "flattop start"
+    STRAIGHT_END = "straight end"  # DEFAULT, STRAIGHT LINE, ARROW AT THE END
+    STRAIGHT_MIDDLE = "straight middle"  # STRAIGHT LINE, ARROW AT THE MIDDLE
+    STRAIGHT_START = "straight start"  # STRAIGHT LINE, ARROW AT THE START
 
 
 class Axis(StrEnum):
@@ -187,7 +194,7 @@ class DocumentClass(StrEnum):
     ARTICLE = "article"
     BEAMER = "beamer"
     BOOK = "book"
-    IEEETRAN = "IEEEtran"
+    IEEETRAN = "ieeetran"
     LETTER = "letter"
     REPORT = "report"
     SCRARTCL = "scrartcl"
@@ -202,20 +209,29 @@ class FillMode(StrEnum):
     NONZERO = "non_zero"
 
 
+class FontFamily(StrEnum):
+    """FontFamily is used to set the family of the font."""
+
+    CURSIVE = "cursive"
+    FANTASY = "fantasy"
+    MONOSPACE = "monospace" # \ttfamily, \texttt
+    SERIF = "serif"  # serif \rmfamily, \textrm
+    SANSSERIF = "sansserif" # \sffamily, \textsf
+
+
 class FontSize(StrEnum):
     """FontSize is used to set the size of the font."""
 
     FOOTNOTESIZE = "footnotesize"
-    HUGE = "huge"
-    HUGE2 = "Huge"
-    HUGE3 = "HUGE"
-    LARGE = "large"
-    LARGE2 = "Large"
-    LARGE3 = "LARGE"
-    NORMAL = "normal"
-    SCRIPTSIZE = "scriptsize"
-    SMALL = "small"
-    TINY = "tiny"
+    HUGE = "huge" # \huge
+    HUGE2 = "Huge" # \Huge
+    LARGE = "large" # \large
+    LARGE2 = "Large" # \Large
+    LARGE3 = "LARGE" # \LARGE
+    NORMAL = "normalsize" # \normalsize
+    SCRIPTSIZE = "scriptsize" # \scriptsize
+    SMALL = "small" # \small
+    TINY = "tiny" # \tiny
 
 
 class FontStretch(StrEnum):
@@ -230,16 +246,6 @@ class FontStretch(StrEnum):
     SEMIEXPANDED = "semiexpanded"
     ULTRACONDENSED = "ultracondensed"
     ULTRAEXPANDED = "ultraexpanded"
-
-
-class FontFamily(StrEnum):
-    """FontFamily is used to set the family of the font."""
-
-    CURSIVE = "cursive"
-    FANTASY = "fantasy"
-    MONOSPACE = "monospace"
-    ROMAN = "roman"  # serif
-    SANSSERIF = "sansserif"
 
 
 class FontStrike(StrEnum):
@@ -292,23 +298,23 @@ class Graph(StrEnum):
 class HeadPos(StrEnum):
     """Arrow head positions."""
 
-    BOTH = "both"
-    END = "end"
-    MIDDLE = "middle"
-    START = "start"
-    NONE = "none"
+    BOTH = "BOTH"
+    END = "END"
+    MIDDLE = "MIDDLE"
+    START = "START"
+    NONE = "NONE"
 
 
 class IUC(StrEnum):
     """IUC notation for frieze groups."""
 
-    P1 = "p1"
-    P11G = "p11g"
-    P11M = "p11m"
-    P1M1 = "p1m1"
-    P2 = "p2"
-    P2MG = "p2mg"
-    P2MM = "p2mm"
+    P1 = "P1"
+    P11G = "P11G"
+    P11M = "P11M"
+    P1M1 = "P1M1"
+    P2 = "P2"
+    P2MG = "P2MG"
+    P2MM = "P2MM"
 
 
 class LineCap(StrEnum):
@@ -388,9 +394,9 @@ class Orientation(StrEnum):
     """Orientation is used to set the orientation of the dimension
     lines."""
 
-    ANGLED = "angled"
-    HORIZONTAL = "horizontal"
-    VERTICAL = "vertical"
+    ANGLED = "ANGLED"
+    HORIZONTAL = "HORIZONTAL"
+    VERTICAL = "VERTICAL"
 
 
 # Page margins for the output files
@@ -418,11 +424,11 @@ class PageNumbering(StrEnum):
     """Page numbering style for the LaTeX documents."""
 
     ALPH = "alph"
-    ALPHUPPER = "Alph"
+    ALPHUPPER = "ALPH"
     ARABIC = "arabic"
     NONE = "none"
     ROMAN = "roman"
-    ROMAN_UPPER = "Roman"
+    ROMAN_UPPER = "ROMAN"
 
 
 # Page number position for the output files
@@ -435,12 +441,12 @@ class PageNumberPosition(StrEnum):
     """Page number positions for the LaTeX documents."""
 
     BOTTOM_CENTER = "bottom"
-    BOTTOM_LEFT = "bottom_left"
-    BOTTOM_RIGHT = "bottom_right"
+    BOTTOM_LEFT = "bottom left"
+    BOTTOM_RIGHT = "bottom right"
     CUSTOM = "custom"
     TOP_CENTER = "top"
-    TOP_LEFT = "top_left"
-    TOP_RIGHT = "top_right"
+    TOP_LEFT = "top left"
+    TOP_RIGHT = "top right"
 
 
 # Page orientations for the output files
@@ -490,6 +496,19 @@ class PageSize(StrEnum):
     A5 = "a5paper"
     A6 = "a6paper"
 
+class PathOperation(StrEnum):
+    """PathOperation is used to set the type of path operation."""
+
+    ARC = "ARC"
+    CLOSE = "CLOSE"
+    CURVE = "CURVE"
+    CURVE2 = "CURVE2"
+    HLINE = "HLINE"
+    LINE = "LINE"
+    MOVE = "MOVE"
+    RLINE = "REL_LINE"
+    RMOVE = "REL_MOVE"
+    VLINE = "VLINE"
 
 class PatternType(StrEnum):
     """PatternType is used to set the type of pattern."""
@@ -506,6 +525,23 @@ class PatternType(StrEnum):
     NORTHEAST = "north east lines"
     NORTHWEST = "north west lines"
     SIXPOINTEDSTARS = "sixpointed stars"
+
+# Tag placement options
+class Placement(StrEnum):
+    """Placement is used to set the placement of the tags
+    relative to another object."""
+
+    ABOVE = "above"
+    BELOW = "below"
+    LEFT = "left"
+    RIGHT = "right"
+    INSIDE = "inside"
+    OUTSIDE = "outside"
+    ABOVE_LEFT = "above left"
+    ABOVE_RIGHT = "above right"
+    BELOW_LEFT = "below left"
+    BELOW_RIGHT = "below right"
+    CENTERED = "centered"
 
 
 class Render(StrEnum):
@@ -532,36 +568,36 @@ class Result(StrEnum):
 class ShadeType(StrEnum):
     """ShadeType is used to set the type of shading."""
 
-    AXIS_LEFT_RIGHT = "axis_left_right"
-    AXIS_TOP_BOTTOM = "axis_top_bottom"
-    AXIS_LEFT_MIDDLE = "axis_left_middle"
-    AXIS_RIGHT_MIDDLE = "axis_right_middle"
-    AXIS_TOP_MIDDLE = "axis_top_middle"
-    AXIS_BOTTOM_MIDDLE = "axis_bottom_middle"
+    AXIS_LEFT_RIGHT = "axis left right"
+    AXIS_TOP_BOTTOM = "axis top bottom"
+    AXIS_LEFT_MIDDLE = "axis left middle"
+    AXIS_RIGHT_MIDDLE = "axis right middle"
+    AXIS_TOP_MIDDLE = "axis top middle"
+    AXIS_BOTTOM_MIDDLE = "axis bottom middle"
     BALL = "ball"
     BILINEAR = "bilinear"
     COLORWHEEL = "color wheel"
     COLORWHEEL_BLACK = "color wheel black center"
     COLORWHEEL_WHITE = "color wheel white center"
-    RADIAL_INNER = "radial_inner"
-    RADIAL_OUTER = "radial_outer"
-    RADIAL_INNER_OUTER = "radial_inner_outer"
+    RADIAL_INNER = "radial inner"
+    RADIAL_OUTER = "radial outer"
+    RADIAL_INNER_OUTER = "radial inner outer"
 
 
 # Anchor lines are called sides.
 class Side(StrEnum):
     """Side is used to with boundary boxes."""
 
-    BASE = "base"
-    BOTTOM = "bottom"
-    DIAGONAL1 = "diagonal1"
-    DIAGONAL2 = "diagonal2"
-    HCENTER = "hcenter"
-    LEFT = "left"
-    MID = "mid"
-    RIGHT = "right"
-    TOP = "top"
-    VCENTER = "vcenter"
+    BASE = "BASE"
+    BOTTOM = "BOTTOM"
+    DIAGONAL1 = "DIAGONAL1"
+    DIAGONAL2 = "DIAGONAL2"
+    HCENTER = "HCENTER"
+    LEFT = "LEFT"
+    MID = "MID"
+    RIGHT = "RIGHT"
+    TOP = "TOP"
+    VCENTER = "VCENTER"
 
 
 class State(StrEnum):
@@ -580,9 +616,9 @@ class TexLoc(StrEnum):
     """TexLoc is used to set the location of the TeX related
     objects."""
 
-    DOCUMENT = "document"  # between \begin{document} and \begin{tikzpicture}
-    PICTURE = "picture"  # after \begin{picture}
-    PREAMBLE = "preamble"  # before \begin{document}
+    DOCUMENT = "DOCUMENT"  # BETWEEN \BEGIN{DOCUMENT} AND \BEGIN{TIKZPICTURE}
+    PICTURE = "PICTURE"  # AFTER \BEGIN{PICTURE}
+    PREAMBLE = "PREAMBLE"  # BEFORE \BEGIN{DOCUMENT}
 
 
 class Topology(StrEnum):
@@ -680,7 +716,7 @@ class Types(StrEnum):
     PAGEGRID = "PAGE_GRID"
     PARALLELPOLYLINE = "PARALLEL_POLYLINE"
     PART = "PART"
-    PATHOBJECT = "PATH_OBJECT"
+    PATH = "PATH"
     PATTERNSKETCH = "PATTERN_SKETCH"
     PATTERNSTYLE = "PATTERN_STYLE"
     PETAL = "PETAL"
@@ -719,6 +755,7 @@ class Types(StrEnum):
     TAGSKETCH = "TAG_SKETCH"
     THREAD = "THREAD"
     TRIANGLE = "TRIANGLE"
+    TURTLE = "TURTLE"
     UNDIRECTED = "UNDIRECTED_GRAPH"
     VERTEX = "VERTEX"
     WARP = "WARP"
@@ -745,6 +782,7 @@ drawable_types = [
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLELPOLYLINE,
+    Types.PATH,
     Types.PLAIT,
     Types.POLYLINE,
     Types.RECTANGLE,
@@ -753,6 +791,7 @@ drawable_types = [
     Types.SHAPE,
     Types.STAR,
     Types.TAG,
+    Types.TURTLE
 ]
 
 shape_types = [
@@ -784,6 +823,7 @@ batch_types = [
     Types.PARALLELPOLYLINE,
     Types.STAR,
     Types.DIMENSION,
+    Types.TURTLE
 ]
 
 # Python Version 3.9 cannot handle Union[*drawable_types]
@@ -805,6 +845,7 @@ Drawable: TypeAlias = Union[
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLELPOLYLINE,
+    Types.PATH,
     Types.PLAIT,
     Types.POLYLINE,
     Types.RECTANGLE,
@@ -813,4 +854,5 @@ Drawable: TypeAlias = Union[
     Types.SHAPE,
     Types.STAR,
     Types.TAG,
+    Types.TURTLE
 ]

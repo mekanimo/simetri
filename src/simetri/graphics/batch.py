@@ -164,6 +164,11 @@ class Batch(Base):
                 self.elements.append(element)
         return self
 
+    def reverse(self) -> Self:
+        """Reverses the order of the elements in the batch."""
+        self.elements = self.elements[::-1]
+        return self
+
     def insert(self, index, element: Any) -> Self:
         """Inserts the element at the given index."""
         if element.type in drawable_types:

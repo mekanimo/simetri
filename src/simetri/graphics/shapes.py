@@ -440,6 +440,7 @@ def ellipse_points(
         points = rotate(points, angle, (x, y))
     return points
 
+
 def circle_points(x: float, y: float, radius: float, n: int = 30) -> list[Point]:
     """
     Return a list of points that form a circle

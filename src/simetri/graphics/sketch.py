@@ -237,8 +237,9 @@ class TagSketch:
     text: str = None
     pos: Point = None
     anchor: Anchor = None
-    font_name: str = None
+    font_family: str = None
     font_size: float = None
+    minimum_width: float = None
     xform_matrix: ndarray = None
 
     def __post_init__(self):

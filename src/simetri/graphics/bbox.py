@@ -1,10 +1,21 @@
+"""Bounding box class. Shape and Batch objects have a bounding box.
+Bounding box is axis-aligned. Provides reference edges and points.
+"""
+
 import logging
 
 import numpy as np
 
 from .common import Point, common_properties, _set_Nones, defaults
 from .all_enums import Side, Types, Anchor
-from ..helpers.geometry import distance, mid_point, offset_line
+from ..helpers.geometry import (
+    distance,
+    mid_point,
+    offset_line,
+    line_angle,
+    intersect,
+    positive_angle,
+)
 
 
 class BoundingBox:
@@ -15,21 +26,21 @@ class BoundingBox:
     Provides reference edges and points as shown in the Book page ???.
     """
 
-    def __init__(self, south_west: Point, north_east: Point):
+    def __init__(self, southwest: Point, northeast: Point):
         # define the four corners
-        self.__dict__["south_west"] = south_west
-        self.__dict__["north_east"] = north_east
-        self.__dict__["north_west"] = (south_west[0], north_east[1])
-        self.__dict__["south_east"] = (north_east[0], south_west[1])
+        self.__dict__["southwest"] = southwest
+        self.__dict__["northeast"] = northeast
+        self.__dict__["northwest"] = (southwest[0], northeast[1])
+        self.__dict__["southeast"] = (northeast[0], southwest[1])
         self._aliases = {
             "s": "south",
             "n": "north",
             "w": "west",
             "e": "east",
-            "sw": "south_west",
-            "se": "south_east",
-            "nw": "north_west",
-            "ne": "north_east",
+            "sw": "southwest",
+            "se": "southeast",
+            "nw": "northwest",
+            "ne": "northeast",
             "d1": "diagonal1",
             "d2": "diagonal2",
             "c": "center",
@@ -45,6 +56,27 @@ class BoundingBox:
             res = self.__dict__[name]
         return res
 
+    def angle_point(self, angle: float) -> float:
+        """Return the intersection point of the angled line starting
+        from the center and the bounding box. angle is in radians."""
+        angle = positive_angle(angle)
+        line = ((0, 0), (np.cos(angle), np.sin(angle)))
+
+        angle1 = line_angle(self.center, self.northeast)
+        angle2 = -angle1  # center, southeast
+        angle3 = np.pi - angle1  # center, northwest
+        angle4 = -angle3  # center, southwest
+        if angle3 >= angle >= angle1:
+            res = intersect(line, self.top)
+        elif angle4 <= angle <= angle2:
+            res = intersect(line, self.bottom)
+        elif angle1 <= angle <= angle2:
+            res = intersect(line, self.right)
+        else:
+            res = intersect(line, self.left)
+
+        return res
+
     @property
     def type(self):
         """Return the type of the object."""
@@ -53,22 +85,22 @@ class BoundingBox:
     @property
     def left(self):
         """Return the left edge."""
-        return (self.north_west, self.south_west)
+        return (self.northwest, self.southwest)
 
     @property
     def right(self):
         """Return the right edge."""
-        return (self.north_east, self.south_east)
+        return (self.northeast, self.southeast)
 
     @property
     def top(self):
         """Return the top edge."""
-        return (self.north_west, self.north_east)
+        return (self.northwest, self.northeast)
 
     @property
     def bottom(self):
         """Return the bottom edge."""
-        return (self.south_west, self.south_east)
+        return (self.southwest, self.southeast)
 
     @property
     def vert_centerline(self):
@@ -83,8 +115,8 @@ class BoundingBox:
     @property
     def center(self):
         """Return the center of the bounding box."""
-        x1, y1 = self.south_west
-        x2, y2 = self.north_east
+        x1, y1 = self.southwest
+        x2, y2 = self.northeast
 
         xc = (x1 + x2) / 2
         yc = (y1 + y2) / 2
@@ -93,19 +125,19 @@ class BoundingBox:
     @property
     def corners(self):
         """Return the four corners of the bounding box."""
-        return (self.north_west, self.south_west, self.south_east, self.north_east)
+        return (self.northwest, self.southwest, self.southeast, self.northeast)
 
     @property
     def all_anchors(self):
         """Return all the anchors of the bounding box."""
         return (
-            self.north_west,
+            self.northwest,
             self.west,
-            self.south_west,
+            self.southwest,
             self.south,
-            self.north_east,
+            self.northeast,
             self.east,
-            self.north_east,
+            self.northeast,
             self.north,
             self.center,
         )
@@ -113,12 +145,12 @@ class BoundingBox:
     @property
     def width(self):
         """Return the width of the bounding box."""
-        return distance(self.north_west, self.north_east)
+        return distance(self.northwest, self.northeast)
 
     @property
     def height(self):
         """Return the height of the bounding box."""
-        return distance(self.north_west, self.south_west)
+        return distance(self.northwest, self.southwest)
 
     @property
     def size(self):
@@ -146,34 +178,34 @@ class BoundingBox:
         return mid_point(*self.top)
 
     @property
-    def north_west(self):
+    def northwest(self):
         """Return the top left corner."""
-        return self.__dict__["north_west"]
+        return self.__dict__["northwest"]
 
     @property
-    def north_east(self):
+    def northeast(self):
         """Return the top right corner."""
-        return self.__dict__["north_east"]
+        return self.__dict__["northeast"]
 
     @property
-    def south_west(self):
+    def southwest(self):
         """Return the bottom left corner."""
-        return self.__dict__["south_west"]
+        return self.__dict__["southwest"]
 
     @property
-    def south_east(self):
+    def southeast(self):
         """Return the bottom right corner."""
-        return self.__dict__["south_east"]
+        return self.__dict__["southeast"]
 
     @property
     def diagonal1(self):
         """Return the first diagonal.From the top left to the bottom right."""
-        return (self.south_west, self.north_east)
+        return (self.southwest, self.northeast)
 
     @property
     def diagonal2(self):
         """Return the second diagonal.From the top right to the bottom left."""
-        return (self.south_east, self.north_west)
+        return (self.southeast, self.northwest)
 
     def get_inflated_b_box(
         self, left_margin=None, bottom_margin=None, right_margin=None, top_margin=None
@@ -185,13 +217,13 @@ class BoundingBox:
             [left_margin, bottom_margin, right_margin, top_margin],
         )
 
-        x, y = self.south_west
-        south_west = (x - left_margin, y - bottom_margin)
+        x, y = self.southwest
+        southwest = (x - left_margin, y - bottom_margin)
 
-        x, y = self.north_east
-        north_east = (x + right_margin, y + top_margin)
+        x, y = self.northeast
+        northeast = (x + right_margin, y + top_margin)
 
-        return BoundingBox(south_west, north_east)
+        return BoundingBox(southwest, northeast)
 
     def offset_line(self, side, offset):
         """Offset is applied outwards. Use negative values for inward
@@ -201,20 +233,20 @@ class BoundingBox:
             side = Side[side.upper()]
 
         if side == Side.RIGHT:
-            x1, y1 = self.south_east
-            x2, y2 = self.north_east
+            x1, y1 = self.southeast
+            x2, y2 = self.northeast
             res = ((x1 + offset, y1), (x2 + offset, y2))
         elif side == Side.LEFT:
-            x1, y1 = self.south_west
-            x2, y2 = self.north_west
+            x1, y1 = self.southwest
+            x2, y2 = self.northwest
             res = ((x1 - offset, y1), (x2 - offset, y2))
         elif side == Side.TOP:
-            x1, y1 = self.north_west
-            x2, y2 = self.north_east
+            x1, y1 = self.northwest
+            x2, y2 = self.northeast
             res = ((x1, y1 + offset), (x2, y2 + offset))
         elif side == Side.BOTTOM:
-            x1, y1 = self.south_west
-            x2, y2 = self.south_east
+            x1, y1 = self.southwest
+            x2, y2 = self.southeast
             res = ((x1, y1 - offset), (x2, y2 - offset))
         elif side == Side.DIAGONAL1:
             res = offset_line(self.diagonal1, offset)
@@ -235,8 +267,10 @@ class BoundingBox:
         if isinstance(anchor, str):
             anchor = Anchor[anchor.upper()]
             x, y = getattr(self, anchor.value)
+        elif isinstance(anchor, Anchor):
+            x, y = anchor.value
         else:
-            x, y = anchor
+            raise ValueError(f"Unknown anchor: {anchor}")
         return [x + dx, y + dy]
 
 
@@ -268,4 +302,4 @@ def bounding_box(points):
     # bounding box corners
     bottom_left = (min_x, min_y)
     top_right = (max_x, max_y)
-    return BoundingBox(south_west=bottom_left, north_east=top_right)
+    return BoundingBox(southwest=bottom_left, northeast=top_right)
