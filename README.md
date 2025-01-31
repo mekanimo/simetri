@@ -7,7 +7,6 @@ It is designed to be used in conjunction with XeLaTeX rendering engine. Currentl
 
 The documentation is available at [simetri/docs](https://github.com/mekanimo/simetri/blob/master/docs/brief_overview.ipynb). There is also a gallery of examples available at [simetri/gallery](https://github.com/mekanimo/simetri/blob/master/gallery.ipynb).
 
-![gallery](/images/gallery.png)
 [<img alt="gallery" src="images/gallery.png" />](https://github.com/mekanimo/simetri/blob/master/gallery.ipynb)
 
 ## Version
