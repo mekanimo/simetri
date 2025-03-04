@@ -123,7 +123,7 @@ class Rectangle(Shape):
         return rectangle
 
 
-class Rectangle2(Shape):
+class Rectangle2(Rectangle):
     """A rectangle defined by two opposite corners."""
 
     def __init__(self, corner1: Point, corner2: Point, **kwargs) -> None:
@@ -131,71 +131,10 @@ class Rectangle2(Shape):
         x2, y2 = corner2
         x_min, x_max = min(x1, x2), max(x1, x2)
         y_min, y_max = min(y1, y2), max(y1, y2)
-        vertices = [(x_min, y_min), (x_max, y_min), (x_max, y_max), (x_min, y_max)]
-        super().__init__(vertices, closed=True, **kwargs)
-        self.subtype = Types.RECTANGLE
-
-    @property
-    def corner1(self):
-        """Return the first corner of the rectangle."""
-        return self.vertices[0]
-
-    @corner1.setter
-    def corner1(self, new_corner: Point):
-        corner2 = self.corner2
-        self[0] = new_corner
-        self[3] = (new_corner[0], corner2[1])
-        self[1] = (corner2[0], new_corner[1])
-
-    @property
-    def corner2(self):
-        """Return the second corner of the rectangle."""
-        return self.vertices[2]
-
-    @corner2.setter
-    def corner2(self, new_corner: Point):
-        corner1 = self.corner1
-        self[2] = new_corner
-        self[1] = (new_corner[0], corner1[1])
-        self[3] = (corner1[0], new_corner[1])
-
-    @property
-    def width(self):
-        """Return the width of the rectangle."""
-        return distance(self.vertices[0], self.vertices[1])
-
-    @width.setter
-    def width(self, new_width: float):
-        corner1 = self.corner1
-        corner2 = self.corner2
-        self[1] = (corner1[0] + new_width, corner1[1])
-        self[2] = (corner1[0] + new_width, corner2[1])
-
-    @property
-    def height(self):
-        """Return the height of the rectangle."""
-        return distance(self.vertices[1], self.vertices[2])
-
-    @height.setter
-    def height(self, new_height: float):
-        corner1 = self.corner1
-        corner2 = self.corner2
-        self[2] = (corner2[0], corner1[1] + new_height)
-        self[3] = (corner1[0], corner1[1] + new_height)
-
-    def copy(self):
-        """Return a copy of the rectangle."""
-        corner1 = self.corner1
-        corner2 = self.corner2
-        rectangle = Rectangle(corner1, corner2)
-        style = copy.copy(self.style)
-        rectangle.style = style
-        rectangle._set_aliases()
-        custom_attribs = custom_attributes(self)
-        for attrib in custom_attribs:
-            setattr(rectangle, attrib, getattr(self, attrib))
-
-        return rectangle
+        center = ((x_min + x_max) / 2, (y_min + y_max) / 2)
+        width = x_max - x_min
+        height = y_max - y_min
+        super().__init__(center, width, height, **kwargs)
 
 
 class Circle(Shape):
