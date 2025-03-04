@@ -23,7 +23,7 @@ from ..helpers.utilities import (
     is_nested_sequence,
     decompose_transformations,
 )
-from ..helpers.geometry import (
+from ..geometry.geometry import (
     homogenize,
     right_handed,
     all_intersections,
@@ -160,9 +160,13 @@ class Shape(Base):
 
     def __getitem__(self, subscript: Union[int, slice]):
         if isinstance(subscript, slice):
-            res = list(self.vertices[subscript.start : subscript.stop : subscript.step])
+            # res = list(self.vertices[subscript.start : subscript.stop : subscript.step])
+            coords = self.primary_points.homogen_coords
+            res = list(coords[subscript.start : subscript.stop : subscript.step]@ self.xform_matrix)
+
         else:
-            res = self.vertices[subscript]
+            # res = self.vertices[subscript]
+            res = self.primary_points.homogen_coords[subscript] @ self.xform_matrix
 
         return res
 
@@ -201,9 +205,8 @@ class Shape(Base):
 
     def extend(self, values):
         """Extend the shape with a list of points."""
-        for value in values:
-            value = homogenize([value]) @ inv(self.xform_matrix)
-            self.primary_points.append(tuple(value[0][:2]))
+        homogenized = homogenize(values) @ inv(self.xform_matrix)
+        self.primary_points.extend([tuple(x[:2]) for x in homogenized])
 
     def pop(self, index: int = -1):
         """Pop a point from the shape."""
@@ -298,6 +301,11 @@ class Shape(Base):
                 res = None
 
         return res
+
+    def connect(self, other):
+        """Connect two shapes by adding the other shape's
+        vertices to self."""
+        self.extend(other.vertices)
 
     def _chain_vertices(self, verts1, verts2, dist_tol: float = None):
         """Chain two sets of vertices if they are connected."""
@@ -426,12 +434,8 @@ class Shape(Base):
     def vertices(self):
         """The final coordinates of the shape."""
         if self.primary_points:
-            res = tuple(
-                (
-                    (round(x[0], defaults["n_round"]), round(x[1], defaults["n_round"]))
-                    for x in (self.final_coords[:, :2])
-                )
-            )
+            res = tuple(((x[0], x[1]) for x in (self.final_coords[:, :2])))
+            # res = self.final_coords[:, :2]
         else:
             res = []
 
@@ -479,9 +483,8 @@ class Shape(Base):
 
     @property
     def is_polygon(self):
-        """Return True if the last vertex is the same as the first.
-        Ignores the 'closed' attribute."""
-        return close_points2(self.vertices[0], self.vertices[-1], dist2=self.dist_tol2)
+        """Return True if 'closed'."""
+        return self.closed
 
     def clear(self):
         """Clear all points and reset the style attributes."""
@@ -506,7 +509,10 @@ class Shape(Base):
 
     def copy(self):
         """Return a copy of the shape."""
-        points = self.primary_points.copy()
+        if self.primary_points.coords:
+            points = self.primary_points.copy()
+        else:
+            points = []
         shape = Shape(
             points,
             xform_matrix=self.xform_matrix,

@@ -24,24 +24,13 @@ from .affine import (
     scale_in_place_matrix,
     shear_matrix,
 )
-from ..helpers.geometry import line_angle
+from ..geometry.geometry import line_angle
 
 
 class Base:
     """Base class for Shape and Batch objects."""
 
     def __getattr__(self, name: str) -> Any:
-        # attribute_setter is to handle a long list of attributes
-        # batch objects need to use the modify the shape elements.
-        # def attribute_setter(value: Any):
-        #     for element in self.elements:
-        #         if element.type == self._set_attrib_type:
-        #             setattr(element, self._set_attrib_name, value)
-        #         elif element.type == Types.BATCH:
-        #             for element in element.all_shapes:
-        #                 setattr(element, self._set_attrib_name, value)
-        #     return self
-
         _anchors = [
             "southeast",
             "southwest",
@@ -94,27 +83,40 @@ class Base:
         return self._update(transform, reps=reps)
 
     def translate_along(
-        self, path: Sequence[Point], step: int = 1, align_tangent: bool = False
+        self,
+        path: Sequence[Point],
+        step: int = 1,
+        align_tangent: bool = False,
+        scale: float = 1, # scale factor
+        rotate: float = 0, # angle in radians
     ) -> Self:
         """Translates the object along the given curve.
         Every n-th point is used to calculate the translation vector.
+        If align_tangent is True, the object is rotated to align with the tangent at each point.
+        scale is the scale factor applied at each point.
+        rotate is the angle in radians applied at each point.
         """
         x, y = path[0][:2]
-        self.move_to(x, y)
+        self.move_to((x, y))
         dup = self.copy()
         if align_tangent:
             tangent = line_angle(path[-1], path[0])
             self.rotate(tangent, about=path[0], reps=0)
-        for i, point in enumerate(path[0:-1:step]):
-            if i == 0:
-                continue
-            dup2 = dup.copy()
+        dup2 = dup.copy()
+        for i, point in enumerate(path[1::step]):
+            dup2 = dup2.copy()
             px, py = point[:2]
-            dup2.move_to(px, py)
+            dup2.move_to((px, py))
+            if scale != 1:
+                dup2.scale(scale, about=point)
+            if rotate != 0:
+                dup2.rotate(rotate, about=point)
             self.append(dup2)
             if align_tangent:
                 tangent = line_angle(path[i - 1], path[i])
                 dup2.rotate(tangent, about=point, reps=0)
+            # scale *= scale
+            # rotate += rotate
         return self
 
     def rotate(self, angle: float, about: Point = (0, 0), reps: int = 0) -> Self:

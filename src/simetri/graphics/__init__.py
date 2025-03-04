@@ -33,36 +33,45 @@ from math import (
     prod,
 )
 from itertools import cycle, combinations, permutations, product
-from random import choice, randint, random, uniform, shuffle
+from random import choice, choices, randint, random, uniform, shuffle
+from functools import lru_cache as memoize
 import logging
 
 from numpy import linspace, arange, array, zeros, ones, full, eye, diag
 
 from ..helpers.utilities import *
 from .core import *
-from ..helpers.geometry import *
-from .affine import *
 from ..frieze import *
 from ..settings.settings import *
 from ..graphics.common import *
 
+
 set_defaults()
+from ..geometry.geometry import *
+from ..geometry.ellipse import *
+from ..geometry.bezier import *
+from ..geometry.hobby import *
+from ..geometry.circle import *
+from .affine import *
 from .dots import *
 from ..graphics.sketch import *
 from ..canvas.canvas import *
 from ..canvas.grids import *
 from ..helpers.illustration import *
+from ..helpers.constraint_solver import Constraint, solve
 from ..graphics.shapes import *
 from ..helpers.modifiers import *
 from ..lace import Lace
 from ..colors import *
 import simetri.colors as colors
 from ..tikz import *
+from ..helpers.validation import check_version
 import simetri.stars as stars
 import simetri.wallpaper as wallpaper
 import simetri.frieze as frieze
 from ..graphics.all_enums import *
-from ..turtle.turtle_sg import Turtle, spirolateral
+from ..extensions.turtle_sg import Turtle, spirolateral
+from ..extensions.l_system import l_system
 
 
 set_tikz_defaults()
@@ -93,3 +102,6 @@ logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
 defaults["logger"] = logger
+
+# we don't want to use the Python's Path class
+from .path import Path # noqa

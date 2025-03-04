@@ -13,7 +13,7 @@ from ..settings.settings import defaults
 from .common import Point
 from .all_enums import Types
 from ..colors import Color
-from ..helpers.geometry import close_points2
+from ..geometry.geometry import close_points2
 from ..canvas.style_map import batch_args
 
 

@@ -2,11 +2,13 @@
 
 import collections
 import os
+import re
 import base64
 from functools import wraps, reduce
 from time import time, monotonic
-from math import factorial, cos, sin, pi
+from math import factorial, cos, sin, pi, atan2, sqrt
 from pathlib import Path
+from bisect import bisect_left
 
 from typing import Sequence
 
@@ -24,6 +26,37 @@ def close_logger(logger):
     for handler in logger.handlers:
         handler.close()
         logger.removeHandler(handler)
+
+
+def get_file_path_with_rev(directory, script_path, ext='.pdf'):
+    '''Get the file path with a revision number.'''
+    # Get the file path of the script
+    def get_rev_number(file_name):
+        match = re.search(r"_\d+$", file_name)
+        if match:
+            rev = match.group()[1:] # remove the underscore
+            if rev is not None:
+                return int(rev)
+        return 0
+
+    # script_path = __file__
+    filename = os.path.basename(script_path)
+    filename, _ = os.path.splitext(filename)
+    #check if the file is in the current directory
+    files = os.listdir(directory)
+    file_names = [os.path.splitext(item)[0] for item in files if
+                                os.path.isfile(os.path.join(directory, item))]
+    existing = [item for item in file_names if item.startswith(filename)]
+    if not existing:
+        return os.path.join(directory, filename + ext)
+    else:
+        revs = [get_rev_number(file) for file in existing]
+        if revs is None:
+            rev = 1
+        else:
+            rev = max(revs) + 1
+
+        return os.path.join(directory, f"{filename}_{rev}" + ext)
 
 
 def remove_file_handler(logger, handler):
@@ -124,6 +157,22 @@ def timing(func):
         return result
 
     return wrap
+
+def find_nearest_value(values:array, value:float) -> float:
+  """
+  Finds the closest value in an array to a given number.
+
+  Args:
+    array: A NumPy array.
+    value: The number to find the closest value to.
+
+  Returns:
+    The closest value in the array to the given number.
+  """
+  array = np.asarray(values)
+  idx = (np.abs(array - value)).argmin()
+
+  return array[idx]
 
 
 def nested_count(nested_sequence):
@@ -252,6 +301,24 @@ def is_sequence(value):
     return isinstance(value, (list, tuple, array))
 
 
+def rel_coord(dx:float, dy:float, origin):
+    """Return the relative coordinates."""
+
+    return dx + origin[0], dy + origin[1]
+
+
+def rel_polar(r:float, angle:float, origin):
+    """Return the coordinates."""
+    x, y = origin[:2]
+    x1 = x + r * cos(angle)
+    y1 = y + r * sin(angle)
+
+    return x1, y1
+
+rc = rel_coord # alias for rel_coord
+rp = rel_polar # alias for rel_polar
+
+
 def flatten(points):
     """points can be: sequences, sequence of sequences, set of
     sequences, or arrays.
@@ -270,6 +337,28 @@ def flatten(points):
         raise TypeError("Error! Invalid data type.")
 
     return flat
+
+
+def find_closest_value(a_sorted_list, value):
+    """
+    Return the index of the closest value and the value itself
+    in a sorted list.
+    """
+    ind = bisect_left(a_sorted_list, value)
+
+    if ind == 0:
+        return a_sorted_list[0]
+
+    if ind == len(a_sorted_list):
+        return a_sorted_list[-1]
+
+    left = a_sorted_list[ind - 1]
+    right = a_sorted_list[ind]
+
+    if right - value < value - left:
+        return right, ind
+    else:
+        return left, ind - 1
 
 
 def get_transform(transform):
@@ -333,6 +422,32 @@ def random_id():
     return base64.b64encode(os.urandom(6)).decode("ascii")
 
 
+def decompose_svg_transform(transform):
+    '''Decompose a SVG transformation string.
+    (a, b, c, d, e, f)'''
+    a, b, c, d, e, f = transform
+    # [[a, c, e],
+    #  [b, d, f],
+    #  [0, 0, 1]]
+    dx = e
+    dy = f
+
+    sx = np.sign(a) * sqrt(a**2 + c**2)
+    sy = np.sign(d) * sqrt(b**2 + d**2)
+
+    angle = atan2(b, d)
+
+    return dx, dy, sx, sy, angle
+
+def abcdef_svg(transform_matrix):
+    """transform_matrix is a Numpy array.
+    Return the a, b, c, d, e, f for SVG transformations."""
+    # [[a, c, e],
+    #  [b, d, f],
+    #  [0, 0, 1]]
+    a, b, _, c, d, _, e, f, _ = list(transform_matrix.flat)
+    return (a, b, c, d, e, f)
+
 def abcdef_pil(xform_matrix):
     """xform_matrix is a Numpy array.
     Return the a, b, c, d, e, f for PIL transformations."""
@@ -354,6 +469,15 @@ def lerp(start, end, t):
     end: number
      0 <= t <= 1."""
     return start + t * (end - start)
+
+
+def inv_lerp(start, end, value):
+    """Inverse linear interpolation of two values.
+    start: number
+    end: number
+    value: number
+    return: 0 <= t <= 1."""
+    return (value - start) / (end - start)
 
 
 def sanitize_weighted_graph_edges(edges):

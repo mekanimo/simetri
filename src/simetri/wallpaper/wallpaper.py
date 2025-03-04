@@ -7,7 +7,7 @@ from math import sqrt, pi, cos
 
 from typing import Union
 
-from ..helpers.geometry import mid_point, line_through_point_and_angle
+from ..geometry.geometry import mid_point, line_through_point_and_angle
 from ..graphics.common import VecType, Point, Line
 from ..helpers.illustration import Tag
 from ..graphics.batch import Batch
@@ -466,7 +466,7 @@ def wallpaper_pmm(
     Rectangular lattice
     Point group: D2
     """
-    x, y = mirror_cross
+    x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
     mirror_line2 = ((x, y), (x, y + 1))
     wallpaper = generator.mirror(mirror_line1, reps=1)
@@ -493,7 +493,7 @@ def wallpaper_pmg(
     Rectangular lattice
     Point group: D2
     """
-    x, y = center_point
+    x, y = center_point[:2]
     if horizontal:
         rotocenter = mid_point((x, y), (x, (y + dy) / 2))
         mirror_line = ((x, y), (x + 1, y))
@@ -552,7 +552,7 @@ def wallpaper_cmm(
     Rhombic lattice
     Point group: D2
     """
-    x, y = mirror_cross
+    x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
     mirror_line2 = ((x, y), (x, y + 1))
     wallpaper = generator.mirror(mirror_line1, reps=1)
@@ -576,7 +576,7 @@ def wallpaper_p4m(
     Square lattice
     Point group: D4
     """
-    x, y = mirror_cross
+    x, y = mirror_cross[:2]
     mirror_line = ((x, y), (x, y + 1))
     rotocenter = x, y
     wallpaper = generator.mirror(mirror_line, reps=1)
@@ -626,7 +626,7 @@ def wallpaper_p3m1(
     Hexagonal lattice
     Point group: D3
     """
-    x, y = center_point
+    x, y = center_point[:2]
     mirror_line = line_through_point_and_angle((x, y), 2 * pi / 3)
     wallpaper = generator.mirror(mirror_line, reps=1)
     wallpaper.rotate(2 * pi / 3, center_point, reps=2)
@@ -649,7 +649,7 @@ def wallpaper_p31m(
     Hexagonal lattice
     Point group: D3
     """
-    x, y = center_point
+    x, y = center_point[:2]
     dy = 0.28866 * hex_size
     mirror_line = ((x, y + dy), (x + 1, y + dy))
     wallpaper = generator.rotate(2 * pi / 3, center_point, reps=2)
@@ -678,7 +678,7 @@ def wallpaper_p6m(
     Hexagonal lattice
     Point group: D6
     """
-    x, y = mirror_cross
+    x, y = mirror_cross[:2]
     mirror1 = [(x, y), (x + 1, y)]
     mirror2 = [(x, y), (x, y + 1)]
     wallpaper = generator.mirror(mirror1, reps=1)

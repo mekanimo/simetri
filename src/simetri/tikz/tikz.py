@@ -28,10 +28,13 @@ from ..graphics.all_enums import (
     ArrowLine,
     BlendMode,
     get_enum_value,
+    LineWidth,
+    LineDashArray,
 )
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..settings.settings import defaults, tikz_defaults
-from ..helpers.geometry import homogenize
+from ..geometry.geometry import homogenize, close_points2
+from ..geometry.ellipse import ellipse_point
 from ..graphics.sketch import TagSketch, ShapeSketch
 from ..graphics.shape import Shape
 
@@ -69,11 +72,6 @@ class Tex:
 
     def __post_init__(self):
         self.type = Types.TEX
-        if self.packages is None:
-            self.packages = defaults["packages"].copy()
-        if self.tikz_libraries is None:
-            self.tikz_libraries = defaults["tikz_libraries"].copy()
-            # tikz_libraries should be determined at the end!!!
         common_properties(self)
 
     def tex_code(self, canvas: "Canvas", aux_code: str) -> str:
@@ -134,15 +132,54 @@ class Tex:
         """Returns the TikZ libraries."""
         return f"\\usetikzlibrary{{{','.join(self.tikz_libraries)}}}\n"
 
+    def get_packages(self, canvas) -> str:
+        """Returns the required TeX packages."""
+        tikz_libraries = []
+        tikz_packages = ['tikz', 'pgf']
+        for page in canvas.pages:
+            for sketch in page.sketches:
+                if sketch.draw_markers:
+                    if 'patterns' not in tikz_libraries:
+                        tikz_libraries.append("patterns")
+                        tikz_libraries.append("patterns.meta")
+                        tikz_libraries.append("backgrounds")
+                        tikz_libraries.append("shadings")
+                if sketch.subtype == Types.TAG_SKETCH:
+                    if "fontspec" not in tikz_packages:
+                        tikz_packages.append("fontspec")
+                else:
+                    if hasattr(sketch, "marker_type") and sketch.marker_type == "indices":
+                        if "fontspec" not in tikz_packages:
+                            tikz_packages.append("fontspec")
+                if hasattr(sketch, 'back_style'):
+                    if sketch.back_style == BackStyle.COLOR:
+                        if "xcolor" not in tikz_packages:
+                            tikz_packages.append("xcolor")
+                    if sketch.back_style == BackStyle.SHADING:
+                        if "shadings" not in tikz_libraries:
+                            tikz_libraries.append("shadings")
+                    if sketch.back_style == BackStyle.PATTERN:
+                        if "patterns" not in tikz_libraries:
+                            tikz_libraries.append("patterns")
+                            tikz_libraries.append("patterns.meta")
+
+
+        return tikz_libraries, tikz_packages
+
     def get_preamble(self, canvas) -> str:
         """Returns the TeX preamble."""
-        packages = f'\\usepackage{{{",".join(self.packages)}}}\n'
-        libraries = f'\\usetikzlibrary{{{",".join(self.tikz_libraries)}}}\n'
-        fonts_section = f"""\\usepackage{{fontspec}}
-\\setmainfont{{{defaults['main_font']}}}
+        libraries, packages = self.get_packages(canvas)
+
+        if packages:
+            packages = f'\\usepackage{{{",".join(packages)}}}\n'
+            if 'fontspec' in packages:
+                fonts_section = f"""\\setmainfont{{{defaults['main_font']}}}
 \\setsansfont{{{defaults['sans_font']}}}
 \\setmonofont{{{defaults['mono_font']}}}\n"""
-        libraries = '\\usetikzlibrary{patterns, patterns.meta, backgrounds}\n'
+
+        if libraries:
+            libraries = f'\\usetikzlibrary{{{",".join(libraries)}}}\n'
+
         if canvas.border is None:
             border = defaults["border"]
         elif isinstance(canvas.border, (int, float)):
@@ -153,6 +190,7 @@ class Tex:
             raise ValueError("Canvas.border must be a positive numeric value.")
         doc_class = self.get_doc_class(border, defaults["font_size"])
         # Check if different fonts are used
+        fonts_section = ""
         fonts = canvas.get_fonts_list()
         for font in fonts:
             if font is None:
@@ -238,8 +276,10 @@ def get_tex_code(canvas: "Canvas") -> str:
 
     def get_sketch_code(sketch, canvas, ind):
         """Get the TikZ code for a sketch."""
-        if sketch.subtype == Types.TAGSKETCH:
+        if sketch.subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch, canvas)
+        elif sketch.subtype == Types.BBOX_SKETCH:
+            code = draw_bbox_sketch(sketch, canvas)
         else:
             if sketch.draw_markers and sketch.marker_type == MarkerType.INDICES:
                 code = draw_shape_sketch(sketch, ind)
@@ -383,10 +423,10 @@ def get_scope_options(item: Union["Canvas", "Sketch"]) -> str:
 def get_clip_code(item: Union["Sketch", "Canvas"]) -> str:
     """Returns the clip code for a sketch or Canvas."""
     if item.mask.subtype == Types.CIRCLE:
-        x, y = item.mask.center
+        x, y = item.mask.center[:2]
         res = f"\\clip({x}, {y}) circle ({item.mask.radius});\n"
     elif item.mask.subtype == Types.RECTANGLE:
-        x, y = item.mask.center
+        x, y = item.mask.center[:2]
         width, height = item.mask.width, item.mask.height
         res = f"\\clip({x}, {y}) rectangle ({width}, {height});\n"
     elif item.mask.subtype == Types.SHAPE:
@@ -412,7 +452,10 @@ def get_canvas_scope(canvas):
 def draw_batch_sketch(sketch, canvas):
     """Converts a BatchSketch to TikZ code."""
     options = get_scope_options(sketch)
-    res = f"\\begin{{scope}}[{options}]\n"
+    if options:
+        res = f"\\begin{{scope}}[{options}]\n"
+    else:
+        res = ""
     if sketch.clip and sketch.mask:
         res += get_clip_code(sketch)
     for item in sketch.items:
@@ -423,10 +466,27 @@ def draw_batch_sketch(sketch, canvas):
 
     if sketch.clip and sketch.mask:
         res += get_clip_code(sketch)
-    res += "\\end{scope}\n"
+    if options:
+        res += "\\end{scope}\n"
 
     return res
 
+def draw_bbox_sketch(sketch, canvas):
+    """Converts a BBoxSketch to TikZ code."""
+    attrib_map = {
+        "line_color": "color",
+        "line_width": "line width",
+        "line_dash_array": "dash pattern",
+    }
+    attrib_list = ["line_color", "line_width", "line_dash_array"]
+    options = sg_to_tikz(sketch, attrib_list, attrib_map)
+    options = ", ".join(options)
+    res = f"\\draw[{options}]"
+    x1, y1 = sketch.vertices[1]
+    x2, y2 = sketch.vertices[3]
+    res += f"({x1}, {y1}) rectangle ({x2}, {y2});\n"
+
+    return res
 
 def draw_lace_sketch(item):
     """Converts a LaceSketch to TikZ code."""
@@ -463,8 +523,24 @@ def get_draw(sketch):
     if sketch.markers_only:
         res = "\\draw"
     else:
-        shading = sketch.back_style == BackStyle.SHADING
-        res = decision_table[(sketch.closed, sketch.fill, sketch.stroke, shading)]
+        if hasattr(sketch, 'back_style'):
+            shading = sketch.back_style == BackStyle.SHADING
+        else:
+            shading = False
+        if not hasattr(sketch, 'closed'):
+            closed = False
+        else:
+            closed = sketch.closed
+        if not hasattr(sketch, 'fill'):
+            fill = False
+        else:
+            fill = sketch.fill
+        if not hasattr(sketch, 'stroke'):
+            stroke = False
+        else:
+            stroke = sketch.stroke
+
+        res = decision_table[(closed, fill, stroke, shading)]
 
     return res
 
@@ -534,7 +610,7 @@ def draw_tag_sketch(sketch, canvas):
 
         return res
 
-    pos = homogenize(sketch.pos) @ canvas.xform_matrix
+    pos = homogenize([sketch.pos]) @ canvas.xform_matrix
     x, y = pos[0][:2]
 
     options = ""
@@ -566,8 +642,10 @@ def draw_tag_sketch(sketch, canvas):
     if sketch.back_style == BackStyle.PATTERN and sketch.fill:
         pattern_options = get_pattern_options(sketch)[0]
         options += ", " + pattern_options
-    if sketch.align != Align.CENTER:
+    if sketch.align != defaults["tag_align"]:
         options += f", align={sketch.align.value}"
+    if sketch.text_width:
+        options += f", text width={sketch.text_width}"
 
 
 # no_family, tex_family, new_family
@@ -643,6 +721,7 @@ def get_dash_pattern(line_dash_array):
 def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None):
     """Converts the attributes of a sketch to TikZ options."""
     skip = ["marker_color", "fill_color"]
+    tikz_way = {'line_width':LineWidth, 'line_dash_array':LineDashArray}
     if exceptions:
         skip += exceptions
     d_converters = {
@@ -657,6 +736,17 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
             continue
         if conditions and attrib in conditions and not conditions[attrib]:
             continue
+        if attrib in tikz_way:
+            value = getattr(sketch, attrib)
+            if isinstance(value, tikz_way[attrib]):
+                option = value.value
+                options.append(option)
+                continue
+            if isinstance(value, str):
+                if value in tikz_way[attrib]:
+                    options.append(value)
+                continue
+
         tikz_attrib = attrib_map[attrib]
         if hasattr(sketch, attrib):
             value = getattr(sketch, attrib)
@@ -914,7 +1004,8 @@ def draw_shape_sketch_with_indices(sketch, ind):
             options += ["smooth"]
     options = ", ".join(options)
     body += f"[{options}]"
-    vertices = [str(x) for x in sketch.vertices]
+    vertices = sketch.vertices
+    vertices = [str(x) for x in vertices]
     str_lines = [vertices[0] + "node{0}"]
     n = len(vertices)
     for i, vertice in enumerate(vertices[1:]):
@@ -960,8 +1051,8 @@ def draw_shape_sketch_with_markers(sketch):
             str_lines.append(f"\n\t{vertice} ")
         else:
             str_lines.append(f" {vertice} ")
-    if sketch.closed:
-        str_lines.append(f" {vertices[0]}")
+    # if sketch.closed:
+    #     str_lines.append(f" {vertices[0]}")
     coordinates = "".join(str_lines)
     marker = get_enum_value(MarkerType, sketch.marker_type)
     # marker = sketch.marker_type.value
@@ -1023,7 +1114,7 @@ def draw_sketch(sketch):
     n = len(vertices)
     str_lines = [f"{vertices[0]}"]
     for i, vertice in enumerate(vertices[1:]):
-        if (i + 1) % 4 == 0:
+        if (i + 1) % 8 == 0:
             if i == n - 1:
                 str_lines.append(f"-- {vertice} \n")
             else:
@@ -1044,10 +1135,11 @@ def draw_sketch(sketch):
 def draw_shape_sketch(sketch, ind=None):
     """Draws a shape sketch."""
     d_subtype_draw = {
-        sg.Types.ARCSKETCH: draw_arc_sketch,
-        sg.Types.CIRCLESKETCH: draw_circle_sketch,
-        sg.Types.ELLIPSESKETCH: draw_ellipse_sketch,
-        sg.Types.LINESKETCH: draw_line_sketch,
+        sg.Types.ARC_SKETCH: draw_arc_sketch,
+        sg.Types.BEZIER_SKETCH: draw_bezier_sketch,
+        sg.Types.CIRCLE_SKETCH: draw_circle_sketch,
+        sg.Types.ELLIPSE_SKETCH: draw_ellipse_sketch,
+        sg.Types.LINE_SKETCH: draw_line_sketch,
     }
     if sketch.subtype in d_subtype_draw:
         res = d_subtype_draw[sketch.subtype](sketch)
@@ -1089,15 +1181,15 @@ def draw_circle_sketch(sketch):
         options += ["smooth"]
     options = ", ".join(options)
     res += f"[{options}]"
-    x, y = sketch.center
+    x, y = sketch.center[:2]
     res += f"({x}, {y}) circle ({sketch.radius});\n"
     end_scope = get_end_scope()
 
     return begin_scope + res + end_scope
 
 
-def draw_ellipse_sketch(sketch):
-    """Draws a circle sketch."""
+def draw_rect_sketch(sketch):
+    """Draws a rectangle sketch."""
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
     options = get_line_style_options(sketch)
@@ -1107,9 +1199,31 @@ def draw_ellipse_sketch(sketch):
         options += ["smooth"]
     options = ", ".join(options)
     res += f"[{options}]"
-    x, y = sketch.center
-    a = sketch.width / 2
-    b = sketch.height / 2
+    x, y = sketch.center[:2]
+    width, height = sketch.width, sketch.height
+    res += f"({x}, {y}) rectangle ({width}, {height});\n"
+    end_scope = get_end_scope()
+
+    return begin_scope + res + end_scope
+
+def draw_ellipse_sketch(sketch):
+    """Draws an ellipse sketch."""
+    begin_scope = get_begin_scope()
+    res = get_draw(sketch)
+    options = get_line_style_options(sketch)
+    fill_options = get_fill_style_options(sketch)
+    options += fill_options
+    if sketch.smooth:
+        options += ["smooth"]
+    angle = degrees(sketch.angle)
+    x, y = sketch.center[:2]
+    if angle:
+        options += [f"rotate around= {{{angle}:({x},{y})}}"]
+    options = ", ".join(options)
+    res += f"[{options}]"
+    a = sketch.x_radius
+    b = sketch.y_radius
+
     res += f"({x}, {y}) ellipse ({a} and {b});\n"
     end_scope = get_end_scope()
 
@@ -1122,14 +1236,39 @@ def draw_arc_sketch(sketch):
     res = get_draw(sketch)
     options = get_line_style_options(sketch)
     options = ", ".join(options)
-    x, y = sketch.center[:2]
-    x = x + sketch.radius * cos(sketch.start_angle)
-    y = y + sketch.radius * sin(sketch.start_angle)
-    start_angle = degrees(sketch.start_angle)
-    end_angle = degrees(sketch.end_angle)
-    res += f"[{options}]({x}, {y}) arc ({start_angle}:{end_angle}:{sketch.radius});\n"
-    res += f" arc ({sketch.start_angle}:{sketch.end_angle}:{sketch.radius});\n"
+    angle = degrees(sketch.rot_angle)
+    cx, cy = sketch.center[:2]
+    x, y = sketch.start_point[:2]
+    if angle:
+        options += [f"rotate around= {{{angle}:({cx},{cy})}}"]
+    a1 = degrees(sketch.start_angle)
+    a2 = degrees(sketch.end_angle)
+    r1 = sketch.radius
+    r2 = sketch.radius2
+    if sketch.radius != sketch.radius2:
+        res += f"[{options}]({x}, {y}) arc [start angle = {a1}, end angle = {a2}, x radius = {r1}, y radius =  {r2}];\n"
+    else:
+        res += f"[{options}]({x}, {y}) arc [start angle = {a1}, end angle = {a2}, radius = {r1}];\n"
     end_scope = get_end_scope()
+
+    return begin_scope + res + end_scope
+
+
+def draw_bezier_sketch(sketch):
+    """Draws a Bezier curve sketch."""
+    begin_scope = get_begin_scope()
+    res = get_draw(sketch)
+    options = get_line_style_options(sketch)
+    options = ", ".join(options)
+    res += f"[{options}]"
+    p1, cp1, cp2, p2 = sketch.control_points
+    x1, y1 = p1[:2]
+    x2, y2 = cp1[:2]
+    x3, y3 = cp2[:2]
+    x4, y4 = p2[:2]
+    res += f" ({x1}, {y1}) .. controls ({x2}, {y2}) and ({x3}, {y3}) .. ({x4}, {y4});\n"
+    end_scope = get_end_scope()
+
     return begin_scope + res + end_scope
 
 
@@ -1161,10 +1300,11 @@ def is_stroked(shape: Shape) -> bool:
 
 d_sketch_draw = {
     sg.Types.SHAPE: draw_shape_sketch,
-    sg.Types.TAGSKETCH: draw_tag_sketch,
+    sg.Types.TAG_SKETCH: draw_tag_sketch,
     sg.Types.LACESKETCH: draw_lace_sketch,
     sg.Types.LINE: draw_line_sketch,
     sg.Types.CIRCLE: draw_circle_sketch,
+    sg.Types.ELLIPSE: draw_shape_sketch,
     sg.Types.ARC: draw_arc_sketch,
     sg.Types.BATCH: draw_batch_sketch,
 }

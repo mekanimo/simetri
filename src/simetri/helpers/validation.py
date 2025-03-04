@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 
 from numpy import ndarray
-from ..graphics import all_enums
+from ..graphics import all_enums, __version__
 from ..graphics.all_enums import *
 from ..colors import Color
 
@@ -14,9 +14,32 @@ from ..colors import Color
 # Validation functions. They return True if the value is valid, False otherwise.
 
 
+class VersionConflict(Exception):
+    """Exception raised for version conflicts."""
+
+
+def check_version(required_version):
+    """Check if the current version is compatible with the required version."""
+
+    def version_value(str_version):
+        digits = str_version.split(".")
+        return int(digits[0]) * 100 + int(digits[1]) * 10 + int(digits[2])
+
+    if version_value(required_version) > version_value(__version__):
+        msg = (
+            f"Version conflict: Minimum required version is {required_version}. "
+            f"This version is {__version__}\n"
+            "Please update the simetri package using: pip install -U simetri"
+        )
+        raise VersionConflict(msg)
+
+    return True
+
+
 def check_str(value: Any) -> bool:
     """Check if the value is a string."""
     return isinstance(value, str)
+
 
 def check_int(value: Any) -> bool:
     """Check if the value is an integer."""
@@ -34,10 +57,18 @@ def check_color(color: Any) -> bool:
 
 
 def check_dash_array(dash_array: Any) -> bool:
-    """Check if the dash array is a list of numbers."""
-    return isinstance(dash_array, (list, tuple, ndarray)) and all(
-        isinstance(x, (int, float)) for x in dash_array
-    )
+    """Check if the dash array is a list of numbers
+    or predefined."""
+    if dash_array in LineDashArray:
+        res = True
+    elif dash_array is None:
+        res = True
+    else:
+        res = isinstance(dash_array, (list, tuple, ndarray)) and all(
+            isinstance(x, (int, float)) for x in dash_array
+        )
+
+    return res
 
 
 def check_bool(value: Any) -> bool:
@@ -97,6 +128,18 @@ def check_subtype(subtype: Any) -> bool:
 def check_mask(mask: Any) -> bool:
     """This check is done in Batch class."""
     return mask.type == Types.Shape
+
+
+def check_line_width(line_width: Any) -> bool:
+    """Check if the line width is a valid line width."""
+    if isinstance(line_width, (int, float)):
+        res = line_width >= 0
+    elif line_width in all_enums.LineWidth:
+        res = True
+    else:
+        res = False
+
+    return res
 
 
 def check_anchor(anchor: Any) -> bool:
@@ -160,7 +203,7 @@ d_validators = {
     "line_dash_array": check_dash_array,
     "line_dash_phase": check_number,
     "line_miter_limit": check_number,
-    "line_width": check_number,
+    "line_width": check_line_width,
     "marker_color": check_color,
     "marker_radius": check_number,
     "marker_size": check_number,

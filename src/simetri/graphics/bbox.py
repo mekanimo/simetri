@@ -8,7 +8,7 @@ import numpy as np
 
 from .common import Point, common_properties, _set_Nones, defaults
 from .all_enums import Side, Types, Anchor
-from ..helpers.geometry import (
+from ..geometry.geometry import(
     distance,
     mid_point,
     offset_line,
@@ -48,6 +48,8 @@ class BoundingBox:
             "hcl": "horiz_centerline",
         }
         common_properties(self)
+        self.type = Types.BOUNDING_BOX
+        self.subtype = Types.BOUNDING_BOX
 
     def __getattr__(self, name):
         if name in self._aliases:
@@ -76,11 +78,6 @@ class BoundingBox:
             res = intersect(line, self.left)
 
         return res
-
-    @property
-    def type(self):
-        """Return the type of the object."""
-        return Types.BOUNDINGBOX
 
     @property
     def left(self):
@@ -128,8 +125,13 @@ class BoundingBox:
         return (self.northwest, self.southwest, self.southeast, self.northeast)
 
     @property
+    def diamond(self):
+        """Return the four center points of the bounding box in a diamond shape."""
+        return (self.north, self.west, self.south, self.east)
+
+    @property
     def all_anchors(self):
-        """Return all the anchors of the bounding box."""
+        """Return all anchors of the bounding box."""
         return (
             self.northwest,
             self.west,
@@ -217,10 +219,10 @@ class BoundingBox:
             [left_margin, bottom_margin, right_margin, top_margin],
         )
 
-        x, y = self.southwest
+        x, y = self.southwest[:2]
         southwest = (x - left_margin, y - bottom_margin)
 
-        x, y = self.northeast
+        x, y = self.northeast[:2]
         northeast = (x + right_margin, y + top_margin)
 
         return BoundingBox(southwest, northeast)
@@ -252,9 +254,9 @@ class BoundingBox:
             res = offset_line(self.diagonal1, offset)
         elif side == Side.DIAGONAL2:
             res = offset_line(self.diagonal2, offset)
-        elif side == Side.HCENTER:
+        elif side == Side.H_CENTERLINE:
             res = offset_line(self.horiz_center_line, offset)
-        elif side == Side.VCENTER:
+        elif side == Side.V_CENTERLINE:
             res = offset_line(self.vert_center_line, offset)
         else:
             logging.error("Unknown side: %s", side)
@@ -266,9 +268,9 @@ class BoundingBox:
         """Return an offset point from the given corner."""
         if isinstance(anchor, str):
             anchor = Anchor[anchor.upper()]
-            x, y = getattr(self, anchor.value)
+            x, y = getattr(self, anchor.value)[:2]
         elif isinstance(anchor, Anchor):
-            x, y = anchor.value
+            x, y = anchor.value[:2]
         else:
             raise ValueError(f"Unknown anchor: {anchor}")
         return [x + dx, y + dy]

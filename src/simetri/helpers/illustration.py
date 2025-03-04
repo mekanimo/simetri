@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from math import pi, atan2
 from PIL import ImageFont
 
+import fitz
 import numpy as np
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
@@ -15,7 +16,7 @@ from ..graphics.points import Points
 from ..graphics.batch import Batch
 from ..graphics.shape import Shape
 
-from ..graphics.shapes import Arc, reg_poly_points_side_length
+from ..graphics.shapes import reg_poly_points_side_length
 from ..graphics.common import get_defaults, common_properties, Point, _set_Nones
 from ..graphics.all_enums import (
     Types,
@@ -29,7 +30,8 @@ from ..graphics.all_enums import (
 )
 from ..canvas.style_map import shape_style_map, tag_style_map, TagStyle
 from ..graphics.affine import identity_matrix
-from .geometry import (
+from ..geometry.ellipse import Arc
+from ..geometry.geometry import (
     distance,
     line_angle,
     extended_line,
@@ -173,6 +175,14 @@ def cube(size: float = 100):
     return cube_
 
 
+def pdf_to_svg(pdf_path, svg_path):
+    '''Converts a single-page pdf file to svg.'''
+    doc = fitz.open(pdf_path)
+    page = doc.load_page(0)
+    svg = page.get_svg_image()
+    with open(svg_path, "w", encoding="utf-8") as f:
+        f.write(svg)
+
 # To do: use a different name for the Annotation class
 # annotation is a label with an arrow
 class Annotation(Batch):
@@ -242,6 +252,8 @@ class Tag(Base):
         font_size: int = None,
         font_color: Color = None,
         anchor: Anchor = Anchor.CENTER,
+        bold: bool = False,
+        italic: bool = False,
         text_width: float = None,
         placement: Placement = None,
         minimum_size: float = None,
@@ -284,6 +296,8 @@ class Tag(Base):
             self.xform_matrix = get_transform(xform_matrix)
 
         self.anchor = anchor
+        self.bold = bold
+        self.italic = italic
         self.text_width = text_width
         self.placement = placement
         self.minimum_size = minimum_size
@@ -400,7 +414,7 @@ class ArrowHead(Shape):
         if points is None:
             w2 = width_ / 2
             points = [(0, 0), (0, -w2), (length, 0), (0, w2)]
-        super().__init__(points, closed=True, subtype=Types.ARROWHEAD, **kwargs)
+        super().__init__(points, closed=True, subtype=Types.ARROW_HEAD, **kwargs)
         self.head_length = length
         self.head_width = width_
 
@@ -409,7 +423,7 @@ class ArrowHead(Shape):
 
 def draw_cs_tiny(canvas, pos=(0, 0), x_len=25, y_len=25, neg_x_len=5, neg_y_len=5):
     """Draws a tiny coordinate system."""
-    x, y = pos
+    x, y = pos[:2]
     canvas.circle((x, y), 2, fill=False, line_color=colors.gray)
     canvas.draw(Shape([(x - neg_x_len, y), (x + x_len, y)]), line_color=colors.gray)
     canvas.draw(Shape([(x, y - neg_y_len), (x, y + y_len)]), line_color=colors.gray)
@@ -417,7 +431,7 @@ def draw_cs_tiny(canvas, pos=(0, 0), x_len=25, y_len=25, neg_x_len=5, neg_y_len=
 
 def draw_cs_small(canvas, pos=(0, 0), x_len=80, y_len=100, neg_x_len=5, neg_y_len=5):
     """Draws a small coordinate system."""
-    x, y = pos
+    x, y = pos[:2]
     x_axis = arrow(
         (-neg_x_len + x, y), (x_len + 10 + x, y), head_length=8, head_width=2
     )
@@ -501,7 +515,7 @@ class ArcArrow(Batch):
         self.arrow_head2.rotate(end_angle + pi / 2)
         self.arrow_head2.translate(*end)
         items = [self.arc, self.arrow_head1, self.arrow_head2]
-        super().__init__(items, subtype=Types.ARCARROW, **kwargs)
+        super().__init__(items, subtype=Types.ARC_ARROW, **kwargs)
         for k, v in kwargs.items():
             if k in shape_style_map:
                 setattr(self, k, v)  # we should check for valid values here
@@ -587,7 +601,7 @@ class AngularDimension(Batch):
         self.gap_angle = gap_angle
         self.text_offset = text_offset
         self.gap = gap
-        super().__init__(subtype=Types.ANGULARDIMENSION, **kwargs)
+        super().__init__(subtype=Types.ANGULAR_DIMENSION, **kwargs)
 
 
 class Dimension(Batch):

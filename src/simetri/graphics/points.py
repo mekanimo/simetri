@@ -11,7 +11,7 @@ from numpy import allclose, ndarray
 from typing_extensions import Self
 
 
-from ..helpers.geometry import homogenize
+from ..geometry.geometry import homogenize
 from .common import Point, common_properties
 from .all_enums import *
 from ..settings.settings import defaults
@@ -35,10 +35,9 @@ class Points:
             logging.warning(msg)
         self.coords = coords
         if self.coords:
-            self.nd_array = homogenize(coords)
+            self.nd_array = homogenize(coords) # homogeneous coordinates
         self.type = Types.POINTS
         self.subtype = Types.POINTS
-        self._coords = copy.deepcopy(coords)
         self.dist_tol = defaults["dist_tol"]
         self.dist_tol2 = self.dist_tol**2
         common_properties(self, False)
@@ -61,7 +60,6 @@ class Points:
 
     def _update_coords(self):
         self.nd_array = homogenize(self.coords)
-        self._coords = copy.deepcopy(self.coords)
 
     def __setitem__(self, subscript, value):
         if isinstance(subscript, slice):
@@ -90,6 +88,11 @@ class Points:
         self.coords.append(item)
         self._update_coords()
 
+    def extend(self, items: Sequence[Point]) -> Self:
+        """Extends the points with the given sequence of points."""
+        self.coords.extend(items)
+        self._update_coords()
+
     def pop(self, index: int = -1) -> Point:
         """Removes the point at the given index and returns it."""
         value = self.coords.pop(index)
@@ -116,6 +119,11 @@ class Points:
         self.coords.insert(index, points)
         self._update_coords()
 
+    def clear(self):
+        """Clears the points."""
+        self.coords.clear()
+        self.nd_array = ndarray((0, 3))
+
     def reverse(self):
         """Reverses the order of the points."""
         self.coords.reverse()
@@ -137,9 +145,8 @@ class Points:
 
     def copy(self):
         """Returns a copy of the points."""
-        points = Points(copy.deepcopy(self.coords))
+        points = Points(copy.copy(self.coords))
         points.nd_array = ndarray.copy(self.nd_array)
-        points._coords = copy.deepcopy(self._coords)
         return points
 
     @property

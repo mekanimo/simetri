@@ -14,7 +14,7 @@ from ..graphics.shape import Shape, custom_attributes
 from ..graphics.batch import Batch
 
 from ..colors import colors
-from ..helpers.geometry import (
+from ..geometry.geometry import (
     connected_pairs,
     polygon_area,
     distance,
@@ -719,7 +719,7 @@ class ParallelPolyline(Batch):
         self._set_offset_polylines()
         self.polyline_list = [self.polyline] + self.offset_poly_list
         super().__init__(self.polyline_list, **kwargs)
-        self.subtype = Types.PARALLELPOLYLINE
+        self.subtype = Types.PARALLEL_POLYLINE
         self.overlaps = None
         self.under = under
         common_properties(self)

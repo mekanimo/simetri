@@ -8,13 +8,14 @@ from numpy import ndarray
 import numpy as np
 
 from ..graphics.batch import Batch
+from ..graphics.bbox import BoundingBox
 
 from ..graphics.shape import Shape, custom_attributes
 
 from ..graphics.common import axis_x, get_defaults, Sequence, Point
 from ..graphics.all_enums import Types
 from ..settings.settings import defaults
-from ..helpers.geometry import (
+from ..geometry.geometry import (
     side_len_to_radius,
     offset_polygon_points,
     distance,
@@ -26,99 +27,11 @@ import simetri.colors as colors
 Color = colors.Color
 
 
-class Ellipse(Shape):
-    """An ellipse defined by center, width, and height."""
-
-    def __init__(self, center: Point, width: float, height: float, **kwargs) -> None:
-        x, y = center[:2]
-        a = width / 2
-        b = height / 2
-        vertices = [(x, y), (x + a, y), (x, y + b), (x - a, y), (x, y - b)]
-        super().__init__(vertices, closed=True, **kwargs)
-        self.subtype = Types.ELLIPSE
-
-    @property
-    def center(self):
-        """Return the center of the ellipse."""
-        return self.vertices[0]
-
-    @center.setter
-    def center(self, new_center: Point):
-        center = self.center
-        x_diff = new_center[0] - center[0]
-        y_diff = new_center[1] - center[1]
-        for i in range(5):
-            x, y = self.vertices[i]
-            self[i] = (x + x_diff, y + y_diff)
-
-    @property
-    def width(self):
-        """Return the width of the ellipse."""
-        vertices = self.vertices
-        return distance(vertices[0], vertices[1]) * 2
-
-    @width.setter
-    def width(self, new_width: float):
-        center = self.center
-        height = self.height
-        vertices = []
-        vertices.append(center)
-        a = new_width / 2
-        b = height / 2
-        vertices.append((center[0] + a, center[1]))
-        vertices.append((center[0], center[1] + b))
-        vertices.append((center[0] - a, center[1]))
-        vertices.append((center[0], center[1] - b))
-        self[:] = vertices
-
-    @property
-    def height(self):
-        """Return the height of the ellipse."""
-        vertices = self.vertices
-        return distance(vertices[0], vertices[2]) * 2
-
-    @height.setter
-    def height(self, new_height: float):
-        center = self.center
-        width = self.width
-        vertices = []
-        a = width / 2
-        b = new_height / 2
-        vertices.append(center)
-        vertices.append((center[0] + a, center[1]))
-        vertices.append((center[0], center[1] + b))
-        vertices.append((center[0] - a, center[1]))
-        vertices.append((center[0], center[1] - b))
-        self[:] = vertices
-
-    @property
-    def closed(self):
-        """Return True ellipse is always closed."""
-        return True
-
-    @closed.setter
-    def closed(self, value: bool):
-        pass
-
-    def copy(self):
-        """Return a copy of the ellipse."""
-        center = self.center
-        width = self.width
-        height = self.height
-        ellipse = Ellipse(center, width, height)
-        # ellipse.style = self.style.copy()
-        custom_attribs = custom_attributes(self)
-        for attrib in custom_attribs:
-            setattr(ellipse, attrib, getattr(self, attrib))
-
-        return ellipse
-
-
 class Rectangle(Shape):
     """A rectangle defined by width and height."""
 
     def __init__(self, center: Point, width: float, height: float, **kwargs) -> None:
-        x, y = center
+        x, y = center[:2]
         half_width = width / 2
         half_height = height / 2
         vertices = [
@@ -169,7 +82,7 @@ class Rectangle(Shape):
         x_diff = new_center[0] - center[0]
         y_diff = new_center[1] - center[1]
         for i in range(4):
-            x, y = self.vertices[i]
+            x, y = self.vertices[i][:2]
             self[i] = (x + x_diff, y + y_diff)
 
     def copy(self):
@@ -178,7 +91,7 @@ class Rectangle(Shape):
         width = self.width
         height = self.height
         rectangle = Rectangle(center, width, height)
-        style = copy.deepcopy(self.style)
+        style = copy.copy(self.style)
         rectangle.style = style
         rectangle._set_aliases()
         custom_attribs = custom_attributes(self)
@@ -253,7 +166,7 @@ class Rectangle2(Shape):
         corner1 = self.corner1
         corner2 = self.corner2
         rectangle = Rectangle(corner1, corner2)
-        style = copy.deepcopy(self.style)
+        style = copy.copy(self.style)
         rectangle.style = style
         rectangle._set_aliases()
         custom_attribs = custom_attributes(self)
@@ -277,13 +190,30 @@ class Circle(Shape):
             radius = defaults["circle_radius"]
 
         x, y = center[:2]
-        p1 = (x + radius, y)
-        p2 = (x, y + radius)
-        p3 = (x - radius, y)
-        p4 = (x, y - radius)
-        points = [(x, y), p1, p2, p3, p4]
+        points = [[x, y]]
         super().__init__(points, xform_matrix=xform_matrix, **kwargs)
         self.subtype = Types.CIRCLE
+        self._radius = radius
+
+    def __setattr__(self, name, value):
+        if name == "center":
+            self[0] = value[:2]
+        elif name == "radius":
+            ratio = value / self.radius
+            self.scale(ratio, about=self.center, reps=0)
+        else:
+            super().__setattr__(name, value)
+
+
+    @property
+    def b_box(self):
+        """Return the bounding box of the shape."""
+        x, y = self.center[:2]
+        x1, y1 = x - self.radius, y - self.radius
+        x2, y2 = x + self.radius, y + self.radius
+        self._b_box = BoundingBox((x1, y1), (x2, y2))
+
+        return self._b_box
 
     @property
     def closed(self):
@@ -299,27 +229,16 @@ class Circle(Shape):
         """Return the center of the circle."""
         return self.vertices[0]
 
+    @center.setter
+    def center(self, value: Point):
+        self[0] = value[:2]
+
+
     @property
     def radius(self):
-        """Return the radius of the circle."""
-        return distance(self.vertices[0], self.vertices[1])
-
-    @center.setter
-    def center(self, new_center: Point):
-        radius = self.radius
-        self[0] = new_center
-        self[1] = (new_center[0] + radius, new_center[1])
-        self[2] = (new_center[0], new_center[1] + radius)
-        self[3] = (new_center[0] - radius, new_center[1])
-        self[4] = (new_center[0], new_center[1] - radius)
-
-    @radius.setter
-    def radius(self, new_radius: float):
-        center = self.center
-        self[1] = (center[0] + new_radius, center[1])
-        self[2] = (center[0], center[1] + new_radius)
-        self[3] = (center[0] - new_radius, center[1])
-        self[4] = (center[0], center[1] - new_radius)
+        '''Return the radius of the circle.'''
+        scale_x = np.linalg.norm(self.xform_matrix[0, :2]) # only x scale is used
+        return self._radius * scale_x
 
     def copy(self):
         """Return a copy of the circle."""
@@ -381,33 +300,6 @@ class Segment(Shape):
         )
 
 
-class Arc(Shape):
-    def __init__(
-        self,
-        center: Point,
-        radius: float,
-        start_angle: float,
-        end_angle: float,
-        xform_matrix: ndarray = None,
-        **kwargs,
-    ):
-        self.center = center
-        self.radius = radius
-        self.start_angle = start_angle
-        self.end_angle = end_angle
-        x, y = center
-        x1 = x + radius * cos(start_angle)
-        y1 = y + radius * sin(start_angle)
-        x2 = x + radius * cos(end_angle)
-        y2 = y + radius * sin(end_angle)
-        self.start_point = x1, y1
-        self.end_point = x2, y2
-        self.primary_points = [(x, y), (x1, y1), (x2, y2)]
-        self.xform_matrix = xform_matrix
-
-        super().__init__(self.primary_points, subtype=Types.ARC, **kwargs)
-
-
 class Mask(Shape):
     """
     A mask is a closed shape that is used to clip other shapes.
@@ -421,38 +313,18 @@ class Mask(Shape):
         # canvas, batch, and shapes can have scope
 
 
-def ellipse_points(
-    x: float, y: float, width: float, height: float, angle: float = 0, n: int = 30
-) -> list[Point]:
-    """
-    Return a list of points that form an ellipse
-       with the given parameters.
-       n is the total number of points in the ellipse.
-    """
-    from .affine import rotate
 
-    points = []
-    for i in range(n):
-        t = 2 * pi * i / n
-        points.append([x + width / 2 * cos(t), y + height / 2 * sin(t)])
-
-    if angle != 0:
-        points = rotate(points, angle, (x, y))
-    return points
-
-
-def circle_points(x: float, y: float, radius: float, n: int = 30) -> list[Point]:
+def circle_points(center:Point, radius: float, n: int = 30) -> list[Point]:
     """
     Return a list of points that form a circle
     with the given parameters.
     n is the total number of points in the circle.
     """
-    return arc_points(x, y, radius, 0, 2 * pi, n=n)
+    return arc_points(center, radius, 0, 2 * pi, n=n)
 
 
 def arc_points(
-    x: float,
-    y: float,
+    center: Point,
     radius: float,
     start_angle: float,
     end_angle: float,
@@ -463,6 +335,7 @@ def arc_points(
     Return a list of points that form a circular arc with the given
     parameters. n is the total number of points in the arc.
     """
+    x, y = center[:2]
     points = []
     if clockwise:
         start_angle, end_angle = end_angle, start_angle
@@ -470,28 +343,6 @@ def arc_points(
     for i in np.arange(start_angle, end_angle + 1, step):
         points.append([x + radius * cos(i), y + radius * sin(i)])
     return points
-
-
-def bezier_points(points: list[Point], n: int = 100) -> list[Point]:
-    """
-    points = [a, b, c, d] control points,
-    n is the number of points to generate.
-    Return a list of points representing the curve.
-    """
-
-    def bernstein(n, i, t):
-        """Bernstein polynomial."""
-        return comb(n, i) * t ** (n - i) * (1 - t) ** i
-
-    n_points = len(points)
-    x_array = np.array([p[0] for p in points])
-    y_array = np.array([p[1] for p in points])
-    t = np.linspace(0.0, 1.0, n)
-    poly_array = np.array([bernstein(n_points - 1, i, t) for i in range(0, n_points)])
-    x_values = np.dot(x_array, poly_array)
-    y_values = np.dot(y_array, poly_array)
-
-    return list(zip(x_values, y_values))
 
 
 def hex_points(side_length: float) -> List[List[float]]:
@@ -620,6 +471,7 @@ def regular_star_polygon(n, step, rad):
 
 
 # These may have to be removed
+# to do: remove these functions
 
 
 def star_shape(points, reps=5, scale=1):

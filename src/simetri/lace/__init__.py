@@ -1,1 +1,1 @@
-from .lace import Lace
+from .lace import Lace, Polyline, ParallelPolyline

@@ -4,7 +4,7 @@ import simetri.graphics as sg
 
 
 dir_path = "c:/tmp/simetri_test_dir/"
-file_name = "simetri_shape_test"
+file_name = "simetri_shape_test_2_"
 file_path = os.path.join(dir_path, file_name)
 extensions = [".svg", ".png", ".pdf", ".ps", ".eps", ".tex"]
 

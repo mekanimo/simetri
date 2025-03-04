@@ -4,7 +4,7 @@ from math import sin, cos, pi
 from typing import Sequence
 
 from ..helpers.utilities import reg_poly_points
-from ..helpers.geometry import intersect
+from ..geometry.geometry import intersect
 from ..graphics.common import Point
 
 

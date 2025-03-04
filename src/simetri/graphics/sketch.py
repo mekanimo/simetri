@@ -17,9 +17,9 @@ from numpy import ndarray
 from ..colors import colors
 from .affine import identity_matrix
 from .common import common_properties, Point
-from .all_enums import Types, Anchor, FrameShape
+from .all_enums import Types, Anchor, FrameShape, CurveMode
 from ..settings.settings import defaults
-from ..helpers.geometry import homogenize
+from ..geometry.geometry import homogenize
 from ..helpers.utilities import decompose_transformations
 
 Color = colors.Color
@@ -57,7 +57,7 @@ class CircleSketch:
 
     def __post_init__(self):
         self.type = Types.SKETCH
-        self.subtype = Types.CIRCLESKETCH
+        self.subtype = Types.CIRCLE_SKETCH
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             center = self.center
@@ -73,13 +73,14 @@ class EllipseSketch:
     """EllipseSketch is a dataclass for creating an ellipse sketch object."""
 
     center: tuple
-    width: float
-    height: float
+    x_radius: float
+    y_radius: float
+    angle: float = 0 # orientation angle
     xform_matrix: ndarray = None
 
     def __post_init__(self):
         self.type = Types.SKETCH
-        self.subtype = Types.ELLIPSESKETCH
+        self.subtype = Types.ELLIPSE_SKETCH
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             center = self.center
@@ -100,7 +101,7 @@ class LineSketch:
 
     def __post_init__(self):
         self.type = Types.SKETCH
-        self.subtype = Types.LINESKETCH
+        self.subtype = Types.LINE_SKETCH
 
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
@@ -116,6 +117,7 @@ class ShapeSketch:
     """Sketch is a neutral format for drawing.
     It contains geometry (only vertices for shapes) and style
     properties.
+    Style properties are not assigned during initialization.
     They are not meant to be transformed, only to be drawn.
     Sketches have no methods, only data.
     They do not check anything, they just store data.
@@ -128,7 +130,7 @@ class ShapeSketch:
 
     def __post_init__(self):
         self.type = Types.SKETCH
-        self.subtype = Types.SHAPESKETCH
+        self.subtype = Types.SHAPE_SKETCH
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             vertices = self.vertices
@@ -137,20 +139,45 @@ class ShapeSketch:
             vertices = vertices @ self.xform_matrix
         self.vertices = [tuple(x) for x in vertices[:, :2]]
 
+@dataclass
+class BezierSketch:
+    """BezierSketch is a dataclass for creating a bezier sketch object."""
+
+    control_points: list
+    xform_matrix: ndarray = None
+    mode: CurveMode = CurveMode.OPEN
+
+    def __post_init__(self):
+        self.type = Types.SKETCH
+        self.subtype = Types.BEZIER_SKETCH
+
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+            control_points = self.control_points
+        else:
+            control_points = homogenize(self.control_points)
+            control_points = control_points @ self.xform_matrix
+        self.control_points = [tuple(x) for x in control_points[:, :3]]
+        self.closed = False
 
 @dataclass
 class ArcSketch:
     """ArcSketch is a dataclass for creating an arc sketch object."""
 
     center: tuple
-    radius: float
     start_angle: float
     end_angle: float
+    radius: float
+    radius2: float = None
+    rot_angle: float = 0
+    start_point: tuple = None
     xform_matrix: ndarray = None
+
+    mode: CurveMode = CurveMode.OPEN
 
     def __post_init__(self):
         self.type = Types.SKETCH
-        self.subtype = Types.ARCSKETCH
+        self.subtype = Types.ARC_SKETCH
 
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
@@ -162,9 +189,11 @@ class ArcSketch:
             _, _, scale = decompose_transformations(self.xform_matrix)
 
             scale = scale[0]
-
-        self.radius *= scale
-        self.center = center
+        n = defaults["tikz_nround"]
+        self.radius *= round(scale, n)
+        if self.radius2 is not None:
+            self.radius2 *= round(scale, n)
+        self.start_point = round(self.start_point[0], n), round(self.start_point[1], n)
         self.closed = False
 
 
@@ -172,12 +201,27 @@ class ArcSketch:
 class BatchSketch:
     """BatchSketch is a dataclass for creating a batch sketch object."""
 
-    sketches: List[Any]
+    sketches: List[Types.SKETCH]
+    xform_matrix: ndarray = None
 
     def __post_init__(self):
         self.type = Types.SKETCH
-        self.subtype = Types.BATCHSKETCH
+        self.subtype = Types.BATCH_SKETCH
         self.sketches = self.sketches
+
+
+@dataclass
+class PathSketch:
+    """PathSketch is a dataclass for creating a path sketch object."""
+
+    sketches: List[Types.SKETCH]
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        self.type = Types.SKETCH
+        self.subtype = Types.PATH_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
 
 
 @dataclass
@@ -226,7 +270,7 @@ class FrameSketch:
 
     def __post_init__(self):
         self.type = Types.SKETCH
-        self.subtype = Types.FRAMESKETCH
+        self.subtype = Types.FRAME_SKETCH
         common_properties(self)
 
 
@@ -244,7 +288,7 @@ class TagSketch:
 
     def __post_init__(self):
         self.type = Types.SKETCH
-        self.subtype = Types.TAGSKETCH
+        self.subtype = Types.TAG_SKETCH
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             pos = self.pos
@@ -252,3 +296,32 @@ class TagSketch:
             pos = homogenize([self.pos])
             pos = (pos @ self.xform_matrix).tolist()[0][:2]
         self.pos = pos
+
+@dataclass
+class RectSketch:
+    """RectSketch is a dataclass for creating a rectangle sketch object."""
+
+    pos: Point
+    width: float
+    height: float
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        self.type = Types.SKETCH
+        self.subtype = Types.RECT_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+            pos = self.pos
+        else:
+            pos = homogenize([self.pos])
+            pos = (pos @ self.xform_matrix).tolist()[0][:2]
+        self.pos = pos
+        h2 = self.height / 2
+        w2 = self.width / 2
+        self.vertices = [
+            (pos[0] - w2, pos[1] - h2),
+            (pos[0] + w2, pos[1] - h2),
+            (pos[0] + w2, pos[1] + h2),
+            (pos[0] - w2, pos[1] + h2),
+        ]
+        self.closed = True

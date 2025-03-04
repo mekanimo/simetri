@@ -20,12 +20,12 @@ def get_enum_value(enum_class: StrEnum, value: str) -> str:
 class Align(StrEnum):
     """Align is used to set the alignment of the text in tags."""
     CENTER = "center"
+    FLUSH_CENTER = "flush center"
+    FLUSH_LEFT = "flush left"
+    FLUSH_RIGHT = "flush right"
+    JUSTIFY = "justify"
     LEFT = "left"
     RIGHT = "right"
-    FLUSH_RIGHT = "flush right"
-    FLUSH_LEFT = "flush_left"
-    FLUSH_CENTER = "flush center"
-    JUSTIFY = "justify"
 
 # Anchor points
 # Used for TikZ. VaLUeS are case sensitive.
@@ -35,22 +35,22 @@ class Anchor(StrEnum):
     frames of tag objects."""
 
     BASE = "base" # FOR TAGS ONLY
-    BASE_EAST = "base_east" # FOR TAGS ONLY
-    BASE_WEST = "base_west" # FOR TAGS ONLY
+    BASE_EAST = "base east" # FOR TAGS ONLY
+    BASE_WEST = "base west" # FOR TAGS ONLY
     BOTTOM = "bottom"
     CENTER = "center"
     EAST = "east"
     LEFT = "left"
     MID = "mid"
-    MIDEAST = "mideast"
-    MIDWEST = "midwest"
+    MIDEAST = "mid east"
+    MIDWEST = "mid west"
     NORTH = "north"
-    NORTHEAST = "northeast"
-    NORTHWEST = "northwest"
+    NORTHEAST = "north east"
+    NORTHWEST = "north west"
     RIGHT = "right"
     SOUTH = "south"
-    SOUTHEAST = "southeast"
-    SOUTHWEST = "southwest"
+    SOUTHEAST = "south east"
+    SOUTHWEST = "south west"
     TEXT = "text"
     TOP = "top"
     WEST = "west"
@@ -88,12 +88,12 @@ class BackStyle(StrEnum):
     """
 
     COLOR = "COLOR"
-    COLORANDGRID = "COLOR_AND_GRID"
+    COLOR_AND_GRID = "COLOR_AND_GRID"
     EMPTY = "EMPTY"
     GRIDLINES = "GRIDLINES"
     PATTERN = "PATTERN"
     SHADING = "SHADING"
-    SHADINGANDGRID = "SHADING_AND_GRID"
+    SHADING_AND_GRID = "SHADING_AND_GRID"
 
 
 class BlendMode(StrEnum):
@@ -140,18 +140,48 @@ class Connection(StrEnum):
     CONTAINS = "CONTAINS"
     COVERS = "COVERS"
     DISJOINT = "DISJOINT"
-    ENDEND = "ENDEND"
-    ENDSTART = "ENDSTART"
+    END_END = "END_END"
+    END_START = "END_START"
     FLIPPED = "FLIPPED"
     INTERSECT = "INTERSECT"
     NONE = "NONE"
     OVERLAPS = "OVERLAPS"
     PARALLEL = "PARALLEL"
-    STARTEND = "STARTEND"
-    STARTSTART = "STARTSTART"
+    START_END = "START_END"
+    START_START = "START_START"
     TOUCHES = "TOUCHES"
     WITHIN = "WITHIN"
     YJOINT = "YJOINT"
+
+
+class Connector(StrEnum):
+    """Connector is used to set the connector type of the shapes."""
+
+    ARC = "ARC"
+    ARROW_LINE = "ARROW_LINE"
+    CURVE = "CURVE"
+    ELLIPSE = "ELLIPSE"
+    LINE = "LINE"
+    DOUBLE_LINE = "DOUBLE_LINE"
+    # squigly
+    # zigzag
+    # squigly_arrow
+    # zigzag_arrow
+    # double_arrow
+    # double_squigly
+
+class ConstraintType(StrEnum):
+    """Constraint is used to set the constraint type of the shapes."""
+
+    COLLINEAR = "COLLINEAR"
+    DISTANCE = "DISTANCE"
+    LINE_ANGLE = "LINE_ANGLE"
+    PARALLEL = "PARALLEL"
+    PERPENDICULAR = "PERPENDICULAR"
+    EQUAL_SIZE = "EQUAL_SIZE"
+    EQUAL_VALUE = "EQUAL_VALUE"
+    INNER_TANGENT = "INNER_TANGENT"
+    OUTER_TANGENT = "OUTER_TANGENT"
 
 
 class Compiler(StrEnum):
@@ -179,11 +209,16 @@ class Conway(StrEnum):
     HOP = "HOP"
     JUMP = "JUMP"
     SIDLE = "SIDLE"
-    SPINNINGHOP = "SPINNINGHOP"
-    SPINNINGJUMP = "SPINNINGJUMP"
-    SPINNINGSIDLE = "SPINNINGSIDLE"
+    SPINNING_HOP = "SPINNING_HOP"
+    SPINNING_JUMP = "SPINNING_JUMP"
+    SPINNING_SIDLE = "SPINNING_SIDLE"
     STEP = "STEP"
 
+
+class CurveMode(StrEnum):
+    OPEN = "OPEN"
+    CHORD = "CHORD"
+    PIE = "PIE"
 
 # Document classes for the output files
 # These come from LaTeX
@@ -205,8 +240,8 @@ class DocumentClass(StrEnum):
 class FillMode(StrEnum):
     """FillMode is used to set the fill mode of the shape."""
 
-    EVENODD = "even_odd"
-    NONZERO = "non_zero"
+    EVENODD = "even odd"
+    NONZERO = "non zero"
 
 
 class FontFamily(StrEnum):
@@ -239,13 +274,13 @@ class FontStretch(StrEnum):
 
     CONDENSED = "condensed"
     EXPANDED = "expanded"
-    EXTRACONDENSED = "extracondensed"
-    EXTRAEXPANDED = "extraexpanded"
+    EXTRA_CONDENSED = "extracondensed"
+    EXTRA_EXPANDED = "extraexpanded"
     NORMAL = "normal"
-    SEMICONDENSED = "semicondensed"
-    SEMIEXPANDED = "semiexpanded"
-    ULTRACONDENSED = "ultracondensed"
-    ULTRAEXPANDED = "ultraexpanded"
+    SEMI_CONDENSED = "semicondensed"
+    SEMI_EXPANDED = "semiexpanded"
+    ULTRA_CONDENSED = "ultracondensed"
+    ULTRA_EXPANDED = "ultraexpanded"
 
 
 class FontStrike(StrEnum):
@@ -279,7 +314,7 @@ class FrameShape(StrEnum):
     POLYGON = "polygon"
     RECTANGLE = "rectangle"
     RHOMBUS = "rhombus"
-    SPLITCIRCLE = "split_circle"
+    SPLITCIRCLE = "split circle"
     SQUARE = "square"
     STAR = "star"
     TRAPEZOID = "trapezoid"
@@ -325,6 +360,24 @@ class LineCap(StrEnum):
     SQUARE = "square"
 
 
+class LineDashArray(StrEnum):
+    """LineDashArray is used to set the type of dashed-line."""
+
+    DASHDOT = "dash dot"
+    DASHDOTDOT = "dash dot dot"
+    DASHED = "dashed"
+    DENSELY_DASHED = "densely dashed"
+    DENSELY_DASHDOT = "densely dash dot"
+    DENSELY_DASHDOTDOT = "densely dash dot dot"
+    DENSELY_DOTTED = "densely dotted"
+    DOTTED = "dotted"
+    LOOSELY_DASHED = "loosely dashed"
+    LOOSELY_DASHDOT = "loosely dash dot"
+    LOOSELY_DASHDOTDOT = "loosely dash dot dot"
+    LOOSELY_DOTTED = "loosely dotted"
+    SOLID = "solid"
+
+
 class LineJoin(StrEnum):
     """LineJoin is used to set the type of line join."""
 
@@ -332,15 +385,15 @@ class LineJoin(StrEnum):
     MITER = "miter"
     ROUND = "round"
 
-
 class LineWidth(StrEnum):
-    ULTRA_THIN = "ultra thin"
-    VERY_THIN = "very thin"
-    THIN = "thin"
+    '''LineWidth is used to set the width of the line.'''
     SEMITHICK = "semithick"
     THICK = "thick"
-    VERY_THICK = "very thick"
+    THIN = "thin"
     ULTRA_THICK = "ultra thick"
+    ULTRA_THIN = "ultra thin"
+    VERY_THICK = "very thick"
+    VERY_THIN = "very thin"
 
 
 class MarkerPos(StrEnum):
@@ -363,20 +416,21 @@ class MarkerType(StrEnum):
     DIAMOND_F = "diamond*"
     EMPTY = ""
     FCIRCLE = "*"
-    HALFCIRCLE = "halfcircle"
-    HALFCIRCLE_F = "halfcircle*"
-    HALFDIAMOND = "halfdiamond"
-    HALFDIAMOND_F = "halfdiamond*"
-    HALFSQUARE = "halfsquare"
-    HALFSQUARE_F = "halfsquare*"
-    HEXAGON = "hexagon"
-    HEXAGON_F = "hexagon*"
+    HALF_CIRCLE = "halfcircle"
+    HALF_CIRCLE_F = "halfcircle*"
+    HALF_DIAMOND_F = "halfdiamond*"
+    HALF_SQUARE_F = "halfsquare*"
+    HALF_SQUARE_LEFT = "halfsquare left*"
+    HALF_SQUARE_RIGHT = "halfsquare right*"
+    HEART = "heart"
     INDICES = "indices"
+    MERCEDES_STAR = "Mercedes star"
+    MERCEDES_STAR_FLIPPED = "Mercedes star flipped"
     MINUS = "-"
     OPLUS = "oplus"
     OPLUS_F = "oplus*"
-    OTIMES = "otimes"
-    OTIMES_F = "otimes*"
+    O_TIMES = "otimes"
+    O_TIMES_F = "otimes*"
     PENTAGON = "pentagon"
     PENTAGON_F = "pentagon*"
     PLUS = "+"
@@ -385,6 +439,7 @@ class MarkerType(StrEnum):
     STAR = "star"
     STAR2 = "star2"
     STAR3 = "star3"
+    TEN_POINTED_STAR = "10-pointed star"
     TEXT = "text"
     TRIANGLE = "triangle"
     TRIANGLE_F = "triangle*"
@@ -498,16 +553,34 @@ class PageSize(StrEnum):
 
 class PathOperation(StrEnum):
     """PathOperation is used to set the type of path operation."""
-
     ARC = "ARC"
+    ARC_TO = "ARC"
+    BLEND_ARC = "BLEND_ARC"
+    BLEND_CUBIC = "BLEND_CUBIC"
+    BLEND_QUAD = "BLEND_QUAD"
+    CATMULL_TO = "CATMULL_TO"
+    CIRCLE = "CIRCLE"
     CLOSE = "CLOSE"
-    CURVE = "CURVE"
-    CURVE2 = "CURVE2"
+    CLOSE_CATMULL = "CLOSE_CATMULL"
+    CLOSE_HOBBY = "CLOSE_HOBBY"
+    CONNECTOR = "CONNECTOR"
+    CUBIC_TO = "CURVE"
+    ELLIPSE = "ELLIPSE"
+    FORWARD = "FORWARD"
+    GRID = "GRID"
     HLINE = "HLINE"
-    LINE = "LINE"
-    MOVE = "MOVE"
-    RLINE = "REL_LINE"
-    RMOVE = "REL_MOVE"
+    HOBBY_TO = "HOBBY_TO"
+    LINE_TO = "LINE"
+    MOVE_TO = "MOVE"
+    POLYGON = "POLYGON"
+    QUAD_TO = "QUAD_TO"
+    RECTANGLE = "RECTANGLE"
+    RLINE = "RLINE"
+    RMOVE = "RMOVE"
+    SECTOR = "SECTOR"
+    SHAPE = "SHAPE"
+    STYLE = "STYLE"
+    TAG = "TAG"
     VLINE = "VLINE"
 
 class PatternType(StrEnum):
@@ -516,15 +589,15 @@ class PatternType(StrEnum):
     BRICKS = "bricks"
     CHECKERBOARD = "checkerboard"
     CROSSHATCH = "crosshatch"
-    CROSSHATCHDOTS = "crosshatch dots"
+    CROSSHATCH_DOTS = "crosshatch dots"
     DOTS = "dots"
-    FIVEPOINTEDSTARS = "fivepointed stars"
+    FIVE_POINTED_STARS = "fivepointed stars"
     GRID = "grid"
-    VERTICALLINES = "vertical lines"
-    HORIZONTALLINES = "horizontal lines"
+    HORIZONTAL_LINES = "horizontal lines"
     NORTHEAST = "north east lines"
     NORTHWEST = "north west lines"
-    SIXPOINTEDSTARS = "sixpointed stars"
+    SIX_POINTED_STARS = "sixpointed stars"
+    VERTICAL_LINES = "vertical lines"
 
 # Tag placement options
 class Placement(StrEnum):
@@ -532,16 +605,16 @@ class Placement(StrEnum):
     relative to another object."""
 
     ABOVE = "above"
-    BELOW = "below"
-    LEFT = "left"
-    RIGHT = "right"
-    INSIDE = "inside"
-    OUTSIDE = "outside"
     ABOVE_LEFT = "above left"
     ABOVE_RIGHT = "above right"
+    BELOW = "below"
     BELOW_LEFT = "below left"
     BELOW_RIGHT = "below right"
     CENTERED = "centered"
+    INSIDE = "inside"
+    LEFT = "left"
+    OUTSIDE = "outside"
+    RIGHT = "right"
 
 
 class Render(StrEnum):
@@ -558,7 +631,7 @@ class Result(StrEnum):
 
     FAILURE = "FAILURE"
     GO = "GO"
-    NOPAGES = "NO PAGES"
+    NOPAGES = "NO_PAGES"
     OVERWRITE = "OVERWRITE"
     SAVED = "SAVED"
     STOP = "STOP"
@@ -592,12 +665,12 @@ class Side(StrEnum):
     BOTTOM = "BOTTOM"
     DIAGONAL1 = "DIAGONAL1"
     DIAGONAL2 = "DIAGONAL2"
-    HCENTER = "HCENTER"
+    H_CENTERLINE = "H_CENTERLINE"
     LEFT = "LEFT"
     MID = "MID"
     RIGHT = "RIGHT"
     TOP = "TOP"
-    VCENTER = "VCENTER"
+    V_CENTERLINE = "V_CENTERLINE"
 
 
 class State(StrEnum):
@@ -649,29 +722,34 @@ class Transformation(StrEnum):
 
 # object types and subtypes
 class Types(StrEnum):
-    """All objects in simetri.graphics has type and subtype
-    properties."""
-
-    ANGULARDIMENSION = "ANGULAR_DIMENSION"
+    """All objects in simetri.graphics has a type and a subtype
+    properties.
+    type is usually a SHAPE or BATCH.
+    subtype is the specific type of the object.
+    """
+    ANGULAR_DIMENSION = "ANGULAR DIMENSION"
     ANNOTATION = "ANNOTATION"
     ARC = "ARC"
-    ARCARROW = "ARC_ARROW"
-    ARCSKETCH = "ARC_SKETCH"
+    ARC_ARROW = "ARC_ARROW"
+    ARC_SKETCH = "ARC_SKETCH"
     ARROW = "ARROW"
-    ARROWHEAD = "ARROWHEAD"
+    ARROW_HEAD = "ARROW_HEAD"
     AXIS = "AXIS"
     BATCH = "BATCH"
-    BATCHSKETCH = "BATCH_SKETCH"
-    BOUNDINGBOX = "BOUNDING_BOX"
+    BATCH_SKETCH = "BATCH_SKETCH"
+    BEZIER = "BEZIER"
+    BEZIER_SKETCH = "BEZIER_SKETCH"
+    BBOX_SKETCH = "BBOX_SKETCH"
+    BOUNDING_BOX = "BOUNDING_BOX"
     BRACE = "BRACE"
     CANVAS = "CANVAS"
     CIRCLE = "CIRCLE"
-    CIRCLESKETCH = "CIRCLE_SKETCH"
-    CIRCULARGRID = "CIRCULAR_GRID"
+    CIRCLE_SKETCH = "CIRCLE_SKETCH"
+    CIRCULAR_GRID = "CIRCULAR_GRID"
     COLOR = "COLOR"
     CS = "CS"
     CURVE = "CURVE"
-    CURVESKETCH = "CURVE_SKETCH"
+    CURVE_SKETCH = "CURVE_SKETCH"
     DIMENSION = "DIMENSION"
     DIRECTED = "DIRECTED_GRAPH"
     DIVISION = "DIVISION"
@@ -679,21 +757,23 @@ class Types(StrEnum):
     DOTS = "DOTS"
     EDGE = "EDGE"
     ELLIPSE = "ELLIPSE"
-    ELLIPSESKETCH = "ELLIPSE_SKETCH"
-    ELLIPTICARC = "ELLIPTIC_ARC"
-    FILLSTYLE = "FILL_STYLE"
+    ELLIPSE_SKETCH = "ELLIPSE_SKETCH"
+    ELLIPTIC_ARC = "ELLIPTIC_ARC"
+    FILL_STYLE = "FILL_STYLE"
     FONT = "FONT"
     FONTSKETCH = "FONT_SKETCH"
-    FONTSTYLE = "FONT_STYLE"
+    FONT_STYLE = "FONT_STYLE"
     FRAGMENT = "FRAGMENT"
-    FRAGMENTSKETCH = "FRAGMENT_SKETCH"
+    FRAGMENT_SKETCH = "FRAGMENT_SKETCH"
     FRAME = "FRAME"
-    FRAMESKETCH = "FRAME_SKETCH"
-    FRAMESTYLE = "FRAME_STYLE"
+    FRAME_SKETCH = "FRAME_SKETCH"
+    FRAME_STYLE = "FRAME_STYLE"
     GRADIENT = "GRADIENT"
     GRID = "GRID"
-    GRIDSTYLE = "GRID_STYLE"
+    GRID_STYLE = "GRID_STYLE"
+    HANDLE = "HANDLE" # USED FOR BEZIER CURVES
     HEXAGONAL = "HEXAGONAL"
+    HOBBY_CURVE = "HOBBY_CURVE"
     ICANVAS = "ICANVAS"
     INTERSECTION = "INTERSECTION"
     LABEL = "LABEL"
@@ -701,58 +781,61 @@ class Types(StrEnum):
     LACESKETCH = "LACE_SKETCH"
     LINE = "LINE"
     LINEAR = "LINEAR"
-    LINESKETCH = "LINE_SKETCH"
-    LINESSKETCH = "LINES_SKETCH"
-    LINESTYLE = "LINE_STYLE"
+    LINE_SKETCH = "LINE_SKETCH"
+    LINE_STYLE = "LINE_STYLE"
     LOOM = "LOOM"
     MARKER = "MARKER"
-    MARKERSTYLE = "MARKER_STYLE"
+    MARKER_STYLE = "MARKER_STYLE"
     MASK = "MASK"
     NONE = "NONE"
     OBLIQUE = "OBLIQUE"
     OUTLINE = "OUTLINE"
     OVERLAP = "OVERLAP"
     PAGE = "PAGE"
-    PAGEGRID = "PAGE_GRID"
-    PARALLELPOLYLINE = "PARALLEL_POLYLINE"
+    PAGE_GRID = "PAGE_GRID"
+    PARALLEL_POLYLINE = "PARALLEL_POLYLINE"
     PART = "PART"
+    PATTERN = "PATTERN"
+    PATTERN_STYLE = "PATTERN_STYLE"
     PATH = "PATH"
-    PATTERNSKETCH = "PATTERN_SKETCH"
-    PATTERNSTYLE = "PATTERN_STYLE"
-    PETAL = "PETAL"
+    PATH_OPERATION = "PATH_OPERATION"
+    PATH_SKETCH = "PATH_SKETCH"
     PLAIT = "PLAIT"
-    PLAITSKETCH = "PLAIT_SKETCH"
     POINT = "POINT"
     POINTS = "POINTS"
     POLYLINE = "POLYLINE"
+    Q_BEZIER = "Q_BEZIER"
     RADIAL = "RADIAL"
     RECTANGLE = "RECTANGLE"
     RECTANGULAR = "RECTANGULAR"
-    REGPOLY = "REGPOLY"
-    REGPOLYSKETCH = "REGPOLY_SKETCH"
-    REGULARPOLYGON = "REGULAR_POLYGON"
+    RECT_SKETCH = "RECT_SKETCH"
+    REG_POLY = "REGPOLY"
+    REG_POLY_SKETCH = "REGPOLY_SKETCH"
+    REGULAR_POLYGON = "REGULAR_POLYGON"
     RHOMBIC = "RHOMBIC"
     SECTION = "SECTION"
     SEGMENT = "SEGMENT"
     SEGMENTS = "SEGMENTS"
-    SHADESTYLE = "SHADE_STYLE"
+    SHADE_STYLE = "SHADE_STYLE"
     SHAPE = "SHAPE"
-    SHAPESKETCH = "SHAPE_SKETCH"
-    SHAPESTYLE = "SHAPE_STYLE"
+    SHAPE_SKETCH = "SHAPE_SKETCH"
+    SHAPE_STYLE = "SHAPE_STYLE"
     SKETCH = "SKETCH"
-    SKETCHSTYLE = "SKETCH_STYLE"
+    SKETCH_STYLE = "SKETCH_STYLE"
     SQUARE = "SQUARE"
     STAR = "STAR"
     STYLE = "STYLE"
+    SVG_PATH = "SVG_PATH"
+    SVG_PATH_SKETCH = "SVG_PATH_SKETCH"
     TAG = "TAG"
-    TAGSTYLE = "TAG_STYLE"
+    TAG_SKETCH = "TAG_SKETCH"
+    TAG_STYLE = "TAG_STYLE"
     TEX = "TEX"  # USED FOR GENERATING OUTPUTFILE.TEX
-    TEXSKETCH = "TEX_SKETCH"
+    TEX_SKETCH = "TEX_SKETCH"
     TEXT = "TEXT"
     TEXTANCHOR = "TEXT_ANCHOR"
-    TEXTANCHORLINE = "TEXT_ANCHORLINE"
-    TEXTANCHORPOINT = "TEXT_ANCHORPOINT"
-    TAGSKETCH = "TAG_SKETCH"
+    TEXT_ANCHOR_LINE = "TEXT_ANCHORLINE"
+    TEXT_ANCHOR_POINT = "TEXT_ANCHORPOINT"
     THREAD = "THREAD"
     TRIANGLE = "TRIANGLE"
     TURTLE = "TURTLE"
@@ -764,16 +847,18 @@ class Types(StrEnum):
 
 
 drawable_types = [
-    Types.ARROW,
     Types.ARC,
-    Types.ARCARROW,
-    Types.ARROWHEAD,
+    Types.ARC_ARROW,
+    Types.ARROW,
+    Types.ARROW_HEAD,
+    Types.BEZIER,
     Types.BATCH,
+    Types.BOUNDING_BOX,
     Types.CIRCLE,
-    Types.DOT,
-    Types.DOTS,
     Types.DIMENSION,
     Types.DIVISION,
+    Types.DOT,
+    Types.DOTS,
     Types.EDGE,
     Types.ELLIPSE,
     Types.FRAGMENT,
@@ -781,21 +866,25 @@ drawable_types = [
     Types.LACE,
     Types.OUTLINE,
     Types.OVERLAP,
-    Types.PARALLELPOLYLINE,
+    Types.PARALLEL_POLYLINE,
     Types.PATH,
     Types.PLAIT,
+    Types.Q_BEZIER,
     Types.POLYLINE,
     Types.RECTANGLE,
     Types.SECTION,
     Types.SEGMENT,
     Types.SHAPE,
     Types.STAR,
+    Types.SVG_PATH,
     Types.TAG,
     Types.TURTLE
 ]
 
 shape_types = [
     Types.ARC,
+    Types.ARROW_HEAD,
+    Types.BEZIER,
     Types.BRACE,
     Types.CIRCLE,
     Types.CURVE,
@@ -805,38 +894,40 @@ shape_types = [
     Types.INTERSECTION,
     Types.LINE,
     Types.POLYLINE,
+    Types.Q_BEZIER,
     Types.SECTION,
     Types.SHAPE,
-    Types.ARROWHEAD,
 ]
 
 batch_types = [
-    Types.ANGULARDIMENSION,
+    Types.ANGULAR_DIMENSION,
     Types.ANNOTATION,
-    Types.ARCARROW,
+    Types.ARC_ARROW,
     Types.ARROW,
     Types.BATCH,
+    Types.DIMENSION,
     Types.DOTS,
     Types.LACE,
     Types.MARKER,
     Types.OVERLAP,
-    Types.PARALLELPOLYLINE,
+    Types.PARALLEL_POLYLINE,
+    Types.PATH,
     Types.STAR,
-    Types.DIMENSION,
+    Types.SVG_PATH,
     Types.TURTLE
 ]
 
 # Python Version 3.9 cannot handle Union[*drawable_types]
 Drawable: TypeAlias = Union[
-    Types.ARROW,
     Types.ARC,
-    Types.ARCARROW,
-    Types.ARROWHEAD,
+    Types.ARC_ARROW,
+    Types.ARROW,
+    Types.ARROW_HEAD,
     Types.BATCH,
     Types.CIRCLE,
+    Types.DIMENSION,
     Types.DOT,
     Types.DOTS,
-    Types.DIMENSION,
     Types.EDGE,
     Types.ELLIPSE,
     Types.FRAGMENT,
@@ -844,7 +935,7 @@ Drawable: TypeAlias = Union[
     Types.LACE,
     Types.OUTLINE,
     Types.OVERLAP,
-    Types.PARALLELPOLYLINE,
+    Types.PARALLEL_POLYLINE,
     Types.PATH,
     Types.PLAIT,
     Types.POLYLINE,
@@ -853,6 +944,7 @@ Drawable: TypeAlias = Union[
     Types.SEGMENT,
     Types.SHAPE,
     Types.STAR,
+    Types.SVG_PATH,
     Types.TAG,
     Types.TURTLE
 ]

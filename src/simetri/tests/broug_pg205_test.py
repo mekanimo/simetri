@@ -12,4 +12,4 @@ star = petal.rotate(sg.pi / 5, reps=9)
 swatch = sg.swatches_255[49]
 lace = sg.Lace(star, offset=4, swatch=swatch)
 canvas.draw(lace)
-canvas.save("c:/tmp/broug_pg205_test.pdf", overwrite=True)
+canvas.save("c:/tmp/broug_pg205_test_.pdf", overwrite=True)

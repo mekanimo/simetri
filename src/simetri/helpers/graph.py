@@ -9,7 +9,7 @@ import networkx as nx
 from ..graphics.common import common_properties, Point
 from ..graphics.all_enums import Types
 from ..settings.settings import defaults
-from .geometry import distance, close_points2
+from ..geometry.geometry import distance, close_points2
 
 
 @dataclass

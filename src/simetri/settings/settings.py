@@ -13,6 +13,8 @@ from math import pi
 import numpy as np
 
 
+VOID = 'VOID' # Importing from common module causes circular import. To do: fix this
+
 # This is the alpha testing stage for the Simetri library.
 # These default values may change in the future.
 # We will record the values used in a script and create a <job_name>_config.ini file
@@ -677,6 +679,16 @@ def set_defaults():
     # defaults['min_size'] = 50
     defaults["mono_font"] = "Courier New"
     defaults_help["mono_font"] = "Monospace font. String."
+    defaults['n_arc_points'] = 20  # number of points for arcs
+    defaults_help['n_arc_points'] = 'Number of points for arcs. Positive integer.'
+    defaults['n_circle_points'] = 30  # number of points for circles
+    defaults_help['n_circle_points'] = 'Number of points for circles. Positive integer.'
+    defaults['n_bezier_points'] = 20  # number of points for Bezier curves
+    defaults_help['n_bezier_points'] = 'Number of points for Bezier curves. Positive integer.'
+    defaults['n_ellipse_points'] = 30  # number of points for ellipses
+    defaults_help['n_ellipse_points'] = 'Number of points for ellipses. Positive integer.'
+    defaults['n_q_bezier_points'] = 20  # number of points for quadratic Bezier curves
+    defaults_help['n_q_bezier_points'] = 'Number of points for quadratic Bezier curves. Positive integer.'
     defaults["n_round"] = 2  # used for rounding floats
     defaults_help["n_round"] = (
         "Number of decimal places to round floats. Positive integer."
@@ -739,7 +751,7 @@ def set_defaults():
     defaults_help["page_size"] = "Page size. PageSize enum."
     defaults["pattern_style"] = None
     defaults_help["pattern_style"] = "Pattern style. PatternStyle object."
-    defaults["pattern_type"] = PatternType.HORIZONTALLINES  #  DOTS, HATCH, STARS
+    defaults["pattern_type"] = PatternType.HORIZONTAL_LINES  #  DOTS, HATCH, STARS
     defaults_help["pattern_type"] = "Pattern type. PatternType enum."
     defaults["pattern_color"] = colors.black
     defaults_help["pattern_color"] = "Pattern color. Color object."
@@ -894,7 +906,7 @@ def set_defaults():
     defaults_help["stroke"] = "Boolean property for stroke. If True, stroke is used."
     defaults["swatch"] = seq_MATTER_256
     defaults_help["swatch"] = "Swatch. List of colors."
-    defaults["tag_align"] = Align.CENTER
+    defaults["tag_align"] = Align.LEFT
     defaults_help["tag_align"] = "Tag text alignment. Align enum."
     defaults["tag_alpha"] = 1
     defaults_help["tag_alpha"] = (
@@ -906,6 +918,8 @@ def set_defaults():
     defaults_help["temp_dir"] = "Temporary directory. String."
     defaults["text_offset"] = 5  # gap between text and dimension line
     defaults_help["text_offset"] = "Text offset. Positive float. Length in <points>."
+    defaults["text_width"] = None  # width of the text box
+    defaults_help["text_width"] = "Text width. Positive float. Length in <points>."
     defaults["tikz_libraries"] = [
         "plotmarks",
         "calc",

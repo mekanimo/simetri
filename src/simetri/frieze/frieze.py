@@ -2,7 +2,7 @@
 
 from typing import Sequence, Union
 
-from ..helpers.geometry import vec_along_line, point_to_line_vec, pi
+from ..geometry.geometry import vec_along_line, point_to_line_vec, pi
 from ..graphics.common import VecType, Line, Point
 from ..graphics.batch import Batch
 
@@ -14,7 +14,7 @@ def hop(design: Union[Batch, Shape], vector: VecType = (1, 0), reps: int = 3) ->
     vector argument's orientation is the direction of the hop.
     vector argument's magnitude is the distance between the shapes.
     Return a Batch of Shapes with the p1 symmetry."""
-    dx, dy = vector
+    dx, dy = vector[:2]
     return design.translate(dx, dy, reps)
 
 
@@ -36,7 +36,7 @@ def jump(
     """p11m symmetry group.
     mirror_line can be axis_x, axis_y, or (p1, p2)
     Return a Batch of shapes with the p11m symmetry."""
-    dx, dy = vec_along_line(mirror_line, dist)
+    dx, dy = vec_along_line(mirror_line, dist)[:2]
     design.mirror(mirror_line, reps=1)
     if reps > 0:
         design.translate(dx, dy, reps)
@@ -61,7 +61,7 @@ def sidle(design: Batch, mirror_line: Line, dist: float, reps: int = 3) -> Batch
     mirror_line can be axis_x/axis_y, or (p1, p2)
     Return a Batch of Shapes with the sidle symmetry."""
     # vector(dx, dy) is a unit vector perpendicular to mirror_line
-    x, y = point_to_line_vec(design.center, mirror_line, unit=True)
+    x, y = point_to_line_vec(design.center, mirror_line, unit=True)[:2]
     dx = x * dist
     dy = y * dist
     return design.mirror(mirror_line, reps=1).translate(dist, 0, reps)
@@ -72,7 +72,7 @@ def sidle_along(
 ) -> Batch:
     """sidle along the given path."""
     # vector(dx, dy) is a unit vector perpendicular to mirror_line
-    x, y = point_to_line_vec(design.center, mirror_line, unit=True)
+    x, y = point_to_line_vec(design.center, mirror_line, unit=True)[:2]
     design.mirror(mirror_line, reps=1)
     return design.translate_along(path, reps)
 
@@ -95,7 +95,7 @@ def spinning_jump(
     mirrors can be axis_x, axis_y, or (p1, p2)
     distance is along mirror1
     Return a Batch of Shapes with spinning_hop symmetry."""
-    dx, dy = vec_along_line(mirror1, dist)
+    dx, dy = vec_along_line(mirror1, dist)[:2]
     design.mirror(mirror1, reps=1).mirror(mirror2, reps=1)
     if reps > 0:
         design.translate(dx, dy, reps)
@@ -113,7 +113,7 @@ def spinning_sidle(
     """p2mg symmetry group.
     lines can be axis_x, axis_y, or (p1, p2)
     Return a Batch of Shapes with spinning_sidle symmetry."""
-    dx, dy = vec_along_line(glide_line, trans_dist)
+    dx, dy = vec_along_line(glide_line, trans_dist)[:2]
     design.mirror(mirror_line, reps=1).glide(glide_line, glide_dist, reps=1)
     if reps > 0:
         design.translate(dx, dy, reps)
@@ -131,7 +131,7 @@ def step(
     Return a Batch of Shapes with step symmetry."""
     design.glide(glide_line, glide_dist, reps=1)
     if reps > 0:
-        dx, dy = vec_along_line(glide_line, 2 * glide_dist)
+        dx, dy = vec_along_line(glide_line, 2 * glide_dist)[:2]
         design.translate(dx, dy, reps=reps)
     return design
 

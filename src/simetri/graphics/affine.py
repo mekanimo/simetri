@@ -6,7 +6,8 @@ from typing import Sequence, Union
 import numpy as np
 
 from .common import Line, Point
-from ..helpers.geometry import line_angle, vec_along_line, is_line, is_point
+from ..geometry.geometry import line_angle, vec_along_line, is_line, is_point
+
 
 
 def identity_matrix() -> np.ndarray:
@@ -14,7 +15,7 @@ def identity_matrix() -> np.ndarray:
     Return the identity matrix
     [[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]].
     """
-    return np.array([[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]])
+    return np.identity(3)
 
 
 def xform_matrix(
@@ -100,7 +101,7 @@ def glide_matrix(mirror_line: Line, distance: float) -> np.ndarray:
     Reflect about the given vector then translate by dx
     along the same vector."""
     mirror_mat = mirror_about_line_matrix(mirror_line)
-    x, y = vec_along_line(mirror_line, distance)
+    x, y = vec_along_line(mirror_line, distance)[:2]
     trans_mat = translation_matrix(x, y)
 
     return mirror_mat @ trans_mat
@@ -111,7 +112,7 @@ def inv_glide_matrix(mirror_line: Line, distance: float) -> np.ndarray:
     Reflect about the given vector then translate by dx
     along the same vector."""
     mirror_mat = mirror_about_line_matrix(mirror_line)
-    x, y = vec_along_line(mirror_line, distance)
+    x, y = vec_along_line(mirror_line, distance)[:2]
     trans_matrix = translation_matrix(x, y)
 
     return trans_matrix @ mirror_mat
@@ -235,7 +236,7 @@ def mirror_about_y_matrix() -> np.ndarray:
 def mirror_about_line_matrix(line: Line) -> np.ndarray:
     """line is given as [p1, p2]."""
     p1, p2 = line
-    x1, y1 = p1
+    x1, y1 = p1[:2]
     theta = line_angle(p1, p2)
     two_theta = 2 * theta
 

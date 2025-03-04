@@ -9,13 +9,13 @@ from typing_extensions import Self
 import networkx as nx
 
 
-from .all_enums import Types, batch_types, drawable_types, get_enum_value
+from .all_enums import Types, batch_types, get_enum_value
 from .common import common_properties, get_defaults, _set_Nones, Point, Line
 from .core import Base
 from .bbox import bounding_box
 from ..canvas.style_map import batch_args
 from ..helpers.validation import validate_args
-from ..helpers.geometry import (
+from ..geometry.geometry import(
     inclination_angle,
     all_intersections,
     fix_degen_points,
@@ -49,9 +49,10 @@ class Batch(Base):
         **kwargs,
     ):
         validate_args(kwargs, batch_args)
-        if elements and not isinstance(elements, (list, tuple, ndarray)):
-            raise TypeError("elements must be a sequence of objects!")
-        self.elements = elements if elements is not None else []
+        if elements and not isinstance(elements, (list, tuple)):
+            self.elements = [elements]
+        else:
+            self.elements = elements if elements is not None else []
         self.type = Types.BATCH
         if subtype not in batch_types:
             raise ValueError(f"Invalid subtype '{subtype}' for a Batch object!")
@@ -138,13 +139,9 @@ class Batch(Base):
 
     def _duplicates(self, elements):
         for element in elements:
-            if element.type in drawable_types:
-                ids = [x.id for x in self.elements]
-                if element.id in ids:
-                    raise ValueError("Only unique elements are allowed!")
-            else:
-                msg = 'Invalid object. Only "drawable" objects are valid!'
-                raise ValueError(msg)
+            ids = [x.id for x in self.elements]
+            if element.id in ids:
+                raise ValueError("Only unique elements are allowed!")
 
         return len(set(elements)) != len(elements)
 
@@ -159,9 +156,10 @@ class Batch(Base):
 
     def append(self, element: Any) -> Self:
         """Appends the element to the batch."""
-        if element.type in drawable_types:
-            if element not in self.elements:
-                self.elements.append(element)
+        if element not in self.elements:
+            self.elements.append(element)
+        else:
+            logging.info("Batch.append: Ignoring duplicate element(id:%i)", element.id)
         return self
 
     def reverse(self) -> Self:
@@ -171,13 +169,12 @@ class Batch(Base):
 
     def insert(self, index, element: Any) -> Self:
         """Inserts the element at the given index."""
-        if element.type in drawable_types:
-            if element not in self.elements:
-                self.elements.insert(index, element)
-            else:
-                logging.info(
-                    f"Batch.insert: Ignoring duplicate element(id:{element.id})"
-                )
+        if element not in self.elements:
+            self.elements.insert(index, element)
+        else:
+            logging.info(
+                "Batch.insert: Ignoring duplicate element(id:%i)", element.id
+            )
         return self
 
     def remove(self, element: Any) -> Self:
@@ -198,7 +195,7 @@ class Batch(Base):
     def extend(self, elements: Sequence[Any]) -> Self:
         """Extends the batch with the given elements."""
         for element in elements:
-            if element.type in drawable_types and element not in self.elements:
+            if element not in self.elements:
                 self.elements.append(element)
             else:
                 logging.info(

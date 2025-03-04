@@ -4,7 +4,7 @@ import networkx as nx
 
 from .common import get_defaults
 from ..settings.settings import defaults
-from ..helpers.geometry import right_handed, fix_degen_points
+from ..geometry.geometry import right_handed, fix_degen_points
 from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges2nodes
 
 

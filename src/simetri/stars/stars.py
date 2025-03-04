@@ -8,7 +8,7 @@ from ..graphics.shape import Shape
 
 from ..graphics.common import common_properties, axis_x, Line
 from ..graphics.all_enums import Types
-from ..helpers.geometry import intersect, distance
+from ..geometry.geometry import intersect, distance
 
 
 def rosette(

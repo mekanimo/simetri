@@ -1,4 +1,4 @@
-""" Canvas class for drawing shapes and text on a page. All drawing
+"""Canvas class for drawing shapes and text on a page. All drawing
 operations are handled by the Canvas class. Canvas class can draw all
 graphics objects and text objects. It also provides methods for
 drawing basic shapes like lines, circles, and polygons.
@@ -12,7 +12,7 @@ from typing import Optional, Any, Tuple, Sequence
 from pathlib import Path
 from dataclasses import dataclass
 
-from typing_extensions import Self
+from typing_extensions import Self, Union
 from numpy import ndarray
 import networkx as nx
 import fitz
@@ -59,7 +59,6 @@ class Canvas:
         border=None,
         **kwargs,
     ):
-
         validate_args(kwargs, canvas_args)
         _set_Nones(self, ["back_color", "border"], [back_color, border])
         self.size = size
@@ -112,18 +111,36 @@ class Canvas:
     def arc(
         self,
         center: Point,
-        radius: float,
         start_angle: float,
         end_angle: float,
+        radius: float,
+        radius2: float = None,
+        rot_angle: float = 0,
         **kwargs,
     ) -> Self:
         """Draw an arc with the given center, radius, start angle and end angle."""
-        draw.arc(self, center, radius, start_angle, end_angle, **kwargs)
+        if radius2 is None:
+            radius2 = radius
+        draw.arc(
+            self, center, start_angle, end_angle, radius, radius2, rot_angle, **kwargs
+        )
+        return self
+
+    def bezier(self, control_points: Sequence[Point], **kwargs) -> Self:
+        """Draw a bezier curve."""
+        draw.bezier(self, control_points, **kwargs)
         return self
 
     def circle(self, center: Point, radius: float, **kwargs) -> Self:
         """Draw a circle with the given center and radius."""
         draw.circle(self, center, radius, **kwargs)
+        return self
+
+    def ellipse(
+        self, center: Point, width: float, height: float, angle: float = 0, **kwargs
+    ) -> Self:
+        """Draw an ellipse with the given center and radius."""
+        draw.ellipse(self, center, width, height, angle, **kwargs)
         return self
 
     def text(
@@ -172,6 +189,27 @@ class Canvas:
         draw.line(self, start, end, **kwargs)
         return self
 
+    def rectangle(
+        self,
+        center: Point = (0, 0),
+        width: float = 100,
+        height: float = 100,
+        angle: float = 0,
+        **kwargs,
+    ) -> Self:
+        """Draw a rectangle.
+        center: the center of the rectangle
+        width: the width of the rectangle
+        height: the height of the rectangle
+        """
+        draw.rectangle(self, center, width, height, angle, **kwargs)
+        return self
+
+    def square(self, center: Point = (0, 0), size: float = 100, angle: float = 0, **kwargs) -> Self:
+        """Draw a square with the given center and size."""
+        draw.rectangle(self, center, size, size, angle, **kwargs)
+        return self
+
     def lines(self, points: Sequence[Point], **kwargs) -> Self:
         """Draw a polyline through the given points."""
         draw.lines(self, points, **kwargs)
@@ -187,10 +225,13 @@ class Canvas:
         draw.draw_dimension(self, dim, **kwargs)
         return self
 
-    def draw(self, item: Drawable, **kwargs) -> Self:
-        """Draw the item."""
-
-        draw.draw(self, item, **kwargs)
+    def draw(self, item_s: Union[Drawable, list, tuple], **kwargs) -> Self:
+        """Draw the item_s. item_s can be a single item or a list of items."""
+        if isinstance(item_s, (list, tuple)):
+            for item in item_s:
+                draw.draw(self, item, **kwargs)
+        else:
+            draw.draw(self, item_s, **kwargs)
         return self
 
     def draw_CS(self, size: float = None, **kwargs) -> Self:
@@ -347,11 +388,17 @@ class Canvas:
         user_fonts = set(self._font_list)
 
         latex_fonts = set(
-            [defaults["main_font"], defaults["sans_font"], defaults["mono_font"],
-            'serif', 'sansserif', 'monospace']
+            [
+                defaults["main_font"],
+                defaults["sans_font"],
+                defaults["mono_font"],
+                "serif",
+                "sansserif",
+                "monospace",
+            ]
         )
         for sketch in self.active_page.sketches:
-            if sketch.subtype == Types.TAGSKETCH:
+            if sketch.subtype == Types.TAG_SKETCH:
                 name = sketch.font_family
                 if name is not None and name not in latex_fonts:
                     user_fonts.add(name)
@@ -387,7 +434,7 @@ class Canvas:
         if show_browser:
             if multi_page_svg:
                 for i, _ in enumerate(self.pages):
-                    f_path = file_path.replace(".svg", f"_page{i+1}.svg")
+                    f_path = file_path.replace(".svg", f"_page{i + 1}.svg")
                     webbrowser.open(f_path)
             else:
                 webbrowser.open(file_path)
@@ -407,7 +454,7 @@ class Canvas:
             if path_exists and not overwrite:
                 raise FileExistsError(
                     f"File {file_path} already exists. \n"
-                    "Set overwrite=True to overwrite the file."
+                    "Use canvas.save(file_path, overwrite=True) to overwrite the file."
                 )
             # get parent_dir, file_name, extension
             parent_dir, file_name = os.path.split(file_path)
@@ -564,7 +611,7 @@ class PageGrid:
     y_shift: float = None
 
     def __post_init__(self):
-        self.type = Types.PAGEGRID
+        self.type = Types.PAGE_GRID
         self.subtype = Types.RECTANGULAR
         self.spacing = defaults["page_grid_spacing"]
         self.back_color = defaults["page_grid_back_color"]

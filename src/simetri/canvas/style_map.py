@@ -1,10 +1,12 @@
 """This module contains the Style classes used to set the style of shapes, lines, text,
-    and tags. Shape and Tag objects use the maps to create aliases for style attributes.
-    Examples:
-    shape.style.line_style.color is aliased by shape.line_color
-    tag.style.fill_style.pattern_style.line_style.width is aliased by tag.pattern_line_width
-    Documentation list all aliases for each style class.
-    """
+and tags. Shape and Tag objects use the maps to create aliases for style attributes.
+
+Examples:
+shape.style.line_style.color is aliased by shape.line_color
+tag.style.fill_style.pattern_style.line_style.width is aliased by tag.pattern_line_width
+Documentation list all aliases for each style class.
+"""
+# to do: Change this so that IDEs can find the classes and methods.
 
 from typing import List, Optional, Sequence, Union
 from dataclasses import dataclass
@@ -30,7 +32,6 @@ from ..graphics.all_enums import (
 from ..colors import Color
 
 
-# To do: Remove print statements
 def _set_style_args(obj, attribs, exact=None, prefix=None):
     """Set the style arguments for the given object."""
     for attrib in attribs:
@@ -38,8 +39,6 @@ def _set_style_args(obj, attribs, exact=None, prefix=None):
             default = defaults.get(attrib, VOID)
             if default != VOID:
                 setattr(obj, attrib, default)
-            else:
-                print(prefix, "_set_style_args missing default:", attrib)
         else:
             if prefix:
                 setattr(obj, attrib, defaults[f"{prefix}_{attrib}"])
@@ -47,18 +46,16 @@ def _set_style_args(obj, attribs, exact=None, prefix=None):
                 default = defaults.get(attrib, VOID)
                 if default != VOID:
                     setattr(obj, attrib, default)
-                else:
-                    print(prefix, "_set_style_args missing default:", attrib)
 
 
-def _get_style_attribs(style: Types.STYLE, prefix: str = None) -> List[str]:
+def _get_style_attribs(style: Types.STYLE, prefix: str = None, exact:list=None, exclude:list=None) -> List[str]:
     """Get the list of attributes from the given Style object."""
-    attribs = [x for x in style.__dict__.keys() if not x.startswith("_")]
+    attribs = style.__dict__.keys()
     res = []
     for attrib in attribs:
-        if attrib in style._exclude:
+        if attrib in exclude:
             continue
-        if attrib in style._exact:
+        if attrib in exact:
             res.append(attrib)
         else:
             res.append(f"{prefix}_{attrib}")
@@ -84,7 +81,7 @@ class FontStyle:
     alpha: float = None
 
     def __post_init__(self):
-        self._exact = [
+        exact = [
             "bold",
             "italic",
             "small_caps",
@@ -95,15 +92,17 @@ class FontStyle:
             "draw_frame",
             "font_family",
         ]
-        self._exclude = []
+        exclude = []
 
         _style_init(
             self,
-            exact=self._exact,
-            exclude=self._exclude,
+            exact=exact,
+            exclude=exclude,
             prefix="font",
-            subtype=Types.FONTSTYLE,
+            subtype=Types.FONT_STYLE,
         )
+        self._exact = exact
+        self._exclude = exclude
 
 
 @dataclass
@@ -118,16 +117,18 @@ class GridStyle:
     back_color: Color = None
 
     def __post_init__(self):
-        self._exact = []
-        self._exclude = []
+        exact = []
+        exclude = []
 
         _style_init(
             self,
-            exact=self._exact,
-            exclude=self._exclude,
+            exact=exact,
+            exclude=exclude,
             prefix="grid",
-            subtype=Types.GRIDSTYLE,
+            subtype=Types.GRID_STYLE,
         )
+        self._exact = exact
+        self._exclude = exclude
 
     def __str__(self):
         return f"GridStyle: {self.id}"
@@ -155,15 +156,17 @@ class MarkerStyle:
     radius: float = None
 
     def __post_init__(self):
-        self._exact = ["marker_type"]
-        self._exclude = []
+        exact = ["marker_type"]
+        exclude = []
         _style_init(
             self,
-            exact=self._exact,
-            exclude=self._exclude,
+            exact=exact,
+            exclude=exclude,
             prefix="marker",
-            subtype=Types.MARKERSTYLE,
+            subtype=Types.MARKER_STYLE,
         )
+        self._exact = exact
+        self._exclude = exclude
 
     def __str__(self):
         return f"Marker: {self.type}"
@@ -205,11 +208,11 @@ class LineStyle:
             "double_lines",
         ]
         exclude = ["marker_style"]
+        _style_init(
+            self, exact, exclude, prefix="line", subtype=Types.LINE_STYLE
+        )
         self._exact = exact
         self._exclude = exclude
-        _style_init(
-            self, self._exact, self._exclude, prefix="line", subtype=Types.LINESTYLE
-        )
         self.marker_style = MarkerStyle()
 
     def __str__(self):
@@ -221,10 +224,10 @@ def _style_init(style, exact=None, exclude=None, prefix="", subtype=None):
         exclude = []
     if exact is None:
         exact = []
-    attribs = [x for x in style.__dict__ if not x.startswith("_") and x not in exclude]
+    attribs = [x for x in style.__dict__ if x not in exclude]
     _set_style_args(style, attribs, exact, prefix=prefix)
 
-    style.attribs = _get_style_attribs(style, prefix=prefix)
+    style.attribs = _get_style_attribs(style, prefix=prefix, exact=exact, exclude=exclude)
     style.id = get_unique_id(style)
     style.type = Types.STYLE
     style.subtype = subtype
@@ -247,15 +250,17 @@ class PatternStyle:
     points: int = None  # number of petals. Used for stars
 
     def __post_init__(self):
-        self._exact = ["stroke", "pattern_type"]
-        self._exclude = []
+        exact = ["stroke", "pattern_type"]
+        exclude = []
         _style_init(
             self,
-            exact=self._exact,
-            exclude=self._exclude,
+            exact=exact,
+            exclude=exclude,
             prefix="pattern",
-            subtype=Types.PATTERNSTYLE,
+            subtype=Types.PATTERN_STYLE,
         )
+        self._exact = exact
+        self._exclude = exclude
 
     def __str__(self):
         return f"Pattern: {self.type}"
@@ -305,11 +310,15 @@ class ShadeStyle:
         ]
         exact = ["shade_type"]
         exclude = []
+        _style_init(
+            self,
+            exact=exact,
+            exclude=exclude,
+            prefix="shade",
+            subtype=Types.SHADE_STYLE,
+        )
         self._exact = exact
         self._exclude = exclude
-        _style_init(
-            self, exact=exact, exclude=exclude, prefix="shade", subtype=Types.SHADESTYLE
-        )
 
 
 @dataclass
@@ -329,11 +338,13 @@ class FillStyle:
         self.shade_style = ShadeStyle()
         self.grid_style = GridStyle()
         self.pattern_style = PatternStyle()
-        self._exact = ["fill", "back_style"]
-        self._exclude = ["pattern_style", "shade_style", "grid_style"]
+        exact = ["fill", "back_style"]
+        exclude = ["pattern_style", "shade_style", "grid_style"]
         _style_init(
-            self, self._exact, self._exclude, prefix="fill", subtype=Types.FILLSTYLE
+            self, exact, exclude, prefix="fill", subtype=Types.FILL_STYLE
         )
+        self._exact = exact
+        self._exclude = exclude
 
     def __str__(self):
         return f"FillStyle: {self.id}"
@@ -364,15 +375,17 @@ class ShapeStyle:
         self.fill_style = FillStyle()
         self.marker_style = MarkerStyle()
         self.alpha = defaults["alpha"]
-        self._exact = ["alpha"]
-        self._exclude = ["line_style", "fill_style"]
+        exact = ["alpha"]
+        exclude = ["line_style", "fill_style"]
         _style_init(
             self,
-            exact=self._exact,
-            exclude=self._exclude,
+            exact=exact,
+            exclude=exclude,
             prefix="",
-            subtype=Types.SHAPESTYLE,
+            subtype=Types.SHAPE_STYLE,
         )
+        self._exact = exact
+        self._exclude = exclude
 
     def __str__(self):
         return f"ShapeStyle: {self.id}"
@@ -401,15 +414,17 @@ class FrameStyle:
     def __post_init__(self):
         self.line_style = LineStyle()
         self.fill_style = FillStyle()
-        self._exact = []
-        self._exclude = ["line_style", "fill_style"]
+        exact = []
+        exclude = ["line_style", "fill_style"]
         _style_init(
             self,
-            exact=self._exact,
-            exclude=self._exclude,
+            exact=exact,
+            exclude=exclude,
             prefix="frame",
-            subtype=Types.FRAMESTYLE,
+            subtype=Types.FRAME_STYLE,
         )
+        self._exact = exact
+        self._exclude = exclude
 
 
 @dataclass
@@ -418,33 +433,44 @@ class TagStyle:
 
     align: Align = None
     alpha: float = None
+    bold: bool = None
+    italic: bool = None
     anchor: Anchor = None
     blend_mode: BlendMode = None
     draw_frame: bool = None
     font_style: FontStyle = None
     frame_style: FrameStyle = None
+    text_width: float = None
 
     def __post_init__(self):
         self.font_style = FontStyle()
         self.frame_style = FrameStyle()
         self.alpha = defaults["tag_alpha"]
+        self.bold = defaults["bold"]
+        self.italic = defaults["italic"]
         self.align = defaults["tag_align"]
         self.blend_mode = defaults["tag_blend_mode"]
-        self._exact = [
+        self.text_width = defaults["text_width"]
+        exact = [
             "alpha",
             "blend_mode",
             "draw_frame",
             "anchor",
+            "bold",
+            "italic",
+            "text_width"
         ]
-        self._exclude = ["font_style", "frame_style"]
+        exclude = ["font_style", "frame_style"]
 
         _style_init(
             self,
-            exact=self._exact,
-            exclude=self._exclude,
+            exact=exact,
+            exclude=exclude,
             prefix="tag",
-            subtype=Types.TAGSTYLE,
+            subtype=Types.TAG_STYLE,
         )
+        self._exact = exact
+        self._exclude = exclude
 
     def __str__(self):
         return f"TagStyle: {self.id}"
