@@ -61,8 +61,8 @@ class Path(Batch):
         self.subtype = Types.PATH
         self.cur_shape = Shape([(0, 0)])
         self.append(self.cur_shape)
-        self.rc = self.rel_coord  # alias for rel_coord
-        self.rp = self.rel_polar  # alias for rel_polar
+        self.rc = self.r_coord  # alias for r_coord
+        self.rp = self.r_polar  # alias for rel_polar
         self.handles = []
 
     def __bool__(self):
