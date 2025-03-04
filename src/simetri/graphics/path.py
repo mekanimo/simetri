@@ -123,7 +123,7 @@ class Path(Batch):
             setattr(self, kwargs["name"], self.operations[-1])
         self.pos = pos
 
-    def rel_coord(self, dx: float, dy: float):
+    def r_coord(self, dx: float, dy: float):
         """Return the relative coordinates of a point in a
         coordinate system with the path's origin and y-axis aligned
         with the path.angle.
@@ -136,7 +136,7 @@ class Path(Batch):
 
         return x1, y1
 
-    def rel_polar(self, r: float, angle: float):
+    def r_polar(self, r: float, angle: float):
         """Return the relative coordinates of a point in a polar
         coordinate system with the path's origin and 0 degree axis aligned
         with the path.angle.
@@ -168,7 +168,7 @@ class Path(Batch):
 
         return self
 
-    def rline(self, dx: float, dy: float, **kwargs):
+    def r_line(self, dx: float, dy: float, **kwargs):
         """Add a relative line to the path.
 
         Parameters
@@ -181,12 +181,12 @@ class Path(Batch):
 
         return self
 
-    def rmove(self, dx: float = 0, dy: float = 0, **kwargs):
+    def r_move(self, dx: float = 0, dy: float = 0, **kwargs):
         """Move the path to a new relative point."""
         point = (self.pos[0] + dx, self.pos[1] + dy)
         self._add(point, PathOps.RMOVE_TO, point)
 
-    def hline(self, length: float, **kwargs):
+    def h_line(self, length: float, **kwargs):
         """Add a horizontal line to the path.
 
         Parameters
@@ -199,7 +199,7 @@ class Path(Batch):
 
         return self
 
-    def vline(self, length: float, **kwargs):
+    def v_line(self, length: float, **kwargs):
         """Add a vertical line to the path.
 
         Parameters
