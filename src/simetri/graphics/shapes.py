@@ -1,7 +1,7 @@
 """Shapes module contains classes and functions for creating shapes."""
 
 from math import pi, gcd, sin, cos, comb
-from typing import List
+from typing import List, Sequence, Union
 import copy
 
 from numpy import ndarray
@@ -9,12 +9,12 @@ import numpy as np
 
 from ..graphics.batch import Batch
 from ..graphics.bbox import BoundingBox
-
 from ..graphics.shape import Shape, custom_attributes
-
 from ..graphics.common import axis_x, get_defaults, Sequence, Point
 from ..graphics.all_enums import Types
+from ..helpers.utilities import decompose_transformations
 from ..settings.settings import defaults
+from .affine import scale_in_place_matrix, rotation_matrix
 from ..geometry.geometry import (
     side_len_to_radius,
     offset_polygon_points,
@@ -43,41 +43,61 @@ class Rectangle(Shape):
         super().__init__(vertices, closed=True, **kwargs)
         self.subtype = Types.RECTANGLE
 
+    def __setattr__(self, name, value):
+        if name == "center":
+            self._set_center(value)
+        elif name == "width":
+            self._set_width(value)
+        elif name == "height":
+            self._set_height(value)
+        else:
+            super().__setattr__(name, value)
+
+    def scale(
+        self,
+        scale_x: float,
+        scale_y: Union[float, None] = None,
+        about: Point = (0, 0),
+        reps: int = 0,
+    ):
+        """Scale the rectangle by scale_x and scale_y.
+        Rectangles cannot be scaled non-uniformly.
+        scale_x changes the width and scale_y changes the height."""
+        if scale_y is None:
+            scale_y = scale_x
+        center = self.center
+        _, rotation, _ = decompose_transformations(self.xform_matrix)
+        rm = rotation_matrix(-rotation, center)
+        sm = scale_in_place_matrix(scale_x, scale_y, about)
+        inv_rm = rotation_matrix(rotation, center)
+        transform = rm @ sm @ inv_rm
+
+        return self._update(transform, reps=reps)
+
     @property
     def width(self):
         """Return the width of the rectangle."""
         return distance(self.vertices[0], self.vertices[1])
 
-    @width.setter
-    def width(self, new_width: float):
-        center = self.center
-        height = self.height
-        self[0] = (center[0] - new_width / 2, center[1] - height / 2)
-        self[1] = (center[0] + new_width / 2, center[1] - height / 2)
-        self[2] = (center[0] + new_width / 2, center[1] + height / 2)
-        self[3] = (center[0] - new_width / 2, center[1] + height / 2)
+    def _set_width(self, new_width: float):
+        scale_x = new_width / self.width
+        self.scale(scale_x, 1, about=self.center, reps=0)
 
     @property
     def height(self):
         """Return the height of the rectangle."""
         return distance(self.vertices[1], self.vertices[2])
 
-    @height.setter
-    def height(self, new_height: float):
-        center = self.center
-        width = self.width
-        self[0] = (center[0] - width / 2, center[1] - new_height / 2)
-        self[1] = (center[0] + width / 2, center[1] - new_height / 2)
-        self[2] = (center[0] + width / 2, center[1] + new_height / 2)
-        self[3] = (center[0] - width / 2, center[1] + new_height / 2)
+    def _set_height(self, new_height: float):
+        scale_y = new_height / self.height
+        self.scale(1, scale_y, about=self.center, reps=0)
 
     @property
     def center(self):
         """Return the center of the rectangle."""
         return mid_point(self.vertices[0], self.vertices[2])
 
-    @center.setter
-    def center(self, new_center: Point):
+    def _set_center(self, new_center: Point):
         center = self.center
         x_diff = new_center[0] - center[0]
         y_diff = new_center[1] - center[1]
@@ -91,6 +111,8 @@ class Rectangle(Shape):
         width = self.width
         height = self.height
         rectangle = Rectangle(center, width, height)
+        _, rotation, _ = decompose_transformations(self.xform_matrix)
+        rectangle.rotate(rotation, about=center, reps=0)
         style = copy.copy(self.style)
         rectangle.style = style
         rectangle._set_aliases()
@@ -204,7 +226,6 @@ class Circle(Shape):
         else:
             super().__setattr__(name, value)
 
-
     @property
     def b_box(self):
         """Return the bounding box of the shape."""
@@ -233,11 +254,10 @@ class Circle(Shape):
     def center(self, value: Point):
         self[0] = value[:2]
 
-
     @property
     def radius(self):
-        '''Return the radius of the circle.'''
-        scale_x = np.linalg.norm(self.xform_matrix[0, :2]) # only x scale is used
+        """Return the radius of the circle."""
+        scale_x = np.linalg.norm(self.xform_matrix[0, :2])  # only x scale is used
         return self._radius * scale_x
 
     def copy(self):
@@ -313,8 +333,7 @@ class Mask(Shape):
         # canvas, batch, and shapes can have scope
 
 
-
-def circle_points(center:Point, radius: float, n: int = 30) -> list[Point]:
+def circle_points(center: Point, radius: float, n: int = 30) -> list[Point]:
     """
     Return a list of points that form a circle
     with the given parameters.
