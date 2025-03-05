@@ -435,7 +435,6 @@ class Shape(Base):
         """The final coordinates of the shape."""
         if self.primary_points:
             res = tuple(((x[0], x[1]) for x in (self.final_coords[:, :2])))
-            # res = self.final_coords[:, :2]
         else:
             res = []
 
