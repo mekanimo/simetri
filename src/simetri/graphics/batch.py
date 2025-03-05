@@ -26,7 +26,7 @@ from ..geometry.geometry import(
 from ..helpers.graph import is_cycle, is_open_walk, Graph
 from ..settings.settings import defaults
 
-from .merge import merge_shapes_, _merge_collinears
+from .merge import _merge_shapes, _merge_collinears
 
 
 class Batch(Base):
@@ -46,6 +46,15 @@ class Batch(Base):
         subtype: Types = Types.BATCH,
         **kwargs,
     ):
+        """
+        Initialize a Batch object.
+
+        Args:
+            elements (Sequence[Any], optional): The elements to include in the batch.
+            modifiers (Sequence[Modifier], optional): The modifiers to apply to the batch.
+            subtype (Types, optional): The subtype of the batch.
+            kwargs (dict): Additional keyword arguments.
+        """
         validate_args(kwargs, batch_args)
         if elements and not isinstance(elements, (list, tuple)):
             self.elements = [elements]
@@ -71,7 +80,13 @@ class Batch(Base):
             setattr(self, key, value)
 
     def set_attribs(self, attrib, value):
-        """Sets the attribute to the given value for all elements in the batch if it is applicable."""
+        """
+        Sets the attribute to the given value for all elements in the batch if it is applicable.
+
+        Args:
+            attrib (str): The attribute to set.
+            value (Any): The value to set the attribute to.
+        """
         for element in self.elements:
             if element.type == Types.BATCH:
                 setattr(element, attrib, value)
@@ -79,13 +94,27 @@ class Batch(Base):
                 setattr(element, attrib, value)
 
     def set_batch_attr(self, attrib: str, value: Any) -> Self:
-        """Sets the attribute to the given value for the batch itself.
+        """
+        Sets the attribute to the given value for the batch itself.
         batch.attrib = value would set the attribute to the elements
-        of the batch object but not the batch itself."""
+        of the batch object but not the batch itself.
 
+        Args:
+            attrib (str): The attribute to set.
+            value (Any): The value to set the attribute to.
+
+        Returns:
+            Self: The batch object.
+        """
         self.__dict__[attrib] = value
 
     def __str__(self):
+        """
+        Return a string representation of the batch.
+
+        Returns:
+            str: The string representation of the batch.
+        """
         if self.elements is None or len(self.elements) == 0:
             res = "Batch()"
         elif len(self.elements) in [1, 2]:
@@ -95,12 +124,33 @@ class Batch(Base):
         return res
 
     def __repr__(self):
+        """
+        Return a string representation of the batch.
+
+        Returns:
+            str: The string representation of the batch.
+        """
         return self.__str__()
 
     def __len__(self):
+        """
+        Return the number of elements in the batch.
+
+        Returns:
+            int: The number of elements in the batch.
+        """
         return len(self.elements)
 
     def __getitem__(self, subscript):
+        """
+        Get the element(s) at the given subscript.
+
+        Args:
+            subscript (int or slice): The subscript to get the element(s) from.
+
+        Returns:
+            Any: The element(s) at the given subscript.
+        """
         if isinstance(subscript, slice):
             res = self.elements[subscript.start : subscript.stop : subscript.step]
         else:
@@ -108,6 +158,13 @@ class Batch(Base):
         return res
 
     def __setitem__(self, subscript, value):
+        """
+        Set the element(s) at the given subscript.
+
+        Args:
+            subscript (int or slice): The subscript to set the element(s) at.
+            value (Any): The value to set the element(s) to.
+        """
         elements = self.elements
         if isinstance(subscript, slice):
             elements[subscript.start : subscript.stop : subscript.step] = value
@@ -117,8 +174,19 @@ class Batch(Base):
             raise TypeError("Invalid subscript type")
 
     def __add__(self, other: "Batch") -> "Batch":
+        """
+        Add another batch to this batch.
+
+        Args:
+            other (Batch): The other batch to add.
+
+        Returns:
+            Batch: The combined batch.
+
+        Raises:
+            RuntimeError: If the other object is not a batch.
+        """
         if other.type == Types.BATCH:
-            #!!! shoulde we use self instead of self.copy()?
             batch = self.copy()
             for element in other.elements:
                 batch.append(element)
@@ -130,12 +198,36 @@ class Batch(Base):
         return res
 
     def __bool__(self):
+        """
+        Return whether the batch has any elements.
+
+        Returns:
+            bool: True if the batch has elements, False otherwise.
+        """
         return len(self.elements) > 0
 
     def __iter__(self):
+        """
+        Return an iterator over the elements in the batch.
+
+        Returns:
+            Iterator: An iterator over the elements in the batch.
+        """
         return iter(self.elements)
 
     def _duplicates(self, elements):
+        """
+        Check for duplicate elements in the batch.
+
+        Args:
+            elements (Sequence[Any]): The elements to check for duplicates.
+
+        Raises:
+            ValueError: If duplicate elements are found.
+
+        Returns:
+            bool: True if duplicates are found, False otherwise.
+        """
         for element in elements:
             ids = [x.id for x in self.elements]
             if element.id in ids:
@@ -144,7 +236,16 @@ class Batch(Base):
         return len(set(elements)) != len(elements)
 
     def proximity(self, dist_tol: float = None, n: int = 5) -> list[Point]:
-        """Returns the n closest points in the batch."""
+        """
+        Returns the n closest points in the batch.
+
+        Args:
+            dist_tol (float, optional): The distance tolerance for proximity.
+            n (int, optional): The number of closest points to return.
+
+        Returns:
+            list[Point]: The n closest points in the batch.
+        """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
         vertices = self.all_vertices
@@ -153,7 +254,15 @@ class Batch(Base):
         return [pair for pair in pairs if pair[2] > 0][:n]
 
     def append(self, element: Any) -> Self:
-        """Appends the element to the batch."""
+        """
+        Appends the element to the batch.
+
+        Args:
+            element (Any): The element to append.
+
+        Returns:
+            Self: The batch object.
+        """
         if element not in self.elements:
             self.elements.append(element)
         else:
@@ -161,12 +270,26 @@ class Batch(Base):
         return self
 
     def reverse(self) -> Self:
-        """Reverses the order of the elements in the batch."""
+        """
+        Reverses the order of the elements in the batch.
+
+        Returns:
+            Self: The batch object.
+        """
         self.elements = self.elements[::-1]
         return self
 
     def insert(self, index, element: Any) -> Self:
-        """Inserts the element at the given index."""
+        """
+        Inserts the element at the given index.
+
+        Args:
+            index (int): The index to insert the element at.
+            element (Any): The element to insert.
+
+        Returns:
+            Self: The batch object.
+        """
         if element not in self.elements:
             self.elements.insert(index, element)
         else:
@@ -176,22 +299,51 @@ class Batch(Base):
         return self
 
     def remove(self, element: Any) -> Self:
-        """Removes the element from the batch."""
+        """
+        Removes the element from the batch.
+
+        Args:
+            element (Any): The element to remove.
+
+        Returns:
+            Self: The batch object.
+        """
         if element in self.elements:
             self.elements.remove(element)
         return self
 
     def pop(self, index: int) -> Any:
-        """Removes the element at the given index and returns it."""
+        """
+        Removes the element at the given index and returns it.
+
+        Args:
+            index (int): The index to remove the element from.
+
+        Returns:
+            Any: The removed element.
+        """
         return self.elements.pop(index)
 
     def clear(self) -> Self:
-        """Removes all elements from the batch."""
+        """
+        Removes all elements from the batch.
+
+        Returns:
+            Self: The batch object.
+        """
         self.elements = []
         return self
 
     def extend(self, elements: Sequence[Any]) -> Self:
-        """Extends the batch with the given elements."""
+        """
+        Extends the batch with the given elements.
+
+        Args:
+            elements (Sequence[Any]): The elements to extend the batch with.
+
+        Returns:
+            Self: The batch object.
+        """
         for element in elements:
             if element not in self.elements:
                 self.elements.append(element)
@@ -203,7 +355,14 @@ class Batch(Base):
 
     def iter_elements(self, element_type: Types = None) -> Iterator:
         """Iterate over all elements in the batch, including the elements
-        in the nested batches."""
+        in the nested batches.
+
+        Args:
+            element_type (Types, optional): The type of elements to iterate over. Defaults to None.
+
+        Returns:
+            Iterator: An iterator over the elements in the batch.
+        """
         for elem in self.elements:
             if elem.type == Types.BATCH:
                 yield from elem.iter_elements(element_type)
@@ -216,7 +375,11 @@ class Batch(Base):
     @property
     def all_elements(self) -> list[Any]:
         """Return a list of all elements in the batch,
-        including the elements in the nested batches."""
+        including the elements in the nested batches.
+
+        Returns:
+            list[Any]: A list of all elements in the batch.
+        """
         elements = []
         for elem in self.elements:
             if elem.type == Types.BATCH:
@@ -227,7 +390,11 @@ class Batch(Base):
 
     @property
     def all_shapes(self) -> list["Shape"]:
-        """Return a list of all shapes in the batch."""
+        """Return a list of all shapes in the batch.
+
+        Returns:
+            list[Shape]: A list of all shapes in the batch.
+        """
         elements = self.all_elements
         shapes = []
         for element in elements:
@@ -238,7 +405,11 @@ class Batch(Base):
     @property
     def all_vertices(self) -> list[Point]:
         """Return a list of all points in the batch in their
-        transformed positions."""
+        transformed positions.
+
+        Returns:
+            list[Point]: A list of all points in the batch in their transformed positions.
+        """
         elements = self.all_elements
         vertices = []
         for element in elements:
@@ -250,7 +421,11 @@ class Batch(Base):
 
     @property
     def all_segments(self) -> list[Line]:
-        """Return a list of all segments in the batch."""
+        """Return a list of all segments in the batch.
+
+        Returns:
+            list[Line]: A list of all segments in the batch.
+        """
         elements = self.all_elements
         segments = []
         for element in elements:
@@ -260,6 +435,15 @@ class Batch(Base):
 
 
     def _get_graph_nodes_and_edges(self, dist_tol: float = None, n_round=None):
+        """Get the graph nodes and edges for the batch.
+
+        Args:
+            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
+            n_round (int, optional): The number of decimal places to round to. Defaults to None.
+
+        Returns:
+            tuple: A tuple containing the node coordinates and edges.
+        """
         if n_round is None:
             n_round = defaults["n_round"]
         _set_Nones(self, ["dist_tol", "n_round"], [dist_tol, n_round])
@@ -317,6 +501,16 @@ class Batch(Base):
     ) -> Graph:
         """Return the batch as a Graph object.
         Graph.nx is the networkx graph.
+
+        Args:
+            directed (bool, optional): Whether the graph is directed. Defaults to False.
+            weighted (bool, optional): Whether the graph is weighted. Defaults to False.
+            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
+            atol (optional): The absolute tolerance. Defaults to None.
+            n_round (int, optional): The number of decimal places to round to. Defaults to None.
+
+        Returns:
+            Graph: The batch as a Graph object.
         """
         _set_Nones(self, ["dist_tol", "atol", "n_round"], [dist_tol, atol, n_round])
         d_node_id_coords, edges = self._get_graph_nodes_and_edges(dist_tol, n_round)
@@ -344,7 +538,15 @@ class Batch(Base):
         return graph
 
     def graph_summary(self, dist_tol: float = None, n_round: int = None) -> str:
-        """Returns a representation of the Batch object as a graph."""
+        """Returns a representation of the Batch object as a graph.
+
+        Args:
+            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
+            n_round (int, optional): The number of decimal places to round to. Defaults to None.
+
+        Returns:
+            str: A representation of the Batch object as a graph.
+        """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
         if n_round is None:
@@ -382,19 +584,47 @@ class Batch(Base):
         return "\n".join(lines)
 
     def _merge_collinears(self, d_node_id_coords, edges, tol=None, rtol=None, atol=None):
+        """Merge collinear edges in the batch.
+
+        Args:
+            d_node_id_coords (dict): The node coordinates.
+            edges (list): The edges to merge.
+            tol (float, optional): The tolerance for merging. Defaults to None.
+            rtol (float, optional): The relative tolerance. Defaults to None.
+            atol (float, optional): The absolute tolerance. Defaults to None.
+
+        Returns:
+            list: The merged edges.
+        """
         return _merge_collinears(self, d_node_id_coords, edges, tol=tol, rtol=rtol, atol=atol)
 
     def merge_shapes(
         self, tol: float = None, rtol: float = None, atol: float = None
     ) -> Self:
-        '''Merges the shapes in the batch if they are connected.
+        """Merges the shapes in the batch if they are connected.
         Returns a new batch with the merged shapes as well as the shapes
-        as well as the shapes that could not be merged.'''
-        return merge_shapes_(self, tol=tol, rtol=rtol, atol=atol)
+        as well as the shapes that could not be merged.
+
+        Args:
+            tol (float, optional): The tolerance for merging shapes. Defaults to None.
+            rtol (float, optional): The relative tolerance. Defaults to None.
+            atol (float, optional): The absolute tolerance. Defaults to None.
+
+        Returns:
+            Self: The batch object with merged shapes.
+        """
+        return _merge_shapes(self, tol=tol, rtol=rtol, atol=atol)
 
     def all_polygons(self, dist_tol: float = None) -> list:
         """Return a list of all polygons in the batch in their
-        transformed positions."""
+        transformed positions.
+
+        Args:
+            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
+
+        Returns:
+            list: A list of all polygons in the batch.
+        """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
         exclude = []
@@ -423,7 +653,11 @@ class Batch(Base):
         return res
 
     def copy(self) -> "Batch":
-        """Returns a copy of the batch."""
+        """Returns a copy of the batch.
+
+        Returns:
+            Batch: A copy of the batch.
+        """
         b = Batch(modifiers=self.modifiers)
         if self.elements:
             b.elements = [elem.copy() for elem in self.elements]
@@ -436,7 +670,11 @@ class Batch(Base):
 
     @property
     def b_box(self):
-        """Returns the bounding box of the batch."""
+        """Returns the bounding box of the batch.
+
+        Returns:
+            BoundingBox: The bounding box of the batch.
+        """
         xy_list = []
         for elem in self.elements:
             xy_list.extend(
@@ -446,13 +684,23 @@ class Batch(Base):
         return bounding_box(array(xy_list))
 
     def _modify(self, modifier):
+        """Apply a modifier to the batch.
+
+        Args:
+            modifier (Modifier): The modifier to apply.
+        """
         modifier.apply()
 
     def _update(self, xform_matrix, reps: int = 0):
         """Updates the batch with the given transformation matrix.
         If reps is 0, the transformation is applied to all elements.
         If reps is greater than 0, the transformation creates
-        new elements with the transformed xform_matrix."""
+        new elements with the transformed xform_matrix.
+
+        Args:
+            xform_matrix (ndarray): The transformation matrix.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+        """
         if reps == 0:
             for element in self.elements:
                 element._update(xform_matrix, reps=0)
@@ -480,6 +728,12 @@ def custom_batch_attributes(item: Batch) -> List[str]:
     """
     Return a list of custom attributes of a Shape or
     Batch instance.
+
+    Args:
+        item (Batch): The batch object.
+
+    Returns:
+        List[str]: A list of custom attributes.
     """
     from .shape import Shape
 

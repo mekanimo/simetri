@@ -248,6 +248,103 @@ def check_anchor(anchor: Any) -> bool:
     return anchor in Anchor
 
 
+# Create a dictionary of enums for validation.
+items = (item for item in all_enums.__dict__.items() if item[0][0] != "_")
+# from https://stackoverflow.com/questions/1175208/elegant-python-function-to-
+# convert-camelcase-to-snake-case
+pattern = re.compile(r"(?<!^)(?=[A-Z])")  # convert CamelCase to snake_case
+enum_map = {}
+exclude = [
+    "TypeAlias",
+    "Union",
+    "StrEnum",
+    "CI_StrEnum",
+    "Comparable",
+    "IUC",
+    "drawable_types",
+    "shape_types",
+]
+for item in items:
+    name = item[0]
+    if isinstance(item[1], enum.EnumMeta) and name not in exclude:
+        key_ = pattern.sub("_", name).lower()
+        enum_map[key_] = item[1]
+
+d_validators = {
+    "alpha": check_number,
+    "clip": check_bool,
+    "color": check_color,
+    "dist_tol": check_number,
+    "dist_tol2": check_number,
+    "double_distance": check_number,
+    "double_lines": check_bool,
+    "draw_fillets": check_bool,
+    "draw_frame": check_bool,
+    "draw_markers": check_bool,
+    "even_odd_rule": check_bool,
+    "fill": check_bool,
+    "fill_alpha": check_number,
+    "fill_blend_mode": check_blend_mode,
+    "fill_color": check_color,
+    "fillet_radius": check_number,
+    "font_color": check_color,
+    "font_family": check_str,
+    "frame_inner_sep": check_number,
+    "frame_inner_xsep": check_number,
+    "frame_inner_ysep": check_number,
+    "frame_min_height": check_number,
+    "frame_min_width": check_number,
+    "grid_alpha": check_number,
+    "grid_back_color": check_color,
+    "grid_line_color": check_color,
+    "grid_line_width": check_number,
+    "line_alpha": check_number,
+    "line_blend_mode": check_blend_mode,
+    "line_color": check_color,
+    "line_dash_array": check_dash_array,
+    "line_dash_phase": check_number,
+    "line_miter_limit": check_number,
+    "line_width": check_line_width,
+    "marker_color": check_color,
+    "marker_radius": check_number,
+    "marker_size": check_number,
+    "markers_only": check_bool,
+    "mask": check_mask,
+    "pattern_angle": check_number,
+    "pattern_color": check_color,
+    "pattern_distance": check_number,
+    "pattern_line_width": check_number,
+    "pattern_points": check_int,
+    "pattern_radius": check_number,
+    "pattern_xshift": check_number,
+    "pattern_yshift": check_number,
+    "points": check_points,
+    "pos": check_position,
+    "radius": check_number,
+    "shade_axis_angle": check_number,
+    "shade_color_wheel": check_number,
+    "shade_color_wheel_black": check_bool,
+    "shade_color_wheel_white": check_bool,
+    "shade_bottom_color": check_color,
+    "shade_inner_color": check_color,
+    "shade_left_color": check_color,
+    "shade_lower_left_color": check_color,
+    "shade_lower_right_color": check_color,
+    "shade_middle_color": check_color,
+    "shade_outer_color": check_color,
+    "shade_right_color": check_color,
+    "shade_top_color": check_color,
+    "shade_upper_left_color": check_color,
+    "shade_upper_right_color": check_color,
+    "smooth": check_bool,
+    "stroke": check_bool,
+    "xform_matrix": check_xform_matrix,
+    "subtype": check_subtype,
+    "text_alpha": check_number,
+    "transparency_group": check_bool,
+}
+
+
 def validate_args(args: Dict[str, Any], valid_args: list[str]) -> None:
     """
     Validate the user entered arguments.

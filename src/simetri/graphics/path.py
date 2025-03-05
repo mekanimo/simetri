@@ -42,18 +42,15 @@ class Path(Batch):
     """
 
     def __init__(self, start: Point = (0, 0), **kwargs):
-        """Create a Path object.
+        """Initialize a Path object.
 
-        Parameters
-        ----------
-        start : Point, optional
-            The starting point of the path.
-        kwargs
-            Additional keyword arguments.
+        Args:
+            start (Point, optional): The starting point of the path. Defaults to (0, 0).
+            **kwargs: Additional keyword arguments.
         """
         self.pos = start
         self.start = start
-        self.angle = pi/2  # heading angle
+        self.angle = pi / 2  # heading angle
         self.operations = []
         self.objects = []
         self.even_odd = True  # False is non-zero winding rule
@@ -68,15 +65,15 @@ class Path(Batch):
     def __bool__(self):
         """Return True if the path has operations.
         Batch may have no elements yet still be True.
+
+        Returns:
+            bool: True if the path has operations.
         """
         return bool(self.operations)
 
     def _create_object(self):
         """Create an object using the last operation."""
         PO = PathOps
-        # d_ops = {PO.TAG: Tag, PO.SHAPE: Shape, PO.RECTANGLE:rectangle,
-        #          PO.CIRCLE:circle, PO.ELLIPSE:ellipse, PO.ARC:arc,
-        #  }
         op = self.operations[-1]
         op_type = op.subtype
         data = op.data
@@ -88,7 +85,7 @@ class Path(Batch):
             self.objects.append(Shape(data))
             self.cur_shape.append(data[1])
         elif op_type in [PO.CUBIC_TO, PO.QUAD_TO]:
-            n_points = defaults['n_bezier_points']
+            n_points = defaults["n_bezier_points"]
             curve = Bezier(data, n_points=n_points)
             self.objects.append(curve)
             self.cur_shape.extend(curve.vertices[1:])
@@ -97,11 +94,10 @@ class Path(Batch):
             else:
                 self.handles.append((data[0], data[1]))
                 self.handles.append((data[1], data[2]))
-
         elif op_type in [PO.ARC, PO.BLEND_ARC]:
             self.objects.append(Shape(data[-1]))
             self.cur_shape.extend(data[-1][1:])
-        elif op_type == PO.CLOSE:
+        elif op_type in [PO.CLOSE]:
             self.cur_shape.closed = True
             self.cur_shape = Shape([self.pos])
             self.objects.append(None)
@@ -110,6 +106,15 @@ class Path(Batch):
             raise ValueError(f"Invalid operation type: {op_type}")
 
     def _add(self, pos, op, data, pnt2=None, **kwargs):
+        """Add an operation to the path.
+
+        Args:
+            pos (Point): The position of the operation.
+            op (PathOps): The operation type.
+            data (tuple): The data for the operation.
+            pnt2 (Point, optional): An optional second point for the operation. Defaults to None.
+            **kwargs: Additional keyword arguments.
+        """
         self.operations.append(Operation(op, data))
         if op in [PathOps.ARC, PathOps.BLEND_ARC]:
             self.angle = data[1]
@@ -127,10 +132,16 @@ class Path(Batch):
         """Return the relative coordinates of a point in a
         coordinate system with the path's origin and y-axis aligned
         with the path.angle.
-        """
 
+        Args:
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            tuple: The relative coordinates.
+        """
         x, y = self.pos[:2]
-        theta = self.angle - pi/2
+        theta = self.angle - pi / 2
         x1 = dx * cos(theta) - dy * sin(theta) + x
         y1 = dx * sin(theta) + dy * cos(theta) + y
 
@@ -140,20 +151,46 @@ class Path(Batch):
         """Return the relative coordinates of a point in a polar
         coordinate system with the path's origin and 0 degree axis aligned
         with the path.angle.
+
+        Args:
+            r (float): The radius.
+            angle (float): The angle in radians.
+
+        Returns:
+            tuple: The relative coordinates.
         """
         x, y = polar_to_cartesian(r, angle)[:2]
-        x1, y1 = self.rel_coord(x, y)[:2]
+        x1, y1 = self.r_coord(x, y)[:2]
 
         return x1, y1
 
     def line_to(self, point: Point, **kwargs):
-        """Add a line to the path."""
+        """Add a line to the path.
+
+        Args:
+            point (Point): The end point of the line.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
         self._add(point, PathOps.LINE_TO, (self.pos, point))
 
         return self
 
     def forward(self, length: float, **kwargs):
-        """Extend the path by the given length."""
+        """Extend the path by the given length.
+
+        Args:
+            length (float): The length to extend.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+
+        Raises:
+            ValueError: If the path angle is not set.
+        """
         if self.angle is None:
             raise ValueError("Path angle is not set.")
         else:
@@ -163,7 +200,15 @@ class Path(Batch):
         return self
 
     def move_to(self, point: Point, **kwargs):
-        """Move the path to a new point."""
+        """Move the path to a new point.
+
+        Args:
+            point (Point): The new point.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
         self._add(point, PathOps.MOVE_TO, point)
 
         return self
@@ -171,10 +216,13 @@ class Path(Batch):
     def r_line(self, dx: float, dy: float, **kwargs):
         """Add a relative line to the path.
 
-        Parameters
-        ----------
-        point : Point
-            The relative end point of the line.
+        Args:
+            dx (float): The x offset.
+            dy (float): The y offset.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
         """
         point = self.pos[0] + dx, self.pos[1] + dy
         self._add(point, PathOps.RLINE, (self.pos, point))
@@ -182,66 +230,109 @@ class Path(Batch):
         return self
 
     def r_move(self, dx: float = 0, dy: float = 0, **kwargs):
-        """Move the path to a new relative point."""
+        """Move the path to a new relative point.
+
+        Args:
+            dx (float): The x offset.
+            dy (float): The y offset.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
         point = (self.pos[0] + dx, self.pos[1] + dy)
         self._add(point, PathOps.RMOVE_TO, point)
+        return self
 
     def h_line(self, length: float, **kwargs):
         """Add a horizontal line to the path.
 
-        Parameters
-        ----------
-        length : float
-            The lenght of the line.
+        Args:
+            length (float): The length of the line.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
         """
         x, y = self.pos[0] + length, self.pos[1]
         self._add((x, y), PathOps.HLINE, (self.pos, (x, y)))
-
         return self
 
     def v_line(self, length: float, **kwargs):
         """Add a vertical line to the path.
 
-        Parameters
-        ----------
-        length : float
-            The lenght of the line.
+        Args:
+            length (float): The length of the line.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
         """
         x, y = self.pos[0], self.pos[1] + length
         self._add((x, y), PathOps.VLINE, (self.pos, (x, y)))
-
         return self
 
     def cubic_to(self, control1: Point, control2: Point, end: Point, *args, **kwargs):
-        """Add a bezier curve with two control points to the path.
-        Multiple blended curves can be added by providing additional arguments.
+        """Add a Bézier curve with two control points to the path. Multiple blended curves can be added
+        by providing additional arguments.
+
+        Args:
+            control1 (Point): The first control point.
+            control2 (Point): The second control point.
+            end (Point): The end point of the curve.
+            *args: Additional arguments for blended curves.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
         """
-
         self._add(
-                end,
-                PathOps.CUBIC_TO,
-                (self.pos, control1, control2, end),
-                pnt2=control2,
-                **kwargs,
-            )
-
+            end,
+            PathOps.CUBIC_TO,
+            (self.pos, control1, control2, end),
+            pnt2=control2,
+            **kwargs,
+        )
         return self
 
     def hobby_to(self, points, **kwargs):
-        """Add a Hobby curve to the path."""
-        self.operations.append((PathOps.HOBBY_TO, (self.pos, points)))
+        """Add a Hobby curve to the path.
 
+        Args:
+            points (list): The points of the Hobby curve.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
+        self.operations.append((PathOps.HOBBY_TO, (self.pos, points)))
         return self
 
     def close_hobby(self):
-        """Close the Hobby curve."""
-        self.operations.append((PathOps.CLOSE_HOBBY, (self.pos, None)))
+        """Close the Hobby curve.
 
+        Returns:
+            Path: The path object.
+        """
+        self.operations.append((PathOps.CLOSE_HOBBY, (self.pos, None)))
         return self
 
     def quad_to(self, control: Point, end: Point, *args, **kwargs):
-        """Add a quadratic bezier curve to the path.
-        Multiple blended curves can be added by providing additional arguments."""
+        """Add a quadratic Bézier curve to the path. Multiple blended curves can be added by providing
+        additional arguments.
+
+        Args:
+            control (Point): The control point.
+            end (Point): The end point of the curve.
+            *args: Additional arguments for blended curves.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+
+        Raises:
+            ValueError: If an argument does not have exactly two elements.
+        """
         self._add(
             end, PathOps.QUAD_TO, (self.pos, control, end), pnt2=control, **kwargs
         )
@@ -256,19 +347,26 @@ class Path(Batch):
                 end = arg[1]
                 self._add(end, PathOps.QUAD_TO, (pos, control, end), pnt2=control)
                 pos = end
-
             elif isinstance(arg[0], (list, tuple)):
                 # (control, end)
                 control = arg[0]
                 end = arg[1]
                 self._add(end, PathOps.QUAD_TO, (pos, control, end), pnt2=control)
                 pos = end
-
         return self
 
     def blend_cubic(self, control1_length, control2: Point, end: Point, **kwargs):
-        """Add a bezier curve with two control points to the path.
-        The control points are calculated based on the control1_length."""
+        """Add a cubic Bézier curve to the path where the first control point is computed based on a length.
+
+        Args:
+            control1_length (float): The length to the first control point.
+            control2 (Point): The second control point.
+            end (Point): The end point of the curve.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
         c1 = line_by_point_angle_length(self.pos, self.angle, control1_length)[1]
         self._add(
             end,
@@ -277,15 +375,21 @@ class Path(Batch):
             pnt2=control2,
             **kwargs,
         )
-
         return self
 
     def blend_quad(self, control_length, end: Point, **kwargs):
-        """Add a quadratic bezier curve to the path.
-        The control point is calculated based on the control_length."""
+        """Add a quadratic Bézier curve to the path where the control point is computed based on a length.
+
+        Args:
+            control_length (float): The length to the control point.
+            end (Point): The end point of the curve.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
         c1 = line_by_point_angle_length(self.pos, self.angle, control_length)[1]
         self._add(end, PathOps.QUAD_TO, (self.pos, c1, end), pnt2=c1, **kwargs)
-
         return self
 
     def arc(
@@ -293,14 +397,26 @@ class Path(Batch):
         rx: float,
         ry: float,
         start_angle: float,
-        span_angle: float,  # if the span angle is negative, the arc is drawn clockwise
+        span_angle: float,
         rot_angle: float = 0,
-        n_points = None,
+        n_points=None,
         **kwargs,
     ):
-        """Add an arc to the path.
-        rx is width/2 and ry is height/2 of the ellipse.
-        sign of the span angle determines the direction of the arc."""
+        """Add an arc to the path. The arc is defined by an ellipse (with rx as half-width and ry as half-height).
+        The sign of the span angle determines the drawing direction.
+
+        Args:
+            rx (float): The x radius of the arc.
+            ry (float): The y radius of the arc.
+            start_angle (float): The starting angle of the arc.
+            span_angle (float): The span angle of the arc.
+            rot_angle (float, optional): The rotation angle of the arc. Defaults to 0.
+            n_points (int, optional): The number of points to use for the arc. Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
         start_angle = positive_angle(start_angle)
         clockwise = span_angle < 0
         if n_points is None:
@@ -308,8 +424,7 @@ class Path(Batch):
         points = elliptic_arc_points((0, 0), rx, ry, start_angle, span_angle, n_points)
         start = points[0]
         end = points[-1]
-        # translate the start to the current position and rotate it about the
-        # current position by the rotation angle
+        # Translate the start to the current position and rotate by the rotation angle.
         dx = self.pos[0] - start[0]
         dy = self.pos[1] - start[1]
         rotocenter = start
@@ -321,7 +436,6 @@ class Path(Batch):
             )
         else:
             points = homogenize(points) @ translation_matrix(dx, dy)
-
         tangent_angle = ellipse_tangent(rx, ry, *end) + rot_angle
         if clockwise:
             tangent_angle += pi
@@ -331,14 +445,26 @@ class Path(Batch):
             PathOps.ARC,
             (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points),
         )
-
         return self
 
     def blend_arc(
         self, rx: float, ry: float, start_angle: float, span_angle: float,
         sharp=False, n_points=None, **kwargs
     ):
-        """Add a blended elliptic-arc to the path."""
+        """Add a blended elliptic arc to the path.
+
+        Args:
+            rx (float): The x radius of the arc.
+            ry (float): The y radius of the arc.
+            start_angle (float): The starting angle of the arc.
+            span_angle (float): The span angle of the arc.
+            sharp (bool, optional): Whether the arc is sharp. Defaults to False.
+            n_points (int, optional): The number of points to use for the arc. Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
         start_angle = positive_angle(start_angle)
         clockwise = span_angle < 0
         if n_points is None:
@@ -346,8 +472,7 @@ class Path(Batch):
         points = elliptic_arc_points((0, 0), rx, ry, start_angle, span_angle, n_points)
         start = points[0]
         end = points[-1]
-        # translate the start to the current position and rotate it about the
-        # current position by the rotation angle
+        # Translate the start to the current position and rotate by the computed rotation angle.
         dx = self.pos[0] - start[0]
         dy = self.pos[1] - start[1]
         rotocenter = start
@@ -365,25 +490,36 @@ class Path(Batch):
         tangent_angle = ellipse_tangent(rx, ry, *end) + rot_angle
         if clockwise:
             tangent_angle += pi
-
         pos = points[-1]
         self._add(
             pos,
             PathOps.ARC,
             (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points),
         )
-
         return self
 
-
     def close(self, **kwargs):
-        """Close the path."""
-        self._add(self.pos, PathOps.CLOSE, None, **kwargs)
+        """Close the path.
 
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
+        self._add(self.pos, PathOps.CLOSE, None, **kwargs)
         return self
 
     def set_style(self, name, value, **kwargs):
-        """Set the style of the path."""
-        self.operations.append((PathOps.STYLE, (name, value, kwargs)))
+        """Set the style of the path.
 
+        Args:
+            name (str): The name of the style.
+            value (Any): The value of the style.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
+        self.operations.append((PathOps.STYLE, (name, value, kwargs)))
         return self

@@ -41,14 +41,15 @@ from .batch import Batch
 
 class Shape(Base):
     """The main class for all geometric entities in Simetri.
-    Created by providing a sequence of points (a list of (x, y)
-    coordinates).
-    If style argument (a ShapeStyle object) is provided, then style attributes of this
-    ShapeStyle object will superseed the style attributes of the Shape object.
-    dist_tol: distance tolerance for checking
-    xform_matrix: transformation matrix
-    kwargs: additional attributes
-    line_width, fill_color line_style, etc. for style attributes
+
+    A Shape is created by providing a sequence of points (a list of (x, y) coordinates).
+    If a style argument (a ShapeStyle object) is provided, then its style attributes override
+    those of the Shape object. Additional attributes (e.g. line_width, fill_color, line_style)
+    may be provided.
+
+    Attributes:
+        dist_tol: Distance tolerance for checking.
+        xform_matrix: Transformation matrix.
     """
 
     def __init__(
@@ -58,6 +59,17 @@ class Shape(Base):
         xform_matrix: np.array = None,
         **kwargs,
     ) -> None:
+        """Initialize a Shape object.
+
+        Args:
+            points (Sequence[Point], optional): The points that make up the shape.
+            closed (bool, optional): Whether the shape is closed. Defaults to False.
+            xform_matrix (np.array, optional): The transformation matrix. Defaults to None.
+            **kwargs (dict): Additional attributes for the shape.
+
+        Raises:
+            ValueError: If the provided subtype is not valid.
+        """
         self.__dict__["style"] = ShapeStyle()
         self.__dict__["_style_map"] = shape_style_map
         self._set_aliases()
@@ -94,6 +106,12 @@ class Shape(Base):
         common_properties(self)
 
     def __setattr__(self, name, value):
+        """Set an attribute of the shape.
+
+        Args:
+            name (str): The name of the attribute.
+            value (Any): The value to set.
+        """
         obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
         if obj:
             setattr(obj, attrib, value)
@@ -101,6 +119,17 @@ class Shape(Base):
             self.__dict__[name] = value
 
     def __getattr__(self, name):
+        """Retrieve an attribute of the shape.
+
+        Args:
+            name (str): The attribute name to return.
+
+        Returns:
+            Any: The value of the attribute.
+
+        Raises:
+            AttributeError: If the attribute cannot be found.
+        """
         obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
         if obj:
             res = getattr(obj, attrib)
@@ -109,23 +138,31 @@ class Shape(Base):
                 res = super().__getattr__(name)
             except AttributeError:
                 res = self.__dict__[name]
-
         return res
 
     def _set_aliases(self):
+        """Set aliases for style attributes based on the style map."""
         _aliasses = {}
-
         for alias, path_attrib in self._style_map.items():
             style_path, attrib = path_attrib
             obj = self
             for attrib_name in style_path.split("."):
                 obj = obj.__dict__[attrib_name]
-
             _aliasses[alias] = (obj, attrib)
         self.__dict__["_aliasses"] = _aliasses
 
     def _get_closed(self, points: Sequence[Point], closed: bool):
-        # closed, same start and end points => self.closed
+        """Determine whether the shape should be considered closed.
+
+        Args:
+            points (Sequence[Point]): The points that define the shape.
+            closed (bool): The user-specified closed flag.
+
+        Returns:
+            tuple: A tuple consisting of:
+                - bool: True if the shape is closed, False otherwise.
+                - list: The (possibly modified) list of points.
+        """
         decision_table = {
             (True, True): True,
             (True, False): True,
@@ -144,9 +181,19 @@ class Shape(Base):
         return res, points
 
     def __len__(self):
+        """Return the number of points in the shape.
+
+        Returns:
+            int: The number of primary points.
+        """
         return len(self.primary_points)
 
     def __str__(self):
+        """Return a string representation of the shape.
+
+        Returns:
+            str: A string representation of the shape.
+        """
         if len(self.primary_points) == 0:
             res = "Shape()"
         elif len(self.primary_points) < 4:
@@ -156,21 +203,42 @@ class Shape(Base):
         return res
 
     def __repr__(self):
+        """Return a string representation of the shape.
+
+        Returns:
+            str: A string representation of the shape.
+        """
         return self.__str__()
 
     def __getitem__(self, subscript: Union[int, slice]):
+        """Retrieve point(s) from the shape by index or slice.
+
+        Args:
+            subscript (int or slice): The index or slice specifying the point(s) to retrieve.
+
+        Returns:
+            Point or list[Point]: The requested point or list of points (after applying the transformation).
+
+        Raises:
+            TypeError: If the subscript type is invalid.
+        """
         if isinstance(subscript, slice):
-            # res = list(self.vertices[subscript.start : subscript.stop : subscript.step])
             coords = self.primary_points.homogen_coords
-            res = list(coords[subscript.start : subscript.stop : subscript.step]@ self.xform_matrix)
-
+            res = list(coords[subscript.start : subscript.stop : subscript.step] @ self.xform_matrix)
         else:
-            # res = self.vertices[subscript]
             res = self.primary_points.homogen_coords[subscript] @ self.xform_matrix
-
         return res
 
     def __setitem__(self, subscript, value):
+        """Set the point(s) at the given subscript.
+
+        Args:
+            subscript (int or slice): The subscript to set the point(s) at.
+            value (Point or list[Point]): The value to set the point(s) to.
+
+        Raises:
+            TypeError: If the subscript type is invalid.
+        """
         if isinstance(subscript, slice):
             if is_nested_sequence(value):
                 value = homogenize(value) @ inv(self.xform_matrix)
@@ -186,39 +254,81 @@ class Shape(Base):
             raise TypeError("Invalid subscript type")
 
     def __delitem__(self, subscript) -> Self:
+        """Delete the point(s) at the given subscript.
+
+        Args:
+            subscript (int or slice): The subscript to delete the point(s) from.
+        """
         del self.primary_points[subscript]
 
     def remove(self, value):
-        """Remove a point from the shape."""
+        """Remove a point from the shape.
+
+        Args:
+            value (Point): The point to remove.
+        """
         ind = self.vertices.index(value)
         self.primary_points.pop(ind)
 
     def append(self, value):
-        """Append a point to the shape."""
+        """Append a point to the shape.
+
+        Args:
+            value (Point): The point to append.
+        """
         value = homogenize([value]) @ inv(self.xform_matrix)
         self.primary_points.append(tuple(value[0][:2]))
 
     def insert(self, index, value):
-        """Insert a point at a given index."""
+        """Insert a point at a given index.
+
+        Args:
+            index (int): The index to insert the point at.
+            value (Point): The point to insert.
+        """
         value = homogenize([value]) @ inv(self.xform_matrix)
         self.primary_points.insert(index, tuple(value[0][:2]))
 
     def extend(self, values):
-        """Extend the shape with a list of points."""
+        """Extend the shape with a list of points.
+
+        Args:
+            values (list[Point]): The points to extend the shape with.
+        """
         homogenized = homogenize(values) @ inv(self.xform_matrix)
         self.primary_points.extend([tuple(x[:2]) for x in homogenized])
 
     def pop(self, index: int = -1):
-        """Pop a point from the shape."""
+        """Pop a point from the shape.
+
+        Args:
+            index (int, optional): The index to pop the point from, defaults to -1.
+
+        Returns:
+            Point: The popped point.
+        """
         value = self.vertices[index]
         self.primary_points.pop(index)
         return value
 
     def __iter__(self):
+        """Return an iterator over the vertices of the shape.
+
+        Returns:
+            Iterator[Point]: An iterator over the vertices of the shape.
+        """
         return iter(self.vertices)
 
     def _update(self, xform_matrix: array, reps: int = 0) -> Batch:
-        """Used internally. Update the shape with a transformation matrix."""
+        """Used internally. Update the shape with a transformation matrix.
+
+        Args:
+            xform_matrix (array): The transformation matrix.
+            reps (int, optional): The number of repetitions, defaults to 0.
+
+        Returns:
+            Batch: The updated shape or a batch of shapes.
+        """
         if reps == 0:
             fillet_radius = self.fillet_radius
             if fillet_radius:
@@ -237,6 +347,14 @@ class Shape(Base):
         return res
 
     def __eq__(self, other):
+        """Check if the shape is equal to another shape.
+
+        Args:
+            other (Shape): The other shape to compare to.
+
+        Returns:
+            bool: True if the shapes are equal, False otherwise.
+        """
         len1 = len(self)
         len2 = len(other)
         if len1 == 0 and len2 == 0:
@@ -256,10 +374,19 @@ class Shape(Base):
         return res
 
     def __bool__(self):
+        """Return whether the shape has any points.
+
+        Returns:
+            bool: True if the shape has points, False otherwise.
+        """
         return len(self.primary_points) > 0
 
     def topology(self):
-        """Return info about the topology of the shape."""
+        """Return info about the topology of the shape.
+
+        Returns:
+            set: A set of topology values.
+        """
         t_map = {
             "WITHIN": Topology.FOLDED,
             "CONTAINS": Topology.FOLDED,
@@ -284,6 +411,13 @@ class Shape(Base):
     def merge(self, other, dist_tol: float = None):
         """Merge two shapes if they are connected. Does not work for polygons.
         Only polyline shapes can be merged together.
+
+        Args:
+            other (Shape): The other shape to merge with.
+            dist_tol (float, optional): The distance tolerance for merging, defaults to None.
+
+        Returns:
+            Shape or None: The merged shape or None if the shapes cannot be merged.
         """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
@@ -303,20 +437,30 @@ class Shape(Base):
         return res
 
     def connect(self, other):
-        """Connect two shapes by adding the other shape's
-        vertices to self."""
+        """Connect two shapes by adding the other shape's vertices to self.
+
+        Args:
+            other (Shape): The other shape to connect.
+        """
         self.extend(other.vertices)
 
     def _chain_vertices(self, verts1, verts2, dist_tol: float = None):
-        """Chain two sets of vertices if they are connected."""
+        """Chain two sets of vertices if they are connected.
+
+        Args:
+            verts1 (list[Point]): The first set of vertices.
+            verts2 (list[Point]): The second set of vertices.
+            dist_tol (float, optional): The distance tolerance for chaining, defaults to None.
+
+        Returns:
+            list[Point] or None: The chained vertices or None if the vertices cannot be chained.
+        """
         dist_tol2 = dist_tol * dist_tol
         start1, end1 = verts1[0], verts1[-1]
         start2, end2 = verts2[0], verts2[-1]
         same_starts = close_points2(start1, start2, dist2=dist_tol2)
         same_ends = close_points2(end1, end2, dist2=self.dist_tol2)
         if same_starts and same_ends:
-            # verts1.pop(-1)
-            # verts2.reverse()
             res = verts1
         elif close_points2(end1, start2, dist2=self.dist_tol2):
             verts2.pop(0)
@@ -346,11 +490,27 @@ class Shape(Base):
         return res
 
     def _is_polygon(self, vertices):
-        """Return True if the vertices form a polygon."""
+        """Return True if the vertices form a polygon.
+
+        Args:
+            vertices (list[Point]): The vertices to check.
+
+        Returns:
+            bool: True if the vertices form a polygon, False otherwise.
+        """
         return close_points2(vertices[0][:2], vertices[-1][:2], dist2=self.dist_tol2)
 
     def as_graph(self, directed=False, weighted=False, n_round=None):
-        """Return the shape as a graph object."""
+        """Return the shape as a graph object.
+
+        Args:
+            directed (bool, optional): Whether the graph is directed, defaults to False.
+            weighted (bool, optional): Whether the graph is weighted, defaults to False.
+            n_round (int, optional): The number of decimal places to round to, defaults to None.
+
+        Returns:
+            Graph: The graph object.
+        """
         if n_round is None:
             n_round = defaults["n_round"]
         vertices = [(round(v[0], n_round), round(v[1], n_round)) for v in self.vertices]
@@ -372,7 +532,6 @@ class Shape(Base):
 
         if weighted:
             for edge in edges:
-                # nx_graph.add_edge(edge.start.id, edge.end.id, weight=edge.length)
                 nx_graph.add_edge(edge.start.id, edge.end.id, weight=edge.length)
             subtype = Types.WEIGHTED
         else:
@@ -409,7 +568,14 @@ class Shape(Base):
         return graph
 
     def as_array(self, homogeneous=False):
-        """Return the vertices as an array."""
+        """Return the vertices as an array.
+
+        Args:
+            homogeneous (bool, optional): Whether to return homogeneous coordinates, defaults to False.
+
+        Returns:
+            ndarray: The vertices as an array.
+        """
         if homogeneous:
             res = self.primary_points.nd_array @ self.xform_matrix
         else:
@@ -417,12 +583,20 @@ class Shape(Base):
         return res
 
     def as_list(self):
-        """Return the vertices as a list of tuples."""
+        """Return the vertices as a list of tuples.
+
+        Returns:
+            list[tuple]: The vertices as a list of tuples.
+        """
         return list(self.vertices)
 
     @property
     def final_coords(self):
-        """The final coordinates of the shape. primary_points @ xform_matrix."""
+        """The final coordinates of the shape. primary_points @ xform_matrix.
+
+        Returns:
+            ndarray: The final coordinates of the shape.
+        """
         if self.primary_points:
             res = self.primary_points.homogen_coords @ self.xform_matrix
         else:
@@ -432,7 +606,11 @@ class Shape(Base):
 
     @property
     def vertices(self):
-        """The final coordinates of the shape."""
+        """The final coordinates of the shape.
+
+        Returns:
+            tuple: The final coordinates of the shape.
+        """
         if self.primary_points:
             res = tuple(((x[0], x[1]) for x in (self.final_coords[:, :2])))
         else:
@@ -442,7 +620,11 @@ class Shape(Base):
 
     @property
     def vertex_pairs(self):
-        """Return a list of connected pairs of vertices."""
+        """Return a list of connected pairs of vertices.
+
+        Returns:
+            list[tuple[Point, Point]]: A list of connected pairs of vertices.
+        """
         vertices = list(self.vertices)
         if self.closed:
             vertices.append(vertices[0])
@@ -450,12 +632,20 @@ class Shape(Base):
 
     @property
     def orig_coords(self):
-        """The primary points in homogeneous coordinates."""
+        """The primary points in homogeneous coordinates.
+
+        Returns:
+            ndarray: The primary points in homogeneous coordinates.
+        """
         return self.primary_points.homogen_coords
 
     @property
     def b_box(self):
-        """Return the bounding box of the shape."""
+        """Return the bounding box of the shape.
+
+        Returns:
+            BoundingBox: The bounding box of the shape.
+        """
         if self.primary_points:
             self._b_box = bounding_box(self.final_coords)
         else:
@@ -464,7 +654,11 @@ class Shape(Base):
 
     @property
     def area(self):
-        """Return the area of the shape."""
+        """Return the area of the shape.
+
+        Returns:
+            float: The area of the shape.
+        """
         if self.closed:
             vertices = self.vertices[:]
             if not close_points2(vertices[0], vertices[-1], dist2=self.dist_tol2):
@@ -477,16 +671,28 @@ class Shape(Base):
 
     @property
     def total_length(self):
-        """Return the total length of the shape."""
+        """Return the total length of the shape.
+
+        Returns:
+            float: The total length of the shape.
+        """
         return polyline_length(self.vertices[:-1], self.closed)
 
     @property
     def is_polygon(self):
-        """Return True if 'closed'."""
+        """Return True if 'closed'.
+
+        Returns:
+            bool: True if the shape is closed, False otherwise.
+        """
         return self.closed
 
     def clear(self):
-        """Clear all points and reset the style attributes."""
+        """Clear all points and reset the style attributes.
+
+        Returns:
+            None
+        """
         self.primary_points = Points()
         self.xform_matrix = identity_matrix()
         self.style = ShapeStyle()
@@ -494,7 +700,14 @@ class Shape(Base):
         self._b_box = None
 
     def count(self, value):
-        """Return the number of times the value is found in the shape."""
+        """Return the number of times the value is found in the shape.
+
+        Args:
+            value (Point): The value to count.
+
+        Returns:
+            int: The number of times the value is found in the shape.
+        """
         verts = self.orig_coords @ self.xform_matrix
         verts = verts[:, :2]
         n = verts.shape[0]
@@ -507,7 +720,11 @@ class Shape(Base):
         return np.count_nonzero(distances <= self.dist_tol2)
 
     def copy(self):
-        """Return a copy of the shape."""
+        """Return a copy of the shape.
+
+        Returns:
+            Shape: A copy of the shape.
+        """
         if self.primary_points.coords:
             points = self.primary_points.copy()
         else:
@@ -530,10 +747,14 @@ class Shape(Base):
 
     @property
     def edges(self) -> List[Line]:
-        """
-        Return a list of edges.
+        """Return a list of edges.
+
+        Edges are represented as tuples of points:
         edge: ((x1, y1), (x2, y2))
         edges: [((x1, y1), (x2, y2)), ((x2, y2), (x3, y3)), ...]
+
+        Returns:
+            list[tuple[Point, Point]]: A list of edges.
         """
         vertices = list(self.vertices[:])
         if self.closed:
@@ -542,14 +763,25 @@ class Shape(Base):
         return connected_pairs(vertices)
 
     def reverse(self):
-        """Reverse the order of the vertices."""
+        """Reverse the order of the vertices.
+
+        Returns:
+            None
+        """
         self.primary_points.reverse()
 
 
 def custom_attributes(item: Shape) -> List[str]:
-    """
-    Return a list of custom attributes of a Shape or
-    Batch instance.
+    """Return a list of custom attributes of a Shape or Batch instance.
+
+    Args:
+        item (Shape): The Shape or Batch instance.
+
+    Returns:
+        list[str]: A list of custom attribute names.
+
+    Raises:
+        TypeError: If the item is not a Shape instance.
     """
     if isinstance(item, Shape):
         dummy = Shape([(0, 0), (1, 0)])

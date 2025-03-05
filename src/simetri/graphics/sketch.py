@@ -27,26 +27,6 @@ Color = colors.Color
 np.set_printoptions(legacy="1.21")
 
 
-def get_property2(shape, canvas, prop, batch_attrib=None):
-    """To get a property from a shape
-    1- Check if the shape has the property assigned (not None)
-    2- If not, check if the Canvas has the property assigned (not None)
-    3- If not, use the default value"""
-
-    res = getattr(shape, prop)
-
-    if res is None and batch_attrib is not None:
-        res = batch_attrib
-
-    elif res is None and canvas is not None:
-        res = getattr(canvas, prop)
-
-    if res is None:
-        res = defaults[prop]
-
-    return res
-
-
 @dataclass
 class CircleSketch:
     """CircleSketch is a dataclass for creating a circle sketch object."""
@@ -56,6 +36,7 @@ class CircleSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the CircleSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.CIRCLE_SKETCH
         if self.xform_matrix is None:
@@ -75,10 +56,11 @@ class EllipseSketch:
     center: tuple
     x_radius: float
     y_radius: float
-    angle: float = 0 # orientation angle
+    angle: float = 0  # orientation angle
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the EllipseSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.ELLIPSE_SKETCH
         if self.xform_matrix is None:
@@ -87,7 +69,6 @@ class EllipseSketch:
         else:
             center = homogenize([self.center])
             center = (center @ self.xform_matrix).tolist()[0][:2]
-
         self.center = center
         self.closed = True
 
@@ -100,6 +81,7 @@ class LineSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the LineSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LINE_SKETCH
 
@@ -114,7 +96,7 @@ class LineSketch:
 
 @dataclass
 class ShapeSketch:
-    """Sketch is a neutral format for drawing.
+    """ShapeSketch is a neutral format for drawing.
     It contains geometry (only vertices for shapes) and style
     properties.
     Style properties are not assigned during initialization.
@@ -129,6 +111,7 @@ class ShapeSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the ShapeSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.SHAPE_SKETCH
         if self.xform_matrix is None:
@@ -139,6 +122,7 @@ class ShapeSketch:
             vertices = vertices @ self.xform_matrix
         self.vertices = [tuple(x) for x in vertices[:, :2]]
 
+
 @dataclass
 class BezierSketch:
     """BezierSketch is a dataclass for creating a bezier sketch object."""
@@ -148,6 +132,7 @@ class BezierSketch:
     mode: CurveMode = CurveMode.OPEN
 
     def __post_init__(self):
+        """Initialize the BezierSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.BEZIER_SKETCH
 
@@ -159,6 +144,7 @@ class BezierSketch:
             control_points = control_points @ self.xform_matrix
         self.control_points = [tuple(x) for x in control_points[:, :3]]
         self.closed = False
+
 
 @dataclass
 class ArcSketch:
@@ -176,6 +162,7 @@ class ArcSketch:
     mode: CurveMode = CurveMode.OPEN
 
     def __post_init__(self):
+        """Initialize the ArcSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.ARC_SKETCH
 
@@ -205,6 +192,7 @@ class BatchSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the BatchSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.BATCH_SKETCH
         self.sketches = self.sketches
@@ -218,6 +206,7 @@ class PathSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the PathSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PATH_SKETCH
         if self.xform_matrix is None:
@@ -233,6 +222,7 @@ class LaceSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the LaceSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LACESKETCH
         if self.xform_matrix is None:
@@ -269,6 +259,7 @@ class FrameSketch:
     min_radius: float = 0
 
     def __post_init__(self):
+        """Initialize the FrameSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.FRAME_SKETCH
         common_properties(self)
@@ -287,6 +278,7 @@ class TagSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the TagSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.TAG_SKETCH
         if self.xform_matrix is None:
@@ -296,6 +288,7 @@ class TagSketch:
             pos = homogenize([self.pos])
             pos = (pos @ self.xform_matrix).tolist()[0][:2]
         self.pos = pos
+
 
 @dataclass
 class RectSketch:
@@ -307,6 +300,14 @@ class RectSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
+        """Initialize the RectSketch object.
+
+        Args:
+            pos (Point): The position of the rectangle.
+            width (float): The width of the rectangle.
+            height (float): The height of the rectangle.
+            xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+        """
         self.type = Types.SKETCH
         self.subtype = Types.RECT_SKETCH
         if self.xform_matrix is None:

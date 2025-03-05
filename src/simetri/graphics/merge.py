@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Dict
 
 from numpy import isclose
 import networkx as nx
@@ -11,11 +11,11 @@ from ..geometry.geometry import (
     fix_degen_points,
     inclination_angle,
     all_intersections
-    )
+)
 from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges2nodes
 
 
-def merge_shapes_(
+def _merge_shapes(
     self,
     tol: float = None,
     rtol: float = None,
@@ -24,14 +24,24 @@ def merge_shapes_(
     n_round: int = None,
     **kwargs,
 ) -> "Batch":
+    """
+    Tries to merge the shapes in the batch. Returns a new batch
+    with the merged shapes as well as the shapes that could not be merged.
+
+    Args:
+        tol (float, optional): Tolerance for merging shapes. Defaults to None.
+        rtol (float, optional): Relative tolerance for merging shapes. Defaults to None.
+        atol (float, optional): Absolute tolerance for merging shapes. Defaults to None.
+        dist_tol (float, optional): Distance tolerance for merging shapes. Defaults to None.
+        n_round (int, optional): Number of rounding digits for merging shapes. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Batch: A new batch with the merged shapes.
+    """
     from .batch import Batch
     from .shape import Shape
 
-    """Tries to merge the shapes in the batch. Returns a new batch
-    with the merged shapes as well as the shapes that could not be merged."""
-    # if all shapes have only one point
-    # connect them all
-    # To do: we should check if the points are close
     tol, rtol, atol, dist_tol, n_round = get_defaults(
         ["tol", "rtol", "atol", "dist_tol", "n_round"],
         [tol, rtol, atol, dist_tol, n_round],
@@ -40,7 +50,7 @@ def merge_shapes_(
         edges = Shape([shape.vertices[0] for shape in self.all_shapes])
         batch = Batch(edges)
         return batch
-    # To do: Check if the edges are duplicates if remove_duplicates is True
+
     d_node_id_coords, edges = self._get_graph_nodes_and_edges(
         dist_tol=dist_tol, n_round=defaults["n_round"]
     )
@@ -105,7 +115,7 @@ def merge_shapes_(
 
 def _merge_collinears(
     self,
-    d_node_id_coord: dict[int, Point],
+    d_node_id_coord: Dict[int, Point],
     edges: List[Line],
     angle_bin_size: float = 0.1,
     tol: float = None,
@@ -113,21 +123,30 @@ def _merge_collinears(
     atol: float = None,
 ) -> List[Line]:
     """
-    delta: maximum difference in slope between two edges to be
-    considered different
-    1- Create a list of [(line_angle, edge), ...] for all edges
-    2- Sort the list by line_angle
-    3- Create bins of edges with similar line_angle
-    4- Merge edges in each bin
-    5- Return the merged edges
+    Merge collinear edges.
+
+    Args:
+        d_node_id_coord (Dict[int, Point]): Dictionary of node id to coordinates.
+        edges (List[Line]): List of edges.
+        angle_bin_size (float, optional): Bin size for grouping angles. Defaults to 0.1.
+        tol (float, optional): Tolerance for merging edges. Defaults to None.
+        rtol (float, optional): Relative tolerance for merging edges. Defaults to None.
+        atol (float, optional): Absolute tolerance for merging edges. Defaults to None.
+
+    Returns:
+        List[Line]: List of merged edges.
     """
     tol, rtol, atol = get_defaults(["tol", "rtol", "atol"], [tol, rtol, atol])
 
     def merge_multiple_edges(collinear_edges):
         """
         Merge multiple collinear edges in a list of edges.
-        collinear_edges: [((x1, y1), (x2, y2)), ((x3, y3), (x4, y4)),...]
-        These edges are all collinear.
+
+        Args:
+            collinear_edges (list): List of collinear edges.
+
+        Returns:
+            list: Merged edge.
         """
         x_coords = []
         y_coords = []
@@ -169,6 +188,14 @@ def _merge_collinears(
         return [p1, p2]
 
     def process_islands(islands, res, merged):
+        """
+        Process islands of collinear edges.
+
+        Args:
+            islands (list): List of islands.
+            res (list): List of merged edges.
+            merged (set): Set of merged edges.
+        """
         for island in islands:
             collinear_edges = []
             collinear_edge_indices = []

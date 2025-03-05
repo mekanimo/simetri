@@ -1,12 +1,9 @@
 """Simetri library's constants and common data."""
 
 from math import pi, cos, sin
-
 from typing import Sequence, Tuple, Any, Iterator
-
 from ..settings.settings import defaults
 from ..helpers.vector import Vector2D
-
 
 Point = Sequence[float]  # used for type hinting
 Vec2 = Tuple[float, float]  # used for type hinting size, scale, offset etc.
@@ -33,16 +30,15 @@ phi = (1 + 5**0.5) / 2  # golden ratio
 
 _d_id_obj = {}  # dictionary of obj.id: obj, use get_item_by_id(id)
 
-# Every object in Simetri has a unique id.
-# This generator is used to generate unique ids.
-# Objects are stored in a global dictionary (_d_id_obj) with their ids
-# as keys.
-# To get an object by its id, use get_item_by_id(id)
-
-
 def common_properties(obj, graphics_object=True, id_only=False):
-    """Set common properties for an object. All objects in Simetri have
-    these properties."""
+    """
+    Set common properties for an object. All objects in Simetri have these properties.
+
+    Args:
+        obj (Any): The object to set properties for.
+        graphics_object (bool, optional): Whether the object is a graphics object. Defaults to True.
+        id_only (bool, optional): Whether to set only the id. Defaults to False.
+    """
     obj.id = get_unique_id(obj)
     _d_id_obj[obj.id] = obj
     if id_only:
@@ -51,41 +47,52 @@ def common_properties(obj, graphics_object=True, id_only=False):
     if graphics_object:
         obj.visible = True
 
-
 def gen_unique_ids() -> Iterator[int]:
     """
     Generate unique Ids.
     Every object in Simetri has a unique id.
+
+    Yields:
+        Iterator[int]: A unique id.
     """
     id_ = 0
     while True:
         yield id_
         id_ += 1
 
-
 def get_item_by_id(id_: int) -> Any:
-    """Return an object by its id."""
+    """
+    Return an object by its id.
+
+    Args:
+        id_ (int): The id of the object.
+
+    Returns:
+        Any: The object with the given id.
+    """
     return _d_id_obj[id_]
 
-
 unique_id = gen_unique_ids()
-
 
 def get_unique_id(item) -> int:
     """
     Return a unique id.
     Every object in Simetri has a unique id.
     Register the object in _d_id_obj.
+
+    Args:
+        item (Any): The object to get a unique id for.
+
+    Returns:
+        int: The unique id.
     """
     id_ = next(unique_id)
     _d_id_obj[id_] = item
     return id_
 
-
 origin = (0.0, 0.0)  # used for a point at the origin
 axis_x = (origin, (1.0, 0.0))  # used for a line along x axis
 axis_y = (origin, (0.0, 1.0))  # used for a line along y axis
-
 
 axis_hex = (
     (0.0, 0.0),
@@ -95,18 +102,32 @@ axis_hex = (
 i_vec = Vector2D(1.0, 0.0)  # x direction unit vector
 j_vec = Vector2D(0.0, 1.0)  # y direction unit vector
 
-
 def _set_Nones(obj, args, values):
-    """Internally used in instance construction to set default values for None values."""
+    """
+    Internally used in instance construction to set default values for None values.
+
+    Args:
+        obj (Any): The object to set values for.
+        args (list): The arguments to set.
+        values (list): The values to set.
+    """
     for i, arg in enumerate(args):
         if values[i] is None:
             setattr(obj, arg, defaults[arg])
         else:
             setattr(obj, arg, values[i])
 
-
 def get_defaults(args, values):
-    """Internally used in instance construction to set default values for None values."""
+    """
+    Internally used in instance construction to set default values for None values.
+
+    Args:
+        args (list): The arguments to set.
+        values (list): The values to set.
+
+    Returns:
+        list: The default values.
+    """
     res = len(args) * [None]
     for i, arg in enumerate(args):
         if values[i] is None:

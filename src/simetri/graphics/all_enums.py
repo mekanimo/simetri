@@ -42,18 +42,24 @@ class Anchor(StrEnum):
     EAST = "east"
     LEFT = "left"
     MID = "mid"
-    MIDEAST = "mid east"
-    MIDWEST = "mid west"
+    MIDEAST = "mideast"
+    MIDWEST = "midwest"
     NORTH = "north"
-    NORTHEAST = "north east"
-    NORTHWEST = "north west"
+    NORTHEAST = "northeast"
+    NORTHWEST = "northwest"
     RIGHT = "right"
     SOUTH = "south"
-    SOUTHEAST = "south east"
-    SOUTHWEST = "south west"
+    SOUTHEAST = "southeast"
+    SOUTHWEST = "southwest"
     TEXT = "text"
     TOP = "top"
     WEST = "west"
+
+
+class CurveMode(StrEnum):
+    OPEN = "OPEN"
+    CHORD = "CHORD"
+    PIE = "PIE"
 
 
 class ArrowLine(StrEnum):
@@ -170,20 +176,6 @@ class Connector(StrEnum):
     # double_arrow
     # double_squigly
 
-class ConstraintType(StrEnum):
-    """Constraint is used to set the constraint type of the shapes."""
-
-    COLLINEAR = "COLLINEAR"
-    DISTANCE = "DISTANCE"
-    LINE_ANGLE = "LINE_ANGLE"
-    PARALLEL = "PARALLEL"
-    PERPENDICULAR = "PERPENDICULAR"
-    EQUAL_SIZE = "EQUAL_SIZE"
-    EQUAL_VALUE = "EQUAL_VALUE"
-    INNER_TANGENT = "INNER_TANGENT"
-    OUTER_TANGENT = "OUTER_TANGENT"
-
-
 class Compiler(StrEnum):
     """Used for the LaTeX compiler."""
 
@@ -214,11 +206,6 @@ class Conway(StrEnum):
     SPINNING_SIDLE = "SPINNING_SIDLE"
     STEP = "STEP"
 
-
-class CurveMode(StrEnum):
-    OPEN = "OPEN"
-    CHORD = "CHORD"
-    PIE = "PIE"
 
 # Document classes for the output files
 # These come from LaTeX
@@ -363,17 +350,13 @@ class LineCap(StrEnum):
 class LineDashArray(StrEnum):
     """LineDashArray is used to set the type of dashed-line."""
 
-    DASHDOT = "dash dot"
-    DASHDOTDOT = "dash dot dot"
+    DASHDOT = "dashdot"
+    DASHDOTDOT = "dashdotdot"
     DASHED = "dashed"
     DENSELY_DASHED = "densely dashed"
-    DENSELY_DASHDOT = "densely dash dot"
-    DENSELY_DASHDOTDOT = "densely dash dot dot"
     DENSELY_DOTTED = "densely dotted"
     DOTTED = "dotted"
     LOOSELY_DASHED = "loosely dashed"
-    LOOSELY_DASHDOT = "loosely dash dot"
-    LOOSELY_DASHDOTDOT = "loosely dash dot dot"
     LOOSELY_DOTTED = "loosely dotted"
     SOLID = "solid"
 
@@ -418,14 +401,13 @@ class MarkerType(StrEnum):
     FCIRCLE = "*"
     HALF_CIRCLE = "halfcircle"
     HALF_CIRCLE_F = "halfcircle*"
+    HALF_DIAMOND = "halfdiamond"
     HALF_DIAMOND_F = "halfdiamond*"
+    HALF_SQUARE = "halfsquare"
     HALF_SQUARE_F = "halfsquare*"
-    HALF_SQUARE_LEFT = "halfsquare left*"
-    HALF_SQUARE_RIGHT = "halfsquare right*"
-    HEART = "heart"
+    HEXAGON = "hexagon"
+    HEXAGON_F = "hexagon*"
     INDICES = "indices"
-    MERCEDES_STAR = "Mercedes star"
-    MERCEDES_STAR_FLIPPED = "Mercedes star flipped"
     MINUS = "-"
     OPLUS = "oplus"
     OPLUS_F = "oplus*"
@@ -439,7 +421,6 @@ class MarkerType(StrEnum):
     STAR = "star"
     STAR2 = "star2"
     STAR3 = "star3"
-    TEN_POINTED_STAR = "10-pointed star"
     TEXT = "text"
     TRIANGLE = "triangle"
     TRIANGLE_F = "triangle*"
@@ -553,30 +534,23 @@ class PageSize(StrEnum):
 
 class PathOperation(StrEnum):
     """PathOperation is used to set the type of path operation."""
+
     ARC = "ARC"
-    ARC_TO = "ARC"
-    BLEND_ARC = "BLEND_ARC"
-    BLEND_CUBIC = "BLEND_CUBIC"
-    BLEND_QUAD = "BLEND_QUAD"
-    CATMULL_TO = "CATMULL_TO"
+    BATCH = "BATCH"
     CIRCLE = "CIRCLE"
     CLOSE = "CLOSE"
-    CLOSE_CATMULL = "CLOSE_CATMULL"
-    CLOSE_HOBBY = "CLOSE_HOBBY"
     CONNECTOR = "CONNECTOR"
-    CUBIC_TO = "CURVE"
+    CURVE = "CURVE"
+    CURVE2 = "CURVE2"
     ELLIPSE = "ELLIPSE"
-    FORWARD = "FORWARD"
     GRID = "GRID"
     HLINE = "HLINE"
-    HOBBY_TO = "HOBBY_TO"
-    LINE_TO = "LINE"
-    MOVE_TO = "MOVE"
+    LINE = "LINE"
+    MOVE = "MOVE"
     POLYGON = "POLYGON"
-    QUAD_TO = "QUAD_TO"
     RECTANGLE = "RECTANGLE"
-    RLINE = "RLINE"
-    RMOVE = "RMOVE"
+    RLINE = "REL_LINE"
+    RMOVE = "REL_MOVE"
     SECTOR = "SECTOR"
     SHAPE = "SHAPE"
     STYLE = "STYLE"
@@ -722,11 +696,9 @@ class Transformation(StrEnum):
 
 # object types and subtypes
 class Types(StrEnum):
-    """All objects in simetri.graphics has a type and a subtype
-    properties.
-    type is usually a SHAPE or BATCH.
-    subtype is the specific type of the object.
-    """
+    """All objects in simetri.graphics has type and subtype
+    properties."""
+    # to do: use snake-case for the names
     ANGULAR_DIMENSION = "ANGULAR DIMENSION"
     ANNOTATION = "ANNOTATION"
     ARC = "ARC"
@@ -759,21 +731,19 @@ class Types(StrEnum):
     ELLIPSE = "ELLIPSE"
     ELLIPSE_SKETCH = "ELLIPSE_SKETCH"
     ELLIPTIC_ARC = "ELLIPTIC_ARC"
-    FILL_STYLE = "FILL_STYLE"
+    FILLSTYLE = "FILL_STYLE"
     FONT = "FONT"
     FONTSKETCH = "FONT_SKETCH"
-    FONT_STYLE = "FONT_STYLE"
+    FONTSTYLE = "FONT_STYLE"
     FRAGMENT = "FRAGMENT"
     FRAGMENT_SKETCH = "FRAGMENT_SKETCH"
     FRAME = "FRAME"
-    FRAME_SKETCH = "FRAME_SKETCH"
-    FRAME_STYLE = "FRAME_STYLE"
+    FRAMESKETCH = "FRAME_SKETCH"
+    FRAMESTYLE = "FRAME_STYLE"
     GRADIENT = "GRADIENT"
     GRID = "GRID"
-    GRID_STYLE = "GRID_STYLE"
-    HANDLE = "HANDLE" # USED FOR BEZIER CURVES
+    GRIDSTYLE = "GRID_STYLE"
     HEXAGONAL = "HEXAGONAL"
-    HOBBY_CURVE = "HOBBY_CURVE"
     ICANVAS = "ICANVAS"
     INTERSECTION = "INTERSECTION"
     LABEL = "LABEL"
@@ -795,12 +765,12 @@ class Types(StrEnum):
     PAGE_GRID = "PAGE_GRID"
     PARALLEL_POLYLINE = "PARALLEL_POLYLINE"
     PART = "PART"
-    PATTERN = "PATTERN"
-    PATTERN_STYLE = "PATTERN_STYLE"
     PATH = "PATH"
-    PATH_OPERATION = "PATH_OPERATION"
-    PATH_SKETCH = "PATH_SKETCH"
+    PATTERN_SKETCH = "PATTERN_SKETCH"
+    PATTERN_STYLE = "PATTERN_STYLE"
+    PETAL = "PETAL"
     PLAIT = "PLAIT"
+    PLAIT_SKETCH = "PLAIT_SKETCH"
     POINT = "POINT"
     POINTS = "POINTS"
     POLYLINE = "POLYLINE"
@@ -808,7 +778,6 @@ class Types(StrEnum):
     RADIAL = "RADIAL"
     RECTANGLE = "RECTANGLE"
     RECTANGULAR = "RECTANGULAR"
-    RECT_SKETCH = "RECT_SKETCH"
     REG_POLY = "REGPOLY"
     REG_POLY_SKETCH = "REGPOLY_SKETCH"
     REGULAR_POLYGON = "REGULAR_POLYGON"

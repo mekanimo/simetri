@@ -4,7 +4,6 @@ __all__ = [
     "Base",
 ]
 
-
 from typing import Sequence, Any, Union
 from typing_extensions import Self
 
@@ -31,6 +30,18 @@ class Base:
     """Base class for Shape and Batch objects."""
 
     def __getattr__(self, name: str) -> Any:
+        """
+        Get the attribute with the given name.
+
+        Args:
+            name (str): The name of the attribute.
+
+        Returns:
+            Any: The attribute with the given name.
+
+        Raises:
+            AttributeError: If the attribute does not exist.
+        """
         _anchors = [
             "southeast",
             "southwest",
@@ -78,7 +89,17 @@ class Base:
         return res
 
     def translate(self, dx: float = 0, dy: float = 0, reps: int = 0) -> Self:
-        """Translates the object by dx and dy."""
+        """
+        Translates the object by dx and dy.
+
+        Args:
+            dx (float): The translation distance along the x-axis.
+            dy (float): The translation distance along the y-axis.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The transformed object.
+        """
         transform = translation_matrix(dx, dy)
         return self._update(transform, reps=reps)
 
@@ -87,14 +108,25 @@ class Base:
         path: Sequence[Point],
         step: int = 1,
         align_tangent: bool = False,
-        scale: float = 1, # scale factor
-        rotate: float = 0, # angle in radians
+        scale: float = 1,  # scale factor
+        rotate: float = 0,  # angle in radians
     ) -> Self:
-        """Translates the object along the given curve.
+        """
+        Translates the object along the given curve.
         Every n-th point is used to calculate the translation vector.
         If align_tangent is True, the object is rotated to align with the tangent at each point.
         scale is the scale factor applied at each point.
         rotate is the angle in radians applied at each point.
+
+        Args:
+            path (Sequence[Point]): The path to translate along.
+            step (int, optional): The step size. Defaults to 1.
+            align_tangent (bool, optional): Whether to align the object with the tangent. Defaults to False.
+            scale (float, optional): The scale factor. Defaults to 1.
+            rotate (float, optional): The rotation angle in radians. Defaults to 0.
+
+        Returns:
+            Self: The transformed object.
         """
         x, y = path[0][:2]
         self.move_to((x, y))
@@ -120,21 +152,48 @@ class Base:
         return self
 
     def rotate(self, angle: float, about: Point = (0, 0), reps: int = 0) -> Self:
-        """Rotates the object by the given angle (in radians) about the given point."""
+        """
+        Rotates the object by the given angle (in radians) about the given point.
+
+        Args:
+            angle (float): The rotation angle in radians.
+            about (Point, optional): The point to rotate about. Defaults to (0, 0).
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The rotated object.
+        """
         transform = rotation_matrix(angle, about)
         return self._update(transform, reps=reps)
 
     def mirror(self, about: Union[Line, Point], reps: int = 0) -> Self:
-        """Mirrors the object about the given line or point."""
-        transform = mirror_matrix(about)
+        """
+        Mirrors the object about the given line or point.
 
+        Args:
+            about (Union[Line, Point]): The line or point to mirror about.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The mirrored object.
+        """
+        transform = mirror_matrix(about)
         return self._update(transform, reps=reps)
 
     def glide(self, glide_line: Line, glide_dist: float, reps: int = 0) -> Self:
-        """Glides (first mirror then translate) the object along the given line
-        by the given glide_dist."""
-        transform = glide_matrix(glide_line, glide_dist)
+        """
+        Glides (first mirror then translate) the object along the given line
+        by the given glide_dist.
 
+        Args:
+            glide_line (Line): The line to glide along.
+            glide_dist (float): The distance to glide.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The glided object.
+        """
+        transform = glide_matrix(glide_line, glide_dist)
         return self._update(transform, reps=reps)
 
     def scale(
@@ -144,30 +203,72 @@ class Base:
         about: Point = (0, 0),
         reps: int = 0,
     ) -> Self:
-        """Scales the object by the given scale factors about the given point."""
+        """
+        Scales the object by the given scale factors about the given point.
+
+        Args:
+            scale_x (float): The scale factor in the x direction.
+            scale_y (float, optional): The scale factor in the y direction. Defaults to None.
+            about (Point, optional): The point to scale about. Defaults to (0, 0).
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The scaled object.
+        """
         if scale_y is None:
             scale_y = scale_x
         transform = scale_in_place_matrix(scale_x, scale_y, about)
-
         return self._update(transform, reps=reps)
 
     def shear(self, theta_x: float, theta_y: float, reps: int = 0) -> Self:
-        """Shears the object by the given angles."""
+        """
+        Shears the object by the given angles.
+
+        Args:
+            theta_x (float): The shear angle in the x direction.
+            theta_y (float): The shear angle in the y direction.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The sheared object.
+        """
         transform = shear_matrix(theta_x, theta_y)
         return self._update(transform, reps=reps)
 
     def reset_xform_matrix(self) -> Self:
-        """Resets the transformation matrix to the identity matrix."""
-        self.__dict__["xform_matrix"] = np.identity(3)
+        """
+        Resets the transformation matrix to the identity matrix.
 
+        Returns:
+            Self: The object with the reset transformation matrix.
+        """
+        self.__dict__["xform_matrix"] = np.identity(3)
         return self
 
     def transform(self, xform_matrix: ndarray, reps: int = 0) -> Self:
-        """Transforms the object by the given transformation matrix."""
+        """
+        Transforms the object by the given transformation matrix.
+
+        Args:
+            xform_matrix (ndarray): The transformation matrix.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The transformed object.
+        """
         return self._update(xform_matrix, reps=reps)
 
     def move_to(self, pos: Point, anchor: Anchor = Anchor.CENTER) -> Self:
-        """Moves the object to the given position by using its center point."""
+        """
+        Moves the object to the given position by using its center point.
+
+        Args:
+            pos (Point): The position to move to.
+            anchor (Anchor, optional): The anchor point. Defaults to Anchor.CENTER.
+
+        Returns:
+            Self: The moved object.
+        """
         x, y = pos[:2]
         anchor = get_enum_value(Anchor, anchor)
         x1, y1 = getattr(self.b_box, anchor)
@@ -175,14 +276,35 @@ class Base:
         return self._update(transform, reps=0)
 
     def offset_line(self, side: Side, offset: float) -> Line:
-        """side can be Side.LEFT, Side.RIGHT, Side.TOP, or Side.BOTTOM.
-        offset is applied outwards."""
+        """
+        Offset the line by the given side and offset distance.
+        side can be Side.LEFT, Side.RIGHT, Side.TOP, or Side.BOTTOM.
+        offset is applied outwards.
+
+        Args:
+            side (Side): The side to offset.
+            offset (float): The offset distance.
+
+        Returns:
+            Line: The offset line.
+        """
         side = get_enum_value(Side, side)
         return self.b_box.offset_line(side, offset)
 
     def offset_point(self, anchor: Anchor, dx: float, dy: float = 0) -> Point:
-        """anchor can be Anchor.CENTER, Anchor.SOUTHWEST, Anchor.SOUTHEAST,
+        """
+        Offset the point by the given anchor and offset distances.
+        anchor can be Anchor.CENTER, Anchor.SOUTHWEST, Anchor.SOUTHEAST,
         Anchor.NORTHWEST, Anchor.NORTHEAST, Anchor.SOUTH, Anchor.WEST,
-        Anchor.EAST, or Anchor.NORTH."""
+        Anchor.EAST, or Anchor.NORTH.
+
+        Args:
+            anchor (Anchor): The anchor point.
+            dx (float): The x offset.
+            dy (float, optional): The y offset. Defaults to 0.
+
+        Returns:
+            Point: The offset point.
+        """
         anchor = get_enum_value(Anchor, anchor)
         return self.b_box.offset_point(anchor, dx, dy)
