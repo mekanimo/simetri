@@ -4,20 +4,18 @@
 import logging
 from typing import Any, Iterator, List, Sequence
 
-from numpy import ndarray, isclose, around, array
+from numpy import around, array
 from typing_extensions import Self
 import networkx as nx
 
 
 from .all_enums import Types, batch_types, get_enum_value
-from .common import common_properties, get_defaults, _set_Nones, Point, Line
+from .common import common_properties, _set_Nones, Point, Line
 from .core import Base
 from .bbox import bounding_box
 from ..canvas.style_map import batch_args
 from ..helpers.validation import validate_args
 from ..geometry.geometry import(
-    inclination_angle,
-    all_intersections,
     fix_degen_points,
     get_polygons,
     all_close_points,
@@ -28,7 +26,7 @@ from ..geometry.geometry import(
 from ..helpers.graph import is_cycle, is_open_walk, Graph
 from ..settings.settings import defaults
 
-from .merge import merge_shapes_
+from .merge import merge_shapes_, _merge_collinears
 
 
 class Batch(Base):
@@ -260,7 +258,10 @@ class Batch(Base):
                 segments.extend(element.vertex_pairs)
         return segments
 
+
     def _get_graph_nodes_and_edges(self, dist_tol: float = None, n_round=None):
+        if n_round is None:
+            n_round = defaults["n_round"]
         _set_Nones(self, ["dist_tol", "n_round"], [dist_tol, n_round])
         vertices = self.all_vertices
         shapes = self.all_shapes
@@ -380,149 +381,15 @@ class Batch(Base):
 
         return "\n".join(lines)
 
-    def _merge_collinears(
-        self,
-        d_node_id_coord: dict[int, Point],
-        edges: List[Line],
-        angle_bin_size: float = 0.1,
-        tol: float = None,
-        rtol: float = None,
-        atol: float = None,
-    ) -> List[Line]:
-        """
-        delta: maximum difference in slope between two edges to be
-        considered different
-        1- Create a list of [(line_angle, edge), ...] for all edges
-        2- Sort the list by line_angle
-        3- Create bins of edges with similar line_angle
-        4- Merge edges in each bin
-        5- Return the merged edges
-        """
-        tol, rtol, atol = get_defaults(["tol", "rtol", "atol"], [tol, rtol, atol])
-
-        def merge_multiple_edges(collinear_edges):
-            """
-            Merge multiple collinear edges in a list of edges.
-            collinear_edges: [((x1, y1), (x2, y2)), ((x3, y3), (x4, y4)),...]
-            These edges are all collinear.
-            """
-            x_coords = []
-            y_coords = []
-            points = []
-            for edge in collinear_edges:
-                x_coords.extend([edge[0][0], edge[1][0]])
-                y_coords.extend([edge[0][1], edge[1][1]])
-                points.extend(edge)
-
-            xmin = min(x_coords)
-            xmax = max(x_coords)
-            ymin = min(y_coords)
-            ymax = max(y_coords)
-            if isclose(xmin, xmax, rtol=defaults["rtol"], atol=defaults["atol"]):
-                p1 = [
-                    p
-                    for p in points
-                    if isclose(p[1], ymin, rtol=defaults["rtol"], atol=atol)
-                ][0]
-                p2 = [
-                    p
-                    for p in points
-                    if isclose(p[1], ymax, rtol=defaults["rtol"], atol=atol)
-                ][0]
-            else:
-                p1 = [
-                    p
-                    for p in points
-                    if isclose(p[0], xmin, rtol=defaults["rtol"], atol=atol)
-                ][0]
-                p2 = [
-                    p
-                    for p in points
-                    if isclose(p[0], xmax, rtol=defaults["rtol"], atol=atol)
-                ][0]
-
-            return [p1, p2]
-
-        def process_islands(islands, res, merged):
-            for island in islands:
-                collinear_edges = []
-                collinear_edge_indices = []
-                for i in island:
-                    edge1_indices = bin_[i][i_edge]
-                    edge1 = [d_node_id_coord[x] for x in edge1_indices]
-                    for conn_type_x_res_ind2 in d_ind1_conn_type_x_res_ind2[i]:
-                        _, _, ind2 = conn_type_x_res_ind2
-                    edge2_indices = bin_[ind2][i_edge]
-                    edge2 = [d_node_id_coord[x] for x in edge2_indices]
-                    if set((i, ind2)) in s_processed_edge_indices:
-                        continue
-                    collinear_edges.extend([edge1, edge2])
-                    collinear_edge_indices.append(edge1_indices)
-                    collinear_edge_indices.append(edge2_indices)
-                    s_processed_edge_indices.add(frozenset((i, ind2)))
-                if collinear_edges:
-                    for edge in collinear_edge_indices:
-                        merged.append(frozenset(edge))
-                    res.append(merge_multiple_edges(collinear_edges))
-
-        if len(edges) < 2:
-            return edges
-
-        angles_edges = []
-        i_angle, i_edge = 0, 1
-        for edge in edges:
-            edge = list(edge)
-            p1 = d_node_id_coord[edge[0]]
-            p2 = d_node_id_coord[edge[1]]
-            angle = inclination_angle(p1, p2)
-            angles_edges.append((angle, edge))
-
-        # group angles into bins
-        angles_edges.sort()
-
-        bins = []
-        bin_ = [angles_edges[0]]
-        for angle, edge in angles_edges[1:]:
-            angle1 = bin_[0][i_angle]
-            if abs(angle - angle1) <= angle_bin_size:
-                bin_.append((angle, edge))
-            else:
-                bins.append(bin_)
-                bin_ = [(angle, edge)]
-        bins.append(bin_)
-        merged = []
-        res = []
-        # x_res can be a point or segment(overlapping edges)
-        i_ind2 = 2  # indices for intersection results
-        for bin_ in bins:
-            segments = [[d_node_id_coord[node] for node in x[i_edge]] for x in bin_]
-
-            d_ind1_conn_type_x_res_ind2 = all_intersections(
-                segments, rtol=rtol, use_intersection3=True
-            )
-            connections = {}
-            for i in range(len(bin_)):
-                connections[i] = set()
-            for k, values in d_ind1_conn_type_x_res_ind2.items():
-                for v in values:
-                    connections[k].add(v[i_ind2])
-            # create a graph of connections
-            g_connections = nx.Graph()
-            for k, v in connections.items():
-                for x in v:
-                    g_connections.add_edge(k, x)
-            islands = list(nx.connected_components(g_connections))
-            s_processed_edge_indices = set()
-            process_islands(islands, res, merged)
-        for edge in edges:
-            if set(edge) not in merged:
-                res.append([d_node_id_coord[x] for x in edge])
-
-        return res
+    def _merge_collinears(self, d_node_id_coords, edges, tol=None, rtol=None, atol=None):
+        return _merge_collinears(self, d_node_id_coords, edges, tol=tol, rtol=rtol, atol=atol)
 
     def merge_shapes(
         self, tol: float = None, rtol: float = None, atol: float = None
     ) -> Self:
+        '''Merges the shapes in the batch if they are connected.
+        Returns a new batch with the merged shapes as well as the shapes
+        as well as the shapes that could not be merged.'''
         return merge_shapes_(self, tol=tol, rtol=rtol, atol=atol)
 
     def all_polygons(self, dist_tol: float = None) -> list:
