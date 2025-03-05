@@ -343,6 +343,17 @@ def set_defaults():
         "Boolean property for enabling debug mode. "
         "If True, debug information is printed."
     )
+
+    defaults["dist_tol"] = (
+        0.05  # used for comparing two points to check if they are the
+    )
+    # same if their distance is less than or equal to dist_tol,
+    # they are considered the same
+    defaults_help["dist_tol"] = (
+        "Distance tolerance for comparing two points. "
+        "Positive float. Length in <points>."
+    )
+
     defaults["document_class"] = DocumentClass.STANDALONE  # STANDALONE, ARTICLE, BOOK,
     # REPORT, LETTER, SLIDES, BEAMER,
     # MINIMAL
@@ -379,15 +390,7 @@ def set_defaults():
         "of a Shape object. "
         "If True, markers are drawn."
     )
-    defaults["dist_tol"] = (
-        0.05  # used for comparing two points to check if they are the
-    )
-    # same if their distance is less than or equal to dist_tol,
-    # they are considered the same
-    defaults_help["dist_tol"] = (
-        "Distance tolerance for comparing two points. "
-        "Positive float. Length in <points>."
-    )
+
     defaults["ellipse_width_height"] = (40, 20)  # width and height of the ellipse
     defaults_help["ellipse_width_height"] = (
         "Width and height of the ellipse. "
