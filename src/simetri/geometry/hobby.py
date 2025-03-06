@@ -13,12 +13,41 @@ The algorithm is very simple and efficient. Details are on page 112, 113 in Knut
 
 class HobbyPoint(complex):
     """A class for associating numerical quantities from Hobby's algorithm with points that appear on a Hobby curve.
-    We subclass `complex` to perform complex arithmetic with points on the Hobby curve, as required in the algorithm."""
+
+    We subclass `complex` to perform complex arithmetic with points on the Hobby curve, as required in the algorithm.
+
+    Attributes:
+        x (float): The x-coordinate of the point.
+        y (float): The y-coordinate of the point.
+        alpha (float): The reciprocal of tension for incoming segment.
+        beta (float): The reciprocal of tension for outgoing segment.
+        d_val (float): Distance between this point and next.
+        theta (float): Angle of polygonal line from this point to next.
+        phi (float): Offset angle.
+        psi (float): Another offset angle.
+    """
 
     def __new__(cls, x: float, y: float, tension: float) -> "HobbyPoint":
+        """Create a new instance of HobbyPoint.
+
+        Args:
+            x: The x-coordinate of the point.
+            y: The y-coordinate of the point.
+            tension: The tension value for the curve.
+
+        Returns:
+            A new HobbyPoint instance with complex value (x + y*j).
+        """
         return super().__new__(cls, x, y)
 
     def __init__(self, x: float, y: float, tension: float) -> None:
+        """Initialize a HobbyPoint with coordinates and tension.
+
+        Args:
+            x: The x-coordinate of the point.
+            y: The y-coordinate of the point.
+            tension: The tension value for the curve.
+        """
         self.x = x
         self.y = y
         # In what follows, we use Knuth's notation in our variable names.
@@ -30,6 +59,11 @@ class HobbyPoint(complex):
         self.psi = 0  # Another offset angle.
 
     def debug_info(self) -> str:
+        """Return a string with the point's information.
+
+        Returns:
+            A string containing the point's coordinates and all of its computational values.
+        """
         return (
             f"{(self.x, self.y)} "
             f"alpha={self.alpha}, "
@@ -41,11 +75,26 @@ class HobbyPoint(complex):
         )
 
     def __repr__(self) -> str:
+        """Return a string representation of the point.
+
+        Returns:
+            A string representation of the point's coordinates.
+        """
         return f"{(self.x, self.y)}"
 
 
 class HobbyCurve:
-    """A class for calculating the control points required to draw a Hobby curve."""
+    """A class for calculating the control points required to draw a Hobby curve.
+
+    Attributes:
+        points (list[HobbyPoint]): The list of points defining the curve.
+        ctrl_pts (list[tuple]): The calculated control points.
+        is_cyclic (bool): Whether the curve is closed.
+        begin_curl (float): Curl value for the beginning of the curve.
+        end_curl (float): Curl value for the end of the curve.
+        num_points (int): Number of points in the curve.
+        debug_mode (bool): Whether to print debug information.
+    """
 
     def __init__(
         self,
@@ -56,6 +105,19 @@ class HobbyCurve:
         end_curl: float = 1,
         debug: bool = False,
     ) -> None:
+        """Initialize a HobbyCurve with the given parameters.
+
+        Args:
+            points: List of (x, y) tuples representing the curve's points.
+            tension: Tension parameter controlling the "tightness" of the curve.
+            cyclic: Whether the curve should be closed.
+            begin_curl: Curl value for the beginning of the curve.
+            end_curl: Curl value for the end of the curve.
+            debug: Whether to print debug information.
+
+        Raises:
+            ValueError: If fewer than 2 points are provided.
+        """
         if len(points) < 2:
             raise ValueError("Algorithm needs more than 2 points")
         self.points = [HobbyPoint(*point, tension) for point in points]
@@ -67,7 +129,14 @@ class HobbyCurve:
         self.debug_mode = debug
 
     def get_ctrl_points(self) -> list[tuple]:
-        """Calculates and returns all of the control points of the Hobby curve."""
+        """Calculate and return all of the control points of the Hobby curve.
+
+        Executes the Hobby algorithm by calculating distance values, psi values,
+        theta values, and phi values, then uses these to compute control points.
+
+        Returns:
+            A list of (x, y) tuples representing the Bezier control points.
+        """
         self.calculate_d_vals()
         self.calculate_psi_vals()
         self.calculate_theta_vals()
@@ -77,7 +146,7 @@ class HobbyCurve:
         return self.ctrl_pts
 
     def calculate_d_vals(self) -> None:
-        """Calculates the pairwise distances between the points."""
+        """Calculate the pairwise distances between consecutive points in the curve."""
         # Skip last point if path is non-cyclic
         point_inds = (
             range(self.num_points) if self.is_cyclic else range(self.num_points - 1)
@@ -88,7 +157,11 @@ class HobbyCurve:
             z_i.d_val = abs(z_i - z_j)
 
     def calculate_psi_vals(self) -> None:
-        """Calculates the psi values by subtracting pairwise phases."""
+        """Calculate the psi values by finding the angle of the polygonal turns.
+
+        Raises:
+            ZeroDivisionError: If consecutive points have the same coordinates.
+        """
         # Skip first and last point if path is non-cyclic
         point_inds = (
             range(self.num_points) if self.is_cyclic else range(1, self.num_points - 1)
@@ -107,7 +180,11 @@ class HobbyCurve:
             z_i.psi = np.arctan2(polygonal_turn.imag, polygonal_turn.real)
 
     def calculate_theta_vals(self) -> None:
-        """Calculates the theta values by creating a linear system whose solutions are the values."""
+        """Calculate the theta values by solving a linear system of equations.
+
+        This is the core of Hobby's algorithm, creating and solving a system of equations
+        to find the optimal angles for smooth splines.
+        """
         A = np.zeros(
             self.num_points
         )  # Inappropriate names, but they mirror Knuth's notation.
@@ -163,12 +240,17 @@ class HobbyCurve:
             point.theta = thetas[i]
 
     def calculate_phi_vals(self) -> None:
-        """Calculates the phi_k values via the relationship theta_k + phi_k + psi_k = 0."""
+        """Calculate the phi values using the relationship theta + phi + psi = 0."""
         for point in self.points:
             point.phi = -(point.psi + point.theta)
 
     def calculate_ctrl_pts(self) -> list[tuple]:
-        """Calculates the Bezier control points from z_i to z_{i+1}."""
+        """Calculate the Bezier control points between consecutive points.
+
+        Returns:
+            A list of (x, y) tuples representing the control points, with two control points
+            for each curve segment between consecutive points.
+        """
         ctrl_pts = []
         # Skip last point if path is non-cyclic
         point_inds = (
@@ -190,12 +272,17 @@ class HobbyCurve:
         return ctrl_pts
 
     def show_debug_msg(self) -> None:
-        """Display each of the calculated quantities used in the algorithm run."""
+        """Display debug information for each point if debug mode is enabled."""
         if self.debug_mode:
             for point in self.points:
                 print(point.debug_info())
 
     def __repr__(self) -> str:
+        """Return a string representation of the curve.
+
+        Returns:
+            A string representation of the curve's points in Cartesian coordinates.
+        """
         cartesian_points = [(point.real, point.imag) for point in self.points]
         return repr(cartesian_points)
 
@@ -208,8 +295,19 @@ def hobby_ctrl_points(
     end_curl: float = 1,
     debug: bool = False,
 ) -> list[tuple]:
-    """Calculates all cubic Bezier control points, based on John Hobby's
-    algorithm, and pretty prints them."""
+    """Calculate cubic Bezier control points using John Hobby's algorithm.
+
+    Args:
+        points: List of (x, y) tuples representing the curve's points.
+        tension: Controls the "tightness" of the curve (lower is tighter).
+        cyclic: Whether the curve should be closed.
+        begin_curl: Curl value for the beginning of the curve.
+        end_curl: Curl value for the end of the curve.
+        debug: Whether to print debug information.
+
+    Returns:
+        A list of (x, y) tuples representing the Bezier control points.
+    """
     curve = HobbyCurve(
         points,
         tension=tension,
@@ -252,7 +350,17 @@ def hobby_ctrl_points(
 
 
 def velocity(theta: float, phi: float) -> float:
-    """Metafont's velocity function."""
+    """Calculate the "velocity" function used in Metafont's curve algorithm.
+
+    This function implements the specific velocity formula from Knuth's Metafont.
+
+    Args:
+        theta: The theta angle value.
+        phi: The phi angle value.
+
+    Returns:
+        The computed velocity value used in control point calculations.
+    """
     numerator = 2 + np.sqrt(2) * (np.sin(theta) - (1 / 16) * np.sin(phi)) * (
         np.sin(phi) - (1 / 16) * np.sin(theta)
     ) * (np.cos(theta) - np.cos(phi))
@@ -264,8 +372,21 @@ def velocity(theta: float, phi: float) -> float:
     return numerator / denominator
 
 def hobby_shape(points, cyclic=False, tension=1, begin_curl=1, end_curl=1, debug=False):
-    """Calculates all cubic Bezier control points, based on John Hobby's algorithm.
-    return a Shape object.
+    """Create a Shape object from points using John Hobby's algorithm.
+
+    This function calculates cubic Bezier control points using Hobby's algorithm,
+    then creates a Shape object by generating points along the resulting Bezier curves.
+
+    Args:
+        points: List of (x, y) tuples representing the curve's points.
+        cyclic: Whether the curve should be closed.
+        tension: Controls the "tightness" of the curve (lower is tighter).
+        begin_curl: Curl value for the beginning of the curve.
+        end_curl: Curl value for the end of the curve.
+        debug: Whether to print debug information.
+
+    Returns:
+        A Shape object containing points along the smooth Hobby curve.
     """
     controls = hobby_ctrl_points(points, tension=tension, cyclic=cyclic,
                                             begin_curl=begin_curl, end_curl=end_curl)

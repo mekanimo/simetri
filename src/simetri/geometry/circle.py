@@ -4,7 +4,7 @@ import cmath
 
 import numpy as np
 
-from .geometry import distance, homogenize, side_len_to_radius
+from .geometry import distance, homogenize, side_len_to_radius, angle_between_lines2
 from ..graphics.affine import rotate, scale_matrix, rotation_matrix
 from ..graphics.shapes import Circle
 
@@ -21,12 +21,22 @@ class Circle_:
 
 def circle_tangent_to_3_circles(c1, r1, c2, r2, c3, r3, s1=-1, s2=-1, s3=-1):
     """Given the centers and radii of 3 circles, return the center and radius
-    of a circle that is tangent to all 3 circles."""
+    of a circle that is tangent to all 3 circles.
 
-    # if internal:
-    #     s1 = s2 = s3 = 1
-    # if external:
-    #     s1 = s2 = s3 = -1
+    Args:
+        c1 (tuple): Center of the first circle.
+        r1 (float): Radius of the first circle.
+        c2 (tuple): Center of the second circle.
+        r2 (float): Radius of the second circle.
+        c3 (tuple): Center of the third circle.
+        r3 (float): Radius of the third circle.
+        s1 (int, optional): Sign for the first circle. Defaults to -1.
+        s2 (int, optional): Sign for the second circle. Defaults to -1.
+        s3 (int, optional): Sign for the third circle. Defaults to -1.
+
+    Returns:
+        tuple: Center (x, y) and radius of the tangent circle.
+    """
 
     x1, y1 = c1
     x2, y2 = c2
@@ -70,26 +80,20 @@ def circle_tangent_to_3_circles(c1, r1, c2, r2, c3, r3, s1=-1, s2=-1, s3=-1):
     return (xs, ys, rs)
 
 def apollonius(r1, r2, r3, z1, z2, z3, plus_minus=1):
-    """
-    Solves the Problem of Apollonius using Descartes' Theorem.
+    """Solves the Problem of Apollonius using Descartes' Theorem.
 
     Args:
-        r1: Radius of the first circle.
-        r2: Radius of the second circle.
-        r3: Radius of the third circle.
-        plus_minus: +1 for outer tangent circle, -1 for inner tangent circle.
+        r1 (float): Radius of the first circle.
+        r2 (float): Radius of the second circle.
+        r3 (float): Radius of the third circle.
+        z1 (complex): Center of the first circle.
+        z2 (complex): Center of the second circle.
+        z3 (complex): Center of the third circle.
+        plus_minus (int, optional): +1 for outer tangent circle, -1 for inner tangent circle. Defaults to 1.
 
     Returns:
-        A tuple containing the radius and center coordinates (x, y) of the tangent circle,
-        or None if no solution is found.
+        tuple: Radius and center coordinates (x, y) of the tangent circle, or None if no solution is found.
     """
-    # Example usage:
-    # r1, r2, r3 = 40, 40, 40
-    # z1 = complex(69.28, 40)
-    # z2 = complex(0, 80)
-    # z3 = complex(69.82, 120)
-    # r, center = apollonius(r1, r2, r3, z1, z2, z3, -1)
-
     k1, k2, k3 = 1/r1, 1/r2, 1/r3
 
     # Applying Descartes' Theorem
@@ -109,14 +113,18 @@ def apollonius(r1, r2, r3, z1, z2, z3, plus_minus=1):
 
 def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
     """Given the centers and radii of 2 circles, return the center
-    of a circle with radius r that is tangent to both circles."""
+    of a circle with radius r that is tangent to both circles.
 
-    # Simultaneous equations are solved with Sympy.
-    # x, y, x1, y1, x2, y2, r1, r2, r = symbols('x y x1 y1 x2, y2 r1 r2 r')
-    # eq1 = Eq(sqrt((x - x1)**2 + (y - y1)**2) -r -r1, 0)
-    # eq2 = Eq(sqrt((x - x2)**2 + (y - y2)**2) -r -r2, 0)
-    # res = solve([eq1, eq2], (x, y), dict=True)
+    Args:
+        c1 (tuple): Center of the first circle.
+        r1 (float): Radius of the first circle.
+        c2 (tuple): Center of the second circle.
+        r2 (float): Radius of the second circle.
+        r (float): Radius of the tangent circle.
 
+    Returns:
+        tuple: Centers (x1, y1) and (x2, y2) of the tangent circle.
+    """
     x1, y1 = c1
     x2, y2 = c2
 
@@ -321,7 +329,18 @@ def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
 
 
 def tangent_points(center1, radius, center2, radius2, cross=False):
-    """Returns the tangent points (p1, p2, p3, p4) in world coordinates"""
+    """Returns the tangent points (p1, p2, p3, p4) in world coordinates.
+
+    Args:
+        center1 (tuple): Center of the first circle.
+        radius (float): Radius of the first circle.
+        center2 (tuple): Center of the second circle.
+        radius2 (float): Radius of the second circle.
+        cross (bool, optional): Whether to calculate crossing tangents. Defaults to False.
+
+    Returns:
+        tuple: Tangent points (p1, p2, p3, p4) in world coordinates.
+    """
     c1 = Circle_(center1, radius)
     c2 = Circle_(center2, radius2)
     if radius < radius2:
@@ -341,7 +360,7 @@ def tangent_points(center1, radius, center2, radius2, cross=False):
     p1 = [pos[0], y]
     p2 = [pos[0] + x, y]
     points = homogenize([p1, p2])
-    alpha = angle_between_lines((pos[0] + x, pos[1] + dr), pos, c2.center)
+    alpha = angle_between_lines2((pos[0] + x, pos[1] + dr), pos, c2.center)
     tp1w, tp2w = rotate(points, alpha, pos)
 
     if x == 0:
@@ -355,21 +374,41 @@ def tangent_points(center1, radius, center2, radius2, cross=False):
 
 
 def circle_area(rad):
-    """Given the radius of a circle, return the area of the circle."""
+    """Given the radius of a circle, return the area of the circle.
 
+    Args:
+        rad (float): Radius of the circle.
+
+    Returns:
+        float: Area of the circle.
+    """
     return pi * rad**2
 
 
 def circle_circumference(rad):
-    """Given the radius of a circle, return the circumference of the circle."""
+    """Given the radius of a circle, return the circumference of the circle.
 
+    Args:
+        rad (float): Radius of the circle.
+
+    Returns:
+        float: Circumference of the circle.
+    """
     return 2 * pi * rad
 
 
 def flower_angle(r1, r2, r3):
     """Given the radii of 3 circles forming an interstice, return the angle between
-    the lines connecting circles' centers to center of the circle with r1 radius."""
+    the lines connecting circles' centers to center of the circle with r1 radius.
 
+    Args:
+        r1 (float): Radius of the first circle.
+        r2 (float): Radius of the second circle.
+        r3 (float): Radius of the third circle.
+
+    Returns:
+        float: Angle between the lines connecting circles' centers.
+    """
     angle = acos(
         ((r1 + r2) ** 2 + (r1 + r3) ** 2 - (r2 + r3) ** 2) / (2 * (r1 + r2) * (r1 + r3))
     )
@@ -383,7 +422,20 @@ ratios = {8: 0.4974, 9: 0.5394, 10: 0.575, 11: 0.6056,
         17: 0.7248, 18: 0.738, 19: 0.75, 20: 0.7609}
 
 def circle_flower(n, radius=25, layers=6, ratio = None):
-    '''Steiner chain. Return a list of circles that form a flower-like pattern.'''
+    """Steiner chain. Return a list of circles that form a flower-like pattern.
+
+    Args:
+        n (int): Number of circles.
+        radius (float, optional): Radius of the circles. Defaults to 25.
+        layers (int, optional): Number of layers. Defaults to 6.
+        ratio (float, optional): Ratio for scaling. Defaults to None.
+
+    Returns:
+        list: List of circles forming a flower-like pattern.
+
+    Raises:
+        ValueError: If n is less than 8.
+    """
     if n<8:
         raise ValueError('n must be greater than 7')
     if ratio is None:

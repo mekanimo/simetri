@@ -48,7 +48,20 @@ def help_lines(
     cs_size: float = None,
     **kwargs,
 ):
-    """Draw a square grid with the given size."""
+    """
+    Draw a square grid with the given size.
+
+    Args:
+        pos (Point, optional): Position of the grid. Defaults to None.
+        x_len (float, optional): Length of the grid along the x-axis. Defaults to None.
+        y_len (float, optional): Length of the grid along the y-axis. Defaults to None.
+        step_size (optional): Step size for the grid. Defaults to None.
+        cs_size (float, optional): Size of the coordinate system. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     self.grid(pos, x_len, y_len, step_size, **kwargs)
     self.draw_CS(cs_size, **kwargs)
     return self
@@ -64,9 +77,18 @@ def arc(
     rot_angle: float,
     **kwargs,
 ) -> None:
-    """Draw an arc with the given center, radius, start and end
-    angles in radians.
+    """
+    Draw an arc with the given center, radius, start and end angles in radians.
     Arc is drawn in counterclockwise direction from start to end.
+
+    Args:
+        center (Point): Center of the arc.
+        start_angle (float): Start angle of the arc in radians.
+        end_angle (float): End angle of the arc in radians.
+        radius (float): Radius of the arc.
+        radius2 (float): Second radius of the arc.
+        rot_angle (float): Rotation angle of the arc.
+        **kwargs: Additional keyword arguments.
     """
     cx, cy = center[:2]
     a = 2 * radius
@@ -110,9 +132,18 @@ def arc2(
     radius: float,
     **kwargs,
 ) -> None:
-    """Draw an elliptic arc with the given center, width, height, start and end
-    angles in radians.
+    """
+    Draw an elliptic arc with the given center, width, height, start and end angles in radians.
     Arc is drawn in counterclockwise direction from start to end.
+
+    Args:
+        center (Point): Center of the arc.
+        width (float): Width of the arc.
+        height (float): Height of the arc.
+        start_angle (float): Start angle of the arc in radians.
+        end_angle (float): End angle of the arc in radians.
+        radius (float): Radius of the arc.
+        **kwargs: Additional keyword arguments.
     """
     cx, cy = center[:2]
     x = cx + radius * cos(start_angle)
@@ -122,7 +153,7 @@ def arc2(
 
     x, y = center[:2]
     p1 = x - radius, y - radius
-    p2 = x + radius, y + radius
+    p2 = x + radius, y + y_radius
     p3 = x - radius, y + radius
     p4 = x + radius, y - radius
     self._all_vertices.extend([p1, p2, p3, p4])
@@ -133,8 +164,6 @@ def arc2(
         end_angle=end_angle,
         xform_matrix=self.xform_matrix,
     )
-    # for attrib_name in line_style_map:
-    #     setattr(sketch, attrib_name, defaults[attrib_name])
     for attrib_name in shape_style_map:
         if hasattr(sketch, attrib_name):
             attrib_value = self.resolve_property(sketch, attrib_name)
@@ -149,8 +178,16 @@ def arc2(
 
 
 def bezier(self, control_points, **kwargs):
-    """Draw a Bezier curve with the given control points.
-    start, control1, control2, end"""
+    """
+    Draw a Bezier curve with the given control points.
+
+    Args:
+        control_points: Control points for the Bezier curve.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     self._all_vertices.extend(control_points)
     sketch = BezierSketch(control_points, self.xform_matrix)
     for attrib_name in shape_style_map:
@@ -167,7 +204,14 @@ def bezier(self, control_points, **kwargs):
 
 
 def circle(self, center: Point, radius: float, **kwargs) -> None:
-    """Draw a circle with the given center and radius."""
+    """
+    Draw a circle with the given center and radius.
+
+    Args:
+        center (Point): Center of the circle.
+        radius (float): Radius of the circle.
+        **kwargs: Additional keyword arguments.
+    """
     x, y = center[:2]
     p1 = x - radius, y - radius
     p2 = x + radius, y + radius
@@ -189,8 +233,16 @@ def circle(self, center: Point, radius: float, **kwargs) -> None:
 
 
 def ellipse(self, center: Point, width: float, height, angle, **kwargs) -> None:
-    """Draw an ellipse with the given center and x_radius
-    and y_radius."""
+    """
+    Draw an ellipse with the given center and x_radius and y_radius.
+
+    Args:
+        center (Point): Center of the ellipse.
+        width (float): Width of the ellipse.
+        height: Height of the ellipse.
+        angle: Angle of the ellipse.
+        **kwargs: Additional keyword arguments.
+    """
     x, y = center[:2]
     x_radius = width / 2
     y_radius = height / 2
@@ -223,7 +275,18 @@ def text(
     anchor: Anchor = None,
     **kwargs,
 ) -> None:
-    """Draw the given text at the given position."""
+    """
+    Draw the given text at the given position.
+
+    Args:
+        txt (str): Text to be drawn.
+        pos (Point): Position of the text.
+        font_family (str, optional): Font family of the text. Defaults to None.
+        font_size (int, optional): Font size of the text. Defaults to None.
+        font_color (Color, optional): Font color of the text. Defaults to None.
+        anchor (Anchor, optional): Anchor of the text. Defaults to None.
+        **kwargs: Additional keyword arguments.
+    """
     # first create a Tag object
     tag_obj = Tag(
         txt,
@@ -243,16 +306,38 @@ def text(
 
 
 def line(self, start, end, **kwargs):
-    """Draw a line segment from start to end."""
+    """
+    Draw a line segment from start to end.
 
+    Args:
+        start: Starting point of the line.
+        end: Ending point of the line.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     line_shape = Shape([start, end], closed=False, **kwargs)
     line_sketch = create_sketch(line_shape, self, **kwargs)
     self.active_page.sketches.append(line_sketch)
 
     return self
 
+
 def rectangle(self, center: Point, width: float, height: float, angle: float, **kwargs):
-    """Draw a rectangle with the given center, width, height and angle."""
+    """
+    Draw a rectangle with the given center, width, height and angle.
+
+    Args:
+        center (Point): Center of the rectangle.
+        width (float): Width of the rectangle.
+        height (float): Height of the rectangle.
+        angle (float): Angle of the rectangle.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     w2 = width / 2
     h2 = height / 2
     p1 = center[0] - w2, center[1] + h2
@@ -268,7 +353,16 @@ def rectangle(self, center: Point, width: float, height: float, angle: float, **
 
 
 def draw_CS(self, size: float = None, **kwargs):
-    """Draw a coordinate system with the given size."""
+    """
+    Draw a coordinate system with the given size.
+
+    Args:
+        size (float, optional): Size of the coordinate system. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     if size is None:
         size = defaults["CS_size"]
     if "colors" in kwargs:
@@ -289,7 +383,16 @@ def draw_CS(self, size: float = None, **kwargs):
 
 
 def lines(self, points, **kwargs):
-    """Draw connected line segments."""
+    """
+    Draw connected line segments.
+
+    Args:
+        points: Points to be connected.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     self._all_vertices.extend(points)
     sketch = LineSketch(points, self.xform_matrix, **kwargs)
     for attrib_name in line_style_map:
@@ -301,7 +404,16 @@ def lines(self, points, **kwargs):
 
 
 def draw_bbox(self, bbox, **kwargs):
-    """Draw the bounding box object."""
+    """
+    Draw the bounding box object.
+
+    Args:
+        bbox: Bounding box to be drawn.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     sketch = create_sketch(bbox, self, **kwargs)
     self.active_page.sketches.append(sketch)
 
@@ -315,7 +427,14 @@ def draw_hobby(
     cyclic: bool = False,
     **kwargs
 ):
-    """Draw a Hobby curve through the given points using the control points."""
+    """Draw a Hobby curve through the given points using the control points.
+
+    Args:
+        points (Sequence[Point]): Points through which the curve passes.
+        controls (Sequence[Point]): Control points for the curve.
+        cyclic (bool, optional): Whether the curve is cyclic. Defaults to False.
+        **kwargs: Additional keyword arguments.
+    """
     n = len(points)
     if cyclic:
         for i in range(n):
@@ -336,7 +455,15 @@ def draw_hobby(
 
 
 def draw_lace(self, lace, **kwargs):
-    """Draw the lace object."""
+    """Draw the lace object.
+
+    Args:
+        lace: Lace object to be drawn.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     keys = list(lace.fragment_groups.keys())
     keys.sort()
     if lace.swatch is not None:
@@ -360,7 +487,15 @@ def draw_lace(self, lace, **kwargs):
 
 
 def draw_dimension(self, item, **kwargs):
-    """Draw the dimension object."""
+    """Draw the dimension object.
+
+    Args:
+        item: Dimension object to be drawn.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     for shape in item.all_shapes:
         self._all_vertices.extend(shape.corners)
     for ext in [item.ext1, item.ext2, item.ext3]:
@@ -396,7 +531,18 @@ def draw_dimension(self, item, **kwargs):
 def grid(
     self, pos=(0, 0), x_len: float = None, y_len: float = None, step_size=None, **kwargs
 ):
-    """Draw a square grid with the given size."""
+    """Draw a square grid with the given size.
+
+    Args:
+        pos (tuple, optional): Position of the grid. Defaults to (0, 0).
+        x_len (float, optional): Length of the grid along the x-axis. Defaults to None.
+        y_len (float, optional): Length of the grid along the y-axis. Defaults to None.
+        step_size (optional): Step size for the grid. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     x, y = pos[:2]
     if x_len is None:
         x_len = defaults["grid_size"]
@@ -446,7 +592,12 @@ regular_sketch_types = [
 
 
 def extend_vertices(canvas, item):
-    """Extend the list of all vertices with the vertices of the given item."""
+    """Extend the list of all vertices with the vertices of the given item.
+
+    Args:
+        canvas: Canvas object.
+        item: Item whose vertices are to be extended.
+    """
     all_vertices = canvas._all_vertices
     if item.subtype == Types.DOTS:
         vertices = [x.pos for x in item.all_shapes]
@@ -470,7 +621,15 @@ def extend_vertices(canvas, item):
 
 
 def draw(self, item: Drawable, **kwargs) -> Self:
-    """The item is drawn on the canvas with the given style properties."""
+    """The item is drawn on the canvas with the given style properties.
+
+    Args:
+        item (Drawable): Item to be drawn.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
     # check if the item has any points
     if not item:
         return self
@@ -496,7 +655,16 @@ def draw(self, item: Drawable, **kwargs) -> Self:
 
 
 def get_sketches(item: Drawable, canvas: "Canvas" = None, **kwargs) -> list["Sketch"]:
-    """Create sketches from the given item and return them as a list."""
+    """Create sketches from the given item and return them as a list.
+
+    Args:
+        item (Drawable): Item to be sketched.
+        canvas (Canvas, optional): Canvas object. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        list[Sketch]: List of sketches.
+    """
     if not (item.visible and item.active):
         res = []
     elif item.subtype in drawable_types:
@@ -513,8 +681,15 @@ def get_sketches(item: Drawable, canvas: "Canvas" = None, **kwargs) -> list["Ske
 
 
 def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
-    """Set the style properties of the sketch."""
+    """Set the style properties of the sketch.
 
+    Args:
+        sketch: Sketch object.
+        item: Item whose style properties are to be set.
+        canvas: Canvas object.
+        linear (bool, optional): Whether the style is linear. Defaults to False.
+        **kwargs: Additional keyword arguments.
+    """
     if linear:
         style_map = line_style_map
     else:
@@ -534,20 +709,31 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
         setattr(sketch, k, v)
 
 
-
 def create_sketch(item, canvas, **kwargs):
-    """Sketch is a neutral format for drawing.
-    It contains geometry and style properties.
-    They are not meant to be transformed, only to be drawn.
-    Sketches have no methods, only data.
-    Like all objects, they have a unique ID, visible and active properties.
-    They do not check anything, they just store data.
-    You should make sure the data is correct before creating a sketch.
+    """Create a sketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Sketch: Created sketch.
     """
     if not (item.visible and item.active):
         return None
 
     def get_tag_sketch(item, canvas, **kwargs):
+        """Create a TagSketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            TagSketch: Created TagSketch.
+        """
         pos = item.pos
         # pos = [(round(pos[0], nround), round(pos[1], nround))]
         sketch = TagSketch(text=item.text, pos=pos, anchor=item.anchor)
@@ -568,6 +754,16 @@ def create_sketch(item, canvas, **kwargs):
         return sketch
 
     def get_ellipse_sketch(item, canvas, **kwargs):
+        """Create an EllipseSketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            EllipseSketch: Created EllipseSketch.
+        """
         sketch = EllipseSketch(
             item.center, item.a, item.b, item.angle, xform_matrix=canvas.xform_matrix
         )
@@ -576,6 +772,16 @@ def create_sketch(item, canvas, **kwargs):
         return sketch
 
     def get_circle_sketch(item, canvas, **kwargs):
+        """Create a CircleSketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            CircleSketch: Created CircleSketch.
+        """
         sketch = CircleSketch(
             item.center, item.radius, xform_matrix=canvas.xform_matrix
         )
@@ -584,6 +790,16 @@ def create_sketch(item, canvas, **kwargs):
         return sketch
 
     def get_dots_sketch(item, canvas, **kwargs):
+        """Create sketches for dots from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            list: List of created sketches.
+        """
         vertices = [x.pos for x in item.all_shapes]
         fill_color = item[0].fill_color
         radius = item[0].radius
@@ -603,6 +819,16 @@ def create_sketch(item, canvas, **kwargs):
         return sketches
 
     def get_arc_sketch(item, canvas, **kwargs):
+        """Create an ArcSketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            ArcSketch: Created ArcSketch.
+        """
         sketch = ArcSketch(
             center=item.center,
             start_angle=item.start_angle,
@@ -618,11 +844,31 @@ def create_sketch(item, canvas, **kwargs):
         return sketch
 
     def get_lace_sketch(item, canvas, **kwargs):
+        """Create sketches for lace from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            list: List of created sketches.
+        """
         sketches = [get_sketch(frag, canvas, **kwargs) for frag in item.fragments]
         sketches.extend([get_sketch(plait, canvas, **kwargs) for plait in item.plaits])
         return sketches
 
     def get_batch_sketch(item, canvas, **kwargs):
+        """Create a BatchSketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            BatchSketch or list: Created BatchSketch or list of sketches.
+        """
         if scope_code_required(item):
             sketches = []
             for element in item.elements:
@@ -645,6 +891,16 @@ def create_sketch(item, canvas, **kwargs):
         return res
 
     def get_path_sketch(item, canvas, **kwargs):
+        """Create sketches for a path from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            list: List of created sketches.
+        """
         def extend_verts(obj, vertices):
             obj_vertices = obj.vertices
             if obj_vertices:
@@ -695,8 +951,17 @@ def create_sketch(item, canvas, **kwargs):
                 sketches.extend(handle_sketches)
         return sketches
 
-
     def get_bbox_sketch(item, canvas, **kwargs):
+        """Create a bounding box sketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            ShapeSketch: Created bounding box sketch.
+        """
         nround = defaults["tikz_nround"]
         vertices = [(round(x[0], nround), round(x[1], nround)) for x in item.corners]
         if not vertices:
@@ -715,6 +980,16 @@ def create_sketch(item, canvas, **kwargs):
         return sketch
 
     def get_handle_sketch(item, canvas, **kwargs):
+        """Create handle sketches from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            list: List of created handle sketches.
+        """
         nround = defaults["tikz_nround"]
         vertices = [(round(x[0], nround), round(x[1], nround)) for x in item.vertices]
         if not vertices:
@@ -735,8 +1010,17 @@ def create_sketch(item, canvas, **kwargs):
 
         return sketches
 
-
     def get_sketch(item, canvas, **kwargs):
+        """Create a sketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            ShapeSketch: Created sketch.
+        """
         nround = defaults["tikz_nround"]
         vertices = [
             (round(x[0], nround), round(x[1], nround)) for x in item.final_coords

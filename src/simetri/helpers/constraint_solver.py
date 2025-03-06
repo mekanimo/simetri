@@ -43,7 +43,11 @@ class Constraint:
                 self.size2 = distance(*self.item2)
 
     def check(self):
-        '''Check the constraint value.'''
+        """Check the constraint value.
+
+        Returns:
+            float: The result of the constraint equation.
+        """
         return self.equation(self)
 
 
@@ -56,7 +60,14 @@ class Constraint:
 
 
 def distance_eq(constraint):
-    """Return the difference between the target and current distance."""
+    """Return the difference between the target and current distance.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The difference between the target and current distance.
+    """
     if isinstance(constraint.item1, Circle):
         p1 = constraint.item1.center
     else:
@@ -73,8 +84,13 @@ def distance_eq(constraint):
 
 
 def parallel_eq(constraint):
-    """Return the cross product.
-    If the segments are parallel cross product is 0.
+    """Return the cross product. If the segments are parallel, the cross product is 0.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The cross product of the vectors.
     """
     vec1 = Vector2D(*constraint.item1)
     vec2 = Vector2D(*constraint.item2)
@@ -83,8 +99,13 @@ def parallel_eq(constraint):
 
 
 def perpendicular_eq(constraint):
-    """Return the dot product.
-    If the segments are perpendicular dot product is 0.
+    """Return the dot product. If the segments are perpendicular, the dot product is 0.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The dot product of the vectors.
     """
     seg1 = constraint.item1
     seg2 = constraint.item2
@@ -97,8 +118,15 @@ def perpendicular_eq(constraint):
 
 def equal_size_eq(constraint):
     """Return the difference between the sizes of the items.
-    For segments item size is the length of the segment.
-    For circles item size is the radius of the circle.
+
+    For segments, item size is the length of the segment.
+    For circles, item size is the radius of the circle.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The difference between the sizes of the items.
     """
 
     return constraint.item1.size1 - constraint.item2.size2
@@ -106,7 +134,14 @@ def equal_size_eq(constraint):
 
 def outer_tangent_eq(constraint):
     """Return the difference between the distance of the circles and the sum of the radii.
-    If the circles are tangent the difference is 0.
+
+    If the circles are tangent, the difference is 0.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The difference between the distance of the circles and the sum of the radii.
     """
     if is_line(constraint.item1):
         circle = constraint.item2
@@ -128,7 +163,14 @@ def outer_tangent_eq(constraint):
 
 def inner_tangent_eq(constraint):
     """Return the difference between the distance of the circles and the sum of the radii.
-    If the circles are tangent the difference is 0.
+
+    If the circles are tangent, the difference is 0.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The difference between the distance of the circles and the sum of the radii.
     """
     circle_1 = constraint.item1
     circle_2 = constraint.item2
@@ -141,8 +183,15 @@ def inner_tangent_eq(constraint):
 
 
 def collinear_eq(constraint):
-    """Items can be: segments, segment and a circle,
-    or a segment and a point.
+    """Return the difference in direction for collinear items.
+
+    Items can be: segments, segment and a circle, or a segment and a point.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The difference in direction.
     """
     # for now only segments are implemented
     a1, b1 = constraint.item1
@@ -152,12 +201,26 @@ def collinear_eq(constraint):
 
 
 def equal_value_eq(constraint):
-    """Return the difference between the values."""
+    """Return the difference between the values.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The difference between the values.
+    """
     return constraint.value - constraint.value2
 
 
 def line_angle_eq(constraint):
-    """Return the angle between two segments."""
+    """Return the angle between two segments.
+
+    Args:
+        constraint (Constraint): The constraint object.
+
+    Returns:
+        float: The angle between the two segments.
+    """
     seg1 = constraint.item1
     seg2 = constraint.item2
     return constraint.value - angle_between_two_lines(seg1, seg2)
@@ -178,35 +241,40 @@ d_equations = {
 
 def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
     """Solve the geometric constraints.
-    Constraints are a list of Constraint objects.
-    Number of values needs to match the number of constraints.
-    update_func is a function that updates the constraint items.
-    Use your best guess for the initial guess. It makes a difference.
-    Use your best guess for the bounds. It makes a difference.
 
-    Return values:
-    message: Success or failure message.
-    success: True if the optimization was successful.
-    x: The solution.
-    fun: The value of the objective function at x.
-    jac: The value of the Jacobian.
-    hess: The value of the Hessian.
-    nit: The number of iterations.
-    nfev: The number of function evaluations.
-    njev: The number of jacobian evaluations.
+    Args:
+        constraints (list): List of Constraint objects.
+        update_func (function): Function that updates the constraint items.
+        initial_guess (list): Initial guess for the solution.
+        bounds (list, optional): Bounds for the solution. Defaults to None.
+        tol (float, optional): Tolerance for the solution. Defaults to 1e-04.
+
+    Returns:
+        OptimizeResult: The optimization result represented as a `OptimizeResult` object.
     """
 
     def objective(x):
         """Objective function for the minimization.
-        Objective is to satisfy all constraints or
-        minimize them.
+
+        Args:
+            x (list): Current values of the variables.
+
+        Returns:
+            float: The sum of the constraint checks.
         """
         update_func(x)
 
         return sum((constr.check() for constr in constraints))
 
     def check_constraints(x):
-        """Return constraint results."""
+        """Return constraint results.
+
+        Args:
+            x (list): Current values of the variables.
+
+        Returns:
+            list: List of constraint check results.
+        """
         update_func(x)
 
         return [constr.check() for constr in constraints]

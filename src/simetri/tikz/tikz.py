@@ -49,7 +49,14 @@ enum_map = {}
 
 
 def scope_code_required(item: Union["Canvas", "Batch"]) -> bool:
-    """Check if a TikZ namespace is required for the item."""
+    """Check if a TikZ namespace is required for the item.
+
+    Args:
+        item (Union["Canvas", "Batch"]): The item to check.
+
+    Returns:
+        bool: True if a TikZ namespace is required, False otherwise.
+    """
     return (
         item.blend_mode is not None
         or item.transparency_group
@@ -59,7 +66,18 @@ def scope_code_required(item: Union["Canvas", "Batch"]) -> bool:
 
 @dataclass
 class Tex:
-    """Tex class for generating tex code."""
+    """Tex class for generating tex code.
+
+    Attributes:
+        begin_document (str): The beginning of the document.
+        end_document (str): The end of the document.
+        begin_tikz (str): The beginning of the TikZ environment.
+        end_tikz (str): The end of the TikZ environment.
+        packages (List[str]): List of required TeX packages.
+        tikz_libraries (List[str]): List of required TikZ libraries.
+        tikz_code (str): The generated TikZ code.
+        sketches (List["Sketch"]): List of TexSketch objects.
+    """
 
     begin_document: str = defaults["begin_doc"]
     end_document: str = defaults["end_doc"]
@@ -71,11 +89,20 @@ class Tex:
     sketches: List["Sketch"] = field(default_factory=list)  # List of TexSketch objects
 
     def __post_init__(self):
+        """Post-initialization method."""
         self.type = Types.TEX
         common_properties(self)
 
     def tex_code(self, canvas: "Canvas", aux_code: str) -> str:
-        """Generate the final TeX code."""
+        """Generate the final TeX code.
+
+        Args:
+            canvas ("Canvas"): The canvas object.
+            aux_code (str): Auxiliary code to include.
+
+        Returns:
+            str: The final TeX code.
+        """
         doc_code = []
         for sketch in self.sketches:
             if sketch.location == TexLoc.DOCUMENT:
@@ -116,11 +143,23 @@ class Tex:
         return code
 
     def get_doc_class(self, border: float, font_size: int) -> str:
-        """Returns the document class."""
+        """Returns the document class.
+
+        Args:
+            border (float): The border size.
+            font_size (int): The font size.
+
+        Returns:
+            str: The document class string.
+        """
         return f"\\documentclass[{font_size}pt,tikz,border={border}pt]{{standalone}}\n"
 
     def get_tikz_code(self) -> str:
-        """Returns the TikZ code."""
+        """Returns the TikZ code.
+
+        Returns:
+            str: The TikZ code.
+        """
         code = ""
         for sketch in self.sketches:
             if sketch.location == TexLoc.PICTURE:
@@ -129,11 +168,22 @@ class Tex:
         return code
 
     def get_tikz_libraries(self) -> str:
-        """Returns the TikZ libraries."""
+        """Returns the TikZ libraries.
+
+        Returns:
+            str: The TikZ libraries string.
+        """
         return f"\\usetikzlibrary{{{','.join(self.tikz_libraries)}}}\n"
 
     def get_packages(self, canvas) -> str:
-        """Returns the required TeX packages."""
+        """Returns the required TeX packages.
+
+        Args:
+            canvas: The canvas object.
+
+        Returns:
+            str: The required TeX packages.
+        """
         tikz_libraries = []
         tikz_packages = ['tikz', 'pgf']
         for page in canvas.pages:
@@ -167,14 +217,21 @@ class Tex:
         return tikz_libraries, tikz_packages
 
     def get_preamble(self, canvas) -> str:
-        """Returns the TeX preamble."""
+        """Returns the TeX preamble.
+
+        Args:
+            canvas: The canvas object.
+
+        Returns:
+            str: The TeX preamble.
+        """
         libraries, packages = self.get_packages(canvas)
 
         if packages:
             packages = f'\\usepackage{{{",".join(packages)}}}\n'
             if 'fontspec' in packages:
-                fonts_section = f"""\\setmainfont{{{defaults['main_font']}}}
-\\setsansfont{{{defaults['sans_font']}}}
+                fonts_section = f"""\\setmainfont{{{defaults['main_font']}}
+\\setsansfont{{{defaults['sans_font']}}
 \\setmonofont{{{defaults['mono_font']}}}\n"""
 
         if libraries:
@@ -223,7 +280,15 @@ class Tex:
 
 
 def get_back_grid_code(grid: Grid, canvas: "Canvas") -> str:
-    """Page background grid code."""
+    """Page background grid code.
+
+    Args:
+        grid (Grid): The grid object.
+        canvas ("Canvas"): The canvas object.
+
+    Returns:
+        str: The background grid code.
+    """
     # \usetikzlibrary{backgrounds}
     # \begin{scope}[on background layer]
     # \fill[gray] (current bounding box.south west) rectangle
@@ -256,7 +321,14 @@ def get_back_grid_code(grid: Grid, canvas: "Canvas") -> str:
 
 
 def get_limits_code(canvas: "Canvas") -> str:
-    """Get the limits of the canvas for clipping."""
+    """Get the limits of the canvas for clipping.
+
+    Args:
+        canvas ("Canvas"): The canvas object.
+
+    Returns:
+        str: The limits code for clipping.
+    """
     xmin, ymin, xmax, ymax = canvas.limits
     points = [(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]
     vertices = homogenize(points) @ canvas.xform_matrix
@@ -266,16 +338,39 @@ def get_limits_code(canvas: "Canvas") -> str:
 
 
 def get_back_code(canvas: "Canvas") -> str:
-    """Get the background code for the canvas."""
+    """Get the background code for the canvas.
+
+    Args:
+        canvas ("Canvas"): The canvas object.
+
+    Returns:
+        str: The background code.
+    """
     back_color = color2tikz(canvas.back_color)
     return f"\\pagecolor{back_color}\n"
 
 
 def get_tex_code(canvas: "Canvas") -> str:
-    """Convert the sketches in the Canvas to TikZ code."""
+    """Convert the sketches in the Canvas to TikZ code.
+
+    Args:
+        canvas ("Canvas"): The canvas object.
+
+    Returns:
+        str: The TikZ code.
+    """
 
     def get_sketch_code(sketch, canvas, ind):
-        """Get the TikZ code for a sketch."""
+        """Get the TikZ code for a sketch.
+
+        Args:
+            sketch: The sketch object.
+            canvas: The canvas object.
+            ind: The index.
+
+        Returns:
+            tuple: The TikZ code and the updated index.
+        """
         if sketch.subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch, canvas)
         elif sketch.subtype == Types.BBOX_SKETCH:
@@ -313,14 +408,22 @@ def get_tex_code(canvas: "Canvas") -> str:
 
 
 class Grid(sg.Shape):
-    """Grid shape."""
+    """Grid shape.
 
-    def __init__(self, p1, p2, dx, dy, **kwargs):
-        """
+    Args:
         p1: (x_min, y_min)
         p2: (x_max, y_max)
         dx: x step
-        dy y step
+        dy: y step
+    """
+
+    def __init__(self, p1, p2, dx, dy, **kwargs):
+        """
+        Args:
+            p1: (x_min, y_min)
+            p2: (x_max, y_max)
+            dx: x step
+            dy: y step
         """
         self.p1 = p1
         self.p2 = p2
@@ -335,7 +438,14 @@ class Grid(sg.Shape):
 
 
 def get_min_size(sketch: ShapeSketch) -> str:
-    """Returns the minimum size of the tag node."""
+    """Returns the minimum size of the tag node.
+
+    Args:
+        sketch (ShapeSketch): The shape sketch object.
+
+    Returns:
+        str: The minimum size of the tag node.
+    """
     options = []
     if sketch.frame_shape == "rectangle":
         if sketch.frame_min_width is None:
@@ -359,7 +469,14 @@ def get_min_size(sketch: ShapeSketch) -> str:
 
 
 def frame_options(sketch: TagSketch) -> List[str]:
-    """Returns the options for the frame of the tag node."""
+    """Returns the options for the frame of the tag node.
+
+    Args:
+        sketch (TagSketch): The tag sketch object.
+
+    Returns:
+        List[str]: The options for the frame of the tag node.
+    """
     options = []
     if sketch.draw_frame:
         options.append(sketch.frame_shape)
@@ -378,7 +495,14 @@ def frame_options(sketch: TagSketch) -> List[str]:
 
 
 def color2tikz(color):
-    """Converts a Color object to a TikZ color string."""
+    """Converts a Color object to a TikZ color string.
+
+    Args:
+        color (Color): The color object.
+
+    Returns:
+        str: The TikZ color string.
+    """
     # \usepackage{xcolor}
     # \tikz\node[rounded corners, fill={rgb,255:red,21; green,66; blue,128},
     #                                    text=white, draw=black] {hello world};
@@ -397,7 +521,14 @@ def color2tikz(color):
 
 
 def get_scope_options(item: Union["Canvas", "Sketch"]) -> str:
-    """Used for creating namespaces in TikZ."""
+    """Used for creating namespaces in TikZ.
+
+    Args:
+        item (Union["Canvas", "Sketch"]): The item to get scope options for.
+
+    Returns:
+        str: The scope options as a string.
+    """
     options = []
 
     if item.blend_group:
@@ -421,7 +552,14 @@ def get_scope_options(item: Union["Canvas", "Sketch"]) -> str:
 
 
 def get_clip_code(item: Union["Sketch", "Canvas"]) -> str:
-    """Returns the clip code for a sketch or Canvas."""
+    """Returns the clip code for a sketch or Canvas.
+
+    Args:
+        item (Union["Sketch", "Canvas"]): The item to get clip code for.
+
+    Returns:
+        str: The clip code as a string.
+    """
     if item.mask.subtype == Types.CIRCLE:
         x, y = item.mask.center[:2]
         res = f"\\clip({x}, {y}) circle ({item.mask.radius});\n"
@@ -440,7 +578,14 @@ def get_clip_code(item: Union["Sketch", "Canvas"]) -> str:
 
 
 def get_canvas_scope(canvas):
-    """Returns the TikZ code for the canvas scope."""
+    """Returns the TikZ code for the canvas scope.
+
+    Args:
+        canvas: The canvas object.
+
+    Returns:
+        str: The TikZ code for the canvas scope.
+    """
     options = get_scope_options(canvas)
     res = f"\\begin{{scope}}[{options}]\n"
     if canvas.clip and canvas.mask:
@@ -450,7 +595,15 @@ def get_canvas_scope(canvas):
 
 
 def draw_batch_sketch(sketch, canvas):
-    """Converts a BatchSketch to TikZ code."""
+    """Converts a BatchSketch to TikZ code.
+
+    Args:
+        sketch: The BatchSketch object.
+        canvas: The canvas object.
+
+    Returns:
+        str: The TikZ code for the BatchSketch.
+    """
     options = get_scope_options(sketch)
     if options:
         res = f"\\begin{{scope}}[{options}]\n"
@@ -472,7 +625,15 @@ def draw_batch_sketch(sketch, canvas):
     return res
 
 def draw_bbox_sketch(sketch, canvas):
-    """Converts a BBoxSketch to TikZ code."""
+    """Converts a BBoxSketch to TikZ code.
+
+    Args:
+        sketch: The BBoxSketch object.
+        canvas: The canvas object.
+
+    Returns:
+        str: The TikZ code for the BBoxSketch.
+    """
     attrib_map = {
         "line_color": "color",
         "line_width": "line width",
@@ -489,7 +650,14 @@ def draw_bbox_sketch(sketch, canvas):
     return res
 
 def draw_lace_sketch(item):
-    """Converts a LaceSketch to TikZ code."""
+    """Converts a LaceSketch to TikZ code.
+
+    Args:
+        item: The LaceSketch object.
+
+    Returns:
+        str: The TikZ code for the LaceSketch.
+    """
     if item.draw_fragments:
         for fragment in item.fragments:
             draw_shape_sketch(fragment)
@@ -500,7 +668,14 @@ def draw_lace_sketch(item):
 
 
 def get_draw(sketch):
-    """Returns the draw command for sketches."""
+    """Returns the draw command for sketches.
+
+    Args:
+        sketch: The sketch object.
+
+    Returns:
+        str: The draw command as a string.
+    """
     # sketch.closed, sketch.fill, sketch.stroke, shading
     decision_table = {
         (True, True, True, True): "\\shadedraw",
@@ -546,7 +721,14 @@ def get_draw(sketch):
 
 
 def get_frame_options(sketch):
-    """Returns the options for the frame of a TagSketch."""
+    """Returns the options for the frame of a TagSketch.
+
+    Args:
+        sketch: The TagSketch object.
+
+    Returns:
+        list: The options for the frame of the TagSketch.
+    """
     options = get_line_style_options(sketch)
     options += get_fill_style_options(sketch)
     if sketch.text in [None, ""]:
@@ -567,7 +749,15 @@ def get_frame_options(sketch):
 
 
 def draw_tag_sketch(sketch, canvas):
-    """Converts a TagSketch to TikZ code."""
+    """Converts a TagSketch to TikZ code.
+
+    Args:
+        sketch: The TagSketch object.
+        canvas: The canvas object.
+
+    Returns:
+        str: The TikZ code for the TagSketch.
+    """
     # \node at (0,0) {some text};
     def get_font_family(sketch):
         default_fonts = [defaults['main_font'], defaults['sans_font'], defaults['mono_font']]
@@ -707,7 +897,14 @@ def draw_tag_sketch(sketch, canvas):
 
 
 def get_dash_pattern(line_dash_array):
-    """Returns the dash pattern for a line."""
+    """Returns the dash pattern for a line.
+
+    Args:
+        line_dash_array: The dash array for the line.
+
+    Returns:
+        str: The dash pattern as a string.
+    """
     dash_pattern = []
     for i, dash in enumerate(line_dash_array):
         if i % 2 == 0:
@@ -719,7 +916,18 @@ def get_dash_pattern(line_dash_array):
 
 
 def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None):
-    """Converts the attributes of a sketch to TikZ options."""
+    """Converts the attributes of a sketch to TikZ options.
+
+    Args:
+        sketch: The sketch object.
+        attrib_list: The list of attributes to convert.
+        attrib_map: The map of attributes to TikZ options.
+        conditions: Optional conditions for the attributes.
+        exceptions: Optional exceptions for the attributes.
+
+    Returns:
+        list: The TikZ options as a list.
+    """
     skip = ["marker_color", "fill_color"]
     tikz_way = {'line_width':LineWidth, 'line_dash_array':LineDashArray}
     if exceptions:
@@ -763,7 +971,15 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
 
 
 def get_line_style_options(sketch, exceptions=None):
-    """Returns the options for the line style."""
+    """Returns the options for the line style.
+
+    Args:
+        sketch: The sketch object.
+        exceptions: Optional exceptions for the line style options.
+
+    Returns:
+        list: The line style options as a list.
+    """
     attrib_map = {
         "line_color": "color",
         "line_width": "line width",
@@ -798,7 +1014,16 @@ def get_line_style_options(sketch, exceptions=None):
 
 
 def get_fill_style_options(sketch, exceptions=None, frame=False):
-    """Returns the options for the fill style."""
+    """Returns the options for the fill style.
+
+    Args:
+        sketch: The sketch object.
+        exceptions: Optional exceptions for the fill style options.
+        frame: Optional flag for frame fill style.
+
+    Returns:
+        list: The fill style options as a list.
+    """
     attrib_map = {
         "fill_color": "fill",
         "fill_alpha": "fill opacity",
@@ -824,8 +1049,14 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
 
 
 def get_axis_shading_colors(sketch):
-    """Returns the shading colors for the axis."""
+    """Returns the shading colors for the axis.
 
+    Args:
+        sketch: The sketch object.
+
+    Returns:
+        str: The shading colors for the axis.
+    """
     def get_color(color, color_key):
         if isinstance(color, Color):
             res = color2tikz(color)
@@ -854,8 +1085,14 @@ def get_axis_shading_colors(sketch):
 
 
 def get_bilinear_shading_colors(sketch):
-    """Returns the shading colors for the bilinear shading."""
+    """Returns the shading colors for the bilinear shading.
 
+    Args:
+        sketch: The sketch object.
+
+    Returns:
+        str: The shading colors for the bilinear shading.
+    """
     res = []
     if sketch.shade_upper_left_color:
         res.append(f"upper left = {color2tikz(sketch.shade_upper_left_color)}")
@@ -870,7 +1107,14 @@ def get_bilinear_shading_colors(sketch):
 
 
 def get_radial_shading_colors(sketch):
-    """Returns the shading colors for the radial shading."""
+    """Returns the shading colors for the radial shading.
+
+    Args:
+        sketch: The sketch object.
+
+    Returns:
+        str: The shading colors for the radial shading.
+    """
     res = []
     if sketch.shade_type == ShadeType.RADIAL_INNER:
         res.append(f"inner color = {color2tikz(sketch.shade_inner_color)}")
@@ -900,7 +1144,14 @@ radial_shading_types = [
 
 
 def get_shading_options(sketch):
-    """Returns the options for the shading."""
+    """Returns the options for the shading.
+
+    Args:
+        sketch: The sketch object.
+
+    Returns:
+        list: The shading options as a list.
+    """
     shade_type = sketch.shade_type
     if shade_type in axis_shading_types:
         res = get_axis_shading_colors(sketch)
@@ -923,7 +1174,14 @@ def get_shading_options(sketch):
 
 
 def get_pattern_options(sketch):
-    """Returns the options for the patterns."""
+    """Returns the options for the patterns.
+
+    Args:
+        sketch: The sketch object.
+
+    Returns:
+        list: The pattern options as a list.
+    """
     pattern_type = sketch.pattern_type
     if pattern_type:
         distance = sketch.pattern_distance
@@ -965,7 +1223,14 @@ def get_pattern_options(sketch):
 
 
 def get_marker_options(sketch):
-    """Returns the options for the markers."""
+    """Returns the options for the markers.
+
+    Args:
+        sketch: The sketch object.
+
+    Returns:
+        list: The marker options as a list.
+    """
     attrib_map = {
         # 'marker': 'mark',
         "marker_size": "mark size",
@@ -991,7 +1256,15 @@ def get_marker_options(sketch):
 
 
 def draw_shape_sketch_with_indices(sketch, ind):
-    """Draws a shape sketch with circle markers with index numbers in them."""
+    """Draws a shape sketch with circle markers with index numbers in them.
+
+    Args:
+        sketch: The shape sketch object.
+        ind: The index.
+
+    Returns:
+        str: The TikZ code for the shape sketch with indices.
+    """
     begin_scope = get_begin_scope(ind)
     body = get_draw(sketch)
     options = get_line_style_options(sketch)
@@ -1025,7 +1298,14 @@ def draw_shape_sketch_with_indices(sketch, ind):
 
 
 def draw_shape_sketch_with_markers(sketch):
-    """Draws a shape sketch with markers."""
+    """Draws a shape sketch with markers.
+
+    Args:
+        sketch: The shape sketch object.
+
+    Returns:
+        str: The TikZ code for the shape sketch with markers.
+    """
     # begin_scope = get_begin_scope()
     body = get_draw(sketch)
     options = get_line_style_options(sketch)
@@ -1076,7 +1356,14 @@ def draw_shape_sketch_with_markers(sketch):
 
 
 def get_begin_scope(ind=None):
-    """Returns \begin{scope}[every node/.append style=nodestyle{ind}]."""
+    """Returns \begin{scope}[every node/.append style=nodestyle{ind}].
+
+    Args:
+        ind: Optional index for the scope.
+
+    Returns:
+        str: The begin scope string.
+    """
     if ind is None:
         res = "\\begin{scope}[]\n"
     else:
@@ -1086,12 +1373,23 @@ def get_begin_scope(ind=None):
 
 
 def get_end_scope():
-    """Returns \\end{scope}."""
+    """Returns \\end{scope}.
+
+    Returns:
+        str: The end scope string.
+    """
     return "\\end{scope}\n"
 
 
 def draw_sketch(sketch):
-    """Draws a plain shape sketch."""
+    """Draws a plain shape sketch.
+
+    Args:
+        sketch: The shape sketch object.
+
+    Returns:
+        str: The TikZ code for the plain shape sketch.
+    """
     res = get_draw(sketch)
     if not res:
         return ""
@@ -1133,7 +1431,15 @@ def draw_sketch(sketch):
 
 
 def draw_shape_sketch(sketch, ind=None):
-    """Draws a shape sketch."""
+    """Draws a shape sketch.
+
+    Args:
+        sketch: The shape sketch object.
+        ind: Optional index for the shape sketch.
+
+    Returns:
+        str: The TikZ code for the shape sketch.
+    """
     d_subtype_draw = {
         sg.Types.ARC_SKETCH: draw_arc_sketch,
         sg.Types.BEZIER_SKETCH: draw_bezier_sketch,
@@ -1154,7 +1460,14 @@ def draw_shape_sketch(sketch, ind=None):
 
 
 def draw_line_sketch(sketch):
-    """Draws a line sketch."""
+    """Draws a line sketch.
+
+    Args:
+        sketch: The line sketch object.
+
+    Returns:
+        str: The TikZ code for the line sketch.
+    """
     begin_scope = get_begin_scope()
     res = "\\draw"
     exceptions = ["draw_fillets", "fillet_radius", "line_join", "line_miter_limit"]
@@ -1171,7 +1484,14 @@ def draw_line_sketch(sketch):
 
 
 def draw_circle_sketch(sketch):
-    """Draws a circle sketch."""
+    """Draws a circle sketch.
+
+    Args:
+        sketch: The circle sketch object.
+
+    Returns:
+        str: The TikZ code for the circle sketch.
+    """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
     options = get_line_style_options(sketch)
@@ -1189,7 +1509,14 @@ def draw_circle_sketch(sketch):
 
 
 def draw_rect_sketch(sketch):
-    """Draws a rectangle sketch."""
+    """Draws a rectangle sketch.
+
+    Args:
+        sketch: The rectangle sketch object.
+
+    Returns:
+        str: The TikZ code for the rectangle sketch.
+    """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
     options = get_line_style_options(sketch)
@@ -1207,7 +1534,14 @@ def draw_rect_sketch(sketch):
     return begin_scope + res + end_scope
 
 def draw_ellipse_sketch(sketch):
-    """Draws an ellipse sketch."""
+    """Draws an ellipse sketch.
+
+    Args:
+        sketch: The ellipse sketch object.
+
+    Returns:
+        str: The TikZ code for the ellipse sketch.
+    """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
     options = get_line_style_options(sketch)
@@ -1231,7 +1565,14 @@ def draw_ellipse_sketch(sketch):
 
 
 def draw_arc_sketch(sketch):
-    """Draws an arc sketch."""
+    """Draws an arc sketch.
+
+    Args:
+        sketch: The arc sketch object.
+
+    Returns:
+        str: The TikZ code for the arc sketch.
+    """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
     options = get_line_style_options(sketch)
@@ -1255,7 +1596,14 @@ def draw_arc_sketch(sketch):
 
 
 def draw_bezier_sketch(sketch):
-    """Draws a Bezier curve sketch."""
+    """Draws a Bezier curve sketch.
+
+    Args:
+        sketch: The Bezier curve sketch object.
+
+    Returns:
+        str: The TikZ code for the Bezier curve sketch.
+    """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
     options = get_line_style_options(sketch)
@@ -1273,7 +1621,14 @@ def draw_bezier_sketch(sketch):
 
 
 def draw_line(line):
-    """Tikz code for a line."""
+    """Tikz code for a line.
+
+    Args:
+        line: The line object.
+
+    Returns:
+        str: The TikZ code for the line.
+    """
     p1 = line.start[:2]
     p2 = line.end[:2]
     options = []
@@ -1294,7 +1649,14 @@ def draw_line(line):
 
 
 def is_stroked(shape: Shape) -> bool:
-    """Returns True if the shape is stroked."""
+    """Returns True if the shape is stroked.
+
+    Args:
+        shape (Shape): The shape object.
+
+    Returns:
+        bool: True if the shape is stroked, False otherwise.
+    """
     return shape.stroke and shape.line_color is not None and shape.line_width > 0
 
 

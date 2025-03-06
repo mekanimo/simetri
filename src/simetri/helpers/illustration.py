@@ -49,7 +49,14 @@ array = np.array
 
 
 def logo(scale=1):
-    """Returns the Simetri logo."""
+    """Returns the Simetri logo.
+
+    Args:
+        scale (int, optional): Scale factor for the logo. Defaults to 1.
+
+    Returns:
+        Batch: A Batch object containing the logo shapes.
+    """
     w = 10 * scale
     points = [
         (0, 0),
@@ -116,23 +123,37 @@ def logo(scale=1):
     kernel2.fill_color = colors.white
 
     return Batch([kernel1, kernel2])
-def convert_latex_font_size(latex_font_size:FontSize):
+
+
+def convert_latex_font_size(latex_font_size: FontSize):
+    """Converts LaTeX font size to a numerical value.
+
+    Args:
+        latex_font_size (FontSize): The LaTeX font size.
+
+    Returns:
+        int: The corresponding numerical font size.
+    """
     d_font_size = {
-        FontSize.TINY:5,
-        FontSize.SMALL:7,
-        FontSize.NORMAL:10,
-        FontSize.LARGE:12,
-        FontSize.LARGE2:14,
-        FontSize.LARGE3:17,
-        FontSize.HUGE:20,
-        FontSize.HUGE2:25
+        FontSize.TINY: 5,
+        FontSize.SMALL: 7,
+        FontSize.NORMAL: 10,
+        FontSize.LARGE: 12,
+        FontSize.LARGE2: 14,
+        FontSize.LARGE3: 17,
+        FontSize.HUGE: 20,
+        FontSize.HUGE2: 25,
     }
 
     return d_font_size[latex_font_size]
 
 
 def letter_F_points():
-    """Returns the points of the capital letter F."""
+    """Returns the points of the capital letter F.
+
+    Returns:
+        list: A list of points representing the letter F.
+    """
     return [
         (0.0, 0.0),
         (20.0, 0.0),
@@ -149,7 +170,15 @@ def letter_F_points():
 
 
 def letter_F(scale=1, **kwargs):
-    """Returns a Shape object representing the capital letter F."""
+    """Returns a Shape object representing the capital letter F.
+
+    Args:
+        scale (int, optional): Scale factor for the letter. Defaults to 1.
+        **kwargs: Additional keyword arguments for shape styling.
+
+    Returns:
+        Shape: A Shape object representing the letter F.
+    """
     F = Shape(letter_F_points(), closed=True)
     if scale != 1:
         F.scale(scale)
@@ -163,7 +192,13 @@ def letter_F(scale=1, **kwargs):
 
 def cube(size: float = 100):
     """Returns a Batch object representing a cube.
-    The cube is centered at the origin."""
+
+    Args:
+        size (float, optional): The size of the cube. Defaults to 100.
+
+    Returns:
+        Batch: A Batch object representing the cube.
+    """
     points = reg_poly_points_side_length((0, 0), 6, size)
     center = (0, 0)
     face1 = Shape([points[0], center] + points[4:], closed=True)
@@ -176,17 +211,32 @@ def cube(size: float = 100):
 
 
 def pdf_to_svg(pdf_path, svg_path):
-    '''Converts a single-page pdf file to svg.'''
+    """Converts a single-page PDF file to SVG.
+
+    Args:
+        pdf_path (str): The path to the PDF file.
+        svg_path (str): The path to save the SVG file.
+    """
     doc = fitz.open(pdf_path)
     page = doc.load_page(0)
     svg = page.get_svg_image()
     with open(svg_path, "w", encoding="utf-8") as f:
         f.write(svg)
 
+
 # To do: use a different name for the Annotation class
 # annotation is a label with an arrow
 class Annotation(Batch):
-    """An Annotation object is a label with an arrow pointing to a specific location."""
+    """An Annotation object is a label with an arrow pointing to a specific location.
+
+    Args:
+        text (str): The annotation text.
+        pos (tuple): The position of the annotation.
+        frame (FrameShape): The frame shape of the annotation.
+        root_pos (tuple): The root position of the arrow.
+        arrow_line (ArrowLine, optional): The type of arrow line. Defaults to ArrowLine.STRAIGHT_END.
+        **kwargs: Additional keyword arguments for annotation styling.
+    """
 
     def __init__(
         self, text, pos, frame, root_pos, arrow_line=ArrowLine.STRAIGHT_END, **kwargs
@@ -204,8 +254,31 @@ class Annotation(Batch):
 @dataclass
 class TagFrame:
     """Frame objects are used with Tag objects to create boxes.
-    In TikZ, there are many predefined frame shapes.
-    We share some of them. See the documentation for more details."""
+
+    Args:
+        frame_shape (FrameShape, optional): The shape of the frame. Defaults to "rectangle".
+        line_width (float, optional): The width of the frame line. Defaults to 1.
+        line_dash_array (list, optional): The dash pattern for the frame line. Defaults to None.
+        line_join (LineJoin, optional): The line join style. Defaults to "miter".
+        line_color (Color, optional): The color of the frame line. Defaults to colors.black.
+        back_color (Color, optional): The background color of the frame. Defaults to colors.white.
+        fill (bool, optional): Whether to fill the frame. Defaults to False.
+        stroke (bool, optional): Whether to stroke the frame. Defaults to True.
+        double (bool, optional): Whether to use a double line. Defaults to False.
+        double_distance (float, optional): The distance between double lines. Defaults to 2.
+        inner_sep (float, optional): The inner separation. Defaults to 10.
+        outer_sep (float, optional): The outer separation. Defaults to 10.
+        smooth (bool, optional): Whether to smooth the frame. Defaults to False.
+        rounded_corners (bool, optional): Whether to use rounded corners. Defaults to False.
+        fillet_radius (float, optional): The radius of the fillet. Defaults to 10.
+        draw_fillets (bool, optional): Whether to draw fillets. Defaults to False.
+        blend_mode (str, optional): The blend mode. Defaults to None.
+        gradient (str, optional): The gradient. Defaults to None.
+        pattern (str, optional): The pattern. Defaults to None.
+        min_width (float, optional): The minimum width. Defaults to None.
+        min_height (float, optional): The minimum height. Defaults to None.
+        min_size (float, optional): The minimum size. Defaults to None.
+    """
 
     frame_shape: FrameShape = "rectangle"
     line_width: float = 1
@@ -237,11 +310,25 @@ class TagFrame:
 
 
 class Tag(Base):
-    """
-    A Tag object is very similar to TikZ library's nodes. It is a text with a frame.
-    In TikZ, there are many predefined frame shapes. We share some of them.
-    Tag objects have frames but they are not shapes. They are just frames drawn around
-    the text.
+    """A Tag object is very similar to TikZ library's nodes. It is a text with a frame.
+
+    Args:
+        text (str): The text of the tag.
+        pos (Point): The position of the tag.
+        font_family (str, optional): The font family. Defaults to None.
+        font_size (int, optional): The font size. Defaults to None.
+        font_color (Color, optional): The font color. Defaults to None.
+        anchor (Anchor, optional): The anchor point. Defaults to Anchor.CENTER.
+        bold (bool, optional): Whether the text is bold. Defaults to False.
+        italic (bool, optional): Whether the text is italic. Defaults to False.
+        text_width (float, optional): The width of the text. Defaults to None.
+        placement (Placement, optional): The placement of the tag. Defaults to None.
+        minimum_size (float, optional): The minimum size of the tag. Defaults to None.
+        minimum_width (float, optional): The minimum width of the tag. Defaults to None.
+        minimum_height (float, optional): The minimum height of the tag. Defaults to None.
+        frame (TagFrame, optional): The frame of the tag. Defaults to None.
+        xform_matrix (array, optional): The transformation matrix. Defaults to None.
+        **kwargs: Additional keyword arguments for tag styling.
     """
 
     def __init__(
@@ -360,15 +447,27 @@ class Tag(Base):
 
     @property
     def pos(self) -> Point:
-        """Returns the position of the text."""
+        """Returns the position of the text.
+
+        Returns:
+            Point: The position of the text.
+        """
         return (self._init_pos @ self.xform_matrix)[:2].tolist()
 
     def copy(self) -> "Tag":
-        """Returns a copy of the Tag object."""
+        """Returns a copy of the Tag object.
+
+        Returns:
+            Tag: A copy of the Tag object.
+        """
         return Tag(0, 0, self.text, self.font_style, self.xform_matrix)
 
     def text_bounds(self) -> tuple[float, float, float, float]:
-        """Returns the bounds of the text."""
+        """Returns the bounds of the text.
+
+        Returns:
+            tuple: The bounds of the text (xmin, ymin, xmax, ymax).
+        """
         if self.font_size is None:
             font_size = defaults["font_size"]
         elif type(self.font_size) in [int, float]:
@@ -387,12 +486,20 @@ class Tag(Base):
 
     @property
     def final_coords(self):
-        """Returns the final coordinates of the text."""
+        """Returns the final coordinates of the text.
+
+        Returns:
+            array: The final coordinates of the text.
+        """
         return self.points.homogen_coords @ self.xform_matrix
 
     @property
     def b_box(self):
-        """Returns the bounding box of the text."""
+        """Returns the bounding box of the text.
+
+        Returns:
+            tuple: The bounding box of the text.
+        """
         return bounding_box(self.final_coords)
 
     def __str__(self) -> str:
@@ -403,7 +510,14 @@ class Tag(Base):
 
 
 class ArrowHead(Shape):
-    """An ArrowHead object is a shape that represents the head of an arrow."""
+    """An ArrowHead object is a shape that represents the head of an arrow.
+
+    Args:
+        length (float, optional): The length of the arrow head. Defaults to None.
+        width_ (float, optional): The width of the arrow head. Defaults to None.
+        points (list, optional): The points defining the arrow head. Defaults to None.
+        **kwargs: Additional keyword arguments for arrow head styling.
+    """
 
     def __init__(
         self, length: float = None, width_: float = None, points: list = None, **kwargs
@@ -422,7 +536,16 @@ class ArrowHead(Shape):
 
 
 def draw_cs_tiny(canvas, pos=(0, 0), x_len=25, y_len=25, neg_x_len=5, neg_y_len=5):
-    """Draws a tiny coordinate system."""
+    """Draws a tiny coordinate system.
+
+    Args:
+        canvas: The canvas to draw on.
+        pos (tuple, optional): The position of the coordinate system. Defaults to (0, 0).
+        x_len (int, optional): The length of the x-axis. Defaults to 25.
+        y_len (int, optional): The length of the y-axis. Defaults to 25.
+        neg_x_len (int, optional): The negative length of the x-axis. Defaults to 5.
+        neg_y_len (int, optional): The negative length of the y-axis. Defaults to 5.
+    """
     x, y = pos[:2]
     canvas.circle((x, y), 2, fill=False, line_color=colors.gray)
     canvas.draw(Shape([(x - neg_x_len, y), (x + x_len, y)]), line_color=colors.gray)
@@ -430,7 +553,16 @@ def draw_cs_tiny(canvas, pos=(0, 0), x_len=25, y_len=25, neg_x_len=5, neg_y_len=
 
 
 def draw_cs_small(canvas, pos=(0, 0), x_len=80, y_len=100, neg_x_len=5, neg_y_len=5):
-    """Draws a small coordinate system."""
+    """Draws a small coordinate system.
+
+    Args:
+        canvas: The canvas to draw on.
+        pos (tuple, optional): The position of the coordinate system. Defaults to (0, 0).
+        x_len (int, optional): The length of the x-axis. Defaults to 80.
+        y_len (int, optional): The length of the y-axis. Defaults to 100.
+        neg_x_len (int, optional): The negative length of the x-axis. Defaults to 5.
+        neg_y_len (int, optional): The negative length of the y-axis. Defaults to 5.
+    """
     x, y = pos[:2]
     x_axis = arrow(
         (-neg_x_len + x, y), (x_len + 10 + x, y), head_length=8, head_width=2
@@ -452,7 +584,21 @@ def arrow(
     fill_color=colors.black,
     centered=False,
 ):
-    """Return an arrow from p1 to p2"""
+    """Return an arrow from p1 to p2.
+
+    Args:
+        p1 (tuple): The starting point of the arrow.
+        p2 (tuple): The ending point of the arrow.
+        head_length (int, optional): The length of the arrow head. Defaults to 10.
+        head_width (int, optional): The width of the arrow head. Defaults to 4.
+        line_width (int, optional): The width of the arrow line. Defaults to 1.
+        line_color (Color, optional): The color of the arrow line. Defaults to colors.black.
+        fill_color (Color, optional): The fill color of the arrow head. Defaults to colors.black.
+        centered (bool, optional): Whether the arrow is centered. Defaults to False.
+
+    Returns:
+        Batch: A Batch object containing the arrow shapes.
+    """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
     dx = x2 - x1
@@ -482,7 +628,16 @@ def arrow(
 
 
 class ArcArrow(Batch):
-    """An ArcArrow object is an arrow with an arc."""
+    """An ArcArrow object is an arrow with an arc.
+
+    Args:
+        center (Point): The center of the arc.
+        radius (float): The radius of the arc.
+        start_angle (float): The starting angle of the arc.
+        end_angle (float): The ending angle of the arc.
+        xform_matrix (array, optional): The transformation matrix. Defaults to None.
+        **kwargs: Additional keyword arguments for arc arrow styling.
+    """
 
     def __init__(
         self,
@@ -525,7 +680,15 @@ class ArcArrow(Batch):
 
 
 class Arrow(Batch):
-    """An Arrow object is a line with an arrow head."""
+    """An Arrow object is a line with an arrow head.
+
+    Args:
+        p1 (Point): The starting point of the arrow.
+        p2 (Point): The ending point of the arrow.
+        head_pos (HeadPos, optional): The position of the arrow head. Defaults to HeadPos.END.
+        head (Shape, optional): The shape of the arrow head. Defaults to None.
+        **kwargs: Additional keyword arguments for arrow styling.
+    """
 
     def __init__(
         self,
@@ -578,7 +741,19 @@ class Arrow(Batch):
 
 
 class AngularDimension(Batch):
-    """An AngularDimension object is a dimension that represents an angle."""
+    """An AngularDimension object is a dimension that represents an angle.
+
+    Args:
+        center (Point): The center of the angle.
+        radius (float): The radius of the angle.
+        start_angle (float): The starting angle.
+        end_angle (float): The ending angle.
+        ext_angle (float): The extension angle.
+        gap_angle (float): The gap angle.
+        text_offset (float, optional): The text offset. Defaults to None.
+        gap (float, optional): The gap. Defaults to None.
+        **kwargs: Additional keyword arguments for angular dimension styling.
+    """
 
     def __init__(
         self,
@@ -605,7 +780,27 @@ class AngularDimension(Batch):
 
 
 class Dimension(Batch):
-    """A Dimension object is a line with arrows and a text."""
+    """A Dimension object is a line with arrows and a text.
+
+    Args:
+        text (str): The text of the dimension.
+        p1 (Point): The starting point of the dimension.
+        p2 (Point): The ending point of the dimension.
+        ext_length (float): The length of the extension lines.
+        ext_length2 (float, optional): The length of the second extension line. Defaults to None.
+        orientation (Anchor, optional): The orientation of the dimension. Defaults to None.
+        text_pos (Anchor, optional): The position of the text. Defaults to Anchor.CENTER.
+        text_offset (float, optional): The offset of the text. Defaults to 0.
+        gap (float, optional): The gap. Defaults to None.
+        reverse_arrows (bool, optional): Whether to reverse the arrows. Defaults to False.
+        reverse_arrow_length (float, optional): The length of the reversed arrows. Defaults to None.
+        parallel (bool, optional): Whether the dimension is parallel. Defaults to False.
+        ext1pnt (Point, optional): The first extension point. Defaults to None.
+        ext2pnt (Point, optional): The second extension point. Defaults to None.
+        scale (float, optional): The scale factor. Defaults to 1.
+        font_size (int, optional): The font size. Defaults to 12.
+        **kwargs: Additional keyword arguments for dimension styling.
+    """
 
     # To do: This is too long and convoluted. Refactor it.
     def __init__(

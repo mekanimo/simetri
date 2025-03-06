@@ -18,7 +18,18 @@ def rosette(
     axis: Line = axis_x,
     merge: bool = True,
 ) -> Batch:
-    """Returns a pattern with cyclic or dihedral symmetry with n petals."""
+    """Returns a pattern with cyclic or dihedral symmetry with n petals.
+
+    Args:
+        n (int): Number of petals.
+        kernel (Union[Shape, Batch]): The base shape or batch to be used as a petal.
+        cyclic (bool, optional): If True, creates a cyclic pattern. Defaults to False.
+        axis (Line, optional): The axis for mirroring. Defaults to axis_x.
+        merge (bool, optional): If True, merges shapes. Defaults to True.
+
+    Returns:
+        Batch: The resulting pattern with n petals.
+    """
     if cyclic:
         petal = kernel
     else:
@@ -31,7 +42,14 @@ def rosette(
 
 
 class Star(Batch):
-    """Star(n:int, inner_radius:float = None, circumradius:float = None, **kwargs)"""
+    """Represents a star shape with n points.
+
+    Args:
+        n (int): Number of points of the star.
+        inner_radius (float, optional): Inner radius of the star. Defaults to None.
+        circumradius (float, optional): Circumradius of the star. Defaults to None.
+        **kwargs: Additional keyword arguments.
+    """
 
     def __init__(
         self, n: int, inner_radius: float = None, circumradius: float = None, **kwargs
@@ -54,6 +72,14 @@ class Star(Batch):
         super().__init__(**kwargs)
 
     def _initialize(self, n):
+        """Initializes the star with n points.
+
+        Args:
+            n (int): Number of points of the star.
+
+        Raises:
+            ValueError: If n is less than 7.
+        """
         if n < 7:
             raise ValueError("n must be greater than 6")
         if self.inner_radius is None:
@@ -101,6 +127,15 @@ class Star(Batch):
         self._circum1 = up1_[0]
 
     def _calc_kernel(self, segments, n):
+        """Calculates the kernel shape for the star.
+
+        Args:
+            segments (Shape): The segments to be used for calculation.
+            n (int): Number of points of the star.
+
+        Returns:
+            tuple: A tuple containing the kernel shape, inner radius, and circumradius.
+        """
         segments = segments.copy()
         segments.rotate(pi / n)
         segments = segments.mirror(axis_x, reps=1)
@@ -113,12 +148,30 @@ class Star(Batch):
         return (kernel, inner_radius, circumradius)
 
     def _get_kernel(self, level):
+        """Gets the kernel shape for the specified level.
+
+        Args:
+            level (int): The level of the star.
+
+        Returns:
+            tuple: A tuple containing the kernel shape, inner radius, and circumradius.
+        """
         kernel = self._kernel2.copy()
         for _ in range(level - 2):
             kernel, inner_radius, circumradius = self._calc_kernel(kernel, self.n)
         return kernel, inner_radius, circumradius
 
     def _get_scale_factor(self, level, inner_radius=None, circumradius=None):
+        """Calculates the scale factor for the specified level.
+
+        Args:
+            level (int): The level of the star.
+            inner_radius (float, optional): Inner radius of the star. Defaults to None.
+            circumradius (float, optional): Circumradius of the star. Defaults to None.
+
+        Returns:
+            float: The scale factor.
+        """
         if self.inner_radius is None:
             if level == 0:
                 denom = self._circum0
@@ -143,7 +196,17 @@ class Star(Batch):
         return scale_factor
 
     def kernel(self, level: int) -> Shape:
-        """Returns the kernel of the star at the specified level."""
+        """Returns the kernel of the star at the specified level.
+
+        Args:
+            level (int): The level of the star.
+
+        Returns:
+            Shape: The kernel shape of the star.
+
+        Raises:
+            ValueError: If level is not a positive integer or zero.
+        """
         if level < 0 or not isinstance(level, int):
             raise ValueError("level must be a positive integer or zero.")
         if level == 0:
@@ -163,7 +226,17 @@ class Star(Batch):
         return kernel
 
     def petal(self, level: int) -> Shape:
-        """Returns the petal of the star at the specified level."""
+        """Returns the petal of the star at the specified level.
+
+        Args:
+            level (int): The level of the star.
+
+        Returns:
+            Shape: The petal shape of the star.
+
+        Raises:
+            ValueError: If level is not a positive integer or zero.
+        """
         if level < 0 or not isinstance(level, int):
             raise ValueError("level must be a positive integer or zero.")
         if level == 0:
@@ -183,7 +256,17 @@ class Star(Batch):
         return petal
 
     def level(self, n: int) -> Batch:
-        """Returns the star at the specified level."""
+        """Returns the star at the specified level.
+
+        Args:
+            n (int): The level of the star.
+
+        Returns:
+            Batch: The star shape at the specified level.
+
+        Raises:
+            ValueError: If level is not a positive integer or zero.
+        """
         if n < 0:
             raise ValueError("level must be a positive integer or zero.")
         if n == 0:

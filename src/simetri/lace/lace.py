@@ -177,75 +177,21 @@ array = np.array
 # * intersections have a point, division1, division2 attributes.
 # """
 
-# class Intersection(Shape):
-#     """
-#    *     *
-#     \   /
-#      \ /    *
-#       *    /     Example: Three inersecting divisions.
-#      /  \ /      One division has three sections and four intersections.
-#     /    *       The other two divisions have two sections and three
-#    *    / \      intersections.
-#        /   \
-#       /     *
-#      *
-
-#     Intersection of two divisions. They are at the endpoints of Section
-#     objects. A division can have multiple sections and multiple
-#     intersections. They can be located at the end of a division.
-
-#     If the division is connected to another division, that division is the division2
-#     attribute of the intersection object.
-
-#     If the division is not connected to another division, division2 is None.
-
-#     If the intersection is at the end of a division, "endpoint" is True.
-
-#     Intersection objects are mostly used internally but they can be used
-#     for custom purposes. They inherit from Shape class, all attributes
-#     of Shape objects are applicable to Intersection objects. Their
-#     subtype is Types.INTERSECTION. They also take part in the Overlap
-#     objects. Overlap objects are formed by four connected sections, thus
-#     each overlap object have four intersection objects attached to these
-#     sections. Like all other objects in the Simetri library,
-#     intersection objects have unique ID's (intersection.id) and
-#     "visible" attributes that can be set to True or False for each
-#     individual instance. If the "visible" attribute is False then the
-#     object is not drawn. The default value for intersection.visible is False.
-
-#     Arguments:
-#     ----------
-#         point: (tuple) (x, y) coordinates of the intersection point.
-#         division1: (Division) First division. division2: (Division) Second division. If the
-#         intersection is at the end of a division, then division2 is None.
-#         endpoint: (bool) If the intersection is at the end of a division,
-#         then endpoint is True, False otherwise.
-#           **kwargs:
-#         (dict) Additional attributes for cosmetic/drawing purposes.
-
-#     Example:
-#     --------
-#         x_point = Intersection((200.2, -10.51), division1, division2)
-
-#
-
-
 class Intersection(Shape):
     """Intersection of two divisions. They are at the endpoints of Section
     objects. A division can have multiple sections and multiple
-    intersections. They can be located at the end of a division."""
+    intersections. They can be located at the end of a division.
 
-    def __init__(
-        self,
-        point: tuple,
-        division1: "Division",
-        division2: "Division" = None,
-        endpoint: bool = False,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            [point], xform_matrix=None, subtype=Types.INTERSECTION, **kwargs
-        )
+    Args:
+        point (tuple): (x, y) coordinates of the intersection point.
+        division1 (Division): First division.
+        division2 (Division, optional): Second division. Defaults to None.
+        endpoint (bool, optional): If the intersection is at the end of a division, then endpoint is True. Defaults to False.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
+    """
+
+    def __init__(self, point: tuple, division1: "Division", division2: "Division" = None, endpoint: bool = False, **kwargs) -> None:
+        super().__init__([point], xform_matrix=None, subtype=Types.INTERSECTION, **kwargs)
         self._point = point
         self.division1 = division1
         self.division2 = division2
@@ -256,6 +202,15 @@ class Intersection(Shape):
         common_properties(self, id_only=True)
 
     def _update(self, xform_matrix: array, reps=0):
+        """Update the transformation matrix of the intersection.
+
+        Args:
+            xform_matrix (array): Transformation matrix.
+            reps (int, optional): Number of repetitions. Defaults to 0.
+
+        Returns:
+            Any: Updated intersection or list of updated intersections.
+        """
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
             res = self
@@ -269,6 +224,11 @@ class Intersection(Shape):
         return res
 
     def copy(self):
+        """Create a copy of the intersection.
+
+        Returns:
+            Intersection: A copy of the intersection.
+        """
         intersection = Intersection(self.point, self.division1, self.division2)
         for attrib in shape_style_map:
             setattr(intersection, attrib, getattr(self, attrib))
@@ -279,25 +239,52 @@ class Intersection(Shape):
 
     @property
     def point(self):
-        """Return the intersection point."""
+        """Return the intersection point.
+
+        Returns:
+            list: Intersection point coordinates.
+        """
         return list(np.array([*self._point, 1.0]) @ self.xform_matrix)[:2]
 
     def __str__(self):
+        """String representation of the intersection.
+
+        Returns:
+            str: String representation.
+        """
         return (
             f"Intersection({[round(x, defaults['n_round']) for x in self.point]}, "
             f"{tuple(list([self.division1, self.division2]))}"
         )
 
     def __repr__(self):
+        """String representation of the intersection.
+
+        Returns:
+            str: String representation.
+        """
         return str(self)
 
     def __eq__(self, other):
+        """Check if two intersections are equal.
+
+        Args:
+            other (Intersection): Another intersection.
+
+        Returns:
+            bool: True if equal, False otherwise.
+        """
         return close_points2(self.point, other.point, dist2=defaults["dist_tol"] ** 2)
 
 
 class Partition(Shape):
     """These are the polygons of the non-interlaced geometry.
-    Fragments and partitions are scaled versions of each other."""
+    Fragments and partitions are scaled versions of each other.
+
+    Args:
+        points (list): List of points defining the partition.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
+    """
 
     def __init__(self, points, **kwargs):
         super().__init__(points, **kwargs)
@@ -307,21 +294,33 @@ class Partition(Shape):
         common_properties(self)
 
     def __str__(self):
+        """String representation of the partition.
+
+        Returns:
+            str: String representation.
+        """
         return f"Part({self.vertices})"
 
     def __repr__(self):
+        """String representation of the partition.
+
+        Returns:
+            str: String representation.
+        """
         return self.__str__()
 
 
 class Fragment(Shape):
     """A Fragment is a collection of section objects that are connected
     to each other. These sections are already defined. They belong to
-    the polyline objects in a lace. Fragements can be open or closed.
+    the polyline objects in a lace. Fragments can be open or closed.
     They are created by the lace object.
+
+    Args:
+        points (list): List of points defining the fragment.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
-    # To do: we should create the fragments similar to the overlaps
-    # each fragment should have a list of sections
     def __init__(self, points, **kwargs):
         super().__init__(points, **kwargs)
         self.subtype = Types.FRAGMENT
@@ -334,19 +333,37 @@ class Fragment(Shape):
         common_properties(self)
 
     def __str__(self):
+        """String representation of the fragment.
+
+        Returns:
+            str: String representation.
+        """
         return f"Fragment({self.vertices})"
 
     def __repr__(self):
+        """String representation of the fragment.
+
+        Returns:
+            str: String representation.
+        """
         return self.__str__()
 
     @property
     def divisions(self):
-        """Return the divisions of the fragment."""
+        """Return the divisions of the fragment.
+
+        Returns:
+            list: List of divisions.
+        """
         return self._divisions
 
     @property
     def center(self):
-        """Return the center of the fragment."""
+        """Return the center of the fragment.
+
+        Returns:
+            list: Center coordinates.
+        """
         return self.CG
 
     def _set_divisions(self, dist_tol=None):
@@ -405,6 +422,16 @@ class Section(Shape):
     """A section is a line segment between two intersections.
     A division can have multiple sections. Sections are used to
     draw the over/under plaits.
+
+    Args:
+        start (Intersection): Start intersection.
+        end (Intersection): End intersection.
+        is_overlap (bool, optional): If the section is an overlap. Defaults to False.
+        overlap (Overlap, optional): Overlap object. Defaults to None.
+        is_over (bool, optional): If the section is over. Defaults to False.
+        twin (Section, optional): Twin section. Defaults to None.
+        fragment (Fragment, optional): Fragment object. Defaults to None.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
     def __init__(
@@ -435,6 +462,11 @@ class Section(Shape):
         common_properties(self)
 
     def copy(self):
+        """Create a copy of the section.
+
+        Returns:
+            Section: A copy of the section.
+        """
         overlap = self.overlap.copy() if self.overlap else None
         start = self.start.copy()
         end = self.end.copy()
@@ -443,7 +475,11 @@ class Section(Shape):
         return section
 
     def end_point(self):
-        """Return the end point of the section."""
+        """Return the end point of the section.
+
+        Returns:
+            Intersection: End intersection.
+        """
         if self.start.endpoint:
             res = self.start
         elif self.end.endpoint:
@@ -454,19 +490,41 @@ class Section(Shape):
         return res
 
     def __str__(self):
+        """String representation of the section.
+
+        Returns:
+            str: String representation.
+        """
         return f"Section({self.start}, {self.end})"
 
     def __repr__(self):
+        """String representation of the section.
+
+        Returns:
+            str: String representation.
+        """
         return self.__str__()
 
     @property
     def is_endpoint(self):
-        """Return True if the section is an endpoint."""
+        """Return True if the section is an endpoint.
+
+        Returns:
+            bool: True if endpoint, False otherwise.
+        """
         return self.start.endpoint or self.end.endpoint
 
 
 class Overlap(Batch):
-    """An overlap is a collection of four connected sections."""
+    """An overlap is a collection of four connected sections.
+
+    Args:
+        intersections (list[Intersection], optional): List of intersections. Defaults to None.
+        sections (list[Section], optional): List of sections. Defaults to None.
+        visited (bool, optional): If the overlap is visited. Defaults to False.
+        drawable (bool, optional): If the overlap is drawable. Defaults to True.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
+    """
 
     def __init__(
         self,
@@ -485,14 +543,31 @@ class Overlap(Batch):
         common_properties(self)
 
     def __str__(self):
+        """String representation of the overlap.
+
+        Returns:
+            str: String representation.
+        """
         return f"Overlap({self.id})"
 
     def __repr__(self):
+        """String representation of the overlap.
+
+        Returns:
+            str: String representation.
+        """
         return f"Overlap({self.id})"
 
 
 class Division(Shape):
-    """A division is a line segment between two intersections."""
+    """A division is a line segment between two intersections.
+
+    Args:
+        p1 (tuple): Start point.
+        p2 (tuple): End point.
+        xform_matrix (array, optional): Transformation matrix. Defaults to None.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
+    """
 
     def __init__(self, p1, p2, xform_matrix=None, **kwargs):
         super().__init__([p1, p2], subtype=Types.DIVISION, **kwargs)
@@ -511,6 +586,15 @@ class Division(Shape):
         common_properties(self)
 
     def _update(self, xform_matrix, reps=0):
+        """Update the transformation matrix of the division.
+
+        Args:
+            xform_matrix (array): Transformation matrix.
+            reps (int, optional): Number of repetitions. Defaults to 0.
+
+        Returns:
+            Any: Updated division or list of updated divisions.
+        """
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
             res = self
@@ -524,12 +608,22 @@ class Division(Shape):
         return res
 
     def __str__(self):
+        """String representation of the division.
+
+        Returns:
+            str: String representation.
+        """
         return (
             f"Division(({self.p1[0]:.2f}, {self.p1[1]:.2f}), "
             f"({self.p2[0]:.2f}, {self.p2[1]:.2f}))"
         )
 
     def __repr__(self):
+        """String representation of the division.
+
+        Returns:
+            str: String representation.
+        """
         return (
             f"Division(({self.p1[0]:.2f}, {self.p1[1]:.2f}), "
             f"({self.p2[0]:.2f}, {self.p2[1]:.2f}))"
@@ -540,6 +634,15 @@ class Division(Shape):
         section: Section = None,
         twin: Section = None,
     ):
+        """Create a copy of the division.
+
+        Args:
+            section (Section, optional): Section object. Defaults to None.
+            twin (Section, optional): Twin section. Defaults to None.
+
+        Returns:
+            Division: A copy of the division.
+        """
         division = Division(self.p1[:], self.p2[:], np.copy(self.xform_matrix))
         for attrib in shape_style_map:
             setattr(division, attrib, getattr(self, attrib))
@@ -555,6 +658,11 @@ class Division(Shape):
         return division
 
     def _merged_sections(self):
+        """Merge sections of the division.
+
+        Returns:
+            list: List of merged sections.
+        """
         chains = []
         chain = [self.intersections[0]]
         sections = self.sections[:]
@@ -570,25 +678,45 @@ class Division(Shape):
         return chains
 
     def _sort_intersections(self) -> None:
+        """Sort intersections of the division."""
         self.intersections.sort(key=lambda x: distance(self.p1, x.point))
 
     def is_connected(self, other: "Division") -> bool:
-        """Return True if the division is connected to another division."""
+        """Return True if the division is connected to another division.
+
+        Args:
+            other (Division): Another division.
+
+        Returns:
+            bool: True if connected, False otherwise.
+        """
         return self.p1 in other.end_points or self.p2 in other.end_points
 
     @property
     def end_points(self):
-        """Return the end points of the division."""
+        """Return the end points of the division.
+
+        Returns:
+            list: List of end points.
+        """
         return [self.p1, self.p2]
 
     @property
     def start(self) -> Intersection:
-        """Return the start intersection of the division."""
+        """Return the start intersection of the division.
+
+        Returns:
+            Intersection: Start intersection.
+        """
         return self.intersections[0]
 
     @property
     def end(self) -> Intersection:
-        """Return the end intersection of the division."""
+        """Return the end intersection of the division.
+
+        Returns:
+            Intersection: End intersection.
+        """
         return self.intersections[-1]
 
 
@@ -598,6 +726,12 @@ class Polyline(Shape):
     They can be closed or open.
     They are defined by a sequence of points.
     They have divisions, sections, and intersections.
+
+    Args:
+        points (list): List of points defining the polyline.
+        closed (bool, optional): If the polyline is closed. Defaults to True.
+        xform_matrix (array, optional): Transformation matrix. Defaults to None.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
     def __init__(self, points, closed=True, xform_matrix=None, **kwargs):
@@ -613,6 +747,15 @@ class Polyline(Shape):
         common_properties(self)
 
     def _update(self, xform_matrix, reps=0):
+        """Update the transformation matrix of the polyline.
+
+        Args:
+            xform_matrix (array): Transformation matrix.
+            reps (int, optional): Number of repetitions. Defaults to 0.
+
+        Returns:
+            Any: Updated polyline or list of updated polylines.
+        """
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
             for division in self.divisions:
@@ -628,21 +771,46 @@ class Polyline(Shape):
         return res
 
     def __str__(self):
+        """String representation of the polyline.
+
+        Returns:
+            str: String representation.
+        """
         return f"Polyline({self.final_coords[:, :2]})"
 
     def __repr__(self):
+        """String representation of the polyline.
+
+        Returns:
+            str: String representation.
+        """
         return self.__str__()
 
     def iter_sections(self) -> Iterator:
+        """Iterate over the sections of the polyline.
+
+        Yields:
+            Section: Section object.
+        """
         for division in self.divisions:
             yield from division.sections
 
     def iter_intersections(self):
+        """Iterate over the intersections of the polyline.
+
+        Yields:
+            Intersection: Intersection object.
+        """
         for division in self.divisions:
             yield from division.intersections
 
     @property
     def intersections(self):
+        """Return the intersections of the polyline.
+
+        Returns:
+            list: List of intersections.
+        """
         res = []
         for division in self.divisions:
             res.extend(division.intersections)
@@ -650,11 +818,20 @@ class Polyline(Shape):
 
     @property
     def area(self):
-        """Return the area of the polygon."""
+        """Return the area of the polygon.
+
+        Returns:
+            float: Area of the polygon.
+        """
         return polygon_area(self.vertices)
 
     @property
     def sections(self):
+        """Return the sections of the polyline.
+
+        Returns:
+            list: List of sections.
+        """
         sections = []
         for division in self.divisions:
             sections.extend(division.sections)
@@ -662,6 +839,11 @@ class Polyline(Shape):
 
     @property
     def divisions(self):
+        """Return the divisions of the polyline.
+
+        Returns:
+            list: List of divisions.
+        """
         return self.__dict__["divisions"]
 
     def _set_divisions(self):
@@ -673,7 +855,7 @@ class Polyline(Shape):
         self.__dict__["divisions"] = divisions
 
     def _set_intersections(self):
-        """fake intersections for open lines"""
+        """Fake intersections for open lines."""
         division1 = self.divisions[0]
         division2 = self.divisions[-1]
         x1 = Intersection(division1.p1, division1, None, True)
@@ -689,6 +871,15 @@ class ParallelPolyline(Batch):
     """A ParallelPolylines is a collection of parallel Polylines.
     They are defined by a main polyline and a list of offset
     values (that can be negative or positive).
+
+    Args:
+        polyline (Polyline): Main polyline.
+        offset (float): Offset value.
+        lace (Lace): Lace object.
+        under (bool, optional): If the polyline is under. Defaults to False.
+        closed (bool, optional): If the polyline is closed. Defaults to True.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
     def __init__(
@@ -726,6 +917,11 @@ class ParallelPolyline(Batch):
 
     @property
     def sections(self) -> List[Section]:
+        """Return the sections of the parallel polyline.
+
+        Returns:
+            list: List of sections.
+        """
         sects = []
         for polyline in self.polyline_list:
             sects.extend(polyline.sections)
@@ -756,6 +952,22 @@ class Lace(Batch):
     """
     A Lace is a collection of ParallelPolylines objects.
     They are used to create interlace patterns.
+
+    Args:
+        polygon_shapes (Union[Batch, list[Shape]], optional): List of polygon shapes. Defaults to None.
+        polyline_shapes (Union[Batch, list[Shape]], optional): List of polyline shapes. Defaults to None.
+        offset (float, optional): Offset value. Defaults to 2.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        swatch (list, optional): Swatch list. Defaults to None.
+        breakpoints (list, optional): Breakpoints list. Defaults to None.
+        plait_color (colors.Color, optional): Plait color. Defaults to None.
+        draw_fragments (bool, optional): If fragments should be drawn. Defaults to True.
+        palette (list, optional): Palette list. Defaults to None.
+        color_step (int, optional): Color step. Defaults to 1.
+        with_plaits (bool, optional): If plaits should be included. Defaults to True.
+        area_threshold (float, optional): Area threshold. Defaults to None.
+        radius_threshold (float, optional): Radius threshold. Defaults to None.
+        **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
     # @timing
@@ -897,10 +1109,20 @@ class Lace(Batch):
 
     @property
     def center(self):
+        """Return the center of the lace.
+
+        Returns:
+            list: Center coordinates.
+        """
         return self.outline.CG
 
     @property
     def fragment_groups(self):
+        """Return the fragment groups of the lace.
+
+        Returns:
+            dict: Dictionary of fragment groups.
+        """
         center = self.center
         radius_frag = []
         for fragment in self.fragments:
@@ -960,6 +1182,15 @@ class Lace(Batch):
         return polyline_shapes
 
     def _update(self, xform_matrix, reps=0):
+        """Update the transformation matrix of the lace.
+
+        Args:
+            xform_matrix (array): Transformation matrix.
+            reps (int, optional): Number of repetitions. Defaults to 0.
+
+        Returns:
+            Any: Updated lace or list of updated laces.
+        """
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
             for polygon in self.polygon_shapes:
@@ -1186,7 +1417,6 @@ class Lace(Batch):
         Return:
         --------
             A Sketch object.
-
         """
         fragments = []
         for fragment in self.fragments:
@@ -1213,7 +1443,14 @@ class Lace(Batch):
         return sketch
 
     def group_fragments(self, tol=None):
-        """_group the fragments by the number of vertices and the area."""
+        """Group the fragments by the number of vertices and the area.
+
+        Args:
+            tol (float, optional): Tolerance value. Defaults to None.
+
+        Returns:
+            list: List of grouped fragments.
+        """
         if tol is None:
             tol = defaults["tol"]
         frags = self.fragments
@@ -1239,6 +1476,9 @@ class Lace(Batch):
         intersections (start and end of the sections). Then find the
         cycles in the graph. self.d_intersections is used to map
         the graph nodes to the actual intersection points.
+
+        Returns:
+            list: List of fragment cycles.
         """
         graph_edges = []
         for section in self.iter_offset_sections():
@@ -1262,7 +1502,14 @@ class Lace(Batch):
             item.inner_lines.append(shape)
 
     def set_plait_lines(self, n, offset, line_color=colors.blue, line_width=1):
-        """Create offset lines inside the plaits of the lace."""
+        """Create offset lines inside the plaits of the lace.
+
+        Args:
+            n (int): Number of lines.
+            offset (float): Offset value.
+            line_color (colors.Color, optional): Line color. Defaults to colors.blue.
+            line_width (int, optional): Line width. Defaults to 1.
+        """
         for plait in self.plaits:
             plait.inner_lines = []
             self._set_inner_lines(plait, n, offset, line_color, line_width)
@@ -1276,6 +1523,12 @@ class Lace(Batch):
     ) -> None:
         """
         Create offset lines inside the fragments of the lace.
+
+        Args:
+            n (int): Number of lines.
+            offset (float): Offset value.
+            line_color (colors.Color, optional): Line color. Defaults to colors.blue.
+            line_width (int, optional): Line width. Defaults to 1.
         """
         for fragment in self.fragments:
             fragment.inner_lines = []
@@ -1285,6 +1538,9 @@ class Lace(Batch):
     def all_divisions(self) -> List:
         """
         Return a list of all the divisions (both main and offset) in the lace.
+
+        Returns:
+            list: List of all divisions.
         """
         res = []
         for parallel_polyline in self.parallel_poly_list:
@@ -1293,8 +1549,10 @@ class Lace(Batch):
         return res
 
     def iter_main_intersections(self) -> Iterator:
-        """'
-        Iterate over the main intersections.
+        """Iterate over the main intersections.
+
+        Yields:
+            Intersection: Intersection object.
         """
         for ppoly in self.parallel_poly_list:
             for division in ppoly.polyline.divisions:
@@ -1303,6 +1561,9 @@ class Lace(Batch):
     def iter_offset_intersections(self) -> Iterator:
         """
         Iterate over the offset intersections.
+
+        Yields:
+            Intersection: Intersection object.
         """
         for ppoly in self.parallel_poly_list:
             for poly in ppoly.offset_poly_list:
@@ -1312,6 +1573,9 @@ class Lace(Batch):
     def iter_offset_sections(self) -> Iterator:
         """
         Iterate over the offset sections.
+
+        Yields:
+            Section: Section object.
         """
         for ppoly in self.parallel_poly_list:
             for poly in ppoly.offset_poly_list:
@@ -1319,7 +1583,11 @@ class Lace(Batch):
                     yield from division.sections
 
     def iter_main_sections(self) -> Iterator:
-        """Iterate over the main sections."""
+        """Iterate over the main sections.
+
+        Yields:
+            Section: Section object.
+        """
         for ppoly in self.parallel_poly_list:
             for division in ppoly.polyline.divisions:
                 yield from division.sections
@@ -1327,6 +1595,9 @@ class Lace(Batch):
     def iter_offset_divisions(self) -> Iterator:
         """
         Iterate over the offset divisions.
+
+        Yields:
+            Division: Division object.
         """
         for ppoly in self.parallel_poly_list:
             for poly in ppoly.offset_poly_list:
@@ -1335,13 +1606,20 @@ class Lace(Batch):
     def iter_main_divisions(self) -> Iterator:
         """
         Iterate over the main divisions.
+
+        Yields:
+            Division: Division object.
         """
         for ppoly in self.parallel_poly_list:
             yield from ppoly.polyline.divisions
 
     @property
     def main_divisions(self) -> List[Division]:
-        """Main divisions are the divisions of the main polyline."""
+        """Main divisions are the divisions of the main polyline.
+
+        Returns:
+            list: List of main divisions.
+        """
         res = []
         for parallel_polyline in self.parallel_poly_list:
             res.extend(parallel_polyline.polyline.divisions)
@@ -1349,7 +1627,11 @@ class Lace(Batch):
 
     @property
     def offset_divisions(self) -> List[Division]:
-        """Offset divisions are the divisions of the offset polylines."""
+        """Offset divisions are the divisions of the offset polylines.
+
+        Returns:
+            list: List of offset divisions.
+        """
         res = []
         for parallel_polyline in self.parallel_poly_list:
             for polyline in parallel_polyline.offset_poly_list:
@@ -1358,7 +1640,11 @@ class Lace(Batch):
 
     @property
     def intersections(self) -> List[Intersection]:
-        """Return all the intersections in the parallel_poly_list."""
+        """Return all the intersections in the parallel_poly_list.
+
+        Returns:
+            list: List of intersections.
+        """
         res = []
         for parallel_polyline in self.parallel_poly_list:
             for polyline in parallel_polyline.polyline_list:
@@ -1386,7 +1672,6 @@ class Lace(Batch):
             * self.polygon_shapes and/or self.polyline_shapes must be
               established.
         """
-
         self.polyline_list = []
         if self.polygon_shapes:
             for polygon in self.polygon_shapes:
@@ -1423,7 +1708,6 @@ class Lace(Batch):
             for users to call directly. Without this method, the Lace
             object cannot be created.
         """
-
         self.parallel_poly_list = []
         if self.polyline_list:
             for _, polyline in enumerate(self.polyline_list):
@@ -1474,7 +1758,6 @@ class Lace(Batch):
             This method is called by the Lace constructor.  It is not
             for users to call directly.
             Without this method, the Lace object cannot be created.
-
         """
         G = nx.Graph()
         for section in self.iter_offset_sections():
@@ -1549,7 +1832,7 @@ class Lace(Batch):
             self.overlaps must be populated.
 
         Where used:
-        ----------
+        -----------
             Lace.__init__
 
         Notes:
@@ -1753,6 +2036,13 @@ class Lace(Batch):
         """Return a list of polygons from a list of lists of points.
         polylines: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
         return [[(x1, y1), (x2, y2), (x3, y3), ...], ...]
+
+        Args:
+            polylines (list): List of lists of points.
+            rtol (float, optional): Relative tolerance. Defaults to None.
+
+        Returns:
+            list: List of polygons.
         """
         if rtol is None:
             rtol = self.rtol
@@ -1813,6 +2103,9 @@ class Lace(Batch):
         """
         Return a networkx graph of the connected fragments.
         If two fragments have a "common" division then they are connected.
+
+        Returns:
+            nx.Graph: Graph of connected fragments.
         """
         G = nx.Graph()
         fragments = [(f.area, f) for f in self.fragments]
@@ -1830,8 +2123,10 @@ class Lace(Batch):
         """
         Return a networkx graph of the connected fragments.
         If two fragments have a "common" vertex then they are connected.
-        """
 
+        Returns:
+            nx.Graph: Graph of connected fragments.
+        """
         def get_neighbours(intersection):
             division = intersection.division
             if not division.next.twin:
@@ -1902,7 +2197,6 @@ def all_intersections(
             attribute.
         * Updates the d_intersections
         * Updates the d_connections
-
 
     Return:
     --------
@@ -2020,7 +2314,6 @@ def merge_nodes(
             attribute.
         * Updates the d_intersections
         * Updates the d_connections
-
 
     Return:
     --------

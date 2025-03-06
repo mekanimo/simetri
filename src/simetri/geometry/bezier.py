@@ -32,14 +32,20 @@ quad_poly_matrix = np.array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
 
 class Bezier(Shape):
     """A Bezier curve defined by control points.
+
     For cubic Bezier curves: [V1, CP1, CP2, V2]
     For quadratic Bezier curves: [V1, CP, V2]
     Like all other geometry in simetri.graphics,
     bezier curves are represented as a sequence of points.
     Both quadratic and cubic bezier curves are supported.
-    Number of control points determines the type of Bezier curve.a
+    Number of control points determines the type of Bezier curve.
     A cubic Bezier curve has 4 control points, while a quadratic Bezier curve has 3.
     curve.subtype reflects this as Types.BEZIER or Types.Q_BEZIER.
+
+    Attributes:
+        control_points (Sequence[Point]): Control points of the Bezier curve.
+        cubic (bool): True if the Bezier curve is cubic, False if quadratic.
+        matrix (array): Polynomial matrix for the Bezier curve.
     """
 
     def __init__(
@@ -49,6 +55,17 @@ class Bezier(Shape):
         n_points=None,
         **kwargs,
     ) -> None:
+        """Initializes a Bezier curve.
+
+        Args:
+            control_points (Sequence[Point]): Control points of the Bezier curve.
+            xform_matrix (array, optional): Transformation matrix. Defaults to None.
+            n_points (int, optional): Number of points on the curve. Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Raises:
+            ValueError: If the number of control points is not 3 or 4.
+        """
         if len(control_points) == 3:
             if n_points is None:
                 n = defaults["n_bezier_points"]
@@ -78,11 +95,23 @@ class Bezier(Shape):
 
     @property
     def control_points(self) -> Sequence[Point]:
-        """Return the control points of the Bezier curve."""
+        """Return the control points of the Bezier curve.
+
+        Returns:
+            Sequence[Point]: Control points of the Bezier curve.
+        """
         return self.control_points
 
     @control_points.setter
     def control_points(self, new_control_points: Sequence[Point]) -> None:
+        """Set new control points for the Bezier curve.
+
+        Args:
+            new_control_points (Sequence[Point]): New control points.
+
+        Raises:
+            ValueError: If the number of control points is not 3 or 4.
+        """
         self.control_points = new_control_points
         if len(new_control_points) == 3:
             vertices = q_bezier_points(*new_control_points)
@@ -96,7 +125,11 @@ class Bezier(Shape):
             raise ValueError("Invalid number of control points.")
 
     def copy(self) -> Shape:
-        """Return a copy of the Bezier curve."""
+        """Return a copy of the Bezier curve.
+
+        Returns:
+            Shape: Copy of the Bezier curve.
+        """
         # to do: copy style and other attributes
         copy_ = super().copy()
         copy_.control_points = self.control_points
@@ -104,15 +137,29 @@ class Bezier(Shape):
 
         return copy_
 
-    def point(self, t):
-        """Return the point on the Bezier curve at t."""
+    def point(self, t: float):
+        """Return the point on the Bezier curve at t.
+
+        Args:
+            t (float): Parameter t, where 0 <= t <= 1.
+
+        Returns:
+            list: Point on the Bezier curve at t.
+        """
         # if self.cubic:
         #     np.array([t**3, t**2, t, 1]) @ self.matrix
         # else:
         #     np.array([t**2, t, 1]) @ self.matrix
 
-    def point2(self, t):
-        """Return the point on the Bezier curve at t."""
+    def point2(self, t: float):
+        """Return the point on the Bezier curve at t.
+
+        Args:
+            t (float): Parameter t, where 0 <= t <= 1.
+
+        Returns:
+            list: Point on the Bezier curve at t.
+        """
         p0, p1, p2, p3 = self.control_points
         m = 1 - t
         m2 = m * m
@@ -128,29 +175,61 @@ class Bezier(Shape):
 
         return [x, y]
 
-    def derivative(self, t):
-        """Return the derivative of the Bezier curve at t."""
+    def derivative(self, t: float):
+        """Return the derivative of the Bezier curve at t.
+
+        Args:
+            t (float): Parameter t, where 0 <= t <= 1.
+
+        Returns:
+            list: Derivative of the Bezier curve at t.
+        """
         if self.cubic:
             return get_cubic_derivative(t, self.control_points)
         else:
             return get_quadratic_derivative(t, self.control_points)
 
-    def normal(self, t):
-        """Return the normal of the Bezier curve at t."""
+    def normal(self, t: float):
+        """Return the normal of the Bezier curve at t.
+
+        Args:
+            t (float): Parameter t, where 0 <= t <= 1.
+
+        Returns:
+            list: Normal of the Bezier curve at t.
+        """
         d = self.derivative(t)
         q = np.sqrt(d[0] * d[0] + d[1] * d[1])
         return [-d[1] / q, d[0] / q]
 
-    def tangent(self, t, d):
-        """draw a unit tangent vector at t."""
+    def tangent(self, t: float):
+        """Draw a unit tangent vector at t.
+
+        Args:
+            t (float): Parameter t, where 0 <= t <= 1.
+
+        Returns:
+            list: Unit tangent vector at t.
+        """
         d = self.derivative(t)
         m = np.sqrt(d[0] * d[0] + d[1] * d[1])
         d = [d[0] / m, d[1] / m]
         return d
 
 
-def equidistant_points(p0, p1, p2, p3, n_points=10):
-    """Return the points on a Bezier curve with equidistant spacing."""
+def equidistant_points(p0: Point, p1: Point, p2: Point, p3: Point, n_points=10):
+    """Return the points on a Bezier curve with equidistant spacing.
+
+    Args:
+        p0 (list): First control point.
+        p1 (list): Second control point.
+        p2 (list): Third control point.
+        p3 (list): Fourth control point.
+        n_points (int, optional): Number of points. Defaults to 10.
+
+    Returns:
+        tuple: Points on the Bezier curve, equidistant points, tangents, and normals.
+    """
     controls = [p0, p1, p2, p3]
     n = 100
     points = bezier_points(p0, p1, p2, p3, n)
@@ -179,7 +258,17 @@ def equidistant_points(p0, p1, p2, p3, n_points=10):
 
 
 def offset_points(controls, offset, n_points, double=False):
-    """Return the points on the offset curve."""
+    """Return the points on the offset curve.
+
+    Args:
+        controls (list): Control points of the Bezier curve.
+        offset (float): Offset distance.
+        n_points (int): Number of points on the curve.
+        double (bool, optional): If True, return double offset points. Defaults to False.
+
+    Returns:
+        list: Points on the offset curve.
+    """
     n = 100
     points = bezier_points(*controls, n_points=n)
     tot = 0
@@ -216,13 +305,31 @@ def offset_points(controls, offset, n_points, double=False):
 
 class BezierPoints(Shape):
     """Points of a Bezier curve defined by the given control points.
+
     These points are spaced evenly along the curve (unlike parametric points).
     Normal and tangent unit vectors are also available at these points.
+
+    Attributes:
+        control_points (Sequence[Point]): Control points of the Bezier curve.
+        param_points (list): Parametric points on the Bezier curve.
+        tangents (list): Tangent vectors at the points.
+        normals (list): Normal vectors at the points.
+        n_points (int): Number of points on the curve.
     """
 
     def __init__(
         self, control_points: Sequence[Point], n_points: int = 10, **kwargs
     ) -> None:
+        """Initializes Bezier points.
+
+        Args:
+            control_points (Sequence[Point]): Control points of the Bezier curve.
+            n_points (int, optional): Number of points on the curve. Defaults to 10.
+            **kwargs: Additional keyword arguments.
+
+        Raises:
+            ValueError: If the number of control points is not 3 or 4.
+        """
         if len(control_points) not in (4, 3):
             raise ValueError("Invalid number of control points.")
 
@@ -236,8 +343,16 @@ class BezierPoints(Shape):
         self.normals = normals
         self.n_points = n_points
 
-    def offsets(self, offset, double=False):
-        """Return the points on the offset curve."""
+    def offsets(self, offset: float, double: bool=False):
+        """Return the points on the offset curve.
+
+        Args:
+            offset (float): Offset distance.
+            double (bool, optional): If True, return double offset points. Defaults to False.
+
+        Returns:
+            list: Points on the offset curve.
+        """
         offset_points1 = []
         if double:
             offset_points2 = []
@@ -258,28 +373,22 @@ class BezierPoints(Shape):
 M = array([[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]])
 
 
-def bezier_points(p0, p1, p2, p3, n_points=10):
-    """Return the points on a cubic Bezier curve."""
-    # t = np.linspace(0, 1, n_points)
-    # x = (1 - t)**3 * p0[0] + 3 * (1 - t)**2 * t * p1[0] + 3 * (1 - t) * t**2 * p2[0] + t**3 * p3[0]
-    # y = (1 - t)**3 * p0[1] + 3 * (1 - t)**2 * t * p1[1] + 3 * (1 - t) * t**2 * p2[1] + t**3 * p3[1]
-    # Basis function:
-    # def basis(t):
-    #     t2 = t * t
-    #     t3 = t2 * t
-    #     mt = 1-t
-    #     mt2 = mt * mt
-    #     mt3 = mt2 * mt
-    #     return mt3 + 3*mt2*t + 3*mt*t2 + t3
-    # Weighted sum:
-    # def Bezier(3,t,w[]):
-    #     t2 = t * t
-    #     t3 = t2 * t
-    #     mt = 1-t
-    #     mt2 = mt * mt
-    #     mt3 = mt2 * mt
-    #     return w[0]*mt3 + 3*w[1]*mt2*t + 3*w[2]*mt*t2 + w[3]*t3
+def bezier_points(p0, p1: Point, p2: Point, p3: Point, n_points=10):
+    """Return the points on a cubic Bezier curve.
 
+    Args:
+        p0 (list): First control point.
+        p1 (list): Second control point.
+        p2 (list): Third control point.
+        p3 (list): Fourth control point.
+        n_points (int, optional): Number of points. Defaults to 10.
+
+    Returns:
+        list: Points on the cubic Bezier curve.
+
+    Raises:
+        ValueError: If n_points is less than 5.
+    """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")
 
@@ -298,24 +407,21 @@ def bezier_points(p0, p1, p2, p3, n_points=10):
 MQ = array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
 
 
-def q_bezier_points(p0, p1, p2, n_points):
-    """Return the points on a quadratic Bezier curve."""
-    # t = np.linspace(0, 1, n_points)
-    # x = (1 - t)**2 * p0[0] + 2 * (1 - t) * t * p1[0] + t**2 * p2[0]
-    # y = (1 - t)**2 * p0[1] + 2 * (1 - t) * t * p1[1] + t**2 * p2[1]
-    # Basis function:
-    # def basis(t):
-    #     t2 = t * t
-    #     mt = 1-t
-    #     mt2 = mt * mt
-    #     return mt2 + 2*mt*t + t2
-    # Weighted sum:
-    # def Bezier(2,t,w[]):
-    #     t2 = t * t
-    #     mt = 1-t
-    #     mt2 = mt * mt
-    #     return w[0]*mt2 + w[1]*2*mt*t + w[2]*t2
+def q_bezier_points(p0: Point, p1: Point, p2: Point, n_points: int):
+    """Return the points on a quadratic Bezier curve.
 
+    Args:
+        p0 (list): First control point.
+        p1 (list): Second control point.
+        p2 (list): Third control point.
+        n_points (int): Number of points.
+
+    Returns:
+        list: Points on the quadratic Bezier curve.
+
+    Raises:
+        ValueError: If n_points is less than 5.
+    """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")
 
@@ -330,8 +436,20 @@ def q_bezier_points(p0, p1, p2, n_points):
     return TMQ @ P
 
 
-def split_bezier(p0, p1, p2, p3, z, n_points=10):
-    """Split a cubic Bezier curve at t=z."""
+def split_bezier(p0: Point, p1: Point, p2: Point, p3: Point, z:float, n_points=10):
+    """Split a cubic Bezier curve at t=z.
+
+    Args:
+        p0 (list): First control point.
+        p1 (list): Second control point.
+        p2 (list): Third control point.
+        p3 (list): Fourth control point.
+        z (float): Parameter z, where 0 <= z <= 1.
+        n_points (int, optional): Number of points. Defaults to 10.
+
+    Returns:
+        tuple: Two Bezier curves split at t=z.
+    """
     p0 = array(p0)
     p1 = array(p1)
     p2 = array(p2)
@@ -358,8 +476,19 @@ def split_bezier(p0, p1, p2, p3, z, n_points=10):
     return Bezier(bezier1, n_points=n_points), Bezier(bezier2, n_points=n_points)
 
 
-def split_q_bezier(p0, p1, p2, z, n_points=10):
-    """Split a quadratic Bezier curve at t=z."""
+def split_q_bezier(p0: Point, p1: Point, p2: Point, z:float, n_points=10):
+    """Split a quadratic Bezier curve at t=z.
+
+    Args:
+        p0 (list): First control point.
+        p1 (list): Second control point.
+        p2 (list): Third control point.
+        z (float): Parameter z, where 0 <= z <= 1.
+        n_points (int, optional): Number of points. Defaults to 10.
+
+    Returns:
+        tuple: Two Bezier curves split at t=z.
+    """
     p0 = array(p0)
     p1 = array(p1)
     p2 = array(p2)
@@ -378,22 +507,38 @@ def split_q_bezier(p0, p1, p2, z, n_points=10):
     return Bezier(bezier1, n_points=n_points), Bezier(bezier2, n_points=n_points)
 
 
-def mirror_point(cp, vertex):
-    """Return the mirror of cp about vertex."""
+def mirror_point(cp: Point, vertex: Point):
+    """Return the mirror of cp about vertex.
+
+    Args:
+        cp (list): Control point to be mirrored.
+        vertex (list): Vertex point.
+
+    Returns:
+        list: Mirrored control point.
+    """
     length = distance(cp, vertex)
     angle = line_angle(cp, vertex)
     cp2 = line_by_point_angle_length(vertex, angle, length)
     return cp2
 
 
-def curve(v1, c1, c2, v2, *args, **kwargs):
+def curve(v1: Point, c1: Point, c2: Point, v2: Point, *args, **kwargs):
     """Return a cubic Bezier curve/s.
-    curve(v1, c1, c2, v2) is a single cubic Bezier curve.
-    curve(v1, c1, c2, v2, (c4, v3)) c3 is implied.
-    c3 is extension of c2-v2 line with the same length as
-    c1-v1 line.
-    curve(v1, c1, c2, v2, (c3, c4, v3)) v2 is shared.
-    Any combination of the above is valid.
+
+    Args:
+        v1 (list): First vertex.
+        c1 (list): First control point.
+        c2 (list): Second control point.
+        v2 (list): Second vertex.
+        *args: Additional control points and vertices.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        list: List of cubic Bezier curves.
+
+    Raises:
+        ValueError: If the number of control points is invalid.
     """
     curves = [Bezier([v1, c1, c2, v2], **kwargs)]
     last_vertex = v2
@@ -416,11 +561,21 @@ def curve(v1, c1, c2, v2, *args, **kwargs):
     return curves
 
 
-def q_curve(v1, c, v2, *args, **kwargs):
+def q_curve(v1: Point, c: Point, v2: Point, *args, **kwargs):
     """Return a quadratic Bezier curve/s.
-    q_curve(v1, c, v2) is a single quadratic Bezier curve.
-    q_curve(v1, c, v2, (c3, v3)) v2 is shared.
-    Any combination of the above is valid.
+
+    Args:
+        v1 (list): First vertex.
+        c (list): Control point.
+        v2 (list): Second vertex.
+        *args: Additional control points and vertices.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        list: List of quadratic Bezier curves.
+
+    Raises:
+        ValueError: If the number of control points is invalid.
     """
     curves = [Bezier([v1, c, v2], **kwargs)]
     last_vertex = v2
@@ -441,8 +596,16 @@ def q_curve(v1, c, v2, *args, **kwargs):
     return curves
 
 
-def get_quadratic_derivative(t, points):
-    """Return the derivative of a quadratic Bezier curve at t."""
+def get_quadratic_derivative(t: float, points: Sequence[Point]):
+    """Return the derivative of a quadratic Bezier curve at t.
+
+    Args:
+        t (float): Parameter t, where 0 <= t <= 1.
+        points (list): Control points of the Bezier curve.
+
+    Returns:
+        list: Derivative of the quadratic Bezier curve at t.
+    """
     mt = 1 - t
     d = [
         2 * (points[1][0] - points[0][0]),
@@ -454,8 +617,16 @@ def get_quadratic_derivative(t, points):
     return [mt * d[0] + t * d[2], mt * d[1] + t * d[3]]
 
 
-def get_cubic_derivative(t, points):
-    """Return the derivative of a cubic Bezier curve at t."""
+def get_cubic_derivative(t: float, points: Sequence[Point]):
+    """Return the derivative of a cubic Bezier curve at t.
+
+    Args:
+        t (float): Parameter t, where 0 <= t <= 1.
+        points (list): Control points of the Bezier curve.
+
+    Returns:
+        list: Derivative of the cubic Bezier curve at t.
+    """
     mt = 1 - t
     a = mt * mt
     b = 2 * mt * t
@@ -472,7 +643,14 @@ def get_cubic_derivative(t, points):
     return [a * d[0] + b * d[2] + c * d[4], a * d[1] + b * d[3] + c * d[5]]
 
 
-def get_normal(d):
-    """Return the normal of a given line."""
+def get_normal(d: Sequence[float]):
+    """Return the normal of a given line.
+
+    Args:
+        d (list): Derivative of the line.
+
+    Returns:
+        list: Normal of the line.
+    """
     q = np.sqrt(d[0] * d[0] + d[1] * d[1])
     return [-d[1] / q, d[0] / q]

@@ -19,21 +19,51 @@ from ..graphics.common import common_properties, Point
 from ..graphics.all_enums import ColorSpace, Types
 
 
-def change_hue(color, delta):
+def change_hue(color: 'Color', delta: float) -> 'Color':
+    """Changes the hue of a color by a specified delta value.
+
+    Args:
+        color: The Color object to modify.
+        delta: The amount to adjust the hue value (between 0.0 and 1.0).
+            Positive values increase hue, negative values decrease it.
+
+    Returns:
+        A new Color instance with the modified hue value.
+    """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
     r, g, b = colorsys.hls_to_rgb(hls[0] + delta, hls[1], hls[2])
     return Color(r, g, b, a)
 
 
-def change_lightness(color, delta):
+def change_lightness(color: 'Color', delta: float) -> 'Color':
+    """Changes the lightness of a color by a specified delta value.
+
+    Args:
+        color: The Color object to modify.
+        delta: The amount to adjust the lightness value (between -1.0 and 1.0).
+            Positive values increase lightness, negative values decrease it.
+
+    Returns:
+        A new Color instance with the modified lightness value.
+    """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
     r, g, b = colorsys.hls_to_rgb(hls[0], hls[1] + delta, hls[2])
     return Color(r, g, b, a)
 
 
-def change_saturation(color, delta):
+def change_saturation(color: 'Color', delta: float) -> 'Color':
+    """Changes the saturation of a color by a specified delta value.
+
+    Args:
+        color: The Color object to modify.
+        delta: The amount to adjust the saturation value (between -1.0 and 1.0).
+            Positive values increase saturation, negative values decrease it.
+
+    Returns:
+        A new Color instance with the modified saturation value.
+    """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
     r, g, b = colorsys.hls_to_rgb(hls[0], hls[1], hls[2] + delta)
@@ -80,6 +110,24 @@ def rgb_to_hex(r, g, b):
 
 @dataclass
 class Color:
+    """A class representing an RGB or RGBA color.
+
+    This class represents a color in RGB or RGBA color space. The default values
+    for the components are normalized between 0.0 and 1.0. Values outside this range
+    are automatically converted from the 0-255 range.
+
+    Attributes:
+        red: The red component of the color (0.0 to 1.0).
+        green: The green component of the color (0.0 to 1.0).
+        blue: The blue component of the color (0.0 to 1.0).
+        alpha: The alpha (transparency) component (0.0 to 1.0), default is 1.
+        space: The color space, default is "rgb".
+
+    Examples:
+        >>> red = Color(1.0, 0.0, 0.0)
+        >>> transparent_blue = Color(0.0, 0.0, 1.0, 0.5)
+        >>> rgb255 = Color(255, 0, 128)  # Will be automatically normalized
+    """
     red: int = 0
     green: int = 0
     blue: int = 0
@@ -236,6 +284,25 @@ def random_color():
 
 @dataclass
 class LinearGradient:
+    """A class representing a linear gradient.
+
+    This class defines a linear gradient between two points with specified colors.
+
+    Attributes:
+        x1: The x-coordinate of the starting point.
+        y1: The y-coordinate of the starting point.
+        x2: The x-coordinate of the ending point.
+        y2: The y-coordinate of the ending point.
+        colors: A sequence of Color objects defining the gradient colors.
+        positions: A sequence of Point objects defining the gradient positions.
+        extend: Whether to extend the gradient beyond its endpoints.
+
+    Examples:
+        >>> from simetri.graphics.common import Point
+        >>> gradient = LinearGradient(0, 0, 100, 100,
+        ...                          [Color(1, 0, 0), Color(0, 0, 1)],
+        ...                          [Point(0, 0), Point(100, 100)])
+    """
     x1: float = 0.0
     y1: float = 0.0
     x2: float = 0.0
@@ -252,6 +319,24 @@ class LinearGradient:
 
 @dataclass
 class RadialGradient:
+    """A class representing a radial gradient.
+
+    This class defines a radial gradient that radiates outward from a center point.
+
+    Attributes:
+        x: The x-coordinate of the center point.
+        y: The y-coordinate of the center point.
+        radius: The radius of the gradient.
+        colors: A sequence of Color objects defining the gradient colors.
+        positions: A sequence of Point objects defining the gradient positions.
+        extend: Whether to extend the gradient beyond its defined radius.
+
+    Examples:
+        >>> from simetri.graphics.common import Point
+        >>> gradient = RadialGradient(50, 50, 30,
+        ...                         [Color(1, 1, 1), Color(0, 0, 0)],
+        ...                         [Point(50, 50), Point(80, 50)])
+    """
     x: float = 0.0
     y: float = 0.0
     radius: float = 0.0
@@ -299,61 +384,6 @@ auburn = Color(0.604, 0.188, 0.004)
 avocado = Color(0.565, 0.694, 0.204)
 avocado_green = Color(0.529, 0.663, 0.133)
 azul = Color(0.114, 0.365, 0.925)
-azure = Color(0.024, 0.604, 0.953)
-baby_blue = Color(0.635, 0.812, 0.996)
-baby_green = Color(0.549, 1.0, 0.62)
-baby_pink = Color(1.0, 0.718, 0.808)
-baby_poo = Color(0.671, 0.565, 0.016)
-baby_poop = Color(0.576, 0.486, 0.0)
-baby_poop_green = Color(0.561, 0.596, 0.02)
-baby_puke_green = Color(0.714, 0.769, 0.024)
-baby_purple = Color(0.792, 0.608, 0.969)
-baby_shit_brown = Color(0.678, 0.565, 0.051)
-baby_shit_green = Color(0.533, 0.592, 0.09)
-banana = Color(1.0, 1.0, 0.494)
-banana_yellow = Color(0.98, 0.996, 0.294)
-barbie_pink = Color(0.996, 0.275, 0.647)
-barf_green = Color(0.58, 0.675, 0.008)
-barney = Color(0.675, 0.114, 0.722)
-barney_purple = Color(0.627, 0.016, 0.596)
-battleship_grey = Color(0.42, 0.486, 0.522)
-battleship_gray = Color(0.42, 0.486, 0.522)
-beige = Color(0.902, 0.855, 0.651)
-berry = Color(0.6, 0.059, 0.294)
-bile = Color(0.71, 0.765, 0.024)
-black = Color(0.0, 0.0, 0.0)
-bland = Color(0.686, 0.659, 0.545)
-blood = Color(0.467, 0.0, 0.004)
-blood_orange = Color(0.996, 0.294, 0.012)
-blood_red = Color(0.596, 0.0, 0.008)
-blue = Color(0.012, 0.263, 0.875)
-blue_blue = Color(0.133, 0.259, 0.78)
-blue_green = Color(0.075, 0.494, 0.427)
-blue_grey = Color(0.376, 0.486, 0.557)
-blue_gray = Color(0.376, 0.486, 0.557)
-blue_purple = Color(0.341, 0.161, 0.808)
-blue_violet = Color(0.365, 0.024, 0.914)
-blue_with_a_hint_of_purple = Color(0.325, 0.235, 0.776)
-blue_purple = Color(0.353, 0.024, 0.937)
-blueberry = Color(0.275, 0.255, 0.588)
-bluegreen = Color(0.004, 0.478, 0.475)
-bluegrey = Color(0.522, 0.639, 0.698)
-bluegray = Color(0.522, 0.639, 0.698)
-bluey_green = Color(0.169, 0.694, 0.475)
-bluey_grey = Color(0.537, 0.627, 0.69)
-bluey_gray = Color(0.537, 0.627, 0.69)
-bluey_purple = Color(0.384, 0.255, 0.78)
-bluish = Color(0.161, 0.463, 0.733)
-bluish_green = Color(0.063, 0.651, 0.455)
-bluish_grey = Color(0.455, 0.545, 0.592)
-bluish_gray = Color(0.455, 0.545, 0.592)
-bluish_purple = Color(0.439, 0.231, 0.906)
-blurple = Color(0.333, 0.224, 0.8)
-blush = Color(0.949, 0.62, 0.557)
-blush_pink = Color(0.996, 0.51, 0.549)
-booger = Color(0.608, 0.71, 0.235)
-booger_green = Color(0.588, 0.706, 0.012)
-bordeaux = Color(0.482, 0.0, 0.173)
 boring_green = Color(0.388, 0.702, 0.396)
 bottle_green = Color(0.016, 0.29, 0.02)
 brick = Color(0.627, 0.212, 0.137)

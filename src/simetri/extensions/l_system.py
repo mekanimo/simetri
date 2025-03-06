@@ -10,7 +10,30 @@ from .turtle_sg import Turtle
 def l_system(
     rules: dict, axiom: str, angle: float, dist: float, n: int, d_actions: dict = None
 ):
-    """Generate a Lindenmayer system (L-system) using the given rules."""
+    """Generate a Lindenmayer system (L-system) using the given rules.
+
+    An L-system is a parallel rewriting system that uses recursive rules to
+    generate complex patterns. This function interprets the generated string
+    as turtle graphics commands.
+
+    Args:
+        rules: A dictionary with characters as keys and strings as values.
+               Each character in the axiom or resulting string will be replaced
+               by its corresponding rule in each iteration.
+        axiom: The initial string to start the L-system.
+        angle: The angle (in degrees) for turtle rotation commands.
+        dist: The distance for turtle forward/backward movement.
+        n: The number of iterations to apply the rules.
+        d_actions: Optional dictionary mapping characters to turtle methods.
+                  This allows extending the default command set.
+
+    Returns:
+        Batch: A batch of shapes representing the L-system drawing.
+
+    Example:
+        >>> rules = {'F': 'F+F-F-F+F'}  # Koch curve
+        >>> batch = l_system(rules, 'F', 60, 10, 3)
+    """
 
     turtle = Turtle(in_degrees=True)
     turtle.def_angle = angle
@@ -32,6 +55,15 @@ def l_system(
             actions[key] = method
 
     def expand(axiom, rules):
+        """Expand the axiom using the provided rules.
+
+        Args:
+            axiom: The string to expand.
+            rules: Dictionary of replacement rules.
+
+        Returns:
+            str: The expanded string after applying the rules.
+        """
         return "".join([rules.get(char, char) for char in axiom])
 
     for _ in range(n):

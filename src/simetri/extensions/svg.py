@@ -1,5 +1,5 @@
 import webbrowser
-from typing import Sequence
+from typing import Sequence, Dict, List, Tuple, Union, Any, Optional
 
 from simetri.common import Type, FillMode, LineCap, LineJoin, MarkerPos
 from simetri.geometry import close_points
@@ -25,9 +25,18 @@ from simetri.palettes import (
 )
 
 
-def get_header(width, height, title=None, back_color=None):
-    """Return a string of the header of an SVG file."""
+def get_header(width: float, height: float, title: Optional[str] = None, back_color: Optional[str] = None) -> str:
+    """Return a string of the header of an SVG file.
 
+    Args:
+        width: Width of the SVG canvas in points.
+        height: Height of the SVG canvas in points.
+        title: Optional title for the SVG document.
+        back_color: Optional background color for the SVG canvas.
+
+    Returns:
+        str: SVG header string with optional title and background.
+    """
     header = (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}pt" height="{height}pt"'
     )
@@ -40,50 +49,62 @@ def get_header(width, height, title=None, back_color=None):
     return header
 
 
-def get_footer():
-    """Return a string of the footer of an SVG file."""
+def get_footer() -> str:
+    """Return a string of the footer of an SVG file.
+
+    Returns:
+        str: SVG closing tag.
+    """
     return "</svg>\n"
 
 
-def __setStyle(canvas, item, **kwargs):
+def __setStyle(canvas: "sg.Canvas", item: Any, **kwargs) -> None:
+    """Set style attributes for SVG elements based on a priority cascade.
+
+    This function determines the styling for SVG elements following this priority:
+    1. Use value from kwargs if provided
+    2. Use item's style attribute if available
+    3. Use canvas style if available
+    4. Fall back to default style if none of the above exist
+
+    Args:
+        canvas: The canvas object containing default style information.
+        item: The graphical item to style.
+        **kwargs: Style overrides to apply, which take highest precedence.
+
+    Note:
+        For polygons, supported styles include:
+        - fill_color: Color to fill polygon with
+        - line_color: Color for outline
+        - line_width: Width of outline
+        - line_join: Join style for line segments
+        - line_cap: Cap style for line ends
+        - line_dash_array: Pattern for dashed lines
+        - stroke: Whether to draw outline (True->1, False->0)
+        - even_odd: Fill rule (True->1 even-odd, False->0 nonzero)
+        - fill: Whether to fill polygon (True->1, False->0)
+
+        For polylines:
+        - line_color: Color for line
+        - line_width: Width of line
+        - line_join: Join style for line segments
+        - line_cap: Cap style for line ends
+        - line_dash_array: Pattern for dashed lines
+        - stroke: Whether to draw line (True->1, False->0)
     """
-    check if kwargs has the attribute
-        if it does
-            use that value
-        if it doesn't
-            check if the item has a style attribute
-                if it does
-                    use that value
-                if it doesn't
-                    use the canvas style
-                    if the canvas style is None,
-                        use the default style
+    pass
 
 
-    For polygons:
-    fill_color -> _rlCanvas.setFillColor(color)
-    line_color -> _rlCanvas.setLineColor(color)
-    line_width -> _rlCanvas.setLineWidth(width)
-    line_join -> _rlCanvas.setLineJoin(join)
-    line_cap -> _rlCanvas.setLineCap(cap)
-    line_dash_array -> _rlCanvas.setLineDash(dashArray, phase)
-    stroke -> _rlCanvas.stroke 0 no lines 1 lines (True->1, False->0)
-    even_odd -> _rlCanvas.evenOddFill 0 nonzero 1 even_odd (True->1, False->0)
-    fill -> _rlCanvas.fill 0 no fill 1 fill (True->1, False->0)
+def get_style(shape: Any, tol: float = TOL) -> str:
+    """Return a string of style attributes for the given shape.
 
+    Args:
+        shape: The shape object to extract styling from.
+        tol: Tolerance value for numerical comparisons.
 
-    For polylines:
-    line_color -> _rlCanvas.setLineColor(color)
-    line_width -> _rlCanvas.setLineWidth(width)
-    line_join -> _rlCanvas.setLineJoin(join)
-    line_cap -> _rlCanvas.setLineCap(cap)
-    line_dash_array -> _rlCanvas.setLineDash(dashArray, phase)
-    stroke -> _rlCanvas.stroke 0 no lines 1 lines (True->1, False->0)
+    Returns:
+        str: CSS style string for SVG elements.
     """
-
-
-def get_style(shape, tol=TOL):
-    """Return a string of style attributes for the given shape."""
     dict_line_style = {
         "line_width": "stroke-width",
         "line_color": "stroke",
@@ -105,7 +126,6 @@ def get_style(shape, tol=TOL):
         "line_miter_limit": "stroke-miterlimit",
         "line_join": "stroke-linejoin",
         "line_cap": "stroke-linecap",
-        "fill_mode": "fill-rule",
     }
 
     dict_line_join = {
@@ -201,20 +221,39 @@ def draw_circle(
     line_join: LineJoin = defaults['line_join'],
     line_miter_limit: float = defaults['line_miter_limit'],
     line_dash_array: Sequence = defaults['line_dash_array'],
-):
+) -> str:
+    """Generate SVG markup for a circle.
+
+    Args:
+        canvas: The canvas to draw on.
+        cx: X-coordinate of the circle center.
+        cy: Y-coordinate of the circle center.
+        radius: Radius of the circle.
+        fill_color: Color to fill the circle with.
+        fill_alpha: Opacity level for the fill (0.0-1.0).
+        line_width: Width of the circle's outline.
+        line_color: Color of the circle's outline.
+        line_alpha: Opacity level for the outline (0.0-1.0).
+        line_cap: Style for the endpoints of the outline.
+        line_join: Style for the joins between line segments.
+        line_miter_limit: Limit for the miter join style.
+        line_dash_array: Pattern for dashed lines.
+
+    Returns:
+        str: SVG circle element.
+    """
     style = f"""stroke={line_color} stroke-width={line_width} fill={fill_color}
         fill-opacity={fill_alpha} stroke-opacity={line_alpha}
         stroke-linecap={line_cap} stroke-linejoin={line_join}
         stroke-miterlimit={line_miter_limit} stroke-dasharray={line_dash_array}"""
-    """Return a string of an SVG circle."""
     return f'<circle cx="{cx}" cy="{cy}" r="{radius}" style="{style}" />\n'
 
 
 def draw_line(
-    x1,
-    y1,
-    x2,
-    y2,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
     line_width: float = defaults['line_width'],
     line_color: colors.Color = defaults['line_color'],
     line_alpha: float = defaults['line_alpha'],
@@ -222,8 +261,25 @@ def draw_line(
     line_join: LineJoin = defaults['line_join'],
     line_miter_limit: float = defaults['line_miter_limit'],
     line_dash_array: Sequence = defaults['line_dash_array'],
-):
-    """Return a string of an SVG line."""
+) -> str:
+    """Generate SVG markup for a line.
+
+    Args:
+        x1: X-coordinate of the start point.
+        y1: Y-coordinate of the start point.
+        x2: X-coordinate of the end point.
+        y2: Y-coordinate of the end point.
+        line_width: Width of the line.
+        line_color: Color of the line.
+        line_alpha: Opacity level for the line (0.0-1.0).
+        line_cap: Style for the endpoints of the line.
+        line_join: Style for the joins between line segments.
+        line_miter_limit: Limit for the miter join style.
+        line_dash_array: Pattern for dashed lines.
+
+    Returns:
+        str: SVG line element.
+    """
     style = f"""stroke={line_color} stroke-width={line_width}
         stroke-opacity={line_alpha} stroke-linecap={line_cap}
         stroke-linejoin={line_join} stroke-miterlimit={line_miter_limit}
@@ -232,7 +288,7 @@ def draw_line(
 
 
 def draw_lines(
-    points,
+    points: str,
     line_width: float = defaults['line_width'],
     line_color: colors.Color = defaults['line_color'],
     line_alpha: float = defaults['line_alpha'],
@@ -240,8 +296,22 @@ def draw_lines(
     line_join: LineJoin = defaults['line_join'],
     line_miter_limit: float = defaults['line_miter_limit'],
     line_dash_array: Sequence = defaults['line_dash_array'],
-):
-    """Draw a series of connected lines."""
+) -> str:
+    """Generate SVG markup for a series of connected lines.
+
+    Args:
+        points: String representation of points coordinates.
+        line_width: Width of the lines.
+        line_color: Color of the lines.
+        line_alpha: Opacity level for the lines (0.0-1.0).
+        line_cap: Style for the endpoints of the lines.
+        line_join: Style for the joins between line segments.
+        line_miter_limit: Limit for the miter join style.
+        line_dash_array: Pattern for dashed lines.
+
+    Returns:
+        str: SVG polyline element.
+    """
     style = f"""stroke={line_color} stroke-width={line_width}
         stroke-opacity={line_alpha} stroke-linecap={line_cap}
         stroke-linejoin={line_join} stroke-miterlimit={line_miter_limit}
@@ -250,7 +320,7 @@ def draw_lines(
 
 
 def draw_polygon(
-    points,
+    points: str,
     fill_color: colors.Color = defaults['fill_color'],
     fill_alpha: float = defaults['fill_alpha'],
     line_width: float = defaults['line_width'],
@@ -260,8 +330,24 @@ def draw_polygon(
     line_join: LineJoin = defaults['line_join'],
     line_miter_limit: float = defaults['line_miter_limit'],
     line_dash_array: Sequence = defaults['line_dash_array'],
-):
-    """Draw a polygon with points."""
+) -> str:
+    """Generate SVG markup for a polygon.
+
+    Args:
+        points: String representation of points coordinates.
+        fill_color: Color to fill the polygon with.
+        fill_alpha: Opacity level for the fill (0.0-1.0).
+        line_width: Width of the polygon outline.
+        line_color: Color of the polygon outline.
+        line_alpha: Opacity level for the outline (0.0-1.0).
+        line_cap: Style for the endpoints of the outline.
+        line_join: Style for the joins between line segments.
+        line_miter_limit: Limit for the miter join style.
+        line_dash_array: Pattern for dashed lines.
+
+    Returns:
+        str: SVG polygon element.
+    """
     style = f"""stroke={line_color} stroke-width={line_width} fill={fill_color}
         fill-opacity={fill_alpha} stroke-opacity={line_alpha}
         stroke-linecap={line_cap} stroke-linejoin={line_join}
@@ -283,8 +369,27 @@ def draw_rect(
     line_join: LineJoin = defaults['line_join'],
     line_miter_limit: float = defaults['line_miter_limit'],
     line_dash_array: Sequence = defaults['line_dash_array'],
-):
-    """Draw a rectangle."""
+) -> str:
+    """Generate SVG markup for a rectangle.
+
+    Args:
+        x: X-coordinate of the top-left corner.
+        y: Y-coordinate of the top-left corner.
+        width: Width of the rectangle.
+        height: Height of the rectangle.
+        fill_color: Color to fill the rectangle with.
+        fill_alpha: Opacity level for the fill (0.0-1.0).
+        line_width: Width of the rectangle outline.
+        line_color: Color of the rectangle outline.
+        line_alpha: Opacity level for the outline (0.0-1.0).
+        line_cap: Style for the endpoints of the outline.
+        line_join: Style for the joins between line segments.
+        line_miter_limit: Limit for the miter join style.
+        line_dash_array: Pattern for dashed lines.
+
+    Returns:
+        str: SVG rectangle element.
+    """
     style = f"""stroke={line_color} stroke-width={line_width} fill={fill_color}
         fill-opacity={fill_alpha} stroke-opacity={line_alpha}
         stroke-linecap={line_cap} stroke-linejoin={line_join}
@@ -295,22 +400,48 @@ def draw_rect(
 
 
 def draw_text(
-    canvas,
-    x,
-    y,
-    text,
-    font_name="Helvetica",
-    font_size=11,
-    fill_color=colors.black,
-    angle=0,
-    anchor="sw",
-):
-    """Draw text on the canvas."""
+    canvas: "sg.Canvas",
+    x: float,
+    y: float,
+    text: str,
+    font_name: str = "Helvetica",
+    font_size: int = 11,
+    fill_color: colors.Color = colors.black,
+    angle: float = 0,
+    anchor: str = "sw",
+) -> str:
+    """Generate SVG markup for text.
+
+    Args:
+        canvas: The canvas to draw on.
+        x: X-coordinate for text placement.
+        y: Y-coordinate for text placement.
+        text: The text to draw.
+        font_name: Name of the font to use.
+        font_size: Font size in points.
+        fill_color: Color of the text.
+        angle: Rotation angle of the text in degrees.
+        anchor: Text anchor position ("sw", "n", "e", etc.).
+
+    Returns:
+        str: SVG text element.
+    """
     style = None
     return f'<text x="{x}" y="{y}" style="{style}">{text}</text>\n'
 
 
-def create_SVG(code, canvas, dict_ID_obj, tol=TOL):
+def create_SVG(code: List[str], canvas: "sg.Canvas", dict_ID_obj: Dict[str, Any], tol: float = TOL) -> str:
+    """Create the complete SVG representation of the canvas.
+
+    Args:
+        code: List of code instructions to execute.
+        canvas: The canvas containing drawing information.
+        dict_ID_obj: Dictionary mapping IDs to drawing objects.
+        tol: Tolerance value for numerical comparisons.
+
+    Returns:
+        str: Complete SVG document.
+    """
     translate = translation_matrix(0, canvas.height)
     reflect = mirror_matrix([(0, canvas.height), (1, canvas.height)])
     svg_transform = translate @ reflect  # svg origin is at top left
@@ -394,10 +525,26 @@ def create_SVG(code, canvas, dict_ID_obj, tol=TOL):
 
 
 def _draw_background(self) -> None:
+    """Draw the background for the canvas.
+
+    Args:
+        self: The canvas object.
+    """
     self._drawing.add(gs.Rect(0, 0, self.width, self.height, fill_color=self.back_color))
 
 
-def save_SVG(canvas, file_path, dict_ID_obj, show=SHOWBROWSER):
+def save_SVG(canvas: "sg.Canvas", file_path: str, dict_ID_obj: Dict[str, Any], show: bool = SHOWBROWSER) -> None:
+    """Save the canvas as an SVG file.
+
+    Args:
+        canvas: The canvas to save.
+        file_path: Path where the SVG file will be saved.
+        dict_ID_obj: Dictionary mapping IDs to drawing objects.
+        show: If True, open the saved SVG file in a web browser.
+
+    Raises:
+        RuntimeError: If the file path is invalid.
+    """
     valid, error_message, extension = analyze_path(file_path)
     if valid:
         if extension == ".svg":

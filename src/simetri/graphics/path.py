@@ -25,13 +25,20 @@ from ..settings.settings import defaults
 
 @dataclass
 class Operation:
-    """An operation for a Path object."""
+    """An operation for a Path object.
+
+    Attributes:
+        subtype (Types): The subtype of the operation.
+        data (tuple): The data associated with the operation.
+        name (str): The name of the operation.
+    """
 
     subtype: Types
     data: tuple
     name: str = ""
 
     def __post_init__(self):
+        """Post-initialization to set the type and common properties."""
         self.type = Types.PATH_OPERATION
         common_properties(self, False)
 

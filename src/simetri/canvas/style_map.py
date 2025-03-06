@@ -33,7 +33,14 @@ from ..colors import Color
 
 
 def _set_style_args(obj, attribs, exact=None, prefix=None):
-    """Set the style arguments for the given object."""
+    """Set the style arguments for the given object.
+
+    Args:
+        obj: The object to set the style arguments for.
+        attribs: List of attributes to set.
+        exact: List of exact attributes to set.
+        prefix: Prefix to use for the attributes.
+    """
     for attrib in attribs:
         if exact and attrib in exact:
             default = defaults.get(attrib, VOID)
@@ -48,8 +55,18 @@ def _set_style_args(obj, attribs, exact=None, prefix=None):
                     setattr(obj, attrib, default)
 
 
-def _get_style_attribs(style: Types.STYLE, prefix: str = None, exact:list=None, exclude:list=None) -> List[str]:
-    """Get the list of attributes from the given Style object."""
+def _get_style_attribs(style: Types.STYLE, prefix: str = None, exact: list = None, exclude: list = None) -> List[str]:
+    """Get the list of attributes from the given Style object.
+
+    Args:
+        style (Types.STYLE): The style object to get attributes from.
+        prefix (str, optional): The prefix to use for the attributes. Defaults to None.
+        exact (list, optional): List of exact attributes to include. Defaults to None.
+        exclude (list, optional): List of attributes to exclude. Defaults to None.
+
+    Returns:
+        List[str]: List of attributes.
+    """
     attribs = style.__dict__.keys()
     res = []
     for attrib in attribs:
@@ -64,7 +81,23 @@ def _get_style_attribs(style: Types.STYLE, prefix: str = None, exact:list=None, 
 
 @dataclass
 class FontStyle:
-    """FontStyle is used to set the font, color, and style of text."""
+    """FontStyle is used to set the font, color, and style of text.
+
+    Attributes:
+        font_family (str): The font family.
+        color (Color): The color of the font.
+        family (Union[FontFamily, str]): The font family.
+        size (Union[FontSize, float]): The size of the font.
+        bold (bool): Whether the font is bold.
+        italic (bool): Whether the font is italic.
+        small_caps (bool): Whether the font uses small caps.
+        old_style_nums (bool): Whether the font uses old style numbers.
+        overline (bool): Whether the font has an overline.
+        strike_through (bool): Whether the font has a strike through.
+        underline (bool): Whether the font is underlined.
+        blend_mode (BlendMode): The blend mode of the font.
+        alpha (float): The alpha value of the font.
+    """
 
     font_family: str = None
     color: Color = None
@@ -81,6 +114,7 @@ class FontStyle:
     alpha: float = None
 
     def __post_init__(self):
+        """Initialize the FontStyle object."""
         exact = [
             "bold",
             "italic",
@@ -107,7 +141,14 @@ class FontStyle:
 
 @dataclass
 class GridStyle:
-    """GridStyle is used to set the grid color, alpha, width, and pattern."""
+    """GridStyle is used to set the grid color, alpha, width, and pattern.
+
+    Attributes:
+        line_color (Color): The color of the grid lines.
+        line_width (float): The width of the grid lines.
+        alpha (float): The alpha value of the grid.
+        back_color (Color): The background color of the grid.
+    """
 
     line_color: Color = None
     line_width: float = None
@@ -117,6 +158,7 @@ class GridStyle:
     back_color: Color = None
 
     def __post_init__(self):
+        """Initialize the GridStyle object."""
         exact = []
         exclude = []
 
@@ -131,12 +173,15 @@ class GridStyle:
         self._exclude = exclude
 
     def __str__(self):
+        """Return a string representation of the GridStyle object."""
         return f"GridStyle: {self.id}"
 
     def __repr__(self):
+        """Return a string representation of the GridStyle object."""
         return f"GridStyle: {self.id}"
 
     def _get_attributes(self):
+        """Get the attributes of the GridStyle object."""
         attribs = [x for x in self.__dict__ if not x.startswith("_")]
         res = []
         for attrib in attribs:
@@ -148,7 +193,14 @@ class GridStyle:
 
 @dataclass
 class MarkerStyle:
-    """Marker is used to set the marker type, size, and color of a shape."""
+    """MarkerStyle is used to set the marker type, size, and color of a shape.
+
+    Attributes:
+        marker_type (MarkerType): The type of the marker.
+        size (float): The size of the marker.
+        color (Color): The color of the marker.
+        radius (float): The radius of the marker.
+    """
 
     marker_type: MarkerType = None
     size: float = None
@@ -156,6 +208,7 @@ class MarkerStyle:
     radius: float = None
 
     def __post_init__(self):
+        """Initialize the MarkerStyle object."""
         exact = ["marker_type"]
         exclude = []
         _style_init(
@@ -169,12 +222,33 @@ class MarkerStyle:
         self._exclude = exclude
 
     def __str__(self):
+        """Return a string representation of the MarkerStyle object."""
         return f"Marker: {self.type}"
 
 
 @dataclass
 class LineStyle:
-    """LineStyle is used to set the line color, alpha, width, and pattern of a shape."""
+    """LineStyle is used to set the line color, alpha, width, and pattern of a shape.
+
+    Attributes:
+        color (Color): The color of the line.
+        alpha (float): The alpha value of the line.
+        width (int): The width of the line.
+        dash_array (Optional[Sequence[float]]): The dash array of the line.
+        dash_phase (float): The dash phase of the line.
+        cap (LineCap): The cap style of the line.
+        join (LineJoin): The join style of the line.
+        miter_limit (float): The miter limit of the line.
+        fillet_radius (float): The fillet radius of the line.
+        marker_style (MarkerStyle): The marker style of the line.
+        smooth (bool): Whether the line is smooth.
+        stroke (bool): Whether the line is stroked.
+        draw_markers (bool): Whether to draw markers on the line.
+        draw_fillets (bool): Whether to draw fillets on the line.
+        markers_only (bool): Whether to draw only markers on the line.
+        double_lines (bool): Whether to draw double lines.
+        double_distance (float): The distance between double lines.
+    """
 
     # To do: Add support for arrows
     color: Color = None
@@ -196,6 +270,7 @@ class LineStyle:
     double_distance: float = None
 
     def __post_init__(self):
+        """Initialize the LineStyle object."""
         exact = [
             "smooth",
             "stroke",
@@ -216,10 +291,20 @@ class LineStyle:
         self.marker_style = MarkerStyle()
 
     def __str__(self):
+        """Return a string representation of the LineStyle object."""
         return f"LineStyle: {self.id}"
 
 
 def _style_init(style, exact=None, exclude=None, prefix="", subtype=None):
+    """Initialize the style object.
+
+    Args:
+        style: The style object to initialize.
+        exact: List of exact attributes to include.
+        exclude: List of attributes to exclude.
+        prefix: Prefix to use for the attributes.
+        subtype: The subtype of the style.
+    """
     if exclude is None:
         exclude = []
     if exact is None:
@@ -235,9 +320,19 @@ def _style_init(style, exact=None, exclude=None, prefix="", subtype=None):
 
 @dataclass  # used for creating patterns
 class PatternStyle:
-    """PatternStyle is used to set the pattern type, color, distance,
-    angle, shift, line width, radius, and points.
-    Patterns come form the TikZ library patterns.meta."""
+    """PatternStyle is used to set the pattern type, color, distance, angle, shift, line width, radius, and points.
+
+    Attributes:
+        pattern_type (PatternType): The type of the pattern.
+        color (Color): The color of the pattern.
+        distance (float): The distance between pattern elements.
+        angle (float): The angle of the pattern.
+        x_shift (float): The x-axis shift of the pattern.
+        y_shift (float): The y-axis shift of the pattern.
+        line_width (float): The line width of the pattern.
+        radius (float): The radius of the pattern elements.
+        points (int): The number of points in the pattern.
+    """
 
     pattern_type: PatternType = None  # LINES, HATCH, DOTS, STARS
     color: Color = None
@@ -250,6 +345,7 @@ class PatternStyle:
     points: int = None  # number of petals. Used for stars
 
     def __post_init__(self):
+        """Initialize the PatternStyle object."""
         exact = ["stroke", "pattern_type"]
         exclude = []
         _style_init(
@@ -263,13 +359,34 @@ class PatternStyle:
         self._exclude = exclude
 
     def __str__(self):
+        """Return a string representation of the PatternStyle object."""
         return f"Pattern: {self.type}"
 
 
 # \usetikzlibrary{shadings}
 @dataclass
 class ShadeStyle:
-    """ShadeStyle uses TikZ shading library to create colors with gradients."""
+    """ShadeStyle uses TikZ shading library to create colors with gradients.
+
+    Attributes:
+        shade_type (ShadeType): The type of the shade.
+        axis_angle (float): The axis angle of the shade.
+        ball_color (Color): The color of the ball.
+        bottom_color (Color): The bottom color of the shade.
+        color_wheel (Color): The color wheel of the shade.
+        color_wheel_black (bool): Whether the color wheel includes black.
+        color_wheel_white (bool): Whether the color wheel includes white.
+        inner_color (Color): The inner color of the shade.
+        left_color (Color): The left color of the shade.
+        lower_left_color (Color): The lower left color of the shade.
+        lower_right_color (Color): The lower right color of the shade.
+        middle_color (Color): The middle color of the shade.
+        outer_color (Color): The outer color of the shade.
+        right_color (Color): The right color of the shade.
+        top_color (Color): The top color of the shade.
+        upper_left_color (Color): The upper left color of the shade.
+        upper_right_color (Color): The upper right color of the shade.
+    """
 
     shade_type: ShadeType = None
     axis_angle: float = None
@@ -290,6 +407,7 @@ class ShadeStyle:
     upper_right_color: Color = None
 
     def __post_init__(self):
+        """Initialize the ShadeStyle object."""
         exact = [
             "shade_type",
             "axis_angle",
@@ -323,7 +441,18 @@ class ShadeStyle:
 
 @dataclass
 class FillStyle:
-    """FillStyle is used to set the fill color, alpha, and pattern of a shape."""
+    """FillStyle is used to set the fill color, alpha, and pattern of a shape.
+
+    Attributes:
+        color (Color): The fill color.
+        alpha (float): The alpha value of the fill.
+        fill (bool): Whether the shape is filled.
+        back_style (BackStyle): The back style of the fill.
+        mode (FillMode): The fill mode.
+        pattern_style (PatternStyle): The pattern style of the fill.
+        shade_style (ShadeStyle): The shade style of the fill.
+        grid_style (GridStyle): The grid style of the fill.
+    """
 
     color: Color = None
     alpha: float = None
@@ -335,6 +464,7 @@ class FillStyle:
     grid_style: GridStyle = None
 
     def __post_init__(self):
+        """Initialize the FillStyle object."""
         self.shade_style = ShadeStyle()
         self.grid_style = GridStyle()
         self.pattern_style = PatternStyle()
@@ -347,12 +477,15 @@ class FillStyle:
         self._exclude = exclude
 
     def __str__(self):
+        """Return a string representation of the FillStyle object."""
         return f"FillStyle: {self.id}"
 
     def __repr__(self):
+        """Return a string representation of the FillStyle object."""
         return f"FillStyle: {self.id}"
 
     def _get_attributes(self):
+        """Get the attributes of the FillStyle object."""
         attribs = [x for x in self.__dict__ if not x.startswith("_")]
         res = []
         for attrib in attribs:
@@ -364,13 +497,20 @@ class FillStyle:
 
 @dataclass
 class ShapeStyle:
-    """ShapeStyle is used to set the fill and line style of a shape."""
+    """ShapeStyle is used to set the fill and line style of a shape.
+
+    Attributes:
+        line_style (LineStyle): The line style of the shape.
+        fill_style (FillStyle): The fill style of the shape.
+        alpha (float): The alpha value of the shape.
+    """
 
     line_style: LineStyle = None
     fill_style: FillStyle = None
     alpha: float = None
 
     def __post_init__(self):
+        """Initialize the ShapeStyle object."""
         self.line_style = LineStyle()
         self.fill_style = FillStyle()
         self.marker_style = MarkerStyle()
@@ -388,16 +528,31 @@ class ShapeStyle:
         self._exclude = exclude
 
     def __str__(self):
+        """Return a string representation of the ShapeStyle object."""
         return f"ShapeStyle: {self.id}"
 
     def __repr__(self):
+        """Return a string representation of the ShapeStyle object."""
         return f"ShapeStyle: {self.id}"
 
 
 @dataclass
 class FrameStyle:
-    """FrameStyle is used to set the frame shape, line style, fill style,
-    and size of a shape."""
+    """FrameStyle is used to set the frame shape, line style, fill style, and size of a shape.
+
+    Attributes:
+        shape (FrameShape): The shape of the frame.
+        line_style (LineStyle): The line style of the frame.
+        fill_style (FillStyle): The fill style of the frame.
+        inner_sep (float): The inner separation of the frame.
+        inner_xsep (float): The inner x-axis separation of the frame.
+        inner_ysep (float): The inner y-axis separation of the frame.
+        outer_sep (float): The outer separation of the frame.
+        min_width (float): The minimum width of the frame.
+        min_height (float): The minimum height of the frame.
+        min_size (float): The minimum size of the frame.
+        alpha (float): The alpha value of the frame.
+    """
 
     shape: FrameShape = None
     line_style: LineStyle = None
@@ -412,6 +567,7 @@ class FrameStyle:
     alpha: float = None
 
     def __post_init__(self):
+        """Initialize the FrameStyle object."""
         self.line_style = LineStyle()
         self.fill_style = FillStyle()
         exact = []
@@ -429,7 +585,20 @@ class FrameStyle:
 
 @dataclass
 class TagStyle:
-    """TagStyle is used to set the font, color, and style of tag objects."""
+    """TagStyle is used to set the font, color, and style of tag objects.
+
+    Attributes:
+        align (Align): The alignment of the tag.
+        alpha (float): The alpha value of the tag.
+        bold (bool): Whether the tag is bold.
+        italic (bool): Whether the tag is italic.
+        anchor (Anchor): The anchor of the tag.
+        blend_mode (BlendMode): The blend mode of the tag.
+        draw_frame (bool): Whether to draw a frame around the tag.
+        font_style (FontStyle): The font style of the tag.
+        frame_style (FrameStyle): The frame style of the tag.
+        text_width (float): The text width of the tag.
+    """
 
     align: Align = None
     alpha: float = None
@@ -443,6 +612,7 @@ class TagStyle:
     text_width: float = None
 
     def __post_init__(self):
+        """Initialize the TagStyle object."""
         self.font_style = FontStyle()
         self.frame_style = FrameStyle()
         self.alpha = defaults["tag_alpha"]
@@ -473,9 +643,11 @@ class TagStyle:
         self._exclude = exclude
 
     def __str__(self):
+        """Return a string representation of the TagStyle object."""
         return f"TagStyle: {self.id}"
 
     def __repr__(self):
+        """Return a string representation of the TagStyle object."""
         return f"TagStyle: {self.id}"
 
 
@@ -483,7 +655,14 @@ frame_style_map = {}
 
 
 def _set_frame_style_alias_map(debug=False):
-    """Set the frame style alias map."""
+    """Set the frame style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The frame style alias map.
+    """
     line_style = LineStyle()
     fill_style = FillStyle()
 
@@ -507,7 +686,14 @@ marker_style_map = {}
 
 
 def _set_marker_style_alias_map(debug=False):
-    """Set the marker style alias map."""
+    """Set the marker style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The marker style alias map.
+    """
     line_style = LineStyle()
     fill_style = FillStyle()
 
@@ -529,7 +715,14 @@ tag_style_map = {}
 
 
 def _set_tag_style_alias_map(debug=False):
-    """Set the tag style alias map."""
+    """Set the tag style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The tag style alias map.
+    """
     font_style = FontStyle()
     frame_style = FrameStyle()
     fill_style = FillStyle()
@@ -575,7 +768,14 @@ fill_style_map = {}
 
 
 def _set_fill_style_alias_map(debug=False):
-    """Set the fill style alias map."""
+    """Set the fill style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The fill style alias map.
+    """
     pattern_style = PatternStyle()
     shade_style = ShadeStyle()
     grid_style = GridStyle()
@@ -600,7 +800,14 @@ pattern_style_map = {}
 
 
 def _set_pattern_style_alias_map(debug=False):
-    """Set the pattern style alias map."""
+    """Set the pattern style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The pattern style alias map.
+    """
     pattern_style = PatternStyle()
 
     styles = [pattern_style]
@@ -617,7 +824,14 @@ line_style_map = {}
 
 
 def _set_line_style_alias_map(debug=False):
-    """Set the line style alias map."""
+    """Set the line style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The line style alias map.
+    """
     line_style = LineStyle()
     marker_style = MarkerStyle()
 
@@ -634,7 +848,14 @@ shape_style_map = {}
 
 
 def _set_shape_style_alias_map(debug=False):
-    """Set the shape style alias map."""
+    """Set the shape style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The shape style alias map.
+    """
     line_style = LineStyle()
     fill_style = FillStyle()
     marker_style = MarkerStyle()
@@ -666,7 +887,18 @@ def _set_shape_style_alias_map(debug=False):
 
 
 def _set_style_alias_map(map_dict, styles, paths, prefixes, debug=False):
-    """Set the style alias map."""
+    """Set the style alias map.
+
+    Args:
+        map_dict (dict): The dictionary to store the alias map.
+        styles (list): List of style objects.
+        paths (list): List of paths to the style objects.
+        prefixes (list): List of prefixes for the style attributes.
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The style alias map.
+    """
     for i, style in enumerate(styles):
         style_attribs = style.attribs
         exact = style._exact
@@ -726,7 +958,11 @@ shape_aliases_dict = {}
 
 
 def _set_shape_aliases_dict(shape):
-    """Set the shape aliases dictionary."""
+    """Set the shape aliases dictionary.
+
+    Args:
+        shape: The shape object to set aliases for.
+    """
     for alias, path_attrib in shape_style_map.items():
         style_path, attrib = path_attrib
         obj = shape

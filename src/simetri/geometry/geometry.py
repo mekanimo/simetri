@@ -50,6 +50,12 @@ TWO_PI = 2 * pi  # 360 degrees
 def is_number(x: Any) -> bool:
     """
     Return True if x is a number.
+
+    Args:
+        x (Any): The input value to check.
+
+    Returns:
+        bool: True if x is a number, False otherwise.
     """
     return isinstance(x, (int, float, complex)) and not isinstance(x, bool)
 
@@ -66,8 +72,19 @@ def bbox_overlap(
 ) -> bool:
     """
     Given two bounding boxes, return True if they overlap.
-    bbox1: minx, miny, maxx, maxy
-    bbox2: minx, miny, maxx, maxy
+
+    Args:
+        min_x1 (float): Minimum x-coordinate of the first bounding box.
+        min_y1 (float): Minimum y-coordinate of the first bounding box.
+        max_x2 (float): Maximum x-coordinate of the first bounding box.
+        max_y2 (float): Maximum y-coordinate of the first bounding box.
+        min_x3 (float): Minimum x-coordinate of the second bounding box.
+        min_y3 (float): Minimum y-coordinate of the second bounding box.
+        max_x4 (float): Maximum x-coordinate of the second bounding box.
+        max_y4 (float): Maximum y-coordinate of the second bounding box.
+
+    Returns:
+        bool: True if the bounding boxes overlap, False otherwise.
     """
     return not (
         max_x2 < min_x3 or max_x4 < min_x1 or max_y2 < min_y3 or max_y4 < min_y1
@@ -84,11 +101,17 @@ def sine_wave(
 ) -> np.ndarray:
     """
     Generate a sine wave.
-    amplitude: amplitude of the wave
-    frequency: frequency of the wave
-    duration: duration of the wave
-    sample_rate: sample rate
-    phase: phase angle of the wave
+
+    Args:
+        amplitude (float): Amplitude of the wave.
+        frequency (float): Frequency of the wave.
+        duration (float): Duration of the wave.
+        sample_rate (float): Sample rate.
+        phase (float, optional): Phase angle of the wave. Defaults to 0.
+        damping (float, optional): Damping factor. Defaults to 1.
+
+    Returns:
+        np.ndarray: Time and signal arrays representing the sine wave.
     """
     time = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     signal = amplitude * np.sin(2 * np.pi * frequency * time + phase)
@@ -105,15 +128,14 @@ def damping_function(amplitude, duration, sample_rate):
     """
     Generates a damping function based on the given amplitude, duration, and sample rate.
 
-    Parameters:
-    amplitude (float): The initial amplitude of the damping function.
-    duration (float): The duration over which the damping occurs, in seconds.
-    sample_rate (float): The number of samples per second.
+    Args:
+        amplitude (float): The initial amplitude of the damping function.
+        duration (float): The duration over which the damping occurs, in seconds.
+        sample_rate (float): The number of samples per second.
 
     Returns:
-    list: A list of float values representing the damping function over time.
+        list: A list of float values representing the damping function over time.
     """
-    """"""
     damping = []
     for i in range(int(duration * sample_rate)):
         damping.append(amplitude * exp(-i / (duration * sample_rate)))
@@ -121,13 +143,16 @@ def damping_function(amplitude, duration, sample_rate):
 
 
 def circle_inversion(point, center, radius):
-    """Inverts a point with respect to a circle.
+    """
+    Inverts a point with respect to a circle.
+
     Args:
-    point: The point to invert, represented as a tuple (x, y).
-    center: The center of the circle, represented as a tuple (x, y).
-    radius: The radius of the circle.
+        point (tuple): The point to invert, represented as a tuple (x, y).
+        center (tuple): The center of the circle, represented as a tuple (x, y).
+        radius (float): The radius of the circle.
+
     Returns:
-    The inverted point, represented as a tuple (x, y).
+        tuple: The inverted point, represented as a tuple (x, y).
     """
     x, y = point[:2]
     cx, cy = center[:2]
@@ -149,16 +174,29 @@ def line_segment_bbox(
 ) -> tuple[float, float, float, float]:
     """
     Return the bounding box of a line segment.
-    x1, y1 : segment start point
-    x2, y2 : segment end point
+
+    Args:
+        x1 (float): Segment start point x-coordinate.
+        y1 (float): Segment start point y-coordinate.
+        x2 (float): Segment end point x-coordinate.
+        y2 (float): Segment end point y-coordinate.
+
+    Returns:
+        tuple: Bounding box as (min_x, min_y, max_x, max_y).
     """
     return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
 
 
 def line_segment_bbox_check(seg1: Line, seg2: Line) -> bool:
     """
-    Given two line segments, return True if their bounding boxes
-    overlap.
+    Given two line segments, return True if their bounding boxes overlap.
+
+    Args:
+        seg1 (Line): First line segment.
+        seg2 (Line): Second line segment.
+
+    Returns:
+        bool: True if the bounding boxes overlap, False otherwise.
     """
     x1, y1 = seg1[0]
     x2, y2 = seg1[1]
@@ -173,9 +211,15 @@ def all_close_points(
     points: Sequence[Sequence], dist_tol: float = None, with_dist: bool = False
 ) -> dict[int, list[tuple[Point, int]]]:
     """
-    find all close points in a list of points
-    along with their ids: [[x1, y1, id1], [x2, y2, id2], ...]
-    Return a dictionary of the form {id1: [id2, id3, ...], ...}
+    Find all close points in a list of points along with their ids.
+
+    Args:
+        points (Sequence[Sequence]): List of points with ids [[x1, y1, id1], [x2, y2, id2], ...].
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        with_dist (bool, optional): Whether to include distances in the result. Defaults to False.
+
+    Returns:
+        dict: Dictionary of the form {id1: [id2, id3, ...], ...}.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -227,9 +271,17 @@ def is_simple(
     polygon,
     rtol: float = None,
     atol: float = None,
-):
+) -> bool:
     """
     Return True if the polygon is simple.
+
+    Args:
+        polygon (list): List of points representing the polygon.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the polygon is simple, False otherwise.
     """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
 
@@ -247,7 +299,7 @@ def is_simple(
     n_rows = seg_arr.shape[0]
     xmin = np.minimum(seg_arr[:, 0], seg_arr[:, 2]).reshape(n_rows, 1)
     xmax = np.maximum(seg_arr[:, 0], seg_arr[:, 2]).reshape(n_rows, 1)
-    ymin = np.minimum(seg_arr[:, 1], seg_arr[:, 3]).reshape(n_rows, 1)
+    ymin = np.minimum(seg_arr[:, 1], np.maximum(seg_arr[:, 3])).reshape(n_rows, 1)
     ymax = np.maximum(seg_arr[:, 1], seg_arr[:, 3]).reshape(n_rows, 1)
     id_ = np.arange(n_rows).reshape(n_rows, 1)
     seg_arr = np.concatenate((seg_arr, xmin, ymin, xmax, ymax, id_), 1)
@@ -308,12 +360,15 @@ def all_intersections(
     """
     Find all intersection points of the given list of segments
     (sweep line algorithm variant)
-    segments: [[[x1, y1], [x2, y2]], [[x1, y1], [x2, y2]], ...
-    Return a dictionary of the form {segment_id: [[id1, (x1, y1)],
-                                                   [id2, (x2, y2)]], ...}
-    for each segment (defined by its index) in the list, the list of
-    intersections with the index of the other segment and the coordinates of
-    the intersection point are returned.
+
+    Args:
+        segments (Sequence[Line]): List of line segments [[[x1, y1], [x2, y2]], [[x1, y1], [x2, y2]], ...].
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+        use_intersection3 (bool, optional): Whether to use intersection3 function. Defaults to False.
+
+    Returns:
+        dict: Dictionary of the form {segment_id: [[id1, (x1, y1)], [id2, (x2, y2)]], ...}.
     """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     segment_coords = []
@@ -403,7 +458,18 @@ def all_intersections(
 
 
 def dot_product2(a: Point, b: Point, c: Point) -> float:
-    """Dot product of two vectors. AB and BC"""
+    """Dot product of two vectors. AB and BC
+    Args:
+        a (Point): First point, creating vector BA
+        b (Point): Second point, common point for both vectors
+        c (Point): Third point, creating vector BC
+
+    Returns:
+        float: The dot product of vectors BA and BC
+    Note:
+        The function calculates (a-b)·(c-b) which is the dot product of vectors BA and BC.
+        This is useful for finding angles between segments that share a common point.
+    """
     a_x, a_y = a[:2]
     b_x, b_y = b[:2]
     c_x, c_y = c[:2]
@@ -416,9 +482,23 @@ def dot_product2(a: Point, b: Point, c: Point) -> float:
 
 def cross_product2(a: Point, b: Point, c: Point) -> float:
     """
-    Return the cross product of two vectors.
-    vec1 = B - A
-    vec2 = C - B
+    Return the cross product of two vectors: BA and BC.
+
+    Args:
+        a (Point): First point, creating vector BA
+        b (Point): Second point, common point for both vectors
+        c (Point): Third point, creating vector BC
+
+    Returns:
+        float: The z-component of cross product between vectors BA and BC
+
+    Note:
+        This gives the signed area of the parallelogram formed by the vectors BA and BC.
+        The sign indicates the orientation (positive for counter-clockwise, negative for clockwise).
+        It is useful for determining the orientation of three points and calculating angles.
+
+    vec1 = b - a
+    vec2 = c - b
     """
     a_x, a_y = a[:2]
     b_x, b_y = b[:2]
@@ -435,6 +515,14 @@ def angle_between_lines2(point1: Point, point2: Point, point3: Point) -> float:
     Given line1 as point1 and point2, and line2 as point3 and point2
     return the angle between two lines
     (point2 is the corner point)
+
+    Args:
+        point1 (Point): First point of the first line.
+        point2 (Point): Second point of the first line and first point of the second line.
+        point3 (Point): Second point of the second line.
+
+    Returns:
+        float: Angle between the two lines in radians.
     """
     return atan2(
         cross_product2(point1, point2, point3), dot_product2(point1, point2, point3)
@@ -444,6 +532,13 @@ def angle_between_lines2(point1: Point, point2: Point, point3: Point) -> float:
 def angled_line(line: Line, theta: float) -> Line:
     """
     Given a line find another line with theta radians between them.
+
+    Args:
+        line (Line): Input line.
+        theta (float): Angle in radians.
+
+    Returns:
+        Line: New line with the given angle.
     """
     # find the angle of the line
     x1, y1 = line[0]
@@ -464,15 +559,27 @@ def angled_line(line: Line, theta: float) -> Line:
 def angled_vector(angle: float) -> Sequence[float]:
     """
     Return a vector with the given angle
-    """
 
+    Args:
+        angle (float): Angle in radians.
+
+    Returns:
+        Sequence[float]: Vector with the given angle.
+    """
     return [cos(angle), sin(angle)]
 
 
 def close_points2(p1: Point, p2: Point, dist2: float = 0.01) -> bool:
     """
     Return True if two points are close to each other.
-    dist2 is the square of the threshold distance.
+
+    Args:
+        p1 (Point): First point.
+        p2 (Point): Second point.
+        dist2 (float, optional): Square of the threshold distance. Defaults to 0.01.
+
+    Returns:
+        bool: True if the points are close to each other, False otherwise.
     """
     return distance2(p1, p2) <= dist2
 
@@ -480,6 +587,14 @@ def close_points2(p1: Point, p2: Point, dist2: float = 0.01) -> bool:
 def close_angles(angle1: float, angle2: float, angtol=None) -> bool:
     """
     Return True if two angles are close to each other.
+
+    Args:
+        angle1 (float): First angle in radians.
+        angle2 (float): Second angle in radians.
+        angtol (float, optional): Angle tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the angles are close to each other, False otherwise.
     """
     if angtol is None:
         angtol = defaults["angtol"]
@@ -490,6 +605,13 @@ def close_angles(angle1: float, angle2: float, angtol=None) -> bool:
 def distance(p1: Point, p2: Point) -> float:
     """
     Return the distance between two points.
+
+    Args:
+        p1 (Point): First point.
+        p2 (Point): Second point.
+
+    Returns:
+        float: Distance between the two points.
     """
     return hypot(p2[0] - p1[0], p2[1] - p1[1])
 
@@ -499,6 +621,13 @@ def distance2(p1: Point, p2: Point) -> float:
     Return the squared distance between two points.
     Useful for comparing distances without the need to
     compute the square root.
+
+    Args:
+        p1 (Point): First point.
+        p2 (Point): Second point.
+
+    Returns:
+        float: Squared distance between the two points.
     """
     return (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2
 
@@ -511,9 +640,15 @@ def connect2(
 ) -> list[Point]:
     """
     Connect two polypoints together.
-    poly_point1: [(x1, y1), (x2, y2), ...]
-    poly_point2: [(x1, y1), (x2, y2), ...]
-    return [(x1, y1), (x2, y2), ...]
+
+    Args:
+        poly_point1 (list[Point]): First list of points.
+        poly_point2 (list[Point]): Second list of points.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+
+    Returns:
+        list[Point]: Connected list of points.
     """
     rtol, dist_tol = get_defaults(["rtol", "dist_tol"], [rtol, dist_tol])
     dist_tol2 = dist_tol * dist_tol
@@ -551,7 +686,16 @@ def stitch(
 ) -> list[Point]:
     """
     Stitches a list of lines together.
-    Return a list of points if return_points is True or lines otherwise.
+
+    Args:
+        lines (list[Line]): List of lines to stitch.
+        closed (bool, optional): Whether the lines form a closed shape. Defaults to True.
+        return_points (bool, optional): Whether to return points or lines. Defaults to True.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        list[Point]: Stitched list of points or lines.
     """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     if closed:
@@ -605,8 +749,15 @@ def double_offset_polylines(
 ) -> list[Point]:
     """
     Return a list of double offset lines from a list of lines.
-    Lines: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
-    return: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
+
+    Args:
+        lines (list[Point]): List of points representing the lines.
+        offset (float, optional): Offset distance. Defaults to 1.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        list[Point]: List of double offset lines.
     """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     lines1 = []
@@ -623,8 +774,13 @@ def double_offset_polylines(
 
 def polygon_cg(points: list[Point]) -> Point:
     """
-    Given a list of points that define a polygon, return the center
-    point.
+    Given a list of points that define a polygon, return the center point.
+
+    Args:
+        points (list[Point]): List of points representing the polygon.
+
+    Returns:
+        Point: Center point of the polygon.
     """
     cx = cy = 0
     n_points = len(points)
@@ -648,8 +804,13 @@ def polygon_cg(points: list[Point]) -> Point:
 
 def polygon_center2(polygon_points: list[Point]) -> Point:
     """
-    Given a list of points that define a polygon, return the center
-    point.
+    Given a list of points that define a polygon, return the center point.
+
+    Args:
+        polygon_points (list[Point]): List of points representing the polygon.
+
+    Returns:
+        Point: Center point of the polygon.
     """
     n = len(polygon_points)
     x = 0
@@ -664,8 +825,13 @@ def polygon_center2(polygon_points: list[Point]) -> Point:
 
 def polygon_center(polygon_points: list[Point]) -> Point:
     """
-    Given a list of points that define a polygon, return the center
-    point.
+    Given a list of points that define a polygon, return the center point.
+
+    Args:
+        polygon_points (list[Point]): List of points representing the polygon.
+
+    Returns:
+        Point: Center point of the polygon.
     """
     x = 0
     y = 0
@@ -681,8 +847,14 @@ def offset_polygon(
 ) -> list[Point]:
     """
     Return a list of offset lines from a list of lines.
-    Polyline: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
-    return: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
+
+    Args:
+        polygon (list[Point]): List of points representing the polygon.
+        offset (float, optional): Offset distance. Defaults to -1.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        list[Point]: List of offset lines.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -707,8 +879,14 @@ def double_offset_polygons(
 ) -> list[Point]:
     """
     Return a list of double offset lines from a list of lines.
-    Polyline: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
-    return: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
+
+    Args:
+        polygon (list[Point]): List of points representing the polygon.
+        offset (float, optional): Offset distance. Defaults to 1.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        list[Point]: List of double offset lines.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -741,8 +919,14 @@ def offset_polygon_points(
 ) -> list[Point]:
     """
     Return a list of double offset lines from a list of lines.
-    Polyline: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
-    return: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
+
+    Args:
+        polygon (list[Point]): List of points representing the polygon.
+        offset (float, optional): Offset distance. Defaults to 1.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        list[Point]: List of double offset lines.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -764,8 +948,14 @@ def offset_polygon_points(
 
 def double_offset_lines(line: Line, offset: float = 1) -> tuple[Line, Line]:
     """
-    Return two offset lines to a given line segment
-       with the given offset amount.
+    Return two offset lines to a given line segment with the given offset amount.
+
+    Args:
+        line (Line): Input line segment.
+        offset (float, optional): Offset distance. Defaults to 1.
+
+    Returns:
+        tuple[Line, Line]: Two offset lines.
     """
     line1 = offset_line(line, offset)
     line2 = offset_line(line, -offset)
@@ -776,6 +966,14 @@ def double_offset_lines(line: Line, offset: float = 1) -> tuple[Line, Line]:
 def equal_lines(line1: Line, line2: Line, dist_tol: float = None) -> bool:
     """
     Return True if two lines are close enough.
+
+    Args:
+        line1 (Line): First line.
+        line2 (Line): Second line.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the lines are close enough, False otherwise.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -796,6 +994,14 @@ def equal_polygons(
 ) -> bool:
     """
     Return True if two polygons are close enough.
+
+    Args:
+        poly1 (Sequence[Point]): First polygon.
+        poly2 (Sequence[Point]): Second polygon.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the polygons are close enough, False otherwise.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -813,6 +1019,14 @@ def extended_line(dist: float, line: Line, extend_both=False) -> Line:
     Given a line ((x1, y1), (x2, y2)) and a distance,
     the given line is extended by distance units.
     Return a new line ((x1, y1), (x2', y2')).
+
+    Args:
+        dist (float): Distance to extend the line.
+        line (Line): Input line.
+        extend_both (bool, optional): Whether to extend both ends of the line. Defaults to False.
+
+    Returns:
+        Line: Extended line.
     """
 
     def extend(dist, line):
@@ -844,6 +1058,15 @@ def line_through_point_angle(
     with the given angle and length.
     If both_side is True, the line is extended on both sides by the given
     length.
+
+    Args:
+        point (Point): Point through which the line passes.
+        angle (float): Angle of the line in radians.
+        length_ (float): Length of the line.
+        both_sides (bool, optional): Whether to extend the line on both sides. Defaults to False.
+
+    Returns:
+        Line: Line passing through the given point with the given angle and length.
     """
     x, y = point[:2]
     line = [(x, y), (x + length_ * cos(angle), y + length_ * sin(angle))]
@@ -857,6 +1080,13 @@ def line_through_point_angle(
 def remove_duplicate_points(points: list[Point], dist_tol=None) -> list[Point]:
     """
     Return a list of points with duplicate points removed.
+
+    Args:
+        points (list[Point]): List of points.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        list[Point]: List of points with duplicate points removed.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -876,6 +1106,14 @@ def remove_collinear_points(
 ) -> list[Point]:
     """
     Return a list of points with collinear points removed.
+
+    Args:
+        points (list[Point]): List of points.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        list[Point]: List of points with collinear points removed.
     """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     new_points = []
@@ -902,6 +1140,18 @@ def fix_degen_points(
     """
     Return a list of points with duplicate points removed.
     Remove the middle point from the collinear points.
+
+    Args:
+        points (list[Point]): List of points.
+        loop (bool, optional): Whether to loop the points. Defaults to False.
+        closed (bool, optional): Whether the points form a closed shape. Defaults to False.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        area_rtol (float, optional): Relative tolerance for area. Defaults to None.
+        area_atol (float, optional): Absolute tolerance for area. Defaults to None.
+        check_collinear (bool, optional): Whether to check for collinear points. Defaults to True.
+
+    Returns:
+        list[Point]: List of points with duplicate and collinear points removed.
     """
     dist_tol, area_rtol, area_atol = get_defaults(
         ["dist_tol", "area_rtol", "area_atol"], [dist_tol, area_rtol, area_atol]
@@ -930,7 +1180,16 @@ def fix_degen_points(
 def clockwise(p: Point, q: Point, r: Point) -> bool:
     """Return 1 if the points p, q, and r are in clockwise order,
     return -1 if the points are in counter-clockwise order,
-    return 0 if the points are collinear"""
+    return 0 if the points are collinear
+
+    Args:
+        p (Point): First point.
+        q (Point): Second point.
+        r (Point): Third point.
+
+    Returns:
+        int: 1 if the points are in clockwise order, -1 if counter-clockwise, 0 if collinear.
+    """
     area_ = area(p, q, r)
     if area_ > 0:
         res = 1
@@ -945,8 +1204,15 @@ def clockwise(p: Point, q: Point, r: Point) -> bool:
 def intersects(seg1, seg2):
     """Checks if the line segments intersect.
     If they are chained together, they are considered as intersecting.
-    Returns True if the segments intersect, False otherwise."""
+    Returns True if the segments intersect, False otherwise.
 
+    Args:
+        seg1 (Line): First line segment.
+        seg2 (Line): Second line segment.
+
+    Returns:
+        bool: True if the segments intersect, False otherwise.
+    """
     p1, q1 = seg1
     p2, q2 = seg2
     o1 = clockwise(p1, q1, p2)
@@ -970,7 +1236,15 @@ def intersects(seg1, seg2):
 
 
 def is_chained(seg1, seg2):
-    """Checks if the line segments are chained together."""
+    """Checks if the line segments are chained together.
+
+    Args:
+        seg1 (Line): First line segment.
+        seg2 (Line): Second line segment.
+
+    Returns:
+        bool: True if the segments are chained together, False otherwise.
+    """
     p1, q1 = seg1
     p2, q2 = seg2
     if (
@@ -987,10 +1261,14 @@ def is_chained(seg1, seg2):
 def direction(p, q, r):
     """
     Checks the orientation of three points (p, q, r).
+
+    Args:
+        p (Point): First point.
+        q (Point): Second point.
+        r (Point): Third point.
+
     Returns:
-        0 if collinear
-        >0 if counter-clockwise
-        <0 if clockwise
+        int: 0 if collinear, >0 if counter-clockwise, <0 if clockwise.
     """
     return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
 
@@ -998,6 +1276,15 @@ def direction(p, q, r):
 def collinear_segments(segment1, segment2, tol=None, atol=None):
     """
     Checks if two line segments (a1, b1) and (a2, b2) are collinear.
+
+    Args:
+        segment1 (Line): First line segment.
+        segment2 (Line): Second line segment.
+        tol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the segments are collinear, False otherwise.
     """
     tol, atol = get_defaults(["tol", "atol"], [tol, atol])
     a1, b1 = segment1
@@ -1013,7 +1300,18 @@ def global_to_local(
 ) -> Point:
     """Given a point(x, y) in global coordinates
     and local CS position and orientation,
-    return a point(ksi, eta) in local coordinates"""
+    return a point(ksi, eta) in local coordinates
+
+    Args:
+        x (float): Global x-coordinate.
+        y (float): Global y-coordinate.
+        xi (float): Local x-coordinate.
+        yi (float): Local y-coordinate.
+        theta (float, optional): Angle in radians. Defaults to 0.
+
+    Returns:
+        Point: Local coordinates (ksi, eta).
+    """
     sin_theta = sin(theta)
     cos_theta = cos(theta)
     ksi = (x - xi) * cos_theta + (y - yi) * sin_theta
@@ -1023,7 +1321,15 @@ def global_to_local(
 
 def stitch_lines(line1: Line, line2: Line) -> Sequence[Line]:
     """if the lines intersect, trim the lines
-    if the lines don't intersect, extend the lines"""
+    if the lines don't intersect, extend the lines
+
+    Args:
+        line1 (Line): First line.
+        line2 (Line): Second line.
+
+    Returns:
+        Sequence[Line]: Trimmed or extended lines.
+    """
     intersection_ = intersect(line1, line2)
     res = None
     if intersection_:
@@ -1042,7 +1348,15 @@ def get_quadrant(x: float, y: float) -> int:
     +x, +y = 1st
     +x, -y = 2nd
     -x, -y = 3rd
-    +x, -y = 4th"""
+    +x, -y = 4th
+
+    Args:
+        x (float): x-coordinate.
+        y (float): y-coordinate.
+
+    Returns:
+        int: Quadrant number.
+    """
     return int(floor((atan2(y, x) % (TWO_PI)) / (pi / 2)) + 1)
 
 
@@ -1051,11 +1365,27 @@ def get_quadrant_from_deg_angle(deg_angle: float) -> int:
     (0, 90) = 1st
     (90, 180) = 2nd
     (180, 270) = 3rd
-    (270, 360) = 4th"""
+    (270, 360) = 4th
+
+    Args:
+        deg_angle (float): Angle in degrees.
+
+    Returns:
+        int: Quadrant number.
+    """
     return int(floor(deg_angle / 90.0) % 4 + 1)
 
 
 def homogenize(points: Sequence[Point]) -> np.ndarray:
+    """
+    Convert a list of points to homogeneous coordinates.
+
+    Args:
+        points (Sequence[Point]): List of points.
+
+    Returns:
+        np.ndarray: Homogeneous coordinates.
+    """
     try:
         xy_array = np.array(points, dtype=float)
     except ValueError:
@@ -1081,7 +1411,14 @@ def _homogenize(coordinates: Sequence[float]) -> np.ndarray:
     """Internal use only. API provides a homogenize function.
     Given a sequence of coordinates(x1, y1, x2, y2, ... xn, yn),
     return a numpy array of points array(((x1, y1, 1.),
-    (x2, y2, 1.), ... (xn, yn, 1.)))."""
+    (x2, y2, 1.), ... (xn, yn, 1.))).
+
+    Args:
+        coordinates (Sequence[float]): Sequence of coordinates.
+
+    Returns:
+        np.ndarray: Homogeneous coordinates.
+    """
     xy_array = np.array(list(zip(coordinates[0::2], coordinates[1::2])), dtype=float)
     n_rows = xy_array.shape[0]
     ones = np.ones((n_rows, 1), dtype=float)
@@ -1107,6 +1444,21 @@ def intersect2(
     line2: (x3, y3), (x4, y4)
     To find the intersection point of two line segments use the
     "intersection" function
+
+    Args:
+        x1 (float): x-coordinate of the first point of the first line.
+        y1 (float): y-coordinate of the first point of the first line.
+        x2 (float): x-coordinate of the second point of the first line.
+        y2 (float): y-coordinate of the second point of the first line.
+        x3 (float): x-coordinate of the first point of the second line.
+        y3 (float): y-coordinate of the first point of the second line.
+        x4 (float): x-coordinate of the second point of the second line.
+        y4 (float): y-coordinate of the second point of the second line.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        Point: Intersection point of the two lines.
     """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     x1_x2 = x1 - x2
@@ -1131,6 +1483,13 @@ def intersect(line1: Line, line2: Line) -> Point:
     line2: [(x3, y3), (x4, y4)]
     To find the intersection point of two line segments use the
     "intersection" function
+
+    Args:
+        line1 (Line): First line.
+        line2 (Line): Second line.
+
+    Returns:
+        Point: Intersection point of the two lines.
     """
     x1, y1 = line1[0][:2]
     x2, y2 = line1[1][:2]
@@ -1140,7 +1499,23 @@ def intersect(line1: Line, line2: Line) -> Point:
 
 
 def intersection2(x1, y1, x2, y2, x3, y3, x4, y4, rtol=None, atol=None):
-    """Check the intersection of two line segments. See the documentation"""
+    """Check the intersection of two line segments. See the documentation
+
+    Args:
+        x1 (float): x-coordinate of the first point of the first line segment.
+        y1 (float): y-coordinate of the first point of the first line segment.
+        x2 (float): x-coordinate of the second point of the first line segment.
+        y2 (float): y-coordinate of the second point of the first line segment.
+        x3 (float): x-coordinate of the first point of the second line segment.
+        y3 (float): y-coordinate of the first point of the second line segment.
+        x4 (float): x-coordinate of the second point of the second line segment.
+        y4 (float): y-coordinate of the second point of the second line segment.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        tuple: Connection type and intersection point.
+    """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     x2_x1 = x2 - x1
     y2_y1 = y2 - y1
@@ -1177,7 +1552,25 @@ def intersection3(
     area_atol: float = None,
 ) -> tuple[Connection, list]:
     """Check the intersection of two line segments. See the documentation
-    for more details."""
+    for more details.
+
+    Args:
+        x1 (float): x-coordinate of the first point of the first line segment.
+        y1 (float): y-coordinate of the first point of the first line segment.
+        x2 (float): x-coordinate of the second point of the first line segment.
+        y2 (float): y-coordinate of the second point of the first line segment.
+        x3 (float): x-coordinate of the first point of the second line segment.
+        y3 (float): y-coordinate of the first point of the second line segment.
+        x4 (float): x-coordinate of the second point of the second line segment.
+        y4 (float): y-coordinate of the second point of the second line segment.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        area_atol (float, optional): Absolute tolerance for area. Defaults to None.
+
+    Returns:
+        tuple: Connection type and intersection result.
+    """
     # collinear check uses area_atol
 
     # s1: start1 = (x1, y1)
@@ -1287,7 +1680,17 @@ def intersection3(
 def merge_consecutive_collinear_edges(
     points, closed=False, area_rtol=None, area_atol=None
 ):
-    """Remove the middle points from collinear edges."""
+    """Remove the middle points from collinear edges.
+
+    Args:
+        points (list[Point]): List of points.
+        closed (bool, optional): Whether the points form a closed shape. Defaults to False.
+        area_rtol (float, optional): Relative tolerance for area. Defaults to None.
+        area_atol (float, optional): Absolute tolerance for area. Defaults to None.
+
+    Returns:
+        list[Point]: List of points with collinear points removed.
+    """
     area_rtol, area_atol = get_defaults(
         ["area_rtol", "area_atol"], [area_rtol, area_atol]
     )
@@ -1327,6 +1730,14 @@ def intersection(line1: Line, line2: Line, rtol: float = None) -> int:
     if line segments are parallel return 0
     if line segments are connected (share a point) return 1
     To find the intersection point of two lines use the "intersect" function
+
+    Args:
+        line1 (Line): First line segment.
+        line2 (Line): Second line segment.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+
+    Returns:
+        int: Intersection type.
     """
     if rtol is None:
         rtol = defaults["rtol"]
@@ -1341,6 +1752,13 @@ def merge_segments(seg1: Sequence[Point], seg2: Sequence[Point]) -> Sequence[Poi
     """Merge two segments into one segment if they are connected.
     They need to be overlapping or simply connected to each other,
     otherwise they will not be merged. Order doesn't matter.
+
+    Args:
+        seg1 (Sequence[Point]): First segment.
+        seg2 (Sequence[Point]): Second segment.
+
+    Returns:
+        Sequence[Point]: Merged segment.
     """
     Conn = Connection
     p1, p2 = seg1
@@ -1362,7 +1780,16 @@ def merge_segments(seg1: Sequence[Point], seg2: Sequence[Point]) -> Sequence[Poi
     return res
 
 def invert(p, center, radius):
-    """Inverts p about a circle at the given center and radius"""
+    """Inverts p about a circle at the given center and radius
+
+    Args:
+        p (Point): Point to invert.
+        center (Point): Center of the circle.
+        radius (float): Radius of the circle.
+
+    Returns:
+        Point: Inverted point.
+    """
     dist = distance(p, center)
     if dist == 0:
         return p
@@ -1371,13 +1798,29 @@ def invert(p, center, radius):
     return center + (radius**2 / dist**2) * (p - center)
     # return radius**2 * (p - center) / dist
 
+
 def is_horizontal(line: Line, eps: float = 0.0001) -> bool:
-    """Return True if the line is horizontal."""
+    """Return True if the line is horizontal.
+
+    Args:
+        line (Line): Input line.
+        eps (float, optional): Tolerance. Defaults to 0.0001.
+
+    Returns:
+        bool: True if the line is horizontal, False otherwise.
+    """
     return abs(j_vec.dot(line_vector(line))) <= eps
 
 
 def is_line(line_: Any) -> bool:
-    """Return True if the input is a line."""
+    """Return True if the input is a line.
+
+    Args:
+        line_ (Any): Input value.
+
+    Returns:
+        bool: True if the input is a line, False otherwise.
+    """
     try:
         p1, p2 = line_
         return is_point(p1) and is_point(p2)
@@ -1386,7 +1829,14 @@ def is_line(line_: Any) -> bool:
 
 
 def is_point(pnt: Any) -> bool:
-    """Return True if the input is a point."""
+    """Return True if the input is a point.
+
+    Args:
+        pnt (Any): Input value.
+
+    Returns:
+        bool: True if the input is a point, False otherwise.
+    """
     try:
         x, y = pnt[:2]
         return is_number(x) and is_number(y)
@@ -1395,23 +1845,42 @@ def is_point(pnt: Any) -> bool:
 
 
 def is_vertical(line: Line, eps: float = 0.0001) -> bool:
-    """Return True if the line is vertical."""
+    """Return True if the line is vertical.
+
+    Args:
+        line (Line): Input line.
+        eps (float, optional): Tolerance. Defaults to 0.0001.
+
+    Returns:
+        bool: True if the line is vertical, False otherwise.
+    """
     return abs(i_vec.dot(line_vector(line))) <= eps
 
 
 def length(line: Line) -> float:
-    """Return the length of a line."""
+    """Return the length of a line.
+
+    Args:
+        line (Line): Input line.
+
+    Returns:
+        float: Length of the line.
+    """
     p1, p2 = line
     return distance(p1, p2)
 
 
 def lerp_point(p1: Point, p2: Point, t: float) -> Point:
     """Linear interpolation of two points.
-    p1: (x1, y1)
-    p2: (x2, y2)
-    t = 0 => p1
-    t = 1 => p2
-    t can be negative or greater than 1."""
+
+    Args:
+        p1 (Point): First point.
+        p2 (Point): Second point.
+        t (float): Interpolation parameter. t = 0 => p1, t = 1 => p2.
+
+    Returns:
+        Point: Interpolated point.
+    """
     x1, y1 = p1
     x2, y2 = p2
     return (lerp(x1, x2, t), lerp(y1, y2, t))
@@ -1419,7 +1888,17 @@ def lerp_point(p1: Point, p2: Point, t: float) -> Point:
 
 def slope(start_point: Point, end_point: Point, rtol=None, atol=None) -> float:
     """Return the slope of a line given by two points.
-    Order makes a difference."""
+    Order makes a difference.
+
+    Args:
+        start_point (Point): Start point of the line.
+        end_point (Point): End point of the line.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        float: Slope of the line.
+    """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
@@ -1432,8 +1911,15 @@ def slope(start_point: Point, end_point: Point, rtol=None, atol=None) -> float:
 
 
 def segmentize_line(line: Line, segment_length: float) -> list[Line]:
-    """Return a list of points that would form segments with the given
-    length."""
+    """Return a list of points that would form segments with the given length.
+
+    Args:
+        line (Line): Input line.
+        segment_length (float): Length of each segment.
+
+    Returns:
+        list[Line]: List of segments.
+    """
     length_ = distance(line[0], line[1])
     x1, y1 = line[0]
     x2, y2 = line[1]
@@ -1443,23 +1929,45 @@ def segmentize_line(line: Line, segment_length: float) -> list[Line]:
 
     return list(zip(x_segments, y_segments))
 
+
 def line_angle(start_point: Point, end_point: Point) -> float:
-    """Return the orientation angle (in radians) of a line given by start and end
-    points.
-    Order makes a difference."""
+    """Return the orientation angle (in radians) of a line given by start and end points.
+    Order makes a difference.
+
+    Args:
+        start_point (Point): Start point of the line.
+        end_point (Point): End point of the line.
+
+    Returns:
+        float: Orientation angle of the line in radians.
+    """
     return atan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
 
 
 def inclination_angle(start_point: Point, end_point: Point) -> float:
-    """Return the inclination angle (in radians) of a line given by start and end
-    points.
+    """Return the inclination angle (in radians) of a line given by start and end points.
     Inclination angle is always between zero and pi.
-    Order makes no difference."""
+    Order makes no difference.
+
+    Args:
+        start_point (Point): Start point of the line.
+        end_point (Point): End point of the line.
+
+    Returns:
+        float: Inclination angle of the line in radians.
+    """
     return line_angle(start_point, end_point) % pi
 
 
 def line2vector(line: Line) -> VecType:
-    """Return the vector representation of a line"""
+    """Return the vector representation of a line
+
+    Args:
+        line (Line): Input line.
+
+    Returns:
+        VecType: Vector representation of the line.
+    """
     x1, y1 = line[0]
     x2, y2 = line[1]
     dx = x2 - x1
@@ -1470,8 +1978,16 @@ def line2vector(line: Line) -> VecType:
 def line_through_point_and_angle(
     point: Point, angle: float, length_: float = 100
 ) -> Line:
-    """Return a line through the given point with the given angle
-    and length"""
+    """Return a line through the given point with the given angle and length
+
+    Args:
+        point (Point): Point through which the line passes.
+        angle (float): Angle of the line in radians.
+        length_ (float, optional): Length of the line. Defaults to 100.
+
+    Returns:
+        Line: Line passing through the given point with the given angle and length.
+    """
     x, y = point[:2]
     dx = length_ * cos(angle)
     dy = length_ * sin(angle)
@@ -1479,31 +1995,68 @@ def line_through_point_and_angle(
 
 
 def line_vector(line: Line) -> VecType:
-    """Return the vector representation of a line."""
+    """Return the vector representation of a line.
+
+    Args:
+        line (Line): Input line.
+
+    Returns:
+        VecType: Vector representation of the line.
+    """
     x1, y1 = line[0]
     x2, y2 = line[1]
     return Vector2D(x2 - x1, y2 - y1)
 
 
 def mid_point(p1: Point, p2: Point) -> Point:
-    """Return the mid point of two points."""
+    """Return the mid point of two points.
+
+    Args:
+        p1 (Point): First point.
+        p2 (Point): Second point.
+
+    Returns:
+        Point: Mid point of the two points.
+    """
     x = (p2[0] + p1[0]) / 2
     y = (p2[1] + p1[1]) / 2
     return (x, y)
 
 
 def norm(vec: VecType) -> float:
-    """Return the norm (vector length) of a vector."""
+    """Return the norm (vector length) of a vector.
+
+    Args:
+        vec (VecType): Input vector.
+
+    Returns:
+        float: Norm of the vector.
+    """
     return hypot(vec[0], vec[1])
 
 
 def ndarray_to_xy_list(arr: np.ndarray) -> Sequence[Point]:
-    """Convert a numpy array to a list of points."""
+    """Convert a numpy array to a list of points.
+
+    Args:
+        arr (np.ndarray): Input numpy array.
+
+    Returns:
+        Sequence[Point]: List of points.
+    """
     return arr[:, :2].tolist()
 
 
 def offset_line(line: Sequence[Point], offset: float) -> Sequence[Point]:
-    """Return an offset line from a given line."""
+    """Return an offset line from a given line.
+
+    Args:
+        line (Sequence[Point]): Input line.
+        offset (float): Offset distance.
+
+    Returns:
+        Sequence[Point]: Offset line.
+    """
     unit_vec = perp_unit_vector(line)
     dx = unit_vec[0] * offset
     dy = unit_vec[1] * offset
@@ -1513,7 +2066,15 @@ def offset_line(line: Sequence[Point], offset: float) -> Sequence[Point]:
 
 
 def offset_lines(polylines: Sequence[Line], offset: float = 1) -> list[Line]:
-    """Return a list of offset lines from a list of lines."""
+    """Return a list of offset lines from a list of lines.
+
+    Args:
+        polylines (Sequence[Line]): List of input lines.
+        offset (float, optional): Offset distance. Defaults to 1.
+
+    Returns:
+        list[Line]: List of offset lines.
+    """
 
     def stitch_(polyline):
         res = []
@@ -1536,13 +2097,29 @@ def offset_lines(polylines: Sequence[Line], offset: float = 1) -> list[Line]:
 
 
 def normalize(vec: VecType) -> VecType:
-    """Return the normalized vector."""
+    """Return the normalized vector.
+
+    Args:
+        vec (VecType): Input vector.
+
+    Returns:
+        VecType: Normalized vector.
+    """
     norm_ = norm(vec)
     return [vec[0] / norm_, vec[1] / norm_]
 
 
 def offset_point_on_line(point: Point, line: Line, offset: float) -> Point:
-    """Return a point on a line that is offset from the given point."""
+    """Return a point on a line that is offset from the given point.
+
+    Args:
+        point (Point): Input point.
+        line (Line): Input line.
+        offset (float): Offset distance.
+
+    Returns:
+        Point: Offset point on the line.
+    """
     x, y = point[:2]
     x1, y1 = line[0]
     x2, y2 = line[1]
@@ -1556,14 +2133,30 @@ def offset_point_on_line(point: Point, line: Line, offset: float) -> Point:
 
 
 def offset_point(point: Point, dx: float = 0, dy: float = 0) -> Point:
-    """Return an offset point from a given point."""
+    """Return an offset point from a given point.
+
+    Args:
+        point (Point): Input point.
+        dx (float, optional): Offset distance in x-direction. Defaults to 0.
+        dy (float, optional): Offset distance in y-direction. Defaults to 0.
+
+    Returns:
+        Point: Offset point.
+    """
     x, y = point[:2]
     return x + dx, y + dy
 
 
 def parallel_line(line: Line, point: Point) -> Line:
-    """Return a parallel line to the given line that goes through the
-    given point"""
+    """Return a parallel line to the given line that goes through the given point
+
+    Args:
+        line (Line): Input line.
+        point (Point): Point through which the parallel line passes.
+
+    Returns:
+        Line: Parallel line.
+    """
     x1, y1 = line[0]
     x2, y2 = line[1]
     x3, y3 = point
@@ -1573,8 +2166,16 @@ def parallel_line(line: Line, point: Point) -> Line:
 
 
 def perp_offset_point(point: Point, line: Line, offset: float) -> Point:
-    """Return a point that is offset from the given point in the
-    perpendicular direction to the given line."""
+    """Return a point that is offset from the given point in the perpendicular direction to the given line.
+
+    Args:
+        point (Point): Input point.
+        line (Line): Input line.
+        offset (float): Offset distance.
+
+    Returns:
+        Point: Perpendicular offset point.
+    """
     unit_vec = perp_unit_vector(line)
     dx = unit_vec[0] * offset
     dy = unit_vec[1] * offset
@@ -1583,7 +2184,14 @@ def perp_offset_point(point: Point, line: Line, offset: float) -> Point:
 
 
 def perp_unit_vector(line: Line) -> VecType:
-    """Return the perpendicular unit vector to a line"""
+    """Return the perpendicular unit vector to a line
+
+    Args:
+        line (Line): Input line.
+
+    Returns:
+        VecType: Perpendicular unit vector.
+    """
     x1, y1 = line[0]
     x2, y2 = line[1]
     dx = x2 - x1
@@ -1595,7 +2203,17 @@ def perp_unit_vector(line: Line) -> VecType:
 def point_on_line(
     point: Point, line: Line, rtol: float = None, atol: float = None
 ) -> bool:
-    """Return True if the given point is on the given line"""
+    """Return True if the given point is on the given line
+
+    Args:
+        point (Point): Input point.
+        line (Line): Input line.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the point is on the line, False otherwise.
+    """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     p1, p2 = line
     return isclose(slope(p1, point), slope(point, p2), rtol=rtol, atol=atol)
@@ -1604,7 +2222,17 @@ def point_on_line(
 def point_on_line_segment(
     point: Point, line: Line, rtol: float = None, atol: float = None
 ) -> bool:
-    """Return True if the given point is on the given line segment"""
+    """Return True if the given point is on the given line segment
+
+    Args:
+        point (Point): Input point.
+        line (Line): Input line segment.
+        rtol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the point is on the line segment, False otherwise.
+    """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
     p1, p2 = line
     return isclose(
@@ -1616,7 +2244,15 @@ def point_on_line_segment(
 
 
 def point_to_line_distance(point: Point, line: Line) -> float:
-    """Return the vector from a point to a line"""
+    """Return the vector from a point to a line
+
+    Args:
+        point (Point): Input point.
+        line (Line): Input line.
+
+    Returns:
+        float: Distance from the point to the line.
+    """
     x0, y0 = point
     x1, y1 = line[0]
     x2, y2 = line[1]
@@ -1629,8 +2265,16 @@ def point_to_line_seg_distance(p, lp1, lp2):
     """Given a point p and a line segment defined by boundary points
     lp1 and lp2, returns the distance between the line segment and the point.
     If the point is not located in the perpendicular area between the
-    boundary points, returns False."""
+    boundary points, returns False.
 
+    Args:
+        p (Point): Input point.
+        lp1 (Point): First boundary point of the line segment.
+        lp2 (Point): Second boundary point of the line segment.
+
+    Returns:
+        float: Distance between the point and the line segment, or False if the point is not in the perpendicular area.
+    """
     if lp1[:2] == lp2[:2]:
         msg = "Error! Line is ill defined. Start and end points are coincident."
         raise ValueError(msg)
@@ -1650,7 +2294,16 @@ def point_to_line_seg_distance(p, lp1, lp2):
 
 
 def point_to_line_vec(point: Point, line: Line, unit: bool = False) -> VecType:
-    """Return the perpendicular vector from a point to a line"""
+    """Return the perpendicular vector from a point to a line
+
+    Args:
+        point (Point): Input point.
+        line (Line): Input line.
+        unit (bool, optional): Whether to return a unit vector. Defaults to False.
+
+    Returns:
+        VecType: Perpendicular vector from the point to the line.
+    """
     x0, y0 = point
     x1, y1 = line[0]
     x2, y2 = line[1]
@@ -1672,7 +2325,13 @@ def point_to_line_vec(point: Point, line: Line, unit: bool = False) -> VecType:
 
 def polygon_area(polygon: Sequence[Point], dist_tol=None) -> float:
     """Calculate the area of a polygon.
-    polygon: list of points [[x1, y1], [x2, y2], ...]
+
+    Args:
+        polygon (Sequence[Point]): List of points representing the polygon.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        float: Area of the polygon.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -1689,7 +2348,16 @@ def polygon_area(polygon: Sequence[Point], dist_tol=None) -> float:
 
 
 def polyline_length(polygon: Sequence[Point], closed=False, dist_tol=None) -> float:
-    """Calculate the perimeter of a polygon."""
+    """Calculate the perimeter of a polygon.
+
+    Args:
+        polygon (Sequence[Point]): List of points representing the polygon.
+        closed (bool, optional): Whether the polygon is closed. Defaults to False.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        float: Perimeter of the polygon.
+    """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     dist_tol2 = dist_tol * dist_tol
@@ -1705,7 +2373,13 @@ def polyline_length(polygon: Sequence[Point], closed=False, dist_tol=None) -> fl
 
 def right_handed(polygon: Sequence[Point], dist_tol=None) -> float:
     """If polygon is counter-clockwise, return True
-    polygon: list of points [[x1, y1], [x2, y2], ...]
+
+    Args:
+        polygon (Sequence[Point]): List of points representing the polygon.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the polygon is counter-clockwise, False otherwise.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -1727,13 +2401,25 @@ def right_handed(polygon: Sequence[Point], dist_tol=None) -> float:
 def radius2side_len(n: int, radius: float) -> float:
     """Given a radius and the number of sides, return the side length
     of an n-sided regular polygon with the given radius
+
+    Args:
+        n (int): Number of sides.
+        radius (float): Radius of the polygon.
+
+    Returns:
+        float: Side length of the polygon.
     """
     return 2 * radius * sin(pi / n)
 
 
 def tokenize_svg_path(path: str) -> list[str]:
     """Tokenize an SVG path string.
-    Copilot creation.
+
+    Args:
+        path (str): SVG path string.
+
+    Returns:
+        list[str]: List of tokens.
     """
     return re.findall(r"[a-zA-Z]|[-+]?\d*\.\d+|\d+", path)
 
@@ -1743,8 +2429,15 @@ def law_of_cosines(a: float, b: float, c: float) -> float:
     Returns the angle of A in radians. A is the angle between
     sides b and c.
     cos(A) = (b^2 + c^2 - a^2) / (2 * b * c)
-    """
 
+    Args:
+        a (float): Length of side a.
+        b (float): Length of side b.
+        c (float): Length of side c.
+
+    Returns:
+        float: Angle of A in radians.
+    """
     return acos((b**2 + c**2 - a**2) / (2 * b * c))
 
 
@@ -1753,7 +2446,18 @@ def segmentize_catmull_rom(
 ) -> Sequence[float]:
     """a and b are the control points and c and d are
     start and end points respectively,
-    n is the number of segments to generate."""
+    n is the number of segments to generate.
+
+    Args:
+        a (float): First control point.
+        b (float): Second control point.
+        c (float): Start point.
+        d (float): End point.
+        n (int, optional): Number of segments to generate. Defaults to 100.
+
+    Returns:
+        Sequence[float]: List of points representing the segments.
+    """
     a = array(a[:2], dtype=float)
     b = array(b[:2], dtype=float)
     c = array(c[:2], dtype=float)
@@ -1776,12 +2480,29 @@ def segmentize_catmull_rom(
 
 def side_len_to_radius(n: int, side_len: float) -> float:
     """Given a side length and the number of sides, return the radius
-    of an n-sided regular polygon with the given side_len length"""
+    of an n-sided regular polygon with the given side_len length
+
+    Args:
+        n (int): Number of sides.
+        side_len (float): Side length of the polygon.
+
+    Returns:
+        float: Radius of the polygon.
+    """
     return side_len / (2 * sin(pi / n))
 
 
 def translate_line(dx: float, dy: float, line: Line) -> Line:
-    """Return a translated line by dx and dy"""
+    """Return a translated line by dx and dy
+
+    Args:
+        dx (float): Translation distance in x-direction.
+        dy (float): Translation distance in y-direction.
+        line (Line): Input line.
+
+    Returns:
+        Line: Translated line.
+    """
     x1, y1 = line[0]
     x2, y2 = line[1]
     return [[x1 + dx, y1 + dy], [x2 + dx, y2 + dy]]
@@ -1790,13 +2511,27 @@ def translate_line(dx: float, dy: float, line: Line) -> Line:
 def trim_line(line1: Line, line2: Line) -> Line:
     """Trim line1 to the intersection of line1 and line2.
     Extend it if necessary.
+
+    Args:
+        line1 (Line): First line.
+        line2 (Line): Second line.
+
+    Returns:
+        Line: Trimmed line.
     """
     intersection_ = intersection(line1, line2)
     return [line1[0], intersection_]
 
 
 def unit_vector(line: Line) -> VecType:
-    """Return the unit vector of a line"""
+    """Return the unit vector of a line
+
+    Args:
+        line (Line): Input line.
+
+    Returns:
+        VecType: Unit vector of the line.
+    """
     norm_ = length(line)
     p1, p2 = line
     x1, y1 = p1
@@ -1806,7 +2541,14 @@ def unit_vector(line: Line) -> VecType:
 
 def unit_vector_(line: Line) -> Sequence[VecType]:
     """Return the cartesian unit vector of a line
-    with the given line's start and end points"""
+    with the given line's start and end points
+
+    Args:
+        line (Line): Input line.
+
+    Returns:
+        Sequence[VecType]: Cartesian unit vector of the line.
+    """
     x1, y1 = line[0]
     x2, y2 = line[1]
     dx = x2 - x1
@@ -1816,7 +2558,15 @@ def unit_vector_(line: Line) -> Sequence[VecType]:
 
 
 def vec_along_line(line: Line, magnitude: float) -> VecType:
-    """Return a vector along a line with the given magnitude."""
+    """Return a vector along a line with the given magnitude.
+
+    Args:
+        line (Line): Input line.
+        magnitude (float): Magnitude of the vector.
+
+    Returns:
+        VecType: Vector along the line with the given magnitude.
+    """
     if line == axis_x:
         dx, dy = magnitude, 0
     elif line == axis_y:
@@ -1830,13 +2580,28 @@ def vec_along_line(line: Line, magnitude: float) -> VecType:
 
 
 def vec_dir_angle(vec: Sequence[float]) -> float:
-    """Return the direction angle of a vector"""
+    """Return the direction angle of a vector
 
+    Args:
+        vec (Sequence[float]): Input vector.
+
+    Returns:
+        float: Direction angle of the vector.
+    """
     return atan2(vec[1], vec[0])
 
 
 def cross_product_sense(a: Point, b: Point, c: Point) -> int:
-    """Return the cross product sense of vectors a and b."""
+    """Return the cross product sense of vectors a and b.
+
+    Args:
+        a (Point): First point.
+        b (Point): Second point.
+        c (Point): Third point.
+
+    Returns:
+        int: Cross product sense.
+    """
     length_ = cross_product2(a, b, c)
     if length_ == 0:
         res = 1
@@ -1857,17 +2622,44 @@ def cross_product_sense(a: Point, b: Point, c: Point) -> int:
 
 
 def right_turn(p1, p2, p3):
-    """Return True if p1, p2, p3 make a right turn."""
+    """Return True if p1, p2, p3 make a right turn.
+
+    Args:
+        p1 (Point): First point.
+        p2 (Point): Second point.
+        p3 (Point): Third point.
+
+    Returns:
+        bool: True if the points make a right turn, False otherwise.
+    """
     return cross(p1, p2, p3) < 0
 
 
 def left_turn(p1, p2, p3):
-    """Return True if p1, p2, p3 make a left turn."""
+    """Return True if p1, p2, p3 make a left turn.
+
+    Args:
+        p1 (Point): First point.
+        p2 (Point): Second point.
+        p3 (Point): Third point.
+
+    Returns:
+        bool: True if the points make a left turn, False otherwise.
+    """
     return cross(p1, p2, p3) > 0
 
 
 def cross(p1, p2, p3):
-    """Return the cross product of vectors p1p2 and p1p3."""
+    """Return the cross product of vectors p1p2 and p1p3.
+
+    Args:
+        p1 (Point): First point.
+        p2 (Point): Second point.
+        p3 (Point): Third point.
+
+    Returns:
+        float: Cross product of the vectors.
+    """
     x1, y1 = p2[0] - p1[0], p2[1] - p1[1]
     x2, y2 = p3[0] - p1[0], p3[1] - p1[1]
     return x1 * y2 - x2 * y1
@@ -1876,7 +2668,12 @@ def cross(p1, p2, p3):
 def tri_to_cart(points):
     """
     Convert a list of points from triangular to cartesian coordinates.
-    points: list of points in triangular coordinates
+
+    Args:
+        points (list[Point]): List of points in triangular coordinates.
+
+    Returns:
+        np.ndarray: List of points in cartesian coordinates.
     """
     u = [1, 0]
     v = cos(pi / 3), sin(pi / 3)
@@ -1888,7 +2685,12 @@ def tri_to_cart(points):
 def cart_to_tri(points):
     """
     Convert a list of points from cartesian to triangular coordinates.
-    points: list of points in cartesian coordinates
+
+    Args:
+        points (list[Point]): List of points in cartesian coordinates.
+
+    Returns:
+        np.ndarray: List of points in triangular coordinates.
     """
     u = [1, 0]
     v = cos(pi / 3), sin(pi / 3)
@@ -1898,7 +2700,14 @@ def cart_to_tri(points):
 
 
 def convex_hull(points):
-    """Return the convex hull of a set of 2D points."""
+    """Return the convex hull of a set of 2D points.
+
+    Args:
+        points (list[Point]): List of 2D points.
+
+    Returns:
+        list[Point]: Convex hull of the points.
+    """
     # From http://en.wikibooks.org/wiki/Algorithm__implementation/Geometry/
     # Convex_hull/Monotone_chain
     # Sort points lexicographically (tuples are compared lexicographically).
@@ -1936,19 +2745,40 @@ def convex_hull(points):
 def connected_pairs(items):
     """Return a list of connected pair tuples corresponding to the items.
     [a, b, c] -> [(a, b), (b, c)]
+
+    Args:
+        items (list): List of items.
+
+    Returns:
+        list[tuple]: List of connected pair tuples.
     """
     return list(zip(items, items[1:]))
 
 
 def flat_points(connected_segments):
-    """Return a list of points from a list of connected pairs of points."""
+    """Return a list of points from a list of connected pairs of points.
+
+    Args:
+        connected_segments (list[tuple]): List of connected pairs of points.
+
+    Returns:
+        list[Point]: List of points.
+    """
     points = [line[0] for line in connected_segments]
     points.append(connected_segments[-1][1])
     return points
 
 
 def point_in_quad(point: Point, quad: list[Point]) -> bool:
-    """Return True if the point is inside the quad."""
+    """Return True if the point is inside the quad.
+
+    Args:
+        point (Point): Input point.
+        quad (list[Point]): List of points representing the quad.
+
+    Returns:
+        bool: True if the point is inside the quad, False otherwise.
+    """
     x, y = point[:2]
     x1, y1 = quad[0]
     x2, y2 = quad[1]
@@ -1966,8 +2796,16 @@ def point_in_quad(point: Point, quad: list[Point]) -> bool:
 def get_polygons(
     nested_points: Sequence[Point], n_round_digits: int = 2, dist_tol: float = None
 ) -> list:
-    """Convert points to clean polygons. Points are vertices of
-    polygons."""
+    """Convert points to clean polygons. Points are vertices of polygons.
+
+    Args:
+        nested_points (Sequence[Point]): List of nested points.
+        n_round_digits (int, optional): Number of decimal places to round to. Defaults to 2.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+
+    Returns:
+        list: List of clean polygons.
+    """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     from ..graph import get_cycles
@@ -2018,7 +2856,16 @@ def get_polygons(
 def offset_point_from_start(p1, p2, offset):
     """p1, p2: points on a line
     offset: distance from p1
-    return the point on the line at the given offset"""
+    return the point on the line at the given offset
+
+    Args:
+        p1 (Point): First point on the line.
+        p2 (Point): Second point on the line.
+        offset (float): Distance from p1.
+
+    Returns:
+        Point: Point on the line at the given offset.
+    """
     x1, y1 = p1
     x2, y2 = p2
     dx, dy = x2 - x1, y2 - y1
@@ -2032,14 +2879,31 @@ def offset_point_from_start(p1, p2, offset):
 
 
 def angle_between_two_lines(line1, line2):
-    """Return the angle between two lines in radians."""
+    """Return the angle between two lines in radians.
+
+    Args:
+        line1 (Line): First line.
+        line2 (Line): Second line.
+
+    Returns:
+        float: Angle between the two lines in radians.
+    """
     alpha1 = line_angle(*line1)
     alpha2 = line_angle(*line2)
     return abs(alpha1 - alpha2)
 
 
 def rotate_point(point, center, angle):
-    """Rotate a point around a center by an angle in radians."""
+    """Rotate a point around a center by an angle in radians.
+
+    Args:
+        point (Point): Point to rotate.
+        center (Point): Center of rotation.
+        angle (float): Angle of rotation in radians.
+
+    Returns:
+        Point: Rotated point.
+    """
     x, y = point[:2]
     cx, cy = center[:2]
     dx = x - cx
@@ -2052,8 +2916,17 @@ def rotate_point(point, center, angle):
 def circle_tangent_to2lines(line1, line2, intersection_, radius):
     """Given two lines, their intersection point and a radius,
     return the center of the circle tangent to both lines and
-    with the given radius."""
+    with the given radius.
 
+    Args:
+        line1 (Line): First line.
+        line2 (Line): Second line.
+        intersection_ (Point): Intersection point of the lines.
+        radius (float): Radius of the circle.
+
+    Returns:
+        tuple: Center of the circle, start and end points of the tangent lines.
+    """
     alpha = angle_between_two_lines(line1, line2)
     dist = radius / sin(alpha / 2)
     start = offset_point_from_start(intersection_, line1.p1, dist)
@@ -2066,6 +2939,14 @@ def circle_tangent_to2lines(line1, line2, intersection_, radius):
 def triangle_area(a: float, b: float, c: float) -> float:
     """
     Given side lengths a, b and c, return the area of the triangle.
+
+    Args:
+        a (float): Length of side a.
+        b (float): Length of side b.
+        c (float): Length of side c.
+
+    Returns:
+        float: Area of the triangle.
     """
     a_b = a - b
     return sqrt((a + (b + c)) * (c - (a_b)) * (c + (a_b)) * (a + (b - c))) / 4
@@ -2074,6 +2955,13 @@ def triangle_area(a: float, b: float, c: float) -> float:
 def round_point(point: list[float], n_digits: int = 2) -> list[float]:
     """
     Round a point (x, y) to a given precision.
+
+    Args:
+        point (list[float]): Input point.
+        n_digits (int, optional): Number of decimal places to round to. Defaults to 2.
+
+    Returns:
+        list[float]: Rounded point.
     """
     x, y = point[:2]
     x = round(x, n_digits)
@@ -2082,7 +2970,17 @@ def round_point(point: list[float], n_digits: int = 2) -> list[float]:
 
 
 def get_polygon_grid_point(n, line1, line2, circumradius=100):
-    """See chapter ??? for explanation of this function."""
+    """See chapter ??? for explanation of this function.
+
+    Args:
+        n (int): Number of sides.
+        line1 (Line): First line.
+        line2 (Line): Second line.
+        circumradius (float, optional): Circumradius of the polygon. Defaults to 100.
+
+    Returns:
+        Point: Grid point of the polygon.
+    """
     s = circumradius * 2 * sin(pi / n)  # side length
     points = reg_poly_points(0, 0, n, s)[:-1]
     p1 = points[line1[0]]
@@ -2104,6 +3002,17 @@ def congruent_polygons(
     """
     Return True if two polygons are congruent.
     They can be translated, rotated and/or reflected.
+
+    Args:
+        polygon1 (list[Point]): First polygon.
+        polygon2 (list[Point]): Second polygon.
+        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        area_tol (float, optional): Area tolerance. Defaults to None.
+        side_length_tol (float, optional): Side length tolerance. Defaults to None.
+        angle_tol (float, optional): Angle tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the polygons are congruent, False otherwise.
     """
     dist_tol, area_tol, angle_tol = get_defaults(
         ["dist_tol", "area_rtol", "angle_rtol"], [dist_tol, area_tol, angle_tol]
@@ -2150,7 +3059,17 @@ def congruent_polygons(
 
 
 def positive_angle(angle, radians=True, tol=None, atol=None):
-    """Return the positive angle in radians or degrees."""
+    """Return the positive angle in radians or degrees.
+
+    Args:
+        angle (float): Input angle.
+        radians (bool, optional): Whether the angle is in radians. Defaults to True.
+        tol (float, optional): Relative tolerance. Defaults to None.
+        atol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        float: Positive angle.
+    """
     tol, atol = get_defaults(["tol", "rtol"], [tol, atol])
     if radians:
         if angle < 0:
@@ -2166,7 +3085,14 @@ def positive_angle(angle, radians=True, tol=None, atol=None):
 
 
 def polygon_internal_angles(polygon):
-    """Return the internal angles of a polygon."""
+    """Return the internal angles of a polygon.
+
+    Args:
+        polygon (list[Point]): List of points representing the polygon.
+
+    Returns:
+        list[float]: List of internal angles of the polygon.
+    """
     angles = []
     len_polygon = len(polygon)
     for i, pnt in enumerate(polygon):
@@ -2182,6 +3108,14 @@ def bisector_line(a: Point, b: Point, c: Point) -> Line:
     """
     Given three points that form two lines [a, b] and [b, c]
     return the bisector line between them.
+
+    Args:
+        a (Point): First point.
+        b (Point): Second point.
+        c (Point): Third point.
+
+    Returns:
+        Line: Bisector line.
     """
     d = mid_point(a, c)
 
@@ -2189,7 +3123,16 @@ def bisector_line(a: Point, b: Point, c: Point) -> Line:
 
 
 def between(a, b, c):
-    """Return True if c is between a and b."""
+    """Return True if c is between a and b.
+
+    Args:
+        a (Point): First point.
+        b (Point): Second point.
+        c (Point): Third point.
+
+    Returns:
+        bool: True if c is between a and b, False otherwise.
+    """
     if not collinear(a, b, c):
         res = False
     elif a[0] != b[0]:
@@ -2200,7 +3143,18 @@ def between(a, b, c):
 
 
 def collinear(a, b, c, area_rtol=None, area_atol=None):
-    """Return True if a, b, and c are collinear."""
+    """Return True if a, b, and c are collinear.
+
+    Args:
+        a (Point): First point.
+        b (Point): Second point.
+        c (Point): Third point.
+        area_rtol (float, optional): Relative tolerance for area. Defaults to None.
+        area_atol (float, optional): Absolute tolerance for area. Defaults to None.
+
+    Returns:
+        bool: True if the points are collinear, False otherwise.
+    """
     area_rtol, area_atol = get_defaults(
         ["area_rtol", "area_atol"], [area_rtol, area_atol]
     )
@@ -2208,12 +3162,28 @@ def collinear(a, b, c, area_rtol=None, area_atol=None):
 
 
 def polar_to_cartesian(r, theta):
-    """Convert polar coordinates to cartesian coordinates."""
+    """Convert polar coordinates to cartesian coordinates.
+
+    Args:
+        r (float): Radius.
+        theta (float): Angle in radians.
+
+    Returns:
+        Point: Cartesian coordinates.
+    """
     return (r * cos(theta), r * sin(theta))
 
 
 def cartesian_to_polar(x, y):
-    """Convert cartesian coordinates to polar coordinates."""
+    """Convert cartesian coordinates to polar coordinates.
+
+    Args:
+        x (float): x-coordinate.
+        y (float): y-coordinate.
+
+    Returns:
+        tuple: Polar coordinates (r, theta).
+    """
     r = hypot(x, y)
     theta = atan2(y, x)
     return r, theta
@@ -2225,20 +3195,16 @@ def fillet(a: Point, b: Point, c: Point, radius: float) -> tuple[Line, Line, Poi
     return the clipped lines [a, d], [e, c], center point
     of the radius circle (tangent to both lines), and the arc
     angle of the formed fillet.
-    Example:
-    a = (0, 0)
-    b = (30, 100)
-    c = (60, 0)
 
-    p1, p2, c, angle = fillet(a, b, c, radius=10)
-    print(f"{p1}\n, {p2}\n, {c}\n, {radians * angle}")
-    ->
-    [(0, 0), (20.421737147788487, 68.07245715929496)]
-    [(39.57826285221151, 68.07245715929496), (60, 0)]
-    (30.0, 65.19897830363149)
-    146.60151153201264
+    Args:
+        a (Point): First point.
+        b (Point): Second point.
+        c (Point): Third point.
+        radius (float): Radius of the fillet.
+
+    Returns:
+        tuple: Clipped lines [a, d], [e, c], center point of the radius circle, and the arc angle.
     """
-
     alpha2 = angle_between_lines2(a, b, c) / 2
     sin_alpha2 = sin(alpha2)
     cos_alpha2 = cos(alpha2)
@@ -2256,6 +3222,14 @@ def line_by_point_angle_length(point, angle, length_):
     """
     Given a point, an angle, and a length, return the line
     that starts at the point and has the given angle and length.
+
+    Args:
+        point (Point): Start point of the line.
+        angle (float): Angle of the line in radians.
+        length_ (float): Length of the line.
+
+    Returns:
+        Line: Line with the given angle and length.
     """
     x, y = point[:2]
     dx = length_ * cos(angle)
@@ -2269,19 +3243,12 @@ def surface_normal(p1: Point, p2: Point, p3: Point) -> VecType:
     Calculates the surface normal of a triangle given its vertices.
 
     Args:
-        p1 (x1, y1, z1): The coordinates of the first vertex.
-        p2 (x2, y2, z2): The coordinates of the second vertex.
-        p3 (x3, y3, z3): The coordinates of the third vertex.
+        p1 (Point): First vertex.
+        p2 (Point): Second vertex.
+        p3 (Point): Third vertex.
 
     Returns:
-        numpy.ndarray: The surface normal vector.
-    Example:
-    p1 = [1, 0, 0]
-    p2 = [0, 1, 0]
-    p3 = [0, 0, 1]
-
-    normal = surface_normal(p1, p2, p3)
-    print(normal)  # Output: [0.57735027 0.57735027 0.57735027]
+        VecType: Surface normal vector.
     """
     v1 = np.array(p1)
     v2 = np.array(p2)
@@ -2300,7 +3267,15 @@ def surface_normal(p1: Point, p2: Point, p3: Point) -> VecType:
 
 
 def normal(point1, point2):
-    """Return the normal vector of a line."""
+    """Return the normal vector of a line.
+
+    Args:
+        point1 (Point): First point of the line.
+        point2 (Point): Second point of the line.
+
+    Returns:
+        VecType: Normal vector of the line.
+    """
     x1, y1 = point1
     x2, y2 = point2
     dx = x2 - x1
@@ -2310,7 +3285,16 @@ def normal(point1, point2):
 
 
 def area(a, b, c):
-    """Return the area of a triangle given its vertices."""
+    """Return the area of a triangle given its vertices.
+
+    Args:
+        a (Point): First vertex.
+        b (Point): Second vertex.
+        c (Point): Third vertex.
+
+    Returns:
+        float: Area of the triangle.
+    """
     return (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])
 
 
@@ -2318,14 +3302,11 @@ def calc_area(points):
     """Calculate the area of a simple polygon (given by a list of its vertices).
 
     Args:
-      points: list of points
+        points (list[Point]): List of points representing the polygon.
 
     Returns:
-      (area, clockwise)
-       area is always positive
-       clockwise is either true or false
+        tuple: Area of the polygon and whether it is clockwise.
     """
-
     area_ = 0
     n_points = len(points)
     for i in range(n_points):
@@ -2338,7 +3319,14 @@ def calc_area(points):
 
 
 def remove_bad_points(points):
-    """Remove redundant and collinear points from a list of points."""
+    """Remove redundant and collinear points from a list of points.
+
+    Args:
+        points (list[Point]): List of points.
+
+    Returns:
+        list[Point]: List of points with redundant and collinear points removed.
+    """
     EPSILON = 1e-16
     n_points = len(points)
     # check for redundant points
@@ -2368,7 +3356,14 @@ def remove_bad_points(points):
 
 
 def is_convex(points):
-    """Return True if the polygon is convex."""
+    """Return True if the polygon is convex.
+
+    Args:
+        points (list[Point]): List of points representing the polygon.
+
+    Returns:
+        bool: True if the polygon is convex, False otherwise.
+    """
     points = remove_bad_points(points)
     n_checks = len(points)
     points = points + [points[0]]
@@ -2383,7 +3378,11 @@ def is_convex(points):
 
 
 def set_vertices(points):
-    """Set the next and previous vertices of a list of vertices."""
+    """Set the next and previous vertices of a list of vertices.
+
+    Args:
+        points (list[Vertex]): List of vertices.
+    """
     if not isinstance(points[0], Vertex):
         points = [Vertex(*p[:]) for p in points]
     n_points = len(points)
@@ -2401,7 +3400,19 @@ def set_vertices(points):
 
 
 def circle_circle_intersections(x0, y0, r0, x1, y1, r1):
-    """Return the intersection points of two circles."""
+    """Return the intersection points of two circles.
+
+    Args:
+        x0 (float): x-coordinate of the center of the first circle.
+        y0 (float): y-coordinate of the center of the first circle.
+        r0 (float): Radius of the first circle.
+        x1 (float): x-coordinate of the center of the second circle.
+        y1 (float): y-coordinate of the center of the second circle.
+        r1 (float): Radius of the second circle.
+
+    Returns:
+        tuple: Intersection points of the two circles.
+    """
     # taken from https://stackoverflow.com/questions/55816902/finding-the-
     # intersection-of-two-circles
     # circle 1: (x0, y0), radius r0
@@ -2422,7 +3433,7 @@ def circle_circle_intersections(x0, y0, r0, x1, y1, r1):
         a = (r0**2 - r1**2 + d**2) / (2 * d)
         h = sqrt(r0**2 - a**2)
         x2 = x0 + a * (x1 - x0) / d
-        y2 = y0 + a * (y1 - y0) / d
+        y2 = y0 + a * (x1 - x0) / d
         x3 = x2 + h * (y1 - y0) / d
         y3 = y2 - h * (x1 - x0) / d
         x4 = x2 - h * (y1 - y0) / d
@@ -2434,7 +3445,16 @@ def circle_circle_intersections(x0, y0, r0, x1, y1, r1):
 
 
 def circle_segment_intersection(circle, p1, p2):
-    """Return True if the circle and the line segment intersect."""
+    """Return True if the circle and the line segment intersect.
+
+    Args:
+        circle (Circle): Input circle.
+        p1 (Point): First point of the line segment.
+        p2 (Point): Second point of the line segment.
+
+    Returns:
+        bool: True if the circle and the line segment intersect, False otherwise.
+    """
     # if line seg and circle intersects returns true, false otherwise
     # c: circle
     # p1 and p2 are the endpoints of the line segment
@@ -2462,14 +3482,31 @@ def circle_segment_intersection(circle, p1, p2):
 
 def r_polar(a, b, theta):
     """Return the radius (distance between the center and the intersection point)
-    of the ellipse at the given angle."""
+    of the ellipse at the given angle.
 
+    Args:
+        a (float): Semi-major axis of the ellipse.
+        b (float): Semi-minor axis of the ellipse.
+        theta (float): Angle in radians.
+
+    Returns:
+        float: Radius of the ellipse at the given angle.
+    """
     return (a * b) / sqrt((b * cos(theta)) ** 2 + (a * sin(theta)) ** 2)
 
 
 def ellipse_line_intersection(a, b, point):
     """Return the intersection points of an ellipse and a line segment
-    connecting the given point to the ellipse center at (0, 0)."""
+    connecting the given point to the ellipse center at (0, 0).
+
+    Args:
+        a (float): Semi-major axis of the ellipse.
+        b (float): Semi-minor axis of the ellipse.
+        point (Point): Point on the line segment.
+
+    Returns:
+        list[Point]: Intersection points of the ellipse and the line segment.
+    """
     # adapted from http://mathworld.wolfram.com/Ellipse-LineIntersection.html
     # a, b is the ellipse width/2 and height/2 and (x_0, y_0) is the point
 
@@ -2483,6 +3520,16 @@ def ellipse_line_intersection(a, b, point):
 def ellipse_tangent(a, b, x, y, tol=0.001):
     """Calculates the slope of the tangent line to an ellipse at the point (x, y).
     If point is not on the ellipse, return False.
+
+    Args:
+        a (float): Semi-major axis of the ellipse.
+        b (float): Semi-minor axis of the ellipse.
+        x (float): x-coordinate of the point.
+        y (float): y-coordinate of the point.
+        tol (float, optional): Tolerance. Defaults to 0.001.
+
+    Returns:
+        float: Slope of the tangent line, or False if the point is not on the ellipse.
     """
     print((x**2 / a**2) + (y**2 / b**2))
     if abs((x**2 / a**2) + (y**2 / b**2) - 1) > tol:
@@ -2496,8 +3543,17 @@ def ellipse_tangent(a, b, x, y, tol=0.001):
 def elliptic_arclength(t_0, t_1, a, b):
     """Return the arclength of an ellipse between the given parametric angles.
     The ellipse has semi-major axis a and semi-minor axis b.
-    from: https://www.johndcook.com/blog/2022/11/02/elliptic-arc-length/
+
+    Args:
+        t_0 (float): Start parametric angle in radians.
+        t_1 (float): End parametric angle in radians.
+        a (float): Semi-major axis of the ellipse.
+        b (float): Semi-minor axis of the ellipse.
+
+    Returns:
+        float: Arclength of the ellipse between the given parametric angles.
     """
+    # from: https://www.johndcook.com/blog/2022/11/02/elliptic-arc-length/
     m = 1 - (b / a) ** 2
     t1 = ellipeinc(t_1 - 0.5 * pi, m)
     t0 = ellipeinc(t_0 - 0.5 * pi, m)
@@ -2508,12 +3564,13 @@ def central_to_parametric_angle(a, b, phi):
     """
     Converts a central angle to a parametric angle on an ellipse.
 
-    Parameters:
-    a, b: Semi-major and semi-minor axes of the ellipse
-    phi: Angle of the line intersecting the center and the point
+    Args:
+        a (float): Semi-major axis of the ellipse.
+        b (float): Semi-minor axis of the ellipse.
+        phi (float): Central angle in radians.
 
-    Return:
-    t: Parametric angle (in radians)
+    Returns:
+        float: Parametric angle in radians.
     """
     t = atan2((a / b) * sin(phi), cos(phi))
     if t < 0:
@@ -2526,12 +3583,13 @@ def parametric_to_central_angle(a, b, t):
     """
     Converts a parametric angle on an ellipse to a central angle.
 
-    Parameters:
-    a, b: Semi-major and semi-minor axes of the ellipse
-    t: Parametric angle (in radians)
+    Args:
+        a (float): Semi-major axis of the ellipse.
+        b (float): Semi-minor axis of the ellipse.
+        t (float): Parametric angle in radians.
 
-    Return:
-    phi: Angle of the line intersecting the center and the point
+    Returns:
+        float: Central angle in radians.
     """
     phi = atan2((b / a) * sin(t), cos(t))
     if phi < 0:
@@ -2550,9 +3608,8 @@ def ellipse_points(center, a, b, num_points):
         num_points (int): Number of points to generate.
 
     Returns:
-        numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
+        np.ndarray: Array of (x, y) coordinates of the ellipse points.
     """
-
     t = np.linspace(0, 2 * np.pi, num_points)
     x = center[0] + a * np.cos(t)
     y = center[1] + b * np.sin(t)
@@ -2561,16 +3618,32 @@ def ellipse_points(center, a, b, num_points):
 
 
 def ellipse_point(a, b, angle):
-    """Return a point on an ellipse with the given a=width/2, b=height/2, and angle."""
+    """Return a point on an ellipse with the given a=width/2, b=height/2, and angle.
 
+    Args:
+        a (float): Semi-major axis of the ellipse.
+        b (float): Semi-minor axis of the ellipse.
+        angle (float): Angle in radians.
+
+    Returns:
+        Point: Point on the ellipse.
+    """
     r = r_polar(a, b, angle)
 
     return (r * cos(angle), r * sin(angle))
 
 
 def circle_line_intersection(c, p1, p2):
-    """Return the intersection points of a circle and a line segment."""
+    """Return the intersection points of a circle and a line segment.
 
+    Args:
+        c (Circle): Input circle.
+        p1 (Point): First point of the line segment.
+        p2 (Point): Second point of the line segment.
+
+    Returns:
+        tuple: Intersection points of the circle and the line segment.
+    """
     # adapted from http://mathworld.wolfram.com/Circle-LineIntersection.html
     # c is the circle and p1 and p2 are the line points
     def sgn(num):
@@ -2622,7 +3695,15 @@ def circle_line_intersection(c, p1, p2):
 
 
 def circle_poly_intersection(circle, polygon):
-    """Return True if the circle and the polygon intersect."""
+    """Return True if the circle and the polygon intersect.
+
+    Args:
+        circle (Circle): Input circle.
+        polygon (Polygon): Input polygon.
+
+    Returns:
+        bool: True if the circle and the polygon intersect, False otherwise.
+    """
     points = polygon.vertices
     n = len(points)
     res = False
@@ -2639,13 +3720,31 @@ def circle_poly_intersection(circle, polygon):
 
 def point_to_circle_distance(point, center, radius):
     """Given a point, center point, and radius, returns distance
-    between the given point and the circle"""
+    between the given point and the circle
+
+    Args:
+        point (Point): Input point.
+        center (Point): Center of the circle.
+        radius (float): Radius of the circle.
+
+    Returns:
+        float: Distance between the point and the circle.
+    """
     return abs(distance(center, point) - radius)
 
 
 def get_interior_points(start, end, n_points):
     """Given start and end points and number of interior points
-    returns the positions of the interior points"""
+    returns the positions of the interior points
+
+    Args:
+        start (Point): Start point.
+        end (Point): End point.
+        n_points (int): Number of interior points.
+
+    Returns:
+        list[Point]: List of interior points.
+    """
     rot_angle = line_angle(start, end)
     length_ = distance(start, end)
     seg_length = length_ / (n_points + 1.0)
@@ -2658,7 +3757,16 @@ def get_interior_points(start, end, n_points):
 
 
 def circle_3point(point1, point2, point3):
-    """Given three points, returns the center point and radius"""
+    """Given three points, returns the center point and radius
+
+    Args:
+        point1 (Point): First point.
+        point2 (Point): Second point.
+        point3 (Point): Third point.
+
+    Returns:
+        tuple: Center point and radius of the circle.
+    """
     ax, ay = point1[:2]
     bx, by = point2[:2]
     cx, cy = point3[:2]
@@ -2679,7 +3787,15 @@ def circle_3point(point1, point2, point3):
 
 
 def project_point_on_line(point: Vertex, line: Edge):
-    """Given a point and a line, returns the projection of the point on the line"""
+    """Given a point and a line, returns the projection of the point on the line
+
+    Args:
+        point (Vertex): Input point.
+        line (Edge): Input line.
+
+    Returns:
+        Vertex: Projection of the point on the line.
+    """
     v = point
     a, b = line
 
@@ -2733,7 +3849,14 @@ class Vertex(list):
         return (self.x, self.y, self.z)
 
     def below(self, other):
-        """This is for 2D points only"""
+        """This is for 2D points only
+
+        Args:
+            other (Vertex): Other vertex.
+
+        Returns:
+            bool: True if this vertex is below the other vertex, False otherwise.
+        """
         res = False
         if self.y < other.y:
             res = True
@@ -2743,7 +3866,14 @@ class Vertex(list):
         return res
 
     def above(self, other):
-        """This is for 2D points only"""
+        """This is for 2D points only
+
+        Args:
+            other (Vertex): Other vertex.
+
+        Returns:
+            bool: True if this vertex is above the other vertex, False otherwise.
+        """
         if self.y > other.y:
             res = True
         elif self.y == other.y and self.x < other.x:

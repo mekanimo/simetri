@@ -26,9 +26,23 @@ def cover_hex(
     reps2: int = 2,
     flat: bool = True,
 ) -> Batch:
+    """
+    Covers an area with a hexagonal pattern.
+
+    Args:
+        item (Union[Batch, Shape, Tag]): The item to be repeated.
+        size (float): The size of the hexagons.
+        gap (float, optional): The gap between hexagons. Defaults to 0.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.
+        flat (bool, optional): If True, hexagons are flat-topped. Defaults to True.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
+    """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
-    if flat:
+    if (flat):
         w = 2 * size
         h = sqrt(3) * size
         dx = 3 * size + (gap_x * 2)
@@ -50,7 +64,18 @@ def cover_hex(
 def cover_rhombic(
     item: Union[Batch, Shape, Tag], size: float, reps1: int = 2, reps2: int = 2
 ) -> Batch:
-    """Cover a rhombic lattice with a given size."""
+    """
+    Covers an area with a rhombic pattern.
+
+    Args:
+        item (Union[Batch, Shape, Tag]): The item to be repeated.
+        size (float): The size of the rhombuses.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
+    """
     sqrt2 = sqrt(2)
     diag = (sqrt2 / 2) * size
     item.translate(diag, diag, reps=1)
@@ -62,9 +87,19 @@ def cover_rhombic(
 
 
 def hex_grid_pointy(x: float, y: float, size: float, n_rows: int, n_cols: int) -> Batch:
-    """Create a hexagonal grid with pointy tops.
-    size is the distance between the center and a corner.
-    Return a Batch of Shapes."""
+    """
+    Creates a hexagonal grid with pointy tops.
+
+    Args:
+        x (float): The x-coordinate of the starting point.
+        y (float): The y-coordinate of the starting point.
+        size (float): The size of the hexagons.
+        n_rows (int): Number of rows in the grid.
+        n_cols (int): Number of columns in the grid.
+
+    Returns:
+        Batch: The resulting grid as a Batch of Shapes.
+    """
     height = sqrt(3) * size
     width = 2 * size
     edge_length = 2 * size * cos(pi / 6)
@@ -85,7 +120,19 @@ def cover_hex_pointy(
     reps1: int = 2,
     reps2: int = 2,
 ) -> Batch:
-    """Cover a hexagonal lattice with pointy tops."""
+    """
+    Covers an area with a hexagonal pattern with pointy tops.
+
+    Args:
+        item (Union[Shape, Batch, Tag]): The item to be repeated.
+        size (float): The size of the hexagons.
+        gap (float, optional): The gap between hexagons. Defaults to 0.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
+    """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
     w = sqrt(3) * size
@@ -106,7 +153,19 @@ def cover_hex_flat(
     reps1: int = 2,
     reps2: int = 2,
 ) -> Batch:
-    """Cover a hexagonal lattice with flat tops."""
+    """
+    Covers an area with a hexagonal pattern with flat tops.
+
+    Args:
+        item (Union[Batch, Shape, Tag]): The item to be repeated.
+        size (float): The size of the hexagons.
+        gap (float, optional): The gap between hexagons. Defaults to 0.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
+    """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
     h = sqrt(3) * size
@@ -144,28 +203,16 @@ def wallpaper_p1(
     Oblique lattice
     Point group: C1
 
-    generator is the repeating motif that could be a Shape, Batch, or Tag object
-    vector1 is the translation vector in the x direction given as a tuple (x, y)
-    vector2 is the translation vector in the y direction given as a tuple (x, y)
-    reps1 is the number of repetitions in the x direction
-    reps2 is the number of repetitions in the y direction
-    Resulting wallpaper pattern is returned as a Batch object
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        vector1 (VecType): The translation vector in the x direction.
+        vector2 (VecType): The translation vector in the y direction.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
-    Example:
-    import simetri.graphics as sg
-    import simetri.wallpaper as wp
-
-    directory = 'c:/tmp'
-    canvas = sg.Canvas()
-    F = sg.letter_F()
-    vec1 = (F.width + 10, 20)
-    vec2 = (30, F.height + 10)
-
-    pattern = wp.wallpaper_p1(F, vec1, vec2, reps1=4, reps2=4)
-    file_path = os.path.join(directory, 'wallpaper_test_p1.pdf')
-    canvas.draw(pattern, file_path=file_path)
+    Returns:
+        Batch: The resulting wallpaper pattern as a Batch object.
     """
-
     dx1, dy1 = vector1
     wallpaper = generator.translate(dx1, dy1, reps1)
     dx2, dy2 = vector2
@@ -188,23 +235,16 @@ def wallpaper_p2(
     Oblique lattice
     Point group: C2
 
-    Example:
-    import simetri.graphics as sg
-    import simetri.wallpaper as wp
+    Args:
+        generator (Union[Shape, Batch, Tag]): The repeating motif.
+        vector1 (VecType): The translation vector in the x direction.
+        vector2 (VecType): The translation vector in the y direction.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
-    directory = 'c:/tmp'
-    canvas = sg.Canvas()
-
-    F = sg.letter_F()
-    vec1 = (2 * F.width + 10, 0)
-    vec2 = (0, F.height + 10)
-
-    pattern = wp.wallpaper_p2(F, vec1, vec2, reps1=2, reps2=2)
-    file_path = os.path.join(directory, 'wallpaper_test_p2.pdf')
-    canvas.draw(pattern, file_path=file_path)
-
+    Returns:
+        Batch: The resulting wallpaper pattern as a Batch object.
     """
-
     rotocenter = mid_point(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
     dx1, dy1 = vector1
@@ -223,32 +263,32 @@ def wallpaper_p2_rect_lattice(
     reps1: int = 4,
     reps2: int = 4,
 ) -> Batch:
-    """
-    Half-turn rotation symmetry.
-    IUC: p2 (p211)
-    Conway: 2222
-    Oblique lattice
-    Point group: C2
+    # """
+    # Half-turn rotation symmetry.
+    # IUC: p2 (p211)
+    # Conway: 2222
+    # Oblique lattice
+    # Point group: C2
 
-    Point argument can be an Anchor object or a tuple, or two points can be given
-    as a sequence.
+    # Point argument can be an Anchor object or a tuple, or two points can be given
+    # as a sequence.
 
-    Example:
-    import simetri.graphics as sg
-    import simetri.wallpaper as wp
+    # Example:
+    # import simetri.graphics as sg
+    # import simetri.wallpaper as wp
 
-    directory = 'c:/tmp'
-    canvas = sg.Canvas()
+    # directory = 'c:/tmp'
+    # canvas = sg.Canvas()
 
-    F = sg.letter_F()
-    vec1 = (2 * F.width + 10, 0)
-    vec2 = (0, F.height + 10)
+    # F = sg.letter_F()
+    # vec1 = (2 * F.width + 10, 0)
+    # vec2 = (0, F.height + 10)
 
-    pattern = wp.wallpaper_p2(F, vec1, vec2, reps1=2, reps2=2)
-    file_path = os.path.join(directory, 'wallpaper_test_p2.pdf')
-    canvas.draw(pattern, file_path=file_path)
+    # pattern = wp.wallpaper_p2(F, vec1, vec2, reps1=2, reps2=2)
+    # file_path = os.path.join(directory, 'wallpaper_test_p2.pdf')
+    # canvas.draw(pattern, file_path=file_path)
 
-    """
+    # """
 
     rotocenter = mid_point(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
@@ -275,29 +315,16 @@ def wallpaper_p3(
     Hexagonal lattice.
     Point group: C3
 
-    generator is the repeating motif that could be a Shape, Batch, or Tag object
-    rotocenter is the center of rotation
-    distance is the distance between the centers of the hexagons
-    reps1 is the number of repetitions in the x direction
-    reps2 is the number of repetitions in the y direction
-    flat_hex is True if the hexagons are oriented flat-side up,
-    False if they are oriented flat-side on the side
-    Resulting wallpaper pattern is returned as a Batch object
+    Args:
+        generator (Union[Shape, Batch, Tag]): The repeating motif.
+        rotocenter (Point): The center of rotation.
+        distance (float): The distance between the centers of the hexagons.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+        flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.
 
-    Example:
-    import simetri.graphics as sg
-    import simetri.wallpaper as wp
-
-    directory = 'c:/tmp'
-    canvas = sg.Canvas()
-    F = sg.letter_F()
-    rotocenter = F.northwest
-    distance = 100
-
-    pattern = wp.wallpaper_p3(F, rotocenter, distance, reps1=4, reps2=4)
-    file_path = os.path.join(directory, 'wallpaper_test_p3.pdf')
-    canvas.draw(pattern, file_path=file_path)
-
+    Returns:
+        Batch: The resulting wallpaper pattern as a Batch object.
     """
     wallpaper = generator.rotate(2 * pi / 3, rotocenter, reps=2)
     if flat_hex:
@@ -322,25 +349,15 @@ def wallpaper_p4(
     Square lattice
     Point group: C4
 
-    Example:
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        rotocenter (Point): The center of rotation.
+        distance (float): The distance between the centers of the squares.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
-    import simetri.graphics as sg
-    import simetri.wallpaper as wp
-
-    directory = 'c:/tmp'
-    canvas = sg.Canvas()
-
-    F = sg.letter_F()
-    x, y = F.northwest
-    rotocenter = (x-5, y+5)
-    distance = 170
-    reps1 = 4
-    reps2 = 4
-
-    pattern = wp.wallpaper_p4(F, rotocenter, distance, reps1, reps2)
-    file_path = os.path.join(directory, 'wallpaper_test_p4.pdf')
-    canvas.draw(pattern, file_path=file_path)
-
+    Returns:
+        Batch: The resulting wallpaper pattern as a Batch object.
     """
     wallpaper = generator.rotate(pi / 2, rotocenter, reps=3)
     wallpaper.translate(distance, 0, reps1)
@@ -363,6 +380,17 @@ def wallpaper_p6(
     Conway : 632
     Hexagonal lattice
     Point group: C6
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        rotocenter (Point): The center of rotation.
+        hex_size (float): The size of the hexagons.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+        flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     wallpaper = generator.rotate(pi / 3, rotocenter, reps=5)
     if flat_hex:
@@ -388,6 +416,17 @@ def wallpaper_pm(
     Conway : **
     Rectangular lattice
     Point group: D1
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        mirror_line (Line): The line of symmetry.
+        dx (float): Translation distance in the x direction.
+        dy (float): Translation distance in the y direction.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     wallpaper = generator.mirror(mirror_line, reps=1)
     wallpaper.translate(dx, 0, reps=reps1)
@@ -406,13 +445,24 @@ def wallpaper_pg(
     reps2: int = 4,
 ) -> Batch:
     """
-    Glide symmetry
+    Glide symmetry.
     IUC: pg(p1g1)
     Conway : xx
     Rectangular lattice
     Point group: D1
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        mirror_line (Line): The line of symmetry.
+        distance (float): The distance for the glide reflection.
+        dx (float): Translation distance in the x direction.
+        dy (float): Translation distance in the y direction.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
-    # This should be mirrorline, glide_dist, translation
     wallpaper = generator.glide(mirror_line, distance, reps=1)
     wallpaper.translate(dx, 0, reps=reps1)
     wallpaper.translate(0, dy, reps=reps2)
@@ -434,6 +484,17 @@ def wallpaper_cm(
     Conway : *x
     Rhombic lattice
     Point group: D1
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        mirror_point (Point): The point of symmetry.
+        rhomb_size (float): The size of the rhombuses.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+        horizontal (bool, optional): If True, the mirror line is horizontal. Defaults to True.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     x1, y1 = mirror_point
     if horizontal:
@@ -465,6 +526,17 @@ def wallpaper_pmm(
     Conway : *2222
     Rectangular lattice
     Point group: D2
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        mirror_cross (Point): The point where the mirror lines cross.
+        dx (float): Translation distance in the x direction.
+        dy (float): Translation distance in the y direction.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
@@ -492,6 +564,18 @@ def wallpaper_pmg(
     Conway : 22*
     Rectangular lattice
     Point group: D2
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        center_point (Point): The center point for the symmetry.
+        dx (float): Translation distance in the x direction.
+        dy (float): Translation distance in the y direction.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+        horizontal (bool, optional): If True, the mirror line is horizontal. Defaults to True.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     x, y = center_point[:2]
     if horizontal:
@@ -523,6 +607,18 @@ def wallpaper_pgg(
     Conway : 22x
     Rectangular lattice
     Point group: D2
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        rotocenter (Point): The center of rotation.
+        dx (float): Translation distance in the x direction.
+        dy (float): Translation distance in the y direction.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+        horizontal (bool, optional): If True, the glide reflection is horizontal. Defaults to True.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     if horizontal:
         dist = rotocenter[0] - generator.center[0]
@@ -551,6 +647,16 @@ def wallpaper_cmm(
     Conway : 2*22
     Rhombic lattice
     Point group: D2
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        mirror_cross (Point): The point where the mirror lines cross.
+        rhomb_size (float): The size of the rhombuses.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
@@ -575,6 +681,16 @@ def wallpaper_p4m(
     Conway : *442
     Square lattice
     Point group: D4
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        mirror_cross (Point): The point where the mirror lines cross.
+        side_length (float): The side length of the squares.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     x, y = mirror_cross[:2]
     mirror_line = ((x, y), (x, y + 1))
@@ -596,8 +712,15 @@ def wallpaper_p4g(
     Conway : 4*2
     Square lattice
     Point group: D4
-    rotocenter can be Anchor.SOUTHWEST, Anchor.SOUTHEAST,
-                Anchor.NORTHWEST, or Anchor.NORTHEAST
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        dist (float): The distance between the centers of the squares.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     # rotocenter should be (0, 0) and mirror_cross should be (d/4,d/4 )
     # translations are (d, d)
@@ -625,6 +748,16 @@ def wallpaper_p3m1(
     Conway : *333
     Hexagonal lattice
     Point group: D3
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        center_point (Point): The center point for the symmetry.
+        hex_size (float): The size of the hexagons.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     x, y = center_point[:2]
     mirror_line = line_through_point_and_angle((x, y), 2 * pi / 3)
@@ -648,6 +781,16 @@ def wallpaper_p31m(
     Conway : 3*3
     Hexagonal lattice
     Point group: D3
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        center_point (Point): The center point for the symmetry.
+        hex_size (float): The size of the hexagons.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     x, y = center_point[:2]
     dy = 0.28866 * hex_size
@@ -677,6 +820,18 @@ def wallpaper_p6m(
     Conway : *632
     Hexagonal lattice
     Point group: D6
+
+    Args:
+        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        rotocenter (Point): The center of rotation.
+        mirror_cross (Point): The point where the mirror lines cross.
+        hex_size (float): The size of the hexagons.
+        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
+        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
+        flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.
+
+    Returns:
+        Batch: The resulting pattern as a Batch object.
     """
     x, y = mirror_cross[:2]
     mirror1 = [(x, y), (x + 1, y)]

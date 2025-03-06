@@ -22,14 +22,27 @@ from ..graphics.common import get_defaults, Point
 
 
 def close_logger(logger):
-    """Close the logger and remove all handlers."""
+    """Close the logger and remove all handlers.
+
+    Args:
+        logger: The logger instance to close.
+    """
     for handler in logger.handlers:
         handler.close()
         logger.removeHandler(handler)
 
 
 def get_file_path_with_rev(directory, script_path, ext='.pdf'):
-    '''Get the file path with a revision number.'''
+    """Get the file path with a revision number.
+
+    Args:
+        directory: The directory to search for files.
+        script_path: The script file path.
+        ext: The file extension.
+
+    Returns:
+        The file path with a revision number.
+    """
     # Get the file path of the script
     def get_rev_number(file_name):
         match = re.search(r"_\d+$", file_name)
@@ -60,27 +73,53 @@ def get_file_path_with_rev(directory, script_path, ext='.pdf'):
 
 
 def remove_file_handler(logger, handler):
-    """Used for individually removing a handler from a logger.
-    Example: remove_file_handler(logger, file_handler)
+    """Remove a handler from a logger.
+
+    Args:
+        logger: The logger instance.
+        handler: The handler to remove.
     """
     logger.removeHandler(handler)
     handler.close()
 
 
 def pretty_print_coords(coords: Sequence[Point]) -> str:
-    """Print the coordinates with a precision of 2"""
+    """Print the coordinates with a precision of 2.
+
+    Args:
+        coords: A sequence of Point objects.
+
+    Returns:
+        A string representation of the coordinates.
+    """
     return (
         "(" + ", ".join([f"({coord[0]:.2f}, {coord[1]:.2f})" for coord in coords]) + ")"
     )
 
 
 def is_file_empty(file_path):
-    """Check if a file is empty."""
+    """Check if a file is empty.
+
+    Args:
+        file_path: The path to the file.
+
+    Returns:
+        True if the file is empty, False otherwise.
+    """
     return os.path.getsize(file_path) == 0
 
 
 def wait_for_file_availability(file_path, timeout=None, check_interval=1):
-    """Check if a file is available for writing."""
+    """Check if a file is available for writing.
+
+    Args:
+        file_path: The path to the file.
+        timeout: The timeout period in seconds.
+        check_interval: The interval to check the file availability.
+
+    Returns:
+        True if the file is available, False otherwise.
+    """
     start_time = monotonic()
     while True:
         try:
@@ -101,9 +140,15 @@ def wait_for_file_availability(file_path, timeout=None, check_interval=1):
             return False
 
 
-# replace the special Latex characters with their Latex commands
 def detokenize(text: str) -> str:
-    """Replace the special Latex characters with their Latex commands."""
+    """Replace the special Latex characters with their Latex commands.
+
+    Args:
+        text: The text to detokenize.
+
+    Returns:
+        The detokenized text.
+    """
     if text.startswith("$") and text.endswith("$"):
         res = text
     else:
@@ -127,7 +172,16 @@ def detokenize(text: str) -> str:
 
 
 def get_text_dimensions(text, font_path, font_size):
-    """Return the width and height of the text."""
+    """Return the width and height of the text.
+
+    Args:
+        text: The text to measure.
+        font_path: The path to the font file.
+        font_size: The size of the font.
+
+    Returns:
+        A tuple containing the width and height of the text.
+    """
     font = ImageFont.truetype(font_path, font_size)
     _, descent = font.getmetrics()
     text_width = font.getmask(text).getbbox()[2]
@@ -135,16 +189,15 @@ def get_text_dimensions(text, font_path, font_size):
     return text_width, text_height
 
 
-# Example usage
-# font_path = "path/to/your/font.ttf"  # Replace with the path to your font file
-# font_size = 12
-# text = "Hello, TeX!"
-# width, height = get_text_dimensions(text, font_path, font_size)
-# print(f"Text width: {width}, Text height: {height}")
-
-
 def timing(func):
-    """Print the execution time of a function."""
+    """Print the execution time of a function.
+
+    Args:
+        func: The function to time.
+
+    Returns:
+        The wrapped function.
+    """
 
     @wraps(func)
     def wrap(*args, **kw):
@@ -158,25 +211,32 @@ def timing(func):
 
     return wrap
 
-def find_nearest_value(values:array, value:float) -> float:
-  """
-  Finds the closest value in an array to a given number.
 
-  Args:
-    array: A NumPy array.
-    value: The number to find the closest value to.
+def find_nearest_value(values: array, value: float) -> float:
+    """Find the closest value in an array to a given number.
 
-  Returns:
-    The closest value in the array to the given number.
-  """
-  array = np.asarray(values)
-  idx = (np.abs(array - value)).argmin()
+    Args:
+        values: A NumPy array.
+        value: The number to find the closest value to.
 
-  return array[idx]
+    Returns:
+        The closest value in the array to the given number.
+    """
+    array = np.asarray(values)
+    idx = (np.abs(array - value)).argmin()
+
+    return array[idx]
 
 
 def nested_count(nested_sequence):
-    """Return the total number of items in a nested sequence."""
+    """Return the total number of items in a nested sequence.
+
+    Args:
+        nested_sequence: A nested sequence.
+
+    Returns:
+        The total number of items in the nested sequence.
+    """
     return sum(
         nested_count(item) if isinstance(item, (list, tuple, ndarray)) else 1
         for item in nested_sequence
@@ -184,10 +244,13 @@ def nested_count(nested_sequence):
 
 
 def decompose_transformations(transformation_matrix):
-    """
-    Decompose a 3x3 transformation matrix into translation, rotation,
-    and scale components.
-    This function uses row major order, which is consistent with our convention.
+    """Decompose a 3x3 transformation matrix into translation, rotation, and scale components.
+
+    Args:
+        transformation_matrix: A 3x3 transformation matrix.
+
+    Returns:
+        A tuple containing the translation, rotation, and scale components.
     """
     xform = transformation_matrix
     translation = xform[2, :2]
@@ -198,7 +261,14 @@ def decompose_transformations(transformation_matrix):
 
 
 def check_directory(dir_path):
-    """Check if a directory is valid and writable."""
+    """Check if a directory is valid and writable.
+
+    Args:
+        dir_path: The path to the directory.
+
+    Returns:
+        A tuple containing a boolean indicating validity and an error message.
+    """
     error_msg = []
 
     def dir_exists():
@@ -224,9 +294,14 @@ def check_directory(dir_path):
 
 
 def analyze_path(file_path, overwrite):
-    """Given a file_path, check if it is valid and writeable.
-    If file_path is valid return: (True, extension, "")
-    If file_path is invalid return: (False, "", error message)
+    """Check if a file path is valid and writable.
+
+    Args:
+        file_path: The path to the file.
+        overwrite: Whether to overwrite the file if it exists.
+
+    Returns:
+        A tuple containing a boolean indicating validity, the file extension, and an error message.
     """
     supported_types = (".pdf", ".svg", ".ps", ".eps", ".tex")
     error_msg = ""
@@ -286,7 +361,14 @@ def analyze_path(file_path, overwrite):
 
 
 def can_be_xform_matrix(seq):
-    """Check if a sequence can be converted to a transformation matrix."""
+    """Check if a sequence can be converted to a transformation matrix.
+
+    Args:
+        seq: The sequence to check.
+
+    Returns:
+        True if the sequence can be converted to a transformation matrix, False otherwise.
+    """
     # check if it is a sequence that can be
     # converted to a transformation matrix
     try:
@@ -297,18 +379,42 @@ def can_be_xform_matrix(seq):
 
 
 def is_sequence(value):
-    """Check if a value is a sequence."""
+    """Check if a value is a sequence.
+
+    Args:
+        value: The value to check.
+
+    Returns:
+        True if the value is a sequence, False otherwise.
+    """
     return isinstance(value, (list, tuple, array))
 
 
-def rel_coord(dx:float, dy:float, origin):
-    """Return the relative coordinates."""
+def rel_coord(dx: float, dy: float, origin):
+    """Return the relative coordinates.
 
+    Args:
+        dx: The x-coordinate difference.
+        dy: The y-coordinate difference.
+        origin: The origin coordinates.
+
+    Returns:
+        The relative coordinates.
+    """
     return dx + origin[0], dy + origin[1]
 
 
-def rel_polar(r:float, angle:float, origin):
-    """Return the coordinates."""
+def rel_polar(r: float, angle: float, origin):
+    """Return the coordinates.
+
+    Args:
+        r: The radius.
+        angle: The angle in radians.
+        origin: The origin coordinates.
+
+    Returns:
+        The coordinates.
+    """
     x, y = origin[:2]
     x1 = x + r * cos(angle)
     y1 = y + r * sin(angle)
@@ -320,9 +426,13 @@ rp = rel_polar # alias for rel_polar
 
 
 def flatten(points):
-    """points can be: sequences, sequence of sequences, set of
-    sequences, or arrays.
-    Flatten the points and return it as a list.
+    """Flatten the points and return it as a list.
+
+    Args:
+        points: A sequence of points.
+
+    Returns:
+        A flattened list of points.
     """
     if isinstance(points, set):
         points = list(points)
@@ -340,9 +450,14 @@ def flatten(points):
 
 
 def find_closest_value(a_sorted_list, value):
-    """
-    Return the index of the closest value and the value itself
-    in a sorted list.
+    """Return the index of the closest value and the value itself in a sorted list.
+
+    Args:
+        a_sorted_list: A sorted list of values.
+        value: The value to find the closest match for.
+
+    Returns:
+        A tuple containing the closest value and its index.
     """
     ind = bisect_left(a_sorted_list, value)
 
@@ -362,7 +477,14 @@ def find_closest_value(a_sorted_list, value):
 
 
 def get_transform(transform):
-    """Return the transformation matrix."""
+    """Return the transformation matrix.
+
+    Args:
+        transform: The transformation matrix or sequence.
+
+    Returns:
+        The transformation matrix.
+    """
     if transform is None:
         # return identity
         res = array([[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]])
@@ -377,7 +499,14 @@ def get_transform(transform):
 
 
 def is_numeric_numpy_array(array_):
-    """Check if it is an array of numbers"""
+    """Check if it is an array of numbers.
+
+    Args:
+        array_: The array to check.
+
+    Returns:
+        True if the array is numeric, False otherwise.
+    """
     if not isinstance(array_, np.ndarray):
         return False
 
@@ -394,14 +523,28 @@ def is_numeric_numpy_array(array_):
 
 
 def is_xform_matrix(matrix):
-    """Check if it is a 3x3 transformation matrix."""
+    """Check if it is a 3x3 transformation matrix.
+
+    Args:
+        matrix: The matrix to check.
+
+    Returns:
+        True if the matrix is a 3x3 transformation matrix, False otherwise.
+    """
     return (
         is_numeric_numpy_array(matrix) and matrix.shape == (3, 3) and matrix.size == 9
     )
 
 
 def prime_factors(n):
-    """Prime factorization."""
+    """Prime factorization.
+
+    Args:
+        n: The number to factorize.
+
+    Returns:
+        A list of prime factors.
+    """
     p = 2
     factors = []
     while n > 1:
@@ -414,17 +557,23 @@ def prime_factors(n):
 
 
 def random_id():
-    """If you need a close to 100% unique ID, use UUID.
-    This should be good enough for small number of objects.
-    ID function in common.py can be used for temporary unique IDs that can be
-    used in numpy arrays.
+    """Generate a random ID.
+
+    Returns:
+        A random ID string.
     """
     return base64.b64encode(os.urandom(6)).decode("ascii")
 
 
 def decompose_svg_transform(transform):
-    '''Decompose a SVG transformation string.
-    (a, b, c, d, e, f)'''
+    """Decompose a SVG transformation string.
+
+    Args:
+        transform: The SVG transformation string.
+
+    Returns:
+        A tuple containing the decomposed transformation components.
+    """
     a, b, c, d, e, f = transform
     # [[a, c, e],
     #  [b, d, f],
@@ -439,25 +588,45 @@ def decompose_svg_transform(transform):
 
     return dx, dy, sx, sy, angle
 
+
 def abcdef_svg(transform_matrix):
-    """transform_matrix is a Numpy array.
-    Return the a, b, c, d, e, f for SVG transformations."""
+    """Return the a, b, c, d, e, f for SVG transformations.
+
+    Args:
+        transform_matrix: A Numpy array representing the transformation matrix.
+
+    Returns:
+        A tuple containing the a, b, c, d, e, f components.
+    """
     # [[a, c, e],
     #  [b, d, f],
     #  [0, 0, 1]]
     a, b, _, c, d, _, e, f, _ = list(transform_matrix.flat)
     return (a, b, c, d, e, f)
 
+
 def abcdef_pil(xform_matrix):
-    """xform_matrix is a Numpy array.
-    Return the a, b, c, d, e, f for PIL transformations."""
+    """Return the a, b, c, d, e, f for PIL transformations.
+
+    Args:
+        xform_matrix: A Numpy array representing the transformation matrix.
+
+    Returns:
+        A tuple containing the a, b, c, d, e, f components.
+    """
     a, d, _, b, e, _, c, f, _ = list(xform_matrix.flat)
     return (a, b, c, d, e, f)
 
 
 def abcdef_reportlab(xform_matrix):
-    """xform_matrix is a Numpy array.
-    Return the a, b, c, d, e, f for Reportlab transformations."""
+    """Return the a, b, c, d, e, f for Reportlab transformations.
+
+    Args:
+        xform_matrix: A Numpy array representing the transformation matrix.
+
+    Returns:
+        A tuple containing the a, b, c, d, e, f components.
+    """
     # a, b, _, c, d, _, e, f, _ = list(np.transpose(xform_matrix).flat)
     a, b, _, c, d, _, e, f, _ = list(xform_matrix.flat)
     return (a, b, c, d, e, f)
@@ -465,23 +634,41 @@ def abcdef_reportlab(xform_matrix):
 
 def lerp(start, end, t):
     """Linear interpolation of two values.
-    start: number
-    end: number
-     0 <= t <= 1."""
+
+    Args:
+        start: The start value.
+        end: The end value.
+        t: The interpolation factor (0 <= t <= 1).
+
+    Returns:
+        The interpolated value.
+    """
     return start + t * (end - start)
 
 
 def inv_lerp(start, end, value):
     """Inverse linear interpolation of two values.
-    start: number
-    end: number
-    value: number
-    return: 0 <= t <= 1."""
+
+    Args:
+        start: The start value.
+        end: The end value.
+        value: The value to interpolate.
+
+    Returns:
+        The interpolation factor (0 <= t <= 1).
+    """
     return (value - start) / (end - start)
 
 
 def sanitize_weighted_graph_edges(edges):
-    """edges: [(node1, node2), ...]"""
+    """Sanitize weighted graph edges.
+
+    Args:
+        edges: A list of weighted graph edges.
+
+    Returns:
+        A sanitized list of weighted graph edges.
+    """
     clean_edges = []
     s_seen = set()
     for edge in edges:
@@ -496,7 +683,14 @@ def sanitize_weighted_graph_edges(edges):
 
 
 def sanitize_graph_edges(edges):
-    """edges: [(node1, node2), ...]"""
+    """Sanitize graph edges.
+
+    Args:
+        edges: A list of graph edges.
+
+    Returns:
+        A sanitized list of graph edges.
+    """
     s_edge_set = set()
     for edge in edges:
         s_edge_set.add(frozenset(edge))
@@ -507,7 +701,14 @@ def sanitize_graph_edges(edges):
 
 
 def flatten2(nested_list):
-    """Flatten a nested list."""
+    """Flatten a nested list.
+
+    Args:
+        nested_list: The nested list to flatten.
+
+    Yields:
+        The flattened elements.
+    """
     for i in nested_list:
         if isinstance(i, (list, tuple)):
             yield from flatten2(i)
@@ -516,16 +717,27 @@ def flatten2(nested_list):
 
 
 def round2(n: float, cutoff: int = 25) -> int:
-    """
-    Round a number to the nearest multiple of cutoff.
-    This is useful for grouping numbers into bins.
-    canvas.draw uses this to color fragments of lace objects.
+    """Round a number to the nearest multiple of cutoff.
+
+    Args:
+        n: The number to round.
+        cutoff: The cutoff value.
+
+    Returns:
+        The rounded number.
     """
     return cutoff * round(n / cutoff)
 
 
 def is_nested_sequence(value):
-    """Check if a value is a nested sequence."""
+    """Check if a value is a nested sequence.
+
+    Args:
+        value: The value to check.
+
+    Returns:
+        True if the value is a nested sequence, False otherwise.
+    """
     if not isinstance(value, (list, tuple, ndarray)):
         return False  # Not a sequence
 
@@ -537,9 +749,14 @@ def is_nested_sequence(value):
 
 
 def group_into_bins(values, delta):
-    """values: list of numbers
-    delta: bin size
-    return: list of bins
+    """Group values into bins.
+
+    Args:
+        values: A list of numbers.
+        delta: The bin size.
+
+    Returns:
+        A list of bins.
     """
     values.sort()
     bins = []
@@ -557,11 +774,16 @@ def group_into_bins(values, delta):
 def equal_cycles(
     cycle1: list[float], cycle2: list[float], rtol=None, atol=None
 ) -> bool:
-    """
-    cycle1: list of floats
-    cycle2: list of floats
-    return: True if cycles are circularly equal, False otherwise
-    [1., 2., 3.] == [2., 3., 1.] == [3., 1., 2.]
+    """Check if two cycles are circularly equal.
+
+    Args:
+        cycle1: The first cycle.
+        cycle2: The second cycle.
+        rtol: The relative tolerance.
+        atol: The absolute tolerance.
+
+    Returns:
+        True if the cycles are circularly equal, False otherwise.
     """
     rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
 
@@ -592,17 +814,32 @@ def map_ranges(
     range2_max: float,
 ) -> float:
     """Map a value from one range to another.
-    It doesn't clamp the value to the range."""
+
+    Args:
+        value: The value to map.
+        range1_min: The minimum of the first range.
+        range1_max: The maximum of the first range.
+        range2_min: The minimum of the second range.
+        range2_max: The maximum of the second range.
+
+    Returns:
+        The mapped value.
+    """
     delta1 = range1_max - range1_min
     delta2 = range2_max - range2_min
     return (value - range1_min) / delta1 * delta2 + range2_min
 
 
 def binomial(n, k):
-    """Binomial coefficient.
-    n: number of trials
-    k: number of successes
-    n choose k"""
+    """Calculate the binomial coefficient.
+
+    Args:
+        n: The number of trials.
+        k: The number of successes.
+
+    Returns:
+        The binomial coefficient.
+    """
     if k == 0:
         res = 1
     else:
@@ -611,7 +848,14 @@ def binomial(n, k):
 
 
 def catalan(n):
-    """Catalan numbers"""
+    """Calculate the nth Catalan number.
+
+    Args:
+        n: The index of the Catalan number.
+
+    Returns:
+        The nth Catalan number.
+    """
     if n <= 1:
         res = 1
     else:
@@ -620,10 +864,16 @@ def catalan(n):
 
 
 def reg_poly_points(pos: Point, n: int, r: float) -> Sequence[Point]:
-    """
-    Return a regular polygon points list with n sides, r radius, and pos center.
-    """
+    """Return a regular polygon points list with n sides, r radius, and pos center.
 
+    Args:
+        pos: The center position of the polygon.
+        n: The number of sides.
+        r: The radius.
+
+    Returns:
+        A sequence of points representing the polygon.
+    """
     angle = 2 * pi / n
     x, y = pos[:2]
     points = [[cos(angle * i) * r + x, sin(angle * i) * r + y] for i in range(n)]

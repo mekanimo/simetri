@@ -24,6 +24,7 @@ VOID = 'VOID' # Importing from common module causes circular import. To do: fix 
 
 class _Defaults:
     """A singleton class that behaves like a dictionary.
+
     It is used to store default values for the Simetri library.
     It should not be modified directly.
     """
@@ -31,22 +32,45 @@ class _Defaults:
     _instance = None
 
     def __init__(self):
+        """Initializes the _Defaults singleton instance."""
         if _Defaults._instance is not None:
             raise Exception("This class is a singleton!")
         self.defaults = {}
         self.log = set()
 
     def __getitem__(self, key):
+        """Gets the value associated with the key.
+
+        Args:
+            key: The key to look up.
+
+        Returns:
+            The value associated with the key.
+        """
         value = self.defaults[key]
         str_value = str(value)
         self.log.add((key, str_value))
         return value
 
     def __setitem__(self, key, value):
+        """Sets the value for the given key.
+
+        Args:
+            key: The key to set.
+            value: The value to associate with the key.
+        """
         self.defaults[key] = value
 
     def get(self, key, default=None):
-        """Get the value of a key. If the key does not exist, return the default value."""
+        """Gets the value of a key. If the key does not exist, return the default value.
+
+        Args:
+            key: The key to look up.
+            default: The default value to return if the key does not exist.
+
+        Returns:
+            The value associated with the key, or the default value.
+        """
         if key in self.defaults:
             res = self.defaults[key]
         else:
@@ -55,15 +79,27 @@ class _Defaults:
         return res
 
     def keys(self):
-        """Return the keys of the dictionary."""
+        """Returns the keys of the dictionary.
+
+        Returns:
+            A view object that displays a list of all the keys.
+        """
         return self.defaults.keys()
 
     def items(self):
-        """Return the items of the dictionary."""
+        """Returns the items of the dictionary.
+
+        Returns:
+            A view object that displays a list of dictionary's key-value tuple pairs.
+        """
         return self.defaults.items()
 
     def values(self):
-        """Return the values of the dictionary."""
+        """Returns the values of the dictionary.
+
+        Returns:
+            A view object that displays a list of all the values.
+        """
         return self.defaults.values()
 
 
@@ -73,7 +109,7 @@ defaults = _Defaults()
 
 
 def set_defaults():
-    """Set the default values for the Simetri library."""
+    """Sets the default values for the Simetri library."""
     from ..graphics.all_enums import (
         Anchor,
         BackStyle,
@@ -999,7 +1035,11 @@ def set_defaults():
 
 
 def close_logger(logger):
-    """Close the logger and remove all handlers."""
+    """Close the logger and remove all handlers.
+
+    Args:
+        logger: The logger to close.
+    """
     for handler in logger.handlers:
         handler.close()
         logger.removeHandler(handler)
@@ -1012,7 +1052,7 @@ tikz_defaults = defaultdict(str)
 
 
 def set_tikz_defaults():
-    """Set the default values for the TikZ objects."""
+    """Sets the default values for the TikZ objects."""
     from ..colors import colors
     from ..graphics.all_enums import LineCap, LineJoin, BlendMode
 

@@ -62,16 +62,12 @@ class Canvas:
         """
         Initialize the Canvas.
 
-        :param size: The size of the canvas.
-        :type size: Vec2, optional
-        :param back_color: The background color of the canvas.
-        :type back_color: Optional[Color], optional
-        :param title: The title of the canvas.
-        :type title: str, optional
-        :param border: The border of the canvas.
-        :type border: Any, optional
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
+        Args:
+            size (Vec2, optional): The size of the canvas.
+            back_color (Optional[Color], optional): The background color of the canvas.
+            title (str, optional): The title of the canvas.
+            border (Any, optional): The border of the canvas.
+            kwargs (dict): Additional keyword arguments.
         """
         validate_args(kwargs, canvas_args)
         _set_Nones(self, ["back_color", "border"], [back_color, border])
@@ -135,22 +131,17 @@ class Canvas:
         """
         Draw an arc with the given center, radius, start angle and end angle.
 
-        :param center: The center of the arc.
-        :type center: Point
-        :param start_angle: The start angle of the arc.
-        :type start_angle: float
-        :param end_angle: The end angle of the arc.
-        :type end_angle: float
-        :param radius: The radius of the arc.
-        :type radius: float
-        :param radius2: The second radius of the arc, defaults to None.
-        :type radius2: float, optional
-        :param rot_angle: The rotation angle of the arc, defaults to 0.
-        :type rot_angle: float, optional
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            center (Point): The center of the arc.
+            start_angle (float): The start angle of the arc.
+            end_angle (float): The end angle of the arc.
+            radius (float): The radius of the arc.
+            radius2 (float, optional): The second radius of the arc, defaults to None.
+            rot_angle (float, optional): The rotation angle of the arc, defaults to 0.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         if radius2 is None:
             radius2 = radius
@@ -163,12 +154,12 @@ class Canvas:
         """
         Draw a bezier curve.
 
-        :param control_points: The control points of the bezier curve.
-        :type control_points: Sequence[Point]
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            control_points (Sequence[Point]): The control points of the bezier curve.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.bezier(self, control_points, **kwargs)
         return self
@@ -177,14 +168,13 @@ class Canvas:
         """
         Draw a circle with the given center and radius.
 
-        :param center: The center of the circle.
-        :type center: Point
-        :param radius: The radius of the circle.
-        :type radius: float
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            center (Point): The center of the circle.
+            radius (float): The radius of the circle.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.circle(self, center, radius, **kwargs)
         return self
@@ -195,18 +185,15 @@ class Canvas:
         """
         Draw an ellipse with the given center and radius.
 
-        :param center: The center of the ellipse.
-        :type center: Point
-        :param width: The width of the ellipse.
-        :type width: float
-        :param height: The height of the ellipse.
-        :type height: float
-        :param angle: The angle of the ellipse, defaults to 0.
-        :type angle: float, optional
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            center (Point): The center of the ellipse.
+            width (float): The width of the ellipse.
+            height (float): The height of the ellipse.
+            angle (float, optional): The angle of the ellipse, defaults to 0.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.ellipse(self, center, width, height, angle, **kwargs)
         return self
@@ -223,20 +210,16 @@ class Canvas:
         """
         Draw text at the given point.
 
-        :param text: The text to draw.
-        :type text: str
-        :param pos: The position to draw the text.
-        :type pos: Point
-        :param font_family: The font family of the text, defaults to None.
-        :type font_family: str, optional
-        :param font_size: The font size of the text, defaults to None.
-        :type font_size: int, optional
-        :param anchor: The anchor of the text, defaults to None.
-        :type anchor: Anchor, optional
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            text (str): The text to draw.
+            pos (Point): The position to draw the text.
+            font_family (str, optional): The font family of the text, defaults to None.
+            font_size (int, optional): The font size of the text, defaults to None.
+            anchor (Anchor, optional): The anchor of the text, defaults to None.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.text(
             self,
@@ -261,20 +244,16 @@ class Canvas:
         """
         Draw help lines on the canvas.
 
-        :param pos: The position to start drawing the help lines.
-        :type pos: tuple
-        :param x_len: The length of the help lines along the x-axis.
-        :type x_len: float
-        :param y_len: The length of the help lines along the y-axis.
-        :type y_len: float
-        :param spacing: The spacing between the help lines.
-        :type spacing: int
-        :param cs_size: The size of the coordinate system.
-        :type cs_size: float
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            pos (tuple): The position to start drawing the help lines.
+            x_len (float): The length of the help lines along the x-axis.
+            y_len (float): The length of the help lines along the y-axis.
+            spacing (int): The spacing between the help lines.
+            cs_size (float): The size of the coordinate system.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.help_lines(self, pos, x_len, y_len, spacing, cs_size, **kwargs)
         return self
@@ -285,18 +264,15 @@ class Canvas:
         """
         Draw a grid with the given size and spacing.
 
-        :param pos: The position to start drawing the grid.
-        :type pos: Point
-        :param x_len: The length of the grid along the x-axis.
-        :type x_len: float
-        :param y_len: The length of the grid along the y-axis.
-        :type y_len: float
-        :param spacing: The spacing between the grid lines.
-        :type spacing: float
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            pos (Point): The position to start drawing the grid.
+            x_len (float): The length of the grid along the x-axis.
+            y_len (float): The length of the grid along the y-axis.
+            spacing (float): The spacing between the grid lines.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.grid(self, pos, x_len, y_len, spacing, **kwargs)
         return self
@@ -305,14 +281,13 @@ class Canvas:
         """
         Draw a line from start to end.
 
-        :param start: The starting point of the line.
-        :type start: Point
-        :param end: The ending point of the line.
-        :type end: Point
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            start (Point): The starting point of the line.
+            end (Point): The ending point of the line.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.line(self, start, end, **kwargs)
         return self
@@ -328,18 +303,15 @@ class Canvas:
         """
         Draw a rectangle.
 
-        :param center: The center of the rectangle.
-        :type center: Point
-        :param width: The width of the rectangle.
-        :type width: float
-        :param height: The height of the rectangle.
-        :type height: float
-        :param angle: The angle of the rectangle, defaults to 0.
-        :type angle: float, optional
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            center (Point): The center of the rectangle.
+            width (float): The width of the rectangle.
+            height (float): The height of the rectangle.
+            angle (float, optional): The angle of the rectangle, defaults to 0.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.rectangle(self, center, width, height, angle, **kwargs)
         return self
@@ -348,16 +320,14 @@ class Canvas:
         """
         Draw a square with the given center and size.
 
-        :param center: The center of the square.
-        :type center: Point
-        :param size: The size of the square.
-        :type size: float
-        :param angle: The angle of the square, defaults to 0.
-        :type angle: float, optional
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            center (Point): The center of the square.
+            size (float): The size of the square.
+            angle (float, optional): The angle of the square, defaults to 0.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.rectangle(self, center, size, size, angle, **kwargs)
         return self
@@ -366,12 +336,12 @@ class Canvas:
         """
         Draw a polyline through the given points.
 
-        :param points: The points to draw the polyline through.
-        :type points: Sequence[Point]
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            points (Sequence[Point]): The points to draw the polyline through.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.lines(self, points, **kwargs)
         return self
@@ -380,12 +350,12 @@ class Canvas:
         """
         Draw the lace.
 
-        :param lace: The lace to draw.
-        :type lace: Batch
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            lace (Batch): The lace to draw.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.draw_lace(self, lace, **kwargs)
         return self
@@ -394,12 +364,12 @@ class Canvas:
         """
         Draw the dimension.
 
-        :param dim: The dimension to draw.
-        :type dim: Shape
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            dim (Shape): The dimension to draw.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.draw_dimension(self, dim, **kwargs)
         return self
@@ -408,12 +378,12 @@ class Canvas:
         """
         Draw the item_s. item_s can be a single item or a list of items.
 
-        :param item_s: The item(s) to draw.
-        :type item_s: Union[Drawable, list, tuple]
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            item_s (Union[Drawable, list, tuple]): The item(s) to draw.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         if isinstance(item_s, (list, tuple)):
             for item in item_s:
@@ -426,12 +396,12 @@ class Canvas:
         """
         Draw the Canvas coordinate system.
 
-        :param size: The size of the coordinate system, defaults to None.
-        :type size: float, optional
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            size (float, optional): The size of the coordinate system, defaults to None.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         draw.draw_CS(self, size, **kwargs)
         return self
@@ -440,8 +410,8 @@ class Canvas:
         """
         Reset the canvas to its initial state.
 
-        :return: The canvas object.
-        :rtype: Self
+        Returns:
+            Self: The canvas object.
         """
         self._code = []
         self._pos = [0, 0]
@@ -462,8 +432,8 @@ class Canvas:
         """
         Return a string representation of the canvas.
 
-        :return: The string representation of the canvas.
-        :rtype: str
+        Returns:
+            str: The string representation of the canvas.
         """
         return "Canvas()"
 
@@ -471,8 +441,8 @@ class Canvas:
         """
         Return a string representation of the canvas.
 
-        :return: The string representation of the canvas.
-        :rtype: str
+        Returns:
+            str: The string representation of the canvas.
         """
         return "Canvas()"
 
@@ -481,8 +451,8 @@ class Canvas:
         """
         The transformation matrix of the canvas.
 
-        :return: The transformation matrix of the canvas.
-        :rtype: ndarray
+        Returns:
+            ndarray: The transformation matrix of the canvas.
         """
         return self._xform_matrix.copy()
 
@@ -492,8 +462,8 @@ class Canvas:
         The canvas origin is at (0, 0) and the orientation angle is 0.
         Transformation matrix is the identity matrix.
 
-        :return: The canvas object.
-        :rtype: Self
+        Returns:
+            Self: The canvas object.
         """
         self._xform_matrix = identity_matrix()
         self._pos = [0, 0]
@@ -506,12 +476,12 @@ class Canvas:
         """
         Translate the canvas by x and y.
 
-        :param x: The translation distance along the x-axis.
-        :type x: float
-        :param y: The translation distance along the y-axis.
-        :type y: float
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            x (float): The translation distance along the x-axis.
+            y (float): The translation distance along the y-axis.
+
+        Returns:
+            Self: The canvas object.
         """
         self._pos[0] += x
         self._pos[1] += y
@@ -523,10 +493,11 @@ class Canvas:
         """
         Rotate the canvas by angle in radians about the origin.
 
-        :param angle: The rotation angle in radians.
-        :type angle: float
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            angle (float): The rotation angle in radians.
+
+        Returns:
+            Self: The canvas object.
         """
         self._angle += angle
         about = (self.x, self.y)
@@ -538,10 +509,11 @@ class Canvas:
         """
         Flip the canvas along the specified axis.
 
-        :param axis: The axis to flip the canvas along ('x' or 'y').
-        :type axis: str
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            axis (str): The axis to flip the canvas along ('x' or 'y').
+
+        Returns:
+            Self: The canvas object.
         """
         if axis == "x":
             self._scale[0] *= -1
@@ -557,8 +529,8 @@ class Canvas:
         """
         Flip the x-axis direction.
 
-        :return: The canvas object.
-        :rtype: Self
+        Returns:
+            Self: The canvas object.
         """
         return self._flip("x")
 
@@ -566,8 +538,8 @@ class Canvas:
         """
         Flip the y-axis direction.
 
-        :return: The canvas object.
-        :rtype: Self
+        Returns:
+            Self: The canvas object.
         """
         return self._flip("y")
 
@@ -575,12 +547,12 @@ class Canvas:
         """
         Scale the canvas by sx and sy about the Canvas origin.
 
-        :param sx: The scale factor along the x-axis.
-        :type sx: float
-        :param sy: The scale factor along the y-axis, defaults to None.
-        :type sy: float, optional
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            sx (float): The scale factor along the x-axis.
+            sy (float, optional): The scale factor along the y-axis, defaults to None.
+
+        Returns:
+            Self: The canvas object.
         """
         if sy is None:
             sy = sx
@@ -595,8 +567,8 @@ class Canvas:
         """
         The x coordinate of the canvas origin.
 
-        :return: The x coordinate of the canvas origin.
-        :rtype: float
+        Returns:
+            float: The x coordinate of the canvas origin.
         """
         return self._pos[0]
 
@@ -605,8 +577,8 @@ class Canvas:
         """
         The y coordinate of the canvas origin.
 
-        :return: The y coordinate of the canvas origin.
-        :rtype: float
+        Returns:
+            float: The y coordinate of the canvas origin.
         """
         return self._pos[1]
 
@@ -615,8 +587,8 @@ class Canvas:
         """
         The orientation angle in radians.
 
-        :return: The orientation angle in radians.
-        :rtype: float
+        Returns:
+            float: The orientation angle in radians.
         """
         return self._angle
 
@@ -625,8 +597,8 @@ class Canvas:
         """
         The scale factors.
 
-        :return: The scale factors.
-        :rtype: Vec2
+        Returns:
+            Vec2: The scale factors.
         """
         return self._scale
 
@@ -636,10 +608,11 @@ class Canvas:
         Canvas is the root of the graph.
         Graph nodes are the ids of the elements.
 
-        :param batch: The batch to create the graph from.
-        :type batch: Batch
-        :return: The directed graph of the batch and its elements.
-        :rtype: nx.DiGraph
+        Args:
+            batch (Batch): The batch to create the graph from.
+
+        Returns:
+            nx.DiGraph: The directed graph of the batch and its elements.
         """
         def add_batch(batch, graph):
             graph.add_node(batch.id)
@@ -667,12 +640,12 @@ class Canvas:
         then try canvas.property_name,
         finally use the default value.
 
-        :param item: The item to resolve the property for.
-        :type item: Drawable
-        :param property_name: The name of the property to resolve.
-        :type property_name: str
-        :return: The resolved property value.
-        :rtype: Any
+        Args:
+            item (Drawable): The item to resolve the property for.
+            property_name (str): The name of the property to resolve.
+
+        Returns:
+            Any: The resolved property value.
         """
         value = getattr(item, property_name)
         if value is None:
@@ -688,8 +661,8 @@ class Canvas:
         """
         Get the list of fonts used in the canvas.
 
-        :return: The list of fonts used in the canvas.
-        :rtype: list[str]
+        Returns:
+            list[str]: The list of fonts used in the canvas.
         """
         user_fonts = set(self._font_list)
 
@@ -714,12 +687,12 @@ class Canvas:
         """
         Calculate the size of the canvas based on the bounding box and border.
 
-        :param border: The border of the canvas, defaults to None.
-        :type border: float, optional
-        :param b_box: The bounding box of the canvas, defaults to None.
-        :type b_box: Any, optional
-        :return: The size of the canvas.
-        :rtype: Tuple[float, float]
+        Args:
+            border (float, optional): The border of the canvas, defaults to None.
+            b_box (Any, optional): The bounding box of the canvas, defaults to None.
+
+        Returns:
+            Tuple[float, float]: The size of the canvas.
         """
         vertices = self._all_vertices
         if vertices:
@@ -746,12 +719,10 @@ class Canvas:
         """
         Show the file in the browser.
 
-        :param file_path: The path to the file.
-        :type file_path: Path
-        :param show_browser: Whether to show the file in the browser.
-        :type show_browser: bool
-        :param multi_page_svg: Whether the file is a multi-page SVG.
-        :type multi_page_svg: bool
+        Args:
+            file_path (Path): The path to the file.
+            show_browser (bool): Whether to show the file in the browser.
+            multi_page_svg (bool): Whether the file is a multi-page SVG.
         """
         if show_browser is None:
             show_browser = defaults["show_browser"]
@@ -773,28 +744,26 @@ class Canvas:
         """
         Save the canvas to a file.
 
-        :param file_path: The path to save the file.
-        :type file_path: Path, optional
-        :param overwrite: Whether to overwrite the file if it exists.
-        :type overwrite: bool, optional
-        :param show: Whether to show the file in the browser.
-        :type show: bool, optional
-        :param print_output: Whether to print the output of the compilation.
-        :type print_output: bool, optional
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            file_path (Path, optional): The path to save the file.
+            overwrite (bool, optional): Whether to overwrite the file if it exists.
+            show (bool, optional): Whether to show the file in the browser.
+            print_output (bool, optional): Whether to print the output of the compilation.
+
+        Returns:
+            Self: The canvas object.
         """
 
         def validate_file_path(file_path: Path, overwrite: bool) -> Result:
             """
             Validate the file path.
 
-            :param file_path: The path to the file.
-            :type file_path: Path
-            :param overwrite: Whether to overwrite the file if it exists.
-            :type overwrite: bool
-            :return: The parent directory, file name, and extension.
-            :rtype: Result
+            Args:
+                file_path (Path): The path to the file.
+                overwrite (bool): Whether to overwrite the file if it exists.
+
+            Returns:
+                Result: The parent directory, file name, and extension.
             """
             path_exists = os.path.exists(file_path)
             if path_exists and not overwrite:
@@ -817,10 +786,11 @@ class Canvas:
             """
             Compile the TeX file.
 
-            :param cmd: The command to compile the TeX file.
-            :type cmd: str
-            :return: The output of the compilation.
-            :rtype: str
+            Args:
+                cmd (str): The command to compile the TeX file.
+
+            Returns:
+                str: The output of the compilation.
             """
             os.chdir(parent_dir)
             with subprocess.Popen(
@@ -835,8 +805,8 @@ class Canvas:
             """
             Remove auxiliary files generated during compilation.
 
-            :param file_path: The path to the file.
-            :type file_path: Path
+            Args:
+                file_path (Path): The path to the file.
             """
             time_out = 1  # seconds
             parent_dir, file_name = os.path.split(file_path)
@@ -901,7 +871,8 @@ class Canvas:
             """
             Run the job to compile and save the file.
 
-            :return: None
+            Returns:
+                None
             """
             output_path = os.path.join(parent_dir, file_name + extension)
             cmd = "xelatex " + tex_path
@@ -952,10 +923,11 @@ class Canvas:
         """
         Create a new page and add it to the canvas.pages.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The canvas object.
-        :rtype: Self
+        Args:
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
         """
         page = Page()
         self.pages.append(page)
@@ -970,20 +942,14 @@ class PageGrid:
     """
     Grid class for drawing grids on a page.
 
-    :param spacing: The spacing between grid lines.
-    :type spacing: float, optional
-    :param back_color: The background color of the grid.
-    :type back_color: Color, optional
-    :param line_color: The color of the grid lines.
-    :type line_color: Color, optional
-    :param line_width: The width of the grid lines.
-    :type line_width: float, optional
-    :param line_dash_array: The dash array for the grid lines.
-    :type line_dash_array: Sequence[float], optional
-    :param x_shift: The x-axis shift of the grid.
-    :type x_shift: float, optional
-    :param y_shift: The y-axis shift of the grid.
-    :type y_shift: float, optional
+    Args:
+        spacing (float, optional): The spacing between grid lines.
+        back_color (Color, optional): The background color of the grid.
+        line_color (Color, optional): The color of the grid lines.
+        line_width (float, optional): The width of the grid lines.
+        line_dash_array (Sequence[float], optional): The dash array for the grid lines.
+        x_shift (float, optional): The x-axis shift of the grid.
+        y_shift (float, optional): The y-axis shift of the grid.
     """
 
     spacing: float = None
@@ -1013,20 +979,14 @@ class Page:
     Page class for drawing sketches and text on a page. All drawing
     operations result as sketches on the canvas.active_page.
 
-    :param size: The size of the page.
-    :type size: Vec2, optional
-    :param back_color: The background color of the page.
-    :type back_color: Color, optional
-    :param mask: The mask of the page.
-    :type mask: Any, optional
-    :param margins: The margins of the page (left, bottom, right, top).
-    :type margins: Any, optional
-    :param recto: Whether the page is recto (True) or verso (False).
-    :type recto: bool, optional
-    :param grid: The grid of the page.
-    :type grid: PageGrid, optional
-    :param kwargs: Additional keyword arguments.
-    :type kwargs: dict, optional
+    Args:
+        size (Vec2, optional): The size of the page.
+        back_color (Color, optional): The background color of the page.
+        mask (Any, optional): The mask of the page.
+        margins (Any, optional): The margins of the page (left, bottom, right, top).
+        recto (bool, optional): Whether the page is recto (True) or verso (False).
+        grid (PageGrid, optional): The grid of the page.
+        kwargs (dict, optional): Additional keyword arguments.
     """
 
     size: Vec2 = None

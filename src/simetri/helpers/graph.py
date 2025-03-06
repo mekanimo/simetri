@@ -20,6 +20,7 @@ class GraphEdge:
     end: Point
 
     def __post_init__(self):
+        """Initialize the GraphEdge with start and end points."""
         self.length = distance(self.start.pos, self.end.pos)
         common_properties(self)
 
@@ -32,6 +33,12 @@ class GraphEdge:
 def edges2nodes(edges: Sequence[Sequence]) -> Sequence:
     """
     Given a list of edges, return a connected list of nodes.
+
+    Args:
+        edges (Sequence[Sequence]): List of edges.
+
+    Returns:
+        Sequence: Connected list of nodes.
     """
     chain = longest_chain(edges)
     closed = chain[0][0] == chain[-1][-1]
@@ -56,15 +63,14 @@ def edges2nodes(edges: Sequence[Sequence]) -> Sequence:
 
 
 def get_cycles(edges: Sequence[GraphEdge]) -> Sequence[GraphEdge]:
-    """'
+    """
     Computes all the cycles in a given graph of edges.
-    Return the list of cycles if any cycle is found,
-    return None otherwise.
-    Cycles may be ordered properly or not.
-    Use the function longest_chain to get a list of ordered
-    edges.
-    Use the function edges2nodes to get an ordered list
-    of nodes corresponding to a cycle.
+
+    Args:
+        edges (Sequence[GraphEdge]): List of graph edges.
+
+    Returns:
+        Sequence[GraphEdge]: List of cycles if any cycle is found, None otherwise.
     """
     nx_graph = nx.Graph()
     nx_graph.add_edges_from(edges)
@@ -80,7 +86,16 @@ def get_cycles(edges: Sequence[GraphEdge]) -> Sequence[GraphEdge]:
 
 # find all open paths starting from a given node
 def find_all_paths(graph, node):
-    """Find all paths starting from a given node."""
+    """
+    Find all paths starting from a given node.
+
+    Args:
+        graph (nx.Graph): The graph.
+        node: The starting node.
+
+    Returns:
+        List: All paths starting from the given node.
+    """
     paths = []
     for node_ in graph.nodes():
         for path in nx.all_simple_paths(graph, node, node_):
@@ -90,24 +105,29 @@ def find_all_paths(graph, node):
 
 
 def is_open_walk2(graph, island):
-    """Given a NetworkX Graph and an island, return True if the given island is an open walk."""
+    """
+    Given a NetworkX Graph and an island, return True if the given island is an open walk.
+
+    Args:
+        graph (nx.Graph): The graph.
+        island: The island.
+
+    Returns:
+        bool: True if the island is an open walk, False otherwise.
+    """
     degrees = [graph.degree(node) for node in island]
     return set(degrees) == {1, 2} and degrees.count(1) == 2
 
 
 def longest_chain(edges: Sequence[Sequence]) -> Sequence:
-    """Given a list of  graph edges , return a list of
-    connected nodes.
-    edges: [(node1, node2), (node5, node3), (node3, node2)]
-    return: [(node1, node2), (node2, node3), (node3, node5)]
-     If all edges are not connected, return the longest chain.
-     If there is a cycle in edges, instead of the longest chain that
-     cycle may be returned.
-     You should check the nx.core_number(graph) to see if there are
-     any nodes with a core number > 1. If so, you should split the
-     graph into subgraphs and run longest_chain on each subgraph.
-     Technically a chain (aka walk) can be closed but we only refer
-     to open chains here.
+    """
+    Given a list of graph edges, return a list of connected nodes.
+
+    Args:
+        edges (Sequence[Sequence]): List of graph edges.
+
+    Returns:
+        Sequence: List of connected nodes.
     """
 
     def add_edge(edge, chain, index, processed):
@@ -143,30 +163,30 @@ def longest_chain(edges: Sequence[Sequence]) -> Sequence:
 
 
 def is_cycle(graph: nx.Graph, island: Sequence) -> bool:
-    """Given a NetworkX Graph and an island, return True if the
-    given island is a cycle.
-    Cycle is a string of nodes where each node has degree 2.
-    Input needs to be an island.
+    """
+    Given a NetworkX Graph and an island, return True if the given island is a cycle.
 
-    *--*--*--*--*--*--*--*--*--*
-    |                          |
-    *--*--*--*--*--*--*--*--*--*
+    Args:
+        graph (nx.Graph): The graph.
+        island (Sequence): The island.
+
+    Returns:
+        bool: True if the island is a cycle, False otherwise.
     """
     degrees = [graph.degree(node) for node in island]
     return set(degrees) == {2}
 
 
 def is_open_walk(graph: nx.Graph, island: Sequence) -> bool:
-    r"""Given a NetworkX Graph and an island, return True if the given
-    island is an open walk.
-    Open walk is a string of nodes where each inner node has degree
-    2 and the two end nodes have degree 1.
-    Input needs to be an island.
+    """
+    Given a NetworkX Graph and an island, return True if the given island is an open walk.
 
-      *---*
-     /     \    *----*
-    *       \   |
-             *--*
+    Args:
+        graph (nx.Graph): The graph.
+        island (Sequence): The island.
+
+    Returns:
+        bool: True if the island is an open walk, False otherwise.
     """
     if len(island) == 2:
         return True
@@ -175,8 +195,14 @@ def is_open_walk(graph: nx.Graph, island: Sequence) -> bool:
 
 
 def graph_summary(graph: nx.Graph) -> str:
-    """Return a summary of a graph including cycles, open walks and
-    degenerate nodes. Degenerate nodes are nodes with degree > 2.
+    """
+    Return a summary of a graph including cycles, open walks and degenerate nodes.
+
+    Args:
+        graph (nx.Graph): The graph.
+
+    Returns:
+        str: Summary of the graph.
     """
     lines = []
     for island in nx.connected_components(graph):
@@ -203,12 +229,17 @@ class Node:
     """
     A Node object is a 2D point with x and y coordinates.
     Used in graphs corresponding to shapes and batches.
+
+    Attributes:
+        x (float): X coordinate.
+        y (float): Y coordinate.
     """
 
     x: float
     y: float
 
     def __post_init__(self):
+        """Initialize the Node with x and y coordinates."""
         common_properties(self)
 
     @property
@@ -217,6 +248,15 @@ class Node:
         return (self.x, self.y)
 
     def __eq__(self, other: object) -> bool:
+        """
+        Check if two nodes are equal.
+
+        Args:
+            other (object): The other node.
+
+        Returns:
+            bool: True if the nodes are equal, False otherwise.
+        """
         return close_points2(self.pos, other.pos, dist2=defaults["dist_tol"] ** 2)
 
 
@@ -224,19 +264,11 @@ class Node:
 class Graph:
     """
     A Graph object is a collection of nodes and edges.
-    You can access node data by using the node id.
-    G.nodes[0] --> {'pos': (100.0, 300.0)}
-    G.nodes[0]['pos'] --> (100.0, 300.0)
-    G.nodes --> nx node view
-    G.edges --> nx edge view
-    G.islands --> list of all islands both cyclic and acyclic
-    G.cycles --> list of cycles
-    G.openWalks --> list of open walks (aka open chains)
-    G.nx --> nx.Graph object
-    If subtype is Types.WEIGHTED, then the graph is weighted
-    by the length of the edges.
-    This is used internally.
-    Batch.asGraph() --> Graph
+
+    Attributes:
+        type (Types): The type of the graph.
+        subtype (Types): The subtype of the graph.
+        nx_graph (nx.Graph): The NetworkX graph object.
     """
 
     type: Types = "undirected"
@@ -244,23 +276,39 @@ class Graph:
     nx_graph: "nx.Graph" = None
 
     def __post_init__(self):
+        """Initialize the Graph with type and subtype."""
         common_properties(self)
 
     @property
     def islands(self):
-        """Return a list of all islands both cyclic and acyclic."""
+        """
+        Return a list of all islands both cyclic and acyclic.
+
+        Returns:
+            List: List of all islands.
+        """
         return [
             list(island) for island in self.nx_graph.connected_components(self.nx_graph)
         ]
 
     @property
     def cycles(self):
-        """Return a list of cycles."""
+        """
+        Return a list of cycles.
+
+        Returns:
+            List: List of cycles.
+        """
         return nx.cycle_basis(self.nx_graph)
 
     @property
     def open_walks(self):
-        """Return a list of open walks (aka open chains)."""
+        """
+        Return a list of open walks (aka open chains).
+
+        Returns:
+            List: List of open walks.
+        """
         res = []
         for island in self.islands:
             if is_open_walk(self.nx_graph, island):
@@ -269,10 +317,20 @@ class Graph:
 
     @property
     def edges(self):
-        """Return the edges of the graph."""
+        """
+        Return the edges of the graph.
+
+        Returns:
+            EdgeView: Edges of the graph.
+        """
         return self.nx_graph.edges
 
     @property
     def nodes(self):
-        """Return the nodes of the graph."""
+        """
+        Return the nodes of the graph.
+
+        Returns:
+            NodeView: Nodes of the graph.
+        """
         return self.nx_graph.nodes

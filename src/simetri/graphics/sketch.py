@@ -29,7 +29,13 @@ np.set_printoptions(legacy="1.21")
 
 @dataclass
 class CircleSketch:
-    """CircleSketch is a dataclass for creating a circle sketch object."""
+    """CircleSketch is a dataclass for creating a circle sketch object.
+
+    Attributes:
+        center (tuple): The center of the circle.
+        radius (float): The radius of the circle.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
 
     center: tuple
     radius: float
@@ -51,7 +57,15 @@ class CircleSketch:
 
 @dataclass
 class EllipseSketch:
-    """EllipseSketch is a dataclass for creating an ellipse sketch object."""
+    """EllipseSketch is a dataclass for creating an ellipse sketch object.
+
+    Attributes:
+        center (tuple): The center of the ellipse.
+        x_radius (float): The x-axis radius of the ellipse.
+        y_radius (float): The y-axis radius of the ellipse.
+        angle (float, optional): The orientation angle. Defaults to 0.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
 
     center: tuple
     x_radius: float
@@ -75,7 +89,12 @@ class EllipseSketch:
 
 @dataclass
 class LineSketch:
-    """LineSketch is a dataclass for creating a line sketch object."""
+    """LineSketch is a dataclass for creating a line sketch object.
+
+    Attributes:
+        vertices (list): The vertices of the line.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
 
     vertices: list
     xform_matrix: ndarray = None
@@ -97,14 +116,18 @@ class LineSketch:
 @dataclass
 class ShapeSketch:
     """ShapeSketch is a neutral format for drawing.
-    It contains geometry (only vertices for shapes) and style
-    properties.
+
+    It contains geometry (only vertices for shapes) and style properties.
     Style properties are not assigned during initialization.
     They are not meant to be transformed, only to be drawn.
     Sketches have no methods, only data.
     They do not check anything, they just store data.
     They are populated during sketch creation.
     You should make sure the data is correct before creating a sketch.
+
+    Attributes:
+        vertices (list, optional): The vertices of the shape. Defaults to None.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     """
 
     vertices: list = None
@@ -125,7 +148,13 @@ class ShapeSketch:
 
 @dataclass
 class BezierSketch:
-    """BezierSketch is a dataclass for creating a bezier sketch object."""
+    """BezierSketch is a dataclass for creating a bezier sketch object.
+
+    Attributes:
+        control_points (list): The control points of the bezier curve.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+        mode (CurveMode, optional): The mode of the curve. Defaults to CurveMode.OPEN.
+    """
 
     control_points: list
     xform_matrix: ndarray = None
@@ -148,7 +177,19 @@ class BezierSketch:
 
 @dataclass
 class ArcSketch:
-    """ArcSketch is a dataclass for creating an arc sketch object."""
+    """ArcSketch is a dataclass for creating an arc sketch object.
+
+    Attributes:
+        center (tuple): The center of the arc.
+        start_angle (float): The start angle of the arc.
+        end_angle (float): The end angle of the arc.
+        radius (float): The radius of the arc.
+        radius2 (float, optional): The secondary radius of the arc. Defaults to None.
+        rot_angle (float, optional): The rotation angle of the arc. Defaults to 0.
+        start_point (tuple, optional): The start point of the arc. Defaults to None.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+        mode (CurveMode, optional): The mode of the curve. Defaults to CurveMode.OPEN.
+    """
 
     center: tuple
     start_angle: float
@@ -186,7 +227,12 @@ class ArcSketch:
 
 @dataclass
 class BatchSketch:
-    """BatchSketch is a dataclass for creating a batch sketch object."""
+    """BatchSketch is a dataclass for creating a batch sketch object.
+
+    Attributes:
+        sketches (List[Types.SKETCH]): The list of sketches.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
 
     sketches: List[Types.SKETCH]
     xform_matrix: ndarray = None
@@ -200,7 +246,12 @@ class BatchSketch:
 
 @dataclass
 class PathSketch:
-    """PathSketch is a dataclass for creating a path sketch object."""
+    """PathSketch is a dataclass for creating a path sketch object.
+
+    Attributes:
+        sketches (List[Types.SKETCH]): The list of sketches.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
 
     sketches: List[Types.SKETCH]
     xform_matrix: ndarray = None
@@ -215,7 +266,13 @@ class PathSketch:
 
 @dataclass
 class LaceSketch:
-    """LaceSketch is a dataclass for creating a lace sketch object."""
+    """LaceSketch is a dataclass for creating a lace sketch object.
+
+    Attributes:
+        fragment_sketches (List[ShapeSketch]): The list of fragment sketches.
+        plait_sketches (List[ShapeSketch]): The list of plait sketches.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
 
     fragment_sketches: List[ShapeSketch]
     plait_sketches: List[ShapeSketch]
@@ -231,7 +288,32 @@ class LaceSketch:
 
 @dataclass
 class FrameSketch:
-    """FrameSketch is a dataclass for creating a frame sketch object."""
+    """FrameSketch is a dataclass for creating a frame sketch object.
+
+    Attributes:
+        frame_shape (FrameShape, optional): The shape of the frame. Defaults to "rectangle".
+        line_width (float, optional): The width of the line. Defaults to 1.
+        line_dash_array (list, optional): The dash array for the line. Defaults to None.
+        line_color (Color, optional): The color of the line. Defaults to colors.black.
+        back_color (Color, optional): The background color. Defaults to colors.white.
+        fill (bool, optional): Whether to fill the frame. Defaults to False.
+        stroke (bool, optional): Whether to stroke the frame. Defaults to True.
+        double (bool, optional): Whether to draw a double line. Defaults to False.
+        double_distance (float, optional): The distance between double lines. Defaults to 2.
+        inner_sep (float, optional): The inner separation. Defaults to 10.
+        outer_sep (float, optional): The outer separation. Defaults to 10.
+        smooth (bool, optional): Whether to smooth the frame. Defaults to False.
+        rounded_corners (bool, optional): Whether to round the corners. Defaults to False.
+        fillet_radius (float, optional): The radius of the fillet. Defaults to 10.
+        draw_fillets (bool, optional): Whether to draw fillets. Defaults to False.
+        blend_mode (str, optional): The blend mode. Defaults to None.
+        gradient (str, optional): The gradient. Defaults to None.
+        pattern (str, optional): The pattern. Defaults to None.
+        visible (bool, optional): Whether the frame is visible. Defaults to True.
+        min_width (float, optional): The minimum width. Defaults to 0.
+        min_height (float, optional): The minimum height. Defaults to 0.
+        min_radius (float, optional): The minimum radius. Defaults to 0.
+    """
 
     frame_shape: FrameShape = (
         "rectangle"  # default value cannot be FrameShape.RECTANGLE!
@@ -267,7 +349,17 @@ class FrameSketch:
 
 @dataclass
 class TagSketch:
-    """TagSketch is a dataclass for creating a tag sketch object."""
+    """TagSketch is a dataclass for creating a tag sketch object.
+
+    Attributes:
+        text (str, optional): The text of the tag. Defaults to None.
+        pos (Point, optional): The position of the tag. Defaults to None.
+        anchor (Anchor, optional): The anchor of the tag. Defaults to None.
+        font_family (str, optional): The font family. Defaults to None.
+        font_size (float, optional): The font size. Defaults to None.
+        minimum_width (float, optional): The minimum width. Defaults to None.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
 
     text: str = None
     pos: Point = None
@@ -292,7 +384,14 @@ class TagSketch:
 
 @dataclass
 class RectSketch:
-    """RectSketch is a dataclass for creating a rectangle sketch object."""
+    """RectSketch is a dataclass for creating a rectangle sketch object.
+
+    Attributes:
+        pos (Point): The position of the rectangle.
+        width (float): The width of the rectangle.
+        height (float): The height of the rectangle.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
 
     pos: Point
     width: float

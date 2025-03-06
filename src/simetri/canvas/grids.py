@@ -12,17 +12,29 @@ class CircularGrid:
     """A grid formed by connections of regular polygon points."""
 
     def __init__(self, center: Point = (0, 0), n: int = 12, radius: float = 100):
-        """Initializes the grid with the given center, radius, number of rows, and number of columns."""
+        """
+        Initializes the grid with the given center, radius, number of rows, and number of columns.
+
+        Args:
+            center (Point): The center point of the grid.
+            n (int): The number of points in the regular polygon.
+            radius (float): The radius of the grid.
+        """
         self.center = center
         self.radius = radius
         self.n = n
         self.points = reg_poly_points(center, n, radius)
 
     def intersect(self, line1: Sequence[int], line2: Sequence[int]):
-        """Returns the intersection of the lines connecting the given indices.
-        line1: (ind1, ind2)
-        line2: (ind3, ind4)
-        return: (x, y) intersection point of the lines
+        """
+        Returns the intersection of the lines connecting the given indices.
+
+        Args:
+            line1 (Sequence[int]): A sequence containing two indices (ind1, ind2).
+            line2 (Sequence[int]): A sequence containing two indices (ind3, ind4).
+
+        Returns:
+            tuple: (x, y) intersection point of the lines.
         """
         ind1, ind2 = line1
         ind3, ind4 = line2
@@ -36,23 +48,61 @@ class CircularGrid:
 # change of basis conversion
 
 
-def convert_basis(x, y, basis):
-    """Converts the given (x, y) coordinates from the standard basis to the given basis."""
+def convert_basis(x: float, y: float, basis: tuple):
+    """
+    Converts the given (x, y) coordinates from the standard basis to the given basis.
+
+    Args:
+        x (float): The x-coordinate.
+        y (float): The y-coordinate.
+        basis (tuple): The basis to convert to.
+
+    Returns:
+        tuple: The converted (x, y) coordinates.
+    """
     return basis[0][0] * x + basis[0][1] * y, basis[1][0] * x + basis[1][1] * y
 
 
-def convert_to_cartesian(x, y, basis):
-    """Converts the given (x, y) coordinates from the given basis to the standard basis."""
+def convert_to_cartesian(x: float, y: float, basis: tuple):
+    """
+    Converts the given (x, y) coordinates from the given basis to the standard basis.
+
+    Args:
+        x (float): The x-coordinate.
+        y (float): The y-coordinate.
+        basis (tuple): The basis to convert from.
+
+    Returns:
+        tuple: The converted (x, y) coordinates.
+    """
     return basis[0][0] * x + basis[1][0] * y, basis[0][1] * x + basis[1][1] * y
 
 
-def cartesian_to_isometric(x, y):
-    """Converts the given (x, y) coordinates to isometric coordinates."""
+def cartesian_to_isometric(x: float, y: float):
+    """
+    Converts the given (x, y) coordinates to isometric coordinates.
+
+    Args:
+        x (float): The x-coordinate.
+        y (float): The y-coordinate.
+
+    Returns:
+        tuple: The isometric (x, y) coordinates.
+    """
     return convert_basis(x, y, ((1, 0), (cos(pi / 3), sin(pi / 3))))
 
 
-def isometric_to_cartesian(x, y):
-    """Converts the given isometric (x, y) coordinates to Cartesian coordinates."""
+def isometric_to_cartesian(x: float, y: float):
+    """
+    Converts the given isometric (x, y) coordinates to Cartesian coordinates.
+
+    Args:
+        x (float): The x-coordinate.
+        y (float): The y-coordinate.
+
+    Returns:
+        tuple: The Cartesian (x, y) coordinates.
+    """
     return convert_to_cartesian(x, y, ((1, 0), (cos(pi / 3), sin(pi / 3))))
 
 

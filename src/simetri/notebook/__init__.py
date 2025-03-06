@@ -11,7 +11,12 @@ from IPython.display import display as ipy_display
 
 
 def display(canvas):
-    """Show the output of the canvas in the Jupyter notebook."""
+    """Show the output of the canvas in the Jupyter notebook.
+
+    Args:
+        canvas: The canvas object to be displayed.
+
+    """
     # open a temporary directory
     with tempfile.TemporaryDirectory(
         ignore_cleanup_errors=True, delete=True

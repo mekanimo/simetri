@@ -6,15 +6,31 @@ from ..graphics.all_enums import Control, State
 
 class Modifier:
     """Used to modify the properties of a Batch object.
-    type: Types.INCREMENTER, Types. Types.MULTIPLIER, Types.TRANSFORMER
-    life_span: the number of times the modifier can be applied to the property
-    randomness: a value between 0 and 1 that determines the randomness of
-    the modification, it can also be a function that returns a value between
-    0 and 1"""
+
+    Attributes:
+        function (callable): The function to modify the property.
+        life_span (int): The number of times the modifier can be applied.
+        randomness (float or callable): Determines the randomness of the modification.
+        condition (bool or callable): Condition to apply the modification.
+        state (State): The current state of the modifier.
+        _d_state (dict): Mapping of control states to modifier states.
+        count (int): Counter for the number of times the modifier has been applied.
+        args (tuple): Additional arguments for the function.
+        kwargs (dict): Additional keyword arguments for the function.
+    """
 
     def __init__(
         self, function, life_span=10000, randomness=1.0, condition=True, *args, **kwargs
     ):
+        """
+        Args:
+            function (callable): The function to modify the property.
+            life_span (int, optional): The number of times the modifier can be applied. Defaults to 10000.
+            randomness (float or callable, optional): Determines the randomness of the modification. Defaults to 1.0.
+            condition (bool or callable, optional): Condition to apply the modification. Defaults to True.
+            *args: Additional arguments for the function.
+            **kwargs: Additional keyword arguments for the function.
+        """
         self.function = function  # it can be a list of functions
         signature = inspect.signature(function)
         self.n_func_args = len(signature.parameters)
@@ -34,18 +50,44 @@ class Modifier:
         self.kwargs = kwargs
 
     def __repr__(self):
+        """Returns a string representation of the Modifier object.
+
+        Returns:
+            str: String representation of the Modifier object.
+        """
         return (
             f"Modifier(function:{self.function}, lifespan:{self.life_span},"
             f"randomness:{self.randomness})"
         )
 
     def __str__(self):
+        """Returns a string representation of the Modifier object.
+
+        Returns:
+            str: String representation of the Modifier object.
+        """
         return self.__repr__()
 
     def set_state(self, control):
+        """Sets the state of the modifier based on the control value.
+
+        Args:
+            control (Control): The control value to set the state.
+        """
         self.state = self._d_state[control]
 
     def get_value(self, obj, target, *args, **kwargs):
+        """Gets the value from an object or callable.
+
+        Args:
+            obj (object or callable): The object or callable to get the value from.
+            target (object): The target object.
+            *args: Additional arguments for the callable.
+            **kwargs: Additional keyword arguments for the callable.
+
+        Returns:
+            object: The value obtained from the object or callable.
+        """
         if callable(obj):
             res = obj(target, *args, **kwargs)
             if res in Control:
@@ -55,12 +97,16 @@ class Modifier:
         return res
 
     def apply(self, element):
-        """If a function returns a control value, it will be applied to
-        the modifer.
-        Control.STOP, Control.PAUSE, Control.RESUME, and Control.RESTART
-        are the only control values.
-        functions should have the following signature:
-        def funct(target, modifier, *args, **kwargs):"""
+        """Applies the modifier to an element.
+
+        If a function returns a control value, it will be applied to the modifier.
+        Control.STOP, Control.PAUSE, Control.RESUME, and Control.RESTART are the only control values.
+        Functions should have the following signature:
+        def funct(target, modifier, *args, **kwargs):
+
+        Args:
+            element (object): The element to apply the modifier to.
+        """
         if self.can_continue(element):
             if self.n_func_args == 1:
                 self.function(element)
@@ -71,6 +117,14 @@ class Modifier:
             self.state = State.STOPPED
 
     def can_continue(self, target):
+        """Checks if the modifier can continue to be applied.
+
+        Args:
+            target (object): The target object.
+
+        Returns:
+            bool: True if the modifier can continue, False otherwise.
+        """
         if callable(self.randomness):
             randomness = self.get_value(self.randomness, target)
         elif type(self.randomness) == float:
@@ -84,7 +138,7 @@ class Modifier:
             condition = self.condition
 
         if callable(self.life_span):
-            life_span = self.getValue(self.life_span, target)
+            life_span = self.get_value(self.life_span, target)
         else:
             life_span = self.life_span
 
@@ -98,6 +152,7 @@ class Modifier:
         return res
 
     def _update_state(self):
+        """Updates the state of the modifier based on its life span and count."""
         self.count += 1
         if self.count == 1:
             self.state = State.RUNNING
@@ -112,4 +167,5 @@ class Modifier:
             self.state = State.STOPPED
 
     def stop(self):
+        """Stops the modifier."""
         self.state = State.STOPPED
