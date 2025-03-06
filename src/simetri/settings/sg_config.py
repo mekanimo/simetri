@@ -163,10 +163,21 @@ config_ini = f"""
 
 
 def reset_config_ini():
+    """Reset the configuration to the default values.
+
+    This function creates a new configuration file in the 'c:/tmp/' directory.
+    """
     create_config("c:/tmp/")
 
 
 def create_config(dir_path: str):
+    """Create a configuration file.
+
+    Args:
+        dir_path (str): The directory path where the configuration file will be created.
+
+    This function writes the default configuration values to a file named 'config.ini' in the specified directory.
+    """
     # Write the configuration to a file
     # combine dir_path and config.ini
     file_path = path.join(dir_path, "config.ini")
@@ -175,6 +186,16 @@ def create_config(dir_path: str):
 
 
 def read_config(file_path: str):
+    """Read the configuration file and retrieve values.
+
+    Args:
+        file_path (str): The path to the configuration file.
+
+    Returns:
+        dict: A dictionary containing the retrieved configuration values.
+
+    This function reads the configuration file and retrieves specific values from it.
+    """
     # Create a ConfigParser object
     config = configparser.ConfigParser()
 

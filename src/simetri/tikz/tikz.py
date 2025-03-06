@@ -230,8 +230,8 @@ class Tex:
         if packages:
             packages = f'\\usepackage{{{",".join(packages)}}}\n'
             if 'fontspec' in packages:
-                fonts_section = f"""\\setmainfont{{{defaults['main_font']}}
-\\setsansfont{{{defaults['sans_font']}}
+                fonts_section = f"""\\setmainfont{{{defaults['main_font']}}}
+\\setsansfont{{{defaults['sans_font']}}}
 \\setmonofont{{{defaults['mono_font']}}}\n"""
 
         if libraries:

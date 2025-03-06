@@ -103,5 +103,4 @@ logger.addHandler(console_handler)
 
 defaults["logger"] = logger
 
-# we don't want to use the Python's Path class
-from .path import Path # noqa
+from .path import LinPath

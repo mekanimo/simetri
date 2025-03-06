@@ -22,8 +22,8 @@ from simetri.geometry.circle import Circle_ as Circle
 class Constraint:
     """Constraint class for geometric constraints."""
 
-    item1: "point segment or circle"
-    item2: "point segment or circle"
+    item1: object
+    item2: object
     type: ConstType
     value: float = None
     value2: float = None  # used for equal_value_eq
@@ -31,16 +31,16 @@ class Constraint:
     def __post_init__(self):
         """Set item sizes for circles and segments."""
         self.equation = d_equations[self.type]
-        if self.type == ConstType.EQUAL_SIZE:
-            if isinstance(self.item1, Circle):
-                self.size1 = self.item1.radius
-            elif is_line(self.item1):
-                self.size1 = distance(*self.item1)
+        # if self.type == ConstType.EQUAL_SIZE:
+        #     if isinstance(self.item1, Circle):
+        #         self.size1 = self.item1.radius
+        #     elif is_line(self.item1):
+        #         self.size1 = distance(*self.item1)
 
-            if isinstance(self.item2, Circle):
-                self.size2 = self.item2.radius
-            elif is_line(self.item2):
-                self.size2 = distance(*self.item2)
+        #     if isinstance(self.item2, Circle):
+        #         self.size2 = self.item2.radius
+        #     elif is_line(self.item2):
+        #         self.size2 = distance(*self.item2)
 
     def check(self):
         """Check the constraint value.

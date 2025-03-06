@@ -43,8 +43,8 @@ class Operation:
         common_properties(self, False)
 
 
-class Path(Batch):
-    """A Path object is a container for various elements.
+class LinPath(Batch):
+    """A LinPath object is a container for various linear elements.
     Path objects can be transformed like other Shape and Batch objects.
     """
 
