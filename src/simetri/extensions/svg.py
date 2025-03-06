@@ -7,8 +7,6 @@ from simetri.settings import (
     NDIGITSSVG,
     SHOWBROWSER,
     TOL,
-    logging,
-    Style,
     defaults,
     default_style,
 )
@@ -19,9 +17,6 @@ from simetri.affine import translation_matrix, mirror_matrix
 import simetri.graphics as sg
 from simetri.palettes import (
     seq_DEEP_256,
-    seq_LINEARL_256,
-    seq_MATTER_256,
-    seq_BATLOW_256,
 )
 
 

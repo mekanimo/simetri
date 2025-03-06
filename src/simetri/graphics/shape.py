@@ -3,7 +3,6 @@
 __all__ = ["Shape", "custom_attributes"]
 
 from typing import Sequence, Union, List
-import logging
 
 import numpy as np
 from numpy import array, allclose
@@ -542,8 +541,6 @@ class Shape(Base):
         try:
             cycles = nx.cycle_basis(nx_graph)
         except nx.exception.NetworkXNoCycle:
-            msg = "No cycles found in 'batch.as_graph'."
-            logging.warning(msg)
             cycles = None
 
         if cycles:
@@ -552,16 +549,6 @@ class Shape(Base):
                 cycle.append(cycle[0])
             if n == 1:
                 cycle = cycles[0]
-                msg = (
-                    f"Shape.as_graph found one cycle:"
-                    f"{[get_item_by_id(node).pos for node in cycle]}"
-                )
-                logging.info(msg)
-            else:
-                msg = f"Shape.as_graph found {n} cycles:"
-                for cycle in cycles:
-                    msg += f"{[get_item_by_id(node).pos for node in cycle]}"
-                logging.info(msg)
         else:
             cycles = None
         graph = Graph(type=graph_type, subtype=subtype, nx_graph=nx_graph)

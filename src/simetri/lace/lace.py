@@ -1,6 +1,5 @@
 """Simetri library's interlace objects."""
 
-import logging
 from itertools import combinations
 from typing import Iterator, List, Any, Union
 from collections import OrderedDict
@@ -1015,18 +1014,21 @@ class Lace(Batch):
             ],
         )
         if polygon_shapes:
+            for shape in polygon_shapes:
+                shape[:] = [(round(x, 1), round(y, 1)) for x, y in shape]
             polygon_shapes = polygon_shapes.merge_shapes()
             self.polygon_shapes = self._check_polygons(polygon_shapes)
         else:
             self.polygon_shapes = []
         if polyline_shapes:
+            for shape in polyline_shapes:
+                shape[:] = [(round(x, 1), round(y, 1)) for x, y in shape]
             polyline_shapes = polyline_shapes.merge_shapes()
             self.polyline_shapes = self._check_polylines(polyline_shapes)
         else:
             self.polyline_shapes = []
         if not self.polygon_shapes and not self.polyline_shapes:
             msg = "Lace.__init__ : No polygons or polylines found."
-            logging.error(msg)
             raise ValueError(msg)
         self.polyline_shapes = polyline_shapes
         self.offset = offset
@@ -1153,11 +1155,9 @@ class Lace(Batch):
         for polygon in polygon_shapes:
             if len(polygon.primary_points) < 3:
                 msg = "Lace.__init__ found polygon with less than 3 points."
-                logging.error(msg)
                 raise ValueError(msg)
             if not polygon.closed:
                 msg = "Lace.__init__ : Invalid polygons"
-                logging.error(msg)
                 raise ValueError(msg)
             if polygon.primary_points[0] != polygon.primary_points[-1]:
                 polygon.primary_points.append(polygon.primary_points[0])
@@ -1165,8 +1165,6 @@ class Lace(Batch):
         for polygon in polygon_shapes:
             if not right_handed(polygon.vertices):
                 polygon.primary_points.reverse()
-                # msg = "Lace._check_polygons reversed clockwise points."
-                # logging.info(msg)
 
         return polygon_shapes
 
@@ -1176,7 +1174,6 @@ class Lace(Batch):
         for polyline in polyline_shapes:
             if len(polyline.primary_points) < 2:
                 msg = "Lace.__init__ found polyline with less than 2 points."
-                logging.error(msg)
                 raise ValueError(msg)
 
         return polyline_shapes
@@ -1842,7 +1839,6 @@ class Lace(Batch):
             object cannot be created.
         """
         if self.plaits:
-            logging.warning("Plaits already exist. set lace.plaits = []")
             return
         plait_sections = []
         if self._canvas:
@@ -2086,7 +2082,6 @@ class Lace(Batch):
                                     "Try different offset value and/or "
                                     "tolerance."
                                 )
-                                logging.error(msg)
                                 raise RuntimeError(msg)
                             section.overlap.visited = True
                             if ind % 2 == even_odd:

@@ -6,7 +6,6 @@ If you are going to share your code with others, you should set these values in 
 __all__ = ["defaults", "set_defaults", "tikz_defaults", "set_tikz_defaults"]
 
 import sys
-import logging
 from collections import defaultdict
 from math import pi
 
@@ -651,17 +650,6 @@ def set_defaults():
     defaults_help["line_width"] = "Line width. Positive float. Length in <points>."
     defaults["log_file"] = "c:/tmp/simetri.log"
     defaults_help["log_file"] = "Log file. String. Log file for the Simetri library."
-    defaults["log_level"] = logging.INFO  # logging.DEBUG, logging.WARNING,
-    # logging.ERROR, logging.CRITICAL
-    defaults_help["log_level"] = "Log level. Logging level."
-    defaults["log_merges"] = False
-    defaults_help["log_merges"] = (
-        "Boolean property for logging merges. If True, merges are logged."
-    )
-    defaults["log_merges2"] = False
-    defaults_help["log_merges2"] = (
-        "Boolean property for logging merges2. If True, merges2 are logged."
-    )
     defaults["lualatex_run_options"] = None
     defaults_help["lualatex_run_options"] = "LuaLaTeX run options. String."
     defaults["main_font"] = "Times New Roman"
@@ -1018,20 +1006,6 @@ def set_defaults():
     defaults["tag_frame_style"] = FrameStyle()
     defaults["tag_style"] = TagStyle()
 
-    if defaults["show_log_on_console"]:
-        logger = logging.getLogger()
-        logger.setLevel(defaults["log_level"])
-
-        file_handler = logging.FileHandler(
-            defaults["log_file"], mode="w", encoding="utf-8"
-        )
-        file_handler.setLevel(defaults["log_level"])
-
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(defaults["log_level"])
-
-        logger.addHandler(file_handler)
-        logger.addHandler(console_handler)
 
 
 def close_logger(logger):

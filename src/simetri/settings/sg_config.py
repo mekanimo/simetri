@@ -33,8 +33,6 @@ config_ini = f"""
     debug_mode = {sg.defaults['debug_mode']}
     ; If this is True, <job_name>_debug.txt will be created in the job directory.
 
-    log_level = {sg.defaults['log_level']}
-    ; DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     save_with_versions = {sg.defaults['save_with_versions']}
     ; If True and file exists, the save function will add a version number
@@ -204,7 +202,6 @@ def read_config(file_path: str):
 
     # Access values from the configuration file
     debug_mode = config.getboolean("General Defaults", "debug_mode")
-    log_level = config.get("General Defaults", "log_level")
     pattern_type = config.get("Style Defaults", "pattern_type")
     use_packages = config.get("tikz Document Defaults", "use_packages")
 
@@ -213,7 +210,6 @@ def read_config(file_path: str):
     # Return a dictionary with the retrieved values
     config_values = {
         "debug_mode": debug_mode,
-        "log_level": log_level,
         "pattern_type": pattern_type,
         "use_packages": use_packages,
     }
@@ -225,9 +221,3 @@ create_config("c:/tmp/")
 
 # Call the function to read the configuration file
 config_data = read_config("c:/tmp/config.ini")
-
-# Print the retrieved values
-print("Debug Mode:", config_data["debug_mode"])
-print("Log Level:", config_data["log_level"])
-print("pattern_type:", config_data["pattern_type"])
-print("use_packages:", config_data["use_packages"])

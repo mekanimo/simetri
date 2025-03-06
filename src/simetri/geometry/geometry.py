@@ -39,7 +39,7 @@ from ..graphics.common import (
     axis_y,
 )
 from ..graphics.all_enums import Connection, Types
-from ..settings.settings import logging, defaults
+from ..settings.settings import defaults
 
 array = np.array
 around = np.around
@@ -710,9 +710,6 @@ def stitch(
         x_point = intersect2(x1, y1, x2, y2, x3, y3, x4, y4)
         if x_point:
             points.append(x_point)
-        else:
-            msg = "No intersection found in stitch."
-            logging.info(msg)
     if closed:
         x1, y1 = lines[-1][0]
         x2, y2 = lines[-1][1]
@@ -731,9 +728,6 @@ def stitch(
         if final_x:
             points.insert(0, final_x)
             points.append(final_x)
-        else:
-            msg = "No intersection found in stitch. final_x"
-            logging.info(msg)
     else:
         points.append(lines[-1][1])
     if return_points:

@@ -1,4 +1,3 @@
-import logging
 from typing import List, Dict
 
 from numpy import isclose
@@ -103,9 +102,7 @@ def _merge_shapes(
                 vertices = fix_degen_points(vertices, closed=False, dist_tol=dist_tol)
                 shape = Shape(vertices)
                 new_shapes.append(shape)
-            else:
-                msg = "Batch.merge_shapes: Degenerate points found!"
-                logging.warning(msg)
+
     batch = Batch(new_shapes)
     for k, v in kwargs.items():
         batch.set_attribs(k, v)

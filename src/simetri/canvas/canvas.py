@@ -7,7 +7,6 @@ drawing basic shapes like lines, circles, and polygons.
 import os
 import webbrowser
 import subprocess
-import logging
 from typing import Optional, Any, Tuple, Sequence
 from pathlib import Path
 from dataclasses import dataclass
@@ -33,8 +32,7 @@ from simetri.colors import colors
 from simetri.canvas import draw
 from simetri.helpers.utilities import (
     wait_for_file_availability,
-    is_file_empty,
-    close_logger,
+    is_file_empty
 )
 from simetri.tikz.tikz import Tex, get_tex_code
 from simetri.helpers.validation import validate_args
@@ -709,7 +707,6 @@ class Canvas:
             offset_x, offset_y = b_box.southwest
             res = w, h, offset_x - border, offset_y - border
         else:
-            logging.warning("No vertices to calculate the size.")
             res = None
         return res
 

@@ -1,7 +1,6 @@
 """Batch objects are used for grouping other Shape and Batch objects.
 """
 
-import logging
 from typing import Any, Iterator, List, Sequence
 
 from numpy import around, array
@@ -265,8 +264,6 @@ class Batch(Base):
         """
         if element not in self.elements:
             self.elements.append(element)
-        else:
-            logging.info("Batch.append: Ignoring duplicate element(id:%i)", element.id)
         return self
 
     def reverse(self) -> Self:
@@ -292,10 +289,7 @@ class Batch(Base):
         """
         if element not in self.elements:
             self.elements.insert(index, element)
-        else:
-            logging.info(
-                "Batch.insert: Ignoring duplicate element(id:%i)", element.id
-            )
+
         return self
 
     def remove(self, element: Any) -> Self:
@@ -347,10 +341,7 @@ class Batch(Base):
         for element in elements:
             if element not in self.elements:
                 self.elements.append(element)
-            else:
-                logging.info(
-                    "Batch.extend: Ignoring duplicate element(id:%i)", element.id
-                )
+
         return self
 
     def iter_elements(self, element_type: Types = None) -> Iterator:
@@ -463,7 +454,6 @@ class Batch(Base):
         for pair in pairs:
             id1, id2, _ = pair
             average = tuple(mid_point(vertices[id1], vertices[id2]))
-            # !!! add logging her for average info
             d_ind_coords[id1] = average
             d_ind_coords[id2] = average
             rounded_vertices[id1] = average

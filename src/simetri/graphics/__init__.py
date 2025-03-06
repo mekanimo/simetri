@@ -35,8 +35,6 @@ from math import (
 from itertools import cycle, combinations, permutations, product
 from random import choice, choices, randint, random, uniform, shuffle
 from functools import lru_cache as memoize
-import logging
-
 from numpy import linspace, arange, array, zeros, ones, full, eye, diag
 
 from ..helpers.utilities import *
@@ -72,7 +70,7 @@ import simetri.frieze as frieze
 from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system
-
+from .path import LinPath
 
 set_tikz_defaults()
 
@@ -87,20 +85,3 @@ style_map._set_pattern_style_alias_map()
 style_map._set_frame_style_alias_map()
 style_map._set_shape_args()
 style_map._set_batch_args()
-
-
-logger = logging.getLogger()
-logger.setLevel(defaults["log_level"])  # defaults comes from settings.py
-
-file_handler = logging.FileHandler(defaults["log_file"], mode="w", encoding="utf-8")
-file_handler.setLevel(defaults["log_level"])
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel(defaults["log_level"])
-
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
-
-defaults["logger"] = logger
-
-from .path import LinPath

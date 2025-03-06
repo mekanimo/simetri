@@ -2,7 +2,6 @@
 Bounding box is axis-aligned. Provides reference edges and points.
 """
 
-import logging
 import numpy as np
 from .common import Point, common_properties, _set_Nones, defaults
 from .all_enums import Side, Types, Anchor
@@ -414,7 +413,7 @@ class BoundingBox:
         elif side == Side.V_CENTERLINE:
             res = offset_line(self.vert_center_line, offset)
         else:
-            logging.error("Unknown side: %s", side)
+            raise ValueError(f"Unknown side: {side}")
             res = None
 
         return res

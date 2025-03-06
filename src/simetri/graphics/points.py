@@ -3,7 +3,6 @@ The Points class is a container for coordinates of multiple points.
 It provides conversion to homogeneous coordinates in nd_arrays.
 Shape.final_coords is computed by using the Points.homogen_coords property."""
 
-import logging
 import copy
 from typing import Sequence
 
@@ -30,13 +29,8 @@ class Points:
         # coords are a list of (x, y) values
         if coords is None:
             coords = []
-            n_coords = 0
         else:
-            n_coords = len(coords)
             coords = [tuple(x) for x in coords]
-        if len(coords) != n_coords:
-            msg = "Points.__init__: Degenerate points found!"
-            logging.warning(msg)
         self.coords = coords
         if self.coords:
             self.nd_array = homogenize(coords)  # homogeneous coordinates

@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from typing import Sequence
-import logging
 
 import networkx as nx
 
@@ -56,8 +55,6 @@ def edges2nodes(edges: Sequence[Sequence]) -> Sequence:
             nodes.extend(reversed(last_edge))
         elif last_edge[1] == nodes[0]:
             nodes.extend(last_edge)
-        else:
-            logging.warning("edges2nodes: last_edge not connected to nodes")
 
     return nodes
 
