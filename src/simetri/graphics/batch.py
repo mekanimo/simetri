@@ -591,8 +591,7 @@ class Batch(Base):
         return _merge_collinears(self, edges, n_round=n_round)
 
     def merge_shapes(
-        self, tol: float = None, rtol: float = None, atol: float = None
-    ) -> Self:
+        self, dist_tol: float = None, n_round: int = None) -> Self:
         """Merges the shapes in the batch if they are connected.
         Returns a new batch with the merged shapes as well as the shapes
         as well as the shapes that could not be merged.
@@ -605,7 +604,7 @@ class Batch(Base):
         Returns:
             Self: The batch object with merged shapes.
         """
-        return _merge_shapes(self, tol=tol, rtol=rtol, atol=atol)
+        return _merge_shapes(self, dist_tol=dist_tol, n_round=n_round)
 
     def _get_edges_and_segments(self, dist_tol: float = None, n_round: int = None):
         """Get the edges and segments for the batch.

@@ -5,7 +5,7 @@ from math import degrees
 from numpy import isclose
 import networkx as nx
 
-from .common import get_defaults, Line
+from .common import Line
 from ..geometry.geometry import (
     right_handed,
     fix_degen_points,
@@ -14,24 +14,16 @@ from ..geometry.geometry import (
     round_point
 )
 from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges2nodes
-
+from ..settings.settings import defaults
 
 def _merge_shapes(
     self,
-    tol: float = None,
-    rtol: float = None,
-    atol: float = None,
-    dist_tol: float = None,
     n_round: int = None, **kwargs) -> "Batch":
     """
     Tries to merge the shapes in the batch. Returns a new batch
     with the merged shapes as well as the shapes that could not be merged.
 
     Args:
-        tol (float, optional): Tolerance for merging shapes. Defaults to None.
-        rtol (float, optional): Relative tolerance for merging shapes. Defaults to None.
-        atol (float, optional): Absolute tolerance for merging shapes. Defaults to None.
-        dist_tol (float, optional): Distance tolerance for merging shapes. Defaults to None.
         n_round (int, optional): Number of rounding digits for merging shapes. Defaults to None.
         **kwargs: Additional keyword arguments.
 
@@ -40,10 +32,7 @@ def _merge_shapes(
     """
     from .batch import Batch
     from .shape import Shape
-    tol, rtol, atol, dist_tol, n_round = get_defaults(
-        ["tol", "rtol", "atol", "dist_tol", "n_round"],
-        [tol, rtol, atol, dist_tol, n_round],
-    )
+    n_round = defaults['n_round'] if n_round is None else n_round
     self._set_node_dictionaries(self.all_vertices, n_round=n_round)
     edges, segments = self._get_edges_and_segments(n_round=n_round)
     segments = self._merge_collinears(edges, n_round=n_round)
@@ -80,7 +69,6 @@ def _merge_shapes(
                 vertices = [d_node_coord[node] for node in nodes]
                 if not right_handed(vertices):
                     vertices.reverse()
-                vertices = fix_degen_points(vertices, closed=False, dist_tol=dist_tol)
                 shape = Shape(vertices)
                 new_shapes.append(shape)
 
@@ -101,13 +89,9 @@ def _merge_collinears(
     Merge collinear edges.
 
     Args:
-        d_node_id_coord (Dict[int, Point]): Dictionary of node id to coordinates.
         edges (List[Line]): List of edges.
         angle_bin_size (float, optional): Bin size for grouping angles. Defaults to 0.1.
-        tol (float, optional): Tolerance for merging edges. Defaults to None.
-        rtol (float, optional): Relative tolerance for merging edges. Defaults to None.
-        atol (float, optional): Absolute tolerance for merging edges. Defaults to None.
-
+        n_round (int, optional): Number of rounding digits. Defaults to 2.
     Returns:
         List[Line]: List of merged edges.
     """
