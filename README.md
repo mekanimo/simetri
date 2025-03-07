@@ -11,7 +11,7 @@ The documentation is available at [simetri/docs](https://github.com/mekanimo/sim
 
 ## Version
 
-This is the first alpha version of the library and is not yet ready for production use. The library is still in its early stages of development and is likely to change significantly in the near future. The beta release is expected to be in March 2025.
+This is the first alpha version of the library and is not yet ready for production use. The library is still in its early stages of development and is likely to change significantly in the near future. The beta release is expected to be in May 2025.
 
 ## Installation
 If you have a Python version >= 3.9 installed, execute the following command in the terminal:
