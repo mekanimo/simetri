@@ -4,7 +4,7 @@
 from typing import Any, Iterator, List, Sequence
 
 from numpy import around, array
-from typing_extensions import Self
+from typing_extensions import Self, Dict
 import networkx as nx
 
 
@@ -21,6 +21,8 @@ from ..geometry.geometry import(
     mid_point,
     distance,
     connected_pairs,
+    round_segment,
+    round_point
 )
 from ..helpers.graph import is_cycle, is_open_walk, Graph
 from ..settings.settings import defaults
@@ -573,7 +575,7 @@ class Batch(Base):
 
         return "\n".join(lines)
 
-    def _merge_collinears(self, d_node_id_coords, edges, tol=None, rtol=None, atol=None):
+    def _merge_collinears(self, edges, n_round=2):
         """Merge collinear edges in the batch.
 
         Args:
@@ -586,7 +588,7 @@ class Batch(Base):
         Returns:
             list: The merged edges.
         """
-        return _merge_collinears(self, d_node_id_coords, edges, tol=tol, rtol=rtol, atol=atol)
+        return _merge_collinears(self, edges, n_round=n_round)
 
     def merge_shapes(
         self, tol: float = None, rtol: float = None, atol: float = None
@@ -604,6 +606,57 @@ class Batch(Base):
             Self: The batch object with merged shapes.
         """
         return _merge_shapes(self, tol=tol, rtol=rtol, atol=atol)
+
+    def _get_edges_and_segments(self, dist_tol: float = None, n_round: int = None):
+        """Get the edges and segments for the batch.
+
+        Args:
+            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
+            n_round (int, optional): The number of decimal places to round to. Defaults to None.
+
+        Returns:
+            tuple: A tuple containing the edges and segments.
+        """
+        if dist_tol is None:
+            dist_tol = defaults["dist_tol"]
+        if n_round is None:
+            n_round = defaults["n_round"]
+        d_coord_node = self.d_coord_node
+        segments = self.all_segments
+        segments = [round_segment(segment, n_round) for segment in segments]
+        edges = []
+        for seg in segments:
+            p1, p2 = seg
+            id1 = d_coord_node[p1]
+            id2 = d_coord_node[p2]
+            edges.append((id1, id2))
+
+        return edges, segments
+
+    def _set_node_dictionaries(self, coords: List[Point], n_round: int=2) -> List[Dict]:
+        '''Set dictionaries for nodes and coordinates.
+        d_node_coord: Dictionary of node id to coordinates.
+        d_coord_node: Dictionary of coordinates to node id.
+
+        Args:
+            nodes (List[Point]): List of vertices.
+            n_round (int, optional): Number of rounding digits. Defaults to 2.
+        '''
+
+        coords = [tuple(round_point(coord, n_round)) for coord in coords]
+        coords = list(set(coords))   # remove duplicates
+        coords.sort()    # sort by x coordinates
+        coords.sort(key=lambda x: x[1])  # sort by y coordinates
+
+        d_node_coord = {}
+        d_coord_node = {}
+
+        for i, coord in enumerate(coords):
+            d_node_coord[i] = coord
+            d_coord_node[coord] = i
+
+        self.d_node_coord = d_node_coord
+        self.d_coord_node = d_coord_node
 
     def all_polygons(self, dist_tol: float = None) -> list:
         """Return a list of all polygons in the batch in their
