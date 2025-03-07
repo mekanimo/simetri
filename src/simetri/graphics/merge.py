@@ -97,7 +97,7 @@ def _merge_collinears(
     """
 
 
-    def merge_bin(_bin:list, d_node_coord:dict, n_round:int=2):
+    def merge_bin(_bin:list, d_node_coord:dict, d_coord_node: dict, n_round:int=2):
         '''Merge collinear edges in a bin.
 
         Args:
@@ -108,9 +108,7 @@ def _merge_collinears(
         Returns:
             list: List of merged edges.
         '''
-        segs = [[d_node_id_coord[node] for node in x[i_edge]] for x in bin_]
-        # round coordinates
-        segs = [round_segment(seg, n_round) for seg in segs]
+        segs = [[d_node_coord[node] for node in x[i_edge]] for x in bin_]
         incl_angle = degrees(_bin[0][0])
         if 45 < incl_angle < 135:
             # sort by y coordinates
@@ -118,13 +116,6 @@ def _merge_collinears(
         else:
             # sort by x coordinates
             segs.sort(key=lambda x: x[0][0])
-
-        for k, v in d_node_coord.items():
-            d_node_coord[k] = tuple(round_point(v, n_round))
-
-        d_coord_node = {}
-        for k, v in d_node_coord.items():
-            d_coord_node[v] = k
 
         seg_ids = []
         for seg in segs:
@@ -152,7 +143,8 @@ def _merge_collinears(
 
         return res
 
-    d_node_id_coord = self.d_node_coord
+    d_node_coord = self.d_node_coord
+    d_coord_node = self.d_coord_node
     if len(edges) < 2:
         return edges
 
@@ -160,8 +152,8 @@ def _merge_collinears(
     i_angle, i_edge = 0, 1
     for edge in edges:
         edge = list(edge)
-        p1 = d_node_id_coord[edge[0]]
-        p2 = d_node_id_coord[edge[1]]
+        p1 = d_node_coord[edge[0]]
+        p2 = d_node_coord[edge[1]]
         angle = inclination_angle(p1, p2)
         angles_edges.append((angle, edge))
 
@@ -181,6 +173,6 @@ def _merge_collinears(
 
     res = []
     for bin_ in bins:
-        res.extend(merge_bin(bin_, d_node_id_coord, n_round=n_round))
+        res.extend(merge_bin(bin_, d_node_coord, d_coord_node, n_round=n_round))
 
     return res
