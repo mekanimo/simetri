@@ -910,7 +910,6 @@ class Canvas:
             return self
 
         run_job()
-        close_logger(defaults["logger"])
         remove_aux_files(file_path)
 
         self._show_browser(file_path=file_path, show_browser=show, multi_page_svg=False)
