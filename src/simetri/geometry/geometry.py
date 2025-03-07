@@ -2962,6 +2962,21 @@ def round_point(point: list[float], n_digits: int = 2) -> list[float]:
     y = round(y, n_digits)
     return (x, y)
 
+def round_segment(segment: Sequence[Point], n_digits: int=2):
+    '''Round a segment to a given precision.
+
+        Args:
+            segment (Sequence[Point]): Input segment.
+            n_digits (int, optional): Number of decimal places to round to. Defaults to 2.
+
+        Returns:
+            Sequence[Point]: Rounded segment.
+    '''
+    p1 = round_point(segment[0], n_digits)
+    p2 = round_point(segment[1], n_digits)
+
+    return ([p1, p2])
+
 
 def get_polygon_grid_point(n, line1, line2, circumradius=100):
     """See chapter ??? for explanation of this function.
