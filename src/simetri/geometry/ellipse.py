@@ -6,8 +6,12 @@ from scipy.special import ellipeinc
 import numpy as np
 
 from ..graphics.shape import Shape, custom_attributes
+from ..graphics.batch import Batch
+from ..graphics.affine import rotation_matrix
 from ..graphics.common import Point
 from ..graphics.all_enums import Types
+from ..geometry.geometry import line_angle
+from ..canvas.style_map import shape_style_map
 from ..settings.settings import defaults
 from .geometry import distance, positive_angle
 
@@ -23,7 +27,7 @@ class Arc(Shape):
         start_angle: float,
         span_angle: float,
         radius: float,
-        radius2: float,
+        radius2: float = None,
         n_points: int = None,
         rot_angle: float = 0,
         xform_matrix: ndarray = None,
@@ -37,13 +41,14 @@ class Arc(Shape):
             radius (float): The radius of the arc.
             radius2 (float): The second radius for elliptical arcs.
             n_points (int, optional): Number of points to generate. Defaults to None.
-            rot_angle (float, optional): Rotation angle. Defaults to 0.
+            rot_angle (float, optional): Rotation angle. Defaults to 0. If negative, the arc is drawn clockwise.
             xform_matrix (ndarray, optional): Transformation matrix. Defaults to None.
             **kwargs: Additional keyword arguments.
         """
         if n_points is None:
             n_points = defaults["n_arc_points"]
-
+        if radius2 is None:
+            radius2 = radius
         vertices = [tuple(p) for p in elliptic_arc_points(center, radius, radius2, start_angle,
                                                             span_angle, n_points)]
         super().__init__(vertices, subtype=Types.ARC, xform_matrix=xform_matrix, **kwargs)
@@ -56,20 +61,62 @@ class Arc(Shape):
         self.end_point = vertices[-1]
         self.rot_angle = rot_angle
 
-def arc2(start, start_angle, end_angle, radius1, radius2):
-    '''Return the vertices of an elliptic arc.
+    def _update(self, xform_matrix: np.array, reps: int = 0) -> Batch:
+        """Used internally. Update the shape with a transformation matrix.
 
-    Args:
-        start (tuple): Starting point of the arc.
-        start_angle (float): Starting angle of the arc.
-        end_angle (float): Ending angle of the arc.
-        radius1 (float): First radius of the arc.
-        radius2 (float): Second radius of the arc.
+        Args:
+            xform_matrix (array): The transformation matrix.
+            reps (int, optional): The number of repetitions, defaults to 0.
 
-    Returns:
-        list: Vertices of the elliptic arc.
-    '''
-    center = (0, 0)
+        Returns:
+            Batch: The updated shape or a batch of shapes.
+        """
+        if reps == 0:
+            center = list(self.center[:2]) + [1]
+            start = list(self.vertices[0][:2]) + [1]
+            end = list(self.vertices[-1][:2]) + [1]
+            points = [center, start, end]
+            center2, start2, end2 = np.dot(points, xform_matrix).tolist()
+            self.center = center2[:2]
+            self.start_point = start2[:2]
+            self.end_point = end2[:2]
+            self.start_angle = line_angle(center2, start2)
+            self.xform_matrix = self.xform_matrix @ xform_matrix
+            res = self
+        else:
+            shapes = [self]
+            shape = self
+            for _ in range(reps):
+                shape = shape.copy()
+                shape._update(xform_matrix)
+                shapes.append(shape)
+            res = Batch(shapes)
+        return res
+
+    def copy(self):
+        '''Return a copy of the arc.'''
+        center = self.center
+        start_angle = self.start_angle
+        span_angle = self.span_angle
+        radius = self.radius
+        radius2 = self.radius2
+        n_points = len(self.vertices)
+
+        arc = Arc(center, start_angle, span_angle, radius, radius2, n_points)
+        arc.start_point = self.start_point
+        arc.end_point = self.end_point
+        arc.rot_angle = self.rot_angle
+        for attrib in shape_style_map:
+            setattr(arc, attrib, getattr(self, attrib))
+        arc.subtype = self.subtype
+        custom_attribs = custom_attributes(self)
+        arc_attribs = ['start_point', 'center', 'rot_angle', 'start_angle',
+                       'span_angle', 'end_point', 'radius', 'radius2']
+        for attrib in custom_attribs:
+            if attrib not in arc_attribs:
+                setattr(arc, attrib, getattr(self, attrib))
+
+        return arc
 
 
 
