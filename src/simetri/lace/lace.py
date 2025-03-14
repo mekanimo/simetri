@@ -1014,15 +1014,11 @@ class Lace(Batch):
             ],
         )
         if polygon_shapes:
-            for shape in polygon_shapes:
-                shape[:] = [(round(x, 1), round(y, 1)) for x, y in shape]
             polygon_shapes = polygon_shapes.merge_shapes()
             self.polygon_shapes = self._check_polygons(polygon_shapes)
         else:
             self.polygon_shapes = []
         if polyline_shapes:
-            for shape in polyline_shapes:
-                shape[:] = [(round(x, 1), round(y, 1)) for x, y in shape]
             polyline_shapes = polyline_shapes.merge_shapes()
             self.polyline_shapes = self._check_polylines(polyline_shapes)
         else:
