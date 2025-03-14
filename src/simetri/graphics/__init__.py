@@ -70,6 +70,8 @@ import simetri.frieze as frieze
 from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system
+from ..extensions.animation import Animation, Prop
+from ..extensions.easing import *
 from .path import LinPath
 
 set_tikz_defaults()
