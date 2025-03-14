@@ -16,6 +16,7 @@ import re
 import numpy as np
 from numpy import isclose, array, around
 from scipy.special import ellipeinc
+from scipy.spatial.transform import Rotation as R
 
 from simetri.helpers.utilities import (
     flatten,
@@ -1392,6 +1393,7 @@ def homogenize(points: Sequence[Point]) -> np.ndarray:
 
     return homogeneous_array
 
+
 # def homogenize(points: Sequence[Point]) -> np.ndarray:
 #     """Points can be ((x1, y1), (x2, y2), ... (xn, yn))
 #     or numpy array of (x, y) or (x, y, 1) vectors.
@@ -1772,6 +1774,7 @@ def merge_segments(seg1: Sequence[Point], seg2: Sequence[Point]) -> Sequence[Poi
         res = None  # need this to avoid returning an empty dict
 
     return res
+
 
 def invert(p, center, radius):
     """Inverts p about a circle at the given center and radius
@@ -2962,20 +2965,21 @@ def round_point(point: list[float], n_digits: int = 2) -> list[float]:
     y = round(y, n_digits)
     return (x, y)
 
-def round_segment(segment: Sequence[Point], n_digits: int=2):
-    '''Round a segment to a given precision.
 
-        Args:
-            segment (Sequence[Point]): Input segment.
-            n_digits (int, optional): Number of decimal places to round to. Defaults to 2.
+def round_segment(segment: Sequence[Point], n_digits: int = 2):
+    """Round a segment to a given precision.
 
-        Returns:
-            Sequence[Point]: Rounded segment.
-    '''
+    Args:
+        segment (Sequence[Point]): Input segment.
+        n_digits (int, optional): Number of decimal places to round to. Defaults to 2.
+
+    Returns:
+        Sequence[Point]: Rounded segment.
+    """
     p1 = round_point(segment[0], n_digits)
     p2 = round_point(segment[1], n_digits)
 
-    return ([p1, p2])
+    return [p1, p2]
 
 
 def get_polygon_grid_point(n, line1, line2, circumradius=100):
@@ -3540,7 +3544,6 @@ def ellipse_tangent(a, b, x, y, tol=0.001):
     Returns:
         float: Slope of the tangent line, or False if the point is not on the ellipse.
     """
-    print((x**2 / a**2) + (y**2 / b**2))
     if abs((x**2 / a**2) + (y**2 / b**2) - 1) > tol:
         res = False
     else:
@@ -3607,19 +3610,19 @@ def parametric_to_central_angle(a, b, t):
     return phi
 
 
-def ellipse_points(center, a, b, num_points):
+def ellipse_points(center, a, b, n_points):
     """Generate points on an ellipse.
 
     Args:
         center (tuple): (x, y) coordinates of the ellipse center.
         a (float): Length of the semi-major axis.
         b (float): Length of the semi-minor axis.
-        num_points (int): Number of points to generate.
+        n_points (int): Number of points to generate.
 
     Returns:
         np.ndarray: Array of (x, y) coordinates of the ellipse points.
     """
-    t = np.linspace(0, 2 * np.pi, num_points)
+    t = np.linspace(0, 2 * np.pi, n_points)
     x = center[0] + a * np.cos(t)
     y = center[1] + b * np.sin(t)
 
@@ -3653,6 +3656,7 @@ def circle_line_intersection(c, p1, p2):
     Returns:
         tuple: Intersection points of the circle and the line segment.
     """
+
     # adapted from http://mathworld.wolfram.com/Circle-LineIntersection.html
     # c is the circle and p1 and p2 are the line points
     def sgn(num):
@@ -4015,3 +4019,51 @@ class Edge:
     def array(self):
         """Homogeneous coordinates as a numpy array."""
         return array([self.start.array, self.end.array])
+
+
+def rotate_point_3D(point: Point, line: Line, angle: float) -> Point:
+    """Rotate a 2d point (out of paper) about a 2d line by the given angle.
+    This is used for animating mirror reflections.
+     Args:
+         point (Point): Point to rotate.
+         line (Line): Line to rotate about.
+         angle (float): Angle of rotation in radians.
+
+     Returns:
+         Point: Rotated point.
+    """
+    from ..graphics.affine import rotation_matrix, translation_matrix
+
+    p1, p2 = line
+    line_angle_ = line_angle(p1, p2)
+    translation = translation_matrix(-p1[0], -p1[1])
+    rotation = rotation_matrix(-line_angle_, (0, 0))
+    xform = translation @ rotation
+    x, y = point
+    x, y, _ = [x, y, 1] @ xform
+
+    y *= cos(angle)
+
+    inv_translation = translation_matrix(p1[0], p1[1])
+    inv_rotation = rotation_matrix(line_angle_, (0, 0))
+    inv_xform = inv_rotation @ inv_translation
+    x, y, _ = [x, y, 1] @ inv_xform
+
+    return (x, y)
+
+
+def rotate_line_3D(line: Line, about: Line, angle: float) -> Line:
+    """Rotate a 3d line about a 3d line by the given angle
+
+    Args:
+        line (Line): Line to rotate.
+        about (Line): Line to rotate about.
+        angle (float): Angle of rotation in radians.
+
+    Returns:
+        Line: Rotated line.
+    """
+    p1 = rotate_point_3D(line[0], about, angle)
+    p2 = rotate_point_3D(line[1], about, angle)
+
+    return [p1, p2]
