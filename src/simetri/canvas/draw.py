@@ -34,6 +34,7 @@ from ..graphics.shape import Shape
 from ..graphics.common import Point
 from ..geometry.bezier import bezier_points
 from ..graphics.affine import rotation_matrix
+from ..helpers.utilities import decompose_transformations
 
 
 Color = colors.Color
@@ -100,14 +101,8 @@ def arc(
     self._all_vertices.extend([start_point, end_point, center])
 
     sketch = ArcSketch(
-        center=(cx, cy),
-        start_angle=start_angle,
-        end_angle=end_angle,
-        radius=radius,
-        radius2=radius2,
-        rot_angle=rot_angle,
-        start_point=start_point,
-        xform_matrix=self.xform_matrix,
+        vertices=self.vertices,
+        xform_matrix=self.xform_matrix
     )
     for attrib_name in shape_style_map:
         if hasattr(sketch, attrib_name):
@@ -830,14 +825,8 @@ def create_sketch(item, canvas, **kwargs):
             ArcSketch: Created ArcSketch.
         """
         sketch = ArcSketch(
-            center=item.center,
-            start_angle=item.start_angle,
-            end_angle=item.end_angle,
-            radius=item.radius,
-            radius2=item.radius2,
-            rot_angle=item.rot_angle,
-            start_point=item.start_point,
-            xform_matrix=canvas.xform_matrix,
+            item.vertices,
+            xform_matrix=canvas.xform_matrix
         )
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
