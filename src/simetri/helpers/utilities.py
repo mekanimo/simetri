@@ -222,10 +222,10 @@ def find_nearest_value(values: array, value: float) -> float:
     Returns:
         The closest value in the array to the given number.
     """
-    array = np.asarray(values)
-    idx = (np.abs(array - value)).argmin()
+    arr = np.asarray(values)
+    idx = (np.abs(arr - value)).argmin()
 
-    return array[idx]
+    return arr[idx]
 
 
 def nested_count(nested_sequence):
