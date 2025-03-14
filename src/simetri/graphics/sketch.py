@@ -180,49 +180,28 @@ class ArcSketch:
     """ArcSketch is a dataclass for creating an arc sketch object.
 
     Attributes:
-        center (tuple): The center of the arc.
-        start_angle (float): The start angle of the arc.
-        end_angle (float): The end angle of the arc.
-        radius (float): The radius of the arc.
-        radius2 (float, optional): The secondary radius of the arc. Defaults to None.
-        rot_angle (float, optional): The rotation angle of the arc. Defaults to 0.
-        start_point (tuple, optional): The start point of the arc. Defaults to None.
+        vertices (list, optional): The vertices of the shape. Defaults to None.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
         mode (CurveMode, optional): The mode of the curve. Defaults to CurveMode.OPEN.
     """
 
-    center: tuple
-    start_angle: float
-    end_angle: float
-    radius: float
-    radius2: float = None
-    rot_angle: float = 0
-    start_point: tuple = None
+    vertices: list = None
     xform_matrix: ndarray = None
-
     mode: CurveMode = CurveMode.OPEN
 
     def __post_init__(self):
         """Initialize the ArcSketch object."""
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+            vertices = self.vertices
+        else:
+            vertices = homogenize(self.vertices)
+            vertices = vertices @ self.xform_matrix
+        self.vertices = [tuple(x) for x in vertices[:, :2]]
+
         self.type = Types.SKETCH
         self.subtype = Types.ARC_SKETCH
 
-        if self.xform_matrix is None:
-            self.xform_matrix = identity_matrix()
-            center = self.center
-            scale = 1
-        else:
-            center = homogenize([self.center])
-            center = (center @ self.xform_matrix).tolist()[0][:2]
-            _, _, scale = decompose_transformations(self.xform_matrix)
-
-            scale = scale[0]
-        n = defaults["tikz_nround"]
-        self.radius *= round(scale, n)
-        if self.radius2 is not None:
-            self.radius2 *= round(scale, n)
-        self.start_point = round(self.start_point[0], n), round(self.start_point[1], n)
-        self.closed = False
 
 
 @dataclass
