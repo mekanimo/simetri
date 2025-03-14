@@ -92,7 +92,7 @@ class HobbyCurve:
         is_cyclic (bool): Whether the curve is closed.
         begin_curl (float): Curl value for the beginning of the curve.
         end_curl (float): Curl value for the end of the curve.
-        num_points (int): Number of points in the curve.
+        n_points (int): Number of points in the curve.
         debug_mode (bool): Whether to print debug information.
     """
 
@@ -125,7 +125,7 @@ class HobbyCurve:
         self.is_cyclic = cyclic
         self.begin_curl = begin_curl
         self.end_curl = end_curl
-        self.num_points = len(points)
+        self.n_points = len(points)
         self.debug_mode = debug
 
     def get_ctrl_points(self) -> list[tuple]:
@@ -149,11 +149,11 @@ class HobbyCurve:
         """Calculate the pairwise distances between consecutive points in the curve."""
         # Skip last point if path is non-cyclic
         point_inds = (
-            range(self.num_points) if self.is_cyclic else range(self.num_points - 1)
+            range(self.n_points) if self.is_cyclic else range(self.n_points - 1)
         )
         for i in point_inds:
-            z_i = self.points[i % self.num_points]
-            z_j = self.points[(i + 1) % self.num_points]
+            z_i = self.points[i % self.n_points]
+            z_j = self.points[(i + 1) % self.n_points]
             z_i.d_val = abs(z_i - z_j)
 
     def calculate_psi_vals(self) -> None:
@@ -164,12 +164,12 @@ class HobbyCurve:
         """
         # Skip first and last point if path is non-cyclic
         point_inds = (
-            range(self.num_points) if self.is_cyclic else range(1, self.num_points - 1)
+            range(self.n_points) if self.is_cyclic else range(1, self.n_points - 1)
         )
         for i in point_inds:
             z_h = self.points[i - 1]
             z_i = self.points[i]
-            z_j = self.points[(i + 1) % self.num_points]
+            z_j = self.points[(i + 1) % self.n_points]
             try:
                 polygonal_turn = (z_j - z_i) / (z_i - z_h)
                 # print(z_j - z_i, z_i - z_h)
@@ -186,22 +186,22 @@ class HobbyCurve:
         to find the optimal angles for smooth splines.
         """
         A = np.zeros(
-            self.num_points
+            self.n_points
         )  # Inappropriate names, but they mirror Knuth's notation.
-        B = np.zeros(self.num_points)
-        C = np.zeros(self.num_points)
-        D = np.zeros(self.num_points)
-        R = np.zeros(self.num_points)
+        B = np.zeros(self.n_points)
+        C = np.zeros(self.n_points)
+        D = np.zeros(self.n_points)
+        R = np.zeros(self.n_points)
 
         # Calculate the entries of the five vectors.
         # Skip first and last point if path is non-cyclic.
         point_ind = (
-            range(self.num_points) if self.is_cyclic else range(1, self.num_points - 1)
+            range(self.n_points) if self.is_cyclic else range(1, self.n_points - 1)
         )
         for i in point_ind:
             z_h = self.points[i - 1]
             z_i = self.points[i]
-            z_j = self.points[(i + 1) % self.num_points]
+            z_j = self.points[(i + 1) % self.n_points]
 
             A[i] = z_h.alpha / (z_i.beta**2 * z_h.d_val)
             B[i] = (3 - z_h.alpha) / (z_i.beta**2 * z_h.d_val)
@@ -210,12 +210,12 @@ class HobbyCurve:
             R[i] = -B[i] * z_i.psi - D[i] * z_j.psi
 
         # Set up matrix M such that the soln. Mx = R are the theta values.
-        M = np.zeros((self.num_points, self.num_points))
-        for i in range(self.num_points):
+        M = np.zeros((self.n_points, self.n_points))
+        for i in range(self.n_points):
             # Fill i-th row of M
             M[i][i - 1] = A[i]
             M[i][i] = B[i] + C[i]
-            M[i][(i + 1) % self.num_points] = D[i]
+            M[i][(i + 1) % self.n_points] = D[i]
 
         # Special formulas for first and last rows of M with non-cyclic paths.
         if not self.is_cyclic:
@@ -254,11 +254,11 @@ class HobbyCurve:
         ctrl_pts = []
         # Skip last point if path is non-cyclic
         point_inds = (
-            range(self.num_points) if self.is_cyclic else range(self.num_points - 1)
+            range(self.n_points) if self.is_cyclic else range(self.n_points - 1)
         )
         for i in point_inds:
             z_i = self.points[i]
-            z_j = self.points[(i + 1) % self.num_points]
+            z_j = self.points[(i + 1) % self.n_points]
             rho_coefficient = z_i.alpha * velocity(z_i.theta, z_j.phi)
             sigma_coefficient = z_j.beta * velocity(z_j.phi, z_i.theta)
             ctrl_pt_a = z_i + (1 / 3) * rho_coefficient * cmath.exp(
