@@ -33,7 +33,7 @@ from ..graphics.all_enums import (
 )
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..settings.settings import defaults, tikz_defaults
-from ..geometry.geometry import homogenize, close_points2
+from ..geometry.geometry import homogenize, close_points2, round_point
 from ..geometry.ellipse import ellipse_point
 from ..graphics.sketch import TagSketch, ShapeSketch
 from ..graphics.shape import Shape
@@ -800,8 +800,8 @@ def draw_tag_sketch(sketch, canvas):
 
         return res
 
-    pos = homogenize([sketch.pos]) @ canvas.xform_matrix
-    x, y = pos[0][:2]
+
+    x, y = sketch.pos[:2]
 
     options = ""
     if sketch.draw_frame:
@@ -962,6 +962,9 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
                 if attrib in skip:
                     value = color2tikz(getattr(sketch, attrib))
                     options.append(f"{tikz_attrib}={value}")
+                if attrib in ['smooth']: # smooth is a boolean
+                    if value:
+                        options.append("smooth")
                 elif value != tikz_defaults[tikz_attrib]:
                     if attrib in d_converters:
                         value = d_converters[attrib](value)
@@ -1573,27 +1576,46 @@ def draw_arc_sketch(sketch):
     Returns:
         str: The TikZ code for the arc sketch.
     """
-    begin_scope = get_begin_scope()
     res = get_draw(sketch)
-    options = get_line_style_options(sketch)
-    options = ", ".join(options)
-    angle = degrees(sketch.rot_angle)
-    cx, cy = sketch.center[:2]
-    x, y = sketch.start_point[:2]
-    if angle:
-        options += [f"rotate around= {{{angle}:({cx},{cy})}}"]
-    a1 = degrees(sketch.start_angle)
-    a2 = degrees(sketch.end_angle)
-    r1 = sketch.radius
-    r2 = sketch.radius2
-    if sketch.radius != sketch.radius2:
-        res += f"[{options}]({x}, {y}) arc [start angle = {a1}, end angle = {a2}, x radius = {r1}, y radius =  {r2}];\n"
+    if not res:
+        return ""
+    if sketch.closed:
+        options = ["smooth cycle"]
     else:
-        res += f"[{options}]({x}, {y}) arc [start angle = {a1}, end angle = {a2}, radius = {r1}];\n"
-    end_scope = get_end_scope()
+        options = ['smooth']
 
-    return begin_scope + res + end_scope
+    if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
+        options += get_pattern_options(sketch)
+    if sketch.stroke:
+        options += get_line_style_options(sketch)
+    if sketch.closed and sketch.fill:
+        options += get_fill_style_options(sketch)
 
+    if sketch.back_style == BackStyle.SHADING and sketch.fill and sketch.closed:
+        options += get_shading_options(sketch)
+    options = ", ".join(options)
+    if options:
+        res += f"[{options}] plot[tension=.8] coordinates" + "{"
+    vertices = [round_point(v) for v in sketch.vertices]
+    n = len(vertices)
+    str_lines = [f"{vertices[0]}"]
+    for i, vertice in enumerate(vertices[1:]):
+        if (i + 1) % 8 == 0:
+            if i == n - 1:
+                str_lines.append(f" {vertice} \n")
+            else:
+                str_lines.append(f"\n\t {vertice} ")
+        else:
+            str_lines.append(f" {vertice} ")
+    if sketch.closed:
+        str_lines.append(" cycle;\n")
+    else:
+        str_lines.append("};\n")
+    if res:
+        res += "".join(str_lines)
+    else:
+        res = "".join(str_lines)
+    return res
 
 def draw_bezier_sketch(sketch):
     """Draws a Bezier curve sketch.
