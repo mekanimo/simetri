@@ -219,6 +219,8 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
+        pos = [pos[0], pos[1], 1]
+        pos = pos @ self._xform_matrix
         draw.text(
             self,
             txt=text,
