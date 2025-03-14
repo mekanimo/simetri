@@ -220,6 +220,16 @@ class Conway(StrEnum):
     STEP = "STEP"
 
 
+class Depend(StrEnum):
+    """Depend is used to set the dependency of the shapes.
+    This is used when shapes are copied or transformed.
+    """
+
+    FALSE = "FALSE" # Independent
+    TRUE = "TRUE" # Both geometry and style are dependent
+    GEOM = "GEOM" # Only geometry is dependent
+    STYLE = "STYLE" # Only style is dependent
+
 # Document classes for the output files
 # These come from LaTeX
 # Canvas uses these classes to generate output files
