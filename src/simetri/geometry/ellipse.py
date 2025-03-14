@@ -1,19 +1,20 @@
 '''Functions for working with ellipses.'''
-
-from math import cos, sin, pi, atan2, sqrt, degrees
+from copy import deepcopy
+from math import cos, sin, pi, atan2, sqrt, degrees, ceil
 
 from scipy.special import ellipeinc
 import numpy as np
 
 from ..graphics.shape import Shape, custom_attributes
 from ..graphics.batch import Batch
+from ..graphics.points import Points
 from ..graphics.affine import rotation_matrix
 from ..graphics.common import Point
 from ..graphics.all_enums import Types
-from ..geometry.geometry import line_angle
+from ..geometry.geometry import line_angle, distance, positive_angle, homogenize
 from ..canvas.style_map import shape_style_map
 from ..settings.settings import defaults
-from .geometry import distance, positive_angle
+from ..helpers.utilities  import decompose_transformations
 
 
 ndarray = np.ndarray
@@ -28,8 +29,8 @@ class Arc(Shape):
         span_angle: float,
         radius: float,
         radius2: float = None,
-        n_points: int = None,
         rot_angle: float = 0,
+        n_points: int = None,
         xform_matrix: ndarray = None,
         **kwargs,
     ):
@@ -40,58 +41,106 @@ class Arc(Shape):
             span_angle (float): The span angle of the arc.
             radius (float): The radius of the arc.
             radius2 (float): The second radius for elliptical arcs.
-            n_points (int, optional): Number of points to generate. Defaults to None.
             rot_angle (float, optional): Rotation angle. Defaults to 0. If negative, the arc is drawn clockwise.
             xform_matrix (ndarray, optional): Transformation matrix. Defaults to None.
             **kwargs: Additional keyword arguments.
         """
-        if n_points is None:
-            n_points = defaults["n_arc_points"]
         if radius2 is None:
             radius2 = radius
-        vertices = [tuple(p) for p in elliptic_arc_points(center, radius, radius2, start_angle,
-                                                            span_angle, n_points)]
-        super().__init__(vertices, subtype=Types.ARC, xform_matrix=xform_matrix, **kwargs)
-        self.center = center
-        self.radius = radius
-        self.radius2 = radius2
-        self.start_angle = start_angle
-        self.span_angle = span_angle
-        self.start_point = vertices[0]
-        self.end_point = vertices[-1]
-        self.rot_angle = rot_angle
+        if n_points is None:
+            n = defaults['n_arc_points']
+            n_points = ceil(n * abs(span_angle) / (2 * pi))
 
-    def _update(self, xform_matrix: np.array, reps: int = 0) -> Batch:
-        """Used internally. Update the shape with a transformation matrix.
+        vertices = elliptic_arc_points(center, radius, radius2, start_angle, span_angle, n_points=n_points)
+        if rot_angle:
+            rot_matrix = rotation_matrix(rot_angle, center)
+            if xform_matrix is not None:
+                xform_matrix = np.dot(rot_matrix, xform_matrix)
+            else:
+                xform_matrix = rot_matrix
+
+        super().__init__(vertices, xform_matrix=xform_matrix,  **kwargs)
+        self.subtype = Types.ARC
+        self.n_points = n_points
+        self.__dict__['start_angle'] = start_angle
+        self.__dict__['span_angle'] = span_angle
+        cx, cy = center[:2]
+        self._c = [cx, cy, 1]
+        _a = [radius, 0, 1]
+        _b = [0, radius2, 1]
+        self._orig_triangle = [self._c[:], _a, _b]
+
+
+    def __setattr__(self, name, value):
+        """Set an attribute of the arc.
 
         Args:
-            xform_matrix (array): The transformation matrix.
-            reps (int, optional): The number of repetitions, defaults to 0.
+            name (str): The name of the attribute.
+            value (Any): The value of the attribute.
+        """
+        if name == "center":
+            diff = np.array(value[:2]) - np.array(self.center[:2])
+            self.translate(diff[0], diff[1], reps=0)
+        elif name == "radius":
+            c, a, _ = self._orig_triangle @ self.xform_matrix
+            cur_radius = distance(c, a)
+            ratio = value / cur_radius
+            self.scale(ratio, 1, about=self.center)
+        elif name == "radius2":
+            c, _, b = self._orig_triangle @ self.xform_matrix
+            cur_radius = distance(c, b)
+            ratio = value / cur_radius
+            self.scale(1, ratio, about=self.center)
+        elif name == "start_angle":
+            center, a, b = self._orig_triangle @ self.xform_matrix
+            a = distance(center, a)
+            b = distance(center, b)
+            span = self.span_angle
+            n_points = self.n_points
+            points = elliptic_arc_points(center, a, b, value, span, n_points)
+            self.primary_points = Points(points)
+            self.__dict__['start_angle'] = value
+        elif name == "span_angle":
+            center, a, b = self._orig_triangle @ self.xform_matrix
+            a = distance(center, a)
+            b = distance(center, b)
+            start = self.start_angle
+            n_points = self.n_points
+            points = elliptic_arc_points(center, a, b, start, value, n_points)
+            self.primary_points = Points(points)
+            self.__dict__['span_angle'] = value
+        else:
+            super().__setattr__(name, value)
+
+
+    @property
+    def center(self):
+        """Return the center of the arc.
 
         Returns:
-            Batch: The updated shape or a batch of shapes.
+            Point: The center of the arc.
         """
-        if reps == 0:
-            center = list(self.center[:2]) + [1]
-            start = list(self.vertices[0][:2]) + [1]
-            end = list(self.vertices[-1][:2]) + [1]
-            points = [center, start, end]
-            center2, start2, end2 = np.dot(points, xform_matrix).tolist()
-            self.center = center2[:2]
-            self.start_point = start2[:2]
-            self.end_point = end2[:2]
-            self.start_angle = line_angle(center2, start2)
-            self.xform_matrix = self.xform_matrix @ xform_matrix
-            res = self
-        else:
-            shapes = [self]
-            shape = self
-            for _ in range(reps):
-                shape = shape.copy()
-                shape._update(xform_matrix)
-                shapes.append(shape)
-            res = Batch(shapes)
-        return res
+        return (self._c @ self.xform_matrix).tolist()[:2]
+
+    @property
+    def radius(self):
+        """Return the radius of the arc.
+
+        Returns:
+            float: The radius of the arc.
+        """
+        c, a, _ = self._orig_triangle @ self.xform_matrix
+        return distance(a, c)
+
+    @property
+    def radius2(self):
+        """Return the second radius of the arc.
+
+        Returns:
+            float: The second radius of the arc.
+        """
+        c, _, b = self._orig_triangle @ self.xform_matrix
+        return distance(b, c)
 
     def copy(self):
         '''Return a copy of the arc.'''
@@ -100,24 +149,25 @@ class Arc(Shape):
         span_angle = self.span_angle
         radius = self.radius
         radius2 = self.radius2
-        n_points = len(self.vertices)
 
-        arc = Arc(center, start_angle, span_angle, radius, radius2, n_points)
-        arc.start_point = self.start_point
-        arc.end_point = self.end_point
-        arc.rot_angle = self.rot_angle
+
+        arc = Arc(center, start_angle, span_angle, radius, radius2, rot_angle=0)
+        arc.primary_points = self.primary_points.copy()
+        arc.xform_matrix = self.xform_matrix.copy()
+        arc._orig_triangle = deepcopy(self._orig_triangle)
+        arc._c = self._c[:]
+        arc.n_points = self.n_points
+
         for attrib in shape_style_map:
             setattr(arc, attrib, getattr(self, attrib))
         arc.subtype = self.subtype
         custom_attribs = custom_attributes(self)
-        arc_attribs = ['start_point', 'center', 'rot_angle', 'start_angle',
-                       'span_angle', 'end_point', 'radius', 'radius2']
+        arc_attribs = ['center', 'start_angle', 'span_angle', 'radius', 'radius2']
         for attrib in custom_attribs:
             if attrib not in arc_attribs:
                 setattr(arc, attrib, getattr(self, attrib))
 
         return arc
-
 
 
 class Ellipse(Shape):
@@ -162,6 +212,30 @@ class Ellipse(Shape):
     def closed(self, value: bool):
         pass
 
+    def _update(self, xform_matrix: np.array, reps: int = 0) -> Batch:
+        """Used internally. Update the shape with a transformation matrix.
+
+        Args:
+            xform_matrix (array): The transformation matrix.
+            reps (int, optional): The number of repetitions, defaults to 0.
+
+        Returns:
+            Batch: The updated shape or a batch of shapes.
+        """
+        if reps == 0:
+            center = list(self.center[:2]) + [1]
+            start = list(self.vertices[0][:2]) + [1]
+            end = list(self.vertices[-1][:2]) + [1]
+            points = [center, start, end]
+            center2, start2, end2 = np.dot(points, xform_matrix).tolist()
+            self.center = center2[:2]
+            self.start_point = start2[:2]
+            self.end_point = end2[:2]
+            self.start_angle = line_angle(center2, start2)
+
+        return super()._update(xform_matrix, reps)
+
+
     def copy(self):
         """Return a copy of the ellipse.
 
@@ -172,7 +246,6 @@ class Ellipse(Shape):
         width = self.width
         height = self.height
         ellipse = Ellipse(center, width, height)
-        # ellipse.style = self.style.copy()
         custom_attribs = custom_attributes(self)
         for attrib in custom_attribs:
             setattr(ellipse, attrib, getattr(self, attrib))
@@ -239,7 +312,7 @@ def ellipse_line_intersection(a, b, point):
     return [(x, y), (-x, -y)]
 
 
-def elliptic_arc_points(center, rx, ry, start_angle, span_angle, num_points):
+def elliptic_arc_points(center, rx, ry, start_angle, span_angle, n_points):
     """Generate points on an elliptic arc.
     These are generated from the parametric equations of the ellipse.
     They are not evenly spaced.
@@ -250,7 +323,7 @@ def elliptic_arc_points(center, rx, ry, start_angle, span_angle, num_points):
         ry (float): Length of the semi-minor axis.
         start_angle (float): Starting angle of the arc.
         span_angle (float): Span angle of the arc.
-        num_points (int): Number of points to generate.
+        n_points (int): Number of points to generate.
 
     Returns:
         numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
@@ -262,13 +335,13 @@ def elliptic_arc_points(center, rx, ry, start_angle, span_angle, num_points):
             end_angle = positive_angle(start_angle + span_angle)
             t0 = get_ellipse_t_for_angle(end_angle, rx, ry)
             t1 = get_ellipse_t_for_angle(2*pi, rx, ry)
-            t = np.linspace(t0, t1, num_points)
+            t = np.linspace(t0, t1, n_points)
             x = center[0] + rx * np.cos(t)
             y = center[1] + ry * np.sin(t)
             slice1 = np.column_stack((x, y))
             t0 = get_ellipse_t_for_angle(0, rx, ry)
             t1 = get_ellipse_t_for_angle(start_angle, rx, ry)
-            t = np.linspace(t0, t1, num_points)
+            t = np.linspace(t0, t1, n_points)
             x = center[0] + rx * np.cos(t)
             y = center[1] + ry * np.sin(t)
             slice2 = np.column_stack((x, y))
@@ -277,7 +350,7 @@ def elliptic_arc_points(center, rx, ry, start_angle, span_angle, num_points):
             end_angle = start_angle + span_angle
             t0 = get_ellipse_t_for_angle(end_angle, rx, ry)
             t1 = get_ellipse_t_for_angle(start_angle, rx, ry)
-            t = np.linspace(t0, t1, num_points)
+            t = np.linspace(t0, t1, n_points)
             x = center[0] + rx * np.cos(t)
             y = center[1] + ry * np.sin(t)
             res = np.flip(np.column_stack((x, y)), axis=0)
@@ -286,14 +359,14 @@ def elliptic_arc_points(center, rx, ry, start_angle, span_angle, num_points):
         if start_angle + span_angle > 2*pi:
             t0 = get_ellipse_t_for_angle(start_angle, rx, ry)
             t1 = get_ellipse_t_for_angle(2*pi, rx, ry)
-            t = np.linspace(t0, t1, num_points)
+            t = np.linspace(t0, t1, n_points)
             x = center[0] + rx * np.cos(t)
             y = center[1] + ry * np.sin(t)
             slice1 = np.column_stack((x, y))
 
             t0 = get_ellipse_t_for_angle(0, rx, ry)
             t1 = get_ellipse_t_for_angle(start_angle + span_angle - 2*pi, rx, ry)
-            t = np.linspace(t0, t1, num_points)
+            t = np.linspace(t0, t1, n_points)
             x = center[0] + rx * np.cos(t)
             y = center[1] + ry * np.sin(t)
             slice2 = np.column_stack((x, y))
@@ -303,7 +376,7 @@ def elliptic_arc_points(center, rx, ry, start_angle, span_angle, num_points):
             end_angle = start_angle + span_angle
             t0 = get_ellipse_t_for_angle(start_angle, rx, ry)
             t1 = get_ellipse_t_for_angle(end_angle, rx, ry)
-            t = np.linspace(t0, t1, num_points)
+            t = np.linspace(t0, t1, n_points)
             x = center[0] + rx * np.cos(t)
             y = center[1] + ry * np.sin(t)
             res = np.column_stack((x, y))
@@ -311,7 +384,7 @@ def elliptic_arc_points(center, rx, ry, start_angle, span_angle, num_points):
     return res
 
 
-def ellipse_points(center, a, b, num_points):
+def ellipse_points(center, a, b, n_points):
     """Generate points on an ellipse.
     These are generated from the parametric equations of the ellipse.
     They are not evenly spaced.
@@ -320,12 +393,12 @@ def ellipse_points(center, a, b, num_points):
         center (tuple): (x, y) coordinates of the ellipse center.
         a (float): Length of the semi-major axis.
         b (float): Length of the semi-minor axis.
-        num_points (int): Number of points to generate.
+        n_points (int): Number of points to generate.
 
     Returns:
         numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
     """
-    t = np.linspace(0, 2 * pi, num_points)
+    t = np.linspace(0, 2 * pi, n_points)
     x = center[0] + a * np.cos(t)
     y = center[1] + b * np.sin(t)
 
