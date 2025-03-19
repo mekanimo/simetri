@@ -106,14 +106,13 @@ def check_dash_array(dash_array: Any) -> bool:
     Returns:
         bool: True if the dash array is valid, False otherwise.
     """
-    if dash_array in LineDashArray:
+    if isinstance(dash_array, (list, tuple, ndarray)):
+            res = all([isinstance(x, (int, float)) for x in dash_array])
+    elif dash_array in LineDashArray:
         res = True
     elif dash_array is None:
         res = True
-    else:
-        res = isinstance(dash_array, (list, tuple, ndarray)) and all(
-            isinstance(x, (int, float)) for x in dash_array
-        )
+
 
     return res
 
