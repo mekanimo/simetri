@@ -310,6 +310,9 @@ class Circle(Shape):
         circle._set_aliases()
 
         custom_attribs = custom_attributes(self)
+        custom_attribs.remove("center")
+        custom_attribs.remove("_radius")
+        custom_attribs.remove("radius")
         for attrib in custom_attribs:
             setattr(circle, attrib, getattr(self, attrib))
 
