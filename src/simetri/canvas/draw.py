@@ -898,16 +898,28 @@ def create_sketch(item, canvas, **kwargs):
                 vertices.extend(obj_vertices)
 
         path_op = PathOperation
-        linears = [path_op.LINE_TO, path_op.QUAD_TO, path_op.CUBIC_TO, path_op.VLINE,
-                   path_op.HLINE, path_op.ARC_TO, path_op.FORWARD, path_op.ARC,
-                   path_op.RLINE, path_op.BLEND_ARC]
+        linears = [path_op.ARC,
+                    path_op.ARC_TO,
+                    path_op.BLEND_ARC,
+                    path_op.BLEND_CUBIC,
+                    path_op.BLEND_QUAD,
+                    path_op.BLEND_SINE,
+                    path_op.CUBIC_TO,
+                    path_op.FORWARD,
+                    path_op.H_LINE,
+                    path_op.HOBBY_TO,
+                    path_op.QUAD_TO,
+                    path_op.R_LINE,
+                    path_op.SINE,
+                    path_op.V_LINE,
+                    path_op.LINE_TO]
         sketches = []
         vertices = []
         for i, op in enumerate(item.operations):
             if op.subtype in linears:
                 obj = item.objects[i]
                 extend_verts(obj, vertices)
-            elif op.subtype == path_op.MOVE_TO:
+            elif op.subtype in [path_op.MOVE_TO, path_op.R_MOVE]:
                 if i == 0:
                     continue
                 shape = Shape(vertices)
