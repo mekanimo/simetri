@@ -651,7 +651,38 @@ class TagStyle:
         return f"TagStyle: {self.id}"
 
 
-frame_style_map = {}
+# frame_style_map = {}
+
+frame_style_map = {
+    'alpha': ('frame_style', 'alpha'),
+    'back_style': ('frame_style.fill_style', 'back_style'),
+    'double_distance': ('frame_style.line_style', 'double_distance'),
+    'double_lines': ('frame_style.line_style', 'double_lines'),
+    'draw_fillets': ('frame_style.line_style', 'draw_fillets'),
+    'draw_markers': ('frame_style.line_style', 'draw_markers'),
+    'fill': ('frame_style.fill_style', 'fill'),
+    'fill_alpha': ('frame_style.fill_style', 'alpha'),
+    'fill_color': ('frame_style.fill_style', 'color'),
+    'fill_mode': ('frame_style.fill_style', 'mode'),
+    'fillet_radius': ('frame_style.line_style', 'fillet_radius'),
+    'inner_sep': ('frame_style', 'inner_sep'),
+    'line_alpha': ('frame_style.line_style', 'alpha'),
+    'line_cap': ('frame_style.line_style', 'cap'),
+    'line_color': ('frame_style.line_style', 'color'),
+    'line_dash_array': ('frame_style.line_style', 'dash_array'),
+    'line_dash_phase': ('frame_style.line_style', 'dash_phase'),
+    'line_join': ('frame_style.line_style', 'join'),
+    'line_miter_limit': ('frame_style.line_style', 'miter_limit'),
+    'line_width': ('frame_style.line_style', 'width'),
+    'markers_only': ('frame_style.line_style', 'markers_only'),
+    'min_height': ('frame_style', 'min_height'),
+    'min_size': ('frame_style', 'min_size'),
+    'min_width': ('frame_style', 'min_width'),
+    'outer_sep': ('frame_style', 'outer_sep'),
+    'shape': ('frame_style', 'shape'),
+    'smooth': ('frame_style.line_style', 'smooth'),
+    'stroke': ('frame_style.line_style', 'stroke'),
+}
 
 
 def _set_frame_style_alias_map(debug=False):
@@ -682,8 +713,35 @@ def _set_frame_style_alias_map(debug=False):
     return frame_style_map
 
 
-marker_style_map = {}
+# marker_style_map = {}
 
+marker_style_map = {
+    'back_style': ('marker_style.fill_style', 'back_style'),
+    'double_distance': ('marker_style.line_style', 'double_distance'),
+    'double_lines': ('marker_style.line_style', 'double_lines'),
+    'draw_fillets': ('marker_style.line_style', 'draw_fillets'),
+    'draw_markers': ('marker_style.line_style', 'draw_markers'),
+    'fill': ('marker_style.fill_style', 'fill'),
+    'fill_alpha': ('marker_style.fill_style', 'alpha'),
+    'fill_color': ('marker_style.fill_style', 'color'),
+    'fill_mode': ('marker_style.fill_style', 'mode'),
+    'fillet_radius': ('marker_style.line_style', 'fillet_radius'),
+    'line_alpha': ('marker_style.line_style', 'alpha'),
+    'line_cap': ('marker_style.line_style', 'cap'),
+    'line_color': ('marker_style.line_style', 'color'),
+    'line_dash_array': ('marker_style.line_style', 'dash_array'),
+    'line_dash_phase': ('marker_style.line_style', 'dash_phase'),
+    'line_join': ('marker_style.line_style', 'join'),
+    'line_miter_limit': ('marker_style.line_style', 'miter_limit'),
+    'line_width': ('marker_style.line_style', 'width'),
+    'marker_alpha': ('marker_style', 'alpha'),
+    'marker_radius': ('marker_style', 'radius'),
+    'marker_size': ('marker_style', 'size'),
+    'marker_type': ('marker_style', 'marker_type'),
+    'markers_only': ('marker_style.line_style', 'markers_only'),
+    'smooth': ('marker_style.line_style', 'smooth'),
+    'stroke': ('marker_style.line_style', 'stroke'),
+}
 
 def _set_marker_style_alias_map(debug=False):
     """Set the marker style alias map.
@@ -711,7 +769,90 @@ def _set_marker_style_alias_map(debug=False):
     return marker_style_map
 
 
-tag_style_map = {}
+# tag_style_map = {}
+tag_style_map = {
+    'align': ('style', 'align'),
+    'alpha': ('style', 'alpha'),
+    'back_color': ('style.frame_style.fill_style', 'color'),
+    'back_style': ('style.frame_style.fill_style', 'back_style'),
+    'blend_mode': ('style', 'blend_mode'),
+    'bold': ('style.font_style', 'bold'),
+    'double_distance': ('style.frame_style.line_style', 'double_distance'),
+    'double_lines': ('style.frame_style.line_style', 'double_lines'),
+    'draw_fillets': ('style.frame_style.line_style', 'draw_fillets'),
+    'draw_frame': ('style', 'draw_frame'),
+    'draw_markers': ('style.frame_style.line_style', 'draw_markers'),
+    'fill': ('style.frame_style.fill_style', 'fill'),
+    'fill_alpha': ('style.frame_style.fill_style', 'alpha'),
+    'fill_color': ('style.frame_style.fill_style', 'color'),
+    'fill_mode': ('style.frame_style.fill_style', 'mode'),
+    'fillet_radius': ('style.frame_style.line_style', 'fillet_radius'),
+    'font_alpha': ('style.font_style', 'alpha'),
+    'font_blend_mode': ('style.font_style', 'blend_mode'),
+    'font_color': ('style.font_style', 'color'),
+    'font_family': ('style.font_style', 'font_family'),
+    'font_size': ('style.font_style', 'size'),
+    'frame_alpha': ('style.frame_style', 'alpha'),
+    'frame_inner_sep': ('style.frame_style', 'inner_sep'),
+    'frame_inner_xsep': ('style.frame_style', 'inner_xsep'),
+    'frame_inner_ysep': ('style.frame_style', 'inner_ysep'),
+    'frame_min_height': ('style.frame_style', 'min_height'),
+    'frame_min_size': ('style.frame_style', 'min_size'),
+    'frame_min_width': ('style.frame_style', 'min_width'),
+    'frame_outer_sep': ('style.frame_style', 'outer_sep'),
+    'frame_shape': ('style.frame_style', 'shape'),
+    'grid_alpha': ('style.frame_style.fill_style.grid_style', 'alpha'),
+    'grid_back_color': ('style.frame_style.fill_style.grid_style', 'back_color'),
+    'grid_line_color': ('style.frame_style.fill_style.grid_style', 'line_color'),
+    'grid_line_width': ('style.frame_style.fill_style.grid_style', 'line_width'),
+    'italic': ('style.font_style', 'italic'),
+    'line_alpha': ('style.frame_style.line_style', 'alpha'),
+    'line_cap': ('style.frame_style.line_style', 'cap'),
+    'line_color': ('style.frame_style.line_style', 'color'),
+    'line_dash_array': ('style.frame_style.line_style', 'dash_array'),
+    'line_dash_phase': ('style.frame_style.line_style', 'dash_phase'),
+    'line_join': ('style.frame_style.line_style', 'join'),
+    'line_miter_limit': ('style.frame_style.line_style', 'miter_limit'),
+    'line_width': ('style.frame_style.line_style', 'width'),
+    'marker_color': ('style.frame_style.line_style.marker_style', 'color'),
+    'marker_radius': ('style.frame_style.line_style.marker_style', 'radius'),
+    'marker_size': ('style.frame_style.line_style.marker_style', 'size'),
+    'marker_type': ('style.frame_style.line_style.marker_style', 'marker_type'),
+    'markers_only': ('style.frame_style.line_style', 'markers_only'),
+    'old_style_nums': ('style.font_style', 'old_style_nums'),
+    'overline': ('style.font_style', 'overline'),
+    'pattern_angle': ('style.frame_style.fill_style.pattern_style', 'angle'),
+    'pattern_color': ('style.frame_style.fill_style.pattern_style', 'color'),
+    'pattern_distance': ('style.frame_style.fill_style.pattern_style', 'distance'),
+    'pattern_line_width': ('style.frame_style.fill_style.pattern_style', 'line_width'),
+    'pattern_points': ('style.frame_style.fill_style.pattern_style', 'points'),
+    'pattern_radius': ('style.frame_style.fill_style.pattern_style', 'radius'),
+    'pattern_type': ('style.frame_style.fill_style.pattern_style', 'pattern_type'),
+    'pattern_x_shift': ('style.frame_style.fill_style.pattern_style', 'x_shift'),
+    'pattern_y_shift': ('style.frame_style.fill_style.pattern_style', 'y_shift'),
+    'shade_axis_angle': ('style.frame_style.fill_style.shade_style', 'axis_angle'),
+    'shade_ball_color': ('style.frame_style.fill_style.shade_style', 'ball_color'),
+    'shade_bottom_color': ('style.frame_style.fill_style.shade_style', 'bottom_color'),
+    'shade_color_wheel': ('style.frame_style.fill_style.shade_style', 'color_wheel'),
+    'shade_color_wheel_black': ('style.frame_style.fill_style.shade_style', 'color_wheel_black'),
+    'shade_color_wheel_white': ('style.frame_style.fill_style.shade_style', 'color_wheel_white'),
+    'shade_inner_color': ('style.frame_style.fill_style.shade_style', 'inner_color'),
+    'shade_left_color': ('style.frame_style.fill_style.shade_style', 'left_color'),
+    'shade_lower_left_color': ('style.frame_style.fill_style.shade_style', 'lower_left_color'),
+    'shade_lower_right_color': ('style.frame_style.fill_style.shade_style', 'lower_right_color'),
+    'shade_middle_color': ('style.frame_style.fill_style.shade_style', 'middle_color'),
+    'shade_outer_color': ('style.frame_style.fill_style.shade_style', 'outer_color'),
+    'shade_right_color': ('style.frame_style.fill_style.shade_style', 'right_color'),
+    'shade_top_color': ('style.frame_style.fill_style.shade_style', 'top_color'),
+    'shade_type': ('style.frame_style.fill_style.shade_style', 'shade_type'),
+    'shade_upper_left_color': ('style.frame_style.fill_style.shade_style', 'upper_left_color'),
+    'shade_upper_right_color': ('style.frame_style.fill_style.shade_style', 'upper_right_color'),
+    'small_caps': ('style.font_style', 'small_caps'),
+    'smooth': ('style.frame_style.line_style', 'smooth'),
+    'strike_through': ('style.font_style', 'strike_through'),
+    'stroke': ('style.frame_style.line_style', 'stroke'),
+    'underline': ('style.font_style', 'underline'),
+}
 
 
 def _set_tag_style_alias_map(debug=False):
@@ -764,8 +905,43 @@ def _set_tag_style_alias_map(debug=False):
     return tag_style_map
 
 
-fill_style_map = {}
+# fill_style_map = {}
 
+fill_style_map = {
+    'alpha': ('fill_style', 'alpha'),
+    'color': ('fill_style', 'color'),
+    'grid_alpha': ('fill_style.grid_style', 'alpha'),
+    'grid_back_color': ('fill_style.grid_style', 'back_color'),
+    'grid_line_color': ('fill_style.grid_style', 'line_color'),
+    'grid_line_width': ('fill_style.grid_style', 'line_width'),
+    'mode': ('fill_style', 'mode'),
+    'pattern_angle': ('fill_style.pattern_style', 'angle'),
+    'pattern_color': ('fill_style.pattern_style', 'color'),
+    'pattern_distance': ('fill_style.pattern_style', 'distance'),
+    'pattern_line_width': ('fill_style.pattern_style', 'line_width'),
+    'pattern_points': ('fill_style.pattern_style', 'points'),
+    'pattern_radius': ('fill_style.pattern_style', 'radius'),
+    'pattern_type': ('fill_style.pattern_style', 'pattern_type'),
+    'pattern_x_shift': ('fill_style.pattern_style', 'x_shift'),
+    'pattern_y_shift': ('fill_style.pattern_style', 'y_shift'),
+    'shade_axis_angle': ('fill_style.shade_style', 'axis_angle'),
+    'shade_ball_color': ('fill_style.shade_style', 'ball_color'),
+    'shade_bottom_color': ('fill_style.shade_style', 'bottom_color'),
+    'shade_color_wheel': ('fill_style.shade_style', 'color_wheel'),
+    'shade_color_wheel_black': ('fill_style.shade_style', 'color_wheel_black'),
+    'shade_color_wheel_white': ('fill_style.shade_style', 'color_wheel_white'),
+    'shade_inner_color': ('fill_style.shade_style', 'inner_color'),
+    'shade_left_color': ('fill_style.shade_style', 'left_color'),
+    'shade_lower_left_color': ('fill_style.shade_style', 'lower_left_color'),
+    'shade_lower_right_color': ('fill_style.shade_style', 'lower_right_color'),
+    'shade_middle_color': ('fill_style.shade_style', 'middle_color'),
+    'shade_outer_color': ('fill_style.shade_style', 'outer_color'),
+    'shade_right_color': ('fill_style.shade_style', 'right_color'),
+    'shade_top_color': ('fill_style.shade_style', 'top_color'),
+    'shade_type': ('fill_style.shade_style', 'shade_type'),
+    'shade_upper_left_color': ('fill_style.shade_style', 'upper_left_color'),
+    'shade_upper_right_color': ('fill_style.shade_style', 'upper_right_color'),
+}
 
 def _set_fill_style_alias_map(debug=False):
     """Set the fill style alias map.
@@ -796,8 +972,20 @@ def _set_fill_style_alias_map(debug=False):
     return fill_style_map
 
 
-pattern_style_map = {}
+# pattern_style_map = {}
 
+pattern_style_map = {
+'alpha': ('pattern_style', 'alpha'),
+'pattern_angle': ('pattern_style', 'angle'),
+'pattern_color': ('pattern_style', 'color'),
+'pattern_distance': ('pattern_style', 'distance'),
+'pattern_line_width': ('pattern_style', 'line_width'),
+'pattern_points': ('pattern_style', 'points'),
+'pattern_radius': ('pattern_style', 'radius'),
+'pattern_type': ('pattern_style', 'pattern_type'),
+'pattern_x_shift': ('pattern_style', 'x_shift'),
+'pattern_y_shift': ('pattern_style', 'y_shift'),
+}
 
 def _set_pattern_style_alias_map(debug=False):
     """Set the pattern style alias map.
@@ -820,7 +1008,29 @@ def _set_pattern_style_alias_map(debug=False):
     return pattern_style_map
 
 
-line_style_map = {}
+# line_style_map = {}
+line_style_map = {
+    'double_distance': ('line_style', 'double_distance'),
+    'double_lines': ('line_style', 'double_lines'),
+    'draw_fillets': ('line_style', 'draw_fillets'),
+    'draw_markers': ('line_style', 'draw_markers'),
+    'fillet_radius': ('line_style', 'fillet_radius'),
+    'line_alpha': ('line_style', 'alpha'),
+    'line_cap': ('line_style', 'cap'),
+    'line_color': ('line_style', 'color'),
+    'line_dash_array': ('line_style', 'dash_array'),
+    'line_dash_phase': ('line_style', 'dash_phase'),
+    'line_join': ('line_style', 'join'),
+    'line_miter_limit': ('line_style', 'miter_limit'),
+    'line_width': ('line_style', 'width'),
+    'marker_color': ('line_style.marker_style', 'color'),
+    'marker_radius': ('line_style.marker_style', 'radius'),
+    'marker_size': ('line_style.marker_style', 'size'),
+    'marker_type': ('line_style.marker_style', 'marker_type'),
+    'markers_only': ('line_style', 'markers_only'),
+    'smooth': ('line_style', 'smooth'),
+    'stroke': ('line_style', 'stroke'),
+}
 
 
 def _set_line_style_alias_map(debug=False):
@@ -844,7 +1054,65 @@ def _set_line_style_alias_map(debug=False):
     return line_style_map
 
 
-shape_style_map = {}
+shape_style_map_ = {} # if any of the styles are changed, the alias-map must be updated!!!
+
+shape_style_map = {
+    'alpha': ('style', 'alpha'),
+    'back_style': ('style.fill_style', 'back_style'),
+    'double_distance': ('style.line_style', 'double_distance'),
+    'double_lines': ('style.line_style', 'double_lines'),
+    'draw_fillets': ('style.line_style', 'draw_fillets'),
+    'draw_markers': ('style.line_style', 'draw_markers'),
+    'fill': ('style.fill_style', 'fill'),
+    'fill_alpha': ('style.fill_style', 'alpha'),
+    'fill_color': ('style.fill_style', 'color'),
+    'fill_mode': ('style.fill_style', 'mode'),
+    'fillet_radius': ('style.line_style', 'fillet_radius'),
+    'grid_alpha': ('style.fill_style.grid_style', 'alpha'),
+    'grid_back_color': ('style.fill_style.grid_style', 'back_color'),
+    'grid_line_color': ('style.fill_style.grid_style', 'line_color'),
+    'grid_line_width': ('style.fill_style.grid_style', 'line_width'),
+    'line_alpha': ('style.line_style', 'alpha'),
+    'line_cap': ('style.line_style', 'cap'),
+    'line_color': ('style.line_style', 'color'),
+    'line_dash_array': ('style.line_style', 'dash_array'),
+    'line_dash_phase': ('style.line_style', 'dash_phase'),
+    'line_join': ('style.line_style', 'join'),
+    'line_miter_limit': ('style.line_style', 'miter_limit'),
+    'line_width': ('style.line_style', 'width'),
+    'marker_color': ('style.line_style.marker_style', 'color'),
+    'marker_radius': ('style.line_style.marker_style', 'radius'),
+    'marker_size': ('style.line_style.marker_style', 'size'),
+    'marker_type': ('style.line_style.marker_style', 'marker_type'),
+    'markers_only': ('style.line_style', 'markers_only'),
+    'pattern_angle': ('style.fill_style.pattern_style', 'angle'),
+    'pattern_color': ('style.fill_style.pattern_style', 'color'),
+    'pattern_distance': ('style.fill_style.pattern_style', 'distance'),
+    'pattern_line_width': ('style.fill_style.pattern_style', 'line_width'),
+    'pattern_points': ('style.fill_style.pattern_style', 'points'),
+    'pattern_radius': ('style.fill_style.pattern_style', 'radius'),
+    'pattern_type': ('style.fill_style.pattern_style', 'pattern_type'),
+    'pattern_x_shift': ('style.fill_style.pattern_style', 'x_shift'),
+    'pattern_y_shift': ('style.fill_style.pattern_style', 'y_shift'),
+    'shade_axis_angle': ('style.fill_style.shade_style', 'axis_angle'),
+    'shade_ball_color': ('style.fill_style.shade_style', 'ball_color'),
+    'shade_bottom_color': ('style.fill_style.shade_style', 'bottom_color'),
+    'shade_color_wheel': ('style.fill_style.shade_style', 'color_wheel'),
+    'shade_color_wheel_black': ('style.fill_style.shade_style', 'color_wheel_black'),
+    'shade_color_wheel_white': ('style.fill_style.shade_style', 'color_wheel_white'),
+    'shade_inner_color': ('style.fill_style.shade_style', 'inner_color'),
+    'shade_left_color': ('style.fill_style.shade_style', 'left_color'),
+    'shade_lower_left_color': ('style.fill_style.shade_style', 'lower_left_color'),
+    'shade_lower_right_color': ('style.fill_style.shade_style', 'lower_right_color'),
+    'shade_middle_color': ('style.fill_style.shade_style', 'middle_color'),
+    'shade_outer_color': ('style.fill_style.shade_style', 'outer_color'),
+    'shade_right_color': ('style.fill_style.shade_style', 'right_color'),
+    'shade_top_color': ('style.fill_style.shade_style', 'top_color'),
+    'shade_type': ('style.fill_style.shade_style', 'shade_type'),
+    'shade_upper_left_color': ('style.fill_style.shade_style', 'upper_left_color'),
+    'shade_upper_right_color': ('style.fill_style.shade_style', 'upper_right_color'),
+    'smooth': ('style.line_style', 'smooth'),
+    'stroke': ('style.line_style', 'stroke')}
 
 
 def _set_shape_style_alias_map(debug=False):
@@ -920,13 +1188,75 @@ def _set_style_alias_map(map_dict, styles, paths, prefixes, debug=False):
     return map_dict
 
 
-shape_args = []
+# shape_args = []
+
+shape_args = [
+    'alpha',
+    'back_style',
+    'dist_tol',
+    'double_distance',
+    'double_lines',
+    'draw_fillets',
+    'draw_markers',
+    'fill',
+    'fill_alpha',
+    'fill_color',
+    'fill_mode',
+    'fillet_radius',
+    'grid_alpha',
+    'grid_back_color',
+    'grid_line_color',
+    'grid_line_width',
+    'line_alpha',
+    'line_cap',
+    'line_color',
+    'line_dash_array',
+    'line_dash_phase',
+    'line_join',
+    'line_miter_limit',
+    'line_width',
+    'marker_color',
+    'marker_radius',
+    'marker_size',
+    'marker_type',
+    'markers_only',
+    'pattern_angle',
+    'pattern_color',
+    'pattern_distance',
+    'pattern_line_width',
+    'pattern_points',
+    'pattern_radius',
+    'pattern_type',
+    'pattern_x_shift',
+    'pattern_y_shift',
+    'points',
+    'shade_axis_angle',
+    'shade_ball_color',
+    'shade_bottom_color',
+    'shade_color_wheel',
+    'shade_color_wheel_black',
+    'shade_color_wheel_white',
+    'shade_inner_color',
+    'shade_left_color',
+    'shade_lower_left_color',
+    'shade_lower_right_color',
+    'shade_middle_color',
+    'shade_outer_color',
+    'shade_right_color',
+    'shade_top_color',
+    'shade_type',
+    'shade_upper_left_color',
+    'shade_upper_right_color',
+    'smooth',
+    'stroke',
+    'subtype',
+    'xform_matrix',
+]
 
 
 def _set_shape_args(debug=False):
     shape_args.extend(list(shape_style_map.keys()))
     shape_args.extend(["subtype", "xform_matrix", "points", "dist_tol"])
-
 
 # These are applicable to Canvas and Batch objects. They are set in \begin{scope}[...].
 group_args = [
@@ -942,14 +1272,83 @@ group_args = [
     "text_alpha",
 ]
 
-batch_args = []
+# batch_args = []
+
+batch_args = [
+'alpha',
+'back_style',
+'blend_group',
+'blend_mode',
+'clip',
+'dist_tol',
+'double_distance',
+'double_lines',
+'draw_fillets',
+'draw_markers',
+'even_odd_rule',
+'fill',
+'fill_alpha',
+'fill_color',
+'fill_mode',
+'fillet_radius',
+'grid_alpha',
+'grid_back_color',
+'grid_line_color',
+'grid_line_width',
+'line_alpha',
+'line_cap',
+'line_color',
+'line_dash_array',
+'line_dash_phase',
+'line_join',
+'line_miter_limit',
+'line_width',
+'marker_color',
+'marker_radius',
+'marker_size',
+'marker_type',
+'markers_only',
+'mask',
+'modifiers',
+'pattern_angle',
+'pattern_color',
+'pattern_distance',
+'pattern_line_width',
+'pattern_points',
+'pattern_radius',
+'pattern_type',
+'pattern_x_shift',
+'pattern_y_shift',
+'shade_axis_angle',
+'shade_ball_color',
+'shade_bottom_color',
+'shade_color_wheel',
+'shade_color_wheel_black',
+'shade_color_wheel_white',
+'shade_inner_color',
+'shade_left_color',
+'shade_lower_left_color',
+'shade_lower_right_color',
+'shade_middle_color',
+'shade_outer_color',
+'shade_right_color',
+'shade_top_color',
+'shade_type',
+'shade_upper_left_color',
+'shade_upper_right_color',
+'smooth',
+'stroke',
+'subtype',
+'text_alpha',
+'transparency_group',
+]
 
 
 def _set_batch_args(debug=False):
     batch_args.extend(list(shape_style_map.keys()))
     batch_args.extend(["subtype", "dist_tol", "modifiers", "dist_tol"])
     batch_args.extend(group_args)
-
+    print()
 
 canvas_args = ["size", "back_color", "title", "border"]
 canvas_args.extend(group_args)
