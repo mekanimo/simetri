@@ -220,7 +220,7 @@ class Conway(StrEnum):
     STEP = "STEP"
 
 
-class Depend(StrEnum):
+class Dep(StrEnum):
     """Depend is used to set the dependency of the shapes.
     This is used when shapes are copied or transformed.
     """
@@ -559,34 +559,25 @@ class PathOperation(StrEnum):
     """PathOperation is used to set the type of path operation."""
 
     ARC = "ARC"
-    ARC_TO = "ARC"
+    ARC_TO = "ARC_TO"
     BLEND_ARC = "BLEND_ARC"
     BLEND_CUBIC = "BLEND_CUBIC"
     BLEND_QUAD = "BLEND_QUAD"
-    CATMULL_TO = "CATMULL_TO"
-    CIRCLE = "CIRCLE"
+    BLEND_SINE = "BLEND_SINE"
     CLOSE = "CLOSE"
-    CLOSE_CATMULL = "CLOSE_CATMULL"
     CLOSE_HOBBY = "CLOSE_HOBBY"
     CONNECTOR = "CONNECTOR"
-    CUBIC_TO = "CURVE"
-    ELLIPSE = "ELLIPSE"
+    CUBIC_TO = "CUBIC_TO"
     FORWARD = "FORWARD"
-    GRID = "GRID"
-    HLINE = "HLINE"
     HOBBY_TO = "HOBBY_TO"
-    LINE_TO = "LINE"
-    MOVE_TO = "MOVE"
-    POLYGON = "POLYGON"
+    H_LINE = "H_LINE"
+    LINE_TO = "LINE_TO"
+    MOVE_TO = "MOVE_TO"
     QUAD_TO = "QUAD_TO"
-    RECTANGLE = "RECTANGLE"
-    RLINE = "RLINE"
-    RMOVE = "RMOVE"
-    SECTOR = "SECTOR"
-    SHAPE = "SHAPE"
-    STYLE = "STYLE"
-    TAG = "TAG"
-    VLINE = "VLINE"
+    R_LINE = "RLINE"
+    R_MOVE = "RMOVE"
+    SINE = "SINE"
+    V_LINE = "V_LINE"
 
 class PatternType(StrEnum):
     """PatternType is used to set the type of pattern."""
