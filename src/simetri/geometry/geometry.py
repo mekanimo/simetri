@@ -16,7 +16,6 @@ import re
 import numpy as np
 from numpy import isclose, array, around
 from scipy.special import ellipeinc
-from scipy.spatial.transform import Rotation as R
 
 from simetri.helpers.utilities import (
     flatten,
