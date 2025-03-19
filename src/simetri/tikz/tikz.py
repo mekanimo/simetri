@@ -959,12 +959,14 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
         if hasattr(sketch, attrib):
             value = getattr(sketch, attrib)
             if value is not None and tikz_attrib in list(attrib_map.values()):
-                if attrib in skip:
-                    value = color2tikz(getattr(sketch, attrib))
-                    options.append(f"{tikz_attrib}={value}")
                 if attrib in ['smooth']: # smooth is a boolean
                     if value:
                         options.append("smooth")
+
+                elif attrib in skip:
+                    value = color2tikz(getattr(sketch, attrib))
+                    options.append(f"{tikz_attrib}={value}")
+
                 elif value != tikz_defaults[tikz_attrib]:
                     if attrib in d_converters:
                         value = d_converters[attrib](value)
