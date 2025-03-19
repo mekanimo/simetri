@@ -5,7 +5,7 @@ import os
 import re
 import base64
 from functools import wraps, reduce
-from time import time, monotonic
+from time import time, monotonic, perf_counter
 from math import factorial, cos, sin, pi, atan2, sqrt
 from pathlib import Path
 from bisect import bisect_left
@@ -20,6 +20,18 @@ from numpy import isclose
 from ..settings.settings import defaults
 from ..graphics.common import get_defaults, Point
 
+
+def time_it(func):
+    '''Decorator to time a function'''
+    @wraps(func)
+    def time_it_wrapper(*args, **kwargs):
+        start_time = perf_counter()
+        result = func(*args, **kwargs)
+        end_time = perf_counter()
+        total_time = end_time - start_time
+        print(f"Function {func.__name__} Took {total_time:.6f} seconds")
+        return result
+    return time_it_wrapper
 
 def close_logger(logger):
     """Close the logger and remove all handlers.
