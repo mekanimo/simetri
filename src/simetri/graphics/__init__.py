@@ -78,12 +78,17 @@ set_tikz_defaults()
 
 import simetri.canvas.style_map as style_map
 
-style_map._set_shape_style_alias_map()
-style_map._set_tag_style_alias_map()
-style_map._set_line_style_alias_map()
-style_map._set_fill_style_alias_map()
-style_map._set_marker_style_alias_map()
-style_map._set_pattern_style_alias_map()
-style_map._set_frame_style_alias_map()
-style_map._set_shape_args()
-style_map._set_batch_args()
+def set_alias_maps():
+    style_map._set_shape_style_alias_map()
+    style_map._set_tag_style_alias_map()
+    style_map._set_line_style_alias_map()
+    style_map._set_fill_style_alias_map()
+    style_map._set_marker_style_alias_map()
+    style_map._set_pattern_style_alias_map()
+    style_map._set_frame_style_alias_map()
+    style_map._set_shape_args()
+    style_map._set_batch_args()
+
+
+# if any of the styles is changed, this should be called again!!!
+# set_alias_maps()
