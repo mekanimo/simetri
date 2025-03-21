@@ -50,6 +50,7 @@ from ..geometry.ellipse import *
 from ..geometry.bezier import *
 from ..geometry.hobby import *
 from ..geometry.circle import *
+from ..geometry.sine import *
 from .affine import *
 from .dots import *
 from ..graphics.sketch import *
