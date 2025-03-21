@@ -815,6 +815,7 @@ class Types(StrEnum):
     SHAPE = "SHAPE"
     SHAPE_SKETCH = "SHAPE_SKETCH"
     SHAPE_STYLE = "SHAPE_STYLE"
+    SINE_WAVE = "SINE_WAVE"
     SKETCH = "SKETCH"
     SKETCH_STYLE = "SKETCH_STYLE"
     SQUARE = "SQUARE"
@@ -870,6 +871,7 @@ drawable_types = [
     Types.SECTION,
     Types.SEGMENT,
     Types.SHAPE,
+    Types.SINE_WAVE,
     Types.STAR,
     Types.SVG_PATH,
     Types.TAG,
@@ -892,6 +894,7 @@ shape_types = [
     Types.Q_BEZIER,
     Types.SECTION,
     Types.SHAPE,
+    Types.SINE_WAVE,
 ]
 
 batch_types = [
@@ -938,8 +941,45 @@ Drawable: TypeAlias = Union[
     Types.SECTION,
     Types.SEGMENT,
     Types.SHAPE,
+    Types.SINE_WAVE,
     Types.STAR,
     Types.SVG_PATH,
     Types.TAG,
     Types.TURTLE
 ]
+
+
+anchors = [
+            "southeast",
+            "southwest",
+            "northeast",
+            "northwest",
+            "south",
+            "north",
+            "east",
+            "west",
+            "center",
+            "left",
+            "right",
+            "top",
+            "bottom",
+            "diagonal1",
+            "diagonal2",
+            "horiz_centerline",
+            "vert_centerline",
+            "s",
+            "n",
+            "e",
+            "w",
+            "sw",
+            "se",
+            "nw",
+            "ne",
+            "c",
+            "d1",
+            "d",
+            "corners",
+            "all_anchors",
+            "width",
+            "height",
+        ]
