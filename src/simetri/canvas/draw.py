@@ -581,6 +581,7 @@ regular_sketch_types = [
     Types.SECTION,
     Types.SEGMENT,
     Types.SHAPE,
+    Types.SINE_WAVE,
     Types.STAR,
     Types.TAG,
 ]
@@ -950,6 +951,11 @@ def create_sketch(item, canvas, **kwargs):
                 shape.subtype = Types.HANDLE
                 handle_sketches = create_sketch(shape, canvas, **kwargs)
                 sketches.extend(handle_sketches)
+
+        for sketch in sketches:
+            item.closed = sketch.closed
+            set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
         return sketches
 
     def get_bbox_sketch(item, canvas, **kwargs):
@@ -1061,6 +1067,7 @@ def create_sketch(item, canvas, **kwargs):
         Types.SECTION: get_sketch,
         Types.SEGMENT: get_sketch,
         Types.SHAPE: get_sketch,
+        Types.SINE_WAVE: get_sketch,
         Types.STAR: get_batch_sketch,
         Types.TAG: get_tag_sketch,
     }
