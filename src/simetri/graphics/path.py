@@ -3,17 +3,25 @@
 from dataclasses import dataclass
 from math import sin, cos, pi
 from collections import deque
+from typing_extensions import Self
 
 import numpy as np
 
+from .core import StyleMixin
 from .batch import Batch
 from .shape import Shape
 from .common import Point, common_properties
+from ..helpers.validation import validate_args
 from .all_enums import PathOperation as PathOps
 from .all_enums import Types, Dep
-from ..canvas.style_map import shape_style_map
+from ..canvas.style_map import shape_style_map, ShapeStyle, shape_args
 from ..geometry.bezier import Bezier
-from ..geometry.geometry import homogenize, positive_angle, polar_to_cartesian
+from ..geometry.geometry import (
+    homogenize,
+    positive_angle,
+    polar_to_cartesian,
+    sine_points,
+)
 from ..geometry.ellipse import (
     ellipse_point,
     ellipse_tangent,
@@ -24,6 +32,7 @@ from .affine import translation_matrix, rotation_matrix
 from ..settings.settings import defaults
 
 array = np.array
+
 
 @dataclass
 class Operation:
@@ -45,7 +54,7 @@ class Operation:
         common_properties(self, False)
 
 
-class LinPath(Batch):
+class LinPath(Batch, StyleMixin):
     """A LinPath object is a container for various linear elements.
     Path objects can be transformed like other Shape and Batch objects.
     """
@@ -57,6 +66,15 @@ class LinPath(Batch):
             start (Point, optional): The starting point of the path. Defaults to (0, 0).
             **kwargs: Additional keyword arguments.
         """
+        if "style" in kwargs:
+            self.__dict__["style"] = kwargs["style"]
+            del kwargs["style"]
+        else:
+            self.__dict__["style"] = ShapeStyle()
+        self.__dict__["_style_map"] = shape_style_map
+        self._set_aliases()
+        valid_args = shape_args
+        validate_args(kwargs, valid_args)
         self.pos = start
         self.start = start
         self.angle = pi / 2  # heading angle
@@ -71,6 +89,28 @@ class LinPath(Batch):
         self.rp = self.r_polar  # alias for rel_polar
         self.handles = []
         self.stack = deque()
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        common_properties(self)
+        self.closed = False
+
+    def __getattr__(self, name):
+        """Retrieve an attribute of the shape.
+
+        Args:
+            name (str): The attribute name to return.
+
+        Returns:
+            Any: The value of the attribute.
+
+        Raises:
+            AttributeError: If the attribute cannot be found.
+        """
+        try:
+            res = super().__getattr__(name)
+        except AttributeError:
+            res = self.__dict__[name]
+        return res
 
     def __bool__(self):
         """Return True if the path has operations.
@@ -94,6 +134,9 @@ class LinPath(Batch):
         elif op_type in [PO.LINE_TO, PO.R_LINE, PO.H_LINE, PO.V_LINE, PO.FORWARD]:
             self.objects.append(Shape(data))
             self.cur_shape.append(data[1])
+        elif op_type in [PO.SINE, PO.BLEND_SINE]:
+            self.objects.append(Shape(data[0]))
+            self.cur_shape.extend(data[0])
         elif op_type in [PO.CUBIC_TO, PO.QUAD_TO]:
             n_points = defaults["n_bezier_points"]
             curve = Bezier(data, n_points=n_points)
@@ -115,18 +158,20 @@ class LinPath(Batch):
         else:
             raise ValueError(f"Invalid operation type: {op_type}")
 
-    def copy(self):
+    def copy(self) -> "LinPath":
         """Return a copy of the path.
 
         Returns:
             LinPath: The copied path object.
         """
 
-        new_path = LinPath(start=self.start)
+        new_path = LinPath(start=self.start, style=self.style)
         new_path.pos = self.pos
         new_path.angle = self.angle
         new_path.operations = self.operations.copy()
-        new_path.objects = [obj.copy() if obj is not None else None for obj in self.objects]
+        new_path.objects = [
+            obj.copy() if obj is not None else None for obj in self.objects
+        ]
         new_path.even_odd = self.even_odd
         new_path.cur_shape = self.cur_shape.copy()
         new_path.handles = self.handles.copy()
@@ -145,7 +190,7 @@ class LinPath(Batch):
             **kwargs: Additional keyword arguments.
         """
         self.operations.append(Operation(op, data))
-        if op in [PathOps.ARC, PathOps.BLEND_ARC]:
+        if op in [PathOps.ARC, PathOps.BLEND_ARC, PathOps.SINE, PathOps.BLEND_SINE]:
             self.angle = data[1]
         else:
             if pnt2 is not None:
@@ -166,7 +211,7 @@ class LinPath(Batch):
         if self.stack:
             self.pos, self.angle = self.stack.pop()
 
-    def r_coord(self, dx: float, dy: float):
+    def r_coord(self, dx: float, dy: float) -> Point:
         """Return the relative coordinates of a point in a
         coordinate system with the path's origin and y-axis aligned
         with the path.angle.
@@ -185,7 +230,7 @@ class LinPath(Batch):
 
         return x1, y1
 
-    def r_polar(self, r: float, angle: float):
+    def r_polar(self, r: float, angle: float) -> Point:
         """Return the relative coordinates of a point in a polar
         coordinate system with the path's origin and 0 degree axis aligned
         with the path.angle.
@@ -197,12 +242,12 @@ class LinPath(Batch):
         Returns:
             tuple: The relative coordinates.
         """
-        x, y = polar_to_cartesian(r, angle + self.angle - pi/2)[:2]
+        x, y = polar_to_cartesian(r, angle + self.angle - pi / 2)[:2]
         x1, y1 = self.pos[:2]
 
         return x1 + x, y1 + y
 
-    def line_to(self, point: Point, **kwargs):
+    def line_to(self, point: Point, **kwargs) -> Self:
         """Add a line to the path.
 
         Args:
@@ -216,7 +261,7 @@ class LinPath(Batch):
 
         return self
 
-    def forward(self, length: float, **kwargs):
+    def forward(self, length: float, **kwargs) -> Self:
         """Extend the path by the given length.
 
         Args:
@@ -237,7 +282,7 @@ class LinPath(Batch):
 
         return self
 
-    def move_to(self, point: Point, **kwargs):
+    def move_to(self, point: Point, **kwargs) -> Self:
         """Move the path to a new point.
 
         Args:
@@ -251,7 +296,7 @@ class LinPath(Batch):
 
         return self
 
-    def r_line(self, dx: float, dy: float, **kwargs):
+    def r_line(self, dx: float, dy: float, **kwargs) -> Self:
         """Add a relative line to the path.
 
         Args:
@@ -267,7 +312,7 @@ class LinPath(Batch):
 
         return self
 
-    def r_move(self, dx: float = 0, dy: float = 0, **kwargs):
+    def r_move(self, dx: float = 0, dy: float = 0, **kwargs) -> Self:
         """Move the path to a new relative point.
 
         Args:
@@ -283,7 +328,7 @@ class LinPath(Batch):
         self._add(point, PathOps.R_MOVE, point)
         return self
 
-    def h_line(self, length: float, **kwargs):
+    def h_line(self, length: float, **kwargs) -> Self:
         """Add a horizontal line to the path.
 
         Args:
@@ -297,7 +342,7 @@ class LinPath(Batch):
         self._add((x, y), PathOps.H_LINE, (self.pos, (x, y)))
         return self
 
-    def v_line(self, length: float, **kwargs):
+    def v_line(self, length: float, **kwargs) -> Self:
         """Add a vertical line to the path.
 
         Args:
@@ -311,7 +356,7 @@ class LinPath(Batch):
         self._add((x, y), PathOps.V_LINE, (self.pos, (x, y)))
         return self
 
-    def cubic_to(self, control1: Point, control2: Point, end: Point, *args, **kwargs):
+    def cubic_to(self, control1: Point, control2: Point, end: Point, *args, **kwargs) -> Self:
         """Add a Bézier curve with two control points to the path. Multiple blended curves can be added
         by providing additional arguments.
 
@@ -334,7 +379,7 @@ class LinPath(Batch):
         )
         return self
 
-    def hobby_to(self, points, **kwargs):
+    def hobby_to(self, points, **kwargs) -> Self:
         """Add a Hobby curve to the path.
 
         Args:
@@ -347,7 +392,7 @@ class LinPath(Batch):
         self.operations.append((PathOps.HOBBY_TO, (self.pos, points)))
         return self
 
-    def close_hobby(self):
+    def close_hobby(self) -> Self:
         """Close the Hobby curve.
 
         Returns:
@@ -356,7 +401,7 @@ class LinPath(Batch):
         self.operations.append((PathOps.CLOSE_HOBBY, (self.pos, None)))
         return self
 
-    def quad_to(self, control: Point, end: Point, *args, **kwargs):
+    def quad_to(self, control: Point, end: Point, *args, **kwargs) -> Self:
         """Add a quadratic Bézier curve to the path. Multiple blended curves can be added by providing
         additional arguments.
 
@@ -373,7 +418,7 @@ class LinPath(Batch):
             ValueError: If an argument does not have exactly two elements.
         """
         self._add(
-            end, PathOps.QUAD_TO, (self.pos, control, end), pnt2=control, **kwargs
+            end, PathOps.QUAD_TO, (self.pos[:2], control, end[:2]), pnt2=control, **kwargs
         )
         pos = end
         for arg in args:
@@ -394,7 +439,7 @@ class LinPath(Batch):
                 pos = end
         return self
 
-    def blend_cubic(self, control1_length, control2: Point, end: Point, **kwargs):
+    def blend_cubic(self, control1_length, control2: Point, end: Point, **kwargs) -> Self:
         """Add a cubic Bézier curve to the path where the first control point is computed based on a length.
 
         Args:
@@ -416,7 +461,7 @@ class LinPath(Batch):
         )
         return self
 
-    def blend_quad(self, control_length, end: Point, **kwargs):
+    def blend_quad(self, control_length, end: Point, **kwargs) -> Self:
         """Add a quadratic Bézier curve to the path where the control point is computed based on a length.
 
         Args:
@@ -440,7 +485,7 @@ class LinPath(Batch):
         rot_angle: float = 0,
         n_points=None,
         **kwargs,
-    ):
+    ) -> Self:
         """Add an arc to the path. The arc is defined by an ellipse (with rx as half-width and ry as half-height).
         The sign of the span angle determines the drawing direction.
 
@@ -459,7 +504,7 @@ class LinPath(Batch):
         start_angle = positive_angle(start_angle)
         clockwise = span_angle < 0
         if n_points is None:
-            n_points = defaults['n_arc_points']
+            n_points = defaults["n_arc_points"]
         points = elliptic_arc_points((0, 0), rx, ry, start_angle, span_angle, n_points)
         start = points[0]
         end = points[-1]
@@ -487,9 +532,15 @@ class LinPath(Batch):
         return self
 
     def blend_arc(
-        self, rx: float, ry: float, start_angle: float, span_angle: float,
-        sharp=False, n_points=None, **kwargs
-    ):
+        self,
+        rx: float,
+        ry: float,
+        start_angle: float,
+        span_angle: float,
+        sharp=False,
+        n_points=None,
+        **kwargs,
+    ) -> Self:
         """Add a blended elliptic arc to the path.
 
         Args:
@@ -507,7 +558,7 @@ class LinPath(Batch):
         start_angle = positive_angle(start_angle)
         clockwise = span_angle < 0
         if n_points is None:
-            n_points = defaults['n_arc_points']
+            n_points = defaults["n_arc_points"]
         points = elliptic_arc_points((0, 0), rx, ry, start_angle, span_angle, n_points)
         start = points[0]
         end = points[-1]
@@ -537,30 +588,52 @@ class LinPath(Batch):
         )
         return self
 
-    def sine(self, amplitude: float, frequency: float, length: float, **kwargs):
+    def sine(
+        self,
+        period: float = 40,
+        amplitude: float = 20,
+        duration: float = 40,
+        n_points: int = 100,
+        phase_angle: float = 0,
+        damping: float = 0,
+        rot_angle: float = 0,
+        **kwargs,
+    ) -> Self:
         """Add a sine wave to the path.
 
         Args:
-            amplitude (float): The amplitude of the wave.
-            frequency (float): The frequency of the wave.
-            length (float): The length of the wave.
-            **kwargs: Additional keyword arguments.
+            period (float, optional): _description_. Defaults to 40.
+            amplitude (float, optional): _description_. Defaults to 20.
+            duration (float, optional): _description_. Defaults to 1.
+            n_points (int, optional): _description_. Defaults to 100.
+            phase_angle (float, optional): _description_. Defaults to 0.
+            damping (float, optional): _description_. Defaults to 0.
+            rot_angle (float, optional): _description_. Defaults to 0.
 
         Returns:
             Path: The path object.
         """
 
-        n_points = defaults['n_arc_points']
-        points = []
-        for i in range(n_points):
-            x = i * length / n_points
-            y = amplitude * sin(2 * pi * frequency * x / length)
-            points.append((x, y))
-        points = homogenize(points) @ rotation_matrix(self.angle) @ translation_matrix(*self.pos)
-        self._add(points[-1], PathOps.SINE, (points,))
+        points = sine_points(
+            period, amplitude, duration, n_points, phase_angle, damping
+        )
+        if rot_angle != 0:
+            points = homogenize(points) @ rotation_matrix(rot_angle, points[0])
+        points = homogenize(points) @ translation_matrix(*self.pos[:2])
+        angle = line_angle(points[-2], points[-1])
+        self._add(points[-1], PathOps.SINE, (points, angle))
         return self
 
-    def blend_sine(self, amplitude: float, frequency: float, length: float, **kwargs):
+    def blend_sine(
+        self,
+        period: float = 40,
+        amplitude: float = 20,
+        duration: float = 40,
+        n_points: int = 100,
+        phase_angle: float = 0,
+        damping: float = 0,
+        **kwargs,
+    ) -> Self:
         """Add a blended sine wave to the path.
 
         Args:
@@ -573,17 +646,18 @@ class LinPath(Batch):
             Path: The path object.
         """
 
-        n_points = defaults['n_arc_points']
-        points = []
-        for i in range(n_points):
-            x = i * length / n_points
-            y = amplitude * sin(2 * pi * frequency * x / length)
-            points.append((x, y))
-        points = homogenize(points) @ rotation_matrix(self.angle) @ translation_matrix(*self.pos)
-        self._add(points[-1], PathOps.BLEND_SINE, (points,))
+        points = sine_points(
+            period, amplitude, duration, n_points, phase_angle, damping
+        )
+        start_angle = line_angle(points[0], points[1])
+        rot_angle = self.angle - start_angle
+        points = homogenize(points) @ rotation_matrix(rot_angle, points[0])
+        points = homogenize(points) @ translation_matrix(*self.pos[:2])
+        angle = line_angle(points[-2], points[-1])
+        self._add(points[-1], PathOps.SINE, (points, angle))
         return self
 
-    def close(self, **kwargs):
+    def close(self, **kwargs) -> Self:
         """Close the path.
 
         Args:
@@ -609,7 +683,7 @@ class LinPath(Batch):
 
         return vertices
 
-    def set_style(self, name, value, **kwargs):
+    def set_style(self, name, value, **kwargs) -> Self:
         """Set the style of the path.
 
         Args:
