@@ -710,11 +710,11 @@ def set_defaults():
     defaults_help['n_arc_points'] = 'Number of points for arcs. Positive integer.'
     defaults['n_circle_points'] = 30  # number of points for circles
     defaults_help['n_circle_points'] = 'Number of points for circles. Positive integer.'
-    defaults['n_bezier_points'] = 20  # number of points for Bezier curves
+    defaults['n_bezier_points'] = 40  # number of points for Bezier curves
     defaults_help['n_bezier_points'] = 'Number of points for Bezier curves. Positive integer.'
     defaults['n_ellipse_points'] = 40  # number of points for ellipses
     defaults_help['n_ellipse_points'] = 'Number of points for ellipses. Positive integer.'
-    defaults['n_q_bezier_points'] = 20  # number of points for quadratic Bezier curves
+    defaults['n_q_bezier_points'] = 30  # number of points for quadratic Bezier curves
     defaults_help['n_q_bezier_points'] = 'Number of points for quadratic Bezier curves. Positive integer.'
     defaults["n_round"] = 2  # used for rounding floats
     defaults_help["n_round"] = (
