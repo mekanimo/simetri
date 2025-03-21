@@ -44,64 +44,6 @@ class Base:
 
         return res
 
-    # def __getattr__(self, name: str) -> Any:
-    #     """
-    #     Get the attribute with the given name.
-
-    #     Args:
-    #         name (str): The name of the attribute.
-
-    #     Returns:
-    #         Any: The attribute with the given name.
-
-    #     Raises:
-    #         AttributeError: If the attribute does not exist.
-    #     """
-        # _anchors = [
-        #     "southeast",
-        #     "southwest",
-        #     "northeast",
-        #     "northwest",
-        #     "south",
-        #     "north",
-        #     "east",
-        #     "west",
-        #     "center",
-        #     "left",
-        #     "right",
-        #     "top",
-        #     "bottom",
-        #     "diagonal1",
-        #     "diagonal2",
-        #     "horiz_centerline",
-        #     "vert_centerline",
-        #     "s",
-        #     "n",
-        #     "e",
-        #     "w",
-        #     "sw",
-        #     "se",
-        #     "nw",
-        #     "ne",
-        #     "c",
-        #     "d1",
-        #     "d",
-        #     "corners",
-        #     "all_anchors",
-        #     "width",
-        #     "height",
-        # ]
-
-        # if name in anchors:
-        #     res = getattr(self.b_box, name)
-        # else:
-        #     try:
-        #         res = self.__dict__[name]
-        #     except KeyError as exc:
-        #         msg = f"'{self.__class__.__name__}' object has no attribute '{name}'"
-        #         raise AttributeError(msg) from exc
-
-        # return res
 
     def translate(self, dx: float = 0, dy: float = 0, reps: int = 0) -> Self:
         """

@@ -12,10 +12,9 @@ from typing_extensions import Self
 
 from .affine import identity_matrix
 from .all_enums import *
-from ..canvas.style_map import ShapeStyle, shape_style_map
+from ..canvas.style_map import ShapeStyle, shape_style_map, shape_args
 from ..helpers.validation import validate_args
 from .common import Point, common_properties, get_item_by_id, Line
-from ..canvas.style_map import shape_args
 from ..settings.settings import defaults
 from ..helpers.utilities import (
     get_transform,
@@ -32,13 +31,13 @@ from ..geometry.geometry import (
     connected_pairs,
 )
 from ..helpers.graph import Node, Graph, GraphEdge
-from .core import Base
+from .core import Base, StyleMixin
 from .bbox import bounding_box
 from .points import Points
 from .batch import Batch
 
 
-class Shape(Base):
+class Shape(Base, StyleMixin):
     """The main class for all geometric entities in Simetri.
 
     A Shape is created by providing a sequence of points (a list of (x, y) coordinates).
@@ -111,11 +110,8 @@ class Shape(Base):
             name (str): The name of the attribute.
             value (Any): The value to set.
         """
-        obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
-        if obj:
-            setattr(obj, attrib, value)
-        else:
-            self.__dict__[name] = value
+        super().__setattr__(name, value)
+
 
     def __getattr__(self, name):
         """Retrieve an attribute of the shape.
@@ -129,26 +125,13 @@ class Shape(Base):
         Raises:
             AttributeError: If the attribute cannot be found.
         """
-        obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
-        if obj:
-            res = getattr(obj, attrib)
-        else:
-            try:
-                res = super().__getattr__(name)
-            except AttributeError:
-                res = self.__dict__[name]
+        try:
+            res = super().__getattr__(name)
+        except AttributeError:
+            res = self.__dict__[name]
         return res
 
-    def _set_aliases(self):
-        """Set aliases for style attributes based on the style map."""
-        _aliasses = {}
-        for alias, path_attrib in self._style_map.items():
-            style_path, attrib = path_attrib
-            obj = self
-            for attrib_name in style_path.split("."):
-                obj = obj.__dict__[attrib_name]
-            _aliasses[alias] = (obj, attrib)
-        self.__dict__["_aliasses"] = _aliasses
+
 
     def _get_closed(self, points: Sequence[Point], closed: bool):
         """Determine whether the shape should be considered closed.
