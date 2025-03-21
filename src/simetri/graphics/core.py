@@ -10,7 +10,7 @@ from typing_extensions import Self
 import numpy as np
 from numpy import ndarray
 
-from .all_enums import Anchor, Side, get_enum_value
+from .all_enums import Anchor, Side, get_enum_value, anchors
 from .common import (
     Point,
     Line,
@@ -30,63 +30,78 @@ class Base:
     """Base class for Shape and Batch objects."""
 
     def __getattr__(self, name: str) -> Any:
-        """
-        Get the attribute with the given name.
-
-        Args:
-            name (str): The name of the attribute.
-
-        Returns:
-            Any: The attribute with the given name.
-
-        Raises:
-            AttributeError: If the attribute does not exist.
-        """
-        _anchors = [
-            "southeast",
-            "southwest",
-            "northeast",
-            "northwest",
-            "south",
-            "north",
-            "east",
-            "west",
-            "center",
-            "left",
-            "right",
-            "top",
-            "bottom",
-            "diagonal1",
-            "diagonal2",
-            "horiz_centerline",
-            "vert_centerline",
-            "s",
-            "n",
-            "e",
-            "w",
-            "sw",
-            "se",
-            "nw",
-            "ne",
-            "c",
-            "d1",
-            "d",
-            "corners",
-            "all_anchors",
-            "width",
-            "height",
-        ]
-
-        if name in _anchors:
+        if name in anchors:
             res = getattr(self.b_box, name)
         else:
             try:
                 res = self.__dict__[name]
             except KeyError as exc:
-                msg = f"'{self.__class__.__name__}' object has no attribute '{name}'"
-                raise AttributeError(msg) from exc
+                try:
+                    res = super().__getattr__(name)
+                except AttributeError as exc:
+                    msg = f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                    raise AttributeError(msg) from exc
 
         return res
+
+    # def __getattr__(self, name: str) -> Any:
+    #     """
+    #     Get the attribute with the given name.
+
+    #     Args:
+    #         name (str): The name of the attribute.
+
+    #     Returns:
+    #         Any: The attribute with the given name.
+
+    #     Raises:
+    #         AttributeError: If the attribute does not exist.
+    #     """
+        # _anchors = [
+        #     "southeast",
+        #     "southwest",
+        #     "northeast",
+        #     "northwest",
+        #     "south",
+        #     "north",
+        #     "east",
+        #     "west",
+        #     "center",
+        #     "left",
+        #     "right",
+        #     "top",
+        #     "bottom",
+        #     "diagonal1",
+        #     "diagonal2",
+        #     "horiz_centerline",
+        #     "vert_centerline",
+        #     "s",
+        #     "n",
+        #     "e",
+        #     "w",
+        #     "sw",
+        #     "se",
+        #     "nw",
+        #     "ne",
+        #     "c",
+        #     "d1",
+        #     "d",
+        #     "corners",
+        #     "all_anchors",
+        #     "width",
+        #     "height",
+        # ]
+
+        # if name in anchors:
+        #     res = getattr(self.b_box, name)
+        # else:
+        #     try:
+        #         res = self.__dict__[name]
+        #     except KeyError as exc:
+        #         msg = f"'{self.__class__.__name__}' object has no attribute '{name}'"
+        #         raise AttributeError(msg) from exc
+
+        # return res
 
     def translate(self, dx: float = 0, dy: float = 0, reps: int = 0) -> Self:
         """
@@ -308,3 +323,52 @@ class Base:
         """
         anchor = get_enum_value(Anchor, anchor)
         return self.b_box.offset_point(anchor, dx, dy)
+
+
+class StyleMixin:
+    """Mixin class for style attributes.
+    Shape class inherits from this.
+    Some Batch classes with different subtypes also inherit from this.
+    """
+    def __setattr__(self, name, value):
+        """Set an attribute of the shape.
+
+        Args:
+            name (str): The name of the attribute.
+            value (Any): The value to set.
+        """
+        obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
+        if obj:
+            setattr(obj, attrib, value)
+        else:
+            self.__dict__[name] = value
+
+    def __getattr__(self, name):
+        """Retrieve an attribute of the shape.
+
+        Args:
+            name (str): The attribute name to return.
+
+        Returns:
+            Any: The value of the attribute.
+
+        Raises:
+            AttributeError: If the attribute cannot be found.
+        """
+        obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
+        if obj:
+            res = getattr(obj, attrib)
+        else:
+            res = self.__dict__[name]
+        return res
+
+    def _set_aliases(self):
+        """Set aliases for style attributes based on the style map."""
+        _aliasses = {}
+        for alias, path_attrib in self._style_map.items():
+            style_path, attrib = path_attrib
+            obj = self
+            for attrib_name in style_path.split("."):
+                obj = obj.__dict__[attrib_name]
+            _aliasses[alias] = (obj, attrib)
+        self.__dict__["_aliasses"] = _aliasses
