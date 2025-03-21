@@ -97,7 +97,6 @@ def sine_wave(
     duration: float,
     sample_rate: float,
     phase: float = 0,
-    damping: float = 1,
 ) -> np.ndarray:
     """
     Generate a sine wave.
@@ -108,7 +107,6 @@ def sine_wave(
         duration (float): Duration of the wave.
         sample_rate (float): Sample rate.
         phase (float, optional): Phase angle of the wave. Defaults to 0.
-        damping (float, optional): Damping factor. Defaults to 1.
 
     Returns:
         np.ndarray: Time and signal arrays representing the sine wave.
@@ -140,6 +138,38 @@ def damping_function(amplitude, duration, sample_rate):
     for i in range(int(duration * sample_rate)):
         damping.append(amplitude * exp(-i / (duration * sample_rate)))
     return damping
+
+def sine_points(
+    period: float = 40,
+    amplitude: float = 20,
+    duration: float = 40,
+    n_points: int = 100,
+    phase_angle: float = 0,
+    damping: float = 0,
+) -> np.ndarray:
+    """
+    Generate sine wave points.
+
+    Args:
+        amplitude (float): Amplitude of the wave.
+        frequency (float): Frequency of the wave.
+        duration (float): Duration of the wave.
+        sample_rate (float): Sample rate.
+        phase (float, optional): Phase angle of the wave. Defaults to 0.
+        damping (float, optional): Damping coefficient. Defaults to 0.
+    Returns:
+        np.ndarray: Array of points representing the sine wave.
+    """
+    phase = phase_angle
+    freq = 1 / period
+    n_cycles = duration / period
+    x = np.linspace(0, duration, int(n_points * n_cycles))
+    y = amplitude * np.sin(2 * np.pi * freq * x + phase)
+    if damping:
+        y *= np.exp(-damping * x)
+    vertices = np.column_stack((x, y)).tolist()
+
+    return vertices
 
 
 def circle_inversion(point, center, radius):
@@ -1028,8 +1058,8 @@ def extended_line(dist: float, line: Line, extend_both=False) -> Line:
         line_length = length(line)
         t = (line_length + dist) / line_length
         p1, p2 = line
-        x1, y1 = p1
-        x2, y2 = p2
+        x1, y1 = p1[:2]
+        x2, y2 = p2[:2]
         c = 1 - t
 
         return [(x1, y1), (c * x1 + t * x2, c * y1 + t * y2)]
