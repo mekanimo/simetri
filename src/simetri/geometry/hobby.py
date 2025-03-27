@@ -371,7 +371,7 @@ def velocity(theta: float, phi: float) -> float:
     )
     return numerator / denominator
 
-def hobby_shape(points, cyclic=False, tension=1, begin_curl=1, end_curl=1, debug=False):
+def hobby_shape(points, cyclic=False, tension=1, begin_curl=1, end_curl=1, n_points=None):
     """Create a Shape object from points using John Hobby's algorithm.
 
     This function calculates cubic Bezier control points using Hobby's algorithm,
