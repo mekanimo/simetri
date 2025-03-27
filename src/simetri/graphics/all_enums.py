@@ -565,8 +565,6 @@ class PathOperation(StrEnum):
     BLEND_QUAD = "BLEND_QUAD"
     BLEND_SINE = "BLEND_SINE"
     CLOSE = "CLOSE"
-    CLOSE_HOBBY = "CLOSE_HOBBY"
-    CONNECTOR = "CONNECTOR"
     CUBIC_TO = "CUBIC_TO"
     FORWARD = "FORWARD"
     HOBBY_TO = "HOBBY_TO"
@@ -576,6 +574,7 @@ class PathOperation(StrEnum):
     QUAD_TO = "QUAD_TO"
     R_LINE = "RLINE"
     R_MOVE = "RMOVE"
+    SEGMENTS = "SEGMENTS"
     SINE = "SINE"
     V_LINE = "V_LINE"
 
@@ -632,6 +631,24 @@ class Result(StrEnum):
     SAVED = "SAVED"
     STOP = "STOP"
     SUCCESS = "SUCCESS"
+
+class MusicScale(StrEnum):
+    """MusicScale is used for musical note scales.
+    This is used for audio generation for animations.
+    Not implemented yet!!!
+    """
+
+    MAJOR = "major"
+    MINOR = "minor"
+    CHROMATIC = "chromatic"
+    PENTATONIC = "pentatonic"
+    IONIC = "ionic"
+    DORIAN = "dorian"
+    PHRYGIAN = "phrygian"
+    LYDIAN = "lydian"
+    MIXOLYDIAN = "mixolydian"
+    AEOLIAN = "aeolian"
+    LOCRIAN = "locrian"
 
 
 class ShadeType(StrEnum):
