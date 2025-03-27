@@ -308,6 +308,22 @@ def set_defaults():
         "BackStyle.EMPTY, BackStyle.COLOR, BackStyle.SHADING, "
         "BackStyle.PATTERN, BackStyle.GRIDLINES."
     )
+    defaults["canvas_frame_color"] = colors.black # frame color for the canvas
+    defaults_help["canvas_frame_color"] = (
+        "Frame color for the canvas. Color object."
+    )
+    defaults["canvas_frame_margin"] = 15  # margin around the canvas frame
+    defaults_help["canvas_frame_margin"] = (
+        "Margin around the canvas frame. "
+    )
+    defaults["canvas_frame_shadow_width"] = 5  # shadow width for the canvas frame
+    defaults_help["canvas_frame_shadow_width"] = (
+        "Shadow width for the canvas frame. "
+    )
+    defaults["canvas_frame_width"] = 45  # frame width for the canvas
+    defaults_help["canvas_frame_width"] = (
+        "Frame width for the canvas. Positive float. Length in <points>."
+    )
     defaults["canvas_size"] = None  # (width, height) canvas size in points
     defaults_help["canvas_size"] = (
         "Canvas size. "
@@ -714,6 +730,8 @@ def set_defaults():
     defaults_help['n_bezier_points'] = 'Number of points for Bezier curves. Positive integer.'
     defaults['n_ellipse_points'] = 40  # number of points for ellipses
     defaults_help['n_ellipse_points'] = 'Number of points for ellipses. Positive integer.'
+    defaults['n_hobby_points'] = 40  # number of points for Hobby curves
+    defaults_help['n_hobby_points'] = 'Number of points for Hobby curves. Positive integer.'
     defaults['n_q_bezier_points'] = 30  # number of points for quadratic Bezier curves
     defaults_help['n_q_bezier_points'] = 'Number of points for quadratic Bezier curves. Positive integer.'
     defaults["n_round"] = 2  # used for rounding floats
