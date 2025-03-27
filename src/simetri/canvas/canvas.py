@@ -30,10 +30,7 @@ from simetri.graphics.batch import Batch
 from simetri.graphics.shape import Shape
 from simetri.colors import colors
 from simetri.canvas import draw
-from simetri.helpers.utilities import (
-    wait_for_file_availability,
-    is_file_empty
-)
+from simetri.helpers.utilities import wait_for_file_availability, is_file_empty
 from simetri.tikz.tikz import Tex, get_tex_code
 from simetri.helpers.validation import validate_args
 from simetri.canvas.style_map import canvas_args
@@ -316,7 +313,9 @@ class Canvas:
         draw.rectangle(self, center, width, height, angle, **kwargs)
         return self
 
-    def square(self, center: Point = (0, 0), size: float = 100, angle: float = 0, **kwargs) -> Self:
+    def square(
+        self, center: Point = (0, 0), size: float = 100, angle: float = 0, **kwargs
+    ) -> Self:
         """
         Draw a square with the given center and size.
 
@@ -404,6 +403,33 @@ class Canvas:
             Self: The canvas object.
         """
         draw.draw_CS(self, size, **kwargs)
+        return self
+
+    def draw_frame(
+        self, margin: Union[float, Sequence] = None, width=None, **kwargs
+    ) -> Self:
+        """
+        Draw a frame around the canvas.
+
+        Args:
+            margins (Union[float, Sequence]): The margins of the frame.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
+        """
+        # to do: add shadow and frame color, shadow width. Check canvas.clip.
+        if margin is None:
+            margin = defaults["canvas_frame_margin"]
+        if width is None:
+            width = defaults["canvas_frame_width"]
+        b_box = bounding_box(self._all_vertices)
+        box2 = b_box.get_inflated_b_box(margin)
+        box3 = box2.get_inflated_b_box(15)
+        shadow = Shape([box3.northwest, box3.southwest, box3.southeast])
+        self.draw(shadow, line_color=colors.light_gray,line_width=width)
+        self.draw(Shape(box2.corners, closed=True), fill=False, line_width=width)
+
         return self
 
     def reset(self) -> Self:
@@ -614,6 +640,7 @@ class Canvas:
         Returns:
             nx.DiGraph: The directed graph of the batch and its elements.
         """
+
         def add_batch(batch, graph):
             graph.add_node(batch.id)
             for item in batch.elements:
@@ -874,7 +901,7 @@ class Canvas:
                 None
             """
             output_path = os.path.join(parent_dir, file_name + extension)
-            cmd = "xelatex " + tex_path
+            cmd = "xelatex " + tex_path + " --output-directory " + parent_dir
             res = compile_tex(cmd)
             if "No pages of output" in res:
                 raise RuntimeError("Failed to compile the tex file.")
