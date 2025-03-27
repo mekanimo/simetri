@@ -360,11 +360,13 @@ class BoundingBox:
         Returns:
             BoundingBox: The inflated bounding box.
         """
-        _set_Nones(
-            self,
-            ["left_margin", "bottom_margin", "right_margin", "top_margin"],
-            [left_margin, bottom_margin, right_margin, top_margin],
-        )
+
+        if bottom_margin is None:
+            bottom_margin = left_margin
+        if right_margin is None:
+            right_margin = left_margin
+        if top_margin is None:
+            top_margin = bottom_margin
 
         x, y = self.southwest[:2]
         southwest = (x - left_margin, y - bottom_margin)
