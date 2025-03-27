@@ -100,7 +100,7 @@ class Bezier(Shape):
         Returns:
             Sequence[Point]: Control points of the Bezier curve.
         """
-        return self.control_points
+        return self.__dict__['control_points']
 
     @control_points.setter
     def control_points(self, new_control_points: Sequence[Point]) -> None:
@@ -131,9 +131,7 @@ class Bezier(Shape):
             Shape: Copy of the Bezier curve.
         """
         # to do: copy style and other attributes
-        copy_ = super().copy()
-        copy_.control_points = self.control_points
-        copy_.cubic = self.cubic
+        copy_ = Bezier(self.control_points, xform_matrix=self.xform_matrix, n_points=len(self.vertices))
 
         return copy_
 
