@@ -732,6 +732,10 @@ class Shape(Base, StyleMixin):
 
         return connected_pairs(vertices)
 
+    @property
+    def segments(self) -> List[Line]:
+        return self.edges
+
     def reverse(self):
         """Reverse the order of the vertices.
 
