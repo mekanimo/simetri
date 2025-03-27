@@ -13,9 +13,10 @@ from .shape import Shape
 from .common import Point, common_properties
 from ..helpers.validation import validate_args
 from .all_enums import PathOperation as PathOps
-from .all_enums import Types, Dep
+from .all_enums import Types
 from ..canvas.style_map import shape_style_map, ShapeStyle, shape_args
 from ..geometry.bezier import Bezier
+from ..geometry.hobby import hobby_shape
 from ..geometry.geometry import (
     homogenize,
     positive_angle,
@@ -55,7 +56,8 @@ class Operation:
 
 
 class LinPath(Batch, StyleMixin):
-    """A LinPath object is a container for various linear elements.
+    """LinerPath.
+    A LinPath object is a container for various linear elements.
     Path objects can be transformed like other Shape and Batch objects.
     """
 
@@ -134,6 +136,9 @@ class LinPath(Batch, StyleMixin):
         elif op_type in [PO.LINE_TO, PO.R_LINE, PO.H_LINE, PO.V_LINE, PO.FORWARD]:
             self.objects.append(Shape(data))
             self.cur_shape.append(data[1])
+        elif op_type in [PO.SEGMENTS]:
+            self.objects.append(Shape(data[1]))
+            self.cur_shape.extend(data[1])
         elif op_type in [PO.SINE, PO.BLEND_SINE]:
             self.objects.append(Shape(data[0]))
             self.cur_shape.extend(data[0])
@@ -147,6 +152,10 @@ class LinPath(Batch, StyleMixin):
             else:
                 self.handles.append((data[0], data[1]))
                 self.handles.append((data[1], data[2]))
+        elif op_type in [PO.HOBBY_TO]:
+            n_points = defaults['n_hobby_points']
+            curve = hobby_shape(data[1], n_points=n_points)
+            self.objects.append(Shape(curve.vertices))
         elif op_type in [PO.ARC, PO.BLEND_ARC]:
             self.objects.append(Shape(data[-1]))
             self.cur_shape.extend(data[-1][1:])
@@ -169,9 +178,10 @@ class LinPath(Batch, StyleMixin):
         new_path.pos = self.pos
         new_path.angle = self.angle
         new_path.operations = self.operations.copy()
-        new_path.objects = [
-            obj.copy() if obj is not None else None for obj in self.objects
-        ]
+        new_path.objects = []
+        for obj in self.objects:
+            if obj is not None:
+                new_path.objects.append(obj.copy())
         new_path.even_odd = self.even_odd
         new_path.cur_shape = self.cur_shape.copy()
         new_path.handles = self.handles.copy()
@@ -356,6 +366,20 @@ class LinPath(Batch, StyleMixin):
         self._add((x, y), PathOps.V_LINE, (self.pos, (x, y)))
         return self
 
+    def segments(self, points, **kwargs) -> Self:
+        """Add a series of line segments to the path.
+
+        Args:
+            points (list): The points of the segments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Path: The path object.
+        """
+
+        self._add(points[-1], PathOps.SEGMENTS, (self.pos, points), pnt2=points[-2], **kwargs)
+        return self
+
     def cubic_to(self, control1: Point, control2: Point, end: Point, *args, **kwargs) -> Self:
         """Add a Bézier curve with two control points to the path. Multiple blended curves can be added
         by providing additional arguments.
@@ -389,17 +413,9 @@ class LinPath(Batch, StyleMixin):
         Returns:
             Path: The path object.
         """
-        self.operations.append((PathOps.HOBBY_TO, (self.pos, points)))
+        self._add(points[-1], PathOps.HOBBY_TO, (self.pos, points))
         return self
 
-    def close_hobby(self) -> Self:
-        """Close the Hobby curve.
-
-        Returns:
-            Path: The path object.
-        """
-        self.operations.append((PathOps.CLOSE_HOBBY, (self.pos, None)))
-        return self
 
     def quad_to(self, control: Point, end: Point, *args, **kwargs) -> Self:
         """Add a quadratic Bézier curve to the path. Multiple blended curves can be added by providing
