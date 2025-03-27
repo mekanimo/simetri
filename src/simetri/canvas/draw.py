@@ -911,6 +911,7 @@ def create_sketch(item, canvas, **kwargs):
                     path_op.HOBBY_TO,
                     path_op.QUAD_TO,
                     path_op.R_LINE,
+                    path_op.SEGMENTS,
                     path_op.SINE,
                     path_op.V_LINE,
                     path_op.LINE_TO]
