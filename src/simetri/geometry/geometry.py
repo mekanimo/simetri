@@ -542,7 +542,7 @@ def cross_product2(a: Point, b: Point, c: Point) -> float:
 
 def angle_between_lines2(point1: Point, point2: Point, point3: Point) -> float:
     """
-    Given line1 as point1 and point2, and line2 as point3 and point2
+    Given line1 as point1 and point2, and line2 as point2 and point3
     return the angle between two lines
     (point2 is the corner point)
 
