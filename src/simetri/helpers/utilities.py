@@ -488,6 +488,19 @@ def find_closest_value(a_sorted_list, value):
         return left, ind - 1
 
 
+def value_from_intervals(value, values, intervals):
+    """Return the value from the intervals.
+        Args:
+            value: The value to find.
+            values: The values to search.
+            intervals: The intervals to search.
+        Returns:
+            The value from the intervals.
+    """
+
+    return values[bisect_left(intervals, value)]
+
+
 def get_transform(transform):
     """Return the transformation matrix.
 
