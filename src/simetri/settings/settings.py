@@ -1,5 +1,5 @@
 """Settings and default values for the Simetri library.
-Do not modify these values here. You can change them in startup.py or in your code.
+Do not modify these values here.
 If you are going to share your code with others, you should set these values in your code.
 """
 
@@ -12,13 +12,11 @@ from math import pi
 import numpy as np
 
 
-VOID = 'VOID' # Importing from common module causes circular import. To do: fix this
+VOID = 'VOID'
 
 # This is the alpha testing stage for the Simetri library.
 # These default values may change in the future.
-# We will record the values used in a script and create a <job_name>_config.ini file
-# along with the output files. Next time you run the script, the values in the
-# <job_name>_config.ini file will override the default values if they are changed.
+
 
 
 class _Defaults:
@@ -103,9 +101,8 @@ class _Defaults:
 
 
 defaults = _Defaults()
-
-# To do: Create a help function that explains the settings
-
+default_types = {}
+defaults_help = {}
 
 def set_defaults():
     """Sets the default values for the Simetri library."""
@@ -142,6 +139,8 @@ def set_defaults():
     from ..colors import colors
 
     global defaults
+    global default_types
+    global defaults_help
 
     # tol, rtol, and rtol are used for comparing floats
     # These are used in numpy.isclose and numpy.allclose
@@ -154,8 +153,8 @@ def set_defaults():
     # np.isclose(800, 721, rtol=.1) returns False
     # atol makes a bigger difference when comparing values close to zero
     # if this surrprises you, please read the numpy documentation
-    defaults_help = {}
     defaults["BB_EPSILON"] = 0.01
+    default_types["BB_EPSILON"] = float
     defaults_help["BB_EPSILON"] = (
         "Bounding box epsilon. "
         "Positive float. Length in <points>. "
@@ -209,10 +208,10 @@ def set_defaults():
         "Positive float. Angle in radians. "
         "Used for comparing angles."
     )
-    defaults["angtol"] = (
+    defaults["angle_tol"] = (
         0.001  # used for comparing angles in radians .001 rad = .057 degrees
     )
-    defaults_help["angtol"] = (
+    defaults_help["angle_tol"] = (
         "Angle tolerance. "
         "Positive float. Angle in radians. "
         "Used for comparing angles."
@@ -251,13 +250,10 @@ def set_defaults():
     defaults_help["atol"] = (
         "Absolute tolerance. "
         "Positive float. Length in <points>. "
+        "1in = 72pt."
         "Used for comparing floats."
     )
-    defaults["auto_plaits"] = True  # automatically create ribbons for lace objects
-    defaults_help["auto_plaits"] = (
-        "Boolean property for lace objects. "
-        "If True, automatically create ribbons for lace objects."
-    )
+
     defaults["back_color"] = colors.white  # canvas background color
     defaults_help["back_color"] = (
         "Background color. Color object. Background color for the canvas."
@@ -664,8 +660,6 @@ def set_defaults():
     defaults_help["line_miter_limit"] = "Line miter limit. Positive float."
     defaults["line_width"] = 1
     defaults_help["line_width"] = "Line width. Positive float. Length in <points>."
-    defaults["log_file"] = "c:/tmp/simetri.log"
-    defaults_help["log_file"] = "Log file. String. Log file for the Simetri library."
     defaults["lualatex_run_options"] = None
     defaults_help["lualatex_run_options"] = "LuaLaTeX run options. String."
     defaults["main_font"] = "Times New Roman"
@@ -926,7 +920,7 @@ def set_defaults():
     )
     defaults["show_log_on_console"] = True  # show log messages on console
     defaults_help["show_log_on_console"] = (
-        "Boolean property for showing log messages on console. "
+        "Boolean property for showing LateX log messages on console. "
         "If True, log messages are shown on console."
     )
     defaults["slanted"] = False
@@ -1026,18 +1020,238 @@ def set_defaults():
 
 
 
-def close_logger(logger):
-    """Close the logger and remove all handlers.
-
-    Args:
-        logger: The logger to close.
-    """
-    for handler in logger.handlers:
-        handler.close()
-        logger.removeHandler(handler)
-
-    # packages = f'\\usepackage{{{",".join(defaults['packages'])}}}\n'
-    # libraries = f'\\usetikzlibrary{{{",".join(defaults['tikz_libraries'])}}}\n'
+    # Populate default_types with corresponding types
+    default_types["BB_EPSILON"] = float
+    default_types["INF"] = float
+    default_types["PRINTTEXOUTPUT"] = bool
+    default_types["active"] = bool
+    default_types["all_caps"] = bool
+    default_types["alpha"] = float
+    default_types["anchor"] = Anchor
+    default_types["angle_atol"] = float
+    default_types["angle_rtol"] = float
+    default_types["angle_tol"] = float
+    default_types["area_atol"] = float
+    default_types["area_rtol"] = float
+    default_types["area_threshold"] = float
+    default_types["arrow_head_length"] = float
+    default_types["arrow_head_width"] = float
+    default_types["atol"] = float
+    default_types["back_color"] = colors.Color
+    default_types["back_style"] = BackStyle
+    default_types["begin_doc"] = str
+    default_types["begin_tikz"] = str
+    default_types["blend_mode"] = BlendMode
+    default_types["bold"] = bool
+    default_types["border"] = float
+    default_types["border_size"] = float
+    default_types["canvas_back_style"] = BackStyle
+    default_types["canvas_frame_color"] = colors.Color
+    default_types["canvas_frame_margin"] = float
+    default_types["canvas_frame_shadow_width"] = float
+    default_types["canvas_frame_width"] = float
+    default_types["canvas_size"] = tuple
+    default_types["circle_radius"] = float
+    default_types["clip"] = bool
+    default_types["color"] = colors.Color
+    default_types["shade_color_wheel"] = bool
+    default_types["shade_color_wheel_black"] = bool
+    default_types["shade_color_wheel_white"] = bool
+    default_types["CS_origin_size"] = float
+    default_types["CS_origin_color"] = colors.Color
+    default_types["CS_size"] = float
+    default_types["CS_line_width"] = float
+    default_types["CS_x_color"] = colors.Color
+    default_types["CS_y_color"] = colors.Color
+    default_types["debug_mode"] = bool
+    default_types["dist_tol"] = float
+    default_types["document_class"] = DocumentClass
+    default_types["document_options"] = list
+    default_types["dot_color"] = colors.Color
+    default_types["double_lines"] = bool
+    default_types["double_distance"] = float
+    default_types["draw_fillets"] = bool
+    default_types["draw_frame"] = bool
+    default_types["draw_markers"] = bool
+    default_types["ellipse_width_height"] = tuple
+    default_types["end_doc"] = str
+    default_types["end_tikz"] = str
+    default_types["even_odd"] = bool
+    default_types["ext_length2"] = float
+    default_types["fill"] = bool
+    default_types["fill_alpha"] = float
+    default_types["fill_color"] = colors.Color
+    default_types["fill_mode"] = FillMode
+    default_types["fill_blend_mode"] = BlendMode
+    default_types["fillet_radius"] = float
+    default_types["font_blend_mode"] = BlendMode
+    default_types["font_alpha"] = float
+    default_types["font_color"] = colors.Color
+    default_types["font_family"] = str
+    default_types["font_size"] = float
+    default_types["font_style"] = str
+    default_types["frame_active"] = bool
+    default_types["frame_alpha"] = float
+    default_types["frame_back_alpha"] = float
+    default_types["frame_back_color"] = colors.Color
+    default_types["frame_blend_mode"] = BlendMode
+    default_types["frame_color"] = colors.Color
+    default_types["frame_draw_fillets"] = bool
+    default_types["frame_fill"] = bool
+    default_types["frame_fillet_radius"] = float
+    default_types["frame_gradient"] = object  # Assuming gradient is a custom object
+    default_types["frame_inner_sep"] = float
+    default_types["frame_inner_xsep"] = float
+    default_types["frame_inner_ysep"] = float
+    default_types["frame_outer_sep"] = float
+    default_types["frame_line_cap"] = LineCap
+    default_types["frame_line_dash_array"] = list
+    default_types["frame_line_join"] = LineJoin
+    default_types["frame_line_width"] = float
+    default_types["frame_min_height"] = float
+    default_types["frame_min_width"] = float
+    default_types["frame_min_size"] = float
+    default_types["frame_pattern"] = object  # Assuming pattern is a custom object
+    default_types["frame_rounded_corners"] = bool
+    default_types["frame_shape"] = FrameShape
+    default_types["frame_smooth"] = bool
+    default_types["frame_stroke"] = bool
+    default_types["frame_visible"] = bool
+    default_types["gap"] = float
+    default_types["graph_palette"] = list
+    default_types["grid_back_color"] = colors.Color
+    default_types["grid_line_color"] = colors.Color
+    default_types["grid_line_width"] = float
+    default_types["grid_alpha"] = float
+    default_types["grid_line_dash_array"] = list
+    default_types["indices_font_family"] = str
+    default_types["indices_font_size"] = str
+    default_types["italic"] = bool
+    default_types["job_dir"] = str
+    default_types["keep_aux_files"] = bool
+    default_types["keep_tex_files"] = bool
+    default_types["keep_log_files"] = bool
+    default_types["lace_offset"] = float
+    default_types["latex_compiler"] = Compiler
+    default_types["line_alpha"] = float
+    default_types["line_blend_mode"] = BlendMode
+    default_types["line_cap"] = LineCap
+    default_types["line_color"] = colors.Color
+    default_types["line_dash_array"] = list
+    default_types["line_dash_phase"] = float
+    default_types["line_join"] = LineJoin
+    default_types["line_miter_limit"] = float
+    default_types["line_width"] = float
+    default_types["lualatex_run_options"] = str
+    default_types["main_font"] = str
+    default_types["margin"] = float
+    default_types["margin_bottom"] = float
+    default_types["margin_left"] = float
+    default_types["margin_right"] = float
+    default_types["margin_top"] = float
+    default_types["marker"] = object  # Assuming marker is a custom object
+    default_types["marker_color"] = colors.Color
+    default_types["marker_line_style"] = str
+    default_types["marker_line_width"] = float
+    default_types["marker_palette"] = list
+    default_types["marker_radius"] = float
+    default_types["marker_size"] = float
+    default_types["marker_type"] = MarkerType
+    default_types["markers_only"] = bool
+    default_types["mask"] = object  # Assuming mask is a custom object
+    default_types["merge"] = bool
+    default_types["merge_tol"] = float
+    default_types["mono_font"] = str
+    default_types["n_arc_points"] = int
+    default_types["n_circle_points"] = int
+    default_types["n_bezier_points"] = int
+    default_types["n_ellipse_points"] = int
+    default_types["n_hobby_points"] = int
+    default_types["n_q_bezier_points"] = int
+    default_types["n_round"] = int
+    default_types["old_style_nums"] = bool
+    default_types["orientation"] = PageOrientation
+    default_types["output_dir"] = str
+    default_types["overline"] = bool
+    default_types["overwrite_files"] = bool
+    default_types["packages"] = list
+    default_types["page_grid_back_color"] = colors.Color
+    default_types["page_grid_line_color"] = colors.Color
+    default_types["page_grid_line_dash_array"] = list
+    default_types["page_grid_line_width"] = float
+    default_types["page_grid_spacing"] = float
+    default_types["page_grid_x_shift"] = float
+    default_types["page_grid_y_shift"] = float
+    default_types["page_margins"] = PageMargins
+    default_types["page_number_position"] = PageNumberPosition
+    default_types["page_numbering"] = PageNumbering
+    default_types["page_size"] = PageSize
+    default_types["pattern_style"] = object  # Assuming pattern style is a custom object
+    default_types["pattern_type"] = PatternType
+    default_types["pattern_color"] = colors.Color
+    default_types["pattern_distance"] = float
+    default_types["pattern_angle"] = float
+    default_types["pattern_x_shift"] = float
+    default_types["pattern_y_shift"] = float
+    default_types["pattern_line_width"] = float
+    default_types["pattern_radius"] = float
+    default_types["pattern_points"] = int
+    default_types["pdflatex_run_options"] = str
+    default_types["plait_color"] = colors.Color
+    default_types["preamble"] = str
+    default_types["radius_threshold"] = float
+    default_types["random_marker_colors"] = bool
+    default_types["random_node_colors"] = bool
+    default_types["rectangle_width_height"] = tuple
+    default_types["render"] = str
+    default_types["rev_arrow_length"] = float
+    default_types["rtol"] = float
+    default_types["sans_font"] = str
+    default_types["save_with_versions"] = bool
+    default_types["section_color"] = colors.Color
+    default_types["section_dash_array"] = list
+    default_types["section_line_cap"] = LineCap
+    default_types["section_line_join"] = LineJoin
+    default_types["section_width"] = float
+    default_types["shade_axis_angle"] = float
+    default_types["shade_ball_color"] = colors.Color
+    default_types["shade_bottom_color"] = colors.Color
+    default_types["shade_inner_color"] = colors.Color
+    default_types["shade_middle_color"] = colors.Color
+    default_types["shade_outer_color"] = colors.Color
+    default_types["shade_left_color"] = colors.Color
+    default_types["shade_lower_left_color"] = colors.Color
+    default_types["shade_lower_right_color"] = colors.Color
+    default_types["shade_right_color"] = colors.Color
+    default_types["shade_top_color"] = colors.Color
+    default_types["shade_type"] = ShadeType
+    default_types["shade_upper_left_color"] = colors.Color
+    default_types["shade_upper_right_color"] = colors.Color
+    default_types["show_browser"] = bool
+    default_types["show_log_on_console"] = bool
+    default_types["slanted"] = bool
+    default_types["small_caps"] = bool
+    default_types["smooth"] = bool
+    default_types["strike_through"] = bool
+    default_types["stroke"] = bool
+    default_types["swatch"] = list
+    default_types["tag_align"] = Align
+    default_types["tag_alpha"] = float
+    default_types["tag_blend_mode"] = BlendMode
+    default_types["temp_dir"] = str
+    default_types["text_offset"] = float
+    default_types["text_width"] = float
+    default_types["tikz_libraries"] = list
+    default_types["tikz_nround"] = int
+    default_types["tikz_scale"] = float
+    default_types["tol"] = float
+    default_types["underline"] = bool
+    default_types["use_packages"] = list
+    default_types["validate"] = bool
+    default_types["visible"] = bool
+    default_types["xelatex_run_options"] = str
+    default_types["x_marker"] = float
+    default_types["x_visible"] = bool
 
 
 tikz_defaults = defaultdict(str)
