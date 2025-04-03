@@ -372,9 +372,11 @@ def get_tex_code(canvas: "Canvas") -> str:
             tuple: The TikZ code and the updated index.
         """
         if sketch.subtype == Types.TAG_SKETCH:
-            code = draw_tag_sketch(sketch, canvas)
+            code = draw_tag_sketch(sketch)
         elif sketch.subtype == Types.BBOX_SKETCH:
-            code = draw_bbox_sketch(sketch, canvas)
+            code = draw_bbox_sketch(sketch)
+        elif sketch.subtype == Types.PATTERN_SKETCH:
+            code = draw_pattern_sketch(sketch)
         else:
             if sketch.draw_markers and sketch.marker_type == MarkerType.INDICES:
                 code = draw_shape_sketch(sketch, ind)
@@ -624,7 +626,7 @@ def draw_batch_sketch(sketch, canvas):
 
     return res
 
-def draw_bbox_sketch(sketch, canvas):
+def draw_bbox_sketch(sketch):
     """Converts a BBoxSketch to TikZ code.
 
     Args:
@@ -748,7 +750,7 @@ def get_frame_options(sketch):
     return options
 
 
-def draw_tag_sketch(sketch, canvas):
+def draw_tag_sketch(sketch):
     """Converts a TagSketch to TikZ code.
 
     Args:
@@ -1385,6 +1387,61 @@ def get_end_scope():
     """
     return "\\end{scope}\n"
 
+def draw_pattern_sketch(sketch):
+    """Draws a pattern sketch.
+
+    Args:
+        sketch: The pattern sketch object.
+
+    Returns:
+        str: The TikZ code for the pattern sketch.
+    """
+    begin_scope = "\\begin{scope}"
+
+    options = []
+
+    if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
+        options += get_pattern_options(sketch)
+    if sketch.stroke:
+        options += get_line_style_options(sketch)
+    if sketch.closed and sketch.fill:
+        options += get_fill_style_options(sketch)
+    if sketch.smooth:
+        options += ["smooth"]
+    if sketch.back_style == BackStyle.SHADING and sketch.fill and sketch.closed:
+        options += get_shading_options(sketch)
+    options = ", ".join(options)
+    if options:
+        begin_scope += f"[{options}]\n"
+    end_scope = get_end_scope()
+
+    pattern = sketch.pattern
+    draw = get_draw(sketch)
+    all_vertices = sketch.kernel_vertices @ sketch.all_matrices
+    vertices_list = np.hsplit(all_vertices, sketch.count)
+    shapes = []
+    for vertices in vertices_list:
+        vertices @= sketch.xform_matrix
+        vertices = [tuple(vert) for vert in vertices[:,:2].tolist()]
+        n = len(vertices)
+        str_lines = [f"{vertices[0]}"]
+        for i, vertice in enumerate(vertices[1:]):
+            if (i + 1) % 8 == 0:
+                if i == n - 1:
+                    str_lines.append(f"-- {vertice} \n")
+                else:
+                    str_lines.append(f"\n\t-- {vertice} ")
+            else:
+                str_lines.append(f"-- {vertice} ")
+        if sketch.closed:
+            str_lines.append("-- cycle;\n")
+        else:
+            str_lines.append(";\n")
+        shapes.append(draw + "".join(str_lines))
+
+
+    return begin_scope + f"[{options}]\n" +  "\n".join(shapes) + end_scope
+
 
 def draw_sketch(sketch):
     """Draws a plain shape sketch.
@@ -1462,7 +1519,6 @@ def draw_shape_sketch(sketch, ind=None):
         res = draw_sketch(sketch)
 
     return res
-
 
 def draw_line_sketch(sketch):
     """Draws a line sketch.
