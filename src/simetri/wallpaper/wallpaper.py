@@ -277,7 +277,7 @@ def wallpaper_p2_rect_lattice(
     # import simetri.graphics as sg
     # import simetri.wallpaper as wp
 
-    # directory = 'c:/tmp'
+    # directory = 'dir_path'
     # canvas = sg.Canvas()
 
     # F = sg.letter_F()
