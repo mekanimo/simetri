@@ -772,7 +772,7 @@ def draw_tag_sketch(sketch):
             else: # defaults['mono_font']
                 res = 'tex_family', 'texttt'
         elif sketch.font_family:
-            if type(sketch.font_family) == FontFamily:
+            if isinstance(sketch.font_family, FontFamily):
                 if sketch.font_family == FontFamily.SANSSERIF:
                     res = 'tex_family', 'textsf'
                 elif sketch.font_family == FontFamily.MONOSPACE:
