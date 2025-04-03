@@ -436,12 +436,13 @@ class Tag(Base):
             self.xform_matrix = self.xform_matrix @ xform_matrix
             res = self
         else:
-            res = []
+            tags = [self]
+            tag = self
             for _ in range(reps):
-                tag = self.copy()
+                tag = tag.copy()
                 tag._update(xform_matrix)
-                res.append(tag)
-            res = Batch(res)
+                tags.append(tag)
+            res = Batch(tags)
 
         return res
 
@@ -460,7 +461,20 @@ class Tag(Base):
         Returns:
             Tag: A copy of the Tag object.
         """
-        return Tag(0, 0, self.text, self.font_style, self.xform_matrix)
+        tag = Tag(self.text, self.pos, xform_matrix=self.xform_matrix)
+        tag._init_pos = self._init_pos
+        tag.font_family = self.font_family
+        tag.font_size = self.font_size
+        tag.font_color = self.font_color
+        tag.anchor = self.anchor
+        tag.bold = self.bold
+        tag.italic = self.italic
+        tag.text_width = self.text_width
+        tag.placement = self.placement
+        tag.minimum_size = self.minimum_size
+        tag.minimum_width = self.minimum_width
+
+        return tag
 
     def text_bounds(self) -> tuple[float, float, float, float]:
         """Returns the bounds of the text.
@@ -500,8 +514,22 @@ class Tag(Base):
         Returns:
             tuple: The bounding box of the text.
         """
-        return bounding_box(self.final_coords)
-
+        # return bounding_box(self.final_coords) To do: check if this is correct
+        xmin, ymin, xmax, ymax = self.text_bounds()
+        w2 = (xmax - xmin) / 2
+        h2 = (ymax - ymin) / 2
+        x, y = self.pos
+        xmin = x - w2
+        xmax = x + w2
+        ymin = y - h2
+        ymax = y + h2
+        points = [
+            (xmin, ymin),
+            (xmax, ymin),
+            (xmax, ymax),
+            (xmin, ymax),
+        ]
+        return bounding_box(points)
     def __str__(self) -> str:
         return f"Tag({self.text})"
 
