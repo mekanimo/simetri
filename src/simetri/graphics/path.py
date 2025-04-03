@@ -494,8 +494,8 @@ class LinPath(Batch, StyleMixin):
 
     def arc(
         self,
-        rx: float,
-        ry: float,
+        radius_x: float,
+        radius_y: float,
         start_angle: float,
         span_angle: float,
         rot_angle: float = 0,
@@ -506,8 +506,8 @@ class LinPath(Batch, StyleMixin):
         The sign of the span angle determines the drawing direction.
 
         Args:
-            rx (float): The x radius of the arc.
-            ry (float): The y radius of the arc.
+            radius_x (float): The x radius of the arc.
+            radius_y (float): The y radius of the arc.
             start_angle (float): The starting angle of the arc.
             span_angle (float): The span angle of the arc.
             rot_angle (float, optional): The rotation angle of the arc. Defaults to 0.
@@ -517,6 +517,8 @@ class LinPath(Batch, StyleMixin):
         Returns:
             Path: The path object.
         """
+        rx = radius_x
+        ry = radius_y
         start_angle = positive_angle(start_angle)
         clockwise = span_angle < 0
         if n_points is None:
