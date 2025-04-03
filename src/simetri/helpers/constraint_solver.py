@@ -4,8 +4,6 @@ Uses Sequential Least Squares Programming (SLSQP) to solve the given constraints
 
 from dataclasses import dataclass
 
-from scipy.optimize import minimize
-
 from simetri.graphics.all_enums import ConstraintType as ConstType
 from simetri.helpers.vector import Vector2D
 from simetri.geometry.geometry import (
@@ -252,6 +250,7 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
     Returns:
         OptimizeResult: The optimization result represented as a `OptimizeResult` object.
     """
+    from scipy.optimize import minimize # this takes too long to import!!!
 
     def objective(x):
         """Objective function for the minimization.
