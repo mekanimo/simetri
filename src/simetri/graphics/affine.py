@@ -9,7 +9,7 @@ from .common import Line, Point
 from ..geometry.geometry import line_angle, vec_along_line, is_line, is_point
 
 
-def identity_matrix() -> np.ndarray:
+def identity_matrix() -> 'ndarray':
     """
     Return the identity matrix
     [[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]].
@@ -22,7 +22,7 @@ def identity_matrix() -> np.ndarray:
 
 def xform_matrix(
     a: float, b: float, c: float, d: float, e: float, f: float
-) -> np.ndarray:
+) -> 'ndarray':
     """
     Return a transformation matrix in row form
     [[a, b, 0], [c, d, 0], [e, f, 1.0]].
@@ -41,7 +41,7 @@ def xform_matrix(
     return np.array([[a, b, 0], [c, d, 0], [e, f, 1.0]])
 
 
-def translation_matrix(dx: float, dy: float) -> np.ndarray:
+def translation_matrix(dx: float, dy: float) -> 'ndarray':
     """
     Return a translation matrix in row form
     [[1.0, 0, 0], [0, 1.0, 0], [dx, dy, 1.0]].
@@ -56,7 +56,7 @@ def translation_matrix(dx: float, dy: float) -> np.ndarray:
     return np.array([[1.0, 0, 0], [0, 1.0, 0], [dx, dy, 1.0]])
 
 
-def inv_translation_matrix(dx: float, dy: float) -> np.ndarray:
+def inv_translation_matrix(dx: float, dy: float) -> 'ndarray':
     """
     Return the inverse of a translation matrix in row form
     [[1.0, 0, 0], [0, 1.0, 0], [-dx, -dy, 1.0]].
@@ -71,7 +71,7 @@ def inv_translation_matrix(dx: float, dy: float) -> np.ndarray:
     return np.array([[1.0, 0, 0], [0, 1.0, 0], [-dx, -dy, 1.0]])
 
 
-def rot_about_origin_matrix(theta: float) -> np.ndarray:
+def rot_about_origin_matrix(theta: float) -> 'ndarray':
     """
     Return a rotation matrix in row form
     [[cos(theta), sin(theta), 0], [-sin(theta), cos(theta), 0], [0, 0, 1.0]].
@@ -87,7 +87,7 @@ def rot_about_origin_matrix(theta: float) -> np.ndarray:
     return np.array([[c, s, 0], [-s, c, 0], [0, 0, 1.0]])
 
 
-def rotation_matrix(theta: float, about=(0, 0)) -> np.ndarray:
+def rotation_matrix(theta: float, about=(0, 0)) -> 'ndarray':
     """
     Construct a rotation matrix that can be used to rotate a point
     about another point by theta float.
@@ -115,7 +115,7 @@ def rotation_matrix(theta: float, about=(0, 0)) -> np.ndarray:
     return trans_mat @ rot_mat @ inv_trans_mat
 
 
-def inv_rotation_matrix(theta: float, about=(0, 0)) -> np.ndarray:
+def inv_rotation_matrix(theta: float, about=(0, 0)) -> 'ndarray':
     """
     Construct the inverse of a rotation matrix that can be used to rotate a point
     about another point by theta float.
@@ -143,7 +143,7 @@ def inv_rotation_matrix(theta: float, about=(0, 0)) -> np.ndarray:
     return inv_trans_mat @ rot_mat.T @ trans_mat
 
 
-def glide_matrix(mirror_line: Line, distance: float) -> np.ndarray:
+def glide_matrix(mirror_line: Line, distance: float) -> 'ndarray':
     """
     Return a glide-reflection matrix in row form.
     Reflect about the given vector then translate by dx
@@ -163,7 +163,7 @@ def glide_matrix(mirror_line: Line, distance: float) -> np.ndarray:
     return mirror_mat @ trans_mat
 
 
-def inv_glide_matrix(mirror_line: Line, distance: float) -> np.ndarray:
+def inv_glide_matrix(mirror_line: Line, distance: float) -> 'ndarray':
     """
     Return the inverse of a glide-reflection matrix in row form.
     Reflect about the given vector then translate by dx
@@ -183,7 +183,7 @@ def inv_glide_matrix(mirror_line: Line, distance: float) -> np.ndarray:
     return trans_matrix @ mirror_mat
 
 
-def scale_matrix(scale_x: float, scale_y: float = None) -> np.ndarray:
+def scale_matrix(scale_x: float, scale_y: float = None) -> 'ndarray':
     """
     Return a scale matrix in row form.
 
@@ -199,7 +199,7 @@ def scale_matrix(scale_x: float, scale_y: float = None) -> np.ndarray:
     return np.array([[scale_x, 0, 0], [0, scale_y, 0], [0, 0, 1.0]])
 
 
-def inv_scale_matrix(scale_x: float, scale_y: float = None) -> np.ndarray:
+def inv_scale_matrix(scale_x: float, scale_y: float = None) -> 'ndarray':
     """
     Return the inverse of a scale matrix in row form.
 
@@ -215,7 +215,7 @@ def inv_scale_matrix(scale_x: float, scale_y: float = None) -> np.ndarray:
     return np.array([[1 / scale_x, 0, 0], [0, 1 / scale_y, 0], [0, 0, 1.0]])
 
 
-def scale_in_place_matrix(scale_x: float, scale_y: float, point: Point) -> np.ndarray:
+def scale_in_place_matrix(scale_x: float, scale_y: float, point: Point) -> 'ndarray':
     """
     Return a scale matrix in row form that scales about a point.
 
@@ -234,7 +234,7 @@ def scale_in_place_matrix(scale_x: float, scale_y: float, point: Point) -> np.nd
     return trans_mat @ scale_mat @ inv_trans_mat
 
 
-def shear_matrix(theta_x: float, theta_y: float = 0) -> np.ndarray:
+def shear_matrix(theta_x: float, theta_y: float = 0) -> 'ndarray':
     """
     Return a shear matrix in row form.
 
@@ -248,7 +248,7 @@ def shear_matrix(theta_x: float, theta_y: float = 0) -> np.ndarray:
     return np.array([[1, tan(theta_y), 0], [tan(theta_x), 1, 0], [0, 0, 1.0]])
 
 
-def inv_shear_matrix(theta_x: float, theta_y: float = 0) -> np.ndarray:
+def inv_shear_matrix(theta_x: float, theta_y: float = 0) -> 'ndarray':
     """
     Return the inverse of a shear matrix in row form.
 
@@ -262,7 +262,7 @@ def inv_shear_matrix(theta_x: float, theta_y: float = 0) -> np.ndarray:
     return np.array([[1, -tan(theta_x), 0], [-tan(theta_y), 1, 0], [0, 0, 1.0]])
 
 
-def mirror_matrix(about: Union[Line, Point]) -> np.ndarray:
+def mirror_matrix(about: Union[Line, Point]) -> 'ndarray':
     """
     Return a matrix to perform reflection about a line or a point.
 
@@ -284,7 +284,7 @@ def mirror_matrix(about: Union[Line, Point]) -> np.ndarray:
     return res
 
 
-def mirror_about_x_matrix() -> np.ndarray:
+def mirror_about_x_matrix() -> 'ndarray':
     """
     Return a matrix to perform reflection about the x-axis.
 
@@ -294,7 +294,7 @@ def mirror_about_x_matrix() -> np.ndarray:
     return np.array([[1.0, 0, 0], [0, -1.0, 0], [0, 0, 1.0]])
 
 
-def mirror_about_y_matrix() -> np.ndarray:
+def mirror_about_y_matrix() -> 'ndarray':
     """
     Return a matrix to perform reflection about the y-axis.
 
@@ -304,7 +304,7 @@ def mirror_about_y_matrix() -> np.ndarray:
     return np.array([[-1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]])
 
 
-def mirror_about_line_matrix(line: Line) -> np.ndarray:
+def mirror_about_line_matrix(line: Line) -> 'ndarray':
     """
     Return a matrix to perform reflection about a line.
 
@@ -339,7 +339,7 @@ def mirror_about_line_matrix(line: Line) -> np.ndarray:
     )
 
 
-def mirror_about_origin_matrix() -> np.ndarray:
+def mirror_about_origin_matrix() -> 'ndarray':
     """
     Return a matrix to perform reflection about the origin.
 
@@ -349,7 +349,7 @@ def mirror_about_origin_matrix() -> np.ndarray:
     return np.array([[-1.0, 0, 0], [0, -1.0, 0], [0, 0, 1.0]])
 
 
-def mirror_about_point_matrix(point: Point) -> np.ndarray:
+def mirror_about_point_matrix(point: Point) -> 'ndarray':
     """
     Return a matrix to perform reflection about a point.
 
@@ -369,7 +369,7 @@ def mirror_about_point_matrix(point: Point) -> np.ndarray:
     return np.array([[-1.0, 0, 0], [0, -1.0, 0], [2 * x, 2 * y, 1.0]])
 
 
-def rotate(points: Sequence[Point], theta: float, about: Point = (0, 0)) -> np.ndarray:
+def rotate(points: Sequence[Point], theta: float, about: Point = (0, 0)) -> 'ndarray':
     """
     Rotate points by theta about a point.
 
@@ -384,7 +384,7 @@ def rotate(points: Sequence[Point], theta: float, about: Point = (0, 0)) -> np.n
     return points @ rotation_matrix(theta, about)
 
 
-def translate(points: Sequence[Point], dx: float, dy: float) -> np.ndarray:
+def translate(points: Sequence[Point], dx: float, dy: float) -> 'ndarray':
     """
     Translate points by dx, dy.
 
@@ -399,7 +399,7 @@ def translate(points: Sequence[Point], dx: float, dy: float) -> np.ndarray:
     return points @ translation_matrix(dx, dy)
 
 
-def mirror(points: Sequence[Point], about: Line) -> np.ndarray:
+def mirror(points: Sequence[Point], about: Line) -> 'ndarray':
     """
     Mirror points about a line.
 
@@ -413,7 +413,7 @@ def mirror(points: Sequence[Point], about: Line) -> np.ndarray:
     return points @ mirror_matrix(about)
 
 
-def glide(points: Sequence[Point], mirror_line: Line, distance: float) -> np.ndarray:
+def glide(points: Sequence[Point], mirror_line: Line, distance: float) -> 'ndarray':
     """
     Glide (mirror about a line then translate along the same line) points about a line.
 
@@ -428,7 +428,7 @@ def glide(points: Sequence[Point], mirror_line: Line, distance: float) -> np.nda
     return points @ glide_matrix(mirror_line, distance)
 
 
-def shear(points: Sequence[Point], theta_x: float, theta_y: float = 0) -> np.ndarray:
+def shear(points: Sequence[Point], theta_x: float, theta_y: float = 0) -> 'ndarray':
     """
     Shear points by theta_x in x direction and theta_y in y direction.
 
@@ -443,7 +443,7 @@ def shear(points: Sequence[Point], theta_x: float, theta_y: float = 0) -> np.nda
     return points @ shear_matrix(theta_x, theta_y)
 
 
-def scale(points: Sequence[Point], scale_x: float, scale_y: float) -> np.ndarray:
+def scale(points: Sequence[Point], scale_x: float, scale_y: float) -> 'ndarray':
     """
     Scale points by scale_x in x direction and scale_y in y direction.
 
@@ -460,7 +460,7 @@ def scale(points: Sequence[Point], scale_x: float, scale_y: float) -> np.ndarray
 
 def scale_in_place(
     points: Sequence[Point], scale_x: float, scale_y: float, point: Point
-) -> np.ndarray:
+) -> 'ndarray':
     """
     Scale points about a point by scale_x in x direction and scale_y in y direction.
 
