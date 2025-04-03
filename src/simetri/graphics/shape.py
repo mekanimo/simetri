@@ -12,6 +12,7 @@ from typing_extensions import Self
 
 from .affine import identity_matrix
 from .all_enums import *
+from .bbox import BoundingBox
 from ..canvas.style_map import ShapeStyle, shape_style_map, shape_args
 from ..helpers.validation import validate_args
 from .common import Point, common_properties, get_item_by_id, Line
@@ -337,6 +338,9 @@ class Shape(Base, StyleMixin):
         Returns:
             bool: True if the shapes are equal, False otherwise.
         """
+        if other.type != Types.SHAPE:
+            return False
+
         len1 = len(self)
         len2 = len(other)
         if len1 == 0 and len2 == 0:
@@ -610,7 +614,7 @@ class Shape(Base, StyleMixin):
         return self.primary_points.homogen_coords
 
     @property
-    def b_box(self):
+    def b_box(self) -> BoundingBox:
         """Return the bounding box of the shape.
 
         Returns:
