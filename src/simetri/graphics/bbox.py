@@ -3,7 +3,7 @@ Bounding box is axis-aligned. Provides reference edges and points.
 """
 
 import numpy as np
-from .common import Point, common_properties, _set_Nones, defaults
+from .common import Point, common_properties, defaults
 from .all_enums import Side, Types, Anchor
 from ..geometry.geometry import (
     distance,
