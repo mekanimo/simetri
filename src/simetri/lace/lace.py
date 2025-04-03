@@ -1818,7 +1818,7 @@ class Lace(Batch):
         for sec in self.iter_offset_sections():
             if not sec.is_over and sec.is_overlap:
                 plait_sections.append((sec.start, sec.end))
-            if sec.is_over and sec.is_overlap:
+
         graph_edges = [(r[0].id, r[1].id) for r in plait_sections]
         cycles = get_cycles(graph_edges)
         plaits = []
