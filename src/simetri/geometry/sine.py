@@ -1,12 +1,10 @@
 """Sinusoidal wave generator"""
 
 import numpy as np
-import scipy.io.wavfile as wav
 
 from ..graphics.shape import Shape
 from ..graphics.all_enums import Types
 
-ndarray = np.ndarray
 
 class SineWave(Shape):
     """Sinusoidal wave generator
@@ -34,7 +32,7 @@ class SineWave(Shape):
         phase_angle: float = 0,
         damping: float = 0,
         rot_angle: float = 0,
-        xform_matrix: ndarray = None,
+        xform_matrix: 'ndarray' = None,
         **kwargs,
     )-> Shape:
         phase = phase_angle
