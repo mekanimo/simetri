@@ -2,7 +2,6 @@
 from copy import deepcopy
 from math import cos, sin, pi, atan2, sqrt, degrees, ceil
 
-from scipy.special import ellipeinc
 import numpy as np
 
 from ..graphics.shape import Shape, custom_attributes
@@ -17,21 +16,19 @@ from ..settings.settings import defaults
 from ..helpers.utilities  import decompose_transformations
 
 
-ndarray = np.ndarray
-
 class Arc(Shape):
-    """A circular or elliptic arc defined by a center, radius, radius2, start angle,
-    and end angle. If radius2 is not provided, the arc is a circular arc."""
+    """A circular or elliptic arc defined by a center, radius_x, radius_y, start angle,
+    and span angle. If radius_y is not provided, the arc is a circular arc."""
     def __init__(
         self,
         center: Point,
         start_angle: float,
         span_angle: float,
-        radius: float,
-        radius2: float = None,
+        radius_x: float,
+        radius_y: float = None,
         rot_angle: float = 0,
         n_points: int = None,
-        xform_matrix: ndarray = None,
+        xform_matrix: 'ndarray' = None,
         **kwargs,
     ):
         """
@@ -39,19 +36,19 @@ class Arc(Shape):
             center (Point): The center of the arc.
             start_angle (float): The starting angle of the arc.
             span_angle (float): The span angle of the arc.
-            radius (float): The radius of the arc.
-            radius2 (float): The second radius for elliptical arcs.
+            radius_x (float): The x radius of the arc.
+            radius_y (float): The y radius for elliptical arcs.
             rot_angle (float, optional): Rotation angle. Defaults to 0. If negative, the arc is drawn clockwise.
             xform_matrix (ndarray, optional): Transformation matrix. Defaults to None.
             **kwargs: Additional keyword arguments.
         """
-        if radius2 is None:
-            radius2 = radius
+        if radius_y is None:
+            radius_y = radius_x
         if n_points is None:
             n = defaults['n_arc_points']
             n_points = ceil(n * abs(span_angle) / (2 * pi))
 
-        vertices = elliptic_arc_points(center, radius, radius2, start_angle, span_angle, n_points=n_points)
+        vertices = elliptic_arc_points(center, radius_x, radius_y, start_angle, span_angle, n_points=n_points)
         if rot_angle:
             rot_matrix = rotation_matrix(rot_angle, center)
             if xform_matrix is not None:
@@ -66,8 +63,8 @@ class Arc(Shape):
         self.__dict__['span_angle'] = span_angle
         cx, cy = center[:2]
         self._c = [cx, cy, 1]
-        _a = [radius, 0, 1]
-        _b = [0, radius2, 1]
+        _a = [radius_x, 0, 1]
+        _b = [0, radius_y, 1]
         self._orig_triangle = [self._c[:], _a, _b]
 
 
@@ -81,12 +78,12 @@ class Arc(Shape):
         if name == "center":
             diff = np.array(value[:2]) - np.array(self.center[:2])
             self.translate(diff[0], diff[1], reps=0)
-        elif name == "radius":
+        elif name == "radius_x":
             c, a, _ = self._orig_triangle @ self.xform_matrix
             cur_radius = distance(c, a)
             ratio = value / cur_radius
             self.scale(ratio, 1, about=self.center)
-        elif name == "radius2":
+        elif name == "radius_y":
             c, _, b = self._orig_triangle @ self.xform_matrix
             cur_radius = distance(c, b)
             ratio = value / cur_radius
@@ -123,21 +120,21 @@ class Arc(Shape):
         return (self._c @ self.xform_matrix).tolist()[:2]
 
     @property
-    def radius(self):
-        """Return the radius of the arc.
+    def radius_x(self):
+        """Return the x radius of the arc.
 
         Returns:
-            float: The radius of the arc.
+            float: The x radius of the arc.
         """
         c, a, _ = self._orig_triangle @ self.xform_matrix
         return distance(a, c)
 
     @property
-    def radius2(self):
-        """Return the second radius of the arc.
+    def radius_y(self):
+        """Return the y radius of the arc.
 
         Returns:
-            float: The second radius of the arc.
+            float: The y radius of the arc.
         """
         c, _, b = self._orig_triangle @ self.xform_matrix
         return distance(b, c)
@@ -147,11 +144,11 @@ class Arc(Shape):
         center = self.center
         start_angle = self.start_angle
         span_angle = self.span_angle
-        radius = self.radius
-        radius2 = self.radius2
+        radius_x = self.radius_x
+        radius_y = self.radius_y
 
 
-        arc = Arc(center, start_angle, span_angle, radius, radius2, rot_angle=0)
+        arc = Arc(center, start_angle, span_angle, radius_x, radius_y, rot_angle=0)
         arc.primary_points = self.primary_points.copy()
         arc.xform_matrix = self.xform_matrix.copy()
         arc._orig_triangle = deepcopy(self._orig_triangle)
@@ -162,7 +159,7 @@ class Arc(Shape):
             setattr(arc, attrib, getattr(self, attrib))
         arc.subtype = self.subtype
         custom_attribs = custom_attributes(self)
-        arc_attribs = ['center', 'start_angle', 'span_angle', 'radius', 'radius2']
+        arc_attribs = ['center', 'start_angle', 'span_angle', 'radius_x', 'radius_y']
         for attrib in custom_attribs:
             if attrib not in arc_attribs:
                 setattr(arc, attrib, getattr(self, attrib))
@@ -174,7 +171,7 @@ class Ellipse(Shape):
     """An ellipse defined by center, width, and height."""
 
     def __init__(self, center: Point, width: float, height: float, angle:float=0,
-                                                xform_matrix:ndarray = None, **kwargs) -> None:
+                                                xform_matrix:'ndarray' = None, **kwargs) -> None:
         """
         Args:
             center (Point): The center of the ellipse.
@@ -312,7 +309,7 @@ def ellipse_line_intersection(a, b, point):
     return [(x, y), (-x, -y)]
 
 
-def elliptic_arc_points(center, rx, ry, start_angle, span_angle, n_points):
+def elliptic_arc_points(center, start_angle, span_angle, radius_x, radius_y=None, n_points=None):
     """Generate points on an elliptic arc.
     These are generated from the parametric equations of the ellipse.
     They are not evenly spaced.
@@ -328,6 +325,13 @@ def elliptic_arc_points(center, rx, ry, start_angle, span_angle, n_points):
     Returns:
         numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
     """
+    if radius_y is None:
+        radius_y = radius_x
+    rx = radius_x
+    ry = radius_y
+    if n_points is None:
+        n = defaults['n_arc_points']
+        n_points = ceil(n * abs(span_angle) / (2 * pi))
     start_angle = positive_angle(start_angle)
     clockwise = span_angle < 0
     if clockwise:
@@ -418,6 +422,7 @@ def elliptic_arclength(t_0, t_1, a, b):
     Returns:
         float: Arclength of the ellipse.
     '''
+    from scipy.special import ellipeinc # this takes too long to import
     m = 1 - (b / a)**2
     t1 = ellipeinc(t_1 - 0.5 * pi, m)
     t0 = ellipeinc(t_0 - 0.5 * pi, m)
