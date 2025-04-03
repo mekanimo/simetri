@@ -21,6 +21,7 @@ from .all_enums import Types, Anchor, FrameShape, CurveMode
 from ..settings.settings import defaults
 from ..geometry.geometry import homogenize
 from ..helpers.utilities import decompose_transformations
+from .pattern import Pattern
 
 Color = colors.Color
 
@@ -114,6 +115,29 @@ class LineSketch:
 
 
 @dataclass
+class PatternSketch:
+    """PatternSketch is a dataclass for creating a pattern sketch object.
+
+    Attributes:
+        pattern Pattern: The pattern object.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
+
+    pattern: Pattern = None
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        """Initialize the PatternSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.PATTERN_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+        self.kernel_vertices = self.pattern.kernel.final_coords
+        self.all_matrices = self.pattern.composite
+        self.count = self.pattern.count
+        self.closed = self.pattern.closed
+
+@dataclass
 class ShapeSketch:
     """ShapeSketch is a neutral format for drawing.
 
@@ -201,6 +225,8 @@ class ArcSketch:
 
         self.type = Types.SKETCH
         self.subtype = Types.ARC_SKETCH
+        self.closed = self.mode != CurveMode.OPEN
+
 
 
 
