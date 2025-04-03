@@ -899,13 +899,6 @@ class ParallelPolyline(Batch):
         self.dist_tol = dist_tol
         self.dist_tol2 = dist_tol2
         self.closed = closed
-        if "canvas" in kwargs:
-            self._canvas = kwargs["canvas"]
-        else:
-            self._canvas = None
-        if "canvas" in kwargs:
-            self._canvas = kwargs["canvas"]
-            kwargs.pop("canvas")
         self._set_offset_polylines()
         self.polyline_list = [self.polyline] + self.offset_poly_list
         super().__init__(self.polyline_list, **kwargs)
@@ -932,8 +925,7 @@ class ParallelPolyline(Batch):
             vertices = list(polyline.vertices)
             vertices = vertices + [vertices[0]]
             offset_polygons = double_offset_polygons(
-                vertices, self.offset, dist_tol=self.dist_tol, canvas=self._canvas
-            )
+                vertices, self.offset, dist_tol=self.dist_tol)
         else:
             offset_polylines = double_offset_polylines(polyline.vertices, self.offset)
         polylines = []
@@ -1046,11 +1038,6 @@ class Lace(Batch):
         self._groups = None
         self.area_threshold = area_threshold
         self.radius_threshold = radius_threshold
-        if kwargs and "debug" in kwargs:
-            if kwargs["debug"]:
-                self._canvas = Canvas()
-        else:
-            self._canvas = None
         if kwargs and "_copy" in kwargs:
             # pass the pre-computed values
             for k, v in kwargs:
@@ -1061,14 +1048,7 @@ class Lace(Batch):
         else:
             self._set_polyline_list()  # main divisions are set here along with polylines
             # polyline.divisions is the list of Division objects
-            if self._canvas:
-                for polyline in self.polyline_list:
-                    self._canvas.draw(polyline, fill=False)
             self._set_parallel_poly_list()
-            if self._canvas:
-                self._canvas.new_page()
-                for polyline in self.parallel_poly_list:
-                    self._canvas.draw(polyline, fill=False)
             # start_time2 = time.perf_counter()
             self._set_intersections()
             # end_time2 = time.perf_counter()
@@ -1091,8 +1071,7 @@ class Lace(Batch):
             # self._set_partition_groups()
             self._b_box = None
         elements = [polyline for polyline in self.parallel_poly_list] + self.fragments
-        if self._canvas:
-            self._canvas.save("c:/tmp/lace_debug.pdf")
+
         if "debug" in kwargs:
             kwargs.pop("debug")
         super().__init__(elements, **kwargs)
@@ -1251,10 +1230,6 @@ class Lace(Batch):
         self.perimeter = Shape(offset_polygon(self.outline.vertices, -self.offset))
         # skeleton is the input polylines that the lace is based on
         self.skeleton = Batch(self.polyline_list)
-        if self._canvas:
-            self._canvas.new_page()
-            for fragment in self.fragments:
-                self._canvas.draw(fragment)
 
     def set_fragment_groups(self):
         # to do : handle repeated code. same in _set_partition_groups
@@ -1287,10 +1262,6 @@ class Lace(Batch):
                 if radius in radius_values:
                     fragments.append(self.fragments[ind])
             self.fragments_by_radius[key] = fragments
-        if self._canvas:
-            self._canvas.new_page()
-            for fragment in fragments:
-                self._canvas.draw(fragment)
 
     # @timing
     def _set_partition_groups(self):
@@ -1704,17 +1675,13 @@ class Lace(Batch):
         self.parallel_poly_list = []
         if self.polyline_list:
             for _, polyline in enumerate(self.polyline_list):
-                if self._canvas:
-                    self._canvas.new_page()
-                    self._canvas.draw(polyline, fill=False)
                 self.parallel_poly_list.append(
                     ParallelPolyline(
                         polyline,
                         self.offset,
                         lace=self,
                         closed=polyline.closed,
-                        dist_tol=defaults["dist_tol"],
-                        canvas=self._canvas,
+                        dist_tol=defaults["dist_tol"]
                     )
                 )
 
@@ -1774,8 +1741,6 @@ class Lace(Batch):
                 section.start.overlap = overlap
                 section.end.overlap = overlap
             self.overlaps.append(overlap)
-        if self._canvas:
-            self._canvas.new_page()
         for overlap in self.overlaps:
             for section in overlap.sections:
                 if section.is_over:
@@ -1785,13 +1750,9 @@ class Lace(Batch):
                 line = Shape(
                     [section.start.point, section.end.point], line_width=line_width
                 )
-                if self._canvas:
-                    self._canvas.draw(line, line_width=3)
         for division in self.offset_divisions:
             p1 = division.start.point
             p2 = division.end.point
-            if self._canvas:
-                self._canvas.draw(Shape([p1, p2]))
 
     def set_plaits(self):
         """
@@ -1837,13 +1798,7 @@ class Lace(Batch):
         if self.plaits:
             return
         plait_sections = []
-        if self._canvas:
-            self._canvas.new_page()
         for division in self.iter_offset_divisions():
-            if self._canvas:
-                start = division.start.point
-                end = division.end.point
-                self._canvas.draw(Shape([start, end]))
             merged_sections = division._merged_sections()
             for merged in merged_sections:
                 plait_sections.append((merged[0], merged[-1]))
@@ -1860,26 +1815,10 @@ class Lace(Batch):
 
                 plait_sections.append((p1_start_x, p2_start_x))
                 plait_sections.append((p1_end_x, p2_end_x))
-        if self._canvas:
-            self._canvas.new_page()
         for sec in self.iter_offset_sections():
             if not sec.is_over and sec.is_overlap:
                 plait_sections.append((sec.start, sec.end))
-                if self._canvas:
-                    self._canvas.draw(
-                        Shape([sec.start.point, sec.end.point]), line_width=2
-                    )
             if sec.is_over and sec.is_overlap:
-                if self._canvas:
-                    self._canvas.draw(
-                        Shape([sec.start.point, sec.end.point]), line_width=4
-                    )
-        if self._canvas:
-            self._canvas.new_page()
-            for section in plait_sections:
-                self._canvas.draw(
-                    Shape([section[0].point, section[1].point]), line_width=2
-                )
         graph_edges = [(r[0].id, r[1].id) for r in plait_sections]
         cycles = get_cycles(graph_edges)
         plaits = []
@@ -1914,10 +1853,6 @@ class Lace(Batch):
             shape.inner_lines = None
             shape.subtype = Types.PLAIT
             self.plaits.append(shape)
-        if self._canvas:
-            self._canvas.new_page()
-            for plait in self.plaits:
-                self._canvas.draw(plait, fill=True)
 
     # @timing
     def _set_intersections(self):
@@ -1986,23 +1921,10 @@ class Lace(Batch):
                     section.is_overlap = True
                 division.sections.append(section)
                 self.main_sections.append(section)
-        if self._canvas:
-            for section in self.main_sections:
-                self._canvas.draw(
-                    Shape([section.start.point, section.end.point]), line_width=2
-                )
         # set intersections for the offset polylines
         self.offset_intersections = all_intersections(
             offset_divisions, self.d_intersections, self.d_connections
         )
-        if self._canvas:
-            self._canvas.new_page()
-            for intersection in self.offset_intersections:
-                self._canvas.circle(intersection.point, 2)
-            for division in offset_divisions:
-                p1 = division.start.point
-                p2 = division.end.point
-                self._canvas.draw(Shape([p1, p2]))
         # set sections for the offset divisions
         self.offset_sections = []
         for i, division in enumerate(offset_divisions):
@@ -2016,13 +1938,6 @@ class Lace(Batch):
                     section.is_overlap = True
                 division.sections.append(section)
                 self.offset_sections.append(section)
-        if self._canvas:
-            self._canvas.new_page()
-            for section in self.offset_sections:
-                self._canvas.draw(
-                    Shape([section.start.point, section.end.point]), line_width=2
-                )
-        # to do: intersect main divisions with the offset divisions
 
     def _all_polygons(self, polylines, rtol=None):
         """Return a list of polygons from a list of lists of points.
@@ -2064,12 +1979,6 @@ class Lace(Batch):
                 ind = 0
                 for i, division in enumerate(poly1.divisions):
                     for j, section in enumerate(division.sections):
-                        if self._canvas:
-                            if j == 0:
-                                rad = 1
-                            else:
-                                rad = 2
-                            self._canvas.circle(section.mid_point, rad)
                         if section.is_overlap:
                             if section.overlap is None:
                                 msg = (
