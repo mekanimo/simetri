@@ -752,6 +752,7 @@ class Canvas:
         if show_browser is None:
             show_browser = defaults["show_browser"]
         if show_browser:
+            file_path = 'file:///' + file_path
             if multi_page_svg:
                 for i, _ in enumerate(self.pages):
                     f_path = file_path.replace(".svg", f"_page{i + 1}.svg")
