@@ -257,8 +257,6 @@ class FillMode(StrEnum):
 class FontFamily(StrEnum):
     """FontFamily is used to set the family of the font."""
 
-    CURSIVE = "cursive"
-    FANTASY = "fantasy"
     MONOSPACE = "monospace" # \ttfamily, \texttt
     SERIF = "serif"  # serif \rmfamily, \textrm
     SANSSERIF = "sansserif" # \sffamily, \textsf
