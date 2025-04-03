@@ -11,6 +11,7 @@ from math import pi
 
 import numpy as np
 
+from ..graphics.all_enums import FontFamily
 
 VOID = 'VOID'
 
@@ -485,7 +486,7 @@ def set_defaults():
         "Font color. Color object. Font color for the text objects."
     )
     defaults["font_family"] = (
-        "Times New Roman"  # use the default font family in LaTeX engine
+        FontFamily.SERIF  # use the default font family in LaTeX engine
     )
     defaults_help["font_family"] = (
         "Font family. String. Font family for the text objects."
