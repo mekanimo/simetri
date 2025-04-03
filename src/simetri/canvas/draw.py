@@ -23,9 +23,10 @@ from ..graphics.sketch import (
     EllipseSketch,
     LineSketch,
     PathSketch,
+    PatternSketch,
+    RectSketch,
     ShapeSketch,
     TagSketch,
-    RectSketch
 )
 from ..settings.settings import defaults
 from ..canvas.style_map import line_style_map, shape_style_map, group_args
@@ -33,6 +34,7 @@ from ..helpers.illustration import Tag
 from ..graphics.shape import Shape
 from ..graphics.common import Point
 from ..geometry.bezier import bezier_points
+from ..geometry.ellipse import elliptic_arc_points
 from ..graphics.affine import rotation_matrix
 from ..helpers.utilities import decompose_transformations
 
@@ -64,7 +66,8 @@ def help_lines(
         Self: The canvas object.
     """
     self.grid(pos, x_len, y_len, step_size, **kwargs)
-    self.draw_CS(cs_size, **kwargs)
+    if cs_size > 0:
+        self.draw_CS(cs_size, **kwargs)
     return self
 
 
@@ -72,10 +75,11 @@ def arc(
     self,
     center: Point,
     start_angle: float,
-    end_angle: float,
-    radius: float,
-    radius2: float,
+    span_angle: float,
+    radius_x: float,
+    radius_y: float,
     rot_angle: float,
+    n_points: int = None,
     **kwargs,
 ) -> None:
     """
@@ -91,73 +95,14 @@ def arc(
         rot_angle (float): Rotation angle of the arc.
         **kwargs: Additional keyword arguments.
     """
-    cx, cy = center[:2]
-    a = 2 * radius
-    b = 2 * radius2
-    point1 = ellipse_point(a, b, start_angle)
-    point2 = ellipse_point(a, b, end_angle)
-    start_point = cx + point1[0], cy + point1[1]
-    end_point = cx + point2[0], cy + point2[1]
-    self._all_vertices.extend([start_point, end_point, center])
+    vertices = elliptic_arc_points(center, start_angle, span_angle, radius_x, radius_y, n_points)
+    if rot_angle != 0:
+        vertices = homogenize(vertices) @ rotation_matrix(rot_angle, center)
+    self._all_vertices.extend(vertices.tolist() + [center])
 
     sketch = ArcSketch(
-        vertices=self.vertices,
-        xform_matrix=self.xform_matrix
-    )
-    for attrib_name in shape_style_map:
-        if hasattr(sketch, attrib_name):
-            attrib_value = self.resolve_property(sketch, attrib_name)
-        else:
-            attrib_value = defaults[attrib_name]
-        setattr(sketch, attrib_name, attrib_value)
-    for k, v in kwargs.items():
-        setattr(sketch, k, v)
-    self.active_page.sketches.append(sketch)
-
-    return self
-
-
-def arc2(
-    self,
-    center: Point,
-    width: float,
-    height: float,
-    start_angle: float,
-    end_angle: float,
-    radius: float,
-    **kwargs,
-) -> None:
-    """
-    Draw an elliptic arc with the given center, width, height, start and end angles in radians.
-    Arc is drawn in counterclockwise direction from start to end.
-
-    Args:
-        center (Point): Center of the arc.
-        width (float): Width of the arc.
-        height (float): Height of the arc.
-        start_angle (float): Start angle of the arc in radians.
-        end_angle (float): End angle of the arc in radians.
-        radius (float): Radius of the arc.
-        **kwargs: Additional keyword arguments.
-    """
-    cx, cy = center[:2]
-    x = cx + radius * cos(start_angle)
-    y = cy + radius * sin(start_angle)
-    end_point = cx + radius * cos(end_angle), cy + radius * sin(end_angle)
-    self._all_vertices.extend([(x, y), end_point, center])
-
-    x, y = center[:2]
-    p1 = x - radius, y - radius
-    p2 = x + radius, y + y_radius
-    p3 = x - radius, y + radius
-    p4 = x + radius, y - radius
-    self._all_vertices.extend([p1, p2, p3, p4])
-    sketch = ArcSketch(
-        center=center,
-        radius=radius,
-        start_angle=start_angle,
-        end_angle=end_angle,
-        xform_matrix=self.xform_matrix,
+        vertices = vertices,
+        xform_matrix = self.xform_matrix
     )
     for attrib_name in shape_style_map:
         if hasattr(sketch, attrib_name):
@@ -415,6 +360,23 @@ def draw_bbox(self, bbox, **kwargs):
     return self
 
 
+def draw_pattern(self, pattern, **kwargs):
+    """
+    Draw the pattern object.
+
+    Args:
+        pattern: Pattern object to be drawn.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
+    sketch = create_sketch(pattern, self, **kwargs)
+    self.active_page.sketches.append(sketch)
+
+    return self
+
+
 def draw_hobby(
     self,
     points: Sequence[Point],
@@ -611,6 +573,8 @@ def extend_vertices(canvas, item):
             all_vertices.extend(plait.corners)
         for fragment in item.fragments:
             all_vertices.extend(fragment.corners)
+    elif item.subtype == Types.PATTERN:
+        all_vertices.extend(item.get_all_vertices())
     else:
         corners = [x[:2] for x in homogenize(item.corners) @ canvas._xform_matrix]
         all_vertices.extend(corners)
@@ -637,6 +601,8 @@ def draw(self, item: Drawable, **kwargs) -> Self:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
             active_sketches.extend(sketches)
+    elif subtype == Types.PATTERN:
+        draw_pattern(self, item, **kwargs)
     elif subtype == Types.DIMENSION:
         self.draw_dimension(item, **kwargs)
     elif subtype == Types.ARROW:
@@ -763,6 +729,22 @@ def create_sketch(item, canvas, **kwargs):
         sketch = EllipseSketch(
             item.center, item.a, item.b, item.angle, xform_matrix=canvas.xform_matrix
         )
+        set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+        return sketch
+
+    def get_pattern_sketch(item, canvas, **kwargs):
+        """Create a PatternSketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            PatternSketch: Created PatternSketch.
+        """
+        sketch = PatternSketch(item, xform_matrix=canvas.xform_matrix)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
@@ -1061,6 +1043,7 @@ def create_sketch(item, canvas, **kwargs):
         Types.OVERLAP: get_batch_sketch,
         Types.PARALLEL_POLYLINE: get_batch_sketch,
         Types.PATH: get_path_sketch,
+        Types.PATTERN: get_pattern_sketch,
         Types.PLAIT: get_sketch,
         Types.POLYLINE: get_sketch,
         Types.Q_BEZIER: get_sketch,
