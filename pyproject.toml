@@ -1,6 +1,6 @@
 [project]
 name = "simetri"
-version = "0.0.4"
+version = "0.0.5"
 description = "simetri is a Python library for creating and manipulating patterns."
 readme = "README.md"
 authors = [
@@ -14,6 +14,7 @@ dependencies = [
     "numpy>=2.0.2",
     "pillow>=11.1.0",
     "pymupdf>=1.25.1",
+    "scipy>=1.13.1",
     "strenum>=0.4.15",
     "typing-extensions>=4.12.2",
 ]
