@@ -56,12 +56,6 @@ class Anchor(StrEnum):
     WEST = "west"
 
 
-class CurveMode(StrEnum):
-    OPEN = "OPEN"
-    CHORD = "CHORD"
-    PIE = "PIE"
-
-
 class ArrowLine(StrEnum):
     """ArrowLine is used to set the type of arrow line."""
 
@@ -218,6 +212,12 @@ class Conway(StrEnum):
     SPINNING_JUMP = "SPINNING_JUMP"
     SPINNING_SIDLE = "SPINNING_SIDLE"
     STEP = "STEP"
+
+
+class CurveMode(StrEnum):
+    OPEN = "OPEN"
+    CHORD = "CHORD"
+    PIE = "PIE"
 
 
 class Dep(StrEnum):
@@ -449,6 +449,25 @@ class MarkerType(StrEnum):
     TRIANGLE_F = "triangle*"
 
 
+class MusicScale(StrEnum):
+    """MusicScale is used for musical note scales.
+    This is used for audio generation for animations.
+    Not implemented yet!!!
+    """
+
+    MAJOR = "major"
+    MINOR = "minor"
+    CHROMATIC = "chromatic"
+    PENTATONIC = "pentatonic"
+    IONIC = "ionic"
+    DORIAN = "dorian"
+    PHRYGIAN = "phrygian"
+    LYDIAN = "lydian"
+    MIXOLYDIAN = "mixolydian"
+    AEOLIAN = "aeolian"
+    LOCRIAN = "locrian"
+
+
 class Orientation(StrEnum):
     """Orientation is used to set the orientation of the dimension
     lines."""
@@ -632,24 +651,6 @@ class Result(StrEnum):
     STOP = "STOP"
     SUCCESS = "SUCCESS"
 
-class MusicScale(StrEnum):
-    """MusicScale is used for musical note scales.
-    This is used for audio generation for animations.
-    Not implemented yet!!!
-    """
-
-    MAJOR = "major"
-    MINOR = "minor"
-    CHROMATIC = "chromatic"
-    PENTATONIC = "pentatonic"
-    IONIC = "ionic"
-    DORIAN = "dorian"
-    PHRYGIAN = "phrygian"
-    LYDIAN = "lydian"
-    MIXOLYDIAN = "mixolydian"
-    AEOLIAN = "aeolian"
-    LOCRIAN = "locrian"
-
 
 class ShadeType(StrEnum):
     """ShadeType is used to set the type of shading."""
@@ -733,7 +734,7 @@ class Transformation(StrEnum):
     TRANSLATE = "TRANSLATE"
 
 
-# object types and subtypes
+# object types and subtypes in simetri.graphics
 class Types(StrEnum):
     """All objects in simetri.graphics has type and subtype
     properties."""
@@ -808,6 +809,7 @@ class Types(StrEnum):
     PATH = "PATH"
     PATH_OPERATION = "PATH_OPERATION"
     PATH_SKETCH = "PATH_SKETCH"
+    PATTERN = "PATTERN"
     PATTERN_SKETCH = "PATTERN_SKETCH"
     PATTERN_STYLE = "PATTERN_STYLE"
     PETAL = "PETAL"
@@ -850,6 +852,8 @@ class Types(StrEnum):
     TEXT_ANCHOR_LINE = "TEXT_ANCHORLINE"
     TEXT_ANCHOR_POINT = "TEXT_ANCHORPOINT"
     THREAD = "THREAD"
+    TRANSFORM = "TRANSFORM"
+    TRANSFORMATION = "TRANSFORMATION"
     TRIANGLE = "TRIANGLE"
     TURTLE = "TURTLE"
     UNDIRECTED = "UNDIRECTED_GRAPH"
@@ -864,8 +868,8 @@ drawable_types = [
     Types.ARC_ARROW,
     Types.ARROW,
     Types.ARROW_HEAD,
-    Types.BEZIER,
     Types.BATCH,
+    Types.BEZIER,
     Types.BOUNDING_BOX,
     Types.CIRCLE,
     Types.DIMENSION,
@@ -881,9 +885,10 @@ drawable_types = [
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
     Types.PATH,
+    Types.PATTERN,
     Types.PLAIT,
-    Types.Q_BEZIER,
     Types.POLYLINE,
+    Types.Q_BEZIER,
     Types.RECTANGLE,
     Types.SECTION,
     Types.SEGMENT,
@@ -927,6 +932,7 @@ batch_types = [
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
     Types.PATH,
+    Types.PATTERN,
     Types.STAR,
     Types.SVG_PATH,
     Types.TURTLE
@@ -952,6 +958,7 @@ Drawable: TypeAlias = Union[
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
     Types.PATH,
+    Types.PATTERN,
     Types.PLAIT,
     Types.POLYLINE,
     Types.RECTANGLE,
