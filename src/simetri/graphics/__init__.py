@@ -74,6 +74,7 @@ from ..extensions.l_system import l_system
 from ..extensions.animation import Animation, Prop
 from ..extensions.easing import *
 from .path import LinPath
+from .pattern import *
 
 set_tikz_defaults()
 
