@@ -12,7 +12,6 @@ from pathlib import Path
 from dataclasses import dataclass
 
 from typing_extensions import Self, Union
-from numpy import ndarray
 import networkx as nx
 import fitz
 
@@ -117,9 +116,9 @@ class Canvas:
         self,
         center: Point,
         start_angle: float,
-        end_angle: float,
-        radius: float,
-        radius2: float = None,
+        span_angle: float,
+        radius_x: float,
+        radius_y: float = None,
         rot_angle: float = 0,
         **kwargs,
     ) -> Self:
@@ -130,18 +129,18 @@ class Canvas:
             center (Point): The center of the arc.
             start_angle (float): The start angle of the arc.
             end_angle (float): The end angle of the arc.
-            radius (float): The radius of the arc.
-            radius2 (float, optional): The second radius of the arc, defaults to None.
+            radius_x (float): The radius of the arc.
+            radius_y (float, optional): The second radius of the arc, defaults to None.
             rot_angle (float, optional): The rotation angle of the arc, defaults to 0.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
-        if radius2 is None:
-            radius2 = radius
+        if radius_x is None:
+            radius_y = radius
         draw.arc(
-            self, center, start_angle, end_angle, radius, radius2, rot_angle, **kwargs
+            self, center, start_angle, span_angle, radius_x, radius_y, rot_angle, **kwargs
         )
         return self
 
@@ -473,7 +472,7 @@ class Canvas:
         return "Canvas()"
 
     @property
-    def xform_matrix(self) -> ndarray:
+    def xform_matrix(self) -> 'ndarray':
         """
         The transformation matrix of the canvas.
 
@@ -820,7 +819,7 @@ class Canvas:
             """
             os.chdir(parent_dir)
             with subprocess.Popen(
-                cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True
+                cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True, text=True
             ) as p:
                 output = p.communicate("_s\n_l\n")[0]
             if print_output:
