@@ -2,7 +2,7 @@
 import os
 import simetri.graphics as sg
 
-dir_path = "c:/tmp/simetri_test_dir/"
+dir_path = "c:/tmp/"
 file_name = "simetri_simple_test"
 file_path = os.path.join(dir_path, file_name)
 extensions = [".svg", ".png", ".pdf", ".ps", ".eps", ".tex"]
