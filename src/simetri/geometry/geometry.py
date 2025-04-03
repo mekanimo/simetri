@@ -15,7 +15,6 @@ import re
 
 import numpy as np
 from numpy import isclose, array, around
-from scipy.special import ellipeinc
 
 from simetri.helpers.utilities import (
     flatten,
@@ -97,7 +96,7 @@ def sine_wave(
     duration: float,
     sample_rate: float,
     phase: float = 0,
-) -> np.ndarray:
+) -> 'ndarray':
     """
     Generate a sine wave.
 
@@ -146,7 +145,7 @@ def sine_points(
     n_points: int = 100,
     phase_angle: float = 0,
     damping: float = 0,
-) -> np.ndarray:
+) -> 'ndarray':
     """
     Generate sine wave points.
 
@@ -1400,7 +1399,7 @@ def get_quadrant_from_deg_angle(deg_angle: float) -> int:
     return int(floor(deg_angle / 90.0) % 4 + 1)
 
 
-def homogenize(points: Sequence[Point]) -> np.ndarray:
+def homogenize(points: Sequence[Point]) -> 'ndarray':
     """
     Convert a list of points to homogeneous coordinates.
 
@@ -1423,16 +1422,8 @@ def homogenize(points: Sequence[Point]) -> np.ndarray:
     return homogeneous_array
 
 
-# def homogenize(points: Sequence[Point]) -> np.ndarray:
-#     """Points can be ((x1, y1), (x2, y2), ... (xn, yn))
-#     or numpy array of (x, y) or (x, y, 1) vectors.
-#     Return a numpy array of points array(((x1, y1, 1.),
-#     (x2, y2, 1.), ... (xn, yn, 1.)))."""
 
-#     return _homogenize(flatten(points))
-
-
-def _homogenize(coordinates: Sequence[float]) -> np.ndarray:
+def _homogenize(coordinates: Sequence[float]) -> 'ndarray':
     """Internal use only. API provides a homogenize function.
     Given a sequence of coordinates(x1, y1, x2, y2, ... xn, yn),
     return a numpy array of points array(((x1, y1, 1.),
@@ -2061,7 +2052,7 @@ def norm(vec: VecType) -> float:
     return hypot(vec[0], vec[1])
 
 
-def ndarray_to_xy_list(arr: np.ndarray) -> Sequence[Point]:
+def ndarray_to_xy_list(arr: 'ndarray') -> Sequence[Point]:
     """Convert a numpy array to a list of points.
 
     Args:
@@ -3595,6 +3586,7 @@ def elliptic_arclength(t_0, t_1, a, b):
         float: Arclength of the ellipse between the given parametric angles.
     """
     # from: https://www.johndcook.com/blog/2022/11/02/elliptic-arc-length/
+    from scipy.special import ellipeinc # this takes too long to import!!!
     m = 1 - (b / a) ** 2
     t1 = ellipeinc(t_1 - 0.5 * pi, m)
     t0 = ellipeinc(t_0 - 0.5 * pi, m)
