@@ -29,7 +29,8 @@ from simetri.graphics.batch import Batch
 from simetri.graphics.shape import Shape
 from simetri.colors import colors
 from simetri.canvas import draw
-from simetri.helpers.utilities import wait_for_file_availability, is_file_empty
+from simetri.helpers.utilities import wait_for_file_availability
+from simetri.helpers.illustration import logo
 from simetri.tikz.tikz import Tex, get_tex_code
 from simetri.helpers.validation import validate_args
 from simetri.canvas.style_map import canvas_args
@@ -1031,3 +1032,19 @@ class Page:
             for k, v in self.kwargs.items():
                 setattr(self, k, v)
         common_properties(self)
+
+
+def hello() -> None:
+    """
+    Show a hello message.
+    Used for testing an installation of simetri.
+    """
+    canvas = Canvas()
+
+    canvas.text("Hello from simetri.graphics!", (0, -130), bold=True, font_size=20)
+    canvas.draw(logo())
+
+    d_path = os.path.dirname(os.path.abspath(__file__))
+    f_path = os.path.join(d_path, "hello.pdf")
+
+    canvas.save(f_path, overwrite=True)
