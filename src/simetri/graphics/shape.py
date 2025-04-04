@@ -709,7 +709,6 @@ class Shape(Base, StyleMixin):
             closed=self.closed,
             marker_type=self.marker_type,
         )
-
         for attrib in shape_style_map:
             setattr(shape, attrib, getattr(self, attrib))
         shape.subtype = self.subtype
