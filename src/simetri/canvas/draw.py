@@ -45,8 +45,8 @@ Color = colors.Color
 def help_lines(
     self,
     pos: Point = None,
-    x_len: float = None,
-    y_len: float = None,
+    width: float = None,
+    height: float = None,
     step_size=None,
     cs_size: float = None,
     **kwargs,
@@ -56,8 +56,8 @@ def help_lines(
 
     Args:
         pos (Point, optional): Position of the grid. Defaults to None.
-        x_len (float, optional): Length of the grid along the x-axis. Defaults to None.
-        y_len (float, optional): Length of the grid along the y-axis. Defaults to None.
+        width (float, optional): Length of the grid along the x-axis. Defaults to None.
+        height (float, optional): Length of the grid along the y-axis. Defaults to None.
         step_size (optional): Step size for the grid. Defaults to None.
         cs_size (float, optional): Size of the coordinate system. Defaults to None.
         **kwargs: Additional keyword arguments.
@@ -65,7 +65,7 @@ def help_lines(
     Returns:
         Self: The canvas object.
     """
-    self.grid(pos, x_len, y_len, step_size, **kwargs)
+    self.grid(pos, width, height, step_size, **kwargs)
     if cs_size > 0:
         self.draw_CS(cs_size, **kwargs)
     return self
@@ -486,14 +486,14 @@ def draw_dimension(self, item, **kwargs):
 
 
 def grid(
-    self, pos=(0, 0), x_len: float = None, y_len: float = None, step_size=None, **kwargs
+    self, pos=(0, 0), width: float = None, height: float = None, step_size=None, **kwargs
 ):
     """Draw a square grid with the given size.
 
     Args:
         pos (tuple, optional): Position of the grid. Defaults to (0, 0).
-        x_len (float, optional): Length of the grid along the x-axis. Defaults to None.
-        y_len (float, optional): Length of the grid along the y-axis. Defaults to None.
+        width (float, optional): Length of the grid along the x-axis. Defaults to None.
+        height (float, optional): Length of the grid along the y-axis. Defaults to None.
         step_size (optional): Step size for the grid. Defaults to None.
         **kwargs: Additional keyword arguments.
 
@@ -501,9 +501,9 @@ def grid(
         Self: The canvas object.
     """
     x, y = pos[:2]
-    if x_len is None:
-        x_len = defaults["grid_size"]
-        y_len = defaults["grid_size"]
+    if width is None:
+        width = defaults["grid_size"]
+        height = defaults["grid_size"]
     if "line_width" not in kwargs:
         kwargs["line_width"] = defaults["grid_line_width"]
     if "line_color" not in kwargs:
@@ -512,10 +512,10 @@ def grid(
         kwargs["line_dash_array"] = defaults["grid_line_dash_array"]
     # draw x-axis
     # self.line((-size, 0), (size, 0), **kwargs)
-    line_y = Shape([(x, y), (x + x_len, y)], **kwargs)
-    line_x = Shape([(x, y), (x, y + y_len)], **kwargs)
-    lines_x = line_y.translate(0, step_size, reps=int(y_len / step_size))
-    lines_y = line_x.translate(step_size, 0, reps=int(x_len / step_size))
+    line_y = Shape([(x, y), (x + width, y)], **kwargs)
+    line_x = Shape([(x, y), (x, y + height)], **kwargs)
+    lines_x = line_y.translate(0, step_size, reps=int(height / step_size))
+    lines_y = line_x.translate(step_size, 0, reps=int(width / step_size))
     self.draw(lines_x)
     self.draw(lines_y)
     return self

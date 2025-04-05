@@ -563,40 +563,40 @@ class ArrowHead(Shape):
         self.kwargs = kwargs
 
 
-def draw_cs_tiny(canvas, pos=(0, 0), x_len=25, y_len=25, neg_x_len=5, neg_y_len=5):
+def draw_cs_tiny(canvas, pos=(0, 0), width=25, height=25, neg_width=5, neg_height=5):
     """Draws a tiny coordinate system.
 
     Args:
         canvas: The canvas to draw on.
         pos (tuple, optional): The position of the coordinate system. Defaults to (0, 0).
-        x_len (int, optional): The length of the x-axis. Defaults to 25.
-        y_len (int, optional): The length of the y-axis. Defaults to 25.
-        neg_x_len (int, optional): The negative length of the x-axis. Defaults to 5.
-        neg_y_len (int, optional): The negative length of the y-axis. Defaults to 5.
+        width (int, optional): The length of the x-axis. Defaults to 25.
+        height (int, optional): The length of the y-axis. Defaults to 25.
+        neg_width (int, optional): The negative length of the x-axis. Defaults to 5.
+        neg_height (int, optional): The negative length of the y-axis. Defaults to 5.
     """
     x, y = pos[:2]
     canvas.circle((x, y), 2, fill=False, line_color=colors.gray)
-    canvas.draw(Shape([(x - neg_x_len, y), (x + x_len, y)]), line_color=colors.gray)
-    canvas.draw(Shape([(x, y - neg_y_len), (x, y + y_len)]), line_color=colors.gray)
+    canvas.draw(Shape([(x - neg_width, y), (x + width, y)]), line_color=colors.gray)
+    canvas.draw(Shape([(x, y - neg_height), (x, y + height)]), line_color=colors.gray)
 
 
-def draw_cs_small(canvas, pos=(0, 0), x_len=80, y_len=100, neg_x_len=5, neg_y_len=5):
+def draw_cs_small(canvas, pos=(0, 0), width=80, height=100, neg_width=5, neg_height=5):
     """Draws a small coordinate system.
 
     Args:
         canvas: The canvas to draw on.
         pos (tuple, optional): The position of the coordinate system. Defaults to (0, 0).
-        x_len (int, optional): The length of the x-axis. Defaults to 80.
-        y_len (int, optional): The length of the y-axis. Defaults to 100.
-        neg_x_len (int, optional): The negative length of the x-axis. Defaults to 5.
-        neg_y_len (int, optional): The negative length of the y-axis. Defaults to 5.
+        width (int, optional): The length of the x-axis. Defaults to 80.
+        height (int, optional): The length of the y-axis. Defaults to 100.
+        neg_width (int, optional): The negative length of the x-axis. Defaults to 5.
+        neg_height (int, optional): The negative length of the y-axis. Defaults to 5.
     """
     x, y = pos[:2]
     x_axis = arrow(
-        (-neg_x_len + x, y), (x_len + 10 + x, y), head_length=8, head_width=2
+        (-neg_width + x, y), (width + 10 + x, y), head_length=8, head_width=2
     )
     y_axis = arrow(
-        (x, -neg_y_len + y), (x, y_len + 10 + y), head_length=8, head_width=2
+        (x, -neg_height + y), (x, height + 10 + y), head_length=8, head_width=2
     )
     canvas.draw(x_axis, line_width=1)
     canvas.draw(y_axis, line_width=1)
