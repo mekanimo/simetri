@@ -590,7 +590,7 @@ def get_canvas_scope(canvas):
     """
     options = get_scope_options(canvas)
     res = f"\\begin{{scope}}[{options}]\n"
-    if canvas.clip and canvas.mask:
+    if (canvas.clip and canvas.mask) or canvas.size is not None:
         res += get_clip_code(canvas)
 
     return res
