@@ -1350,7 +1350,7 @@ def _set_batch_args(debug=False):
     batch_args.extend(group_args)
     print()
 
-canvas_args = ["size", "back_color", "title", "border"]
+canvas_args = ["size", "back_color", "border"]
 canvas_args.extend(group_args)
 
 shape_aliases_dict = {}

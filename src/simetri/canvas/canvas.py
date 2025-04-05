@@ -50,7 +50,6 @@ class Canvas:
         self,
         size: Vec2 = None,
         back_color: Optional[Color] = None,
-        title: str = "",
         border=None,
         **kwargs,
     ):
@@ -58,16 +57,14 @@ class Canvas:
         Initialize the Canvas.
 
         Args:
-            size (Vec2, optional): The size of the canvas.
+            size (Vec2, optional): The size of the canvas with canvas.origin at (0, 0).
             back_color (Optional[Color], optional): The background color of the canvas.
-            title (str, optional): The title of the canvas.
             border (Any, optional): The border of the canvas.
             kwargs (dict): Additional keyword arguments.
         """
         validate_args(kwargs, canvas_args)
         _set_Nones(self, ["back_color", "border"], [back_color, border])
-        self.size = size
-        self.title = title
+        self._size = size
         self.border = border
         self.type = Types.CANVAS
         self.subtype = Types.CANVAS
@@ -92,6 +89,7 @@ class Canvas:
         self.mask = None  # Mask object
         self.even_odd_rule = None  # True or False
         self.draw_grid = False
+        self._origin = [0, 0]
         common_properties(self)
 
         for k, v in kwargs.items():
@@ -100,18 +98,111 @@ class Canvas:
         self._xform_matrix = identity_matrix()
         self.tex: Tex = Tex()
         self.render = defaults["render"]
-        self.limits = None
+        if self._size is not None:
+            x, y = self.origin[:2]
+            self._limits  = [x, y, x+self.size[0], y+self.size[1]]
+        else:
+            self._limits = None
 
     def __setattr__(self, name, value):
-        if hasattr(self, "active_page") and name in ["back_color", "border", "size"]:
+        if hasattr(self, "active_page") and name in ["back_color", "border"]:
             self.active_page.__setattr__(name, value)
             self.__dict__[name] = value
+        elif name in ["size", "origin", "limits"]:
+            if name == "size":
+                type(self).size.fset(self, value)
+            elif name == "origin":
+                type(self).origin.fset(self, value)
+            elif name == "limits":
+                type(self).limits.fset(self, value)
         else:
             self.__dict__[name] = value
 
     def display(self) -> Self:
         """Show the canvas in a notebook cell."""
         display(self)
+
+    @property
+    def size(self) -> Vec2:
+        """
+        The size of the canvas.
+
+        Returns:
+            Vec2: The size of the canvas.
+        """
+        return self._size
+
+    @size.setter
+    def size(self, value: Vec2) -> None:
+        """
+        Set the size of the canvas.
+
+        Args:
+            value (Vec2): The size of the canvas.
+        """
+        if len(value) == 2:
+            self._size = value
+            x, y = self.origin[:2]
+            w, h = value
+            self._limits = (x, y, x + w, y + h)
+        else:
+            raise ValueError("Size must be a tuple of 2 values.")
+
+    @ property
+    def origin(self) -> Vec2:
+        """
+        The origin of the canvas.
+
+        Returns:
+            Vec2: The origin of the canvas.
+        """
+        return self._origin[:2]
+
+    @origin.setter
+    def origin(self, value: Vec2) -> None:
+        """
+        Set the origin of the canvas.
+
+        Args:
+            value (Vec2): The origin of the canvas.
+        """
+        if len(value) == 2:
+            self._origin = value
+        else:
+            raise ValueError("Origin must be a tuple of 2 values.")
+
+    @property
+    def limits(self) -> Vec2:
+        """
+        The limits of the canvas.
+
+        Returns:
+            Vec2: The limits of the canvas.
+        """
+        if self.size is None:
+            res = None
+        else:
+            x, y = self.origin[:2]
+            w, h = self.size
+            res = (x, y, x + w, y + h)
+
+        return res
+
+
+    @limits.setter
+    def limits(self, value: Vec2) -> None:
+        """
+        Set the limits of the canvas.
+
+        Args:
+            value (Vec2): The limits of the canvas.
+        """
+        if len(value) == 4:
+            x1, y1, x2, y2 = value
+            self._size = (x2 - x1, y2 - y1)
+            self._origin = (x1, y1)
+        else:
+            raise ValueError("Limits must be a tuple of 4 values.")
 
     def arc(
         self,
@@ -232,8 +323,8 @@ class Canvas:
     def help_lines(
         self,
         pos=(-100, -100),
-        x_len: float = 400,
-        y_len: float = 400,
+        width: float = 400,
+        height: float = 400,
         spacing=25,
         cs_size: float = 25,
         **kwargs,
@@ -243,8 +334,8 @@ class Canvas:
 
         Args:
             pos (tuple): The position to start drawing the help lines.
-            x_len (float): The length of the help lines along the x-axis.
-            y_len (float): The length of the help lines along the y-axis.
+            width (float): The length of the help lines along the x-axis.
+            height (float): The length of the help lines along the y-axis.
             spacing (int): The spacing between the help lines.
             cs_size (float): The size of the coordinate system.
             kwargs (dict): Additional keyword arguments.
@@ -252,26 +343,26 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        draw.help_lines(self, pos, x_len, y_len, spacing, cs_size, **kwargs)
+        draw.help_lines(self, pos, width, height, spacing, cs_size, **kwargs)
         return self
 
     def grid(
-        self, pos: Point, x_len: float, y_len: float, spacing: float, **kwargs
+        self, pos: Point, width: float, height: float, spacing: float, **kwargs
     ) -> Self:
         """
         Draw a grid with the given size and spacing.
 
         Args:
             pos (Point): The position to start drawing the grid.
-            x_len (float): The length of the grid along the x-axis.
-            y_len (float): The length of the grid along the y-axis.
+            width (float): The length of the grid along the x-axis.
+            height (float): The length of the grid along the y-axis.
             spacing (float): The spacing between the grid lines.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
-        draw.grid(self, pos, x_len, y_len, spacing, **kwargs)
+        draw.grid(self, pos, width, height, spacing, **kwargs)
         return self
 
     def line(self, start: Point, end: Point, **kwargs) -> Self:
