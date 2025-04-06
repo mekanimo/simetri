@@ -74,10 +74,10 @@ def help_lines(
 def arc(
     self,
     center: Point,
-    start_angle: float,
-    span_angle: float,
     radius_x: float,
     radius_y: float,
+    start_angle: float,
+    span_angle: float,
     rot_angle: float,
     n_points: int = None,
     **kwargs,
@@ -88,13 +88,16 @@ def arc(
 
     Args:
         center (Point): Center of the arc.
+        radius_x (float): Radius of the arc.
+        radius_y (float): Second radius of the arc.
         start_angle (float): Start angle of the arc in radians.
         end_angle (float): End angle of the arc in radians.
-        radius (float): Radius of the arc.
-        radius2 (float): Second radius of the arc.
+
         rot_angle (float): Rotation angle of the arc.
         **kwargs: Additional keyword arguments.
     """
+    if radius_y is None:
+        radius_y = radius_x
     vertices = elliptic_arc_points(center, radius_x, radius_y, start_angle, span_angle, n_points)
     if rot_angle != 0:
         vertices = homogenize(vertices) @ rotation_matrix(rot_angle, center)
@@ -470,7 +473,9 @@ def draw_dimension(self, item, **kwargs):
         arrow_sketch = create_sketch(item.arrow2, self, **kwargs)
         self.active_page.sketches.extend(arrow_sketch)
     x, y = item.text_pos[:2]
-    tag_sketch = TagSketch(item.text, (x, y), font_size=item.font_size, **kwargs)
+
+    tag = Tag(item.text, (x, y), font_size=item.font_size, **kwargs)
+    tag_sketch = create_sketch(tag, self, **kwargs)
     tag_sketch.draw_frame = True
     tag_sketch.frame_shape = FrameShape.CIRCLE
     tag_sketch.fill = True

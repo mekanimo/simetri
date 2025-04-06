@@ -22,10 +22,10 @@ class Arc(Shape):
     def __init__(
         self,
         center: Point,
-        start_angle: float,
-        span_angle: float,
         radius_x: float,
         radius_y: float = None,
+        start_angle: float = 0,
+        span_angle: float = pi/2,
         rot_angle: float = 0,
         n_points: int = None,
         xform_matrix: 'ndarray' = None,
@@ -34,10 +34,10 @@ class Arc(Shape):
         """
         Args:
             center (Point): The center of the arc.
-            start_angle (float): The starting angle of the arc.
-            span_angle (float): The span angle of the arc.
             radius_x (float): The x radius of the arc.
             radius_y (float): The y radius for elliptical arcs.
+            start_angle (float): The starting angle of the arc.
+            span_angle (float): The span angle of the arc.
             rot_angle (float, optional): Rotation angle. Defaults to 0. If negative, the arc is drawn clockwise.
             xform_matrix (ndarray, optional): Transformation matrix. Defaults to None.
             **kwargs: Additional keyword arguments.
@@ -148,7 +148,7 @@ class Arc(Shape):
         radius_y = self.radius_y
 
 
-        arc = Arc(center, start_angle, span_angle, radius_x, radius_y, rot_angle=0)
+        arc = Arc(center, radius_x, radius_y, start_angle, span_angle, rot_angle=0)
         arc.primary_points = self.primary_points.copy()
         arc.xform_matrix = self.xform_matrix.copy()
         arc._orig_triangle = deepcopy(self._orig_triangle)
@@ -316,8 +316,8 @@ def elliptic_arc_points(center, radius_x, radius_y, start_angle, span_angle,  n_
 
     Args:
         center (tuple): (x, y) coordinates of the ellipse center.
-        rx (float): Length of the semi-major axis.
-        ry (float): Length of the semi-minor axis.
+        radius_x (float): Length of the semi-major axis.
+        radius_y (float): Length of the semi-minor axis.
         start_angle (float): Starting angle of the arc.
         span_angle (float): Span angle of the arc.
         n_points (int): Number of points to generate.
@@ -326,6 +326,8 @@ def elliptic_arc_points(center, radius_x, radius_y, start_angle, span_angle,  n_
         numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
     """
     rx = radius_x
+    if radius_y is None:
+        radius_y = radius_x
     ry = radius_y
     if n_points is None:
         n = defaults['n_arc_points']

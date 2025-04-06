@@ -10,6 +10,7 @@ import subprocess
 from typing import Optional, Any, Tuple, Sequence
 from pathlib import Path
 from dataclasses import dataclass
+from math import pi
 
 from typing_extensions import Self, Union
 import networkx as nx
@@ -207,10 +208,10 @@ class Canvas:
     def arc(
         self,
         center: Point,
-        start_angle: float,
-        span_angle: float,
         radius_x: float,
         radius_y: float = None,
+        start_angle: float = 0,
+        span_angle: float = pi / 2,
         rot_angle: float = 0,
         **kwargs,
     ) -> Self:
@@ -219,20 +220,20 @@ class Canvas:
 
         Args:
             center (Point): The center of the arc.
-            start_angle (float): The start angle of the arc.
-            end_angle (float): The end angle of the arc.
             radius_x (float): The radius of the arc.
             radius_y (float, optional): The second radius of the arc, defaults to None.
+            start_angle (float): The start angle of the arc.
+            end_angle (float): The end angle of the arc.
             rot_angle (float, optional): The rotation angle of the arc, defaults to 0.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
-        if radius_x is None:
-            radius_y = radius
+        if radius_y is None:
+            radius_y = radius_x
         draw.arc(
-            self, center, start_angle, span_angle, radius_x, radius_y, rot_angle, **kwargs
+            self, center, radius_x, radius_y, start_angle, span_angle, rot_angle, **kwargs
         )
         return self
 
