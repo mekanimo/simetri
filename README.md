@@ -69,7 +69,7 @@ If you see the created PDF-file in the given path, this means that your system i
 
 If you would like to use Jupyter notebooks or JupyterLab you can use the same commands in a Python code-cell.
 
-If your installation is successful, please watch the "Introduction to simetri basics" video or read the "Introduction to simetri basics" document. This will give you a basic understanding of how the ```Canvas```, ```Shape```, ```Batch```,  and ```BoundingBox```  objects work along with transformations. Every other object in simetri is related to these four major objects and if you have some prior Python experience, you should be able to start using the library on your own. We will be adding more videos and tutorials, so check this space regularly.
+
 
 ### Install a LaTeX distribution
 There are several LaTeX distributions freely available for different operating systems. The recommended distribution is MacTex for macOS, TexLive for Linux and MikTeX for windows.
