@@ -95,7 +95,7 @@ def arc(
         rot_angle (float): Rotation angle of the arc.
         **kwargs: Additional keyword arguments.
     """
-    vertices = elliptic_arc_points(center, start_angle, span_angle, radius_x, radius_y, n_points)
+    vertices = elliptic_arc_points(center, radius_x, radius_y, start_angle, span_angle, n_points)
     if rot_angle != 0:
         vertices = homogenize(vertices) @ rotation_matrix(rot_angle, center)
     self._all_vertices.extend(vertices.tolist() + [center])
