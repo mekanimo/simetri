@@ -37,7 +37,7 @@ This is the second alpha release of the library and is not yet ready for product
 ## What is in the pipeline.
 
 - Documentation. Currently the new version is not documented at all. This will change soon.
-- Testing. Before the Beta release we need to establish a comprehensive testing platform.
+- Testing. Before the Beta release we need to establish a comprehensive testing framework.
 - Pattern object. This will be much more efficient (but less flexible) for creating large tilings and patterns. Pattern object reduces all transformations into a single matrix. A single matrix multiplication will perform all transformations at once. The resulting matrix will be split into submatrices to get the transformed Shape objects. It is already working but not tested yet. Tilings, frieze-patterns and wallpaper-patterns may inherit from this class.
 - Canvas will be able to insert code into the .tex output now. This is very useful for TikZ users who would like to incorporate features that are not included in simetri.graphics.
 - Animation facilities using external libraries.
