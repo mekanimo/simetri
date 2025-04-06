@@ -5,7 +5,7 @@
 # Testing is incomplete.
 # Everything is subject to change till we release a beta version.
 
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 __author__ = "Fahri Basegmez"
 
 from math import (
@@ -71,7 +71,6 @@ import simetri.frieze as frieze
 from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system
-from ..extensions.animation import Animation, Prop
 from ..extensions.easing import *
 from .path import LinPath
 from .pattern import *
