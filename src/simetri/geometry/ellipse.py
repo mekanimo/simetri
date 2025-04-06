@@ -309,7 +309,7 @@ def ellipse_line_intersection(a, b, point):
     return [(x, y), (-x, -y)]
 
 
-def elliptic_arc_points(center, start_angle, span_angle, radius_x, radius_y=None, n_points=None):
+def elliptic_arc_points(center, radius_x, radius_y, start_angle, span_angle,  n_points=None):
     """Generate points on an elliptic arc.
     These are generated from the parametric equations of the ellipse.
     They are not evenly spaced.
@@ -325,8 +325,6 @@ def elliptic_arc_points(center, start_angle, span_angle, radius_x, radius_y=None
     Returns:
         numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
     """
-    if radius_y is None:
-        radius_y = radius_x
     rx = radius_x
     ry = radius_y
     if n_points is None:
