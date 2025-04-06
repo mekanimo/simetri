@@ -210,6 +210,7 @@ class LinPath(Batch, StyleMixin):
         self._create_object()
         if "name" in kwargs:
             setattr(self, kwargs["name"], self.operations[-1])
+        list(pos)[:2]
         self.pos = pos
 
     def push(self):
@@ -488,8 +489,9 @@ class LinPath(Batch, StyleMixin):
         Returns:
             Path: The path object.
         """
-        c1 = line_by_point_angle_length(self.pos, self.angle, control_length)[1]
-        self._add(end, PathOps.QUAD_TO, (self.pos, c1, end), pnt2=c1, **kwargs)
+        pos = list(self.pos[:2])
+        c1 = line_by_point_angle_length(pos, self.angle, control_length)[1]
+        self._add(end, PathOps.QUAD_TO, (pos, c1, end), pnt2=c1, **kwargs)
         return self
 
     def arc(
@@ -551,8 +553,8 @@ class LinPath(Batch, StyleMixin):
 
     def blend_arc(
         self,
-        rx: float,
-        ry: float,
+        radius_x: float,
+        radius_y: float,
         start_angle: float,
         span_angle: float,
         sharp=False,
@@ -562,8 +564,8 @@ class LinPath(Batch, StyleMixin):
         """Add a blended elliptic arc to the path.
 
         Args:
-            rx (float): The x radius of the arc.
-            ry (float): The y radius of the arc.
+            radius_x (float): The x radius of the arc.
+            radius_y (float): The y radius of the arc.
             start_angle (float): The starting angle of the arc.
             span_angle (float): The span angle of the arc.
             sharp (bool, optional): Whether the arc is sharp. Defaults to False.
@@ -573,6 +575,8 @@ class LinPath(Batch, StyleMixin):
         Returns:
             Path: The path object.
         """
+        rx = radius_x
+        ry = radius_y
         start_angle = positive_angle(start_angle)
         clockwise = span_angle < 0
         if n_points is None:
@@ -611,10 +615,10 @@ class LinPath(Batch, StyleMixin):
         period: float = 40,
         amplitude: float = 20,
         duration: float = 40,
-        n_points: int = 100,
         phase_angle: float = 0,
-        damping: float = 0,
         rot_angle: float = 0,
+        damping: float = 0,
+        n_points: int = 100,
         **kwargs,
     ) -> Self:
         """Add a sine wave to the path.
@@ -647,9 +651,9 @@ class LinPath(Batch, StyleMixin):
         period: float = 40,
         amplitude: float = 20,
         duration: float = 40,
-        n_points: int = 100,
         phase_angle: float = 0,
         damping: float = 0,
+        n_points: int = 100,
         **kwargs,
     ) -> Self:
         """Add a blended sine wave to the path.
