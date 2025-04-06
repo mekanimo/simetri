@@ -14,7 +14,7 @@ The documentation is available at [simetri/docs](https://github.com/mekanimo/sim
 This is the second alpha release of the library and is not yet ready for production use. The library is still in its early stages of development and is likely to change significantly in the near future. The beta release is expected to be in May 2025.
 
 ## What is new in 0.0.6-alpha (click on the images to see examples)
-- Codebase has been refactored. Since we don't have the testing framework we cannot be sure if we introduced new bugs with this refactoring!
+- Codebase has been refactored. Since we haven't finished the testing framework we cannot be sure if we introduced new bugs with this refactoring!
 - Tested on macOS (Sequoia v.14) with MacTex, Linux (Ubuntu 24.04) with LiveTex and Windows 11 with MikTex.
 - Quadratic and cubic Bezier curve objects.
 - Hobby curve object.
