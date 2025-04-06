@@ -9,9 +9,39 @@ The documentation is available at [simetri/docs](https://github.com/mekanimo/sim
 
 [<img alt="gallery" src="images/gallery.png" />](https://github.com/mekanimo/simetri/blob/master/gallery.ipynb)
 
-## Version
+## New Version 0.0.6-alpha
 
-This is the first alpha version of the library and is not yet ready for production use. The library is still in its early stages of development and is likely to change significantly in the near future. The beta release is expected to be in May 2025.
+This is the second alpha release of the library and is not yet ready for production use. The library is still in its early stages of development and is likely to change significantly in the near future. The beta release is expected to be in May 2025.
+
+## What is new in 0.0.6-alpha (click on the images to see examples)
+- Codebase has been refactored. Since we don't have the testing framework we cannot be sure if we introduced new bugs with this refactoring!
+- Tested on macOS (Sequoia v.14) with MacTex, Linux (Ubuntu 24.04) with LiveTex and Windows 11 with MikTex.
+- Quadratic and cubic Bezier curve objects.
+- Hobby curve object.
+- Elliptic arc object.
+- Sine-wave object.
+- LinPath: A path object incorporating both linear and curvilinear objects.
+- Ellipse and circle objects.
+- A geometric constraint solver. This is very useful for creating circle-packings without using geometry. There will be some examples of this soon.
+- Turtle-geometry.
+- Lindenmayer-systems.
+- Frieze-patterns.
+- Wallpaper-patterns (only partially implemented yet.)
+- Most API inconsistencies (but not all) are fixed.
+
+## Major issues
+
+- Testing fonts in different systems is problematic. Latex default fonts work on all systems but other fonts may not work reliably on all systems. We may need to create a fall-back system in case a font doesn't exist in a user's system. This requires comprehensive testing. Volunteers needed.
+- Scientific Python is used for some features in ellipses, elliptic arcs, and geometric constraint solver. It takes a significant amount of time to import the library. We may have to implement those features ourselves and eliminate the imports.
+
+## What is in the pipeline.
+
+- Documentation. Currently the new version is not documented at all. This will change soon.
+- Testing. Before the Beta release we need to establish a comprehensive testing platform.
+- Pattern object. This will be much more efficient (but less flexible) for creating large tilings and patterns. Pattern object reduces all transformations into a single matrix. A single matrix multiplication will perform all transformations at once. The resulting matrix will be split into submatrices to get the transformed Shape objects. It is already working but not tested yet. Tilings, frieze-patterns and wallpaper-patterns may inherit from this class.
+- Canvas will be able to insert code into the .tex output now. This is very useful for TikZ users who would like to incorporate features that are not included in simetri.graphics.
+- Animation facilities using external libraries.
+- Sound interface using external libraries.
 
 ## Installation
 If you have a Python version >= 3.9 installed, execute the following command in the terminal:
@@ -20,18 +50,39 @@ If you have a Python version >= 3.9 installed, execute the following command in 
 
 This will not install a LaTeX distribution, so you will need to install one separately.
 
+# Check if simetri.graphics installation is successful
 
+- In a terminal window type ```xelatex -help```. If you get an error message, this may mean that you don't have a LaTeX installation or the path to the ```xelatex``` is not in your system path. Make sure that the system path includes the correct path to ```xelatex```.
+- Open a Python shell and type
+
+```>>> import simetri.graphics as sg```
+
+```>>> sg.__version__ # this should return '0.0.6'```
+
+```>>> sg.hello()```
+
+You should see a browser window showing you a welcome picture. If you don't see it, try
+
+```>>> sg.Canvas().draw(sg.logo()).save('/your/path/here.pdf')```
+
+If you see the created PDF-file in the given path, this means that your system is preventing opening a web-browser window by third parties. You can use the simetri.graphics but your output files will not be shown automatically.
+
+If you would like to use Jupyter notebooks or JupyterLab you can use the same commands in a Python code-cell.
+
+If your installation is successful, please watch the "Introduction to simetri basics" video or read the "Introduction to simetri basics" document. This will give you a basic understanding of how the ```Canvas```, ```Shape```, ```Batch```,  and ```BoundingBox```  objects work along with transformations. Every other object in simetri is related to these four major objects and if you have some prior Python experience, you should be able to start using the library on your own. We will be adding more videos and tutorials, so check this space regularly.
 
 ### Install a LaTeX distribution
-There are several LaTeX distributions freely available for different operating systems. The recommended distribution is the MikTeX app.
+There are several LaTeX distributions freely available for different operating systems. The recommended distribution is MacTex for macOS, TexLive for Linux and MikTeX for windows.
 
-MikTeX handles package installations automatically, so it is recommended for users who are not familiar with LaTeX typesetting engines.
 
-MiKTeX can be downloaded from https://miktex.org/download.
+TexLive can be downloaded from https://www.tug.org/texlive/
+MacTeX can be downloaded from https://www.tug.org/mactex/
+MiKTeX can be downloaded from https://miktex.org/download
+
 
 
 ### Install Jupyter notebooks
-If you would like to run the scripst from a notebook environment, you need to install Jupyter notebooks.
+If you would like to run the scripts from a notebook environment, you need to install Jupyter Notebooks or JupyterLab. In some systems Jupyter may not use the system settings and behave different from the main Python environment.
 
 See https://jupyter.org/install
 
@@ -50,6 +101,7 @@ The library requires the following Python packages:
 - `pymupdf`
 - `strenum`
 - `typing-extensions`
+- `scipy`
 
 These extensions are installed automatically when you install the library using pip or uv.
 
