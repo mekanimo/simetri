@@ -858,7 +858,7 @@ class Canvas:
         file_path: Path = None,
         overwrite: bool = None,
         show: bool = None,
-        print_output=True,
+        print_output=False,
     ) -> Self:
         """
         Save the canvas to a file.
