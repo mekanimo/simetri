@@ -1,6 +1,6 @@
 [project]
 name = "simetri"
-version = "0.0.5"
+version = "0.0.6"
 description = "simetri is a Python library for creating and manipulating patterns."
 readme = "README.md"
 authors = [
@@ -40,4 +40,5 @@ Homepage = "https://github.com/mekanimo/simetri.graphics"
 [dependency-groups]
 dev = [
     "pytest>=8.3.4",
+    "twine>=6.1.0",
 ]
