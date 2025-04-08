@@ -1,10 +1,11 @@
 """Provides facilities for working with grids of cells."""
 
-from math import sin, cos, pi
+from itertools import product
+from math import sin, cos, pi, sqrt
 from typing import Sequence
 
 from ..helpers.utilities import reg_poly_points
-from ..geometry.geometry import intersect
+from ..geometry.geometry import intersect, cartesian_to_polar
 from ..graphics.common import Point
 
 
@@ -44,6 +45,89 @@ class CircularGrid:
 
         return intersect(line1, line2)
 
+    def line(self, ind1:int, ind2:int)->tuple:
+        """
+        Returns the line connecting the given indices.
+
+        Args:
+            ind1 (int): The first index.
+            ind2 (int): The second index.
+
+        Returns:
+            tuple: The line connecting the two points.
+        """
+        return (self.points[ind1], self.points[ind2])
+
+
+class SquareGrid:
+    """A grid formed by connections of square cells."""
+
+    def __init__(self, center: Point = (0, 0), n: int = 16, cell_size: float = 25):
+        """
+        Initializes the grid with the given center, number of rows, number of columns, and cell size.
+
+        Args:
+            center (Point): The center point of the grid.
+            n (int): The number of points in the grid. Square of an even integer.
+            cell_size (float): The size of each cell in the grid.
+        """
+        self.center = center
+        self.n = n
+        self.cell_size = cell_size
+
+        self.points = []
+        # points are around the grid, not in the grid
+
+        hs = int(sqrt(n)//2) # half size
+        c = cell_size
+        vals = [c*x for x in range(-hs, hs+1)]
+        coords = list(product(vals, repeat=2))
+
+        def sort_key(coord):
+            r, _ = cartesian_to_polar(*coord)
+            return r
+
+        def sort_key2(coord):
+            _, theta = cartesian_to_polar(*coord)
+            return theta
+
+        coords.sort(key=sort_key, reverse=True)
+        coords = coords[:n]
+        coords.sort(key=sort_key2)
+        self.points = coords
+
+
+    def intersect(self, line1: Sequence[int], line2: Sequence[int]):
+        """
+        Returns the intersection of the lines connecting the given indices.
+
+        Args:
+            line1 (Sequence[int]): A sequence containing two indices (ind1, ind2).
+            line2 (Sequence[int]): A sequence containing two indices (ind3, ind4).
+
+        Returns:
+            tuple: (x, y) intersection point of the lines.
+        """
+        ind1, ind2 = line1
+        ind3, ind4 = line2
+
+        line1 = (self.points[ind1], self.points[ind2])
+        line2 = (self.points[ind3], self.points[ind4])
+
+        return intersect(line1, line2)
+
+    def line(self, ind1:int, ind2:int)->tuple:
+        """
+        Returns the line connecting the given indices.
+
+        Args:
+            ind1 (int): The first index.
+            ind2 (int): The second index.
+
+        Returns:
+            tuple: The line connecting the two points.
+        """
+        return (self.points[ind1], self.points[ind2])
 
 # change of basis conversion
 
