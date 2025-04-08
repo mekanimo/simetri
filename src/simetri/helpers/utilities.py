@@ -4,6 +4,7 @@ import collections
 import os
 import re
 import base64
+import cmath
 from functools import wraps, reduce
 from time import time, monotonic, perf_counter
 from math import factorial, cos, sin, pi, atan2, sqrt
@@ -22,7 +23,8 @@ from ..graphics.common import get_defaults, Point
 
 
 def time_it(func):
-    '''Decorator to time a function'''
+    """Decorator to time a function"""
+
     @wraps(func)
     def time_it_wrapper(*args, **kwargs):
         start_time = perf_counter()
@@ -31,7 +33,9 @@ def time_it(func):
         total_time = end_time - start_time
         print(f"Function {func.__name__} Took {total_time:.6f} seconds")
         return result
+
     return time_it_wrapper
+
 
 def close_logger(logger):
     """Close the logger and remove all handlers.
@@ -44,7 +48,7 @@ def close_logger(logger):
         logger.removeHandler(handler)
 
 
-def get_file_path_with_rev(directory, script_path, ext='.pdf'):
+def get_file_path_with_rev(directory, script_path, ext=".pdf"):
     """Get the file path with a revision number.
 
     Args:
@@ -55,11 +59,12 @@ def get_file_path_with_rev(directory, script_path, ext='.pdf'):
     Returns:
         The file path with a revision number.
     """
+
     # Get the file path of the script
     def get_rev_number(file_name):
         match = re.search(r"_\d+$", file_name)
         if match:
-            rev = match.group()[1:] # remove the underscore
+            rev = match.group()[1:]  # remove the underscore
             if rev is not None:
                 return int(rev)
         return 0
@@ -67,10 +72,13 @@ def get_file_path_with_rev(directory, script_path, ext='.pdf'):
     # script_path = __file__
     filename = os.path.basename(script_path)
     filename, _ = os.path.splitext(filename)
-    #check if the file is in the current directory
+    # check if the file is in the current directory
     files = os.listdir(directory)
-    file_names = [os.path.splitext(item)[0] for item in files if
-                                os.path.isfile(os.path.join(directory, item))]
+    file_names = [
+        os.path.splitext(item)[0]
+        for item in files
+        if os.path.isfile(os.path.join(directory, item))
+    ]
     existing = [item for item in file_names if item.startswith(filename)]
     if not existing:
         return os.path.join(directory, filename + ext)
@@ -433,8 +441,9 @@ def rel_polar(r: float, angle: float, origin):
 
     return x1, y1
 
-rc = rel_coord # alias for rel_coord
-rp = rel_polar # alias for rel_polar
+
+rc = rel_coord  # alias for rel_coord
+rp = rel_polar  # alias for rel_polar
 
 
 def flatten(points):
@@ -490,12 +499,12 @@ def find_closest_value(a_sorted_list, value):
 
 def value_from_intervals(value, values, intervals):
     """Return the value from the intervals.
-        Args:
-            value: The value to find.
-            values: The values to search.
-            intervals: The intervals to search.
-        Returns:
-            The value from the intervals.
+    Args:
+        value: The value to find.
+        values: The values to search.
+        intervals: The intervals to search.
+    Returns:
+        The value from the intervals.
     """
 
     return values[bisect_left(intervals, value)]
@@ -904,3 +913,72 @@ def reg_poly_points(pos: Point, n: int, r: float) -> Sequence[Point]:
     points = [[cos(angle * i) * r + x, sin(angle * i) * r + y] for i in range(n)]
     points.append(points[0])
     return points
+
+
+def solve_quadratic_eq(a, b, c, tolerance=1e-5):
+    """Solves a quadratic equation of the form ax^2 + bx + c = 0."""
+
+    discr = b**2 - (4 * a * c)  # discriminant
+
+    if discr < 0:
+        res = []
+    elif isclose(discr, 0, rtol=0, atol=tolerance):
+        # one solution
+        res = [(-b + discr) / (2 * a)]
+    else:
+        a2 = a * 2
+        sqrt_discr = sqrt(discr)
+        x1 = (-b + sqrt_discr) / a2
+        x2 = (-b - sqrt_discr) / a2
+        res = [x1, x2]
+
+    return res
+
+
+def solve_quartic_eq(a: float, b: float, c: float, d: float, e: float) -> list[float]:
+    """
+    Solves a quartic equation of the form ax^4 + bx^3 + cx^2 + dx + e = 0.
+
+    Args:
+        a: The coefficient of x^4.
+        b: The coefficient of x^3.
+        c: The coefficient of x^2.
+        d: The coefficient of x.
+        e: The constant term.
+
+    Returns:
+        A numpy array containing the four roots of the equation.
+    """
+
+    return np.roots((a, b, c, d, e)).tolist()
+
+
+def solve_complex_quadratic_eq(
+    a: complex, b: complex, c: complex, tolerance: float = 1e-5
+) -> list[complex]:
+    """Solves a quadratic equation of the form ax^2 + bx + c = 0,
+    where a, b, and c can be complex numbers.
+
+    Args:
+        a: The complex coefficient of x^2.
+        b: The complex coefficient of x.
+        c: The complex constant term.
+        tolerance: The tolerance for floating-point comparisons.
+    """
+    discr = (b**2) - 4 * (a * c)  # discriminant
+    a2 = a * 2
+    if isclose(discr, 0, rtol=0, atol=tolerance):
+        x1 = -b / a2
+        res = [x1]
+    elif discr > 0:
+        sqrt_discr = sqrt(discr)
+        x1 = (-b - sqrt_discr) / a2
+        x2 = (-b + sqrt_discr) / a2
+        res = [x1, x2]
+    else:
+        sqrt_discr = cmath.sqrt(discr)
+        x1 = (-b - sqrt_discr) / a2
+        x2 = (-b + sqrt_discr) / a2
+        res = [x1, x2]
+
+    return res
