@@ -12,6 +12,7 @@ The documentation is available at [simetri/docs](https://github.com/mekanimo/sim
 ## New Version 0.0.6-alpha
 
 This is the second alpha release of the library and is not yet ready for production use. The library is still in its early stages of development and is likely to change significantly in the near future. The beta release is expected to be in May 2025.
+Note: First row from the bottom, second image from left is from Jannis Maroscheck's Shape Grammars.
 [<img alt="gallery" src="images/img_grid2.png" />]
 ## What is new in 0.0.6-alpha
 - Codebase has been refactored. Since we haven't finished the testing framework we cannot be sure if we introduced new bugs with this refactoring!
