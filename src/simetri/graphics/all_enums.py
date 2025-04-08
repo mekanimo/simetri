@@ -336,6 +336,15 @@ class Graph(StrEnum):
     UNDIRECTED = "UNDIRECTED"
     UNDIRECTEDWEIGHTED = "UNDIRECTEDWEIGHTED"
 
+class GridType(StrEnum):
+    """GridType is used to set the type of grid."""
+
+    CIRCULAR = "CIRCULAR"
+    SQUARE = "SQUARE"
+    HEXAGONAL = "HEXAGONAL"
+    MIXED = "MIXED" # CIRCULAR + SQUARE
+
+
 
 # arrow head positions
 class HeadPos(StrEnum):
@@ -736,7 +745,6 @@ class Transformation(StrEnum):
 class Types(StrEnum):
     """All objects in simetri.graphics has type and subtype
     properties."""
-    # to do: use snake-case for the names
     ANGULAR_DIMENSION = "ANGULAR DIMENSION"
     ANNOTATION = "ANNOTATION"
     ARC = "ARC"
@@ -771,18 +779,19 @@ class Types(StrEnum):
     ELLIPTIC_ARC = "ELLIPTIC_ARC"
     FILL_STYLE = "FILL_STYLE"
     FONT = "FONT"
-    FONTSKETCH = "FONT_SKETCH"
+    FONT_SKETCH = "FONT_SKETCH"
     FONT_STYLE = "FONT_STYLE"
     FRAGMENT = "FRAGMENT"
     FRAGMENT_SKETCH = "FRAGMENT_SKETCH"
     FRAME = "FRAME"
-    FRAMESKETCH = "FRAME_SKETCH"
+    FRAME_SKETCH = "FRAME_SKETCH"
     FRAME_STYLE = "FRAME_STYLE"
     GRADIENT = "GRADIENT"
     GRID = "GRID"
     GRID_STYLE = "GRID_STYLE"
     HANDLE = "HANDLE"
     HEXAGONAL = "HEXAGONAL"
+    HEX_GRID = "HEX_GRID"
     ICANVAS = "ICANVAS"
     INTERSECTION = "INTERSECTION"
     LABEL = "LABEL"
@@ -796,6 +805,7 @@ class Types(StrEnum):
     MARKER = "MARKER"
     MARKER_STYLE = "MARKER_STYLE"
     MASK = "MASK"
+    MIXED_GRID = "MIXED_GRID"
     NONE = "NONE"
     OBLIQUE = "OBLIQUE"
     OUTLINE = "OUTLINE"
@@ -836,6 +846,7 @@ class Types(StrEnum):
     SKETCH = "SKETCH"
     SKETCH_STYLE = "SKETCH_STYLE"
     SQUARE = "SQUARE"
+    SQUARE_GRID = "SQUARE_GRID"
     STAR = "STAR"
     STYLE = "STYLE"
     SVG_PATH = "SVG_PATH"
@@ -870,6 +881,7 @@ drawable_types = [
     Types.BEZIER,
     Types.BOUNDING_BOX,
     Types.CIRCLE,
+    Types.CIRCULAR_GRID,
     Types.DIMENSION,
     Types.DIVISION,
     Types.DOT,
@@ -877,8 +889,10 @@ drawable_types = [
     Types.EDGE,
     Types.ELLIPSE,
     Types.FRAGMENT,
+    Types.HEX_GRID,
     Types.INTERSECTION,
     Types.LACE,
+    Types.MIXED_GRID,
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
@@ -892,6 +906,7 @@ drawable_types = [
     Types.SEGMENT,
     Types.SHAPE,
     Types.SINE_WAVE,
+    Types.SQUARE_GRID,
     Types.STAR,
     Types.SVG_PATH,
     Types.TAG,
@@ -923,14 +938,18 @@ batch_types = [
     Types.ARC_ARROW,
     Types.ARROW,
     Types.BATCH,
+    Types.CIRCULAR_GRID,
     Types.DIMENSION,
     Types.DOTS,
+    Types.HEX_GRID,
     Types.LACE,
     Types.MARKER,
+    Types.MIXED_GRID,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
     Types.PATH,
     Types.PATTERN,
+    Types.SQUARE_GRID,
     Types.STAR,
     Types.SVG_PATH,
     Types.TURTLE
@@ -944,14 +963,17 @@ Drawable: TypeAlias = Union[
     Types.ARROW_HEAD,
     Types.BATCH,
     Types.CIRCLE,
+    Types.CIRCULAR_GRID,
     Types.DIMENSION,
     Types.DOT,
     Types.DOTS,
     Types.EDGE,
     Types.ELLIPSE,
     Types.FRAGMENT,
+    Types.HEX_GRID,
     Types.INTERSECTION,
     Types.LACE,
+    Types.MIXED_GRID,
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
@@ -964,6 +986,7 @@ Drawable: TypeAlias = Union[
     Types.SEGMENT,
     Types.SHAPE,
     Types.SINE_WAVE,
+    Types.SQUARE_GRID,
     Types.STAR,
     Types.SVG_PATH,
     Types.TAG,
