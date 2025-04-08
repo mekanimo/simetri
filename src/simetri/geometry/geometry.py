@@ -2309,6 +2309,19 @@ def point_to_line_seg_distance(p, lp1, lp2):
 
     return res
 
+def rotate_point(point: Point, angle: float, center: Point = (0, 0)) -> Point:
+    x, y = point[:2]
+    cx, cy = center[:2]
+    x -= cx
+    y -= cy
+    cos_angle = cos(angle)
+    sin_angle = sin(angle)
+    x, y = x*cos_angle - y*sin_angle, x*sin_angle + y*cos_angle
+    x += cx
+    y += cy
+
+    return (x, y)
+
 
 def point_to_line_vec(point: Point, line: Line, unit: bool = False) -> VecType:
     """Return the perpendicular vector from a point to a line
@@ -2910,13 +2923,13 @@ def angle_between_two_lines(line1, line2):
     return abs(alpha1 - alpha2)
 
 
-def rotate_point(point, center, angle):
+def rotate_point(point:Point, angle:float, center:Point=(0, 0)):
     """Rotate a point around a center by an angle in radians.
 
     Args:
         point (Point): Point to rotate.
-        center (Point): Center of rotation.
         angle (float): Angle of rotation in radians.
+        center (Point): Center of rotation.
 
     Returns:
         Point: Rotated point.
@@ -3218,7 +3231,7 @@ def cartesian_to_polar(x, y):
         tuple: Polar coordinates (r, theta).
     """
     r = hypot(x, y)
-    theta = atan2(y, x)
+    theta = positive_angle(atan2(y, x))
     return r, theta
 
 
