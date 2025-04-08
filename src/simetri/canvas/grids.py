@@ -63,9 +63,11 @@ class Grid(Batch):
             for p1, p2 in pairs:
                 x1, y1 = p1
                 x2, y2 = p2
-                if (x1 == x2 or y1 == y2):
+                cond1 = x1 == x2
+                cond2 = y1 == y2
+                if cond1 ^ cond2:
                     dist = distance(p1, p2)
-                    if dist !=0 and isclose(dist, width, rtol=0, atol=1e-5):
+                    if isclose(dist, width, rtol=0, atol=1e-5):
                         self.append(Shape([p1, p2], line_color=gray))
         else:
             # Draw the lines connecting the points in the grid
