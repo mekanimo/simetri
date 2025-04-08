@@ -4,12 +4,15 @@ from itertools import product
 from math import sin, cos, pi, sqrt
 from typing import Sequence
 
+from numpy import isclose
+
 from ..helpers.utilities import reg_poly_points
 from ..geometry.geometry import (
     intersect,
     cartesian_to_polar,
     polar_to_cartesian,
     lerp_point,
+    distance
 )
 from ..geometry.circle import Circle
 from ..graphics.common import Point, common_properties
@@ -34,7 +37,7 @@ class Grid(Batch):
         self,
         grid_type: GridType,
         center: Point = (0, 0),
-        n: int = 12,
+        n: int = 9,
         radius: float = 100,
         points: Sequence[Point] = None,
         n_circles=1,
@@ -47,14 +50,28 @@ class Grid(Batch):
         self.radius = radius
         self.n = n
         self.n_circles = n_circles
-        pairs = product(points, repeat=2)
-        for point1, point2 in pairs:
-            if point1 != point2:
-                self.append(Shape([point1, point2], line_color=gray))
+        pairs = list(product(points, repeat=2))
+
         self.points = points if points else []
         for i, point in enumerate(self.points):
-            next_point = self.points[(i + 1) % len(self.points)]
-            self.append(Shape([point, next_point]))
+                next_point = self.points[(i + 1) % len(self.points)]
+                self.append(Shape([point, next_point]))
+
+        if grid_type == GridType.SQUARE:
+            # Draw only the horizontal and vertical lines in the grid
+            width = self.width
+            for p1, p2 in pairs:
+                x1, y1 = p1
+                x2, y2 = p2
+                if (x1 == x2 or y1 == y2):
+                    dist = distance(p1, p2)
+                    if dist !=0 and isclose(dist, width, rtol=0, atol=1e-5):
+                        self.append(Shape([p1, p2], line_color=gray))
+        else:
+            # Draw the lines connecting the points in the grid
+            for point1, point2 in pairs:
+                if point1 != point2:
+                    self.append(Shape([point1, point2], line_color=gray))
 
     def intersect(self, line1: Sequence[int], line2: Sequence[int]):
         """
@@ -175,6 +192,7 @@ class SquareGrid(Grid):
             cell_size (float): The size of each cell in the grid.
         """
         self.cell_size = cell_size
+        self.width = cell_size * n / 4
         hs = int(sqrt(n) // 2)  # half size
         c = cell_size
         vals = [c * x for x in range(-hs, hs + 1)]
