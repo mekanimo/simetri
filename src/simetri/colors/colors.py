@@ -15,6 +15,8 @@ from random import random
 from dataclasses import dataclass
 from typing import Sequence
 
+import numpy as np
+
 from ..graphics.common import common_properties, Point
 from ..graphics.all_enums import ColorSpace, Types
 
@@ -108,6 +110,8 @@ def rgb_to_hex(r, g, b):
     return f"{r:X}{g:X}{b:X}"
 
 
+
+
 @dataclass
 class Color:
     """A class representing an RGB or RGBA color.
@@ -135,12 +139,12 @@ class Color:
     space: ColorSpace = "rgb"  # for future use
 
     def __post_init__(self):
-        if self.red < 0 or self.red > 1:
-            self.red = self.red / 255
-        if self.green < 0 or self.green > 1:
-            self.green = self.green / 255
-        if self.blue < 0 or self.blue > 1:
-            self.blue = self.blue / 255
+        """Post-initialization to ensure color values are in the correct range."""
+        r, g, b = self.red, self.green, self.blue
+        if r < 0 or r > 1 or g < 0 or g > 1 or b < 0 or b > 1:
+            self.red = r / 255
+            self.green = g / 255
+            self.blue = b / 255
         if self.alpha < 0 or self.alpha > 1:
             self.alpha = self.alpha / 255
         common_properties(self)
@@ -191,6 +195,20 @@ class Color:
     def rgba255(self):
         return tuple(round(i * 255) for i in self.rgba)
 
+
+def map_color(r:float, g:float, b:float, r_max:float, g_max:float,
+                                                    b_max:float) -> Color:
+    """Map RGB values to a range of 0-255."""
+    i_range = range(256)
+    r_range = np.arange(0, r_max, r_max/256)
+    g_range = np.arange(0, g_max, g_max/256)
+    b_range = np.arange(0, b_max, b_max/256)
+
+    r_ = np.interp(r, r_range, i_range)
+    g_ = np.interp(g, g_range, i_range)
+    b_ = np.interp(b, b_range, i_range)
+
+    return Color(r_, g_, b_)
 
 def blend(color1: Color, percent: int, color2: Color):
     """percent% of color1 and (100-percent)% of color2
