@@ -15,6 +15,7 @@ from ..graphics.all_enums import Types
 from ..helpers.utilities import decompose_transformations
 from ..settings.settings import defaults
 from .affine import scale_in_place_matrix, rotation_matrix
+from ..geometry.ellipse import ellipse_points
 from ..geometry.geometry import (
     side_len_to_radius,
     offset_polygon_points,
@@ -22,6 +23,7 @@ from ..geometry.geometry import (
     mid_point,
     close_points2,
 )
+
 import simetri.colors as colors
 
 Color = colors.Color
@@ -320,7 +322,9 @@ class Circle(Shape):
 
 
 class Segment(Shape):
-    """A line segment defined by two points."""
+    """A line segment defined by two points.
+    This is not used in the code-base, but is here for the API.
+    """
 
     def __init__(self, start: Point, end: Point, **kwargs) -> None:
         """Initialize a Segment object.
@@ -806,7 +810,7 @@ def reg_poly_shape(pos, n, r=100, **kwargs):
     return Shape(points, closed=True, **kwargs)
 
 
-def ellipse_shape(x, y, width, height, n=30):
+def ellipse_shape(x, y, width, height, angle, n_points=None):
     """Return a Shape object with points that form an ellipse with the given parameters.
 
     Args:
@@ -819,7 +823,10 @@ def ellipse_shape(x, y, width, height, n=30):
     Returns:
         Shape: A Shape object with points that form an ellipse.
     """
-    points = ellipse_points(x, y, width, height, n=n)
+    if n_points is None:
+        n_points = defaults["n_ellipse_points"]
+
+    points = ellipse_points((x, y), width, height, n_points=n)
     return Shape(points, subtype=Types.ELLIPSE)
 
 
