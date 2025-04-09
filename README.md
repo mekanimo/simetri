@@ -23,6 +23,7 @@ Note: First row from the bottom, second image from left is from Jannis Maroschec
 - Elliptic arc object.
 - Sine-wave object.
 - LinPath: A path object incorporating both linear and curvilinear objects.
+- [LinPath Documentation](https://github.com/mekanimo/simetri/tree/master/docs/linpath_doc2.ipynb)
 - Ellipse and circle objects.
 - A geometric constraint solver. This is very useful for creating circle-packings without using geometry. There will be some examples of this soon.
 - Turtle-geometry.
