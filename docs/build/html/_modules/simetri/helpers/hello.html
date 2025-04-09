@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.helpers.hello &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.helpers.hello</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">simetri.graphics</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sg</span>
+
+<div class="viewcode-block" id="hello">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.hello.hello">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hello</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hello world function.&quot;&quot;&quot;</span>
+    <span class="c1"># Open the default web browser to the Simetri website</span>
+
+    <span class="n">canvas</span> <span class="o">=</span> <span class="n">sg</span><span class="o">.</span><span class="n">Canvas</span><span class="p">()</span>
+
+    <span class="n">canvas</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Helow from simetri.graphics&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">font_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+
+
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span>
+            <span class="n">ignore_cleanup_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">tmpdirname</span><span class="p">:</span>
+        <span class="n">file_name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">_get_candidate_names</span><span class="p">())</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdirname</span><span class="p">,</span> <span class="n">file_name</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">print_output</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,1224 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="simetri.frieze package" href="simetri.frieze.html" /><link rel="prev" title="simetri.colors package" href="simetri.colors.html" />
+
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>simetri.extensions package - simetri.graphics 0.0.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">simetri.graphics 0.0.6 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">simetri.graphics 0.0.6 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="modules.html">src</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of src</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="simetri.html">simetri package</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of simetri package</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="simetri.colors.html">simetri.colors package</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">simetri.extensions package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.frieze.html">simetri.frieze package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.geometry.html">simetri.geometry package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.graphics.html">simetri.graphics package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.helpers.html">simetri.helpers package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.lace.html">simetri.lace package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.notebook.html">simetri.notebook package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.stars.html">simetri.stars package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.tikz.html">simetri.tikz package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.wallpaper.html">simetri.wallpaper package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/simetri.extensions.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="simetri-extensions-package">
+<h1>simetri.extensions package<a class="headerlink" href="#simetri-extensions-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-simetri.extensions.easing">
+<span id="simetri-extensions-easing-module"></span><h2>simetri.extensions.easing module<a class="headerlink" href="#module-simetri.extensions.easing" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BackEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">BackEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BackEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BackEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BackEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BackEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BackEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BackEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">BackEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BackEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BackEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BackEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BackEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BackEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BackEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">BackEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BackEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BackEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BackEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BackEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BackEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BounceEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">BounceEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BounceEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BounceEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BounceEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BounceEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BounceEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BounceEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">BounceEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BounceEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BounceEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BounceEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BounceEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BounceEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BounceEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">BounceEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BounceEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BounceEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.BounceEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#BounceEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.BounceEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CircularEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">CircularEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CircularEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CircularEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CircularEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CircularEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CircularEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CircularEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">CircularEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CircularEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CircularEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CircularEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CircularEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CircularEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CircularEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">CircularEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CircularEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CircularEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CircularEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CircularEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CircularEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CubicEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">CubicEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CubicEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CubicEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CubicEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CubicEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CubicEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CubicEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">CubicEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CubicEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CubicEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CubicEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CubicEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CubicEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CubicEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">CubicEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CubicEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CubicEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.CubicEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#CubicEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.CubicEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.EasingBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">EasingBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#EasingBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.EasingBase" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.EasingBase.ease">
+<span class="sig-name descname"><span class="pre">ease</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#EasingBase.ease"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.EasingBase.ease" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.EasingBase.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#EasingBase.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.EasingBase.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="simetri.extensions.easing.EasingBase.limit">
+<span class="sig-name descname"><span class="pre">limit</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0,</span> <span class="pre">1)</span></em><a class="headerlink" href="#simetri.extensions.easing.EasingBase.limit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ElasticEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">ElasticEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ElasticEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ElasticEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ElasticEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ElasticEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ElasticEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ElasticEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">ElasticEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ElasticEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ElasticEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ElasticEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ElasticEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ElasticEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ElasticEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">ElasticEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ElasticEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ElasticEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ElasticEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ElasticEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ElasticEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ExponentialEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">ExponentialEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ExponentialEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ExponentialEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ExponentialEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ExponentialEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ExponentialEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ExponentialEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">ExponentialEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ExponentialEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ExponentialEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ExponentialEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ExponentialEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ExponentialEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ExponentialEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">ExponentialEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ExponentialEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ExponentialEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ExponentialEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ExponentialEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ExponentialEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.LinearInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">LinearInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#LinearInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.LinearInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.LinearInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#LinearInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.LinearInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuadEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuadEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuadEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuadEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuadEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuadEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuadEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuadEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuadEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuadEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuadEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuadEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuadEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuadEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuadEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuadEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuadEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuadEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuadEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuadEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuadEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuarticEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuarticEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuarticEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuarticEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuarticEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuarticEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuarticEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuarticEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuarticEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuarticEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuarticEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuarticEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuarticEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuarticEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuarticEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuarticEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuarticEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuarticEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuarticEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuarticEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuarticEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuinticEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuinticEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuinticEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuinticEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuinticEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuinticEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuinticEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuinticEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuinticEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuinticEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuinticEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuinticEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuinticEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuinticEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuinticEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">QuinticEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuinticEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuinticEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.QuinticEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#QuinticEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.QuinticEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.SineEaseIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">SineEaseIn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#SineEaseIn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.SineEaseIn" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.SineEaseIn.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#SineEaseIn.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.SineEaseIn.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.SineEaseInOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">SineEaseInOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#SineEaseInOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.SineEaseInOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.SineEaseInOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#SineEaseInOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.SineEaseInOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.easing.SineEaseOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">SineEaseOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#SineEaseOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.SineEaseOut" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#simetri.extensions.easing.EasingBase" title="simetri.extensions.easing.EasingBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EasingBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.easing.SineEaseOut.func">
+<span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#SineEaseOut.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.SineEaseOut.func" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.easing.cubicInterpolation">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">cubicInterpolation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/easing.html#cubicInterpolation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.cubicInterpolation" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.easing.ease">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.easing.</span></span><span class="sig-name descname"><span class="pre">ease</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minV</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxV</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/easing.html#ease"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.easing.ease" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="simetri-extensions-l-system-module">
+<h2>simetri.extensions.l_system module<a class="headerlink" href="#simetri-extensions-l-system-module" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-simetri.extensions.music">
+<span id="simetri-extensions-music-module"></span><h2>simetri.extensions.music module<a class="headerlink" href="#module-simetri.extensions.music" title="Link to this heading">¶</a></h2>
+<p>Musical notes and scales.  MIDI and frequency conversions.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.music.jump_scale">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.music.</span></span><span class="sig-name descname"><span class="pre">jump_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/simetri/extensions/music.html#jump_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.music.jump_scale" title="Link to this definition">¶</a></dt>
+<dd><p>Return the note in a scale that is a certain number of steps away from a reference note.
+:param scale: A list of MIDI notes in a scale.
+:param reference: The reference note.
+:param step: The number of steps away from the reference note.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The note in the scale that is a certain number of steps away from the reference note.</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<p>jump_scale([60, 62, 64, 65, 67, 69, 71], 60, -2) returns 69.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.music.midi_freq">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.music.</span></span><span class="sig-name descname"><span class="pre">midi_freq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/simetri/extensions/music.html#midi_freq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.music.midi_freq" title="Link to this definition">¶</a></dt>
+<dd><p>Return the frequency of a MIDI note number.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.music.midi_m">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.music.</span></span><span class="sig-name descname"><span class="pre">midi_m</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/simetri/extensions/music.html#midi_m"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.music.midi_m" title="Link to this definition">¶</a></dt>
+<dd><p>Return the MIDI note number of a frequency.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.music.note_name">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.music.</span></span><span class="sig-name descname"><span class="pre">note_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">midi_note</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/simetri/extensions/music.html#note_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.music.note_name" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the name of a MIDI note given its number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>midi_note</strong> – An integer representing the MIDI note number (0-127).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A string representing the note name (e.g., “C4”, “G#5”), or None if the input is invalid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.music.scale">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.music.</span></span><span class="sig-name descname"><span class="pre">scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'major'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="_modules/simetri/extensions/music.html#scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.music.scale" title="Link to this definition">¶</a></dt>
+<dd><p>Return a list of MIDI notes in a scale.</p>
+</dd></dl>
+
+</section>
+<section id="simetri-extensions-ndfsm-module">
+<h2>simetri.extensions.ndfsm module<a class="headerlink" href="#simetri-extensions-ndfsm-module" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-simetri.extensions.turtle_sg">
+<span id="simetri-extensions-turtle-sg-module"></span><h2>simetri.extensions.turtle_sg module<a class="headerlink" href="#module-simetri.extensions.turtle_sg" title="Link to this heading">¶</a></h2>
+<p>Turtle graphics variant, with a twist.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.State">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.turtle_sg.</span></span><span class="sig-name descname"><span class="pre">State</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_is_down</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#State"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.State" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A state of the turtle.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.State.pos">
+<span class="sig-name descname"><span class="pre">pos</span></span><a class="headerlink" href="#simetri.extensions.turtle_sg.State.pos" title="Link to this definition">¶</a></dt>
+<dd><p>The position of the turtle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.State.angle">
+<span class="sig-name descname"><span class="pre">angle</span></span><a class="headerlink" href="#simetri.extensions.turtle_sg.State.angle" title="Link to this definition">¶</a></dt>
+<dd><p>The angle of the turtle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.State.pen_is_down">
+<span class="sig-name descname"><span class="pre">pen_is_down</span></span><a class="headerlink" href="#simetri.extensions.turtle_sg.State.pen_is_down" title="Link to this definition">¶</a></dt>
+<dd><p>Whether the pen is down.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">angle</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">pen_is_down</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span></em><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">simetri.extensions.turtle_sg.</span></span><span class="sig-name descname"><span class="pre">Turtle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_degrees</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="simetri.graphics.html#simetri.graphics.batch.Batch" title="simetri.graphics.batch.Batch"><code class="xref py py-class docutils literal notranslate"><span class="pre">Batch</span></code></a></p>
+<p>A Turtle graphics variant, with a twist.</p>
+<p>This class implements a turtle graphics system that can be used to draw
+geometric shapes and patterns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*args</strong> – Variable length argument list passed to the parent class.</p></li>
+<li><p><strong>in_degrees</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether angles are measured in degrees. Defaults to False.</p></li>
+<li><p><strong>**kwargs</strong> – Arbitrary keyword arguments passed to the parent class.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.angle">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">angle</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.angle" title="Link to this definition">¶</a></dt>
+<dd><p>Return the current angle of the turtle.</p>
+<p>The angle is clamped to the appropriate range based on the angle mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current angle, normalized to 0-360 degrees or 0-2π radians.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.backward" title="Link to this definition">¶</a></dt>
+<dd><p>Move the turtle backward by the given distance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dist</strong> (<em>float</em><em>, </em><em>optional</em>) – The distance to move backward. Defaults to self.def_dist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.forward" title="Link to this definition">¶</a></dt>
+<dd><p>Move the turtle forward by the given distance.</p>
+<p>Moves the turtle and draws a line if the pen is down.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dist</strong> (<em>float</em><em>, </em><em>optional</em>) – The distance to move forward. Defaults to self.def_dist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.go">
+<span class="sig-name descname"><span class="pre">go</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.go"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.go" title="Link to this definition">¶</a></dt>
+<dd><p>Move the turtle forward without drawing.</p>
+<p>Moves the turtle regardless of the pen state, and doesn’t draw.
+Saves the current path and starts a new one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dist</strong> (<em>float</em><em>, </em><em>optional</em>) – The distance to move forward. Defaults to self.def_dist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.left">
+<span class="sig-name descname"><span class="pre">left</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.left"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.left" title="Link to this definition">¶</a></dt>
+<dd><p>Turn the turtle left by the given angle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>angle</strong> (<em>float</em><em>, </em><em>optional</em>) – The angle to turn left. Defaults to self.def_angle.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.move_to">
+<span class="sig-name descname"><span class="pre">move_to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.move_to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.move_to" title="Link to this definition">¶</a></dt>
+<dd><p>Move the turtle to the given position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pos</strong> (<em>tuple</em>) – The target position as (x, y) coordinates.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.pen_down">
+<span class="sig-name descname"><span class="pre">pen_down</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.pen_down"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.pen_down" title="Link to this definition">¶</a></dt>
+<dd><p>Lower the pen.</p>
+<p>Enables drawing when the turtle moves and adds the current position
+to the current path.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.pen_up">
+<span class="sig-name descname"><span class="pre">pen_up</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.pen_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.pen_up" title="Link to this definition">¶</a></dt>
+<dd><p>Lift the pen.</p>
+<p>Stops drawing and saves the current path when the turtle moves.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.pop">
+<span class="sig-name descname"><span class="pre">pop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.pop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.pop" title="Link to this definition">¶</a></dt>
+<dd><p>Restore the last saved state of the turtle.</p>
+<p>Retrieves the most recently saved state and restores the turtle to it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.push">
+<span class="sig-name descname"><span class="pre">push</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.push"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.push" title="Link to this definition">¶</a></dt>
+<dd><p>Save the current state of the turtle.</p>
+<p>Stores the current position, angle, and pen state for later retrieval.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Reset the turtle to its initial state.</p>
+<p>Appends the current shape to the batch and resets position, angle,
+and pen state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.right">
+<span class="sig-name descname"><span class="pre">right</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.right"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.right" title="Link to this definition">¶</a></dt>
+<dd><p>Turn the turtle right by the given angle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>angle</strong> (<em>float</em><em>, </em><em>optional</em>) – The angle to turn right. Defaults to self.def_angle.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.Turtle.turn_around">
+<span class="sig-name descname"><span class="pre">turn_around</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#Turtle.turn_around"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.Turtle.turn_around" title="Link to this definition">¶</a></dt>
+<dd><p>Turn the turtle around by 180 degrees.</p>
+<p>Rotates the turtle 180 degrees from its current direction.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.add_digits">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.turtle_sg.</span></span><span class="sig-name descname"><span class="pre">add_digits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#add_digits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.add_digits" title="Link to this definition">¶</a></dt>
+<dd><p>Return the sum of the digits of n.</p>
+<p>Spirolateral helper function that adds all digits in a number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n</strong> (<em>int</em>) – The number to process.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The sum of all digits in n.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>10 -&gt; 1 + 0 -&gt; 1
+123 -&gt; 1 + 2 + 3 -&gt; 6</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.spiral">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.turtle_sg.</span></span><span class="sig-name descname"><span class="pre">spiral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">turtle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle" title="simetri.extensions.turtle_sg.Turtle"><span class="pre">Turtle</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">15</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle" title="simetri.extensions.turtle_sg.Turtle"><span class="pre">Turtle</span></a></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#spiral"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.spiral" title="Link to this definition">¶</a></dt>
+<dd><p>Draw a spiral with the given side, angle, delta, and cycles.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>turtle</strong> (<a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle" title="simetri.extensions.turtle_sg.Turtle"><em>Turtle</em></a>) – The turtle object to use for drawing.</p></li>
+<li><p><strong>side</strong> (<em>float</em>) – Initial length of the side.</p></li>
+<li><p><strong>angle</strong> (<em>float</em>) – Angle to turn after drawing each side.</p></li>
+<li><p><strong>delta</strong> (<em>float</em>) – Amount to increase the side length in each step.</p></li>
+<li><p><strong>cycles</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of segments to draw. Defaults to 15.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The turtle object used for drawing.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle" title="simetri.extensions.turtle_sg.Turtle">Turtle</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="simetri.extensions.turtle_sg.spirolateral">
+<span class="sig-prename descclassname"><span class="pre">simetri.extensions.turtle_sg.</span></span><span class="sig-name descname"><span class="pre">spirolateral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sequence</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiplier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle" title="simetri.extensions.turtle_sg.Turtle"><span class="pre">Turtle</span></a></span></span><a class="reference internal" href="_modules/simetri/extensions/turtle_sg.html#spirolateral"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.extensions.turtle_sg.spirolateral" title="Link to this definition">¶</a></dt>
+<dd><p>Draw a spirolateral with the given sequence and angle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequence</strong> (<em>Sequence</em>) – Sequence of numbers determining segment lengths.</p></li>
+<li><p><strong>angle</strong> (<em>float</em>) – Angle in degrees for turns.</p></li>
+<li><p><strong>cycles</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of cycles to draw. Defaults to 15.</p></li>
+<li><p><strong>multiplier</strong> (<em>float</em><em>, </em><em>optional</em>) – Scaling factor for segment lengths. Defaults to 50.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The turtle object used for drawing.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle" title="simetri.extensions.turtle_sg.Turtle">Turtle</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-simetri.extensions">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-simetri.extensions" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="simetri.frieze.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">simetri.frieze package</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="simetri.colors.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">simetri.colors package</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Fahri Basegmez
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">simetri.extensions package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-simetri.extensions.easing">simetri.extensions.easing module</a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.BackEaseIn"><code class="docutils literal notranslate"><span class="pre">BackEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.BackEaseIn.func"><code class="docutils literal notranslate"><span class="pre">BackEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.BackEaseInOut"><code class="docutils literal notranslate"><span class="pre">BackEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.BackEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">BackEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.BackEaseOut"><code class="docutils literal notranslate"><span class="pre">BackEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.BackEaseOut.func"><code class="docutils literal notranslate"><span class="pre">BackEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.BounceEaseIn"><code class="docutils literal notranslate"><span class="pre">BounceEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.BounceEaseIn.func"><code class="docutils literal notranslate"><span class="pre">BounceEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.BounceEaseInOut"><code class="docutils literal notranslate"><span class="pre">BounceEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.BounceEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">BounceEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.BounceEaseOut"><code class="docutils literal notranslate"><span class="pre">BounceEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.BounceEaseOut.func"><code class="docutils literal notranslate"><span class="pre">BounceEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.CircularEaseIn"><code class="docutils literal notranslate"><span class="pre">CircularEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.CircularEaseIn.func"><code class="docutils literal notranslate"><span class="pre">CircularEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.CircularEaseInOut"><code class="docutils literal notranslate"><span class="pre">CircularEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.CircularEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">CircularEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.CircularEaseOut"><code class="docutils literal notranslate"><span class="pre">CircularEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.CircularEaseOut.func"><code class="docutils literal notranslate"><span class="pre">CircularEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.CubicEaseIn"><code class="docutils literal notranslate"><span class="pre">CubicEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.CubicEaseIn.func"><code class="docutils literal notranslate"><span class="pre">CubicEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.CubicEaseInOut"><code class="docutils literal notranslate"><span class="pre">CubicEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.CubicEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">CubicEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.CubicEaseOut"><code class="docutils literal notranslate"><span class="pre">CubicEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.CubicEaseOut.func"><code class="docutils literal notranslate"><span class="pre">CubicEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.EasingBase"><code class="docutils literal notranslate"><span class="pre">EasingBase</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.EasingBase.ease"><code class="docutils literal notranslate"><span class="pre">EasingBase.ease()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.easing.EasingBase.func"><code class="docutils literal notranslate"><span class="pre">EasingBase.func()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.easing.EasingBase.limit"><code class="docutils literal notranslate"><span class="pre">EasingBase.limit</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.ElasticEaseIn"><code class="docutils literal notranslate"><span class="pre">ElasticEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.ElasticEaseIn.func"><code class="docutils literal notranslate"><span class="pre">ElasticEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.ElasticEaseInOut"><code class="docutils literal notranslate"><span class="pre">ElasticEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.ElasticEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">ElasticEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.ElasticEaseOut"><code class="docutils literal notranslate"><span class="pre">ElasticEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.ElasticEaseOut.func"><code class="docutils literal notranslate"><span class="pre">ElasticEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.ExponentialEaseIn"><code class="docutils literal notranslate"><span class="pre">ExponentialEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.ExponentialEaseIn.func"><code class="docutils literal notranslate"><span class="pre">ExponentialEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.ExponentialEaseInOut"><code class="docutils literal notranslate"><span class="pre">ExponentialEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.ExponentialEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">ExponentialEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.ExponentialEaseOut"><code class="docutils literal notranslate"><span class="pre">ExponentialEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.ExponentialEaseOut.func"><code class="docutils literal notranslate"><span class="pre">ExponentialEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.LinearInOut"><code class="docutils literal notranslate"><span class="pre">LinearInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.LinearInOut.func"><code class="docutils literal notranslate"><span class="pre">LinearInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuadEaseIn"><code class="docutils literal notranslate"><span class="pre">QuadEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuadEaseIn.func"><code class="docutils literal notranslate"><span class="pre">QuadEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuadEaseInOut"><code class="docutils literal notranslate"><span class="pre">QuadEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuadEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">QuadEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuadEaseOut"><code class="docutils literal notranslate"><span class="pre">QuadEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuadEaseOut.func"><code class="docutils literal notranslate"><span class="pre">QuadEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuarticEaseIn"><code class="docutils literal notranslate"><span class="pre">QuarticEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuarticEaseIn.func"><code class="docutils literal notranslate"><span class="pre">QuarticEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuarticEaseInOut"><code class="docutils literal notranslate"><span class="pre">QuarticEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuarticEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">QuarticEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuarticEaseOut"><code class="docutils literal notranslate"><span class="pre">QuarticEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuarticEaseOut.func"><code class="docutils literal notranslate"><span class="pre">QuarticEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuinticEaseIn"><code class="docutils literal notranslate"><span class="pre">QuinticEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuinticEaseIn.func"><code class="docutils literal notranslate"><span class="pre">QuinticEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuinticEaseInOut"><code class="docutils literal notranslate"><span class="pre">QuinticEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuinticEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">QuinticEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuinticEaseOut"><code class="docutils literal notranslate"><span class="pre">QuinticEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.QuinticEaseOut.func"><code class="docutils literal notranslate"><span class="pre">QuinticEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.SineEaseIn"><code class="docutils literal notranslate"><span class="pre">SineEaseIn</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.SineEaseIn.func"><code class="docutils literal notranslate"><span class="pre">SineEaseIn.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.SineEaseInOut"><code class="docutils literal notranslate"><span class="pre">SineEaseInOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.SineEaseInOut.func"><code class="docutils literal notranslate"><span class="pre">SineEaseInOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.SineEaseOut"><code class="docutils literal notranslate"><span class="pre">SineEaseOut</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.easing.SineEaseOut.func"><code class="docutils literal notranslate"><span class="pre">SineEaseOut.func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.easing.cubicInterpolation"><code class="docutils literal notranslate"><span class="pre">cubicInterpolation()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.easing.ease"><code class="docutils literal notranslate"><span class="pre">ease()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri-extensions-l-system-module">simetri.extensions.l_system module</a></li>
+<li><a class="reference internal" href="#module-simetri.extensions.music">simetri.extensions.music module</a><ul>
+<li><a class="reference internal" href="#simetri.extensions.music.jump_scale"><code class="docutils literal notranslate"><span class="pre">jump_scale()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.music.midi_freq"><code class="docutils literal notranslate"><span class="pre">midi_freq()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.music.midi_m"><code class="docutils literal notranslate"><span class="pre">midi_m()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.music.note_name"><code class="docutils literal notranslate"><span class="pre">note_name()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.music.scale"><code class="docutils literal notranslate"><span class="pre">scale()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri-extensions-ndfsm-module">simetri.extensions.ndfsm module</a></li>
+<li><a class="reference internal" href="#module-simetri.extensions.turtle_sg">simetri.extensions.turtle_sg module</a><ul>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.State.pos"><code class="docutils literal notranslate"><span class="pre">State.pos</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.State.angle"><code class="docutils literal notranslate"><span class="pre">State.angle</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.State.pen_is_down"><code class="docutils literal notranslate"><span class="pre">State.pen_is_down</span></code></a></li>
+<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">State.angle</span></code></a></li>
+<li><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">State.pen_is_down</span></code></a></li>
+<li><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">State.pos</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle"><code class="docutils literal notranslate"><span class="pre">Turtle</span></code></a><ul>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.angle"><code class="docutils literal notranslate"><span class="pre">Turtle.angle</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.backward"><code class="docutils literal notranslate"><span class="pre">Turtle.backward()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.forward"><code class="docutils literal notranslate"><span class="pre">Turtle.forward()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.go"><code class="docutils literal notranslate"><span class="pre">Turtle.go()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.left"><code class="docutils literal notranslate"><span class="pre">Turtle.left()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.move_to"><code class="docutils literal notranslate"><span class="pre">Turtle.move_to()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.pen_down"><code class="docutils literal notranslate"><span class="pre">Turtle.pen_down()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.pen_up"><code class="docutils literal notranslate"><span class="pre">Turtle.pen_up()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.pop"><code class="docutils literal notranslate"><span class="pre">Turtle.pop()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.push"><code class="docutils literal notranslate"><span class="pre">Turtle.push()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.reset"><code class="docutils literal notranslate"><span class="pre">Turtle.reset()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.right"><code class="docutils literal notranslate"><span class="pre">Turtle.right()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.Turtle.turn_around"><code class="docutils literal notranslate"><span class="pre">Turtle.turn_around()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.add_digits"><code class="docutils literal notranslate"><span class="pre">add_digits()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.spiral"><code class="docutils literal notranslate"><span class="pre">spiral()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.extensions.turtle_sg.spirolateral"><code class="docutils literal notranslate"><span class="pre">spirolateral()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-simetri.extensions">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=1fd71caa"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.geometry.bezier &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.geometry.bezier</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Functions for working with Bezier curves.</span>
+<span class="sd">https://pomax.github.io/bezierinfo is a good resource for understanding Bezier curves.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span> <span class="k">as</span> <span class="n">memoize</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">Shape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.all_enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">Types</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">Point</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_closest_value</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..settings.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaults</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">distance</span><span class="p">,</span>
+    <span class="n">line_angle</span><span class="p">,</span>
+    <span class="n">line_by_point_angle_length</span><span class="p">,</span>
+    <span class="n">normal</span><span class="p">,</span>
+    <span class="n">norm</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span>
+
+<span class="n">cubic_poly_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+    <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+<span class="p">)</span>
+
+<span class="n">quad_poly_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+
+
+<div class="viewcode-block" id="Bezier">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.Bezier">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Bezier</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Bezier curve defined by control points.</span>
+
+<span class="sd">    For cubic Bezier curves: [V1, CP1, CP2, V2]</span>
+<span class="sd">    For quadratic Bezier curves: [V1, CP, V2]</span>
+<span class="sd">    Like all other geometry in simetri.graphics,</span>
+<span class="sd">    bezier curves are represented as a sequence of points.</span>
+<span class="sd">    Both quadratic and cubic bezier curves are supported.</span>
+<span class="sd">    Number of control points determines the type of Bezier curve.</span>
+<span class="sd">    A cubic Bezier curve has 4 control points, while a quadratic Bezier curve has 3.</span>
+<span class="sd">    curve.subtype reflects this as Types.BEZIER or Types.Q_BEZIER.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        control_points (Sequence[Point]): Control points of the Bezier curve.</span>
+<span class="sd">        cubic (bool): True if the Bezier curve is cubic, False if quadratic.</span>
+<span class="sd">        matrix (array): Polynomial matrix for the Bezier curve.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">control_points</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Point</span><span class="p">],</span>
+        <span class="n">xform_matrix</span><span class="p">:</span> <span class="n">array</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes a Bezier curve.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            control_points (Sequence[Point]): Control points of the Bezier curve.</span>
+<span class="sd">            xform_matrix (array, optional): Transformation matrix. Defaults to None.</span>
+<span class="sd">            n_points (int, optional): Number of points on the curve. Defaults to None.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the number of control points is not 3 or 4.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">control_points</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;n_bezier_points&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="n">n_points</span>
+            <span class="n">vertices</span> <span class="o">=</span> <span class="n">q_bezier_points</span><span class="p">(</span><span class="o">*</span><span class="n">control_points</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+                <span class="n">vertices</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">Q_BEZIER</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="n">xform_matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cubic</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span> <span class="o">=</span> <span class="n">quad_poly_matrix</span> <span class="o">@</span> <span class="n">array</span><span class="p">(</span><span class="n">control_points</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">control_points</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;n_bezier_points&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="n">n_points</span>
+            <span class="n">vertices</span> <span class="o">=</span> <span class="n">bezier_points</span><span class="p">(</span><span class="o">*</span><span class="n">control_points</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+                <span class="n">vertices</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">BEZIER</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="n">xform_matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cubic</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span> <span class="o">=</span> <span class="n">cubic_poly_matrix</span> <span class="o">@</span> <span class="n">array</span><span class="p">(</span><span class="n">control_points</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid number of control points.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_points</span> <span class="o">=</span> <span class="n">control_points</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">control_points</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Point</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the control points of the Bezier curve.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Sequence[Point]: Control points of the Bezier curve.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;control_points&#39;</span><span class="p">]</span>
+
+    <span class="nd">@control_points</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">control_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_control_points</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Point</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set new control points for the Bezier curve.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_control_points (Sequence[Point]): New control points.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the number of control points is not 3 or 4.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_points</span> <span class="o">=</span> <span class="n">new_control_points</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_control_points</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">vertices</span> <span class="o">=</span> <span class="n">q_bezier_points</span><span class="p">(</span><span class="o">*</span><span class="n">new_control_points</span><span class="p">)</span>
+            <span class="bp">self</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">vertices</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">Q_BEZIER</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_control_points</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">vertices</span> <span class="o">=</span> <span class="n">bezier_points</span><span class="p">(</span><span class="o">*</span><span class="n">new_control_points</span><span class="p">)</span>
+            <span class="bp">self</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">vertices</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">BEZIER</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid number of control points.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Bezier.copy">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.Bezier.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Shape</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a copy of the Bezier curve.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Shape: Copy of the Bezier curve.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># to do: copy style and other attributes</span>
+        <span class="n">copy_</span> <span class="o">=</span> <span class="n">Bezier</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">control_points</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">copy_</span></div>
+
+
+<div class="viewcode-block" id="Bezier.point">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.Bezier.point">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the point on the Bezier curve at t.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            t (float): Parameter t, where 0 &lt;= t &lt;= 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: Point on the Bezier curve at t.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+        <span class="c1"># if self.cubic:</span>
+        <span class="c1">#     np.array([t**3, t**2, t, 1]) @ self.matrix</span>
+        <span class="c1"># else:</span>
+        <span class="c1">#     np.array([t**2, t, 1]) @ self.matrix</span>
+
+<div class="viewcode-block" id="Bezier.point2">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.Bezier.point2">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">point2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the point on the Bezier curve at t.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            t (float): Parameter t, where 0 &lt;= t &lt;= 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: Point on the Bezier curve at t.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_points</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">t</span>
+        <span class="n">m2</span> <span class="o">=</span> <span class="n">m</span> <span class="o">*</span> <span class="n">m</span>
+        <span class="n">m3</span> <span class="o">=</span> <span class="n">m2</span> <span class="o">*</span> <span class="n">m</span>
+        <span class="n">t2</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="n">t</span>
+        <span class="n">t3</span> <span class="o">=</span> <span class="n">t2</span> <span class="o">*</span> <span class="n">t</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cubic</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">m3</span> <span class="o">*</span> <span class="n">p0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">m2</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">t2</span> <span class="o">*</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">t3</span> <span class="o">*</span> <span class="n">p3</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">m3</span> <span class="o">*</span> <span class="n">p0</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">m2</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">t2</span> <span class="o">*</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">t3</span> <span class="o">*</span> <span class="n">p3</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">m2</span> <span class="o">*</span> <span class="n">p0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">t2</span> <span class="o">*</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">m2</span> <span class="o">*</span> <span class="n">p0</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">t2</span> <span class="o">*</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Bezier.derivative">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.Bezier.derivative">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">derivative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the derivative of the Bezier curve at t.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            t (float): Parameter t, where 0 &lt;= t &lt;= 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: Derivative of the Bezier curve at t.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cubic</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">get_cubic_derivative</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_points</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">get_quadratic_derivative</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_points</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Bezier.normal">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.Bezier.normal">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">normal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the normal of the Bezier curve at t.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            t (float): Parameter t, where 0 &lt;= t &lt;= 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: Normal of the Bezier curve at t.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">derivative</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">q</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">q</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Bezier.tangent">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.Bezier.tangent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tangent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Draw a unit tangent vector at t.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            t (float): Parameter t, where 0 &lt;= t &lt;= 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: Unit tangent vector at t.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">derivative</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">m</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">d</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="equidistant_points">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.equidistant_points">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">equidistant_points</span><span class="p">(</span><span class="n">p0</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p3</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the points on a Bezier curve with equidistant spacing.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p0 (list): First control point.</span>
+<span class="sd">        p1 (list): Second control point.</span>
+<span class="sd">        p2 (list): Third control point.</span>
+<span class="sd">        p3 (list): Fourth control point.</span>
+<span class="sd">        n_points (int, optional): Number of points. Defaults to 10.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Points on the Bezier curve, equidistant points, tangents, and normals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">controls</span> <span class="o">=</span> <span class="p">[</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">]</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">bezier_points</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">tot</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">seg_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">tangents</span> <span class="o">=</span> <span class="p">[</span><span class="n">norm</span><span class="p">((</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p0</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p0</span><span class="p">[</span><span class="mi">1</span><span class="p">]))]</span>
+    <span class="n">normals</span> <span class="o">=</span> <span class="p">[</span><span class="n">normal</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">)]</span>
+    <span class="n">eq_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">p0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">points</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">tot</span> <span class="o">+=</span> <span class="n">dist</span>
+        <span class="n">seg_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tot</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_points</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">ind</span> <span class="o">=</span> <span class="n">find_closest_value</span><span class="p">(</span><span class="n">seg_lengths</span><span class="p">,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">tot</span> <span class="o">/</span> <span class="n">n_points</span><span class="p">)</span>
+        <span class="n">pnt</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+        <span class="n">eq_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pnt</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">get_cubic_derivative</span><span class="p">(</span><span class="n">ind</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">controls</span><span class="p">)</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">pnt</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="n">get_normal</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">tangents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span>
+        <span class="n">normals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">points</span><span class="p">,</span> <span class="n">eq_points</span><span class="p">,</span> <span class="n">tangents</span><span class="p">,</span> <span class="n">normals</span></div>
+
+
+
+<div class="viewcode-block" id="offset_points">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.offset_points">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">offset_points</span><span class="p">(</span><span class="n">controls</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">n_points</span><span class="p">,</span> <span class="n">double</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the points on the offset curve.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        controls (list): Control points of the Bezier curve.</span>
+<span class="sd">        offset (float): Offset distance.</span>
+<span class="sd">        n_points (int): Number of points on the curve.</span>
+<span class="sd">        double (bool, optional): If True, return double offset points. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Points on the offset curve.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">bezier_points</span><span class="p">(</span><span class="o">*</span><span class="n">controls</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">tot</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">seg_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">points</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">tot</span> <span class="o">+=</span> <span class="n">dist</span>
+        <span class="n">seg_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tot</span><span class="p">)</span>
+
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">controls</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">np</span> <span class="o">=</span> <span class="n">normal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">*</span> <span class="n">np</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">*</span> <span class="n">np</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">offset_pnts</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">double</span><span class="p">:</span>
+        <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span> <span class="o">=</span> <span class="n">mirror_point</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">))</span>
+        <span class="n">offset_pnts2</span> <span class="o">=</span> <span class="p">[</span><span class="n">p2</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_points</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">ind</span> <span class="o">=</span> <span class="n">find_closest_value</span><span class="p">(</span><span class="n">seg_lengths</span><span class="p">,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">tot</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">pnt</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">get_cubic_derivative</span><span class="p">(</span><span class="n">ind</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">controls</span><span class="p">)</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">pnt</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="n">get_normal</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">*</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">*</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">offset_pnts</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">double</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">p3</span> <span class="o">=</span> <span class="n">mirror_point</span><span class="p">(</span><span class="n">pnt</span><span class="p">,</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">))</span>
+            <span class="n">offset_pnts2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p3</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">double</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">offset_pnts</span><span class="p">,</span> <span class="n">offset_pnts2</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">offset_pnts</span></div>
+
+
+
+<div class="viewcode-block" id="BezierPoints">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.BezierPoints">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BezierPoints</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Points of a Bezier curve defined by the given control points.</span>
+
+<span class="sd">    These points are spaced evenly along the curve (unlike parametric points).</span>
+<span class="sd">    Normal and tangent unit vectors are also available at these points.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        control_points (Sequence[Point]): Control points of the Bezier curve.</span>
+<span class="sd">        param_points (list): Parametric points on the Bezier curve.</span>
+<span class="sd">        tangents (list): Tangent vectors at the points.</span>
+<span class="sd">        normals (list): Normal vectors at the points.</span>
+<span class="sd">        n_points (int): Number of points on the curve.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">control_points</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Point</span><span class="p">],</span> <span class="n">n_points</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes Bezier points.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            control_points (Sequence[Point]): Control points of the Bezier curve.</span>
+<span class="sd">            n_points (int, optional): Number of points on the curve. Defaults to 10.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the number of control points is not 3 or 4.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">control_points</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid number of control points.&quot;</span><span class="p">)</span>
+
+        <span class="n">param_points</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">tangents</span><span class="p">,</span> <span class="n">normals</span> <span class="o">=</span> <span class="n">equidistant_points</span><span class="p">(</span>
+            <span class="o">*</span><span class="n">control_points</span><span class="p">,</span> <span class="n">n_points</span>
+        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">BEZIER_POINTS</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_points</span> <span class="o">=</span> <span class="n">control_points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_points</span> <span class="o">=</span> <span class="n">param_points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tangents</span> <span class="o">=</span> <span class="n">tangents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normals</span> <span class="o">=</span> <span class="n">normals</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_points</span> <span class="o">=</span> <span class="n">n_points</span>
+
+<div class="viewcode-block" id="BezierPoints.offsets">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.BezierPoints.offsets">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">offsets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">double</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the points on the offset curve.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            offset (float): Offset distance.</span>
+<span class="sd">            double (bool, optional): If True, return double offset points. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: Points on the offset curve.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offset_points1</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">double</span><span class="p">:</span>
+            <span class="n">offset_points2</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pnt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">):</span>
+            <span class="n">n_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">pnt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">*</span> <span class="n">n_p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pnt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">*</span> <span class="n">n_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">offset_points1</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">double</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">p3</span> <span class="o">=</span> <span class="n">mirror_point</span><span class="p">((</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">),</span> <span class="n">pnt</span><span class="p">)</span>
+                <span class="n">offset_points2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p3</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">double</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">offset_points1</span><span class="p">,</span> <span class="n">offset_points2</span>
+
+        <span class="k">return</span> <span class="n">offset_points1</span></div>
+</div>
+
+
+
+<span class="n">M</span> <span class="o">=</span> <span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+
+
+<div class="viewcode-block" id="bezier_points">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.bezier_points">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">bezier_points</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p3</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the points on a cubic Bezier curve.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p0 (list): First control point.</span>
+<span class="sd">        p1 (list): Second control point.</span>
+<span class="sd">        p2 (list): Third control point.</span>
+<span class="sd">        p3 (list): Fourth control point.</span>
+<span class="sd">        n_points (int, optional): Number of points. Defaults to 10.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Points on the cubic Bezier curve.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If n_points is less than 5.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">n_points</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n_points must be at least 5.&quot;</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">n_points</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">t2</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="n">t</span>
+    <span class="n">t3</span> <span class="o">=</span> <span class="n">t2</span> <span class="o">*</span> <span class="n">t</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">f</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">t3</span><span class="p">))</span>
+    <span class="n">TM</span> <span class="o">=</span> <span class="n">T</span> <span class="o">@</span> <span class="n">M</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">array</span><span class="p">([</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">TM</span> <span class="o">@</span> <span class="n">P</span></div>
+
+
+
+<span class="n">MQ</span> <span class="o">=</span> <span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+
+
+<div class="viewcode-block" id="q_bezier_points">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.q_bezier_points">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">q_bezier_points</span><span class="p">(</span><span class="n">p0</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">n_points</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the points on a quadratic Bezier curve.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p0 (list): First control point.</span>
+<span class="sd">        p1 (list): Second control point.</span>
+<span class="sd">        p2 (list): Third control point.</span>
+<span class="sd">        n_points (int): Number of points.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Points on the quadratic Bezier curve.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If n_points is less than 5.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">n_points</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n_points must be at least 5.&quot;</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">n_points</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">t2</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="n">t</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">f</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">t2</span><span class="p">))</span>
+    <span class="n">TMQ</span> <span class="o">=</span> <span class="n">T</span> <span class="o">@</span> <span class="n">MQ</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">array</span><span class="p">([</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">TMQ</span> <span class="o">@</span> <span class="n">P</span></div>
+
+
+
+<div class="viewcode-block" id="split_bezier">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.split_bezier">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_bezier</span><span class="p">(</span><span class="n">p0</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p3</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split a cubic Bezier curve at t=z.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p0 (list): First control point.</span>
+<span class="sd">        p1 (list): Second control point.</span>
+<span class="sd">        p2 (list): Third control point.</span>
+<span class="sd">        p3 (list): Fourth control point.</span>
+<span class="sd">        z (float): Parameter z, where 0 &lt;= z &lt;= 1.</span>
+<span class="sd">        n_points (int, optional): Number of points. Defaults to 10.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Two Bezier curves split at t=z.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">p0</span><span class="p">)</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">p2</span><span class="p">)</span>
+    <span class="n">p3</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">p3</span><span class="p">)</span>
+    <span class="n">bezier1</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">z</span> <span class="o">*</span> <span class="n">p1</span> <span class="o">-</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">z</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">p2</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p1</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span>
+            <span class="n">z</span><span class="o">**</span><span class="mi">3</span> <span class="o">*</span> <span class="n">p3</span>
+            <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">z</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p2</span>
+            <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p1</span>
+            <span class="o">-</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">p0</span>
+        <span class="p">],</span>
+    <span class="p">]</span>
+
+    <span class="n">bezier2</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="n">z</span><span class="o">**</span><span class="mi">3</span> <span class="o">*</span> <span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">z</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p1</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p2</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p1</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">z</span> <span class="o">*</span> <span class="n">p3</span> <span class="o">-</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p2</span><span class="p">],</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">Bezier</span><span class="p">(</span><span class="n">bezier1</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="n">n_points</span><span class="p">),</span> <span class="n">Bezier</span><span class="p">(</span><span class="n">bezier2</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="n">n_points</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="split_q_bezier">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.split_q_bezier">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_q_bezier</span><span class="p">(</span><span class="n">p0</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">p2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split a quadratic Bezier curve at t=z.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p0 (list): First control point.</span>
+<span class="sd">        p1 (list): Second control point.</span>
+<span class="sd">        p2 (list): Third control point.</span>
+<span class="sd">        z (float): Parameter z, where 0 &lt;= z &lt;= 1.</span>
+<span class="sd">        n_points (int, optional): Number of points. Defaults to 10.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Two Bezier curves split at t=z.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">p0</span><span class="p">)</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">p2</span><span class="p">)</span>
+    <span class="n">bezier1</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">z</span> <span class="o">*</span> <span class="n">p1</span> <span class="o">-</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">z</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">p2</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p1</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p0</span><span class="p">],</span>
+    <span class="p">]</span>
+
+    <span class="n">bezier2</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="n">z</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p1</span> <span class="o">-</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p0</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">z</span> <span class="o">*</span> <span class="n">p2</span> <span class="o">-</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p1</span><span class="p">],</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">Bezier</span><span class="p">(</span><span class="n">bezier1</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="n">n_points</span><span class="p">),</span> <span class="n">Bezier</span><span class="p">(</span><span class="n">bezier2</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="n">n_points</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="mirror_point">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.mirror_point">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mirror_point</span><span class="p">(</span><span class="n">cp</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">vertex</span><span class="p">:</span> <span class="n">Point</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the mirror of cp about vertex.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cp (list): Control point to be mirrored.</span>
+<span class="sd">        vertex (list): Vertex point.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Mirrored control point.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">vertex</span><span class="p">)</span>
+    <span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">vertex</span><span class="p">)</span>
+    <span class="n">cp2</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="n">vertex</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cp2</span></div>
+
+
+
+<div class="viewcode-block" id="curve">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.curve">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">curve</span><span class="p">(</span><span class="n">v1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">c1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">c2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">v2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a cubic Bezier curve/s.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        v1 (list): First vertex.</span>
+<span class="sd">        c1 (list): First control point.</span>
+<span class="sd">        c2 (list): Second control point.</span>
+<span class="sd">        v2 (list): Second vertex.</span>
+<span class="sd">        *args: Additional control points and vertices.</span>
+<span class="sd">        **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: List of cubic Bezier curves.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the number of control points is invalid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">curves</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bezier</span><span class="p">([</span><span class="n">v1</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">v2</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)]</span>
+    <span class="n">last_vertex</span> <span class="o">=</span> <span class="n">v2</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">c3</span> <span class="o">=</span> <span class="n">mirror_point</span><span class="p">(</span><span class="n">c2</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span>
+            <span class="n">v3</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">c4</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">curves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Bezier</span><span class="p">([</span><span class="n">last_vertex</span><span class="p">,</span> <span class="n">c3</span><span class="p">,</span> <span class="n">c4</span><span class="p">,</span> <span class="n">v3</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+            <span class="n">last_vertex</span> <span class="o">=</span> <span class="n">v3</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">c3</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">c4</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">v3</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">curves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Bezier</span><span class="p">([</span><span class="n">last_vertex</span><span class="p">,</span> <span class="n">c3</span><span class="p">,</span> <span class="n">c4</span><span class="p">,</span> <span class="n">v3</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+            <span class="n">last_vertex</span> <span class="o">=</span> <span class="n">v3</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid number of control points.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">curves</span></div>
+
+
+
+<div class="viewcode-block" id="q_curve">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.q_curve">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">q_curve</span><span class="p">(</span><span class="n">v1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">v2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a quadratic Bezier curve/s.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        v1 (list): First vertex.</span>
+<span class="sd">        c (list): Control point.</span>
+<span class="sd">        v2 (list): Second vertex.</span>
+<span class="sd">        *args: Additional control points and vertices.</span>
+<span class="sd">        **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: List of quadratic Bezier curves.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the number of control points is invalid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">curves</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bezier</span><span class="p">([</span><span class="n">v1</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">v2</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)]</span>
+    <span class="n">last_vertex</span> <span class="o">=</span> <span class="n">v2</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">c3</span> <span class="o">=</span> <span class="n">mirror_point</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span>
+            <span class="n">v3</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">curves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Bezier</span><span class="p">([</span><span class="n">last_vertex</span><span class="p">,</span> <span class="n">c3</span><span class="p">,</span> <span class="n">v3</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+            <span class="n">last_vertex</span> <span class="o">=</span> <span class="n">v3</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">c3</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">v3</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">curves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Bezier</span><span class="p">([</span><span class="n">last_vertex</span><span class="p">,</span> <span class="n">c3</span><span class="p">,</span> <span class="n">v3</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+            <span class="n">last_vertex</span> <span class="o">=</span> <span class="n">v3</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid number of control points.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">curves</span></div>
+
+
+
+<div class="viewcode-block" id="get_quadratic_derivative">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.get_quadratic_derivative">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_quadratic_derivative</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">points</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Point</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the derivative of a quadratic Bezier curve at t.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        t (float): Parameter t, where 0 &lt;= t &lt;= 1.</span>
+<span class="sd">        points (list): Control points of the Bezier curve.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Derivative of the quadratic Bezier curve at t.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mt</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">t</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">mt</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">mt</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="get_cubic_derivative">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.get_cubic_derivative">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_cubic_derivative</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">points</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Point</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the derivative of a cubic Bezier curve at t.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        t (float): Parameter t, where 0 &lt;= t &lt;= 1.</span>
+<span class="sd">        points (list): Control points of the Bezier curve.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Derivative of the cubic Bezier curve at t.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mt</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">t</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">mt</span> <span class="o">*</span> <span class="n">mt</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">mt</span> <span class="o">*</span> <span class="n">t</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="n">t</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">a</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">a</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">5</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="get_normal">
+<a class="viewcode-back" href="../../../simetri.geometry.html#simetri.geometry.bezier.get_normal">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_normal</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the normal of a given line.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        d (list): Derivative of the line.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Normal of the line.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">q</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">q</span><span class="p">]</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

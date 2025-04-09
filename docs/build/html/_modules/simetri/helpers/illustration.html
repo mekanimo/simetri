@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.helpers.illustration &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.helpers.illustration</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains functions and classes for creating annotations,</span>
+<span class="sd">arrows, dimensions, etc.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">pi</span><span class="p">,</span> <span class="n">atan2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageFont</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">fitz</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># from reportlab.pdfbase import pdfmetrics # to do: remove this</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Base</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.bbox</span><span class="w"> </span><span class="kn">import</span> <span class="n">bounding_box</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.points</span><span class="w"> </span><span class="kn">import</span> <span class="n">Points</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Batch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">Shape</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">reg_poly_points_side_length</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_defaults</span><span class="p">,</span> <span class="n">common_properties</span><span class="p">,</span> <span class="n">Point</span><span class="p">,</span> <span class="n">_set_Nones</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.all_enums</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Types</span><span class="p">,</span>
+    <span class="n">LineJoin</span><span class="p">,</span>
+    <span class="n">Anchor</span><span class="p">,</span>
+    <span class="n">FrameShape</span><span class="p">,</span>
+    <span class="n">HeadPos</span><span class="p">,</span>
+    <span class="n">ArrowLine</span><span class="p">,</span>
+    <span class="n">Placement</span><span class="p">,</span>
+    <span class="n">FontSize</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..canvas.style_map</span><span class="w"> </span><span class="kn">import</span> <span class="n">shape_style_map</span><span class="p">,</span> <span class="n">tag_style_map</span><span class="p">,</span> <span class="n">TagStyle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.affine</span><span class="w"> </span><span class="kn">import</span> <span class="n">identity_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.ellipse</span><span class="w"> </span><span class="kn">import</span> <span class="n">Arc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">distance</span><span class="p">,</span>
+    <span class="n">line_angle</span><span class="p">,</span>
+    <span class="n">extended_line</span><span class="p">,</span>
+    <span class="n">line_by_point_angle_length</span><span class="p">,</span>
+    <span class="n">mid_point</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_transform</span><span class="p">,</span> <span class="n">detokenize</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..colors.swatches</span><span class="w"> </span><span class="kn">import</span> <span class="n">swatches_255</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..settings.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaults</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">colors</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+
+<span class="n">Color</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">Color</span>
+<span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span>
+
+
+<div class="viewcode-block" id="logo">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.logo">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">logo</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the Simetri logo.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        scale (int, optional): Scale factor for the logo. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: A Batch object containing the logo shapes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">scale</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">6</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">6</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">8</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">8</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">7</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">7</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">9</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">9</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">4</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="n">points2</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="n">points</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">y</span> <span class="o">*</span> <span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">points</span><span class="p">]</span>
+    <span class="n">points2</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">y</span> <span class="o">*</span> <span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">points2</span><span class="p">]</span>
+    <span class="n">kernel1</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">kernel2</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span><span class="n">points2</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">rad</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">line_width</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">kernel1</span><span class="o">.</span><span class="n">fillet_radius</span> <span class="o">=</span> <span class="n">rad</span>
+    <span class="n">kernel2</span><span class="o">.</span><span class="n">fillet_radius</span> <span class="o">=</span> <span class="n">rad</span>
+    <span class="n">kernel1</span><span class="o">.</span><span class="n">line_width</span> <span class="o">=</span> <span class="n">line_width</span>
+    <span class="n">kernel2</span><span class="o">.</span><span class="n">line_width</span> <span class="o">=</span> <span class="n">line_width</span>
+    <span class="n">fill_color</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="o">*</span><span class="n">swatches_255</span><span class="p">[</span><span class="mi">62</span><span class="p">][</span><span class="mi">8</span><span class="p">])</span>
+    <span class="n">kernel1</span><span class="o">.</span><span class="n">fill_color</span> <span class="o">=</span> <span class="n">fill_color</span>
+    <span class="n">kernel2</span><span class="o">.</span><span class="n">fill_color</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">white</span>
+
+    <span class="k">return</span> <span class="n">Batch</span><span class="p">([</span><span class="n">kernel1</span><span class="p">,</span> <span class="n">kernel2</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="convert_latex_font_size">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.convert_latex_font_size">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_latex_font_size</span><span class="p">(</span><span class="n">latex_font_size</span><span class="p">:</span> <span class="n">FontSize</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts LaTeX font size to a numerical value.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        latex_font_size (FontSize): The LaTeX font size.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: The corresponding numerical font size.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d_font_size</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">FontSize</span><span class="o">.</span><span class="n">TINY</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">FontSize</span><span class="o">.</span><span class="n">SMALL</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+        <span class="n">FontSize</span><span class="o">.</span><span class="n">NORMAL</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">FontSize</span><span class="o">.</span><span class="n">LARGE</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="n">FontSize</span><span class="o">.</span><span class="n">LARGE2</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span>
+        <span class="n">FontSize</span><span class="o">.</span><span class="n">LARGE3</span><span class="p">:</span> <span class="mi">17</span><span class="p">,</span>
+        <span class="n">FontSize</span><span class="o">.</span><span class="n">HUGE</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">FontSize</span><span class="o">.</span><span class="n">HUGE2</span><span class="p">:</span> <span class="mi">25</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">d_font_size</span><span class="p">[</span><span class="n">latex_font_size</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="letter_F_points">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.letter_F_points">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">letter_F_points</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the points of the capital letter F.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: A list of points representing the letter F.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">40.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">40.0</span><span class="p">,</span> <span class="mf">40.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">40.0</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">80.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">50.0</span><span class="p">,</span> <span class="mf">80.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">50.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="letter_F">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.letter_F">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">letter_F</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a Shape object representing the capital letter F.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        scale (int, optional): Scale factor for the letter. Defaults to 1.</span>
+<span class="sd">        **kwargs: Additional keyword arguments for shape styling.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Shape: A Shape object representing the letter F.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span><span class="n">letter_F_points</span><span class="p">(),</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">scale</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">shape_style_map</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">. Invalid attribute!&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">F</span></div>
+
+
+
+<div class="viewcode-block" id="cube">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.cube">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cube</span><span class="p">(</span><span class="n">size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a Batch object representing a cube.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        size (float, optional): The size of the cube. Defaults to 100.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: A Batch object representing the cube.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">reg_poly_points_side_length</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">6</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">face1</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">center</span><span class="p">]</span> <span class="o">+</span> <span class="n">points</span><span class="p">[</span><span class="mi">4</span><span class="p">:],</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">cube_</span> <span class="o">=</span> <span class="n">face1</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">reps</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">cube_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">fill_color</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">cube_</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">fill_color</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">)</span>
+    <span class="n">cube_</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">fill_color</span> <span class="o">=</span> <span class="n">Color</span><span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cube_</span></div>
+
+
+
+<div class="viewcode-block" id="pdf_to_svg">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.pdf_to_svg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pdf_to_svg</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">,</span> <span class="n">svg_path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a single-page PDF file to SVG.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pdf_path (str): The path to the PDF file.</span>
+<span class="sd">        svg_path (str): The path to save the SVG file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">doc</span> <span class="o">=</span> <span class="n">fitz</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">)</span>
+    <span class="n">page</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">load_page</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">svg</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">get_svg_image</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">svg_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">svg</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># To do: use a different name for the Annotation class</span>
+<span class="c1"># annotation is a label with an arrow</span>
+<div class="viewcode-block" id="Annotation">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.Annotation">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Annotation</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An Annotation object is a label with an arrow pointing to a specific location.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        text (str): The annotation text.</span>
+<span class="sd">        pos (tuple): The position of the annotation.</span>
+<span class="sd">        frame (FrameShape): The frame shape of the annotation.</span>
+<span class="sd">        root_pos (tuple): The root position of the arrow.</span>
+<span class="sd">        arrow_line (ArrowLine, optional): The type of arrow line. Defaults to ArrowLine.STRAIGHT_END.</span>
+<span class="sd">        **kwargs: Additional keyword arguments for annotation styling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">root_pos</span><span class="p">,</span> <span class="n">arrow_line</span><span class="o">=</span><span class="n">ArrowLine</span><span class="o">.</span><span class="n">STRAIGHT_END</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root_pos</span> <span class="o">=</span> <span class="n">root_pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_line</span> <span class="o">=</span> <span class="n">arrow_line</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">ANNOTATION</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="TagFrame">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.TagFrame">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TagFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Frame objects are used with Tag objects to create boxes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        frame_shape (FrameShape, optional): The shape of the frame. Defaults to &quot;rectangle&quot;.</span>
+<span class="sd">        line_width (float, optional): The width of the frame line. Defaults to 1.</span>
+<span class="sd">        line_dash_array (list, optional): The dash pattern for the frame line. Defaults to None.</span>
+<span class="sd">        line_join (LineJoin, optional): The line join style. Defaults to &quot;miter&quot;.</span>
+<span class="sd">        line_color (Color, optional): The color of the frame line. Defaults to colors.black.</span>
+<span class="sd">        back_color (Color, optional): The background color of the frame. Defaults to colors.white.</span>
+<span class="sd">        fill (bool, optional): Whether to fill the frame. Defaults to False.</span>
+<span class="sd">        stroke (bool, optional): Whether to stroke the frame. Defaults to True.</span>
+<span class="sd">        double (bool, optional): Whether to use a double line. Defaults to False.</span>
+<span class="sd">        double_distance (float, optional): The distance between double lines. Defaults to 2.</span>
+<span class="sd">        inner_sep (float, optional): The inner separation. Defaults to 10.</span>
+<span class="sd">        outer_sep (float, optional): The outer separation. Defaults to 10.</span>
+<span class="sd">        smooth (bool, optional): Whether to smooth the frame. Defaults to False.</span>
+<span class="sd">        rounded_corners (bool, optional): Whether to use rounded corners. Defaults to False.</span>
+<span class="sd">        fillet_radius (float, optional): The radius of the fillet. Defaults to 10.</span>
+<span class="sd">        draw_fillets (bool, optional): Whether to draw fillets. Defaults to False.</span>
+<span class="sd">        blend_mode (str, optional): The blend mode. Defaults to None.</span>
+<span class="sd">        gradient (str, optional): The gradient. Defaults to None.</span>
+<span class="sd">        pattern (str, optional): The pattern. Defaults to None.</span>
+<span class="sd">        min_width (float, optional): The minimum width. Defaults to None.</span>
+<span class="sd">        min_height (float, optional): The minimum height. Defaults to None.</span>
+<span class="sd">        min_size (float, optional): The minimum size. Defaults to None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">frame_shape</span><span class="p">:</span> <span class="n">FrameShape</span> <span class="o">=</span> <span class="s2">&quot;rectangle&quot;</span>
+    <span class="n">line_width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">line_dash_array</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">line_join</span><span class="p">:</span> <span class="n">LineJoin</span> <span class="o">=</span> <span class="s2">&quot;miter&quot;</span>
+    <span class="n">line_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">black</span>
+    <span class="n">back_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">white</span>
+    <span class="n">fill</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">stroke</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">double</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">double_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">inner_sep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">outer_sep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">smooth</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">rounded_corners</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">fillet_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">draw_fillets</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">blend_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">gradient</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">min_width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">min_height</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">min_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">FRAME</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">FRAME</span>
+        <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Tag">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.Tag">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Tag</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Tag object is very similar to TikZ library&#39;s nodes. It is a text with a frame.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        text (str): The text of the tag.</span>
+<span class="sd">        pos (Point): The position of the tag.</span>
+<span class="sd">        font_family (str, optional): The font family. Defaults to None.</span>
+<span class="sd">        font_size (int, optional): The font size. Defaults to None.</span>
+<span class="sd">        font_color (Color, optional): The font color. Defaults to None.</span>
+<span class="sd">        anchor (Anchor, optional): The anchor point. Defaults to Anchor.CENTER.</span>
+<span class="sd">        bold (bool, optional): Whether the text is bold. Defaults to False.</span>
+<span class="sd">        italic (bool, optional): Whether the text is italic. Defaults to False.</span>
+<span class="sd">        text_width (float, optional): The width of the text. Defaults to None.</span>
+<span class="sd">        placement (Placement, optional): The placement of the tag. Defaults to None.</span>
+<span class="sd">        minimum_size (float, optional): The minimum size of the tag. Defaults to None.</span>
+<span class="sd">        minimum_width (float, optional): The minimum width of the tag. Defaults to None.</span>
+<span class="sd">        minimum_height (float, optional): The minimum height of the tag. Defaults to None.</span>
+<span class="sd">        frame (TagFrame, optional): The frame of the tag. Defaults to None.</span>
+<span class="sd">        xform_matrix (array, optional): The transformation matrix. Defaults to None.</span>
+<span class="sd">        **kwargs: Additional keyword arguments for tag styling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pos</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+        <span class="n">font_family</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">font_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">font_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">anchor</span><span class="p">:</span> <span class="n">Anchor</span> <span class="o">=</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span>
+        <span class="n">bold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">italic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">text_width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">placement</span><span class="p">:</span> <span class="n">Placement</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">minimum_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">minimum_width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">minimum_height</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">xform_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TagStyle</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_style_map&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tag_style_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_aliases</span><span class="p">()</span>
+        <span class="n">tag_attribs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tag_style_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">tag_attribs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;subtype&quot;</span><span class="p">)</span>
+        <span class="n">_set_Nones</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="p">[</span><span class="s2">&quot;font_family&quot;</span><span class="p">,</span> <span class="s2">&quot;font_size&quot;</span><span class="p">,</span> <span class="s2">&quot;font_color&quot;</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">font_family</span><span class="p">,</span> <span class="n">font_size</span><span class="p">,</span> <span class="n">font_color</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">validate_args</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">tag_attribs</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_pos</span> <span class="o">=</span> <span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">detokenize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">TagFrame</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">TAG</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">TAG</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">style</span> <span class="o">=</span> <span class="n">TagStyle</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">draw_frame</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">font_family</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">font_family</span> <span class="o">=</span> <span class="n">font_family</span>
+        <span class="k">if</span> <span class="n">font_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">font_size</span> <span class="o">=</span> <span class="n">font_size</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">font_size</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;font_size&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">xform_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">=</span> <span class="n">identity_matrix</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">=</span> <span class="n">get_transform</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="o">=</span> <span class="n">anchor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bold</span> <span class="o">=</span> <span class="n">bold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">italic</span> <span class="o">=</span> <span class="n">italic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_width</span> <span class="o">=</span> <span class="n">text_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">placement</span> <span class="o">=</span> <span class="n">placement</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minimum_size</span> <span class="o">=</span> <span class="n">minimum_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minimum_width</span> <span class="o">=</span> <span class="n">minimum_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minimum_height</span> <span class="o">=</span> <span class="n">minimum_height</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_bounds</span><span class="p">()</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">Points</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+        <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">obj</span><span class="p">,</span> <span class="n">attrib</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_aliasses&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attrib</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">obj</span><span class="p">,</span> <span class="n">attrib</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_aliasses&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attrib</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_aliasses</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">path_attrib</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_style_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">style_path</span><span class="p">,</span> <span class="n">attrib</span> <span class="o">=</span> <span class="n">path_attrib</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">for</span> <span class="n">attrib_name</span> <span class="ow">in</span> <span class="n">style_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">attrib_name</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="n">_aliasses</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attrib</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_aliasses&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_aliasses</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">,</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">reps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">@</span> <span class="n">xform_matrix</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tags</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">reps</span><span class="p">):</span>
+                <span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">tag</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">)</span>
+                <span class="n">tags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">Batch</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pos</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Point</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the position of the text.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Point: The position of the text.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_pos</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Tag.copy">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.Tag.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Tag&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a copy of the Tag object.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tag: A copy of the Tag object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">Tag</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">_init_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_pos</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">font_family</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">font_family</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">font_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">font_size</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">font_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">font_color</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">anchor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">bold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bold</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">italic</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">italic</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">text_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_width</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">placement</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">placement</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">minimum_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum_size</span>
+        <span class="n">tag</span><span class="o">.</span><span class="n">minimum_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum_width</span>
+
+        <span class="k">return</span> <span class="n">tag</span></div>
+
+
+<div class="viewcode-block" id="Tag.text_bounds">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.Tag.text_bounds">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">text_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the bounds of the text.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: The bounds of the text (xmin, ymin, xmax, ymax).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">font_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">font_size</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;font_size&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+            <span class="n">font_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">font_size</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">font_size</span> <span class="ow">in</span> <span class="n">FontSize</span><span class="p">:</span>
+            <span class="n">font_size</span> <span class="o">=</span> <span class="n">convert_latex_font_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid font size.&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">font</span> <span class="o">=</span> <span class="n">ImageFont</span><span class="o">.</span><span class="n">truetype</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">font_family</span><span class="si">}</span><span class="s2">.ttf&quot;</span><span class="p">,</span> <span class="n">font_size</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="n">font</span> <span class="o">=</span> <span class="n">ImageFont</span><span class="o">.</span><span class="n">load_default</span><span class="p">()</span>
+        <span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">font</span><span class="o">.</span><span class="n">getbbox</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">final_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the final coordinates of the text.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            array: The final coordinates of the text.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">homogen_coords</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">b_box</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the bounding box of the text.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: The bounding box of the text.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># return bounding_box(self.final_coords) To do: check if this is correct</span>
+        <span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_bounds</span><span class="p">()</span>
+        <span class="n">w2</span> <span class="o">=</span> <span class="p">(</span><span class="n">xmax</span> <span class="o">-</span> <span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="p">(</span><span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
+        <span class="n">xmin</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">w2</span>
+        <span class="n">xmax</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">w2</span>
+        <span class="n">ymin</span> <span class="o">=</span> <span class="n">y</span> <span class="o">-</span> <span class="n">h2</span>
+        <span class="n">ymax</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h2</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">bounding_box</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Tag(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Tag(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="ArrowHead">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.ArrowHead">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ArrowHead</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An ArrowHead object is a shape that represents the head of an arrow.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        length (float, optional): The length of the arrow head. Defaults to None.</span>
+<span class="sd">        width_ (float, optional): The width of the arrow head. Defaults to None.</span>
+<span class="sd">        points (list, optional): The points defining the arrow head. Defaults to None.</span>
+<span class="sd">        **kwargs: Additional keyword arguments for arrow head styling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">width_</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">points</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="n">length</span><span class="p">,</span> <span class="n">width_</span> <span class="o">=</span> <span class="n">get_defaults</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;arrow_head_length&quot;</span><span class="p">,</span> <span class="s2">&quot;arrow_head_width&quot;</span><span class="p">],</span> <span class="p">[</span><span class="n">length</span><span class="p">,</span> <span class="n">width_</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">w2</span> <span class="o">=</span> <span class="n">width_</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">w2</span><span class="p">),</span> <span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">w2</span><span class="p">)]</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">ARROW_HEAD</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head_length</span> <span class="o">=</span> <span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head_width</span> <span class="o">=</span> <span class="n">width_</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span></div>
+
+
+
+<div class="viewcode-block" id="draw_cs_tiny">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.draw_cs_tiny">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">draw_cs_tiny</span><span class="p">(</span><span class="n">canvas</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">neg_width</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">neg_height</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draws a tiny coordinate system.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        canvas: The canvas to draw on.</span>
+<span class="sd">        pos (tuple, optional): The position of the coordinate system. Defaults to (0, 0).</span>
+<span class="sd">        width (int, optional): The length of the x-axis. Defaults to 25.</span>
+<span class="sd">        height (int, optional): The length of the y-axis. Defaults to 25.</span>
+<span class="sd">        neg_width (int, optional): The negative length of the x-axis. Defaults to 5.</span>
+<span class="sd">        neg_height (int, optional): The negative length of the y-axis. Defaults to 5.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">canvas</span><span class="o">.</span><span class="n">circle</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">line_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">gray</span><span class="p">)</span>
+    <span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">Shape</span><span class="p">([(</span><span class="n">x</span> <span class="o">-</span> <span class="n">neg_width</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">width</span><span class="p">,</span> <span class="n">y</span><span class="p">)]),</span> <span class="n">line_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">gray</span><span class="p">)</span>
+    <span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">Shape</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">neg_height</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">height</span><span class="p">)]),</span> <span class="n">line_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">gray</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="draw_cs_small">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.draw_cs_small">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">draw_cs_small</span><span class="p">(</span><span class="n">canvas</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">neg_width</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">neg_height</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draws a small coordinate system.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        canvas: The canvas to draw on.</span>
+<span class="sd">        pos (tuple, optional): The position of the coordinate system. Defaults to (0, 0).</span>
+<span class="sd">        width (int, optional): The length of the x-axis. Defaults to 80.</span>
+<span class="sd">        height (int, optional): The length of the y-axis. Defaults to 100.</span>
+<span class="sd">        neg_width (int, optional): The negative length of the x-axis. Defaults to 5.</span>
+<span class="sd">        neg_height (int, optional): The negative length of the y-axis. Defaults to 5.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">x_axis</span> <span class="o">=</span> <span class="n">arrow</span><span class="p">(</span>
+        <span class="p">(</span><span class="o">-</span><span class="n">neg_width</span> <span class="o">+</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">width</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">+</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">head_length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">head_width</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
+    <span class="n">y_axis</span> <span class="o">=</span> <span class="n">arrow</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="n">neg_height</span> <span class="o">+</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">height</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">+</span> <span class="n">y</span><span class="p">),</span> <span class="n">head_length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">head_width</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
+    <span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">line_width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">y_axis</span><span class="p">,</span> <span class="n">line_width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="arrow">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.arrow">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">arrow</span><span class="p">(</span>
+    <span class="n">p1</span><span class="p">,</span>
+    <span class="n">p2</span><span class="p">,</span>
+    <span class="n">head_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">head_width</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">line_width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">line_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">black</span><span class="p">,</span>
+    <span class="n">fill_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">black</span><span class="p">,</span>
+    <span class="n">centered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return an arrow from p1 to p2.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p1 (tuple): The starting point of the arrow.</span>
+<span class="sd">        p2 (tuple): The ending point of the arrow.</span>
+<span class="sd">        head_length (int, optional): The length of the arrow head. Defaults to 10.</span>
+<span class="sd">        head_width (int, optional): The width of the arrow head. Defaults to 4.</span>
+<span class="sd">        line_width (int, optional): The width of the arrow line. Defaults to 1.</span>
+<span class="sd">        line_color (Color, optional): The color of the arrow line. Defaults to colors.black.</span>
+<span class="sd">        fill_color (Color, optional): The fill color of the arrow head. Defaults to colors.black.</span>
+<span class="sd">        centered (bool, optional): Whether the arrow is centered. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: A Batch object containing the arrow shapes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">p1</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">p2</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span>
+    <span class="n">angle</span> <span class="o">=</span> <span class="n">atan2</span><span class="p">(</span><span class="n">dy</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span>
+        <span class="p">[(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)],</span>
+        <span class="n">closed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">line_color</span><span class="o">=</span><span class="n">line_color</span><span class="p">,</span>
+        <span class="n">fill_color</span><span class="o">=</span><span class="n">fill_color</span><span class="p">,</span>
+        <span class="n">line_width</span><span class="o">=</span><span class="n">line_width</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">w2</span> <span class="o">=</span> <span class="n">head_width</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">head</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span>
+        <span class="p">[(</span><span class="o">-</span><span class="n">head_length</span><span class="p">,</span> <span class="n">w2</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="n">head_length</span><span class="p">,</span> <span class="o">-</span><span class="n">w2</span><span class="p">)],</span>
+        <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">line_color</span><span class="o">=</span><span class="n">line_color</span><span class="p">,</span>
+        <span class="n">fill_color</span><span class="o">=</span><span class="n">fill_color</span><span class="p">,</span>
+        <span class="n">line_width</span><span class="o">=</span><span class="n">line_width</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">head</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">centered</span><span class="p">:</span>
+        <span class="n">head</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">*</span><span class="n">mid_point</span><span class="p">((</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">head</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Batch</span><span class="p">([</span><span class="n">body</span><span class="p">,</span> <span class="n">head</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="ArcArrow">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.ArcArrow">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ArcArrow</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An ArcArrow object is an arrow with an arc.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        center (Point): The center of the arc.</span>
+<span class="sd">        radius (float): The radius of the arc.</span>
+<span class="sd">        start_angle (float): The starting angle of the arc.</span>
+<span class="sd">        end_angle (float): The ending angle of the arc.</span>
+<span class="sd">        xform_matrix (array, optional): The transformation matrix. Defaults to None.</span>
+<span class="sd">        **kwargs: Additional keyword arguments for arc arrow styling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">center</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+        <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">start_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">end_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">xform_matrix</span><span class="p">:</span> <span class="n">array</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="n">center</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">radius</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_angle</span> <span class="o">=</span> <span class="n">start_angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_angle</span> <span class="o">=</span> <span class="n">end_angle</span>
+        <span class="c1"># create the arc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arc</span> <span class="o">=</span> <span class="n">Arc</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">start_angle</span><span class="p">,</span> <span class="n">end_angle</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arc</span><span class="o">.</span><span class="n">fill</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># create arrow_head1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head1</span> <span class="o">=</span> <span class="n">ArrowHead</span><span class="p">()</span>
+        <span class="c1"># create arrow_head2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head2</span> <span class="o">=</span> <span class="n">ArrowHead</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arc</span><span class="o">.</span><span class="n">start_point</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">arc</span><span class="o">.</span><span class="n">end_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="p">[</span><span class="n">center</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head1</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head1</span><span class="o">.</span><span class="n">head_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head1</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">start_angle</span> <span class="o">-</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head1</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">*</span><span class="n">start</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head2</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head2</span><span class="o">.</span><span class="n">head_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head2</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">end_angle</span> <span class="o">+</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head2</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">*</span><span class="n">end</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">arc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_head2</span><span class="p">]</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">ARC_ARROW</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">shape_style_map</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>  <span class="c1"># we should check for valid values here</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">. Invalid attribute!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">=</span> <span class="n">get_transform</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Arrow">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.Arrow">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Arrow</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An Arrow object is a line with an arrow head.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p1 (Point): The starting point of the arrow.</span>
+<span class="sd">        p2 (Point): The ending point of the arrow.</span>
+<span class="sd">        head_pos (HeadPos, optional): The position of the arrow head. Defaults to HeadPos.END.</span>
+<span class="sd">        head (Shape, optional): The shape of the arrow head. Defaults to None.</span>
+<span class="sd">        **kwargs: Additional keyword arguments for arrow styling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">p1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+        <span class="n">p2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+        <span class="n">head_pos</span><span class="p">:</span> <span class="n">HeadPos</span> <span class="o">=</span> <span class="n">HeadPos</span><span class="o">.</span><span class="n">END</span><span class="p">,</span>
+        <span class="n">head</span><span class="p">:</span> <span class="n">Shape</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p1</span> <span class="o">=</span> <span class="n">p1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p2</span> <span class="o">=</span> <span class="n">p2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head_pos</span> <span class="o">=</span> <span class="n">head_pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">head</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">line</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="n">head</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">ArrowHead</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">head</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_pos</span> <span class="o">==</span> <span class="n">HeadPos</span><span class="o">.</span><span class="n">END</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">length</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">head_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">heads</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_pos</span> <span class="o">==</span> <span class="n">HeadPos</span><span class="o">.</span><span class="n">START</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_pos</span> <span class="o">==</span> <span class="n">HeadPos</span><span class="o">.</span><span class="n">BOTH</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head2</span> <span class="o">=</span> <span class="n">ArrowHead</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head2</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head2</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">head2</span><span class="o">.</span><span class="n">head_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head2</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head2</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">length</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">head_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">heads</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">head2</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_pos</span> <span class="o">==</span> <span class="n">HeadPos</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">heads</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">heads</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">ARROW</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="AngularDimension">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.AngularDimension">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AngularDimension</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An AngularDimension object is a dimension that represents an angle.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        center (Point): The center of the angle.</span>
+<span class="sd">        radius (float): The radius of the angle.</span>
+<span class="sd">        start_angle (float): The starting angle.</span>
+<span class="sd">        end_angle (float): The ending angle.</span>
+<span class="sd">        ext_angle (float): The extension angle.</span>
+<span class="sd">        gap_angle (float): The gap angle.</span>
+<span class="sd">        text_offset (float, optional): The text offset. Defaults to None.</span>
+<span class="sd">        gap (float, optional): The gap. Defaults to None.</span>
+<span class="sd">        **kwargs: Additional keyword arguments for angular dimension styling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">center</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+        <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">start_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">end_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">ext_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">gap_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">text_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">gap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">text_offset</span><span class="p">,</span> <span class="n">gap</span> <span class="o">=</span> <span class="n">get_defaults</span><span class="p">([</span><span class="s2">&quot;text_offset&quot;</span><span class="p">,</span> <span class="s2">&quot;gap&quot;</span><span class="p">],</span> <span class="p">[</span><span class="n">text_offset</span><span class="p">,</span> <span class="n">gap</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="n">center</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">radius</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_angle</span> <span class="o">=</span> <span class="n">start_angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_angle</span> <span class="o">=</span> <span class="n">end_angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext_angle</span> <span class="o">=</span> <span class="n">ext_angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gap_angle</span> <span class="o">=</span> <span class="n">gap_angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span> <span class="o">=</span> <span class="n">text_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">=</span> <span class="n">gap</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">ANGULAR_DIMENSION</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Dimension">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.illustration.Dimension">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Dimension</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Dimension object is a line with arrows and a text.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        text (str): The text of the dimension.</span>
+<span class="sd">        p1 (Point): The starting point of the dimension.</span>
+<span class="sd">        p2 (Point): The ending point of the dimension.</span>
+<span class="sd">        ext_length (float): The length of the extension lines.</span>
+<span class="sd">        ext_length2 (float, optional): The length of the second extension line. Defaults to None.</span>
+<span class="sd">        orientation (Anchor, optional): The orientation of the dimension. Defaults to None.</span>
+<span class="sd">        text_pos (Anchor, optional): The position of the text. Defaults to Anchor.CENTER.</span>
+<span class="sd">        text_offset (float, optional): The offset of the text. Defaults to 0.</span>
+<span class="sd">        gap (float, optional): The gap. Defaults to None.</span>
+<span class="sd">        reverse_arrows (bool, optional): Whether to reverse the arrows. Defaults to False.</span>
+<span class="sd">        reverse_arrow_length (float, optional): The length of the reversed arrows. Defaults to None.</span>
+<span class="sd">        parallel (bool, optional): Whether the dimension is parallel. Defaults to False.</span>
+<span class="sd">        ext1pnt (Point, optional): The first extension point. Defaults to None.</span>
+<span class="sd">        ext2pnt (Point, optional): The second extension point. Defaults to None.</span>
+<span class="sd">        scale (float, optional): The scale factor. Defaults to 1.</span>
+<span class="sd">        font_size (int, optional): The font size. Defaults to 12.</span>
+<span class="sd">        **kwargs: Additional keyword arguments for dimension styling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># To do: This is too long and convoluted. Refactor it.</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">p1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+        <span class="n">p2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+        <span class="n">ext_length</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">ext_length2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">orientation</span><span class="p">:</span> <span class="n">Anchor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">text_pos</span><span class="p">:</span> <span class="n">Anchor</span> <span class="o">=</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span>
+        <span class="n">text_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">gap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">reverse_arrows</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">reverse_arrow_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">parallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ext1pnt</span><span class="p">:</span> <span class="n">Point</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ext2pnt</span><span class="p">:</span> <span class="n">Point</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">font_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">ext_length2</span><span class="p">,</span> <span class="n">gap</span><span class="p">,</span> <span class="n">reverse_arrow_length</span> <span class="o">=</span> <span class="n">get_defaults</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;ext_length2&quot;</span><span class="p">,</span> <span class="s2">&quot;gap&quot;</span><span class="p">,</span> <span class="s2">&quot;rev_arrow_length&quot;</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">ext_length2</span><span class="p">,</span> <span class="n">gap</span><span class="p">,</span> <span class="n">reverse_arrow_length</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">distance</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span> <span class="o">/</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p1</span> <span class="o">=</span> <span class="n">p1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p2</span> <span class="o">=</span> <span class="n">p2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext_length</span> <span class="o">=</span> <span class="n">ext_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span> <span class="o">=</span> <span class="n">ext_length2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">=</span> <span class="n">orientation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="n">text_pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span> <span class="o">=</span> <span class="n">text_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">=</span> <span class="n">gap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reverse_arrows</span> <span class="o">=</span> <span class="n">reverse_arrows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reverse_arrow_length</span> <span class="o">=</span> <span class="n">reverse_arrow_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext1</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext2</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow1</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arrow2</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim_line</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mid_line</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext1pnt</span> <span class="o">=</span> <span class="n">ext1pnt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext2pnt</span> <span class="o">=</span> <span class="n">ext2pnt</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">p1</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">p2</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># px1_1 : extension1 point 1</span>
+        <span class="c1"># px1_2 : extension1 point 2</span>
+        <span class="c1"># px2_1 : extension2 point 1</span>
+        <span class="c1"># px2_2 : extension2 point 2</span>
+        <span class="c1"># px3_1 : extension3 point 1</span>
+        <span class="c1"># px3_2 : extension3 point 2</span>
+        <span class="c1"># pa1 : arrow point 1</span>
+        <span class="c1"># pa2 : arrow point 2</span>
+        <span class="c1"># ptext : text point</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">DIMENSION</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">dist_tol</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;dist_tol&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">font_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">font_size</span> <span class="o">=</span> <span class="n">font_size</span>
+        <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">orientation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">orientation</span> <span class="o">=</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHEAST</span>
+
+            <span class="k">if</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHEAST</span><span class="p">:</span>
+                <span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">elif</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHWEST</span><span class="p">:</span>
+                <span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">elif</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHEAST</span><span class="p">:</span>
+                <span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span> <span class="o">-</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">elif</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHWEST</span><span class="p">:</span>
+                <span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext1pnt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">px1_1</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">px1_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext1pnt</span>
+            <span class="n">px1_2</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext2pnt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">px2_1</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">px2_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext2pnt</span>
+            <span class="n">px2_2</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">pa1</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="n">px1_2</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">*</span> <span class="o">-</span><span class="mf">1.5</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">pa2</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="n">px2_2</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">*</span> <span class="o">-</span><span class="mf">1.5</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="n">mid_point</span><span class="p">(</span><span class="n">pa1</span><span class="p">,</span> <span class="n">pa2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dim_line</span> <span class="o">=</span> <span class="n">Arrow</span><span class="p">(</span><span class="n">pa1</span><span class="p">,</span> <span class="n">pa2</span><span class="p">,</span> <span class="n">head_pos</span><span class="o">=</span><span class="n">HeadPos</span><span class="o">.</span><span class="n">BOTH</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ext1</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px1_1</span><span class="p">,</span> <span class="n">px1_2</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ext2</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px2_1</span><span class="p">,</span> <span class="n">px2_2</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_line</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ext1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ext2</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x1</span> <span class="o">-</span> <span class="n">x2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">dist_tol</span><span class="p">:</span>
+                <span class="c1"># vertical line</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">orientation</span> <span class="o">=</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">EAST</span>
+
+                <span class="k">if</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">WEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHWEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHWEST</span><span class="p">]:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span>
+                    <span class="n">px1_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">px1_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">ext_length</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">px2_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+                    <span class="n">px2_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">ext_length</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">px1_2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">*</span> <span class="mf">1.5</span>
+                    <span class="n">pa1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">pa2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">EAST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHEAST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHEAST</span><span class="p">]:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span>
+                    <span class="n">px1_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">px1_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">ext_length</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">px2_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+                    <span class="n">px2_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">ext_length</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">px1_2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">*</span> <span class="mf">1.5</span>
+                    <span class="n">pa1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">pa2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">CENTER</span><span class="p">:</span>
+                    <span class="n">pa1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">pa2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">pa1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHWEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHEAST</span><span class="p">]:</span>
+                    <span class="n">px3_1</span> <span class="o">=</span> <span class="n">pa2</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span>
+                    <span class="n">px3_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px3_1</span><span class="p">,</span> <span class="n">px3_2</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHWEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHEAST</span><span class="p">]:</span>
+                    <span class="n">px3_1</span> <span class="o">=</span> <span class="n">pa1</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span>
+                    <span class="n">px3_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px3_1</span><span class="p">,</span> <span class="n">px3_2</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTH</span><span class="p">:</span>
+                    <span class="n">px3_1</span> <span class="o">=</span> <span class="n">pa2</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span>
+                    <span class="n">px3_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px3_1</span><span class="p">,</span> <span class="n">px3_2</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTH</span><span class="p">:</span>
+                    <span class="n">px3_2</span> <span class="o">=</span> <span class="n">pa1</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span>
+                    <span class="n">px3_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px3_1</span><span class="p">,</span> <span class="n">px3_2</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y1</span> <span class="o">-</span> <span class="p">(</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">orientation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTH</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTH</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext1pnt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ext1</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px1_1</span><span class="p">,</span> <span class="n">px1_2</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ext1</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">ext1pnt</span><span class="p">,</span> <span class="n">px1_2</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext2pnt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ext2</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px2_1</span><span class="p">,</span> <span class="n">px2_2</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ext2</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">ext2pnt</span><span class="p">,</span> <span class="n">px2_2</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">dist_tol</span><span class="p">:</span>
+                <span class="c1"># horizontal line</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">orientation</span> <span class="o">=</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTH</span>
+
+                <span class="k">if</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTH</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHWEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHEAST</span><span class="p">]:</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span>
+                    <span class="n">px1_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="n">px1_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">ext_length</span><span class="p">)</span>
+                    <span class="n">px2_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="n">px2_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">ext_length</span><span class="p">)</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">px1_2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">*</span> <span class="mf">1.5</span>
+                    <span class="n">pa1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="n">pa2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">NORTH</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHWEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHEAST</span><span class="p">]:</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span>
+                    <span class="n">px1_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="n">px1_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">ext_length</span><span class="p">)</span>
+                    <span class="n">px2_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="n">px2_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">ext_length</span><span class="p">)</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">px1_2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">*</span> <span class="mf">1.5</span>
+                    <span class="n">pa1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="n">pa2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">WEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">EAST</span><span class="p">]:</span>
+                    <span class="n">pa1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">pa2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">WEST</span><span class="p">:</span>
+                        <span class="n">px3_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">pa1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span><span class="p">,</span> <span class="n">pa1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">px3_2</span> <span class="o">=</span> <span class="n">pa1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">px3_1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span><span class="p">,</span> <span class="n">pa1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">px3_1</span> <span class="o">=</span> <span class="n">pa2</span>
+                        <span class="n">px3_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">pa2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span><span class="p">,</span> <span class="n">pa1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">px3_1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span><span class="p">,</span> <span class="n">pa1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px3_1</span><span class="p">,</span> <span class="n">px3_2</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="o">==</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">CENTER</span><span class="p">:</span>
+                    <span class="n">pa1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+                    <span class="n">pa2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+
+                <span class="n">y</span> <span class="o">=</span> <span class="n">pa1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHWEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHWEST</span><span class="p">]:</span>
+                    <span class="n">px3_1</span> <span class="o">=</span> <span class="n">pa1</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span>
+                    <span class="n">px3_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px3_1</span><span class="p">,</span> <span class="n">px3_2</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHEAST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTHEAST</span><span class="p">]:</span>
+                    <span class="n">px3_1</span> <span class="o">=</span> <span class="n">pa2</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_length2</span>
+                    <span class="n">px3_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px3_1</span><span class="p">,</span> <span class="n">px3_2</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTH</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">SOUTH</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span> <span class="o">+</span> <span class="p">(</span><span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">orientation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">WEST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">EAST</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext1pnt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ext1</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px1_1</span><span class="p">,</span> <span class="n">px1_2</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ext1Shape</span><span class="p">([</span><span class="n">ext1pnt</span><span class="p">,</span> <span class="n">px1_2</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext2pnt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ext2</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">px2_1</span><span class="p">,</span> <span class="n">px2_2</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ext2</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">ext2pnt</span><span class="p">,</span> <span class="n">px2_2</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse_arrows</span><span class="p">:</span>
+                <span class="n">dist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse_arrow_length</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="n">extended_line</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="p">[</span><span class="n">pa1</span><span class="p">,</span> <span class="n">pa2</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">arrow1</span> <span class="o">=</span> <span class="n">Arrow</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">pa2</span><span class="p">)</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="n">extended_line</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="p">[</span><span class="n">pa2</span><span class="p">,</span> <span class="n">pa1</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">arrow2</span> <span class="o">=</span> <span class="n">Arrow</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">pa1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arrow1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arrow2</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mid_line</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">pa1</span><span class="p">,</span> <span class="n">pa2</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mid_line</span><span class="p">)</span>
+                <span class="n">dist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_offset</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse_arrow_length</span>
+                <span class="k">if</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Anchor</span><span class="o">.</span><span class="n">EAST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTHEAST</span><span class="p">,</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">NORTH</span><span class="p">]:</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="n">extended_line</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="p">[</span><span class="n">pa1</span><span class="p">,</span> <span class="n">pa2</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">text_pos</span> <span class="o">=</span> <span class="n">extended_line</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="p">[</span><span class="n">pa2</span><span class="p">,</span> <span class="n">pa1</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dim_line</span> <span class="o">=</span> <span class="n">Arrow</span><span class="p">(</span><span class="n">pa1</span><span class="p">,</span> <span class="n">pa2</span><span class="p">,</span> <span class="n">head_pos</span><span class="o">=</span><span class="n">HeadPos</span><span class="o">.</span><span class="n">BOTH</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ext1</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ext2</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext3</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ext3</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

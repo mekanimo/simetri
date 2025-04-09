@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.graphics.shape &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.graphics.shape</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Shape objects are the main geometric entities in Simetri. They are created by providing a sequence of points (a list of (x, y) coordinates). If a style argument (a ShapeStyle object) is provided, then the style attributes of this ShapeStyle object will superseed the style attributes of the Shape object. The dist_tol argument is the distance tolerance for checking. The xform_matrix argument is the transformation matrix. Additional attributes can be provided as keyword arguments. The line_width, fill_color, line_style, etc. for style attributes can be provided as keyword arguments. The Shape object has a subtype attribute that can be set to one of the values in the shape_types dictionary. The Shape object has a dist_tol attribute that is the distance tolerance for checking. The Shape object has a dist_tol2 attribute that is the square of the distance tolerance. The Shape object has a primary_points attribute that is a Points object. The Shape object has a closed attribute that is a boolean value. The Shape object has an xform_matrix attribute that is a transformation matrix. The Shape object has a type attribute that is a Types.SHAPE object. The Shape object has a subtype attribute that is a Types.SHAPE object. The Shape object has a dist_tol attribute that is a distance tolerance for checking. The Shape object has a dist_tol2 attribute that is the square of the distance tolerance. The Shape object has a _b_box attribute that is a bounding box. The Shape object has a area attribute that is the area of the shape. The Shape object has a total_length attribute that is the total length of the shape. The Shape object has a is_polygon attribute that is a boolean value. The Shape object has a topology attribute that is a set of topology values. The Shape object has a merge method that merges two shapes if they are connected. The Shape object has a _chain_vertices method that chains two sets of vertices if they are connected. The Shape object has a _is_polygon method that returns True if the vertices form a polygon. The Shape object has an as_graph method that returns the shape as a graph object. The Shape object has an as_array method that returns the vertices as an array. The Shape object has an as_list method that returns the vertices as a list of tuples. The Shape object has a final_coords attribute that is the final coordinates of the shape. The Shape object has a vertices attribute that is the final coordinates of the shape. The Shape object has a vertex&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Shape&quot;</span><span class="p">,</span> <span class="s2">&quot;custom_attributes&quot;</span><span class="p">]</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">allclose</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">inv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.affine</span><span class="w"> </span><span class="kn">import</span> <span class="n">identity_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.all_enums</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.bbox</span><span class="w"> </span><span class="kn">import</span> <span class="n">BoundingBox</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..canvas.style_map</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShapeStyle</span><span class="p">,</span> <span class="n">shape_style_map</span><span class="p">,</span> <span class="n">shape_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">Point</span><span class="p">,</span> <span class="n">common_properties</span><span class="p">,</span> <span class="n">get_item_by_id</span><span class="p">,</span> <span class="n">Line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..settings.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaults</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_transform</span><span class="p">,</span>
+    <span class="n">is_nested_sequence</span><span class="p">,</span>
+    <span class="n">decompose_transformations</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">homogenize</span><span class="p">,</span>
+    <span class="n">right_handed</span><span class="p">,</span>
+    <span class="n">all_intersections</span><span class="p">,</span>
+    <span class="n">polygon_area</span><span class="p">,</span>
+    <span class="n">polyline_length</span><span class="p">,</span>
+    <span class="n">close_points2</span><span class="p">,</span>
+    <span class="n">connected_pairs</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">Node</span><span class="p">,</span> <span class="n">Graph</span><span class="p">,</span> <span class="n">GraphEdge</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">StyleMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.bbox</span><span class="w"> </span><span class="kn">import</span> <span class="n">bounding_box</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.points</span><span class="w"> </span><span class="kn">import</span> <span class="n">Points</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Batch</span>
+
+
+<div class="viewcode-block" id="Shape">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Shape</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">StyleMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The main class for all geometric entities in Simetri.</span>
+
+<span class="sd">    A Shape is created by providing a sequence of points (a list of (x, y) coordinates).</span>
+<span class="sd">    If a style argument (a ShapeStyle object) is provided, then its style attributes override</span>
+<span class="sd">    those of the Shape object. Additional attributes (e.g. line_width, fill_color, line_style)</span>
+<span class="sd">    may be provided.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        dist_tol: Distance tolerance for checking.</span>
+<span class="sd">        xform_matrix: Transformation matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">points</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Point</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">closed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">xform_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a Shape object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            points (Sequence[Point], optional): The points that make up the shape.</span>
+<span class="sd">            closed (bool, optional): Whether the shape is closed. Defaults to False.</span>
+<span class="sd">            xform_matrix (np.array, optional): The transformation matrix. Defaults to None.</span>
+<span class="sd">            **kwargs (dict): Additional attributes for the shape.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the provided subtype is not valid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ShapeStyle</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_style_map&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape_style_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_aliases</span><span class="p">()</span>
+        <span class="n">valid_args</span> <span class="o">=</span> <span class="n">shape_args</span>
+        <span class="n">validate_args</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">valid_args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;subtype&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;subtype&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">shape_types</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid subtype: </span><span class="si">{</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;subtype&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;subtype&quot;</span><span class="p">]</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;subtype&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">SHAPE</span>
+
+        <span class="k">if</span> <span class="s2">&quot;dist_tol&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dist_tol</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;dist_tol&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_tol</span><span class="o">**</span><span class="mi">2</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dist_tol&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dist_tol</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;dist_tol&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_tol</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span> <span class="o">=</span> <span class="n">Points</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">closed</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">,</span> <span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_closed</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">closed</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span> <span class="o">=</span> <span class="n">Points</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">=</span> <span class="n">get_transform</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">SHAPE</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_box</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set an attribute of the shape.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): The name of the attribute.</span>
+<span class="sd">            value (Any): The value to set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve an attribute of the shape.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): The attribute name to return.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Any: The value of the attribute.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AttributeError: If the attribute cannot be found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_closed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Point</span><span class="p">],</span> <span class="n">closed</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine whether the shape should be considered closed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            points (Sequence[Point]): The points that define the shape.</span>
+<span class="sd">            closed (bool): The user-specified closed flag.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: A tuple consisting of:</span>
+<span class="sd">                - bool: True if the shape is closed, False otherwise.</span>
+<span class="sd">                - list: The (possibly modified) list of points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">decision_table</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">points</span><span class="p">]</span>
+            <span class="n">polygon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_polygon</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">decision_table</span><span class="p">[(</span><span class="nb">bool</span><span class="p">(</span><span class="n">closed</span><span class="p">),</span> <span class="n">polygon</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">polygon</span><span class="p">:</span>
+                <span class="n">points</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="n">points</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the number of points in the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: The number of primary points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a string representation of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: A string representation of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="s2">&quot;Shape()&quot;</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Shape(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Shape([</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">, ..., </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">])&quot;</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a string representation of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: A string representation of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subscript</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve point(s) from the shape by index or slice.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            subscript (int or slice): The index or slice specifying the point(s) to retrieve.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Point or list[Point]: The requested point or list of points (after applying the transformation).</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: If the subscript type is invalid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subscript</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">homogen_coords</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">subscript</span><span class="o">.</span><span class="n">start</span> <span class="p">:</span> <span class="n">subscript</span><span class="o">.</span><span class="n">stop</span> <span class="p">:</span> <span class="n">subscript</span><span class="o">.</span><span class="n">step</span><span class="p">]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">homogen_coords</span><span class="p">[</span><span class="n">subscript</span><span class="p">]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subscript</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the point(s) at the given subscript.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            subscript (int or slice): The subscript to set the point(s) at.</span>
+<span class="sd">            value (Point or list[Point]): The value to set the point(s) to.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: If the subscript type is invalid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subscript</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">is_nested_sequence</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">([</span><span class="n">value</span><span class="p">])</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">[</span><span class="n">subscript</span><span class="o">.</span><span class="n">start</span> <span class="p">:</span> <span class="n">subscript</span><span class="o">.</span><span class="n">stop</span> <span class="p">:</span> <span class="n">subscript</span><span class="o">.</span><span class="n">step</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">value</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subscript</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">([</span><span class="n">value</span><span class="p">])</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">[</span><span class="n">subscript</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid subscript type&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subscript</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete the point(s) at the given subscript.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            subscript (int or slice): The subscript to delete the point(s) from.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">[</span><span class="n">subscript</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Shape.remove">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.remove">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove a point from the shape.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (Point): The point to remove.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Shape.append">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.append">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append a point to the shape.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (Point): The point to append.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">([</span><span class="n">value</span><span class="p">])</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="Shape.insert">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.insert">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Insert a point at a given index.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index (int): The index to insert the point at.</span>
+<span class="sd">            value (Point): The point to insert.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">([</span><span class="n">value</span><span class="p">])</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="Shape.extend">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.extend">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extend the shape with a list of points.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            values (list[Point]): The points to extend the shape with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">homogenized</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">@</span> <span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">homogenized</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="Shape.pop">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.pop">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pop a point from the shape.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index (int, optional): The index to pop the point from, defaults to -1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Point: The popped point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return an iterator over the vertices of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Iterator[Point]: An iterator over the vertices of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">:</span> <span class="n">array</span><span class="p">,</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Used internally. Update the shape with a transformation matrix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xform_matrix (array): The transformation matrix.</span>
+<span class="sd">            reps (int, optional): The number of repetitions, defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Batch: The updated shape or a batch of shapes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">reps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">fillet_radius</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fillet_radius</span>
+            <span class="k">if</span> <span class="n">fillet_radius</span><span class="p">:</span>
+                <span class="n">scale</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">decompose_transformations</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">)[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fillet_radius</span> <span class="o">=</span> <span class="n">fillet_radius</span> <span class="o">*</span> <span class="n">scale</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">@</span> <span class="n">xform_matrix</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shapes</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">reps</span><span class="p">):</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">shape</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">)</span>
+                <span class="n">shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">Batch</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the shape is equal to another shape.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other (Shape): The other shape to compare to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the shapes are equal, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">Types</span><span class="o">.</span><span class="n">SHAPE</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">len1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">len2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">len1</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">len2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">len1</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">len2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Shape</span><span class="p">)</span> <span class="ow">and</span> <span class="n">len1</span> <span class="o">==</span> <span class="n">len2</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">allclose</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">,</span>
+                <span class="n">other</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">,</span>
+                <span class="n">rtol</span><span class="o">=</span><span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;rtol&quot;</span><span class="p">],</span>
+                <span class="n">atol</span><span class="o">=</span><span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;atol&quot;</span><span class="p">],</span>
+            <span class="p">)</span> <span class="ow">and</span> <span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">nd_array</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">nd_array</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return whether the shape has any points.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the shape has points, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="Shape.topology">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.topology">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">topology</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return info about the topology of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            set: A set of topology values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">t_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;WITHIN&quot;</span><span class="p">:</span> <span class="n">Topology</span><span class="o">.</span><span class="n">FOLDED</span><span class="p">,</span>
+            <span class="s2">&quot;CONTAINS&quot;</span><span class="p">:</span> <span class="n">Topology</span><span class="o">.</span><span class="n">FOLDED</span><span class="p">,</span>
+            <span class="s2">&quot;COLL_CHAIN&quot;</span><span class="p">:</span> <span class="n">Topology</span><span class="o">.</span><span class="n">COLLINEAR</span><span class="p">,</span>
+            <span class="s2">&quot;YJOINT&quot;</span><span class="p">:</span> <span class="n">Topology</span><span class="o">.</span><span class="n">YJOINT</span><span class="p">,</span>
+            <span class="s2">&quot;CHAIN&quot;</span><span class="p">:</span> <span class="n">Topology</span><span class="o">.</span><span class="n">SIMPLE</span><span class="p">,</span>
+            <span class="s2">&quot;CONGRUENT&quot;</span><span class="p">:</span> <span class="n">Topology</span><span class="o">.</span><span class="n">CONGRUENT</span><span class="p">,</span>
+            <span class="s2">&quot;INTERSECT&quot;</span><span class="p">:</span> <span class="n">Topology</span><span class="o">.</span><span class="n">INTERSECTING</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">intersections</span> <span class="o">=</span> <span class="n">all_intersections</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertex_pairs</span><span class="p">,</span> <span class="n">use_intersection3</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">connections</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">intersections</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">connections</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">val</span><span class="p">])</span>
+        <span class="n">connections</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">connections</span><span class="p">)</span>
+        <span class="n">topology</span> <span class="o">=</span> <span class="nb">set</span><span class="p">((</span><span class="n">t_map</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">connections</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">topology</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">Topology</span><span class="o">.</span><span class="n">SIMPLE</span> <span class="ow">in</span> <span class="n">topology</span><span class="p">:</span>
+            <span class="n">topology</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">Topology</span><span class="o">.</span><span class="n">SIMPLE</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">topology</span></div>
+
+
+<div class="viewcode-block" id="Shape.merge">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.merge">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">dist_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge two shapes if they are connected. Does not work for polygons.</span>
+<span class="sd">        Only polyline shapes can be merged together.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other (Shape): The other shape to merge with.</span>
+<span class="sd">            dist_tol (float, optional): The distance tolerance for merging, defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Shape or None: The merged shape or None if the shapes cannot be merged.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dist_tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dist_tol</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;dist_tol&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">closed</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_polygon</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">is_polygon</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chain_vertices</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span> <span class="n">dist_tol</span><span class="o">=</span><span class="n">dist_tol</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">vertices</span><span class="p">:</span>
+                <span class="n">closed</span> <span class="o">=</span> <span class="n">close_points2</span><span class="p">(</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vertices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dist2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span><span class="p">)</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="Shape.connect">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.connect">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect two shapes by adding the other shape&#39;s vertices to self.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other (Shape): The other shape to connect.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_chain_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verts1</span><span class="p">,</span> <span class="n">verts2</span><span class="p">,</span> <span class="n">dist_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Chain two sets of vertices if they are connected.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            verts1 (list[Point]): The first set of vertices.</span>
+<span class="sd">            verts2 (list[Point]): The second set of vertices.</span>
+<span class="sd">            dist_tol (float, optional): The distance tolerance for chaining, defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[Point] or None: The chained vertices or None if the vertices cannot be chained.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dist_tol2</span> <span class="o">=</span> <span class="n">dist_tol</span> <span class="o">*</span> <span class="n">dist_tol</span>
+        <span class="n">start1</span><span class="p">,</span> <span class="n">end1</span> <span class="o">=</span> <span class="n">verts1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">verts1</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">start2</span><span class="p">,</span> <span class="n">end2</span> <span class="o">=</span> <span class="n">verts2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">verts2</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">same_starts</span> <span class="o">=</span> <span class="n">close_points2</span><span class="p">(</span><span class="n">start1</span><span class="p">,</span> <span class="n">start2</span><span class="p">,</span> <span class="n">dist2</span><span class="o">=</span><span class="n">dist_tol2</span><span class="p">)</span>
+        <span class="n">same_ends</span> <span class="o">=</span> <span class="n">close_points2</span><span class="p">(</span><span class="n">end1</span><span class="p">,</span> <span class="n">end2</span><span class="p">,</span> <span class="n">dist2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">same_starts</span> <span class="ow">and</span> <span class="n">same_ends</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">verts1</span>
+        <span class="k">elif</span> <span class="n">close_points2</span><span class="p">(</span><span class="n">end1</span><span class="p">,</span> <span class="n">start2</span><span class="p">,</span> <span class="n">dist2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span><span class="p">):</span>
+            <span class="n">verts2</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">close_points2</span><span class="p">(</span><span class="n">start1</span><span class="p">,</span> <span class="n">end2</span><span class="p">,</span> <span class="n">dist2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span><span class="p">):</span>
+            <span class="n">verts2</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">verts1</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">verts2</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">same_starts</span><span class="p">:</span>
+            <span class="n">verts2</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">verts2</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">verts2</span><span class="p">[:]</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">verts1</span><span class="p">[:]</span>
+            <span class="n">verts1</span> <span class="o">=</span> <span class="n">start</span>
+            <span class="n">verts2</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="k">elif</span> <span class="n">same_ends</span><span class="p">:</span>
+            <span class="n">verts2</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">verts2</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">same_starts</span> <span class="ow">and</span> <span class="n">same_ends</span><span class="p">:</span>
+            <span class="n">all_verts</span> <span class="o">=</span> <span class="n">verts1</span> <span class="o">+</span> <span class="n">verts2</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">right_handed</span><span class="p">(</span><span class="n">all_verts</span><span class="p">):</span>
+                <span class="n">all_verts</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">all_verts</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">verts1</span> <span class="o">+</span> <span class="n">verts2</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_polygon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vertices</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if the vertices form a polygon.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vertices (list[Point]): The vertices to check.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the vertices form a polygon, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">close_points2</span><span class="p">(</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">],</span> <span class="n">vertices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">],</span> <span class="n">dist2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Shape.as_graph">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.as_graph">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">as_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">weighted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">n_round</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the shape as a graph object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            directed (bool, optional): Whether the graph is directed, defaults to False.</span>
+<span class="sd">            weighted (bool, optional): Whether the graph is weighted, defaults to False.</span>
+<span class="sd">            n_round (int, optional): The number of decimal places to round to, defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Graph: The graph object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">n_round</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n_round</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;n_round&quot;</span><span class="p">]</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">round</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n_round</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_round</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">]</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="p">[</span><span class="n">Node</span><span class="p">(</span><span class="o">*</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">]</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="n">connected_pairs</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="p">[</span><span class="n">GraphEdge</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GraphEdge</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="n">directed</span><span class="p">:</span>
+            <span class="n">nx_graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">()</span>
+            <span class="n">graph_type</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">DIRECTED</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nx_graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+            <span class="n">graph_type</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">UNDIRECTED</span>
+
+        <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">points</span><span class="p">:</span>
+            <span class="n">nx_graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">point</span><span class="o">=</span><span class="n">point</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">weighted</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
+                <span class="n">nx_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">edge</span><span class="o">.</span><span class="n">length</span><span class="p">)</span>
+            <span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">WEIGHTED</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">id_pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">e</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">]</span>
+            <span class="n">nx_graph</span><span class="o">.</span><span class="n">add_edges_from</span><span class="p">(</span><span class="n">id_pairs</span><span class="p">)</span>
+            <span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">NONE</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">e</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cycles</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">cycle_basis</span><span class="p">(</span><span class="n">nx_graph</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">nx</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">NetworkXNoCycle</span><span class="p">:</span>
+            <span class="n">cycles</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">cycles</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cycles</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">cycle</span> <span class="ow">in</span> <span class="n">cycles</span><span class="p">:</span>
+                <span class="n">cycle</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cycle</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">cycle</span> <span class="o">=</span> <span class="n">cycles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cycles</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="n">Graph</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">graph_type</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="n">subtype</span><span class="p">,</span> <span class="n">nx_graph</span><span class="o">=</span><span class="n">nx_graph</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">graph</span></div>
+
+
+<div class="viewcode-block" id="Shape.as_array">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.as_array">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">as_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">homogeneous</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the vertices as an array.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            homogeneous (bool, optional): Whether to return homogeneous coordinates, defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ndarray: The vertices as an array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">homogeneous</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">nd_array</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="Shape.as_list">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.as_list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">as_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the vertices as a list of tuples.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[tuple]: The vertices as a list of tuples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">final_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The final coordinates of the shape. primary_points @ xform_matrix.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ndarray: The final coordinates of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">homogen_coords</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The final coordinates of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: The final coordinates of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(((</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">final_coords</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vertex_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of connected pairs of vertices.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[tuple[Point, Point]]: A list of connected pairs of vertices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="n">vertices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">connected_pairs</span><span class="p">(</span><span class="n">vertices</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">orig_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The primary points in homogeneous coordinates.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ndarray: The primary points in homogeneous coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">homogen_coords</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">b_box</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoundingBox</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the bounding box of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            BoundingBox: The bounding box of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_box</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">final_coords</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_box</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_b_box</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the area of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The area of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="n">vertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">[:]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">close_points2</span><span class="p">(</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vertices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dist2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span><span class="p">):</span>
+                <span class="n">vertices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">vertices</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">polygon_area</span><span class="p">(</span><span class="n">vertices</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">total_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the total length of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The total length of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">polyline_length</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_polygon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if &#39;closed&#39;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the shape is closed, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span>
+
+<div class="viewcode-block" id="Shape.clear">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.clear">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear all points and reset the style attributes.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span> <span class="o">=</span> <span class="n">Points</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span> <span class="o">=</span> <span class="n">identity_matrix</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">style</span> <span class="o">=</span> <span class="n">ShapeStyle</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_aliases</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_box</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="Shape.count">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.count">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the number of times the value is found in the shape.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (Point): The value to count.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: The number of times the value is found in the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">verts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orig_coords</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span>
+        <span class="n">verts</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">verts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">col1</span> <span class="o">=</span> <span class="p">(</span><span class="n">verts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">col2</span> <span class="o">=</span> <span class="p">(</span><span class="n">verts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">values</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">col1</span> <span class="o">+</span> <span class="n">col2</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">distances</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_tol2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Shape.copy">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a copy of the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Shape: A copy of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span>
+            <span class="n">points</span><span class="p">,</span>
+            <span class="n">xform_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">,</span>
+            <span class="n">closed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">,</span>
+            <span class="n">marker_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">marker_type</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">attrib</span> <span class="ow">in</span> <span class="n">shape_style_map</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">attrib</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrib</span><span class="p">))</span>
+        <span class="n">shape</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span>
+        <span class="n">custom_attribs</span> <span class="o">=</span> <span class="n">custom_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">attrib</span> <span class="ow">in</span> <span class="n">custom_attribs</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">attrib</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrib</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">shape</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">edges</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Line</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of edges.</span>
+
+<span class="sd">        Edges are represented as tuples of points:</span>
+<span class="sd">        edge: ((x1, y1), (x2, y2))</span>
+<span class="sd">        edges: [((x1, y1), (x2, y2)), ((x2, y2), (x3, y3)), ...]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[tuple[Point, Point]]: A list of edges.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">[:])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="n">vertices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">connected_pairs</span><span class="p">(</span><span class="n">vertices</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">segments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Line</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
+
+<div class="viewcode-block" id="Shape.reverse">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.Shape.reverse">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reverse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reverse the order of the vertices.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_points</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="custom_attributes">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.shape.custom_attributes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_attributes</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="n">Shape</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a list of custom attributes of a Shape or Batch instance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        item (Shape): The Shape or Batch instance.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list[str]: A list of custom attribute names.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        TypeError: If the item is not a Shape instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Shape</span><span class="p">):</span>
+        <span class="n">dummy</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid item type&quot;</span><span class="p">)</span>
+    <span class="n">native_attribs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">dummy</span><span class="p">))</span>
+    <span class="n">custom_attribs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">item</span><span class="p">))</span> <span class="o">-</span> <span class="n">native_attribs</span>
+
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">custom_attribs</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../graphics.html">simetri.graphics</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

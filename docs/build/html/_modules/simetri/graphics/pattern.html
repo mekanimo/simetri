@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.graphics.pattern &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.graphics.pattern</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">prod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hashlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">md5</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Self</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">Shape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Batch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.affine</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">Point</span><span class="p">,</span> <span class="n">Line</span><span class="p">,</span> <span class="n">common_properties</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.all_enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">Types</span><span class="p">,</span> <span class="n">get_enum_value</span><span class="p">,</span> <span class="n">Anchor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">StyleMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.bbox</span><span class="w"> </span><span class="kn">import</span> <span class="n">bounding_box</span><span class="p">,</span> <span class="n">BoundingBox</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..canvas.style_map</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShapeStyle</span><span class="p">,</span> <span class="n">shape_style_map</span><span class="p">,</span> <span class="n">shape_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">homogenize</span>
+
+<div class="viewcode-block" id="Transform">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Transform">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Transform</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class representing a single transformation.</span>
+<span class="sd">    Used in the Transformation class to represent a transformation matrix and its repetitions.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        xform_matrix (ndarray): The transformation matrix.</span>
+<span class="sd">        reps (int): The number of repetitions of the transformation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">xform_matrix</span><span class="p">:</span> <span class="s1">&#39;ndarray&#39;</span>
+    <span class="n">_reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">TRANSFORM</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">TRANSFORM</span>
+        <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graphics_object</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">id_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;_xform_matrix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span>
+        <span class="c1"># self.__dict__[&#39;_reps&#39;] = self.reps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hash</span> <span class="o">=</span> <span class="n">md5</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_partitions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_composite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reps</span>
+
+    <span class="nd">@reps</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x cannot be negative&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reps</span> <span class="o">=</span> <span class="n">value</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the transformation matrix has changed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the transformation matrix has changed, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="ow">not</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span> <span class="o">==</span> <span class="n">md5</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">())</span> <span class="ow">and</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reps</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reps</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_partitions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">partition_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">identity_matrix</span><span class="p">()]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">reps</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">partition_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">identity_matrix</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">xform_mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span>
+            <span class="n">partition_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">identity_matrix</span><span class="p">(),</span> <span class="n">xform_mat</span><span class="p">]</span>
+            <span class="n">last</span> <span class="o">=</span> <span class="n">xform_mat</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reps</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">xform_mat</span> <span class="o">@</span> <span class="n">last</span>
+                <span class="n">partition_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_partitions</span> <span class="o">=</span> <span class="n">partition_list</span>
+
+<div class="viewcode-block" id="Transform.update">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Transform.update">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_partitions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_composite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hash</span> <span class="o">=</span> <span class="n">md5</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_composition</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">xform_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the transformation matrix.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ndarray: The transformation matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xform_matrix</span>
+
+    <span class="nd">@xform_matrix</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">xform_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;xform_matrix must be a numpy array&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xform_matrix</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">partitions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the submatrices in the transformation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: A list of submatrices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partitions</span>
+
+    <span class="nd">@partitions</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">partitions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">((</span><span class="s2">&quot;Cannot set partitions directly. &quot;</span>
+                             <span class="s2">&quot;Use the update method to update the partitions.&quot;</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">composite</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the compound transformation matrix.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ndarray: The compound transformation matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_composite</span>
+
+    <span class="nd">@composite</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">composite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">((</span><span class="s2">&quot;Cannot set composition directly. &quot;</span>
+                              <span class="s2">&quot;Use the update method to update the composition.&quot;</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Transform.copy">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Transform.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Tranform&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a copy of the Transform instance.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Transform: A new Transform instance with the same attributes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">reps</span><span class="p">)</span></div>
+</div>
+
+
+<div class="viewcode-block" id="Transformation">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Transformation">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Transformation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class representing a transformation that can be composite or not.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        transforms (list): A list of Transform instances representing the transformations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">components</span><span class="p">:</span> <span class="nb">list</span><span class="o">=</span><span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">TRANSFORMATION</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">TRANSFORMATION</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graphics_object</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">id_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">partitions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the submatrices in the transformation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list of ndarrays.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">identity_matrix</span><span class="p">()]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">partitions</span> <span class="o">=</span> <span class="p">[</span><span class="n">identity_matrix</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">partitions</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">:</span>
+                <span class="n">partitions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">partitions</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">partitions</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">composite</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the compound transformation matrix.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ndarray: The compound transformation matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">identity_matrix</span><span class="p">()</span>
+        <span class="n">matrices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">:</span>
+            <span class="n">matrices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">partitions</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrices</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">matrices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">matrices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">mats</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">matrices</span><span class="p">):</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">(</span><span class="n">mats</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@composite</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">composite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">((</span><span class="s2">&quot;Cannot set composition directly. &quot;</span>
+                              <span class="s2">&quot;Use the update method to update the composition.&quot;</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="Transformation.copy">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Transformation.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Transformation&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a copy of the Transform instance.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Transform: A new Transform instance with the same components.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Transformation</span><span class="p">([</span><span class="n">component</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">])</span></div>
+</div>
+
+
+<div class="viewcode-block" id="Pattern">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Pattern</span><span class="p">(</span><span class="n">Batch</span><span class="p">,</span> <span class="n">StyleMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class representing a pattern of a shape or batch object.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        kernel (Shape/Batch): The repeated form.</span>
+<span class="sd">        transformation: A Transformation object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kernel</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Shape</span><span class="p">,</span> <span class="n">Batch</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">transformation</span><span class="p">:</span><span class="n">Transformation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the Pattern instance with a pattern and its count.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            kernel (Shape/Batch): The repeated form of the pattern.</span>
+<span class="sd">            transformation (Transformation): The transformation applied to the pattern.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ShapeStyle</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_style_map&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape_style_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_aliases</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+        <span class="k">if</span> <span class="n">transformation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">transformation</span> <span class="o">=</span> <span class="n">Transformation</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span> <span class="o">=</span> <span class="n">transformation</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">PATTERN</span>
+        <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">valid_args</span> <span class="o">=</span> <span class="n">shape_args</span>
+        <span class="n">validate_args</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">valid_args</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">closed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns True if the pattern is closed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the pattern is closed, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">closed</span>
+
+    <span class="nd">@closed</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">closed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the closed property of the pattern.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (bool): True to set the pattern as closed, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">closed</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">composite</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">composite</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Pattern.get_all_vertices">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.get_all_vertices">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">:</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">final_coords</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">composite</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">b_box</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoundingBox</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the bounding box of the pattern.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            BoundingBox: The bounding box of the pattern.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_vertices</span><span class="p">()</span>
+        <span class="n">verts</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">hsplit</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">verts</span><span class="p">:</span>
+            <span class="k">pass</span> <span class="c1"># comeback here later!!!!!!</span>
+
+        <span class="k">return</span> <span class="n">bounding_box</span><span class="p">(</span><span class="n">vertices</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Pattern.get_vertices_list">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.get_vertices_list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_vertices_list</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the submatrices of the transformation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: A list of submatrices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">hsplit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_all_vertices</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Pattern.get_shapes">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.get_shapes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Expands the pattern into a batch of shapes.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Batch: A new Batch instance with the expanded shapes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vertices_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_vertices_list</span><span class="p">()</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">Batch</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">vertices</span> <span class="ow">in</span> <span class="n">vertices_list</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Shape</span><span class="p">(</span><span class="n">vertices</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the number of occurrences of the pattern.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: The total number of forms in the pattern.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">prod</span><span class="p">([</span><span class="n">comp</span><span class="o">.</span><span class="n">reps</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">components</span><span class="p">])</span>
+
+<div class="viewcode-block" id="Pattern.copy">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Pattern&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a copy of the Pattern instance.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Pattern: A new Pattern instance with the same attributes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kernel</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">transformation</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">transformation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">Pattern</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">transformation</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">attrib</span> <span class="ow">in</span> <span class="n">shape_style_map</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">attrib</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrib</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">pattern</span></div>
+
+
+<div class="viewcode-block" id="Pattern.translate">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.translate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Translates the object by dx and dy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dx (float): The translation distance along the x-axis.</span>
+<span class="sd">            dy (float): The translation distance along the y-axis.</span>
+<span class="sd">            reps (int, optional): The number of repetitions. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self: The transformed object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">component</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">translation_matrix</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">),</span> <span class="n">reps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Pattern.rotate">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.rotate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">about</span><span class="p">:</span> <span class="n">Point</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Rotates the object by the given angle (in radians) about the given point.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            angle (float): The rotation angle in radians.</span>
+<span class="sd">            about (Point, optional): The point to rotate about. Defaults to (0, 0).</span>
+<span class="sd">            reps (int, optional): The number of repetitions. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self: The rotated object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">component</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">rotation_matrix</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="n">about</span><span class="p">),</span> <span class="n">reps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Pattern.mirror">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.mirror">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mirror</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">about</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Line</span><span class="p">,</span> <span class="n">Point</span><span class="p">],</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Mirrors the object about the given line or point.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            about (Union[Line, Point]): The line or point to mirror about.</span>
+<span class="sd">            reps (int, optional): The number of repetitions. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self: The mirrored object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">component</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">mirror_matrix</span><span class="p">(</span><span class="n">about</span><span class="p">),</span> <span class="n">reps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Pattern.glide">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.glide">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">glide</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">glide_line</span><span class="p">:</span> <span class="n">Line</span><span class="p">,</span> <span class="n">glide_dist</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Glides (first mirror then translate) the object along the given line</span>
+<span class="sd">        by the given glide_dist.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            glide_line (Line): The line to glide along.</span>
+<span class="sd">            glide_dist (float): The distance to glide.</span>
+<span class="sd">            reps (int, optional): The number of repetitions. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self: The glided object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">component</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">glide_matrix</span><span class="p">(</span><span class="n">glide_line</span><span class="p">,</span> <span class="n">glide_dist</span><span class="p">),</span> <span class="n">reps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Pattern.scale">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.scale">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">scale</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">scale_x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">scale_y</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">about</span><span class="p">:</span> <span class="n">Point</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scales the object by the given scale factors about the given point.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            scale_x (float): The scale factor in the x direction.</span>
+<span class="sd">            scale_y (float, optional): The scale factor in the y direction. Defaults to None.</span>
+<span class="sd">            about (Point, optional): The point to scale about. Defaults to (0, 0).</span>
+<span class="sd">            reps (int, optional): The number of repetitions. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self: The scaled object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">scale_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">scale_y</span> <span class="o">=</span> <span class="n">scale_x</span>
+        <span class="n">component</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">scale_in_place_matrix</span><span class="p">(</span><span class="n">scale_x</span><span class="p">,</span> <span class="n">scale_y</span><span class="p">,</span> <span class="n">about</span><span class="p">),</span> <span class="n">reps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Pattern.shear">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.shear">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">theta_y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Shears the object by the given angles.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            theta_x (float): The shear angle in the x direction.</span>
+<span class="sd">            theta_y (float): The shear angle in the y direction.</span>
+<span class="sd">            reps (int, optional): The number of repetitions. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self: The sheared object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">component</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">shear_matrix</span><span class="p">(</span><span class="n">theta_x</span><span class="p">,</span> <span class="n">theta_y</span><span class="p">),</span> <span class="n">reps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Pattern.transform">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">:</span> <span class="s1">&#39;ndarray&#39;</span><span class="p">,</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transforms the object by the given transformation matrix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xform_matrix (ndarray): The transformation matrix.</span>
+<span class="sd">            reps (int, optional): The number of repetitions. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self: The transformed object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Pattern.move_to">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.pattern.Pattern.move_to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">move_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pos</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="n">Anchor</span> <span class="o">=</span> <span class="n">Anchor</span><span class="o">.</span><span class="n">CENTER</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Moves the object to the given position by using its center point.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pos (Point): The position to move to.</span>
+<span class="sd">            anchor (Anchor, optional): The anchor point. Defaults to Anchor.CENTER.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self: The moved object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">anchor</span> <span class="o">=</span> <span class="n">get_enum_value</span><span class="p">(</span><span class="n">Anchor</span><span class="p">,</span> <span class="n">anchor</span><span class="p">)</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">b_box</span><span class="p">,</span> <span class="n">anchor</span><span class="p">)</span>
+        <span class="n">component</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">translation_matrix</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">y1</span><span class="p">),</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../graphics.html">simetri.graphics</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

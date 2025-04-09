@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.helpers.constraint_solver &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.helpers.constraint_solver</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Geometric constraint solver for points, segments, circles.</span>
+<span class="sd">Uses Sequential Least Squares Programming (SLSQP) to solve the given constraints.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">simetri.graphics.all_enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintType</span> <span class="k">as</span> <span class="n">ConstType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simetri.helpers.vector</span><span class="w"> </span><span class="kn">import</span> <span class="n">Vector2D</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simetri.geometry.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">direction</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">,</span>
+    <span class="n">is_line</span><span class="p">,</span>
+    <span class="n">angle_between_two_lines</span><span class="p">,</span>
+    <span class="n">point_to_line_distance</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">simetri.geometry.circle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circle_</span> <span class="k">as</span> <span class="n">Circle</span>
+
+
+<div class="viewcode-block" id="Constraint">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.Constraint">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Constraint</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Constraint class for geometric constraints.&quot;&quot;&quot;</span>
+
+    <span class="n">item1</span><span class="p">:</span> <span class="nb">object</span>
+    <span class="n">item2</span><span class="p">:</span> <span class="nb">object</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">ConstType</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">value2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># used for equal_value_eq</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set item sizes for circles and segments.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">equation</span> <span class="o">=</span> <span class="n">d_equations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ConstType</span><span class="o">.</span><span class="n">EQUAL_SIZE</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item1</span><span class="p">,</span> <span class="n">Circle</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">size1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item1</span><span class="o">.</span><span class="n">radius</span>
+            <span class="k">elif</span> <span class="n">is_line</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item1</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">size1</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">item1</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item2</span><span class="p">,</span> <span class="n">Circle</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">size2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item2</span><span class="o">.</span><span class="n">radius</span>
+            <span class="k">elif</span> <span class="n">is_line</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item2</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">size2</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">item2</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Constraint.check">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.Constraint.check">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check the constraint value.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The result of the constraint equation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">equation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="c1"># Constraint equations</span>
+<span class="c1"># These equations return zero if the constraint is satisfied.</span>
+<span class="c1"># To check if a segment is horizontal use parallel_eq with the x-axis</span>
+<span class="c1"># To check if a segment is vertical use paralell_eq with the y-axis</span>
+<span class="c1"># For concentric circles use distance_eq (center to center dist = 0)</span>
+<span class="c1"># For point on a circle use distance_eq (point to center dist = radius)</span>
+
+
+<div class="viewcode-block" id="distance_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.distance_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">distance_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the difference between the target and current distance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The difference between the target and current distance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">constraint</span><span class="o">.</span><span class="n">item1</span><span class="p">,</span> <span class="n">Circle</span><span class="p">):</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span><span class="o">.</span><span class="n">center</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">constraint</span><span class="o">.</span><span class="n">item2</span><span class="p">,</span> <span class="n">Circle</span><span class="p">):</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span><span class="o">.</span><span class="n">center</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span>
+
+    <span class="n">value</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">distance</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span> <span class="o">-</span> <span class="n">value</span></div>
+
+
+
+<div class="viewcode-block" id="parallel_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.parallel_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parallel_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the cross product. If the segments are parallel, the cross product is 0.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The cross product of the vectors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">vec1</span> <span class="o">=</span> <span class="n">Vector2D</span><span class="p">(</span><span class="o">*</span><span class="n">constraint</span><span class="o">.</span><span class="n">item1</span><span class="p">)</span>
+    <span class="n">vec2</span> <span class="o">=</span> <span class="n">Vector2D</span><span class="p">(</span><span class="o">*</span><span class="n">constraint</span><span class="o">.</span><span class="n">item2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">vec1</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">vec2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="perpendicular_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.perpendicular_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">perpendicular_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the dot product. If the segments are perpendicular, the dot product is 0.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The dot product of the vectors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seg1</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span>
+    <span class="n">seg2</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span>
+
+    <span class="n">vec1</span> <span class="o">=</span> <span class="n">Vector2D</span><span class="p">(</span><span class="o">*</span><span class="n">seg1</span><span class="p">)</span>
+    <span class="n">vec2</span> <span class="o">=</span> <span class="n">Vector2D</span><span class="p">(</span><span class="o">*</span><span class="n">seg2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">vec1</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">vec2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="equal_size_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.equal_size_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">equal_size_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the difference between the sizes of the items.</span>
+
+<span class="sd">    For segments, item size is the length of the segment.</span>
+<span class="sd">    For circles, item size is the radius of the circle.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The difference between the sizes of the items.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span><span class="o">.</span><span class="n">size1</span> <span class="o">-</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span><span class="o">.</span><span class="n">size2</span></div>
+
+
+
+<div class="viewcode-block" id="outer_tangent_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.outer_tangent_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">outer_tangent_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the difference between the distance of the circles and the sum of the radii.</span>
+
+<span class="sd">    If the circles are tangent, the difference is 0.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The difference between the distance of the circles and the sum of the radii.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">is_line</span><span class="p">(</span><span class="n">constraint</span><span class="o">.</span><span class="n">item1</span><span class="p">):</span>
+        <span class="n">circle</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">circle</span><span class="o">.</span><span class="n">radius</span> <span class="o">-</span>  <span class="n">point_to_line_distance</span><span class="p">(</span><span class="n">circle</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">is_line</span><span class="p">(</span><span class="n">constraint</span><span class="o">.</span><span class="n">item2</span><span class="p">):</span>
+        <span class="n">circle</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">circle</span><span class="o">.</span><span class="n">radius</span> <span class="o">-</span> <span class="n">point_to_line_distance</span><span class="p">(</span><span class="n">circle</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">circle_1</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span>
+        <span class="n">circle_2</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span>
+
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">circle_1</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">circle_2</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
+        <span class="n">rad1</span> <span class="o">=</span> <span class="n">circle_1</span><span class="o">.</span><span class="n">radius</span>
+        <span class="n">rad2</span> <span class="o">=</span> <span class="n">circle_2</span><span class="o">.</span><span class="n">radius</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">dist</span> <span class="o">-</span> <span class="p">(</span><span class="n">rad1</span> <span class="o">+</span> <span class="n">rad2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="inner_tangent_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.inner_tangent_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">inner_tangent_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the difference between the distance of the circles and the sum of the radii.</span>
+
+<span class="sd">    If the circles are tangent, the difference is 0.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The difference between the distance of the circles and the sum of the radii.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">circle_1</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span>
+    <span class="n">circle_2</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span>
+
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">circle_1</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">circle_2</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
+    <span class="n">rad1</span> <span class="o">=</span> <span class="n">circle_1</span><span class="o">.</span><span class="n">radius</span>
+    <span class="n">rad2</span> <span class="o">=</span> <span class="n">circle_2</span><span class="o">.</span><span class="n">radius</span>
+
+    <span class="k">return</span> <span class="n">dist</span> <span class="o">-</span> <span class="nb">abs</span><span class="p">(</span><span class="n">rad1</span> <span class="o">-</span> <span class="n">rad2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="collinear_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.collinear_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">collinear_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the difference in direction for collinear items.</span>
+
+<span class="sd">    Items can be: segments, segment and a circle, or a segment and a point.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The difference in direction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># for now only segments are implemented</span>
+    <span class="n">a1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span>
+    <span class="n">a2</span><span class="p">,</span> <span class="n">b2</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span>
+
+    <span class="k">return</span> <span class="n">direction</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">a2</span><span class="p">)</span> <span class="o">-</span> <span class="n">direction</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="equal_value_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.equal_value_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">equal_value_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the difference between the values.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The difference between the values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">constraint</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">constraint</span><span class="o">.</span><span class="n">value2</span></div>
+
+
+
+<div class="viewcode-block" id="line_angle_eq">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.line_angle_eq">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">line_angle_eq</span><span class="p">(</span><span class="n">constraint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the angle between two segments.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraint (Constraint): The constraint object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The angle between the two segments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seg1</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item1</span>
+    <span class="n">seg2</span> <span class="o">=</span> <span class="n">constraint</span><span class="o">.</span><span class="n">item2</span>
+    <span class="k">return</span> <span class="n">constraint</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">angle_between_two_lines</span><span class="p">(</span><span class="n">seg1</span><span class="p">,</span> <span class="n">seg2</span><span class="p">)</span></div>
+
+
+
+<span class="n">d_equations</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">COLLINEAR</span><span class="p">:</span> <span class="n">collinear_eq</span><span class="p">,</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">DISTANCE</span><span class="p">:</span> <span class="n">distance_eq</span><span class="p">,</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">EQUAL_SIZE</span><span class="p">:</span> <span class="n">equal_size_eq</span><span class="p">,</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">EQUAL_VALUE</span><span class="p">:</span> <span class="n">equal_value_eq</span><span class="p">,</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">LINE_ANGLE</span><span class="p">:</span> <span class="n">line_angle_eq</span><span class="p">,</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">PARALLEL</span><span class="p">:</span> <span class="n">parallel_eq</span><span class="p">,</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">PERPENDICULAR</span><span class="p">:</span> <span class="n">perpendicular_eq</span><span class="p">,</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">INNER_TANGENT</span><span class="p">:</span> <span class="n">inner_tangent_eq</span><span class="p">,</span>
+    <span class="n">ConstType</span><span class="o">.</span><span class="n">OUTER_TANGENT</span><span class="p">:</span> <span class="n">outer_tangent_eq</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="solve">
+<a class="viewcode-back" href="../../../simetri.helpers.html#simetri.helpers.constraint_solver.solve">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">solve</span><span class="p">(</span><span class="n">constraints</span><span class="p">,</span> <span class="n">update_func</span><span class="p">,</span> <span class="n">initial_guess</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-04</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Solve the geometric constraints.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        constraints (list): List of Constraint objects.</span>
+<span class="sd">        update_func (function): Function that updates the constraint items.</span>
+<span class="sd">        initial_guess (list): Initial guess for the solution.</span>
+<span class="sd">        bounds (list, optional): Bounds for the solution. Defaults to None.</span>
+<span class="sd">        tol (float, optional): Tolerance for the solution. Defaults to 1e-04.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        OptimizeResult: The optimization result represented as a `OptimizeResult` object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span> <span class="c1"># this takes too long to import!!!</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Objective function for the minimization.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (list): Current values of the variables.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The sum of the constraint checks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">update_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">((</span><span class="n">constr</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="k">for</span> <span class="n">constr</span> <span class="ow">in</span> <span class="n">constraints</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_constraints</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return constraint results.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (list): Current values of the variables.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: List of constraint check results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">update_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">constr</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="k">for</span> <span class="n">constr</span> <span class="ow">in</span> <span class="n">constraints</span><span class="p">]</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+        <span class="n">objective</span><span class="p">,</span>
+        <span class="n">initial_guess</span><span class="p">,</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;SLSQP&quot;</span><span class="p">,</span>
+        <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span>
+        <span class="n">constraints</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;eq&quot;</span><span class="p">,</span> <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="n">check_constraints</span><span class="p">},</span>
+        <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;eps&quot;</span><span class="p">:</span> <span class="n">tol</span><span class="p">},</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<span class="c1"># # Example:</span>
+<span class="c1"># # Given 2 circles and a radius, find the position of a circle with the given radius</span>
+<span class="c1"># # that is tangent to both circles.</span>
+<span class="c1"># x1 = y1 = 0</span>
+<span class="c1"># r1 = 40</span>
+<span class="c1"># c1 = Circle((x1, y1), r1) # this would be sg.Circle((x1, y1), r1)</span>
+<span class="c1"># x2 = 100</span>
+<span class="c1"># y2 = 0</span>
+<span class="c1"># r2 = 35</span>
+<span class="c1"># c2 = Circle((x2, y2), r2)</span>
+
+<span class="c1"># # c3 position is estimated at this point</span>
+<span class="c1"># # c3 radius is fixed</span>
+<span class="c1"># guess = (45, 10)</span>
+<span class="c1"># x3 = 45</span>
+<span class="c1"># y3 = 45</span>
+<span class="c1"># r3 = 50</span>
+<span class="c1"># c3 = Circle((x3, y3), r3)</span>
+
+<span class="c1"># const1 = Constraint(c1, c3, ConstType.OUTER_TANGENT)</span>
+<span class="c1"># const2 = Constraint(c2, c3, ConstType.OUTER_TANGENT)</span>
+
+<span class="c1"># def update(x):</span>
+<span class="c1">#     &#39;&#39;&#39;Update the position of the circle.&#39;&#39;&#39;</span>
+<span class="c1">#     c3.center = (x[0], x[1])</span>
+
+<span class="c1"># bounds = [(35, 100), (35, 100)]</span>
+<span class="c1"># print(solve([const1, const2], update, guess, bounds ))</span>
+
+<span class="c1"># print(c3.center)</span>
+
+<span class="c1"># Apollonius problem</span>
+
+<span class="c1"># start with 2 identical circles tangent to each other</span>
+
+<span class="c1"># c1 = Circle((0, 0), 50)</span>
+<span class="c1"># c2 = Circle((100, 0), 50)</span>
+
+<span class="c1"># c3 is the big circle</span>
+
+<span class="c1"># c3 = Circle((50, -200), 200)</span>
+
+<span class="c1"># const1 = Constraint(c1, c3, ConstType.INNER_TANGENT)</span>
+<span class="c1"># const2 = Constraint(c2, c3, ConstType.INNER_TANGENT)</span>
+<span class="c1"># # const3 = Constraint(c2, c3, ConstType.DISTANCE, 200)</span>
+
+<span class="c1"># def update(x):</span>
+<span class="c1">#     &#39;&#39;&#39;Update the position of the circle.&#39;&#39;&#39;</span>
+<span class="c1">#     c3.center = (x[0], x[1])</span>
+
+<span class="c1"># guess = (50, -200)</span>
+<span class="c1"># bounds = [(49, 51), (-350, -50)]</span>
+<span class="c1"># print(solve([const1, const2], update, guess, bounds))</span>
+<span class="c1"># print(&#39;c3 center:&#39;, c3.center)</span>
+
+<span class="c1"># # Now we have 3 circles tangent to each other</span>
+<span class="c1"># # We will add a circle tangent to the 3 circles</span>
+<span class="c1"># # c4 is the circle we are looking for</span>
+
+<span class="c1"># c4 = Circle((50, 55), 5)</span>
+
+<span class="c1"># const1 = Constraint(c1, c4, ConstType.OUTER_TANGENT)</span>
+<span class="c1"># const2 = Constraint(c2, c4, ConstType.OUTER_TANGENT)</span>
+<span class="c1"># const3 = Constraint(c3, c4, ConstType.INNER_TANGENT)</span>
+
+<span class="c1"># def update(x):</span>
+<span class="c1">#     &#39;&#39;&#39;Update the position of the circle.&#39;&#39;&#39;</span>
+<span class="c1">#     c4.center = (x[0], x[1])</span>
+<span class="c1">#     c4.radius = x[2]</span>
+
+<span class="c1"># guess = (50, 55, 5) # x4, y4, r4</span>
+<span class="c1"># bounds = [(49.99, 50.01), (5, 100), (3, 30)]</span>
+
+<span class="c1"># print(solve([const1, const2, const3], update, guess, bounds))</span>
+<span class="c1"># print(c4.center, c4.radius)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

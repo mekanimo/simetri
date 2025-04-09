@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.extensions.l_system &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.extensions.l_system</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Lindenmayer system (L-system) module.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">ceil</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Batch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">Shape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.turtle_sg</span><span class="w"> </span><span class="kn">import</span> <span class="n">Turtle</span>
+
+
+<div class="viewcode-block" id="l_system">
+<a class="viewcode-back" href="../../../simetri.extensions.html#simetri.extensions.l_system.l_system">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">l_system</span><span class="p">(</span>
+    <span class="n">rules</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">axiom</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dist</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">d_actions</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a Lindenmayer system (L-system) using the given rules.</span>
+
+<span class="sd">    An L-system is a parallel rewriting system that uses recursive rules to</span>
+<span class="sd">    generate complex patterns. This function interprets the generated string</span>
+<span class="sd">    as turtle graphics commands.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rules: A dictionary with characters as keys and strings as values.</span>
+<span class="sd">               Each character in the axiom or resulting string will be replaced</span>
+<span class="sd">               by its corresponding rule in each iteration.</span>
+<span class="sd">        axiom: The initial string to start the L-system.</span>
+<span class="sd">        angle: The angle (in degrees) for turtle rotation commands.</span>
+<span class="sd">        dist: The distance for turtle forward/backward movement.</span>
+<span class="sd">        n: The number of iterations to apply the rules.</span>
+<span class="sd">        d_actions: Optional dictionary mapping characters to turtle methods.</span>
+<span class="sd">                  This allows extending the default command set.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: A batch of shapes representing the L-system drawing.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; rules = {&#39;F&#39;: &#39;F+F-F-F+F&#39;}  # Koch curve</span>
+<span class="sd">        &gt;&gt;&gt; batch = l_system(rules, &#39;F&#39;, 60, 10, 3)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">turtle</span> <span class="o">=</span> <span class="n">Turtle</span><span class="p">(</span><span class="n">in_degrees</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">turtle</span><span class="o">.</span><span class="n">def_angle</span> <span class="o">=</span> <span class="n">angle</span>
+    <span class="n">turtle</span><span class="o">.</span><span class="n">def_dist</span> <span class="o">=</span> <span class="n">dist</span>
+
+    <span class="n">actions</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;F&quot;</span><span class="p">:</span> <span class="n">turtle</span><span class="o">.</span><span class="n">forward</span><span class="p">,</span>
+        <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="n">turtle</span><span class="o">.</span><span class="n">backward</span><span class="p">,</span>
+        <span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="n">turtle</span><span class="o">.</span><span class="n">go</span><span class="p">,</span>
+        <span class="s2">&quot;+&quot;</span><span class="p">:</span> <span class="n">turtle</span><span class="o">.</span><span class="n">left</span><span class="p">,</span>
+        <span class="s2">&quot;-&quot;</span><span class="p">:</span> <span class="n">turtle</span><span class="o">.</span><span class="n">right</span><span class="p">,</span>
+        <span class="s2">&quot;[&quot;</span><span class="p">:</span> <span class="n">turtle</span><span class="o">.</span><span class="n">push</span><span class="p">,</span>
+        <span class="s2">&quot;]&quot;</span><span class="p">:</span> <span class="n">turtle</span><span class="o">.</span><span class="n">pop</span><span class="p">,</span>
+        <span class="s2">&quot;|&quot;</span><span class="p">:</span> <span class="n">turtle</span><span class="o">.</span><span class="n">turn_around</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">d_actions</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d_actions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">turtle</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="n">actions</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">method</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">expand</span><span class="p">(</span><span class="n">axiom</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Expand the axiom using the provided rules.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            axiom: The string to expand.</span>
+<span class="sd">            rules: Dictionary of replacement rules.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: The expanded string after applying the rules.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">rules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">char</span><span class="p">)</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">axiom</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">axiom</span> <span class="o">=</span> <span class="n">expand</span><span class="p">(</span><span class="n">axiom</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">axiom</span><span class="p">:</span>
+        <span class="n">actions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">)()</span>
+
+    <span class="c1"># TikZ gives memory error if there are too many vertices in one shape</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="n">Batch</span><span class="p">()</span>
+    <span class="c1"># tot = len(turtle.current_list)</span>
+    <span class="c1"># part = 200 # partition size</span>
+    <span class="c1"># for i in range(ceil(tot/part)):</span>
+    <span class="c1">#     shape = Shape(turtle.current_list[i*part:(i+1)*part])</span>
+    <span class="c1">#     shapes.append(shape)</span>
+    <span class="k">if</span> <span class="n">turtle</span><span class="o">.</span><span class="n">current_list</span><span class="p">:</span>
+        <span class="n">turtle</span><span class="o">.</span><span class="n">lists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">turtle</span><span class="o">.</span><span class="n">current_list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">turtle</span><span class="o">.</span><span class="n">lists</span><span class="p">:</span>
+        <span class="n">shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">shapes</span></div>
+
+
+
+<span class="c1"># rules = {}</span>
+<span class="c1"># rules[&#39;F&#39;] = &#39;-F+F+G[+F+F]-&#39;</span>
+<span class="c1"># rules[&#39;G&#39;] = &#39;GG&#39;</span>
+
+<span class="c1"># axiom = &#39;F&#39;</span>
+<span class="c1"># angle = 60</span>
+<span class="c1"># dist = 15</span>
+<span class="c1"># n=4</span>
+
+<span class="c1"># l_system(rules, axiom, angle, dist, n)</span>
+
+<span class="c1"># Examples</span>
+
+<span class="c1"># rules = {}</span>
+<span class="c1"># rules[&#39;X&#39;] = &#39;XF+F+XF-F-F-XF-F+F+F-F+F+F-X&#39;</span>
+<span class="c1"># axiom = &#39;XF+F+XF+F+XF+F&#39;</span>
+<span class="c1"># angle = 60</span>
+<span class="c1"># n=2</span>
+
+
+<span class="c1"># rules = {}</span>
+<span class="c1"># rules[&#39;X&#39;] = &#39;F-[[X]+X]+F[+FX]-X&#39;</span>
+<span class="c1"># rules[&#39;F&#39;] = &#39;FF&#39;</span>
+<span class="c1"># axiom = &#39;X&#39;</span>
+<span class="c1"># angle = 25</span>
+<span class="c1"># n=6</span>
+
+<span class="c1"># rules = {}</span>
+<span class="c1"># rules[&#39;A&#39;] = &#39;+F-A-F+&#39; # Sierpinsky</span>
+<span class="c1"># rules[&#39;F&#39;] = &#39;-A+F+A-&#39;</span>
+<span class="c1"># axiom = &#39;A&#39;</span>
+<span class="c1"># angle = 60</span>
+<span class="c1"># n = 7</span>
+
+<span class="c1"># rules = {}</span>
+<span class="c1"># rules[&#39;F&#39;] = &#39;F+F-F-F+F&#39; # Koch curve 1</span>
+<span class="c1"># axiom = &#39;F&#39;</span>
+<span class="c1"># angle = 60</span>
+<span class="c1"># n = 6</span>
+
+<span class="c1"># rules = {}</span>
+<span class="c1"># rules[&#39;X&#39;] = &#39;X+YF+&#39;  # Dragon curve</span>
+<span class="c1"># rules[&#39;Y&#39;] = &#39;-FX-Y&#39;</span>
+<span class="c1"># axiom = &#39;FX&#39;</span>
+<span class="c1"># angle = 90</span>
+<span class="c1"># n=10</span>
+
+
+<span class="c1"># rules = {}</span>
+<span class="c1"># rules[&#39;X&#39;] = &#39;F-[[X]+X]+F[+FX]-X&#39;  # Wheat</span>
+<span class="c1"># rules[&#39;F&#39;] = &#39;FF&#39;</span>
+<span class="c1"># axiom = &#39;X&#39;</span>
+<span class="c1"># angle = 25</span>
+<span class="c1"># n=6</span>
+
+<span class="c1"># rules = {}</span>
+<span class="c1"># axiom = &#39;F+F+F+F&#39;</span>
+<span class="c1"># rules[&#39;F&#39;] = &#39;FF+F-F+F+FF&#39;</span>
+<span class="c1"># angle = 90</span>
+<span class="c1"># n=4</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

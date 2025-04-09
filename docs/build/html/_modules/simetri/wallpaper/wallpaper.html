@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.wallpaper.wallpaper &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.wallpaper.wallpaper</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Simetri graphics library&#39;s wallpaper patterns.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Only six of the 17 wallpaper groups are tested yet.</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">cos</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">mid_point</span><span class="p">,</span> <span class="n">line_through_point_and_angle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">VecType</span><span class="p">,</span> <span class="n">Point</span><span class="p">,</span> <span class="n">Line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.illustration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tag</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Batch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">Shape</span>
+
+
+<span class="n">cos60</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">cos30</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">6</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="cover_hex">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.cover_hex">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cover_hex</span><span class="p">(</span>
+    <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">gap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">flat</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Covers an area with a hexagonal pattern.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        item (Union[Batch, Shape, Tag]): The item to be repeated.</span>
+<span class="sd">        size (float): The size of the hexagons.</span>
+<span class="sd">        gap (float, optional): The gap between hexagons. Defaults to 0.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.</span>
+<span class="sd">        flat (bool, optional): If True, hexagons are flat-topped. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gap_x</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">gap</span> <span class="o">*</span> <span class="n">cos60</span>
+    <span class="n">gap_y</span> <span class="o">=</span> <span class="n">gap</span> <span class="o">*</span> <span class="n">cos30</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">flat</span><span class="p">):</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">size</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">size</span> <span class="o">+</span> <span class="p">(</span><span class="n">gap_x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="p">(</span><span class="n">gap_y</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">((</span><span class="mi">3</span> <span class="o">*</span> <span class="n">size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">gap_x</span><span class="p">,</span> <span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">gap_y</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">size</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">w</span> <span class="o">+</span> <span class="p">(</span><span class="n">gap_x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">size</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">gap_y</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">((</span><span class="n">w</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">gap_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">h</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="n">gap_y</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">item</span></div>
+
+
+
+<div class="viewcode-block" id="cover_rhombic">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.cover_rhombic">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cover_rhombic</span><span class="p">(</span>
+    <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span> <span class="n">size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Covers an area with a rhombic pattern.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        item (Union[Batch, Shape, Tag]): The item to be repeated.</span>
+<span class="sd">        size (float): The size of the rhombuses.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sqrt2</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">diag</span> <span class="o">=</span> <span class="p">(</span><span class="n">sqrt2</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">diag</span><span class="p">,</span> <span class="n">diag</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">diag</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">item</span></div>
+
+
+
+<div class="viewcode-block" id="hex_grid_pointy">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.hex_grid_pointy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hex_grid_pointy</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a hexagonal grid with pointy tops.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (float): The x-coordinate of the starting point.</span>
+<span class="sd">        y (float): The y-coordinate of the starting point.</span>
+<span class="sd">        size (float): The size of the hexagons.</span>
+<span class="sd">        n_rows (int): Number of rows in the grid.</span>
+<span class="sd">        n_cols (int): Number of columns in the grid.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting grid as a Batch of Shapes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">size</span>
+    <span class="n">edge_length</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">size</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">6</span><span class="p">)</span>
+    <span class="c1"># create the first row by translating a single hexagon in the x direction</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="n">Batch</span><span class="p">(</span><span class="n">Shape</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]))</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">n_cols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># create the second row by translating the first row</span>
+    <span class="n">two_rows</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">+</span> <span class="n">edge_length</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># create the grid by translating the first and second row in the y direction</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">two_rows</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">size</span> <span class="o">+</span> <span class="n">edge_length</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">n_rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">grid</span></div>
+
+
+
+<div class="viewcode-block" id="cover_hex_pointy">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.cover_hex_pointy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cover_hex_pointy</span><span class="p">(</span>
+    <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Shape</span><span class="p">,</span> <span class="n">Batch</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">gap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Covers an area with a hexagonal pattern with pointy tops.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        item (Union[Shape, Batch, Tag]): The item to be repeated.</span>
+<span class="sd">        size (float): The size of the hexagons.</span>
+<span class="sd">        gap (float, optional): The gap between hexagons. Defaults to 0.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gap_x</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">gap</span> <span class="o">*</span> <span class="n">cos60</span>
+    <span class="n">gap_y</span> <span class="o">=</span> <span class="n">gap</span> <span class="o">*</span> <span class="n">cos30</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">size</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">w</span> <span class="o">+</span> <span class="p">(</span><span class="n">gap_x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">size</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">gap_y</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">((</span><span class="n">w</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">gap_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">h</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="n">gap_y</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">item</span></div>
+
+
+
+<div class="viewcode-block" id="cover_hex_flat">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.cover_hex_flat">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cover_hex_flat</span><span class="p">(</span>
+    <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">gap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Covers an area with a hexagonal pattern with flat tops.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        item (Union[Batch, Shape, Tag]): The item to be repeated.</span>
+<span class="sd">        size (float): The size of the hexagons.</span>
+<span class="sd">        gap (float, optional): The gap between hexagons. Defaults to 0.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gap_x</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">gap</span> <span class="o">*</span> <span class="n">cos60</span>
+    <span class="n">gap_y</span> <span class="o">=</span> <span class="n">gap</span> <span class="o">*</span> <span class="n">cos30</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">size</span> <span class="o">+</span> <span class="p">(</span><span class="n">gap_x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="p">(</span><span class="n">gap_y</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">((</span><span class="mi">3</span> <span class="o">*</span> <span class="n">size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">gap_x</span><span class="p">,</span> <span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">gap_y</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">item</span></div>
+
+
+
+<span class="c1"># Wallpaper groups</span>
+
+<span class="c1"># generator is the primary cell</span>
+<span class="c1"># tile is the basic unit cell</span>
+<span class="c1"># mirrors</span>
+<span class="c1"># glide-mirror (m1, m2), glide-dist (dist1, dist2) if more than one</span>
+<span class="c1"># rotocenters</span>
+<span class="c1"># n rotations (n1, n2, ...) corresponding to each rotocenter</span>
+<span class="c1"># translations (vec1, n1, vec2, n2) this is the lattice</span>
+
+
+<div class="viewcode-block" id="wallpaper_p1">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p1</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">vector1</span><span class="p">:</span> <span class="n">VecType</span><span class="p">,</span>
+    <span class="n">vector2</span><span class="p">:</span> <span class="n">VecType</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Translation symmetry.</span>
+<span class="sd">    IUC: p1</span>
+<span class="sd">    Conway: o</span>
+<span class="sd">    Oblique lattice</span>
+<span class="sd">    Point group: C1</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        vector1 (VecType): The translation vector in the x direction.</span>
+<span class="sd">        vector2 (VecType): The translation vector in the y direction.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting wallpaper pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dx1</span><span class="p">,</span> <span class="n">dy1</span> <span class="o">=</span> <span class="n">vector1</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx1</span><span class="p">,</span> <span class="n">dy1</span><span class="p">,</span> <span class="n">reps1</span><span class="p">)</span>
+    <span class="n">dx2</span><span class="p">,</span> <span class="n">dy2</span> <span class="o">=</span> <span class="n">vector2</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx2</span><span class="p">,</span> <span class="n">dy2</span><span class="p">,</span> <span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p2">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p2</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Shape</span><span class="p">,</span> <span class="n">Batch</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">vector1</span><span class="p">:</span> <span class="n">VecType</span><span class="p">,</span>
+    <span class="n">vector2</span><span class="p">:</span> <span class="n">VecType</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Half-turn rotation symmetry.</span>
+<span class="sd">    IUC: p2 (p211)</span>
+<span class="sd">    Conway: 2222</span>
+<span class="sd">    Oblique lattice</span>
+<span class="sd">    Point group: C2</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Shape, Batch, Tag]): The repeating motif.</span>
+<span class="sd">        vector1 (VecType): The translation vector in the x direction.</span>
+<span class="sd">        vector2 (VecType): The translation vector in the y direction.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting wallpaper pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rotocenter</span> <span class="o">=</span> <span class="n">mid_point</span><span class="p">(</span><span class="n">vector1</span><span class="p">,</span> <span class="n">vector2</span><span class="p">)</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dx1</span><span class="p">,</span> <span class="n">dy1</span> <span class="o">=</span> <span class="n">vector1</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx1</span><span class="p">,</span> <span class="n">dy1</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">dx2</span><span class="p">,</span> <span class="n">dy2</span> <span class="o">=</span> <span class="n">vector2</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx2</span><span class="p">,</span> <span class="n">dy2</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p2_rect_lattice">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p2_rect_lattice">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p2_rect_lattice</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Shape</span><span class="p">,</span> <span class="n">Batch</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">rotocenter</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">vector1</span><span class="p">:</span> <span class="n">VecType</span><span class="p">,</span>
+    <span class="n">vector2</span><span class="p">:</span> <span class="n">VecType</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+    <span class="c1"># &quot;&quot;&quot;</span>
+    <span class="c1"># Half-turn rotation symmetry.</span>
+    <span class="c1"># IUC: p2 (p211)</span>
+    <span class="c1"># Conway: 2222</span>
+    <span class="c1"># Oblique lattice</span>
+    <span class="c1"># Point group: C2</span>
+
+    <span class="c1"># Point argument can be an Anchor object or a tuple, or two points can be given</span>
+    <span class="c1"># as a sequence.</span>
+
+    <span class="c1"># Example:</span>
+    <span class="c1"># import simetri.graphics as sg</span>
+    <span class="c1"># import simetri.wallpaper as wp</span>
+
+    <span class="c1"># directory = &#39;dir_path&#39;</span>
+    <span class="c1"># canvas = sg.Canvas()</span>
+
+    <span class="c1"># F = sg.letter_F()</span>
+    <span class="c1"># vec1 = (2 * F.width + 10, 0)</span>
+    <span class="c1"># vec2 = (0, F.height + 10)</span>
+
+    <span class="c1"># pattern = wp.wallpaper_p2(F, vec1, vec2, reps1=2, reps2=2)</span>
+    <span class="c1"># file_path = os.path.join(directory, &#39;wallpaper_test_p2.pdf&#39;)</span>
+    <span class="c1"># canvas.draw(pattern, file_path=file_path)</span>
+
+    <span class="c1"># &quot;&quot;&quot;</span>
+
+    <span class="n">rotocenter</span> <span class="o">=</span> <span class="n">mid_point</span><span class="p">(</span><span class="n">vector1</span><span class="p">,</span> <span class="n">vector2</span><span class="p">)</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dx1</span><span class="p">,</span> <span class="n">dy1</span> <span class="o">=</span> <span class="n">vector1</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx1</span><span class="p">,</span> <span class="n">dy1</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">dx2</span><span class="p">,</span> <span class="n">dy2</span> <span class="o">=</span> <span class="n">vector2</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx2</span><span class="p">,</span> <span class="n">dy2</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p3">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p3">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p3</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Shape</span><span class="p">,</span> <span class="n">Batch</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">rotocenter</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">flat_hex</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Three rotations.</span>
+<span class="sd">    IUC: p3</span>
+<span class="sd">    Conway: 333</span>
+<span class="sd">    Hexagonal lattice.</span>
+<span class="sd">    Point group: C3</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Shape, Batch, Tag]): The repeating motif.</span>
+<span class="sd">        rotocenter (Point): The center of rotation.</span>
+<span class="sd">        distance (float): The distance between the centers of the hexagons.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+<span class="sd">        flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting wallpaper pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">flat_hex</span><span class="p">:</span>
+        <span class="n">cover_hex_flat</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cover_hex_pointy</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p4">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p4">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p4</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">rotocenter</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pinwheel symmetry.</span>
+<span class="sd">    IUC: p4</span>
+<span class="sd">    Conway: 442</span>
+<span class="sd">    Square lattice</span>
+<span class="sd">    Point group: C4</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        rotocenter (Point): The center of rotation.</span>
+<span class="sd">        distance (float): The distance between the centers of the squares.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting wallpaper pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p6">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p6">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p6</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">rotocenter</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">hex_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">flat_hex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Six rotations.</span>
+<span class="sd">    IUC: p6</span>
+<span class="sd">    Conway : 632</span>
+<span class="sd">    Hexagonal lattice</span>
+<span class="sd">    Point group: C6</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        rotocenter (Point): The center of rotation.</span>
+<span class="sd">        hex_size (float): The size of the hexagons.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+<span class="sd">        flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">flat_hex</span><span class="p">:</span>
+        <span class="n">cover_hex_flat</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">hex_size</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cover_hex_pointy</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">hex_size</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_pm">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_pm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_pm</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">mirror_line</span><span class="p">:</span> <span class="n">Line</span><span class="p">,</span>
+    <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mirror symmetry.</span>
+<span class="sd">    Mirror could be horizontal or vertical.</span>
+<span class="sd">    IUC: pm(p1m1)</span>
+<span class="sd">    Conway : **</span>
+<span class="sd">    Rectangular lattice</span>
+<span class="sd">    Point group: D1</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        mirror_line (Line): The line of symmetry.</span>
+<span class="sd">        dx (float): Translation distance in the x direction.</span>
+<span class="sd">        dy (float): Translation distance in the y direction.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_pg">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_pg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_pg</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">mirror_line</span><span class="p">:</span> <span class="n">Line</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Glide symmetry.</span>
+<span class="sd">    IUC: pg(p1g1)</span>
+<span class="sd">    Conway : xx</span>
+<span class="sd">    Rectangular lattice</span>
+<span class="sd">    Point group: D1</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        mirror_line (Line): The line of symmetry.</span>
+<span class="sd">        distance (float): The distance for the glide reflection.</span>
+<span class="sd">        dx (float): Translation distance in the x direction.</span>
+<span class="sd">        dy (float): Translation distance in the y direction.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">glide</span><span class="p">(</span><span class="n">mirror_line</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_cm">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_cm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_cm</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">mirror_point</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">rhomb_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">horizontal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Spinning-sidle symmetry.</span>
+<span class="sd">    IUC: cm(c1m1)</span>
+<span class="sd">    Conway : *x</span>
+<span class="sd">    Rhombic lattice</span>
+<span class="sd">    Point group: D1</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        mirror_point (Point): The point of symmetry.</span>
+<span class="sd">        rhomb_size (float): The size of the rhombuses.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+<span class="sd">        horizontal (bool, optional): If True, the mirror line is horizontal. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">mirror_point</span>
+    <span class="k">if</span> <span class="n">horizontal</span><span class="p">:</span>
+        <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">mirror</span><span class="p">(((</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)),</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">cover_rhombic</span><span class="p">(</span>
+        <span class="n">wallpaper</span><span class="p">,</span>
+        <span class="n">rhomb_size</span><span class="p">,</span>
+        <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span>
+        <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_pmm">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_pmm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_pmm</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">mirror_cross</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Double mirror symmetry.</span>
+<span class="sd">    IUC: pmm(p2mm)</span>
+<span class="sd">    Conway : *2222</span>
+<span class="sd">    Rectangular lattice</span>
+<span class="sd">    Point group: D2</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        mirror_cross (Point): The point where the mirror lines cross.</span>
+<span class="sd">        dx (float): Translation distance in the x direction.</span>
+<span class="sd">        dy (float): Translation distance in the y direction.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">mirror_cross</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">mirror_line1</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="n">mirror_line2</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line1</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line2</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_pmg">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_pmg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_pmg</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">center_point</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">horizontal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Glided staggered symmetry.</span>
+<span class="sd">    IUC: pmg(p2mg)</span>
+<span class="sd">    Conway : 22*</span>
+<span class="sd">    Rectangular lattice</span>
+<span class="sd">    Point group: D2</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        center_point (Point): The center point for the symmetry.</span>
+<span class="sd">        dx (float): Translation distance in the x direction.</span>
+<span class="sd">        dy (float): Translation distance in the y direction.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+<span class="sd">        horizontal (bool, optional): If True, the mirror line is horizontal. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">center_point</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">horizontal</span><span class="p">:</span>
+        <span class="n">rotocenter</span> <span class="o">=</span> <span class="n">mid_point</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">dy</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">mirror_line</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rotocenter</span> <span class="o">=</span> <span class="n">mid_point</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">dx</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+        <span class="n">mirror_line</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_pgg">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_pgg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_pgg</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">rotocenter</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">horizontal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Double glide symmetry.</span>
+<span class="sd">    IUC: pgg(p2gg)</span>
+<span class="sd">    Conway : 22x</span>
+<span class="sd">    Rectangular lattice</span>
+<span class="sd">    Point group: D2</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        rotocenter (Point): The center of rotation.</span>
+<span class="sd">        dx (float): Translation distance in the x direction.</span>
+<span class="sd">        dy (float): Translation distance in the y direction.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+<span class="sd">        horizontal (bool, optional): If True, the glide reflection is horizontal. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">horizontal</span><span class="p">:</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">rotocenter</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">generator</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">glide</span><span class="p">(</span><span class="n">generator</span><span class="o">.</span><span class="n">horiz_centerline</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dist</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">wallpaper</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">rotocenter</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">generator</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">glide</span><span class="p">(</span><span class="n">generator</span><span class="o">.</span><span class="n">vert_centerline</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dist</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">wallpaper</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_cmm">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_cmm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_cmm</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">mirror_cross</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">rhomb_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Staggered double mirror symmetry.</span>
+<span class="sd">    IUC: cmm(c2mm)</span>
+<span class="sd">    Conway : 2*22</span>
+<span class="sd">    Rhombic lattice</span>
+<span class="sd">    Point group: D2</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        mirror_cross (Point): The point where the mirror lines cross.</span>
+<span class="sd">        rhomb_size (float): The size of the rhombuses.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">mirror_cross</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">mirror_line1</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="n">mirror_line2</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line1</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line2</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">cover_rhombic</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">rhomb_size</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p4m">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p4m">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p4m</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">mirror_cross</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">side_length</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Block symmetry.</span>
+<span class="sd">    IUC: p4m(p4mm)</span>
+<span class="sd">    Conway : *442</span>
+<span class="sd">    Square lattice</span>
+<span class="sd">    Point group: D4</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        mirror_cross (Point): The point where the mirror lines cross.</span>
+<span class="sd">        side_length (float): The side length of the squares.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">mirror_cross</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">mirror_line</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">rotocenter</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">side_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">side_length</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p4g">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p4g">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p4g</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span> <span class="n">dist</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mirrored pinwheel symmetry.</span>
+<span class="sd">    IUC: p4g(p4gm)</span>
+<span class="sd">    Conway : 4*2</span>
+<span class="sd">    Square lattice</span>
+<span class="sd">    Point group: D4</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        dist (float): The distance between the centers of the squares.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># rotocenter should be (0, 0) and mirror_cross should be (d/4,d/4 )</span>
+    <span class="c1"># translations are (d, d)</span>
+
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">reps</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">dist</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="n">dist</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">mirror</span><span class="p">(((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="p">)),</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">mirror</span><span class="p">(((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p3m1">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p3m1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p3m1</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">center_point</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">hex_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mirror and three rotations.</span>
+<span class="sd">    IUC: p3m1</span>
+<span class="sd">    Conway : *333</span>
+<span class="sd">    Hexagonal lattice</span>
+<span class="sd">    Point group: D3</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        center_point (Point): The center point for the symmetry.</span>
+<span class="sd">        hex_size (float): The size of the hexagons.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">center_point</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">mirror_line</span> <span class="o">=</span> <span class="n">line_through_point_and_angle</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">center_point</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">cover_hex</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">hex_size</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p31m">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p31m">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p31m</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">center_point</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">hex_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Three rotations and a mirror.</span>
+<span class="sd">    IUC: p31m</span>
+<span class="sd">    Conway : 3*3</span>
+<span class="sd">    Hexagonal lattice</span>
+<span class="sd">    Point group: D3</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        center_point (Point): The center point for the symmetry.</span>
+<span class="sd">        hex_size (float): The size of the hexagons.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">center_point</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="mf">0.28866</span> <span class="o">*</span> <span class="n">hex_size</span>
+    <span class="n">mirror_line</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">dy</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">dy</span><span class="p">))</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">center_point</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror_line</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">rotocenter</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">hex_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">dy</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">cover_hex</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">hex_size</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+
+
+<div class="viewcode-block" id="wallpaper_p6m">
+<a class="viewcode-back" href="../../../simetri.wallpaper.html#simetri.wallpaper.wallpaper.wallpaper_p6m">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wallpaper_p6m</span><span class="p">(</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">Tag</span><span class="p">],</span>
+    <span class="n">rotocenter</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">mirror_cross</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">hex_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reps1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">reps2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">flat_hex</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Kaleidoscope.</span>
+<span class="sd">    IUC: p6m(p6mm)</span>
+<span class="sd">    Conway : *632</span>
+<span class="sd">    Hexagonal lattice</span>
+<span class="sd">    Point group: D6</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        generator (Union[Batch, Shape, Tag]): The repeating motif.</span>
+<span class="sd">        rotocenter (Point): The center of rotation.</span>
+<span class="sd">        mirror_cross (Point): The point where the mirror lines cross.</span>
+<span class="sd">        hex_size (float): The size of the hexagons.</span>
+<span class="sd">        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.</span>
+<span class="sd">        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.</span>
+<span class="sd">        flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Batch: The resulting pattern as a Batch object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">mirror_cross</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">mirror1</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
+    <span class="n">mirror2</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror1</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">mirror</span><span class="p">(</span><span class="n">mirror2</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">wallpaper</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">wallpaper</span> <span class="o">=</span> <span class="n">wallpaper</span><span class="o">.</span><span class="n">merge_shapes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_round</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">flat_hex</span><span class="p">:</span>
+        <span class="n">cover_hex_flat</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">hex_size</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cover_hex_pointy</span><span class="p">(</span><span class="n">wallpaper</span><span class="p">,</span> <span class="n">hex_size</span><span class="p">,</span> <span class="n">reps1</span><span class="o">=</span><span class="n">reps1</span><span class="p">,</span> <span class="n">reps2</span><span class="o">=</span><span class="n">reps2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wallpaper</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

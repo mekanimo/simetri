@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simetri.graphics.path &#8212; simetri.graphics 0.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for simetri.graphics.path</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Path module for graphics package.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">sin</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">pi</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">StyleMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Batch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">Shape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">Point</span><span class="p">,</span> <span class="n">common_properties</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.all_enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">PathOperation</span> <span class="k">as</span> <span class="n">PathOps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.all_enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">Types</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..canvas.style_map</span><span class="w"> </span><span class="kn">import</span> <span class="n">shape_style_map</span><span class="p">,</span> <span class="n">ShapeStyle</span><span class="p">,</span> <span class="n">shape_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.bezier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Bezier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.hobby</span><span class="w"> </span><span class="kn">import</span> <span class="n">hobby_shape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">homogenize</span><span class="p">,</span>
+    <span class="n">positive_angle</span><span class="p">,</span>
+    <span class="n">polar_to_cartesian</span><span class="p">,</span>
+    <span class="n">sine_points</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.ellipse</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ellipse_point</span><span class="p">,</span>
+    <span class="n">ellipse_tangent</span><span class="p">,</span>
+    <span class="n">elliptic_arc_points</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">extended_line</span><span class="p">,</span> <span class="n">line_angle</span><span class="p">,</span> <span class="n">line_by_point_angle_length</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.affine</span><span class="w"> </span><span class="kn">import</span> <span class="n">translation_matrix</span><span class="p">,</span> <span class="n">rotation_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..settings.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaults</span>
+
+<span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span>
+
+
+<div class="viewcode-block" id="Operation">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.Operation">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Operation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An operation for a Path object.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        subtype (Types): The subtype of the operation.</span>
+<span class="sd">        data (tuple): The data associated with the operation.</span>
+<span class="sd">        name (str): The name of the operation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">subtype</span><span class="p">:</span> <span class="n">Types</span>
+    <span class="n">data</span><span class="p">:</span> <span class="nb">tuple</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Post-initialization to set the type and common properties.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">PATH_OPERATION</span>
+        <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="LinPath">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LinPath</span><span class="p">(</span><span class="n">Batch</span><span class="p">,</span> <span class="n">StyleMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;LinerPath.</span>
+<span class="sd">    A LinPath object is a container for various linear elements.</span>
+<span class="sd">    Path objects can be transformed like other Shape and Batch objects.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="n">Point</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a Path object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            start (Point, optional): The starting point of the path. Defaults to (0, 0).</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;style&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ShapeStyle</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_style_map&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape_style_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_aliases</span><span class="p">()</span>
+        <span class="n">valid_args</span> <span class="o">=</span> <span class="n">shape_args</span>
+        <span class="n">validate_args</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">valid_args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># heading angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objects</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">even_odd</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># False is non-zero winding rule</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">PATH</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">start</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_coord</span>  <span class="c1"># alias for r_coord</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_polar</span>  <span class="c1"># alias for rel_polar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">closed</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve an attribute of the shape.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): The attribute name to return.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Any: The value of the attribute.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AttributeError: If the attribute cannot be found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if the path has operations.</span>
+<span class="sd">        Batch may have no elements yet still be True.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the path has operations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_object</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an object using the last operation.&quot;&quot;&quot;</span>
+        <span class="n">PO</span> <span class="o">=</span> <span class="n">PathOps</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">op_type</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">subtype</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">if</span> <span class="n">op_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PO</span><span class="o">.</span><span class="n">MOVE_TO</span><span class="p">,</span> <span class="n">PO</span><span class="o">.</span><span class="n">R_MOVE</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="n">data</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">op_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PO</span><span class="o">.</span><span class="n">LINE_TO</span><span class="p">,</span> <span class="n">PO</span><span class="o">.</span><span class="n">R_LINE</span><span class="p">,</span> <span class="n">PO</span><span class="o">.</span><span class="n">H_LINE</span><span class="p">,</span> <span class="n">PO</span><span class="o">.</span><span class="n">V_LINE</span><span class="p">,</span> <span class="n">PO</span><span class="o">.</span><span class="n">FORWARD</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Shape</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">op_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PO</span><span class="o">.</span><span class="n">SEGMENTS</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">op_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PO</span><span class="o">.</span><span class="n">SINE</span><span class="p">,</span> <span class="n">PO</span><span class="o">.</span><span class="n">BLEND_SINE</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">op_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PO</span><span class="o">.</span><span class="n">CUBIC_TO</span><span class="p">,</span> <span class="n">PO</span><span class="o">.</span><span class="n">QUAD_TO</span><span class="p">]:</span>
+            <span class="n">n_points</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;n_bezier_points&quot;</span><span class="p">]</span>
+            <span class="n">curve</span> <span class="o">=</span> <span class="n">Bezier</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">n_points</span><span class="o">=</span><span class="n">n_points</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curve</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">curve</span><span class="o">.</span><span class="n">vertices</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="k">if</span> <span class="n">op_type</span> <span class="o">==</span> <span class="n">PO</span><span class="o">.</span><span class="n">CUBIC_TO</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="o">.</span><span class="n">extend</span><span class="p">([(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">])])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="k">elif</span> <span class="n">op_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PO</span><span class="o">.</span><span class="n">HOBBY_TO</span><span class="p">]:</span>
+            <span class="n">n_points</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s1">&#39;n_hobby_points&#39;</span><span class="p">]</span>
+            <span class="n">curve</span> <span class="o">=</span> <span class="n">hobby_shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_points</span><span class="o">=</span><span class="n">n_points</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Shape</span><span class="p">(</span><span class="n">curve</span><span class="o">.</span><span class="n">vertices</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">op_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PO</span><span class="o">.</span><span class="n">ARC</span><span class="p">,</span> <span class="n">PO</span><span class="o">.</span><span class="n">BLEND_ARC</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">elif</span> <span class="n">op_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PO</span><span class="o">.</span><span class="n">CLOSE</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="o">.</span><span class="n">closed</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid operation type: </span><span class="si">{</span><span class="n">op_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LinPath.copy">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LinPath&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a copy of the path.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            LinPath: The copied path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">new_path</span> <span class="o">=</span> <span class="n">LinPath</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">style</span><span class="p">)</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">operations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">objects</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_path</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">even_odd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">even_odd</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">cur_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cur_shape</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">handles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handles</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new_path</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">pnt2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add an operation to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pos (Point): The position of the operation.</span>
+<span class="sd">            op (PathOps): The operation type.</span>
+<span class="sd">            data (tuple): The data for the operation.</span>
+<span class="sd">            pnt2 (Point, optional): An optional second point for the operation. Defaults to None.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Operation</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PathOps</span><span class="o">.</span><span class="n">ARC</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">BLEND_ARC</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">SINE</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">BLEND_SINE</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pnt2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">pnt2</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_object</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">pos</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span>
+
+<div class="viewcode-block" id="LinPath.push">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.push">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Push the current position onto the stack.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="LinPath.pop">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.pop">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pop the last position from the stack.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="LinPath.r_coord">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.r_coord">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">r_coord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Point</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the relative coordinates of a point in a</span>
+<span class="sd">        coordinate system with the path&#39;s origin and y-axis aligned</span>
+<span class="sd">        with the path.angle.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dx (float): The x offset.</span>
+<span class="sd">            dy (float): The y offset.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: The relative coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">-</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">-</span> <span class="n">dy</span> <span class="o">*</span> <span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
+        <span class="n">y1</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="n">dy</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="n">y</span>
+
+        <span class="k">return</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span></div>
+
+
+<div class="viewcode-block" id="LinPath.r_polar">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.r_polar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">r_polar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Point</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the relative coordinates of a point in a polar</span>
+<span class="sd">        coordinate system with the path&#39;s origin and 0 degree axis aligned</span>
+<span class="sd">        with the path.angle.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            r (float): The radius.</span>
+<span class="sd">            angle (float): The angle in radians.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: The relative coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">polar_to_cartesian</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">angle</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">-</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">x</span><span class="p">,</span> <span class="n">y1</span> <span class="o">+</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="LinPath.line_to">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.line_to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">line_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a line to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            point (Point): The end point of the line.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">LINE_TO</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">point</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.forward">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extend the path by the given length.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            length (float): The length to extend.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the path angle is not set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Path angle is not set.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">,</span> <span class="n">length</span><span class="p">)[</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">FORWARD</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.move_to">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.move_to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">move_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Move the path to a new point.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            point (Point): The new point.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">MOVE_TO</span><span class="p">,</span> <span class="n">point</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.r_line">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.r_line">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">r_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a relative line to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dx (float): The x offset.</span>
+<span class="sd">            dy (float): The y offset.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">dx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">dy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">R_LINE</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">point</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.r_move">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.r_move">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">r_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Move the path to a new relative point.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dx (float): The x offset.</span>
+<span class="sd">            dy (float): The y offset.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">dx</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">dy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">R_MOVE</span><span class="p">,</span> <span class="n">point</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.h_line">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.h_line">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">h_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a horizontal line to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            length (float): The length of the line.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">H_LINE</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.v_line">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.v_line">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">v_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a vertical line to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            length (float): The length of the line.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">V_LINE</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.segments">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.segments">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">segments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a series of line segments to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            points (list): The points of the segments.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">SEGMENTS</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">points</span><span class="p">),</span> <span class="n">pnt2</span><span class="o">=</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.cubic_to">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.cubic_to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cubic_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">control1</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">control2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a Bézier curve with two control points to the path. Multiple blended curves can be added</span>
+<span class="sd">        by providing additional arguments.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            control1 (Point): The first control point.</span>
+<span class="sd">            control2 (Point): The second control point.</span>
+<span class="sd">            end (Point): The end point of the curve.</span>
+<span class="sd">            *args: Additional arguments for blended curves.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span>
+            <span class="n">end</span><span class="p">,</span>
+            <span class="n">PathOps</span><span class="o">.</span><span class="n">CUBIC_TO</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">control1</span><span class="p">,</span> <span class="n">control2</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
+            <span class="n">pnt2</span><span class="o">=</span><span class="n">control2</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.hobby_to">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.hobby_to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hobby_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a Hobby curve to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            points (list): The points of the Hobby curve.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">HOBBY_TO</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">points</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+
+<div class="viewcode-block" id="LinPath.quad_to">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.quad_to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">quad_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">control</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a quadratic Bézier curve to the path. Multiple blended curves can be added by providing</span>
+<span class="sd">        additional arguments.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            control (Point): The control point.</span>
+<span class="sd">            end (Point): The end point of the curve.</span>
+<span class="sd">            *args: Additional arguments for blended curves.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an argument does not have exactly two elements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span>
+            <span class="n">end</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">QUAD_TO</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">control</span><span class="p">,</span> <span class="n">end</span><span class="p">[:</span><span class="mi">2</span><span class="p">]),</span> <span class="n">pnt2</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid number of arguments for curve.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="c1"># (length, end)</span>
+                <span class="n">length</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">control</span> <span class="o">=</span> <span class="n">extended_line</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">QUAD_TO</span><span class="p">,</span> <span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span> <span class="n">pnt2</span><span class="o">=</span><span class="n">control</span><span class="p">)</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="n">end</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="c1"># (control, end)</span>
+                <span class="n">control</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">QUAD_TO</span><span class="p">,</span> <span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span> <span class="n">pnt2</span><span class="o">=</span><span class="n">control</span><span class="p">)</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.blend_cubic">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.blend_cubic">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">blend_cubic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">control1_length</span><span class="p">,</span> <span class="n">control2</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a cubic Bézier curve to the path where the first control point is computed based on a length.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            control1_length (float): The length to the first control point.</span>
+<span class="sd">            control2 (Point): The second control point.</span>
+<span class="sd">            end (Point): The end point of the curve.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">c1</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">,</span> <span class="n">control1_length</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span>
+            <span class="n">end</span><span class="p">,</span>
+            <span class="n">PathOps</span><span class="o">.</span><span class="n">CUBIC_TO</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">control2</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
+            <span class="n">pnt2</span><span class="o">=</span><span class="n">control2</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.blend_quad">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.blend_quad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">blend_quad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">control_length</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a quadratic Bézier curve to the path where the control point is computed based on a length.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            control_length (float): The length to the control point.</span>
+<span class="sd">            end (Point): The end point of the curve.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">c1</span> <span class="o">=</span> <span class="n">line_by_point_angle_length</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">,</span> <span class="n">control_length</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">QUAD_TO</span><span class="p">,</span> <span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span> <span class="n">pnt2</span><span class="o">=</span><span class="n">c1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.arc">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.arc">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">arc</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">radius_x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">radius_y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">start_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">span_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">rot_angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">n_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add an arc to the path. The arc is defined by an ellipse (with rx as half-width and ry as half-height).</span>
+<span class="sd">        The sign of the span angle determines the drawing direction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            radius_x (float): The x radius of the arc.</span>
+<span class="sd">            radius_y (float): The y radius of the arc.</span>
+<span class="sd">            start_angle (float): The starting angle of the arc.</span>
+<span class="sd">            span_angle (float): The span angle of the arc.</span>
+<span class="sd">            rot_angle (float, optional): The rotation angle of the arc. Defaults to 0.</span>
+<span class="sd">            n_points (int, optional): The number of points to use for the arc. Defaults to None.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rx</span> <span class="o">=</span> <span class="n">radius_x</span>
+        <span class="n">ry</span> <span class="o">=</span> <span class="n">radius_y</span>
+        <span class="n">start_angle</span> <span class="o">=</span> <span class="n">positive_angle</span><span class="p">(</span><span class="n">start_angle</span><span class="p">)</span>
+        <span class="n">clockwise</span> <span class="o">=</span> <span class="n">span_angle</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">n_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n_points</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;n_arc_points&quot;</span><span class="p">]</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">elliptic_arc_points</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">rx</span><span class="p">,</span> <span class="n">ry</span><span class="p">,</span> <span class="n">start_angle</span><span class="p">,</span> <span class="n">span_angle</span><span class="p">,</span> <span class="n">n_points</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># Translate the start to the current position and rotate by the rotation angle.</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">rotocenter</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="k">if</span> <span class="n">rot_angle</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">homogenize</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+<div class="viewcode-block" id="LinPath.blend_arc">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.blend_arc">[docs]</a>
+                <span class="o">@</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="n">rot_angle</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">)</span>
+                <span class="o">@</span> <span class="n">translation_matrix</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="o">@</span> <span class="n">translation_matrix</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span>
+        <span class="n">tangent_angle</span> <span class="o">=</span> <span class="n">ellipse_tangent</span><span class="p">(</span><span class="n">rx</span><span class="p">,</span> <span class="n">ry</span><span class="p">,</span> <span class="o">*</span><span class="n">end</span><span class="p">)</span> <span class="o">+</span> <span class="n">rot_angle</span>
+        <span class="k">if</span> <span class="n">clockwise</span><span class="p">:</span>
+            <span class="n">tangent_angle</span> <span class="o">+=</span> <span class="n">pi</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span>
+            <span class="n">pos</span><span class="p">,</span>
+            <span class="n">PathOps</span><span class="o">.</span><span class="n">ARC</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">tangent_angle</span><span class="p">,</span> <span class="n">rx</span><span class="p">,</span> <span class="n">ry</span><span class="p">,</span> <span class="n">start_angle</span><span class="p">,</span> <span class="n">span_angle</span><span class="p">,</span> <span class="n">rot_angle</span><span class="p">,</span> <span class="n">points</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">blend_arc</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">radius_x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">radius_y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">start_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">span_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">sharp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">n_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a blended elliptic arc to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            radius_x (float): The x radius of the arc.</span>
+<span class="sd">            radius_y (float): The y radius of the arc.</span>
+<span class="sd">            start_angle (float): The starting angle of the arc.</span>
+<span class="sd">            span_angle (float): The span angle of the arc.</span>
+<span class="sd">            sharp (bool, optional): Whether the arc is sharp. Defaults to False.</span>
+<span class="sd">            n_points (int, optional): The number of points to use for the arc. Defaults to None.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rx</span> <span class="o">=</span> <span class="n">radius_x</span>
+        <span class="n">ry</span> <span class="o">=</span> <span class="n">radius_y</span>
+        <span class="n">start_angle</span> <span class="o">=</span> <span class="n">positive_angle</span><span class="p">(</span><span class="n">start_angle</span><span class="p">)</span>
+        <span class="n">clockwise</span> <span class="o">=</span> <span class="n">span_angle</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">n_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n_points</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;n_arc_points&quot;</span><span class="p">]</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">elliptic_arc_points</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">rx</span><span class="p">,</span> <span class="n">ry</span><span class="p">,</span> <span class="n">start_angle</span><span class="p">,</span> <span class="n">span_angle</span><span class="p">,</span> <span class="n">n_points</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># Translate the start to the current position and rotate by the computed rotation angle.</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">rotocenter</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="n">tangent</span> <span class="o">=</span> <span class="n">ellipse_tangent</span><span class="p">(</span><span class="n">rx</span><span class="p">,</span> <span class="n">ry</span><span class="p">,</span> <span class="o">*</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">rot_angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">-</span> <span class="n">tangent</span>
+        <span class="k">if</span> <span class="n">clockwise</span><span class="p">:</span>
+            <span class="n">rot_angle</span> <span class="o">+=</span> <span class="n">pi</span>
+        <span class="k">if</span> <span class="n">sharp</span><span class="p">:</span>
+            <span class="n">rot_angle</span> <span class="o">+=</span> <span class="n">pi</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">homogenize</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+<div class="viewcode-block" id="LinPath.sine">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.sine">[docs]</a>
+            <span class="o">@</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="n">rot_angle</span><span class="p">,</span> <span class="n">rotocenter</span><span class="p">)</span>
+            <span class="o">@</span> <span class="n">translation_matrix</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">tangent_angle</span> <span class="o">=</span> <span class="n">ellipse_tangent</span><span class="p">(</span><span class="n">rx</span><span class="p">,</span> <span class="n">ry</span><span class="p">,</span> <span class="o">*</span><span class="n">end</span><span class="p">)</span> <span class="o">+</span> <span class="n">rot_angle</span>
+        <span class="k">if</span> <span class="n">clockwise</span><span class="p">:</span>
+            <span class="n">tangent_angle</span> <span class="o">+=</span> <span class="n">pi</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span>
+            <span class="n">pos</span><span class="p">,</span>
+            <span class="n">PathOps</span><span class="o">.</span><span class="n">ARC</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">tangent_angle</span><span class="p">,</span> <span class="n">rx</span><span class="p">,</span> <span class="n">ry</span><span class="p">,</span> <span class="n">start_angle</span><span class="p">,</span> <span class="n">span_angle</span><span class="p">,</span> <span class="n">rot_angle</span><span class="p">,</span> <span class="n">points</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">sine</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">period</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
+        <span class="n">amplitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
+        <span class="n">phase_angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">rot_angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">damping</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">n_points</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a sine wave to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            period (float, optional): _description_. Defaults to 40.</span>
+<span class="sd">            amplitude (float, optional): _description_. Defaults to 20.</span>
+<span class="sd">            duration (float, optional): _description_. Defaults to 1.</span>
+<span class="sd">            n_points (int, optional): _description_. Defaults to 100.</span>
+<span class="sd">            phase_angle (float, optional): _description_. Defaults to 0.</span>
+<span class="sd">            damping (float, optional): _description_. Defaults to 0.</span>
+<span class="sd">            rot_angle (float, optional): _description_. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">points</span> <span class="o">=</span> <span class="n">sine_points</span><span class="p">(</span>
+            <span class="n">period</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">n_points</span><span class="p">,</span> <span class="n">phase_angle</span><span class="p">,</span> <span class="n">damping</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">rot_angle</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="o">@</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="n">rot_angle</span><span class="p">,</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="o">@</span> <span class="n">translation_matrix</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">SINE</span><span class="p">,</span> <span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">angle</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.blend_sine">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.blend_sine">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">blend_sine</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">period</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
+        <span class="n">amplitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
+        <span class="n">phase_angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">damping</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">n_points</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a blended sine wave to the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            amplitude (float): The amplitude of the wave.</span>
+<span class="sd">            frequency (float): The frequency of the wave.</span>
+<span class="sd">            length (float): The length of the wave.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">points</span> <span class="o">=</span> <span class="n">sine_points</span><span class="p">(</span>
+            <span class="n">period</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">n_points</span><span class="p">,</span> <span class="n">phase_angle</span><span class="p">,</span> <span class="n">damping</span>
+        <span class="p">)</span>
+        <span class="n">start_angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">rot_angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">-</span> <span class="n">start_angle</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="o">@</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="n">rot_angle</span><span class="p">,</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">homogenize</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="o">@</span> <span class="n">translation_matrix</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">line_angle</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">SINE</span><span class="p">,</span> <span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">angle</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="LinPath.close">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">PathOps</span><span class="o">.</span><span class="n">CLOSE</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the vertices of the path.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: The vertices of the path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">vertices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">vertices</span>
+
+<div class="viewcode-block" id="LinPath.set_style">
+<a class="viewcode-back" href="../../../simetri.graphics.html#simetri.graphics.path.LinPath.set_style">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the style of the path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): The name of the style.</span>
+<span class="sd">            value (Any): The value of the style.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path: The path object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">PathOps</span><span class="o">.</span><span class="n">STYLE</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">:</span> <span class="n">array</span><span class="p">,</span> <span class="n">reps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Batch</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Used internally. Update the shape with a transformation matrix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xform_matrix (array): The transformation matrix.</span>
+<span class="sd">            reps (int, optional): The number of repetitions, defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Batch: The updated shape or a batch of shapes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">reps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">obj</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">reps</span><span class="p">):</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">path</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">xform_matrix</span><span class="p">)</span>
+                <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">Batch</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">res</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../graphics.html">simetri.graphics</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Fahri Basegmez.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
