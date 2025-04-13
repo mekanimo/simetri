@@ -73,7 +73,7 @@ class Node:
         if child.id not in [c.id for c in self.children]:
             self.children.append(child)
 
-    def num_children_and_grandchildren(self):
+    def num_all_children(self):
         """Counts the number of children and grandchildren of the node.
         Args:
             None
@@ -82,7 +82,7 @@ class Node:
             int: The number of children and grandchildren.
         """
         return len(self.children) + sum(
-            child.num_children_and_grandchildren() for child in self.children
+            child.num_all_children() for child in self.children
         )
 
     def depth(self):
@@ -96,8 +96,8 @@ class Node:
         """
         if not self.children:
             return 0
-        n = self.num_children_and_grandchildren()
-        m = self.children[-1].num_children_and_grandchildren()
+        n = self.num_all_children()
+        m = self.children[-1].num_all_children()
         return n - m
 
 
