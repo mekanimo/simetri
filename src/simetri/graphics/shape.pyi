@@ -3,9 +3,7 @@
 from typing import Sequence, Union, List
 
 import numpy as np
-from numpy import array, allclose
-from numpy.linalg import inv
-import networkx as nx
+from numpy import array
 from typing_extensions import Self
 
 from .all_enums import *
@@ -115,7 +113,7 @@ class Shape:
             name (str): The name of the attribute.
             value (Any): The value to set.
         """
-        pass
+
 
     def __getattr__(self, name):
         """Retrieve an attribute of the shape.
@@ -129,7 +127,7 @@ class Shape:
         Raises:
             AttributeError: If the attribute cannot be found.
         """
-        pass
+
 
     def _get_closed(self, points: Sequence[Point], closed: bool):
         """Determine whether the shape should be considered closed.
@@ -143,7 +141,7 @@ class Shape:
                 - bool: True if the shape is closed, False otherwise.
                 - list: The (possibly modified) list of points.
         """
-        pass
+
 
     def __len__(self):
         """Return the number of points in the shape.
@@ -151,7 +149,7 @@ class Shape:
         Returns:
             int: The number of primary points.
         """
-        pass
+
 
     def __str__(self):
         """Return a string representation of the shape.
@@ -159,7 +157,7 @@ class Shape:
         Returns:
             str: A string representation of the shape.
         """
-        pass
+
 
     def __repr__(self):
         """Return a string representation of the shape.
@@ -167,7 +165,7 @@ class Shape:
         Returns:
             str: A string representation of the shape.
         """
-        pass
+
 
     def __getitem__(self, subscript: Union[int, slice]):
         """Retrieve point(s) from the shape by index or slice.
@@ -181,7 +179,7 @@ class Shape:
         Raises:
             TypeError: If the subscript type is invalid.
         """
-        pass
+
 
     def __setitem__(self, subscript, value):
         """Set the point(s) at the given subscript.
@@ -193,7 +191,7 @@ class Shape:
         Raises:
             TypeError: If the subscript type is invalid.
         """
-        pass
+
 
     def __delitem__(self, subscript) -> Self:
         """Delete the point(s) at the given subscript.
@@ -201,7 +199,7 @@ class Shape:
         Args:
             subscript (int or slice): The subscript to delete the point(s) from.
         """
-        pass
+
 
     def remove(self, value: Point) -> Self:
         """Remove a point from the shape.
@@ -209,7 +207,7 @@ class Shape:
         Args:
             value (Point): The point to remove.
         """
-        pass
+
 
     def append(self, value: Point) -> Self:
         """Append a point to the shape.
@@ -217,7 +215,7 @@ class Shape:
         Args:
             value (Point): The point to append.
         """
-        pass
+
 
     def insert(self, index: int, value: Point) -> Self:
         """Insert a point at a given index.
@@ -226,7 +224,7 @@ class Shape:
             index (int): The index to insert the point at.
             value (Point): The point to insert.
         """
-        pass
+
 
     def extend(self, values: Sequence[Point]) -> Self:
         """Extend the shape with a list of points.
@@ -234,7 +232,7 @@ class Shape:
         Args:
             values (list[Point]): The points to extend the shape with.
         """
-        pass
+
 
     def pop(self, index: int = -1) -> Point:
         """Pop a point from the shape.
@@ -245,7 +243,7 @@ class Shape:
         Returns:
             Point: The popped point.
         """
-        pass
+
 
     def __iter__(self):
         """Return an iterator over the vertices of the shape.
@@ -253,7 +251,7 @@ class Shape:
         Returns:
             Iterator[Point]: An iterator over the vertices of the shape.
         """
-        pass
+
 
     def _update(self, xform_matrix: array, reps: int = 0) -> Batch:
         """Used internally. Update the shape with a transformation matrix.
@@ -265,7 +263,7 @@ class Shape:
         Returns:
             Batch: The updated shape or a batch of shapes.
         """
-        pass
+
 
     def __eq__(self, other):
         """Check if the shape is equal to another shape.
@@ -276,7 +274,7 @@ class Shape:
         Returns:
             bool: True if the shapes are equal, False otherwise.
         """
-        pass
+
 
     def __bool__(self):
         """Return whether the shape has any points.
@@ -284,7 +282,7 @@ class Shape:
         Returns:
             bool: True if the shape has points, False otherwise.
         """
-        pass
+
 
     def topology(self) -> Topology:
         """Return info about the topology of the shape.
@@ -292,7 +290,7 @@ class Shape:
         Returns:
             set: A set of topology values.
         """
-        pass
+
 
     def merge(self, other, dist_tol: float = None) -> Union[Self, None]:
         """Merge two shapes if they are connected. Does not work for polygons.
@@ -305,7 +303,7 @@ class Shape:
         Returns:
             Shape or None: The merged shape or None if the shapes cannot be merged.
         """
-        pass
+
 
     def connect(self, other) -> Self:
         """Connect two shapes by adding the other shape's vertices to self.
@@ -313,7 +311,7 @@ class Shape:
         Args:
             other (Shape): The other shape to connect.
         """
-        pass
+
 
     def _chain_vertices(
         self, verts1: Sequence[Point], verts2: Sequence[Point], dist_tol: float = None
@@ -328,7 +326,7 @@ class Shape:
         Returns:
             list[Point] or None: The chained vertices or None if the vertices cannot be chained.
         """
-        pass
+
 
     def _is_polygon(self, vertices: Sequence[Point]) -> bool:
         """Return True if the vertices form a polygon.
@@ -339,9 +337,9 @@ class Shape:
         Returns:
             bool: True if the vertices form a polygon, False otherwise.
         """
-        pass
 
-    def as_graph(self, directed=False, weighted=False, n_round=None) -> nx.Graph:
+
+    def as_graph(self, directed=False, weighted=False, n_round=None) -> 'nx.Graph':
         """Return the shape as a graph object.
 
         Args:
@@ -352,7 +350,7 @@ class Shape:
         Returns:
             Graph: The graph object.
         """
-        pass
+
 
     def as_array(self, homogeneous=False) -> np.ndarray:
         """Return the vertices as an array.
@@ -363,7 +361,7 @@ class Shape:
         Returns:
             ndarray: The vertices as an array.
         """
-        pass
+
 
     def as_list(self) -> List[Point]:
         """Return the vertices as a list of tuples.
@@ -371,7 +369,7 @@ class Shape:
         Returns:
             list[tuple]: The vertices as a list of tuples.
         """
-        pass
+
 
     @property
     def final_coords(self) -> np.ndarray:
@@ -380,7 +378,7 @@ class Shape:
         Returns:
             ndarray: The final coordinates of the shape.
         """
-        pass
+
 
     @property
     def vertices(self) -> Tuple[Point]:
@@ -389,7 +387,7 @@ class Shape:
         Returns:
             tuple: The final coordinates of the shape.
         """
-        pass
+
 
     @property
     def vertex_pairs(self) -> List[Tuple[Point, Point]]:
@@ -398,7 +396,7 @@ class Shape:
         Returns:
             list[tuple[Point, Point]]: A list of connected pairs of vertices.
         """
-        pass
+
 
     @property
     def orig_coords(self) -> np.ndarray:
@@ -407,7 +405,7 @@ class Shape:
         Returns:
             ndarray: The primary points in homogeneous coordinates.
         """
-        pass
+
 
     @property
     def b_box(self) -> BoundingBox:
@@ -416,7 +414,7 @@ class Shape:
         Returns:
             BoundingBox: The bounding box of the shape.
         """
-        pass
+
 
     @property
     def area(self) -> float:
@@ -425,7 +423,7 @@ class Shape:
         Returns:
             float: The area of the shape.
         """
-        pass
+
 
     @property
     def total_length(self) -> float:
@@ -434,7 +432,7 @@ class Shape:
         Returns:
             float: The total length of the shape.
         """
-        pass
+
 
     @property
     def is_polygon(self) -> bool:
@@ -443,7 +441,7 @@ class Shape:
         Returns:
             bool: True if the shape is closed, False otherwise.
         """
-        pass
+
 
     def clear(self) -> Self:
         """Clear all points and reset the style attributes.
@@ -451,7 +449,7 @@ class Shape:
         Returns:
             None
         """
-        pass
+
 
     def count(self, value: Point) -> int:
         """Return the number of times the value is found in the shape.
@@ -462,7 +460,7 @@ class Shape:
         Returns:
             int: The number of times the value is found in the shape.
         """
-        pass
+
 
     def copy(self) -> 'Shape':
         """Return a copy of the shape.
@@ -470,7 +468,7 @@ class Shape:
         Returns:
             Shape: A copy of the shape.
         """
-        pass
+
 
     @property
     def edges(self) -> List[Line]:
@@ -483,7 +481,7 @@ class Shape:
         Returns:
             list[tuple[Point, Point]]: A list of edges.
         """
-        pass
+
 
     @property
     def segments(self) -> List[Line]:
@@ -496,7 +494,7 @@ class Shape:
         Returns:
             list[tuple[Point, Point]]: A list of edges.
         """
-        pass
+
 
 
 def custom_attributes(item: Shape) -> List[str]:
@@ -511,4 +509,3 @@ def custom_attributes(item: Shape) -> List[str]:
     Raises:
         TypeError: If the item is not a Shape instance.
     """
-    pass
