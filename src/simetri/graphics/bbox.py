@@ -12,6 +12,7 @@ from ..geometry.geometry import (
     line_angle,
     intersect,
     positive_angle,
+    polar_to_cartesian
 )
 
 
@@ -47,7 +48,7 @@ class BoundingBox:
             "ne": "northeast",
             "d1": "diagonal1",
             "d2": "diagonal2",
-            "c": "center",
+            "o": "origin",
             "vcl": "vert_centerline",
             "hcl": "horiz_centerline",
         }
@@ -74,7 +75,7 @@ class BoundingBox:
     def angle_point(self, angle: float) -> float:
         """
         Return the intersection point of the angled line starting
-        from the center and the bounding box. angle is in radians.
+        from the origin and the bounding box. angle is in radians.
 
         Args:
             angle (float): The angle in radians.
@@ -85,10 +86,10 @@ class BoundingBox:
         angle = positive_angle(angle)
         line = ((0, 0), (np.cos(angle), np.sin(angle)))
 
-        angle1 = line_angle(self.center, self.northeast)
-        angle2 = -angle1  # center, southeast
-        angle3 = np.pi - angle1  # center, northwest
-        angle4 = -angle3  # center, southwest
+        angle1 = line_angle(self.origin, self.northeast)
+        angle2 = -angle1  # origin, southeast
+        angle3 = np.pi - angle1  # origin, northwest
+        angle4 = -angle3  # origin, southwest
         if angle3 >= angle >= angle1:
             res = intersect(line, self.top)
         elif angle4 <= angle <= angle2:
@@ -161,7 +162,7 @@ class BoundingBox:
         return (self.west, self.east)
 
     @property
-    def center(self):
+    def origin(self):
         """
         Return the center of the bounding box.
 
@@ -212,7 +213,7 @@ class BoundingBox:
             self.east,
             self.northeast,
             self.north,
-            self.center,
+            self.origin,
         )
 
     @property
@@ -440,6 +441,202 @@ class BoundingBox:
         else:
             raise ValueError(f"Unknown anchor: {anchor}")
         return [x + dx, y + dy]
+
+
+    def centered(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the center of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.origin of the reference item's bounding-box.
+        """
+
+        x, y = item.origin
+        x += dx
+        y += dy
+        return x, y
+
+    def left_of(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the item.west of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.west of the reference item's bounding-box.
+        """
+        x, y = item.west
+        w2 = self.width / 2
+        x += (dx - w2)
+        y += dy
+        return x, y
+
+    def right_of(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the item.east of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.east of the reference item's bounding-box.
+        """
+        x, y = item.east
+        w2 = self.width / 2
+        x += (dx + w2)
+        y += dy
+        return x, y
+
+    def above(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the item.north of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.north of the reference item's bounding-box.
+        """
+        x, y = item.north
+        h2 = self.height / 2
+        x += dx
+        y += (dy + h2)
+        return x, y
+
+    def below(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the item.south of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.south of the reference item's bounding-box.
+        """
+        x, y = item.south
+        h2 = self.height / 2
+        x += dx
+        y += (dy - h2)
+        return x, y
+
+    def above_left(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the item.northwest of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.northwest of the reference item's bounding-box.
+        """
+        x, y = item.northwest
+        w2 = self.width / 2
+        h2 = self.height / 2
+        x += (dx - w2)
+        y += (dy + h2)
+
+        return x, y
+
+
+    def above_right(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the item.northeast of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.northeast of the reference item's bounding-box.
+        """
+        x, y = item.northeast
+        w2 = self.width / 2
+        h2 = self.height / 2
+        x += (dx + w2)
+        y += (dy + h2)
+
+        return x, y
+
+
+    def below_left(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the item.southwest of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.southwest of the reference item's bounding-box.
+        """
+        x, y = item.southwest
+        w2 = self.width / 2
+        h2 = self.height / 2
+        x += (dx - w2)
+        y += (dy - h2)
+
+        return x, y
+
+
+    def below_right(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+        """
+        Get the item.southeast of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            dx (float): The x offset.
+            dy (float): The y offset.
+
+        Returns:
+            Point: The item.southeast of the reference item's bounding-box.
+        """
+        x, y = item.southeast
+        w2 = self.width / 2
+        h2 = self.height / 2
+        x += (dx + w2)
+        y += (dy - h2)
+
+        return x, y
+
+
+    def polar_pos(self, item:'Union[Shape, Batch]', theta:float, radius:float)->Point:
+        """
+        Get the polar position of the reference item.
+
+        Args:
+            item (object): The reference item. Shape or Batch.
+            theta (float): The angle in radians.
+            radius (float): The radius.
+
+        Returns:
+            Point: The polar position of the reference item.
+        """
+
+        x, y = item.origin
+
+        x1, y1 = polar_to_cartesian(radius, theta)
+        x += x1
+        y += y1
+
+        return x, y
 
 
 def bounding_box(points):
