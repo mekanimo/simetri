@@ -1,6 +1,6 @@
 """Let the IDEs know about the dynamically created attributes of the Shape class."""
 
-from typing import Sequence, Union, List
+from typing import Sequence, Union, List, Tuple
 
 import numpy as np
 from numpy import array
@@ -12,9 +12,17 @@ from .common import Point, Line
 
 from .points import Points
 from .batch import Batch
+from ..colors.colors import Color
 
 class Shape:
+    """The main class for all geometric entities in Simetri.
 
+    A Shape is created by providing a sequence of points (a sequence of (x, y) coordinates).
+    If a style argument (a ShapeStyle object) is provided, then its style attributes override
+    the default values the Shape object would assign. Additional attributes (e.g. line_width, fill_color, line_style)
+    may be provided.
+
+    """
     def __init__(
         self,
         points: Sequence[Point] = None,
@@ -28,8 +36,7 @@ class Shape:
             points (Sequence[Point], optional): The points that make up the shape.
             closed (bool, optional): Whether the shape is closed. Defaults to False.
             xform_matrix (np.array, optional): The transformation matrix. Defaults to None.
-            **kwargs (dict): Additional attributes for the shape.
-
+            **kwargs (dict): Additional attributes for the shape. Common kwargs are, style, line_width, fill, fill_color, line_color, fill_alpha, etc.
         Raises:
             ValueError: If the provided subtype is not valid.
         """
@@ -201,36 +208,48 @@ class Shape:
         """
 
 
-    def remove(self, value: Point) -> Self:
+    def index(self, point: Point, atol=None) -> int:
+        """Return the index of the given point.
+
+        Args:
+            point (Point): The point to find the index of.
+
+        Returns:
+            int: The index of the point.
+        """
+
+
+
+    def remove(self, point: Point) -> Self:
         """Remove a point from the shape.
 
         Args:
-            value (Point): The point to remove.
+            point (Point): The point to remove.
         """
 
 
-    def append(self, value: Point) -> Self:
+    def append(self, point: Point) -> Self:
         """Append a point to the shape.
 
         Args:
-            value (Point): The point to append.
+            point (Point): The point to append.
         """
 
 
-    def insert(self, index: int, value: Point) -> Self:
+    def insert(self, index: int, point: Point) -> Self:
         """Insert a point at a given index.
 
         Args:
             index (int): The index to insert the point at.
-            value (Point): The point to insert.
+            point (Point): The point to insert.
         """
 
 
-    def extend(self, values: Sequence[Point]) -> Self:
+    def extend(self, points: Sequence[Point]) -> Self:
         """Extend the shape with a list of points.
 
         Args:
-            values (list[Point]): The points to extend the shape with.
+            points (list[Point]): The points to extend the shape with.
         """
 
 
@@ -352,7 +371,7 @@ class Shape:
         """
 
 
-    def as_array(self, homogeneous=False) -> np.ndarray:
+    def as_array(self, homogeneous=False) -> 'ndarray':
         """Return the vertices as an array.
 
         Args:
@@ -372,7 +391,7 @@ class Shape:
 
 
     @property
-    def final_coords(self) -> np.ndarray:
+    def final_coords(self) -> 'ndarray':
         """The final coordinates of the shape. primary_points @ xform_matrix.
 
         Returns:
@@ -399,7 +418,7 @@ class Shape:
 
 
     @property
-    def orig_coords(self) -> np.ndarray:
+    def orig_coords(self) -> 'ndarray':
         """The primary points in homogeneous coordinates.
 
         Returns:
@@ -451,14 +470,14 @@ class Shape:
         """
 
 
-    def count(self, value: Point) -> int:
-        """Return the number of times the value is found in the shape.
+    def count(self, point: Point) -> int:
+        """Return the number of times the point is found in the shape.
 
         Args:
-            value (Point): The value to count.
+            point (Point): The point to count.
 
         Returns:
-            int: The number of times the value is found in the shape.
+            int: The number of times the point is found in the shape.
         """
 
 
