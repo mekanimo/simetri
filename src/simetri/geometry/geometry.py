@@ -171,6 +171,30 @@ def sine_points(
     return vertices
 
 
+def check_consecutive_duplicates(points, rtol=0, atol=None) -> bool:
+    """Check for consecutive duplicate points in a list of points.
+
+        Args:
+            points (list): List of points to check.
+            rtol (float, optional): Relative tolerance. Defaults to 0.
+            atol (float, optional): Absolute tolerance. Defaults to None.
+
+        Returns:
+            bool: True if consecutive duplicate points are found, False otherwise.
+    """
+    if atol is None:
+        atol = defaults["atol"]
+
+    for i, pnt in enumerate(points[:-1]):
+        next = points[i+1]
+        val1 = pnt[0] + pnt[1]
+        val2 = next[0] + next[1]
+        if isclose(val1, val2, rtol=0, atol=atol):
+            if np.allclose(pnt, next, rtol=0, atol=atol):
+                return True
+
+    return False
+
 def circle_inversion(point, center, radius):
     """
     Inverts a point with respect to a circle.
