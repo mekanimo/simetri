@@ -72,6 +72,7 @@ from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system
 from ..extensions.easing import *
+from ..extensions.tree import make_tree, TreeNode
 from .path import LinPath
 from .pattern import *
 
