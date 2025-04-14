@@ -15,10 +15,14 @@ def get_enum_value(enum_class: StrEnum, value: str) -> str:
     return res
 
 
-# Tag text alignment options
-# Used for TikZ. VaLUeS are case sensitive.
 class Align(StrEnum):
-    """Align is used to set the alignment of the text in tags."""
+    """Align is used to set the alignment of the text in tags.
+    Used for Tag and Text objects. This is based on TikZ.
+
+    Valid values are: NONE, CENTER, FLUSH_CENTER, FLUSH_LEFT, FLUSH_RIGHT, JUSTIFY, LEFT, RIGHT.
+    """
+
+    NONE = ""
     CENTER = "center"
     FLUSH_CENTER = "flush center"
     FLUSH_LEFT = "flush left"
@@ -27,18 +31,23 @@ class Align(StrEnum):
     LEFT = "left"
     RIGHT = "right"
 
+
 # Anchor points
 # Used for TikZ. VaLUeS are case sensitive.
 class Anchor(StrEnum):
     """Anchor is used to set the anchor point of the shapes
     relative to the boundary box of shapes/batches or
-    frames of tag objects."""
+    frames of tag objects.
 
-    BASE = "base" # FOR TAGS ONLY
-    BASE_EAST = "base east" # FOR TAGS ONLY
-    BASE_WEST = "base west" # FOR TAGS ONLY
+    Valid values are: BASE, BASE_EAST, BASE_WEST, BOTTOM, CENTER, EAST, LEFT, MID, MIDEAST, MIDWEST, NORTH,
+    NORTHEAST, NORTHWEST, RIGHT, SOUTH, SOUTHEAST, SOUTHWEST, TEXT, TOP, WEST.
+    """
+
+    BASE = "base"  # FOR TAGS ONLY
+    BASE_EAST = "base east"  # FOR TAGS ONLY
+    BASE_WEST = "base west"  # FOR TAGS ONLY
     BOTTOM = "bottom"
-    CENTER = "center"
+    ORIGIN = "origin"
     EAST = "east"
     LEFT = "left"
     MID = "mid"
@@ -57,7 +66,11 @@ class Anchor(StrEnum):
 
 
 class ArrowLine(StrEnum):
-    """ArrowLine is used to set the type of arrow line."""
+    """ArrowLine is used to set the type of arrow line.
+
+    Valid values are: FLATBASE_END, FLATBASE_MIDDLE, FLATBASE_START, FLATBOTH_END, FLATBOTH_MIDDLE,
+    FLATBOTH_START, FLATTOP_END, FLATTOP_MIDDLE, FLATTOP_START, STRAIGHT_END, STRAIGHT_MIDDLE, STRAIGHT_START.
+    """
 
     FLATBASE_END = "flatbase end"  # FLAT BASE, ARROW AT THE END
     FLATBASE_MIDDLE = "flatbase middle"  # FLAT BASE, ARROW AT THE MIDDLE
@@ -74,7 +87,10 @@ class ArrowLine(StrEnum):
 
 
 class Axis(StrEnum):
-    """Cartesian coordinate system axes."""
+    """Cartesian coordinate system axes.
+
+    Valid values are: X, Y.
+    """
 
     X = "x"
     Y = "y"
@@ -85,6 +101,8 @@ class BackStyle(StrEnum):
     """BackStyle is used to set the background style of a shape or tag.
     If shape.fill is True, then background will be drawn according to
     the shape.back_style value.
+
+    Valid values are: COLOR, COLOR_AND_GRID, EMPTY, GRIDLINES, PATTERN, SHADING, SHADING_AND_GRID.
     """
 
     COLOR = "COLOR"
@@ -97,7 +115,11 @@ class BackStyle(StrEnum):
 
 
 class BlendMode(StrEnum):
-    """BlendMode is used to set the blend mode of the colors."""
+    """BlendMode is used to set the blend mode of the colors.
+
+    Valid values are: COLOR, COLORBURN, COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, HUE, LIGHTEN,
+    LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT.
+    """
 
     COLOR = "color"
     COLORBURN = "colorburn"
@@ -118,7 +140,10 @@ class BlendMode(StrEnum):
 
 
 class ColorSpace(StrEnum):
-    """ColorSpace is used to set the color space of the colors."""
+    """ColorSpace is used to set the color space of the colors.
+
+    Valid values are: CMYK, GRAY, HCL, HLS, HSV, LAB, RGB, YIQ.
+    """
 
     CMYK = "CMYK"
     GRAY = "GRAY"
@@ -131,7 +156,12 @@ class ColorSpace(StrEnum):
 
 
 class Connection(StrEnum):
-    """Connection is used to set the connection type of the shapes."""
+    """Connection is used for identifying how two line segments are related
+    to each other. Intersection check uses some of these values.
+
+    Valid values are: CHAIN, COINCIDENT, COLL_CHAIN, CONGRUENT, CONTAINS, COVERS, DISJOINT, END_END, END_START,
+    FLIPPED, INTERSECT, NONE, OVERLAPS, PARALLEL, START_END, START_START, TOUCHES, WITHIN, YJOINT.
+    """
 
     CHAIN = "CHAIN"
     COINCIDENT = "COINCIDENT"
@@ -155,23 +185,32 @@ class Connection(StrEnum):
 
 
 class Connector(StrEnum):
-    """Connector is used to set the connector type of the shapes."""
+    """Connector is used to set the way connecting lines are drawn.
+    This is not used yet.
+
+    Valid values are: ARC, ARROW_LINE, CURVE, LINE, DOUBLE_LINE, SQUIGLY, ZIGZAG, SQUIGLY_ARROW, ZIGZAG_ARROW,
+    DOUBLE_ARROW, DOUBLE_SQUIGLY.
+    """
 
     ARC = "ARC"
     ARROW_LINE = "ARROW_LINE"
     CURVE = "CURVE"
-    ELLIPSE = "ELLIPSE"
     LINE = "LINE"
     DOUBLE_LINE = "DOUBLE_LINE"
-    # squigly
-    # zigzag
-    # squigly_arrow
-    # zigzag_arrow
-    # double_arrow
-    # double_squigly
+    SQUIGLY = "squigly"
+    ZIGZAG = "zigzag"
+    SQUIGLY_ARROW = "squigly_arrow"
+    ZIGZAG_ARROW = "zigzag_arrow"
+    DOUBLE_ARROW = "double_arrow"
+    DOUBLE_SQUIGLY = "double_squigly"
+
 
 class ConstraintType(StrEnum):
-    """Constraint is used to set the constraint type of the shapes."""
+    """Constraint types are used with the 2D geometric constraint solver.
+
+    Valid values are: COLLINEAR, DISTANCE, LINE_ANGLE, PARALLEL, PERPENDICULAR, EQUAL_SIZE, EQUAL_VALUE,
+    INNER_TANGENT, OUTER_TANGENT.
+    """
 
     COLLINEAR = "COLLINEAR"
     DISTANCE = "DISTANCE"
@@ -183,8 +222,13 @@ class ConstraintType(StrEnum):
     INNER_TANGENT = "INNER_TANGENT"
     OUTER_TANGENT = "OUTER_TANGENT"
 
+
 class Compiler(StrEnum):
-    """Used for the LaTeX compiler."""
+    """Used for the LaTeX compiler.
+    Currently, only XELATEX is used.
+
+    Valid values are: LATEX, PDFLATEX, XELATEX, LUALATEX.
+    """
 
     LATEX = "LATEX"
     PDFLATEX = "PDFLATEX"
@@ -193,7 +237,10 @@ class Compiler(StrEnum):
 
 
 class Control(StrEnum):
-    """Used for the modifiers of a bounding box"""
+    """Used with the modifiers.
+
+    Valid values are: INITIAL, PAUSE, RESTART, RESUME, STOP.
+    """
 
     INITIAL = "INITIAL"
     PAUSE = "PAUSE"
@@ -203,7 +250,10 @@ class Control(StrEnum):
 
 
 class Conway(StrEnum):
-    """Frieze groups in Conway notation."""
+    """Frieze groups in Conway notation.
+
+    Valid values are: HOP, JUMP, SIDLE, SPINNING_HOP, SPINNING_JUMP, SPINNING_SIDLE, STEP.
+    """
 
     HOP = "HOP"
     JUMP = "JUMP"
@@ -215,26 +265,34 @@ class Conway(StrEnum):
 
 
 class CurveMode(StrEnum):
+    """CurveMode is used to set how arc objects are drawn.
+
+    Valid values are: OPEN, CHORD, PIE.
+    """
+
     OPEN = "OPEN"
     CHORD = "CHORD"
     PIE = "PIE"
 
 
 class Dep(StrEnum):
-    """Depend is used to set the dependency of the shapes.
-    This is used when shapes are copied or transformed.
+    """Depend may be used in the future to set the dependency of the shapes
+    when they are copied. Dependent copies share the same underlying data.
+
+    Valid values are: FALSE, TRUE, GEOM, STYLE.
     """
 
-    FALSE = "FALSE" # Independent
-    TRUE = "TRUE" # Both geometry and style are dependent
-    GEOM = "GEOM" # Only geometry is dependent
-    STYLE = "STYLE" # Only style is dependent
+    FALSE = "FALSE"  # Independent
+    TRUE = "TRUE"  # Both geometry and style are dependent
+    GEOM = "GEOM"  # Only geometry is dependent
+    STYLE = "STYLE"  # Only style is dependent
 
-# Document classes for the output files
-# These come from LaTeX
-# Canvas uses these classes to generate output files
+
 class DocumentClass(StrEnum):
-    """DocumentClass is used to set the class of the document."""
+    """DocumentClass is used to set the class of the LaTeX document.
+
+    Valid values are: ARTICLE, BEAMER, BOOK, IEEETRAN, LETTER, REPORT, SCRARTCL, SLIDES, STANDALONE.
+    """
 
     ARTICLE = "article"
     BEAMER = "beamer"
@@ -248,37 +306,51 @@ class DocumentClass(StrEnum):
 
 
 class FillMode(StrEnum):
-    """FillMode is used to set the fill mode of the shape."""
+    """FillMode is used to set the fill mode of the shape.
+
+    Valid values are: EVENODD, NONZERO.
+    """
 
     EVENODD = "even odd"
     NONZERO = "non zero"
 
 
 class FontFamily(StrEnum):
-    """FontFamily is used to set the family of the font."""
+    """FontFamily is used to set the family of the font.
 
-    MONOSPACE = "monospace" # \ttfamily, \texttt
+    Valid values are: MONOSPACE, SERIF, SANSSERIF.
+    """
+
+    MONOSPACE = "monospace"  # \ttfamily, \texttt
     SERIF = "serif"  # serif \rmfamily, \textrm
-    SANSSERIF = "sansserif" # \sffamily, \textsf
+    SANSSERIF = "sansserif"  # \sffamily, \textsf
 
 
 class FontSize(StrEnum):
-    """FontSize is used to set the size of the font."""
+    """FontSize is used to set the size of the font.
+
+    Valid values are: FOOTNOTESIZE, HUGE, HUGE2, LARGE, LARGE2, LARGE3, NORMAL, SCRIPTSIZE, SMALL, TINY.
+    """
 
     FOOTNOTESIZE = "footnotesize"
-    HUGE = "huge" # \huge
-    HUGE2 = "Huge" # \Huge
-    LARGE = "large" # \large
-    LARGE2 = "Large" # \Large
-    LARGE3 = "LARGE" # \LARGE
-    NORMAL = "normalsize" # \normalsize
-    SCRIPTSIZE = "scriptsize" # \scriptsize
-    SMALL = "small" # \small
-    TINY = "tiny" # \tiny
+    HUGE = "huge"  # \huge
+    HUGE2 = "Huge"  # \Huge
+    LARGE = "large"  # \large
+    LARGE2 = "Large"  # \Large
+    LARGE3 = "LARGE"  # \LARGE
+    NORMAL = "normalsize"  # \normalsize
+    SCRIPTSIZE = "scriptsize"  # \scriptsize
+    SMALL = "small"  # \small
+    TINY = "tiny"  # \tiny
 
 
 class FontStretch(StrEnum):
-    """FontStretch is used to set the stretch of the font."""
+    """FontStretch is used to set the stretch of the font.
+    These come from LaTeX.
+
+    Valid values are: CONDENSED, EXPANDED, EXTRA_CONDENSED, EXTRA_EXPANDED, NORMAL, SEMI_CONDENSED,
+    SEMI_EXPANDED, ULTRA_CONDENSED, ULTRA_EXPANDED.
+    """
 
     CONDENSED = "condensed"
     EXPANDED = "expanded"
@@ -292,7 +364,10 @@ class FontStretch(StrEnum):
 
 
 class FontStrike(StrEnum):
-    """FontStrike is used to set the strike of the font."""
+    """FontStrike is used to set the strike of the font.
+
+    Valid values are: OVERLINE, THROUGH, UNDERLINE.
+    """
 
     OVERLINE = "overline"
     THROUGH = "through"
@@ -300,7 +375,10 @@ class FontStrike(StrEnum):
 
 
 class FontWeight(StrEnum):
-    """FontWeight is used to set the weight of the font."""
+    """FontWeight is used to set the weight of the font.
+
+    Valid values are: BOLD, MEDIUM, NORMAL.
+    """
 
     BOLD = "bold"
     MEDIUM = "medium"
@@ -308,12 +386,13 @@ class FontWeight(StrEnum):
 
 
 class FrameShape(StrEnum):
-    """FrameShape is used to set the shape of the frame."""
+    """FrameShape is used to set the shape of the frame.
+    Frames are used for the tags.
 
-    # frame can be a rectangle, circle, ellipse
-    # size is width and height for rectangle,
-    # radius for circle
-    # (radius_x, radius_y) for ellipse
+    Valid values are: CIRCLE, DIAMOND, ELLIPSE, FORBIDDEN, PARALLELOGRAM, POLYGON, RECTANGLE, RHOMBUS,
+    SPLITCIRCLE, SQUARE, STAR, TRAPEZOID.
+    """
+
     CIRCLE = "circle"
     DIAMOND = "diamond"
     ELLIPSE = "ellipse"
@@ -329,26 +408,36 @@ class FrameShape(StrEnum):
 
 
 class Graph(StrEnum):
-    """Graph is used to set the type of graph."""
+    """Graph is used to set the type of graph.
+
+    Valid values are: DIRECTED, DIRECTEDWEIGHTED, UNDIRECTED, UNDIRECTEDWEIGHTED.
+    """
 
     DIRECTED = "DIRECTED"
     DIRECTEDWEIGHTED = "DIRECTEDWEIGHTED"
     UNDIRECTED = "UNDIRECTED"
     UNDIRECTEDWEIGHTED = "UNDIRECTEDWEIGHTED"
 
+
 class GridType(StrEnum):
-    """GridType is used to set the type of grid."""
+    """GridType is used to set the type of grid.
+    Grids are used for creating star patterns.
+
+    Valid values are: CIRCULAR, SQUARE, HEXAGONAL, MIXED.
+    """
 
     CIRCULAR = "CIRCULAR"
     SQUARE = "SQUARE"
     HEXAGONAL = "HEXAGONAL"
-    MIXED = "MIXED" # CIRCULAR + SQUARE
-
+    MIXED = "MIXED"  # CIRCULAR + SQUARE
 
 
 # arrow head positions
 class HeadPos(StrEnum):
-    """Arrow head positions."""
+    """Arrow head positions.
+
+    Valid values are: BOTH, END, MIDDLE, START, NONE.
+    """
 
     BOTH = "BOTH"
     END = "END"
@@ -358,7 +447,10 @@ class HeadPos(StrEnum):
 
 
 class IUC(StrEnum):
-    """IUC notation for frieze groups."""
+    """IUC notation for frieze groups.
+
+    Valid values are: P1, P11G, P11M, P1M1, P2, P2MG, P2MM.
+    """
 
     P1 = "P1"
     P11G = "P11G"
@@ -370,7 +462,10 @@ class IUC(StrEnum):
 
 
 class LineCap(StrEnum):
-    """LineCap is used to set the type of line cap."""
+    """LineCap is used to set the type of line cap.
+
+    Valid values are: BUTT, ROUND, SQUARE.
+    """
 
     BUTT = "butt"
     ROUND = "round"
@@ -378,7 +473,11 @@ class LineCap(StrEnum):
 
 
 class LineDashArray(StrEnum):
-    """LineDashArray is used to set the type of dashed-line."""
+    """LineDashArray is used to set the type of dashed-line.
+
+    Valid values are: DASHDOT, DASHDOTDOT, DASHED, DENSELY_DASHED, DENSELY_DOTTED, DOTTED, LOOSELY_DASHED,
+    LOOSELY_DOTTED, SOLID.
+    """
 
     DASHDOT = "dashdot"
     DASHDOTDOT = "dashdotdot"
@@ -392,14 +491,22 @@ class LineDashArray(StrEnum):
 
 
 class LineJoin(StrEnum):
-    """LineJoin is used to set the type of line join."""
+    """LineJoin is used to set the type of line join.
+
+    Valid values are: BEVEL, MITER, ROUND.
+    """
 
     BEVEL = "bevel"
     MITER = "miter"
     ROUND = "round"
 
+
 class LineWidth(StrEnum):
-    '''LineWidth is used to set the width of the line.'''
+    """LineWidth is used to set the width of the line.
+
+    Valid values are: SEMITHICK, THICK, THIN, ULTRA_THICK, ULTRA_THIN, VERY_THICK, VERY_THIN.
+    """
+
     SEMITHICK = "semithick"
     THICK = "thick"
     THIN = "thin"
@@ -410,7 +517,10 @@ class LineWidth(StrEnum):
 
 
 class MarkerPos(StrEnum):
-    """MarkerPos is used to set the position of the marker."""
+    """MarkerPos is used to set the position of the marker.
+
+    Valid values are: CONCAVEHULL, CONVEXHULL, MAINX, OFFSETX.
+    """
 
     CONCAVEHULL = "CONCAVEHULL"
     CONVEXHULL = "CONVEXHULL"
@@ -419,7 +529,13 @@ class MarkerPos(StrEnum):
 
 
 class MarkerType(StrEnum):
-    """MarkerType is used to set the type of marker."""
+    """MarkerType is used to set the type of marker.
+
+    Valid values are: ASTERISK, BAR, CIRCLE, CROSS, DIAMOND, DIAMOND_F, EMPTY, FCIRCLE, HALF_CIRCLE,
+    HALF_CIRCLE_F, HALF_DIAMOND, HALF_DIAMOND_F, HALF_SQUARE, HALF_SQUARE_F, HEXAGON, HEXAGON_F, INDICES,
+    MINUS, OPLUS, OPLUS_F, O_TIMES, O_TIMES_F, PENTAGON, PENTAGON_F, PLUS, SQUARE, SQUARE_F, STAR, STAR2,
+    STAR3, TEXT, TRIANGLE, TRIANGLE_F.
+    """
 
     ASTERISK = "asterisk"
     BAR = "|"
@@ -460,6 +576,9 @@ class MusicScale(StrEnum):
     """MusicScale is used for musical note scales.
     This is used for audio generation for animations.
     Not implemented yet!!!
+
+    Valid values are: MAJOR, MINOR, CHROMATIC, PENTATONIC, IONIC, DORIAN, PHRYGIAN, LYDIAN, MIXOLYDIAN,
+    AEOLIAN, LOCRIAN.
     """
 
     MAJOR = "major"
@@ -477,21 +596,22 @@ class MusicScale(StrEnum):
 
 class Orientation(StrEnum):
     """Orientation is used to set the orientation of the dimension
-    lines."""
+    lines.
+
+    Valid values are: ANGLED, HORIZONTAL, VERTICAL.
+    """
 
     ANGLED = "ANGLED"
     HORIZONTAL = "HORIZONTAL"
     VERTICAL = "VERTICAL"
 
 
-# Page margins for the output files
-# These come from LaTeX
-# Canvas uses these margins to generate output files
-# Used in Page class
-
-
 class PageMargins(StrEnum):
-    """Page margins for the LaTeX documents."""
+    """Page margins for the LaTeX documents.
+    Used in Page class.
+
+    Valid values are: CUSTOM, NARROW, STANDARD, WIDE.
+    """
 
     CUSTOM = "custom"
     NARROW = "narrow"
@@ -499,14 +619,12 @@ class PageMargins(StrEnum):
     WIDE = "wide"
 
 
-# Page numbering for the output files
-# These come from LaTeX
-# Canvas uses these numbering to generate output files
-# Used in Page class
-
-
 class PageNumbering(StrEnum):
-    """Page numbering style for the LaTeX documents."""
+    """Page numbering style for the LaTeX documents.
+    Used in Page class.
+
+    Valid values are: ALPH, ALPHUPPER, ARABIC, NONE, ROMAN, ROMAN_UPPER.
+    """
 
     ALPH = "alph"
     ALPHUPPER = "ALPH"
@@ -516,14 +634,12 @@ class PageNumbering(StrEnum):
     ROMAN_UPPER = "ROMAN"
 
 
-# Page number position for the output files
-# These come from LaTeX
-# Canvas uses these positions to generate output files
-# Used in Page class
-
-
 class PageNumberPosition(StrEnum):
-    """Page number positions for the LaTeX documents."""
+    """Page number positions for the LaTeX documents.
+    Used in Page class.
+
+    Valid values are: BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT, CUSTOM, TOP_CENTER, TOP_LEFT, TOP_RIGHT.
+    """
 
     BOTTOM_CENTER = "bottom"
     BOTTOM_LEFT = "bottom left"
@@ -534,27 +650,24 @@ class PageNumberPosition(StrEnum):
     TOP_RIGHT = "top right"
 
 
-# Page orientations for the output files
-# These come from LaTeX
-# Canvas uses these orientations to generate output files
-# Used in Page class
-
-
 class PageOrientation(StrEnum):
-    """Page orientations for the LaTeX documents."""
+    """Page orientations for the LaTeX documents.
+    Used in Page class.
+
+    Valid values are: LANDSCAPE, PORTRAIT.
+    """
 
     LANDSCAPE = "landscape"
     PORTRAIT = "portrait"
 
 
-# Page sizes for the output files
-# These come from LaTeX
-# Canvas uses these sizes to generate output files
-# Used in Page class
-
-
 class PageSize(StrEnum):
-    """Page sizes for the LaTeX documents."""
+    """Page sizes for the LaTeX documents.
+    Used in Page class.
+
+    Valid values are: LETTER, LEGAL, EXECUTIVE, B0, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13,
+    A0, A1, A2, A3, A4, A5, A6.
+    """
 
     LETTER = "letterpaper"
     LEGAL = "legalpaper"
@@ -581,8 +694,14 @@ class PageSize(StrEnum):
     A5 = "a5paper"
     A6 = "a6paper"
 
+
 class PathOperation(StrEnum):
-    """PathOperation is used to set the type of path operation."""
+    """PathOperation is used to set the type of path operation.
+    Used with LinPath objects.
+
+    Valid values are: ARC, ARC_TO, BLEND_ARC, BLEND_CUBIC, BLEND_QUAD, BLEND_SINE, CLOSE, CUBIC_TO, FORWARD,
+    HOBBY_TO, H_LINE, LINE_TO, MOVE_TO, QUAD_TO, R_LINE, R_MOVE, SEGMENTS, SINE, V_LINE.
+    """
 
     ARC = "ARC"
     ARC_TO = "ARC_TO"
@@ -604,8 +723,14 @@ class PathOperation(StrEnum):
     SINE = "SINE"
     V_LINE = "V_LINE"
 
+
 class PatternType(StrEnum):
-    """PatternType is used to set the type of pattern."""
+    """PatternType is used to set the type of pattern.
+    Used with closed shapes and Tag objects.
+
+    Valid values are: BRICKS, CHECKERBOARD, CROSSHATCH, CROSSHATCH_DOTS, DOTS, FIVE_POINTED_STARS, GRID,
+    HORIZONTAL_LINES, NORTHEAST, NORTHWEST, SIX_POINTED_STARS, VERTICAL_LINES.
+    """
 
     BRICKS = "bricks"
     CHECKERBOARD = "checkerboard"
@@ -620,10 +745,14 @@ class PatternType(StrEnum):
     SIX_POINTED_STARS = "sixpointed stars"
     VERTICAL_LINES = "vertical lines"
 
-# Tag placement options
+
 class Placement(StrEnum):
     """Placement is used to set the placement of the tags
-    relative to another object."""
+    relative to another object.
+
+    Valid values are: ABOVE, ABOVE_LEFT, ABOVE_RIGHT, BELOW, BELOW_LEFT, BELOW_RIGHT, CENTERED, INSIDE,
+    LEFT, OUTSIDE, RIGHT.
+    """
 
     ABOVE = "above"
     ABOVE_LEFT = "above left"
@@ -639,7 +768,10 @@ class Placement(StrEnum):
 
 
 class Render(StrEnum):
-    """Render is used to set the type of rendering."""
+    """Render is used to set the type of rendering.
+
+    Valid values are: EPS, PDF, SVG, TEX.
+    """
 
     EPS = "EPS"
     PDF = "PDF"
@@ -648,7 +780,10 @@ class Render(StrEnum):
 
 
 class Result(StrEnum):
-    """Result is used for the return values of the functions."""
+    """Result is used for the return values of the functions.
+
+    Valid values are: FAILURE, GO, NOPAGES, OVERWRITE, SAVED, STOP, SUCCESS.
+    """
 
     FAILURE = "FAILURE"
     GO = "GO"
@@ -660,7 +795,12 @@ class Result(StrEnum):
 
 
 class ShadeType(StrEnum):
-    """ShadeType is used to set the type of shading."""
+    """ShadeType is used to set the type of shading.
+
+    Valid values are: AXIS_LEFT_RIGHT, AXIS_TOP_BOTTOM, AXIS_LEFT_MIDDLE, AXIS_RIGHT_MIDDLE, AXIS_TOP_MIDDLE,
+    AXIS_BOTTOM_MIDDLE, BALL, BILINEAR, COLORWHEEL, COLORWHEEL_BLACK, COLORWHEEL_WHITE, RADIAL_INNER,
+    RADIAL_OUTER, RADIAL_INNER_OUTER.
+    """
 
     AXIS_LEFT_RIGHT = "axis left right"
     AXIS_TOP_BOTTOM = "axis top bottom"
@@ -680,7 +820,11 @@ class ShadeType(StrEnum):
 
 # Anchor lines are called sides.
 class Side(StrEnum):
-    """Side is used to with boundary boxes."""
+    """Side is used to with boundary box offset lines.
+    They determine the position of the offset lines.
+
+    Valid values are: BASE, BOTTOM, DIAGONAL1, DIAGONAL2, H_CENTERLINE, LEFT, MID, RIGHT, TOP, V_CENTERLINE.
+    """
 
     BASE = "BASE"
     BOTTOM = "BOTTOM"
@@ -696,7 +840,10 @@ class Side(StrEnum):
 
 class State(StrEnum):
     """State is used for modifiers.
-    Not implemented yet."""
+    Not implemented yet.
+
+    Valid values are: INITIAL, PAUSED, RESTARTING, RUNNING, STOPPED.
+    """
 
     INITIAL = "INITIAL"
     PAUSED = "PAUSED"
@@ -705,18 +852,25 @@ class State(StrEnum):
     STOPPED = "STOPPED"
 
 
-# Not implemented yet.
 class TexLoc(StrEnum):
     """TexLoc is used to set the location of the TeX related
-    objects."""
+    objects.
+
+    Valid values are: DOCUMENT, PICTURE, PREAMBLE, NONE.
+    """
 
     DOCUMENT = "DOCUMENT"  # BETWEEN \BEGIN{DOCUMENT} AND \BEGIN{TIKZPICTURE}
     PICTURE = "PICTURE"  # AFTER \BEGIN{PICTURE}
     PREAMBLE = "PREAMBLE"  # BEFORE \BEGIN{DOCUMENT}
+    NONE = "NONE"  # Anywhere in the picture.
 
 
 class Topology(StrEnum):
-    """Topology is used to set the type of topology."""
+    """Topology is used for geometry classification.
+
+    Valid values are: CLOSED, COLLINEAR, CONGRUENT, FOLDED, INTERSECTING, OPEN, SELF_INTERSECTING, SIMPLE,
+    YJOINT.
+    """
 
     CLOSED = "CLOSED"
     COLLINEAR = "COLLINEAR"
@@ -730,7 +884,10 @@ class Topology(StrEnum):
 
 
 class Transformation(StrEnum):
-    """Transformation is used to set the type of transformation."""
+    """Transformation is used to set the type of a transformation.
+
+    Valid values are: GLIDE, MIRROR, ROTATE, SCALE, SHEAR, TRANSFORM, TRANSLATE.
+    """
 
     GLIDE = "GLIDE"
     MIRROR = "MIRROR"
@@ -741,10 +898,11 @@ class Transformation(StrEnum):
     TRANSLATE = "TRANSLATE"
 
 
-# object types and subtypes in simetri.graphics
 class Types(StrEnum):
-    """All objects in simetri.graphics has type and subtype
-    properties."""
+    """All objects in simetri.graphics has type and subtype properties.
+    Types are mostly Batch and Shape,  and subtypes are listed here.
+    """
+
     ANGULAR_DIMENSION = "ANGULAR DIMENSION"
     ANNOTATION = "ANNOTATION"
     ARC = "ARC"
@@ -801,6 +959,7 @@ class Types(StrEnum):
     LINEAR = "LINEAR"
     LINE_SKETCH = "LINE_SKETCH"
     LINE_STYLE = "LINE_STYLE"
+    LINPATH = "LINPATH"
     LOOM = "LOOM"
     MARKER = "MARKER"
     MARKER_STYLE = "MARKER_STYLE"
@@ -814,7 +973,6 @@ class Types(StrEnum):
     PAGE_GRID = "PAGE_GRID"
     PARALLEL_POLYLINE = "PARALLEL_POLYLINE"
     PART = "PART"
-    PATH = "PATH"
     PATH_OPERATION = "PATH_OPERATION"
     PATH_SKETCH = "PATH_SKETCH"
     PATTERN = "PATTERN"
@@ -892,11 +1050,11 @@ drawable_types = [
     Types.HEX_GRID,
     Types.INTERSECTION,
     Types.LACE,
+    Types.LINPATH,
     Types.MIXED_GRID,
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
-    Types.PATH,
     Types.PATTERN,
     Types.PLAIT,
     Types.POLYLINE,
@@ -910,7 +1068,7 @@ drawable_types = [
     Types.STAR,
     Types.SVG_PATH,
     Types.TAG,
-    Types.TURTLE
+    Types.TURTLE,
 ]
 
 shape_types = [
@@ -943,16 +1101,16 @@ batch_types = [
     Types.DOTS,
     Types.HEX_GRID,
     Types.LACE,
+    Types.LINPATH,
     Types.MARKER,
     Types.MIXED_GRID,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
-    Types.PATH,
     Types.PATTERN,
     Types.SQUARE_GRID,
     Types.STAR,
     Types.SVG_PATH,
-    Types.TURTLE
+    Types.TURTLE,
 ]
 
 # Python Version 3.9 cannot handle Union[*drawable_types]
@@ -973,11 +1131,11 @@ Drawable: TypeAlias = Union[
     Types.HEX_GRID,
     Types.INTERSECTION,
     Types.LACE,
+    Types.LINPATH,
     Types.MIXED_GRID,
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
-    Types.PATH,
     Types.PATTERN,
     Types.PLAIT,
     Types.POLYLINE,
@@ -990,41 +1148,51 @@ Drawable: TypeAlias = Union[
     Types.STAR,
     Types.SVG_PATH,
     Types.TAG,
-    Types.TURTLE
+    Types.TURTLE,
 ]
 
 
 anchors = [
-            "southeast",
-            "southwest",
-            "northeast",
-            "northwest",
-            "south",
-            "north",
-            "east",
-            "west",
-            "center",
-            "left",
-            "right",
-            "top",
-            "bottom",
-            "diagonal1",
-            "diagonal2",
-            "horiz_centerline",
-            "vert_centerline",
-            "s",
-            "n",
-            "e",
-            "w",
-            "sw",
-            "se",
-            "nw",
-            "ne",
-            "c",
-            "d1",
-            "d",
-            "corners",
-            "all_anchors",
-            "width",
-            "height",
-        ]
+    "southeast",
+    "southwest",
+    "northeast",
+    "northwest",
+    "south",
+    "north",
+    "east",
+    "west",
+    "center",
+    "left",
+    "right",
+    "top",
+    "bottom",
+    "diagonal1",
+    "diagonal2",
+    "horiz_centerline",
+    "vert_centerline",
+    "left_of",
+    "right_of",
+    "above",
+    "below",
+    "above_left",
+    "above_right",
+    "below_left",
+    "below_right",
+    "centered",
+    "polar_pos",
+    "s",
+    "n",
+    "e",
+    "w",
+    "sw",
+    "se",
+    "nw",
+    "ne",
+    "c",
+    "d1",
+    "d",
+    "corners",
+    "all_anchors",
+    "width",
+    "height",
+]
