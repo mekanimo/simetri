@@ -313,4 +313,5 @@ class StyleMixin:
             for attrib_name in style_path.split("."):
                 obj = obj.__dict__[attrib_name]
             _aliasses[alias] = (obj, attrib)
+
         self.__dict__["_aliasses"] = _aliasses
