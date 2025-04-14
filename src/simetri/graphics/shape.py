@@ -1,8 +1,12 @@
-"""Shape objects are the main geometric entities in Simetri. They are created by providing a sequence of points (a list of (x, y) coordinates). If a style argument (a ShapeStyle object) is provided, then the style attributes of this ShapeStyle object will superseed the style attributes of the Shape object. The dist_tol argument is the distance tolerance for checking. The xform_matrix argument is the transformation matrix. Additional attributes can be provided as keyword arguments. The line_width, fill_color, line_style, etc. for style attributes can be provided as keyword arguments. The Shape object has a subtype attribute that can be set to one of the values in the shape_types dictionary. The Shape object has a dist_tol attribute that is the distance tolerance for checking. The Shape object has a dist_tol2 attribute that is the square of the distance tolerance. The Shape object has a primary_points attribute that is a Points object. The Shape object has a closed attribute that is a boolean value. The Shape object has an xform_matrix attribute that is a transformation matrix. The Shape object has a type attribute that is a Types.SHAPE object. The Shape object has a subtype attribute that is a Types.SHAPE object. The Shape object has a dist_tol attribute that is a distance tolerance for checking. The Shape object has a dist_tol2 attribute that is the square of the distance tolerance. The Shape object has a _b_box attribute that is a bounding box. The Shape object has a area attribute that is the area of the shape. The Shape object has a total_length attribute that is the total length of the shape. The Shape object has a is_polygon attribute that is a boolean value. The Shape object has a topology attribute that is a set of topology values. The Shape object has a merge method that merges two shapes if they are connected. The Shape object has a _chain_vertices method that chains two sets of vertices if they are connected. The Shape object has a _is_polygon method that returns True if the vertices form a polygon. The Shape object has an as_graph method that returns the shape as a graph object. The Shape object has an as_array method that returns the vertices as an array. The Shape object has an as_list method that returns the vertices as a list of tuples. The Shape object has a final_coords attribute that is the final coordinates of the shape. The Shape object has a vertices attribute that is the final coordinates of the shape. The Shape object has a vertex"""
+"""Shape objects are the main geometric entities in Simetri.
+They are created by providing a sequence of points (a list of (x, y) coordinates).
+If a style argument (a ShapeStyle object) is provided, then the style attributes
+of this ShapeStyle object will superseed the style attributes of the Shape object.
+"""
 
 __all__ = ["Shape", "custom_attributes"]
 
-from typing import Sequence, Union, List
+from typing import Sequence, Union, List, Tuple
 
 import numpy as np
 from numpy import array, allclose
@@ -15,7 +19,7 @@ from .all_enums import *
 from .bbox import BoundingBox
 from ..canvas.style_map import ShapeStyle, shape_style_map, shape_args
 from ..helpers.validation import validate_args
-from .common import Point, common_properties, get_item_by_id, Line
+from .common import Point, common_properties, Line
 from ..settings.settings import defaults
 from ..helpers.utilities import (
     get_transform,
@@ -30,6 +34,7 @@ from ..geometry.geometry import (
     polyline_length,
     close_points2,
     connected_pairs,
+    check_consecutive_duplicates
 )
 from ..helpers.graph import Node, Graph, GraphEdge
 from .core import Base, StyleMixin
@@ -41,14 +46,11 @@ from .batch import Batch
 class Shape(Base, StyleMixin):
     """The main class for all geometric entities in Simetri.
 
-    A Shape is created by providing a sequence of points (a list of (x, y) coordinates).
+     A Shape is created by providing a sequence of points (a sequence of (x, y) coordinates).
     If a style argument (a ShapeStyle object) is provided, then its style attributes override
-    those of the Shape object. Additional attributes (e.g. line_width, fill_color, line_style)
+    the default values the Shape object would assign. Additional attributes (e.g. line_width, fill_color, line_style)
     may be provided.
 
-    Attributes:
-        dist_tol: Distance tolerance for checking.
-        xform_matrix: Transformation matrix.
     """
 
     def __init__(
@@ -69,6 +71,8 @@ class Shape(Base, StyleMixin):
         Raises:
             ValueError: If the provided subtype is not valid.
         """
+        if check_consecutive_duplicates(points):
+            raise ValueError("Consecutive duplicate points found.")
         self.__dict__["style"] = ShapeStyle()
         self.__dict__["_style_map"] = shape_style_map
         self._set_aliases()
@@ -113,7 +117,6 @@ class Shape(Base, StyleMixin):
         """
         super().__setattr__(name, value)
 
-
     def __getattr__(self, name):
         """Retrieve an attribute of the shape.
 
@@ -131,8 +134,6 @@ class Shape(Base, StyleMixin):
         except AttributeError:
             res = self.__dict__[name]
         return res
-
-
 
     def _get_closed(self, points: Sequence[Point], closed: bool):
         """Determine whether the shape should be considered closed.
@@ -207,7 +208,10 @@ class Shape(Base, StyleMixin):
         """
         if isinstance(subscript, slice):
             coords = self.primary_points.homogen_coords
-            res = list(coords[subscript.start : subscript.stop : subscript.step] @ self.xform_matrix)
+            res = list(
+                coords[subscript.start : subscript.stop : subscript.step]
+                @ self.xform_matrix
+            )
         else:
             res = self.primary_points.homogen_coords[subscript] @ self.xform_matrix
         return res
@@ -244,44 +248,67 @@ class Shape(Base, StyleMixin):
         """
         del self.primary_points[subscript]
 
-    def remove(self, value):
+    def index(self, point: Point, atol=None) -> int:
+        """Return the index of the given point.
+
+        Args:
+            point (Point): The point to find the index of.
+
+        Returns:
+            int: The index of the point.
+        """
+        point = tuple(point[:2])
+
+        if atol is None:
+            atol = defaults["atol"]
+        ind = np.where((np.isclose(self.vertices, point, atol=atol)).all(axis=1))[0][0]
+
+        return ind
+
+    def remove(self, point: Point) -> Self:
         """Remove a point from the shape.
 
         Args:
-            value (Point): The point to remove.
+            point (Point): The point to remove.
         """
-        ind = self.vertices.index(value)
+        ind = self.vertices.index(point)
         self.primary_points.pop(ind)
 
-    def append(self, value):
+        return self
+
+    def append(self, point: Point) -> Self:
         """Append a point to the shape.
 
         Args:
-            value (Point): The point to append.
+            point (Point): The point to append.
         """
-        value = homogenize([value]) @ inv(self.xform_matrix)
-        self.primary_points.append(tuple(value[0][:2]))
+        point = homogenize([point]) @ inv(self.xform_matrix)
+        self.primary_points.append(tuple(point[0][:2]))
 
-    def insert(self, index, value):
+    def insert(self, index: int, point: Point) -> Self:
         """Insert a point at a given index.
 
         Args:
             index (int): The index to insert the point at.
-            value (Point): The point to insert.
+            point (Point): The point to insert.
         """
-        value = homogenize([value]) @ inv(self.xform_matrix)
-        self.primary_points.insert(index, tuple(value[0][:2]))
+        point = homogenize([point]) @ inv(self.xform_matrix)
+        self.primary_points.insert(index, tuple(point[0][:2]))
 
-    def extend(self, values):
+        return self
+
+    def extend(self, points: Sequence[Point]) -> Self:
         """Extend the shape with a list of points.
 
         Args:
             values (list[Point]): The points to extend the shape with.
         """
-        homogenized = homogenize(values) @ inv(self.xform_matrix)
+        homogenized = homogenize(points) @ inv(self.xform_matrix)
         self.primary_points.extend([tuple(x[:2]) for x in homogenized])
 
-    def pop(self, index: int = -1):
+        return self
+
+    def pop(self, index: int = -1) -> Point:
         """Pop a point from the shape.
 
         Args:
@@ -290,9 +317,10 @@ class Shape(Base, StyleMixin):
         Returns:
             Point: The popped point.
         """
-        value = self.vertices[index]
+        point = self.vertices[index]
         self.primary_points.pop(index)
-        return value
+
+        return point
 
     def __iter__(self):
         """Return an iterator over the vertices of the shape.
@@ -338,6 +366,8 @@ class Shape(Base, StyleMixin):
         Returns:
             bool: True if the shapes are equal, False otherwise.
         """
+        if not hasattr(other, "type"):
+            return False
         if other.type != Types.SHAPE:
             return False
 
@@ -367,7 +397,7 @@ class Shape(Base, StyleMixin):
         """
         return len(self.primary_points) > 0
 
-    def topology(self):
+    def topology(self) -> Topology:
         """Return info about the topology of the shape.
 
         Returns:
@@ -394,7 +424,7 @@ class Shape(Base, StyleMixin):
 
         return topology
 
-    def merge(self, other, dist_tol: float = None):
+    def merge(self, other, dist_tol: float = None) -> Union[Self, None]:
         """Merge two shapes if they are connected. Does not work for polygons.
         Only polyline shapes can be merged together.
 
@@ -422,7 +452,7 @@ class Shape(Base, StyleMixin):
 
         return res
 
-    def connect(self, other):
+    def connect(self, other) -> Self:
         """Connect two shapes by adding the other shape's vertices to self.
 
         Args:
@@ -430,7 +460,11 @@ class Shape(Base, StyleMixin):
         """
         self.extend(other.vertices)
 
-    def _chain_vertices(self, verts1, verts2, dist_tol: float = None):
+        return self
+
+    def _chain_vertices(
+        self, verts1: Sequence[Point], verts2: Sequence[Point], dist_tol: float = None
+    ) -> Union[List[Point], None]:
         """Chain two sets of vertices if they are connected.
 
         Args:
@@ -473,9 +507,10 @@ class Shape(Base, StyleMixin):
             res = all_verts
         else:
             res = verts1 + verts2
+
         return res
 
-    def _is_polygon(self, vertices):
+    def _is_polygon(self, vertices: Sequence[Point]) -> bool:
         """Return True if the vertices form a polygon.
 
         Args:
@@ -486,7 +521,7 @@ class Shape(Base, StyleMixin):
         """
         return close_points2(vertices[0][:2], vertices[-1][:2], dist2=self.dist_tol2)
 
-    def as_graph(self, directed=False, weighted=False, n_round=None):
+    def as_graph(self, directed=False, weighted=False, n_round=None) -> nx.Graph:
         """Return the shape as a graph object.
 
         Args:
@@ -541,7 +576,7 @@ class Shape(Base, StyleMixin):
         graph = Graph(type=graph_type, subtype=subtype, nx_graph=nx_graph)
         return graph
 
-    def as_array(self, homogeneous=False):
+    def as_array(self, homogeneous=False) -> np.ndarray:
         """Return the vertices as an array.
 
         Args:
@@ -556,7 +591,7 @@ class Shape(Base, StyleMixin):
             res = array(self.vertices)
         return res
 
-    def as_list(self):
+    def as_list(self) -> List[Point]:
         """Return the vertices as a list of tuples.
 
         Returns:
@@ -565,7 +600,7 @@ class Shape(Base, StyleMixin):
         return list(self.vertices)
 
     @property
-    def final_coords(self):
+    def final_coords(self) -> np.ndarray:
         """The final coordinates of the shape. primary_points @ xform_matrix.
 
         Returns:
@@ -579,7 +614,7 @@ class Shape(Base, StyleMixin):
         return res
 
     @property
-    def vertices(self):
+    def vertices(self) -> Tuple[Point]:
         """The final coordinates of the shape.
 
         Returns:
@@ -593,7 +628,7 @@ class Shape(Base, StyleMixin):
         return res
 
     @property
-    def vertex_pairs(self):
+    def vertex_pairs(self) -> List[Tuple[Point, Point]]:
         """Return a list of connected pairs of vertices.
 
         Returns:
@@ -605,7 +640,7 @@ class Shape(Base, StyleMixin):
         return connected_pairs(vertices)
 
     @property
-    def orig_coords(self):
+    def orig_coords(self) -> np.ndarray:
         """The primary points in homogeneous coordinates.
 
         Returns:
@@ -627,7 +662,7 @@ class Shape(Base, StyleMixin):
         return self._b_box
 
     @property
-    def area(self):
+    def area(self) -> float:
         """Return the area of the shape.
 
         Returns:
@@ -644,7 +679,7 @@ class Shape(Base, StyleMixin):
         return res
 
     @property
-    def total_length(self):
+    def total_length(self) -> float:
         """Return the total length of the shape.
 
         Returns:
@@ -653,7 +688,7 @@ class Shape(Base, StyleMixin):
         return polyline_length(self.vertices[:-1], self.closed)
 
     @property
-    def is_polygon(self):
+    def is_polygon(self) -> bool:
         """Return True if 'closed'.
 
         Returns:
@@ -661,7 +696,7 @@ class Shape(Base, StyleMixin):
         """
         return self.closed
 
-    def clear(self):
+    def clear(self) -> Self:
         """Clear all points and reset the style attributes.
 
         Returns:
@@ -673,27 +708,29 @@ class Shape(Base, StyleMixin):
         self._set_aliases()
         self._b_box = None
 
-    def count(self, value):
-        """Return the number of times the value is found in the shape.
+        return self
+
+    def count(self, point: Point) -> int:
+        """Return the number of times the point is found in the shape.
 
         Args:
-            value (Point): The value to count.
+            point (Point): The point to count.
 
         Returns:
-            int: The number of times the value is found in the shape.
+            int: The number of times the point is found in the shape.
         """
         verts = self.orig_coords @ self.xform_matrix
         verts = verts[:, :2]
         n = verts.shape[0]
-        value = array(value[:2])
-        values = np.tile(value, (n, 1))
+        point = array(point[:2])
+        values = np.tile(point, (n, 1))
         col1 = (verts[:, 0] - values[:, 0]) ** 2
         col2 = (verts[:, 1] - values[:, 1]) ** 2
         distances = col1 + col2
 
         return np.count_nonzero(distances <= self.dist_tol2)
 
-    def copy(self):
+    def copy(self) -> "Shape":
         """Return a copy of the shape.
 
         Returns:
@@ -737,15 +774,27 @@ class Shape(Base, StyleMixin):
 
     @property
     def segments(self) -> List[Line]:
+        """Return a list of edges.
+
+        Edges are represented as tuples of points:
+        edge: ((x1, y1), (x2, y2))
+        edges: [((x1, y1), (x2, y2)), ((x2, y2), (x3, y3)), ...]
+
+        Returns:
+            list[tuple[Point, Point]]: A list of edges.
+        """
+
         return self.edges
 
-    def reverse(self):
+    def reverse(self) -> Self:
         """Reverse the order of the vertices.
 
         Returns:
             None
         """
         self.primary_points.reverse()
+
+        return self
 
 
 def custom_attributes(item: Shape) -> List[str]:
