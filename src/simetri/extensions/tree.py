@@ -31,8 +31,8 @@ def next_id():
 next_id.counter = 0
 
 
-class Node:
-    """Node object representing a tree structure.
+class TreeNode:
+    """TreeNode object representing a tree structure.
     Each node has a tag, an id, a list of children, and optional extra attributes.
 
     Args:
@@ -48,7 +48,7 @@ class Node:
     def __init__(
         self,
         tag: str = "",
-        children: Sequence["Node"] = None,
+        children: Sequence["TreeNode"] = None,
         extra: Any = None,
         font_size = 12,
         font_color = sg.black,
@@ -65,7 +65,7 @@ class Node:
     def add_child(self, child):
         """Adds a child node to the current node.
         Args:
-            child (Node): The child node to add.
+            child (TreeNode): The child node to add.
 
         Returns:
             None
@@ -106,8 +106,8 @@ def make_tree(
     canvas: "Canvas" = None,
     file_path: str = None,
     overwrite: bool = False,
-    dx: float = 15,
-    dy: float = 20,
+    dx: float = 10,
+    dy: float = 18,
     icons = None,
     line1_color = sg.gray,
     line1_width = 1.75,
@@ -217,8 +217,8 @@ def make_tree(
 
 
 # canvas = sg.Canvas()
-# root = Node("{} Base", extra="root", font_color=sg.orange)
-# methods = Node("Methods", font_color=sg.blue)
+# root = TreeNode("{} Base", extra="root", font_color=sg.orange)
+# methods = TreeNode("Methods", font_color=sg.blue)
 # root.add_child(methods)
 # transforms = [
 #     "translate",
@@ -240,7 +240,7 @@ def make_tree(
 # ]
 
 # for i, trans in enumerate(transforms):
-#     methods.add_child(Node(f"{trans}{args[i][:-1]}, reps: int=0) -> Self"))
+#     methods.add_child(TreeNode(f"{trans}{args[i][:-1]}, reps: int=0) -> Self"))
 
 # make_tree(
 #     root, canvas=canvas, file_path="c:/tmp/tree_generator4.pdf", overwrite=True
