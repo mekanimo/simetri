@@ -229,7 +229,7 @@ class LinPath(Batch, StyleMixin):
 
     def r_coord(self, dx: float, dy: float) -> Point:
         """Return the relative coordinates of a point in a
-        coordinate system with the path's origin and y-axis aligned
+        coordinate system with the path's midpoint and y-axis aligned
         with the path.angle.
 
         Args:
@@ -248,7 +248,7 @@ class LinPath(Batch, StyleMixin):
 
     def r_polar(self, r: float, angle: float) -> Point:
         """Return the relative coordinates of a point in a polar
-        coordinate system with the path's origin and 0 degree axis aligned
+        coordinate system with the path's midpoint and 0 degree axis aligned
         with the path.angle.
 
         Args:

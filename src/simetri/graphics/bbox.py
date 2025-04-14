@@ -48,7 +48,7 @@ class BoundingBox:
             "ne": "northeast",
             "d1": "diagonal1",
             "d2": "diagonal2",
-            "o": "origin",
+            "m": "midpoint",
             "vcl": "vert_centerline",
             "hcl": "horiz_centerline",
         }
@@ -75,7 +75,7 @@ class BoundingBox:
     def angle_point(self, angle: float) -> float:
         """
         Return the intersection point of the angled line starting
-        from the origin and the bounding box. angle is in radians.
+        from the midpoint and the bounding box. angle is in radians.
 
         Args:
             angle (float): The angle in radians.
@@ -86,10 +86,10 @@ class BoundingBox:
         angle = positive_angle(angle)
         line = ((0, 0), (np.cos(angle), np.sin(angle)))
 
-        angle1 = line_angle(self.origin, self.northeast)
-        angle2 = -angle1  # origin, southeast
-        angle3 = np.pi - angle1  # origin, northwest
-        angle4 = -angle3  # origin, southwest
+        angle1 = line_angle(self.midpoint, self.northeast)
+        angle2 = -angle1  # midpoint, southeast
+        angle3 = np.pi - angle1  # midpoint, northwest
+        angle4 = -angle3  # midpoint, southwest
         if angle3 >= angle >= angle1:
             res = intersect(line, self.top)
         elif angle4 <= angle <= angle2:
@@ -162,7 +162,7 @@ class BoundingBox:
         return (self.west, self.east)
 
     @property
-    def origin(self):
+    def midpoint(self):
         """
         Return the center of the bounding box.
 
@@ -213,7 +213,7 @@ class BoundingBox:
             self.east,
             self.northeast,
             self.north,
-            self.origin,
+            self.midpoint,
         )
 
     @property
@@ -453,10 +453,10 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.origin of the reference item's bounding-box.
+            Point: The item.midpoint of the reference item's bounding-box.
         """
 
-        x, y = item.origin
+        x, y = item.midpoint
         x += dx
         y += dy
         return x, y
@@ -630,7 +630,7 @@ class BoundingBox:
             Point: The polar position of the reference item.
         """
 
-        x, y = item.origin
+        x, y = item.midpoint
 
         x1, y1 = polar_to_cartesian(radius, theta)
         x += x1

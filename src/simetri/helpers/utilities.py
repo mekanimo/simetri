@@ -19,7 +19,7 @@ import numpy as np
 from numpy import isclose
 
 from ..settings.settings import defaults
-from ..graphics.common import get_defaults, Point
+from ..graphics.common import get_defaults, Point, Line
 
 
 def time_it(func):
@@ -82,14 +82,14 @@ def get_file_path_with_rev(directory, script_path, ext=".pdf"):
     existing = [item for item in file_names if item.startswith(filename)]
     if not existing:
         return os.path.join(directory, filename + ext)
-    else:
-        revs = [get_rev_number(file) for file in existing]
-        if revs is None:
-            rev = 1
-        else:
-            rev = max(revs) + 1
 
-        return os.path.join(directory, f"{filename}_{rev}" + ext)
+    revs = [get_rev_number(file) for file in existing]
+    if revs is None:
+        rev = 1
+    else:
+        rev = max(revs) + 1
+
+    return os.path.join(directory, f"{filename}_{rev}" + ext)
 
 
 def remove_file_handler(logger, handler):
@@ -410,32 +410,32 @@ def is_sequence(value):
     return isinstance(value, (list, tuple, array))
 
 
-def rel_coord(dx: float, dy: float, origin):
+def rel_coord(dx: float, dy: float, center: Point) -> Point:
     """Return the relative coordinates.
 
     Args:
         dx: The x-coordinate difference.
         dy: The y-coordinate difference.
-        origin: The origin coordinates.
+        center: The center coordinates.
 
     Returns:
         The relative coordinates.
     """
-    return dx + origin[0], dy + origin[1]
+    return dx + center[0], dy + center[1]
 
 
-def rel_polar(r: float, angle: float, origin):
+def rel_polar(r: float, angle: float, center: Point) -> Point:
     """Return the coordinates.
 
     Args:
         r: The radius.
         angle: The angle in radians.
-        origin: The origin coordinates.
+        center: The center coordinates.
 
     Returns:
         The coordinates.
     """
-    x, y = origin[:2]
+    x, y = center[:2]
     x1 = x + r * cos(angle)
     y1 = y + r * sin(angle)
 
@@ -444,6 +444,26 @@ def rel_polar(r: float, angle: float, origin):
 
 rc = rel_coord  # alias for rel_coord
 rp = rel_polar  # alias for rel_polar
+
+def axis(angle: float, length: float = 10) -> Line:
+    """Return a line [(x1, y1), (x2, y2)] with the given angle
+    and length.
+    Args:
+        angle: The angle between the line and the x-axis, in radians.
+        length: The length of the line.
+
+    Returns:
+        A line represented as a tuple of two points.
+    """
+    length2 = length / 2
+    x1 = cos(angle) * length2
+    y1 = sin(angle) * length2
+    x2 = -x1
+    y2 = -y1
+
+    return (x1, y1), (x2, y2)
+
+
 
 
 def flatten(points):

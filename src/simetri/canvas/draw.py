@@ -712,7 +712,7 @@ def get_verts_in_new_pos(item, **kwargs):
         list: List of vertices in the new position.
     """
     if "pos" in kwargs:
-        x, y = item.origin[:2]
+        x, y = item.midpoint[:2]
         x1, y1 = kwargs["pos"][:2]
         dx = x1 - x
         dy = y1 - y
@@ -1032,7 +1032,7 @@ def create_sketch(item, canvas, **kwargs):
             return None
 
         if 'pos' in kwargs:
-            x, y = item.origin[:2]
+            x, y = item.midpoint[:2]
             x1, y1 = kwargs["pos"][:2]
             dx = x1 - x
             dy = y1 - y
@@ -1066,7 +1066,7 @@ def create_sketch(item, canvas, **kwargs):
         if not vertices:
             return None
         if 'pos' in kwargs:
-            x, y = item.origin[:2]
+            x, y = item.midpoint[:2]
             x1, y1 = kwargs["pos"][:2]
             dx = x1 - x
             dy = y1 - y
