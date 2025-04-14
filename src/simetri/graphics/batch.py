@@ -62,8 +62,6 @@ class Batch(Base):
         else:
             self.elements = elements if elements is not None else []
         self.type = Types.BATCH
-        if subtype not in batch_types:
-            raise ValueError(f"Invalid subtype '{subtype}' for a Batch object!")
         self.subtype = get_enum_value(Types, subtype)
         self.modifiers = modifiers
         self.blend_mode = None
@@ -719,9 +717,8 @@ class Batch(Base):
         """
         xy_list = []
         for elem in self.elements:
-            xy_list.extend(
-                elem.b_box.corners
-            )  # To do: we should eliminate this. Just add all points.
+            if hasattr(elem, "b_box"):
+                xy_list.extend(elem.b_box.corners)  # To do: we should eliminate this. Just add all points.
         # To do: memoize the bounding box
         return bounding_box(array(xy_list))
 
