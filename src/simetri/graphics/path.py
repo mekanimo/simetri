@@ -22,6 +22,7 @@ from ..geometry.geometry import (
     positive_angle,
     polar_to_cartesian,
     sine_points,
+    close_points2
 )
 from ..geometry.ellipse import (
     ellipse_point,
@@ -61,12 +62,14 @@ class LinPath(Batch, StyleMixin):
     Path objects can be transformed like other Shape and Batch objects.
     """
 
-    def __init__(self, start: Point = (0, 0), **kwargs):
+    def __init__(self, start: Point = (0, 0), angle: float = pi/2, **kwargs):
         """Initialize a Path object.
 
         Args:
             start (Point, optional): The starting point of the path. Defaults to (0, 0).
-            **kwargs: Additional keyword arguments.
+            angle (float, optional): The heading angle of the path. Defaults to pi/2.
+            **kwargs: Additional keyword arguments. Common properties are line_width,
+            line_color, stroke, etc.
         """
         if "style" in kwargs:
             self.__dict__["style"] = kwargs["style"]
@@ -79,12 +82,12 @@ class LinPath(Batch, StyleMixin):
         validate_args(kwargs, valid_args)
         self.pos = start
         self.start = start
-        self.angle = pi / 2  # heading angle
+        self.angle = angle  # heading angle
         self.operations = []
         self.objects = []
         self.even_odd = True  # False is non-zero winding rule
         super().__init__(**kwargs)
-        self.subtype = Types.PATH
+        self.subtype = Types.LINPATH
         self.cur_shape = Shape([start])
         self.append(self.cur_shape)
         self.rc = self.r_coord  # alias for r_coord
@@ -174,7 +177,7 @@ class LinPath(Batch, StyleMixin):
             LinPath: The copied path object.
         """
 
-        new_path = LinPath(start=self.start, style=self.style)
+        new_path = LinPath(start=self.start)
         new_path.pos = self.pos
         new_path.angle = self.angle
         new_path.operations = self.operations.copy()
@@ -186,6 +189,8 @@ class LinPath(Batch, StyleMixin):
         new_path.cur_shape = self.cur_shape.copy()
         new_path.handles = self.handles.copy()
         new_path.stack = deque(self.stack)
+        for attrib in shape_style_map:
+            setattr(new_path, attrib, getattr(self, attrib))
 
         return new_path
 
@@ -699,9 +704,19 @@ class LinPath(Batch, StyleMixin):
             list: The vertices of the path.
         """
         vertices = []
+        last_vert = None
+        dist_tol2 = defaults["dist_tol"] ** 2
         for obj in self.objects:
-            if obj is not None:
-                vertices.extend(obj.vertices)
+            if obj is not None and obj.vertices:
+                obj_verts = obj.vertices
+                if last_vert:
+                    if close_points2(last_vert,  obj_verts[0], dist_tol2):
+                        vertices.extend(obj_verts[1:])
+                    else:
+                        vertices.extend(obj_verts)
+                else:
+                    vertices.extend(obj_verts)
+                last_vert = obj_verts[-1]
 
         return vertices
 
