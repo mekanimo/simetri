@@ -482,6 +482,7 @@ class Tag(Base):
         Returns:
             tuple: The bounds of the text (xmin, ymin, xmax, ymax).
         """
+        mult = 1 # font size multiplier
         if self.font_size is None:
             font_size = defaults["font_size"]
         elif type(self.font_size) in [int, float]:
@@ -494,7 +495,16 @@ class Tag(Base):
             font = ImageFont.truetype(f"{self.font_family}.ttf", font_size)
         except OSError:
             font = ImageFont.load_default()
+            mult = self.font_size / 10
         xmin, ymin, xmax, ymax = font.getbbox(self.text)
+        width = xmax - xmin
+        height = ymax - ymin
+        dx = (width * mult) / 2
+        dy = (height * mult) / 2
+        xmin -= dx
+        xmax += dx
+        ymin -= dy
+        ymax += dy
 
         return xmin, ymin, xmax, ymax
 
@@ -514,15 +524,15 @@ class Tag(Base):
         Returns:
             tuple: The bounding box of the text.
         """
-        # return bounding_box(self.final_coords) To do: check if this is correct
         xmin, ymin, xmax, ymax = self.text_bounds()
         w2 = (xmax - xmin) / 2
         h2 = (ymax - ymin) / 2
         x, y = self.pos
-        xmin = x - w2
-        xmax = x + w2
-        ymin = y - h2
-        ymax = y + h2
+        inner_sep = self.frame.inner_sep
+        xmin = x - w2 - inner_sep
+        xmax = x + w2 + inner_sep
+        ymin = y - h2 - inner_sep
+        ymax = y + h2 + inner_sep
         points = [
             (xmin, ymin),
             (xmax, ymin),
