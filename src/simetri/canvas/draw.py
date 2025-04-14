@@ -12,6 +12,7 @@ from ..graphics.all_enums import (
     PathOperation,
     Types,
     drawable_types,
+    TexLoc,
 )
 from ..colors import colors
 from ..tikz.tikz import scope_code_required
@@ -27,6 +28,7 @@ from ..graphics.sketch import (
     RectSketch,
     ShapeSketch,
     TagSketch,
+    TexSketch
 )
 from ..settings.settings import defaults
 from ..canvas.style_map import line_style_map, shape_style_map, group_args
@@ -35,7 +37,7 @@ from ..graphics.shape import Shape
 from ..graphics.common import Point
 from ..geometry.bezier import bezier_points
 from ..geometry.ellipse import elliptic_arc_points
-from ..graphics.affine import rotation_matrix
+from ..graphics.affine import rotation_matrix, translation_matrix
 from ..helpers.utilities import decompose_transformations
 
 
@@ -98,15 +100,14 @@ def arc(
     """
     if radius_y is None:
         radius_y = radius_x
-    vertices = elliptic_arc_points(center, radius_x, radius_y, start_angle, span_angle, n_points)
+    vertices = elliptic_arc_points(
+        center, radius_x, radius_y, start_angle, span_angle, n_points
+    )
     if rot_angle != 0:
         vertices = homogenize(vertices) @ rotation_matrix(rot_angle, center)
     self._all_vertices.extend(vertices.tolist() + [center])
 
-    sketch = ArcSketch(
-        vertices = vertices,
-        xform_matrix = self.xform_matrix
-    )
+    sketch = ArcSketch(vertices=vertices, xform_matrix=self.xform_matrix)
     for attrib_name in shape_style_map:
         if hasattr(sketch, attrib_name):
             attrib_value = self.resolve_property(sketch, attrib_name)
@@ -345,6 +346,21 @@ def lines(self, points, **kwargs):
 
     return self
 
+def insert_code(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
+        """
+        Insert code into the canvas.
+
+        Args:
+            code (str): The code to insert.
+
+        Returns:
+            Self: The canvas object.
+        """
+        active_sketches = self.active_page.sketches
+        sketch = TexSketch(code, location=location)
+        active_sketches.append(sketch)
+
+        return self
 
 def draw_bbox(self, bbox, **kwargs):
     """
@@ -385,7 +401,7 @@ def draw_hobby(
     points: Sequence[Point],
     controls: Sequence[Point],
     cyclic: bool = False,
-    **kwargs
+    **kwargs,
 ):
     """Draw a Hobby curve through the given points using the control points.
 
@@ -491,7 +507,12 @@ def draw_dimension(self, item, **kwargs):
 
 
 def grid(
-    self, pos=(0, 0), width: float = None, height: float = None, step_size=None, **kwargs
+    self,
+    pos=(0, 0),
+    width: float = None,
+    height: float = None,
+    step_size=None,
+    **kwargs,
 ):
     """Draw a square grid with the given size.
 
@@ -539,11 +560,11 @@ regular_sketch_types = [
     Types.ELLIPSE,
     Types.FRAGMENT,
     Types.HEX_GRID,
+    Types.LINPATH,
     Types.MIXED_GRID,
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
-    Types.PATH,
     Types.PLAIT,
     Types.POLYLINE,
     Types.Q_BEZIER,
@@ -679,6 +700,30 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
     for k, v in kwargs.items():
         setattr(sketch, k, v)
 
+def get_verts_in_new_pos(item, **kwargs):
+    """
+    Get the vertices of the item in a new position.
+
+    Args:
+        item: Item whose vertices are to be obtained.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        list: List of vertices in the new position.
+    """
+    if "pos" in kwargs:
+        x, y = item.origin[:2]
+        x1, y1 = kwargs["pos"][:2]
+        dx = x1 - x
+        dy = y1 - y
+        trans_mat = translation_matrix(dx, dy)
+        vertices = item.primary_points.homogen_coords @ trans_mat
+        vertices = vertices[:, :2].tolist()
+    else:
+        vertices = item.vertices
+
+    return vertices
+
 
 def create_sketch(item, canvas, **kwargs):
     """Create a sketch from the given item.
@@ -705,8 +750,11 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             TagSketch: Created TagSketch.
         """
-        pos = item.pos
-        # pos = [(round(pos[0], nround), round(pos[1], nround))]
+        if "pos" in kwargs:
+            pos = kwargs["pos"]
+        else:
+            pos = item.pos
+
         sketch = TagSketch(text=item.text, pos=pos, anchor=item.anchor)
         for attrib_name in item._style_map:
             if attrib_name == "fill_color":
@@ -735,8 +783,18 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             EllipseSketch: Created EllipseSketch.
         """
+        if "pos" in kwargs:
+            center = kwargs["pos"]
+        else:
+            center = item.center
+
         sketch = EllipseSketch(
-            item.center, item.a, item.b, item.angle, xform_matrix=canvas.xform_matrix
+            center,
+            item.a,
+            item.b,
+            item.angle,
+            xform_matrix=canvas.xform_matrix,
+            **kwargs,
         )
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
@@ -753,7 +811,7 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             PatternSketch: Created PatternSketch.
         """
-        sketch = PatternSketch(item, xform_matrix=canvas.xform_matrix)
+        sketch = PatternSketch(item, xform_matrix=canvas.xform_matrix, **kwargs)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
@@ -769,8 +827,12 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             CircleSketch: Created CircleSketch.
         """
+        if "pos" in kwargs:
+            center = kwargs["pos"]
+        else:
+            center = item.center
         sketch = CircleSketch(
-            item.center, item.radius, xform_matrix=canvas.xform_matrix
+            center, item.radius, xform_matrix=canvas.xform_matrix
         )
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
@@ -816,10 +878,9 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             ArcSketch: Created ArcSketch.
         """
-        sketch = ArcSketch(
-            item.vertices,
-            xform_matrix=canvas.xform_matrix
-        )
+
+        vertices = get_verts_in_new_pos(item, **kwargs)
+        sketch = ArcSketch(vertices, xform_matrix=canvas.xform_matrix)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
@@ -864,8 +925,9 @@ def create_sketch(item, canvas, **kwargs):
         else:
             sketches = []
             for element in item.elements:
-                if element.visible and element.active:
-                    sketches.extend(get_sketches(element, canvas, **kwargs))
+                if hasattr(element, "visible") and hasattr(element, "active"):
+                    if element.visible and element.active:
+                        sketches.extend(get_sketches(element, canvas, **kwargs))
 
             res = sketches
 
@@ -882,6 +944,7 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             list: List of created sketches.
         """
+
         def extend_verts(obj, vertices):
             obj_vertices = obj.vertices
             if obj_vertices:
@@ -890,22 +953,24 @@ def create_sketch(item, canvas, **kwargs):
                 vertices.extend(obj_vertices)
 
         path_op = PathOperation
-        linears = [path_op.ARC,
-                    path_op.ARC_TO,
-                    path_op.BLEND_ARC,
-                    path_op.BLEND_CUBIC,
-                    path_op.BLEND_QUAD,
-                    path_op.BLEND_SINE,
-                    path_op.CUBIC_TO,
-                    path_op.FORWARD,
-                    path_op.H_LINE,
-                    path_op.HOBBY_TO,
-                    path_op.QUAD_TO,
-                    path_op.R_LINE,
-                    path_op.SEGMENTS,
-                    path_op.SINE,
-                    path_op.V_LINE,
-                    path_op.LINE_TO]
+        linears = [
+            path_op.ARC,
+            path_op.ARC_TO,
+            path_op.BLEND_ARC,
+            path_op.BLEND_CUBIC,
+            path_op.BLEND_QUAD,
+            path_op.BLEND_SINE,
+            path_op.CUBIC_TO,
+            path_op.FORWARD,
+            path_op.H_LINE,
+            path_op.HOBBY_TO,
+            path_op.QUAD_TO,
+            path_op.R_LINE,
+            path_op.SEGMENTS,
+            path_op.SINE,
+            path_op.V_LINE,
+            path_op.LINE_TO,
+        ]
         sketches = []
         vertices = []
         for i, op in enumerate(item.operations):
@@ -935,9 +1000,9 @@ def create_sketch(item, canvas, **kwargs):
             sketch = create_sketch(shape, canvas, **kwargs)
             sketches.append(sketch)
 
-        if 'handles' in kwargs and kwargs['handles']:
-            handles = kwargs['handles']
-            del kwargs['handles']
+        if "handles" in kwargs and kwargs["handles"]:
+            handles = kwargs["handles"]
+            del kwargs["handles"]
             for handle in item.handles:
                 shape = Shape(handle)
                 shape.subtype = Types.HANDLE
@@ -965,6 +1030,13 @@ def create_sketch(item, canvas, **kwargs):
         vertices = [(round(x[0], nround), round(x[1], nround)) for x in item.corners]
         if not vertices:
             return None
+
+        if 'pos' in kwargs:
+            x, y = item.origin[:2]
+            x1, y1 = kwargs["pos"][:2]
+            dx = x1 - x
+            dy = y1 - y
+            vertices = [(x+dx, y+dy) for x, y in vertices]
         sketch = ShapeSketch(vertices, canvas._xform_matrix)
         sketch.subtype = Types.BBOX_SKETCH
         sketch.visible = True
@@ -993,6 +1065,12 @@ def create_sketch(item, canvas, **kwargs):
         vertices = [(round(x[0], nround), round(x[1], nround)) for x in item.vertices]
         if not vertices:
             return None
+        if 'pos' in kwargs:
+            x, y = item.origin[:2]
+            x1, y1 = kwargs["pos"][:2]
+            dx = x1 - x
+            dy = y1 - y
+            vertices = [(x+dx, y+dy) for x, y in vertices]
         sketches = []
         sketch = ShapeSketch(vertices, canvas._xform_matrix)
         sketch.subtype = Types.HANDLE
@@ -1020,18 +1098,19 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             ShapeSketch: Created sketch.
         """
+        if not item.vertices:
+            return None
+
+        vertices = get_verts_in_new_pos(item, **kwargs)
         nround = defaults["tikz_nround"]
         vertices = [
-            (round(x[0], nround), round(x[1], nround)) for x in item.final_coords
+            (round(x[0], nround), round(x[1], nround)) for x in vertices
         ]
-        if not vertices:
-            return None
+
         sketch = ShapeSketch(vertices, canvas._xform_matrix)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
-
-
 
     d_subtype_sketch = {
         Types.ARC: get_arc_sketch,
@@ -1051,10 +1130,10 @@ def create_sketch(item, canvas, **kwargs):
         Types.HANDLE: get_handle_sketch,
         Types.HEX_GRID: get_batch_sketch,
         Types.LACE: get_lace_sketch,
+        Types.LINPATH: get_path_sketch,
         Types.MIXED_GRID: get_batch_sketch,
         Types.OVERLAP: get_batch_sketch,
         Types.PARALLEL_POLYLINE: get_batch_sketch,
-        Types.PATH: get_path_sketch,
         Types.PATTERN: get_pattern_sketch,
         Types.PLAIT: get_sketch,
         Types.POLYLINE: get_sketch,
