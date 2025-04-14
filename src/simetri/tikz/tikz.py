@@ -76,7 +76,7 @@ class Tex:
         packages (List[str]): List of required TeX packages.
         tikz_libraries (List[str]): List of required TikZ libraries.
         tikz_code (str): The generated TikZ code.
-        sketches (List["Sketch"]): List of TexSketch objects.
+        sketches (List["Sketch"]): List of Sketch objects.
     """
 
     begin_document: str = defaults["begin_doc"]
@@ -188,6 +188,10 @@ class Tex:
         tikz_packages = ['tikz', 'pgf']
         for page in canvas.pages:
             for sketch in page.sketches:
+                if hasattr(sketch, "draw_frame") and sketch.draw_frame:
+                    if hasattr(sketch, "frame_shape") and sketch.frame_shape != FrameShape.RECTANGLE:
+                        if "shapes.geometric" not in tikz_libraries:
+                            tikz_libraries.append("shapes.geometric")
                 if sketch.draw_markers:
                     if 'patterns' not in tikz_libraries:
                         tikz_libraries.append("patterns")
@@ -275,7 +279,10 @@ class Tex:
                     )
                     preamble += node_style
                     count += 1
-
+        for sketch in canvas.active_page.sketches:
+            if sketch.subtype == Types.TEX_SKETCH:
+                if sketch.location == TexLoc.PREAMBLE:
+                    preamble += sketch.code + "\n"
         return preamble
 
 
@@ -377,6 +384,9 @@ def get_tex_code(canvas: "Canvas") -> str:
             code = draw_bbox_sketch(sketch)
         elif sketch.subtype == Types.PATTERN_SKETCH:
             code = draw_pattern_sketch(sketch)
+        elif sketch.subtype == Types.TEX_SKETCH:
+            if sketch.location == TexLoc.NONE:
+                code = sketch.code
         else:
             if sketch.draw_markers and sketch.marker_type == MarkerType.INDICES:
                 code = draw_shape_sketch(sketch, ind)
@@ -570,9 +580,12 @@ def get_clip_code(item: Union["Sketch", "Canvas"]) -> str:
         width, height = item.mask.width, item.mask.height
         res = f"\\clip({x}, {y}) rectangle ({width}, {height});\n"
     elif item.mask.subtype == Types.SHAPE:
-        vertices = item.mask.primary_points.homogen_coords
-        coords = " ".join([f"({v[0]}, {v[1]})" for v in vertices])
-        res = f"\\clip plot[] coordinates {{{coords}}};\n"
+        # vertices = item.mask.primary_points.homogen_coords
+        # coords = " ".join([f"({v[0]}, {v[1]})" for v in vertices])
+        # res = f"\\clip plot[] coordinates {{{coords}}};\n"
+        x, y = item.mask.origin[:2]
+        width, height = item.mask.width, item.mask.height
+        res = f"\\clip({x}, {y}) rectangle ({width}, {height});\n"
     else:
         res = ""
 
@@ -802,7 +815,7 @@ def draw_tag_sketch(sketch):
 
         return res
 
-
+    res = []
     x, y = sketch.pos[:2]
 
     options = ""
@@ -810,10 +823,10 @@ def draw_tag_sketch(sketch):
         options += "draw"
         if sketch.stroke:
             if sketch.frame_shape != FrameShape.RECTANGLE:
-                options += f", {sketch.frame_shape}"
+                options += f", {sketch.frame_shape}, "
             line_style_options = get_line_style_options(sketch)
             if line_style_options:
-                options += ', '.join(line_style_options)
+                options += ', ' + ', '.join(line_style_options)
             if sketch.frame_inner_sep:
                 options += f", inner sep={sketch.frame_inner_sep}"
             if sketch.minimum_width:
@@ -893,9 +906,9 @@ def draw_tag_sketch(sketch):
     close_braces = tex_text.count('}')
     tex_text = tex_text + '}' * (open_braces - close_braces)
 
-    res = f"\\node[{options}] at ({x}, {y}) {tex_text};\n"
+    res.append(f"\\node[{options}] at ({x}, {y}) {tex_text};\n")
 
-    return res
+    return ''.join(res)
 
 
 def get_dash_pattern(line_dash_array):
@@ -1274,16 +1287,19 @@ def draw_shape_sketch_with_indices(sketch, ind):
     """
     begin_scope = get_begin_scope(ind)
     body = get_draw(sketch)
-    options = get_line_style_options(sketch)
-    if sketch.fill and sketch.closed:
-        options += get_fill_style_options(sketch)
-    if sketch.smooth:
-        if sketch.closed:
-            options += ["smooth cycle"]
-        else:
-            options += ["smooth"]
-    options = ", ".join(options)
-    body += f"[{options}]"
+    if body:
+        options = get_line_style_options(sketch)
+        if sketch.fill and sketch.closed:
+            options += get_fill_style_options(sketch)
+        if sketch.smooth:
+            if sketch.closed:
+                options += ["smooth cycle"]
+            else:
+                options += ["smooth"]
+        options = ", ".join(options)
+        body += f"[{options}]"
+    else:
+        body = ""
     vertices = sketch.vertices
     vertices = [str(x) for x in vertices]
     str_lines = [vertices[0] + "node{0}"]
@@ -1296,9 +1312,10 @@ def draw_shape_sketch_with_indices(sketch, ind):
                 str_lines.append(f"\n\t-- {vertice} node{{{i+1}}}")
         else:
             str_lines.append(f"-- {vertice} node{{{i+1}}}")
-    if sketch.closed:
-        str_lines.append(" -- cycle;\n")
-    str_lines.append(";\n")
+    if body:
+        if sketch.closed:
+            str_lines.append(" -- cycle;\n")
+        str_lines.append(";\n")
     end_scope = get_end_scope()
 
     return begin_scope + body + "".join(str_lines) + end_scope
@@ -1315,16 +1332,20 @@ def draw_shape_sketch_with_markers(sketch):
     """
     # begin_scope = get_begin_scope()
     body = get_draw(sketch)
-    options = get_line_style_options(sketch)
-    if sketch.fill and sketch.closed:
-        options += get_fill_style_options(sketch)
-    if sketch.smooth and sketch.closed:
-        options += ["smooth cycle"]
-    elif sketch.smooth:
-        options += ["smooth"]
-    options = ", ".join(options)
-    if options:
-        body += f"[{options}]"
+    if body:
+        options = get_line_style_options(sketch)
+        if sketch.fill and sketch.closed:
+            options += get_fill_style_options(sketch)
+        if sketch.smooth and sketch.closed:
+            options += ["smooth cycle"]
+        elif sketch.smooth:
+            options += ["smooth"]
+        options = ", ".join(options)
+        if options:
+            body += f"[{options}]"
+    else:
+        body = ""
+
     if sketch.draw_markers:
         marker_options = ", ".join(get_marker_options(sketch))
     else:
@@ -1338,9 +1359,8 @@ def draw_shape_sketch_with_markers(sketch):
             str_lines.append(f"\n\t{vertice} ")
         else:
             str_lines.append(f" {vertice} ")
-    # if sketch.closed:
-    #     str_lines.append(f" {vertices[0]}")
     coordinates = "".join(str_lines)
+
     marker = get_enum_value(MarkerType, sketch.marker_type)
     # marker = sketch.marker_type.value
     if sketch.markers_only:
@@ -1417,6 +1437,8 @@ def draw_pattern_sketch(sketch):
 
     pattern = sketch.pattern
     draw = get_draw(sketch)
+    if not draw:
+        return ""
     all_vertices = sketch.kernel_vertices @ sketch.all_matrices
     vertices_list = np.hsplit(all_vertices, sketch.count)
     shapes = []
@@ -1492,6 +1514,18 @@ def draw_sketch(sketch):
     return res
 
 
+def draw_tex_sketch(sketch):
+    """Draws a TeX sketch.
+
+    Args:
+        sketch: The TeX sketch object.
+
+    Returns:
+        str: The TeX code for the TeX sketch.
+    """
+
+    return sketch.code
+
 def draw_shape_sketch(sketch, ind=None):
     """Draws a shape sketch.
 
@@ -1555,13 +1589,16 @@ def draw_circle_sketch(sketch):
     """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
+    if not res:
+        return ""
     options = get_line_style_options(sketch)
     fill_options = get_fill_style_options(sketch)
     options += fill_options
     if sketch.smooth:
         options += ["smooth"]
     options = ", ".join(options)
-    res += f"[{options}]"
+    if options:
+        res += f"[{options}]"
     x, y = sketch.center[:2]
     res += f"({x}, {y}) circle ({sketch.radius});\n"
     end_scope = get_end_scope()
@@ -1580,6 +1617,8 @@ def draw_rect_sketch(sketch):
     """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
+    if not res:
+        return ""
     options = get_line_style_options(sketch)
     fill_options = get_fill_style_options(sketch)
     options += fill_options
@@ -1605,6 +1644,8 @@ def draw_ellipse_sketch(sketch):
     """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
+    if not res:
+        return ""
     options = get_line_style_options(sketch)
     fill_options = get_fill_style_options(sketch)
     options += fill_options
@@ -1686,6 +1727,8 @@ def draw_bezier_sketch(sketch):
     """
     begin_scope = get_begin_scope()
     res = get_draw(sketch)
+    if not res:
+        return ""
     options = get_line_style_options(sketch)
     options = ", ".join(options)
     res += f"[{options}]"
