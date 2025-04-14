@@ -127,8 +127,9 @@ def _merge_collinears(
         islands = list(nx.connected_components(graph))
         res = []
         for island in islands:
+            island = list(island)
             if len(island) > 1:
-                island = list(island)
+
                 island = [d_node_coord[x] for x in island]
                 if 45 < incl_angle < 135:
                     # sort by y coordinates
