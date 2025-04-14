@@ -23,7 +23,7 @@ from simetri.graphics.affine import (
     identity_matrix,
 )
 from simetri.graphics.common import common_properties, _set_Nones, VOID, Point, Vec2
-from simetri.graphics.all_enums import Types, Drawable, Result, Anchor
+from simetri.graphics.all_enums import Types, Drawable, Result, Anchor, TexLoc, Align
 from simetri.settings.settings import defaults
 from simetri.graphics.bbox import bounding_box
 from simetri.graphics.batch import Batch
@@ -101,7 +101,7 @@ class Canvas:
         self.render = defaults["render"]
         if self._size is not None:
             x, y = self.origin[:2]
-            self._limits  = [x, y, x+self.size[0], y+self.size[1]]
+            self._limits = [x, y, x + self.size[0], y + self.size[1]]
         else:
             self._limits = None
 
@@ -149,7 +149,7 @@ class Canvas:
         else:
             raise ValueError("Size must be a tuple of 2 values.")
 
-    @ property
+    @property
     def origin(self) -> Vec2:
         """
         The origin of the canvas.
@@ -189,7 +189,6 @@ class Canvas:
 
         return res
 
-
     @limits.setter
     def limits(self, value: Vec2) -> None:
         """
@@ -204,6 +203,20 @@ class Canvas:
             self._origin = (x1, y1)
         else:
             raise ValueError("Limits must be a tuple of 4 values.")
+
+    def insert_code(self, code, loc: TexLoc = TexLoc.PICTURE) -> Self:
+        """
+        Insert code into the canvas.
+
+        Args:
+            code (str): The code to insert.
+            loc (TexLoc): The location to insert the code.
+
+        Returns:
+            Self: The canvas object.
+        """
+        draw.insert_code(self, code, loc)
+        return self
 
     def arc(
         self,
@@ -233,7 +246,14 @@ class Canvas:
         if radius_y is None:
             radius_y = radius_x
         draw.arc(
-            self, center, radius_x, radius_y, start_angle, span_angle, rot_angle, **kwargs
+            self,
+            center,
+            radius_x,
+            radius_y,
+            start_angle,
+            span_angle,
+            rot_angle,
+            **kwargs,
         )
         return self
 
@@ -292,6 +312,7 @@ class Canvas:
         font_family: str = None,
         font_size: int = None,
         anchor: Anchor = None,
+        align: Align = None,
         **kwargs,
     ) -> Self:
         """
@@ -303,7 +324,13 @@ class Canvas:
             font_family (str, optional): The font family of the text, defaults to None.
             font_size (int, optional): The font size of the text, defaults to None.
             anchor (Anchor, optional): The anchor of the text, defaults to None.
+            anchor options: BASE, BASE_EAST, BASE_WEST, BOTTOM, CENTER, EAST, NORTH,
+            NORTHEAST, NORTHWEST, SOUTH, SOUTHEAST, SOUTHWEST, WEST, MIDEAST, MIDWEST, RIGHT,
+            LEFT, TOP
+            align (Align, optional): The alignment of the text, defaults to Align.CENTER.
+            align options: CENTER, FLUSH_CENTER, FLUSH_LEFT, FLUSH_RIGHT, JUSTIFY, LEFT, RIGHT
             kwargs (dict): Additional keyword arguments.
+            common kwargs: fill_color, line_color, line_width, fill, line, alpha, font_color
 
         Returns:
             Self: The canvas object.
@@ -465,7 +492,9 @@ class Canvas:
         draw.draw_dimension(self, dim, **kwargs)
         return self
 
-    def draw(self, item_s: Union[Drawable, list, tuple], **kwargs) -> Self:
+    def draw(
+        self, item_s: Union[Drawable, list, tuple], pos: Point = None, **kwargs
+    ) -> Self:
         """
         Draw the item_s. item_s can be a single item or a list of items.
 
@@ -476,6 +505,8 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
+        if pos is not None:
+            kwargs["pos"] = pos
         if isinstance(item_s, (list, tuple)):
             for item in item_s:
                 draw.draw(self, item, **kwargs)
@@ -519,7 +550,7 @@ class Canvas:
         box2 = b_box.get_inflated_b_box(margin)
         box3 = box2.get_inflated_b_box(15)
         shadow = Shape([box3.northwest, box3.southwest, box3.southeast])
-        self.draw(shadow, line_color=colors.light_gray,line_width=width)
+        self.draw(shadow, line_color=colors.light_gray, line_width=width)
         self.draw(Shape(box2.corners, closed=True), fill=False, line_width=width)
 
         return self
@@ -565,7 +596,7 @@ class Canvas:
         return "Canvas()"
 
     @property
-    def xform_matrix(self) -> 'ndarray':
+    def xform_matrix(self) -> "ndarray":
         """
         The transformation matrix of the canvas.
 
@@ -845,7 +876,7 @@ class Canvas:
         if show_browser is None:
             show_browser = defaults["show_browser"]
         if show_browser:
-            file_path = 'file:///' + file_path
+            file_path = "file:///" + file_path
             if multi_page_svg:
                 for i, _ in enumerate(self.pages):
                     f_path = file_path.replace(".svg", f"_page{i + 1}.svg")
@@ -913,7 +944,11 @@ class Canvas:
             """
             os.chdir(parent_dir)
             with subprocess.Popen(
-                cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True, text=True
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                shell=True,
+                text=True,
             ) as p:
                 output = p.communicate("_s\n_l\n")[0]
             if print_output:
