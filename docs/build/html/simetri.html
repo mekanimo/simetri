@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="simetri.colors package" href="simetri.colors.html" /><link rel="prev" title="simetri" href="modules.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="simetri.canvas package" href="simetri.canvas.html" /><link rel="prev" title="simetri" href="modules.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>simetri package - simetri.graphics 0.0.6 documentation</title>
@@ -202,6 +202,7 @@
 <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="modules.html">simetri</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of simetri</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">simetri package</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of simetri package</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html">simetri.canvas package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simetri.colors.html">simetri.colors package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simetri.extensions.html">simetri.extensions package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simetri.frieze.html">simetri.frieze package</a></li>
@@ -264,6 +265,255 @@
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="simetri.canvas.html">simetri.canvas package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="simetri.canvas.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simetri.canvas.html#simetri-canvas-canvas-module">simetri.canvas.canvas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simetri.canvas.html#simetri-canvas-draw-module">simetri.canvas.draw module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simetri.canvas.html#module-simetri.canvas.grids">simetri.canvas.grids module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.CircularGrid"><code class="docutils literal notranslate"><span class="pre">CircularGrid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.Grid"><code class="docutils literal notranslate"><span class="pre">Grid</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.Grid.between"><code class="docutils literal notranslate"><span class="pre">Grid.between()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.Grid.intersect"><code class="docutils literal notranslate"><span class="pre">Grid.intersect()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.Grid.line"><code class="docutils literal notranslate"><span class="pre">Grid.line()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.Grid.radial_point"><code class="docutils literal notranslate"><span class="pre">Grid.radial_point()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.HexGrid"><code class="docutils literal notranslate"><span class="pre">HexGrid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.SquareGrid"><code class="docutils literal notranslate"><span class="pre">SquareGrid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.cartesian_to_isometric"><code class="docutils literal notranslate"><span class="pre">cartesian_to_isometric()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.convert_basis"><code class="docutils literal notranslate"><span class="pre">convert_basis()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.convert_to_cartesian"><code class="docutils literal notranslate"><span class="pre">convert_to_cartesian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.grids.isometric_to_cartesian"><code class="docutils literal notranslate"><span class="pre">isometric_to_cartesian()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="simetri.canvas.html#simetri-canvas-style-map-module">simetri.canvas.style_map module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle"><code class="docutils literal notranslate"><span class="pre">FillStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle.color"><code class="docutils literal notranslate"><span class="pre">FillStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle.alpha"><code class="docutils literal notranslate"><span class="pre">FillStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle.fill"><code class="docutils literal notranslate"><span class="pre">FillStyle.fill</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle.back_style"><code class="docutils literal notranslate"><span class="pre">FillStyle.back_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle.mode"><code class="docutils literal notranslate"><span class="pre">FillStyle.mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle.pattern_style"><code class="docutils literal notranslate"><span class="pre">FillStyle.pattern_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle.shade_style"><code class="docutils literal notranslate"><span class="pre">FillStyle.shade_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FillStyle.grid_style"><code class="docutils literal notranslate"><span class="pre">FillStyle.grid_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id0"><code class="docutils literal notranslate"><span class="pre">FillStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id1"><code class="docutils literal notranslate"><span class="pre">FillStyle.back_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id2"><code class="docutils literal notranslate"><span class="pre">FillStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id3"><code class="docutils literal notranslate"><span class="pre">FillStyle.fill</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id4"><code class="docutils literal notranslate"><span class="pre">FillStyle.grid_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id5"><code class="docutils literal notranslate"><span class="pre">FillStyle.mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id6"><code class="docutils literal notranslate"><span class="pre">FillStyle.pattern_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id7"><code class="docutils literal notranslate"><span class="pre">FillStyle.shade_style</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle"><code class="docutils literal notranslate"><span class="pre">FontStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.font_family"><code class="docutils literal notranslate"><span class="pre">FontStyle.font_family</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.color"><code class="docutils literal notranslate"><span class="pre">FontStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.family"><code class="docutils literal notranslate"><span class="pre">FontStyle.family</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.size"><code class="docutils literal notranslate"><span class="pre">FontStyle.size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.bold"><code class="docutils literal notranslate"><span class="pre">FontStyle.bold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.italic"><code class="docutils literal notranslate"><span class="pre">FontStyle.italic</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.small_caps"><code class="docutils literal notranslate"><span class="pre">FontStyle.small_caps</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.old_style_nums"><code class="docutils literal notranslate"><span class="pre">FontStyle.old_style_nums</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.overline"><code class="docutils literal notranslate"><span class="pre">FontStyle.overline</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.strike_through"><code class="docutils literal notranslate"><span class="pre">FontStyle.strike_through</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.underline"><code class="docutils literal notranslate"><span class="pre">FontStyle.underline</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.blend_mode"><code class="docutils literal notranslate"><span class="pre">FontStyle.blend_mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FontStyle.alpha"><code class="docutils literal notranslate"><span class="pre">FontStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id8"><code class="docutils literal notranslate"><span class="pre">FontStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id9"><code class="docutils literal notranslate"><span class="pre">FontStyle.blend_mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id10"><code class="docutils literal notranslate"><span class="pre">FontStyle.bold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id11"><code class="docutils literal notranslate"><span class="pre">FontStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id12"><code class="docutils literal notranslate"><span class="pre">FontStyle.family</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id13"><code class="docutils literal notranslate"><span class="pre">FontStyle.font_family</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id14"><code class="docutils literal notranslate"><span class="pre">FontStyle.italic</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id15"><code class="docutils literal notranslate"><span class="pre">FontStyle.old_style_nums</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id16"><code class="docutils literal notranslate"><span class="pre">FontStyle.overline</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id17"><code class="docutils literal notranslate"><span class="pre">FontStyle.size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id18"><code class="docutils literal notranslate"><span class="pre">FontStyle.small_caps</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id19"><code class="docutils literal notranslate"><span class="pre">FontStyle.strike_through</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id20"><code class="docutils literal notranslate"><span class="pre">FontStyle.underline</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle"><code class="docutils literal notranslate"><span class="pre">FrameStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.shape"><code class="docutils literal notranslate"><span class="pre">FrameStyle.shape</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.line_style"><code class="docutils literal notranslate"><span class="pre">FrameStyle.line_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.fill_style"><code class="docutils literal notranslate"><span class="pre">FrameStyle.fill_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.inner_sep"><code class="docutils literal notranslate"><span class="pre">FrameStyle.inner_sep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.inner_xsep"><code class="docutils literal notranslate"><span class="pre">FrameStyle.inner_xsep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.inner_ysep"><code class="docutils literal notranslate"><span class="pre">FrameStyle.inner_ysep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.outer_sep"><code class="docutils literal notranslate"><span class="pre">FrameStyle.outer_sep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.min_width"><code class="docutils literal notranslate"><span class="pre">FrameStyle.min_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.min_height"><code class="docutils literal notranslate"><span class="pre">FrameStyle.min_height</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.min_size"><code class="docutils literal notranslate"><span class="pre">FrameStyle.min_size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.FrameStyle.alpha"><code class="docutils literal notranslate"><span class="pre">FrameStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id21"><code class="docutils literal notranslate"><span class="pre">FrameStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id22"><code class="docutils literal notranslate"><span class="pre">FrameStyle.fill_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id23"><code class="docutils literal notranslate"><span class="pre">FrameStyle.inner_sep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id24"><code class="docutils literal notranslate"><span class="pre">FrameStyle.inner_xsep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id25"><code class="docutils literal notranslate"><span class="pre">FrameStyle.inner_ysep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id26"><code class="docutils literal notranslate"><span class="pre">FrameStyle.line_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id27"><code class="docutils literal notranslate"><span class="pre">FrameStyle.min_height</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id28"><code class="docutils literal notranslate"><span class="pre">FrameStyle.min_size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id29"><code class="docutils literal notranslate"><span class="pre">FrameStyle.min_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id30"><code class="docutils literal notranslate"><span class="pre">FrameStyle.outer_sep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id31"><code class="docutils literal notranslate"><span class="pre">FrameStyle.shape</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.GridStyle"><code class="docutils literal notranslate"><span class="pre">GridStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.GridStyle.line_color"><code class="docutils literal notranslate"><span class="pre">GridStyle.line_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.GridStyle.line_width"><code class="docutils literal notranslate"><span class="pre">GridStyle.line_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.GridStyle.alpha"><code class="docutils literal notranslate"><span class="pre">GridStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.GridStyle.back_color"><code class="docutils literal notranslate"><span class="pre">GridStyle.back_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id32"><code class="docutils literal notranslate"><span class="pre">GridStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id33"><code class="docutils literal notranslate"><span class="pre">GridStyle.back_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id34"><code class="docutils literal notranslate"><span class="pre">GridStyle.line_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id35"><code class="docutils literal notranslate"><span class="pre">GridStyle.line_width</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle"><code class="docutils literal notranslate"><span class="pre">LineStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.color"><code class="docutils literal notranslate"><span class="pre">LineStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.alpha"><code class="docutils literal notranslate"><span class="pre">LineStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.width"><code class="docutils literal notranslate"><span class="pre">LineStyle.width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.dash_array"><code class="docutils literal notranslate"><span class="pre">LineStyle.dash_array</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.dash_phase"><code class="docutils literal notranslate"><span class="pre">LineStyle.dash_phase</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.cap"><code class="docutils literal notranslate"><span class="pre">LineStyle.cap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.join"><code class="docutils literal notranslate"><span class="pre">LineStyle.join</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.miter_limit"><code class="docutils literal notranslate"><span class="pre">LineStyle.miter_limit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.fillet_radius"><code class="docutils literal notranslate"><span class="pre">LineStyle.fillet_radius</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.marker_style"><code class="docutils literal notranslate"><span class="pre">LineStyle.marker_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.smooth"><code class="docutils literal notranslate"><span class="pre">LineStyle.smooth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.stroke"><code class="docutils literal notranslate"><span class="pre">LineStyle.stroke</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.draw_markers"><code class="docutils literal notranslate"><span class="pre">LineStyle.draw_markers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.draw_fillets"><code class="docutils literal notranslate"><span class="pre">LineStyle.draw_fillets</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.markers_only"><code class="docutils literal notranslate"><span class="pre">LineStyle.markers_only</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.double_lines"><code class="docutils literal notranslate"><span class="pre">LineStyle.double_lines</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.LineStyle.double_distance"><code class="docutils literal notranslate"><span class="pre">LineStyle.double_distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id36"><code class="docutils literal notranslate"><span class="pre">LineStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id37"><code class="docutils literal notranslate"><span class="pre">LineStyle.cap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id38"><code class="docutils literal notranslate"><span class="pre">LineStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id39"><code class="docutils literal notranslate"><span class="pre">LineStyle.dash_array</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id40"><code class="docutils literal notranslate"><span class="pre">LineStyle.dash_phase</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id41"><code class="docutils literal notranslate"><span class="pre">LineStyle.double_distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id42"><code class="docutils literal notranslate"><span class="pre">LineStyle.double_lines</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id43"><code class="docutils literal notranslate"><span class="pre">LineStyle.draw_fillets</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id44"><code class="docutils literal notranslate"><span class="pre">LineStyle.draw_markers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id45"><code class="docutils literal notranslate"><span class="pre">LineStyle.fillet_radius</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id46"><code class="docutils literal notranslate"><span class="pre">LineStyle.join</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id47"><code class="docutils literal notranslate"><span class="pre">LineStyle.marker_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id48"><code class="docutils literal notranslate"><span class="pre">LineStyle.markers_only</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id49"><code class="docutils literal notranslate"><span class="pre">LineStyle.miter_limit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id50"><code class="docutils literal notranslate"><span class="pre">LineStyle.smooth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id51"><code class="docutils literal notranslate"><span class="pre">LineStyle.stroke</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id52"><code class="docutils literal notranslate"><span class="pre">LineStyle.width</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.MarkerStyle"><code class="docutils literal notranslate"><span class="pre">MarkerStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.MarkerStyle.marker_type"><code class="docutils literal notranslate"><span class="pre">MarkerStyle.marker_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.MarkerStyle.size"><code class="docutils literal notranslate"><span class="pre">MarkerStyle.size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.MarkerStyle.color"><code class="docutils literal notranslate"><span class="pre">MarkerStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.MarkerStyle.radius"><code class="docutils literal notranslate"><span class="pre">MarkerStyle.radius</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id53"><code class="docutils literal notranslate"><span class="pre">MarkerStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id54"><code class="docutils literal notranslate"><span class="pre">MarkerStyle.marker_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id55"><code class="docutils literal notranslate"><span class="pre">MarkerStyle.radius</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id56"><code class="docutils literal notranslate"><span class="pre">MarkerStyle.size</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle"><code class="docutils literal notranslate"><span class="pre">PatternStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.pattern_type"><code class="docutils literal notranslate"><span class="pre">PatternStyle.pattern_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.color"><code class="docutils literal notranslate"><span class="pre">PatternStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.distance"><code class="docutils literal notranslate"><span class="pre">PatternStyle.distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.angle"><code class="docutils literal notranslate"><span class="pre">PatternStyle.angle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.x_shift"><code class="docutils literal notranslate"><span class="pre">PatternStyle.x_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.y_shift"><code class="docutils literal notranslate"><span class="pre">PatternStyle.y_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.line_width"><code class="docutils literal notranslate"><span class="pre">PatternStyle.line_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.radius"><code class="docutils literal notranslate"><span class="pre">PatternStyle.radius</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.PatternStyle.points"><code class="docutils literal notranslate"><span class="pre">PatternStyle.points</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id57"><code class="docutils literal notranslate"><span class="pre">PatternStyle.angle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id58"><code class="docutils literal notranslate"><span class="pre">PatternStyle.color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id59"><code class="docutils literal notranslate"><span class="pre">PatternStyle.distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id60"><code class="docutils literal notranslate"><span class="pre">PatternStyle.line_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id61"><code class="docutils literal notranslate"><span class="pre">PatternStyle.pattern_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id62"><code class="docutils literal notranslate"><span class="pre">PatternStyle.points</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id63"><code class="docutils literal notranslate"><span class="pre">PatternStyle.radius</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id64"><code class="docutils literal notranslate"><span class="pre">PatternStyle.x_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id65"><code class="docutils literal notranslate"><span class="pre">PatternStyle.y_shift</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle"><code class="docutils literal notranslate"><span class="pre">ShadeStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.shade_type"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.shade_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.axis_angle"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.axis_angle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.ball_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.ball_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.bottom_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.bottom_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.color_wheel"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.color_wheel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.color_wheel_black"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.color_wheel_black</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.color_wheel_white"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.color_wheel_white</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.inner_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.inner_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.left_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.left_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.lower_left_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.lower_left_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.lower_right_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.lower_right_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.middle_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.middle_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.outer_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.outer_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.right_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.right_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.top_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.top_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.upper_left_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.upper_left_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShadeStyle.upper_right_color"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.upper_right_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id66"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.axis_angle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id67"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.ball_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id68"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.bottom_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id69"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.color_wheel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id70"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.color_wheel_black</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id71"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.color_wheel_white</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id72"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.inner_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id73"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.left_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id74"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.lower_left_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id75"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.lower_right_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id76"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.middle_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id77"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.outer_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id78"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.right_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id79"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.shade_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id80"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.top_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id81"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.upper_left_color</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id82"><code class="docutils literal notranslate"><span class="pre">ShadeStyle.upper_right_color</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShapeStyle"><code class="docutils literal notranslate"><span class="pre">ShapeStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShapeStyle.line_style"><code class="docutils literal notranslate"><span class="pre">ShapeStyle.line_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShapeStyle.fill_style"><code class="docutils literal notranslate"><span class="pre">ShapeStyle.fill_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.ShapeStyle.alpha"><code class="docutils literal notranslate"><span class="pre">ShapeStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id83"><code class="docutils literal notranslate"><span class="pre">ShapeStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id84"><code class="docutils literal notranslate"><span class="pre">ShapeStyle.fill_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id85"><code class="docutils literal notranslate"><span class="pre">ShapeStyle.line_style</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle"><code class="docutils literal notranslate"><span class="pre">TagStyle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.align"><code class="docutils literal notranslate"><span class="pre">TagStyle.align</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.alpha"><code class="docutils literal notranslate"><span class="pre">TagStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.bold"><code class="docutils literal notranslate"><span class="pre">TagStyle.bold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.italic"><code class="docutils literal notranslate"><span class="pre">TagStyle.italic</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.anchor"><code class="docutils literal notranslate"><span class="pre">TagStyle.anchor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.blend_mode"><code class="docutils literal notranslate"><span class="pre">TagStyle.blend_mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.draw_frame"><code class="docutils literal notranslate"><span class="pre">TagStyle.draw_frame</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.font_style"><code class="docutils literal notranslate"><span class="pre">TagStyle.font_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.frame_style"><code class="docutils literal notranslate"><span class="pre">TagStyle.frame_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#simetri.canvas.style_map.TagStyle.text_width"><code class="docutils literal notranslate"><span class="pre">TagStyle.text_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id86"><code class="docutils literal notranslate"><span class="pre">TagStyle.align</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id87"><code class="docutils literal notranslate"><span class="pre">TagStyle.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id88"><code class="docutils literal notranslate"><span class="pre">TagStyle.anchor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id89"><code class="docutils literal notranslate"><span class="pre">TagStyle.blend_mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id90"><code class="docutils literal notranslate"><span class="pre">TagStyle.bold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id91"><code class="docutils literal notranslate"><span class="pre">TagStyle.draw_frame</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id92"><code class="docutils literal notranslate"><span class="pre">TagStyle.font_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id93"><code class="docutils literal notranslate"><span class="pre">TagStyle.frame_style</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id94"><code class="docutils literal notranslate"><span class="pre">TagStyle.italic</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="simetri.canvas.html#id95"><code class="docutils literal notranslate"><span class="pre">TagStyle.text_width</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="simetri.canvas.html#module-simetri.canvas">Module contents</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="simetri.colors.html">simetri.colors package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="simetri.colors.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="simetri.colors.html#module-simetri.colors.colors">simetri.colors.colors module</a><ul>
@@ -2578,12 +2828,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="simetri.colors.html">
+          <a class="next-page" href="simetri.canvas.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">simetri.colors package</div>
+                <div class="title">simetri.canvas package</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   simetri.canvas
    simetri.colors
    simetri.extensions
    simetri.frieze

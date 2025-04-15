@@ -1,4 +1,4 @@
-simetri.frieze package
+simetri.canvas package
 ======================
 
 Submodules

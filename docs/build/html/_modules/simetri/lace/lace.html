@@ -1,52 +1,274 @@
-<!DOCTYPE html>
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
-<html lang="en" data-content_root="../../../">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>simetri.lace.lace &#8212; simetri.graphics 0.0.5 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../../_static/documentation_options.js?v=282f96c0"></script>
-    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
-   
-  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>simetri.lace.lace - simetri.graphics 0.0.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
   
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
 
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">simetri.graphics 0.0.6 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
   
-
-  </head><body>
+  <span class="sidebar-brand-text">simetri.graphics 0.0.6 documentation</span>
   
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../modules.html">simetri</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of simetri</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../simetri.html">simetri package</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of simetri package</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.canvas.html">simetri.canvas package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.colors.html">simetri.colors package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.extensions.html">simetri.extensions package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.frieze.html">simetri.frieze package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.geometry.html">simetri.geometry package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.graphics.html">simetri.graphics package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.helpers.html">simetri.helpers package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.image.html">simetri.image package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.lace.html">simetri.lace package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.notebook.html">simetri.notebook package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.stars.html">simetri.stars package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.tikz.html">simetri.tikz package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../simetri.wallpaper.html">simetri.wallpaper package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
+</div>
+</div>
 
-          <div class="body" role="main">
-            
-  <h1>Source code for simetri.lace.lace</h1><div class="highlight"><pre>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for simetri.lace.lace</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Simetri library&#39;s interlace objects.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">combinations</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">isclose</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">isclose</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">custom_attributes</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Batch</span>
+<span class="kn">from</span> <span class="nn">..graphics.shape</span> <span class="kn">import</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">custom_attributes</span>
+<span class="kn">from</span> <span class="nn">..graphics.batch</span> <span class="kn">import</span> <span class="n">Batch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">..colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">colors</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..geometry.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span> <span class="nn">..colors</span> <span class="kn">import</span> <span class="n">colors</span>
+<span class="kn">from</span> <span class="nn">..geometry.geometry</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">connected_pairs</span><span class="p">,</span>
     <span class="n">polygon_area</span><span class="p">,</span>
     <span class="n">distance</span><span class="p">,</span>
@@ -63,17 +285,17 @@
     <span class="n">close_points2</span><span class="p">,</span>
     <span class="n">polygon_center</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_cycles</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_defaults</span><span class="p">,</span> <span class="n">common_properties</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..graphics.all_enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">Types</span><span class="p">,</span> <span class="n">Connection</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..canvas.style_map</span><span class="w"> </span><span class="kn">import</span> <span class="n">shape_style_map</span><span class="p">,</span> <span class="n">ShapeStyle</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..canvas.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">Canvas</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..settings.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaults</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">flatten</span><span class="p">,</span> <span class="n">group_into_bins</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">..helpers.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span> <span class="nn">..helpers.graph</span> <span class="kn">import</span> <span class="n">get_cycles</span>
+<span class="kn">from</span> <span class="nn">..graphics.common</span> <span class="kn">import</span> <span class="n">get_defaults</span><span class="p">,</span> <span class="n">common_properties</span>
+<span class="kn">from</span> <span class="nn">..graphics.all_enums</span> <span class="kn">import</span> <span class="n">Types</span><span class="p">,</span> <span class="n">Connection</span>
+<span class="kn">from</span> <span class="nn">..canvas.style_map</span> <span class="kn">import</span> <span class="n">shape_style_map</span><span class="p">,</span> <span class="n">ShapeStyle</span>
+<span class="kn">from</span> <span class="nn">..canvas.canvas</span> <span class="kn">import</span> <span class="n">Canvas</span>
+<span class="kn">from</span> <span class="nn">..settings.settings</span> <span class="kn">import</span> <span class="n">defaults</span>
+<span class="kn">from</span> <span class="nn">..helpers.utilities</span> <span class="kn">import</span> <span class="n">flatten</span><span class="p">,</span> <span class="n">group_into_bins</span>
+<span class="kn">from</span> <span class="nn">..helpers.validation</span> <span class="kn">import</span> <span class="n">validate_args</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_set_style</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">attribs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_set_style</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">attribs</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attribs</span><span class="p">:</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">],</span> <span class="n">attr</span><span class="p">))</span>
 
@@ -211,7 +433,7 @@
 
 <div class="viewcode-block" id="Intersection">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Intersection">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Intersection</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Intersection</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Intersection of two divisions. They are at the endpoints of Section</span>
 <span class="sd">    objects. A division can have multiple sections and multiple</span>
 <span class="sd">    intersections. They can be located at the end of a division.</span>
@@ -224,7 +446,7 @@
 <span class="sd">        **kwargs: Additional attributes for cosmetic/drawing purposes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">division1</span><span class="p">:</span> <span class="s2">&quot;Division&quot;</span><span class="p">,</span> <span class="n">division2</span><span class="p">:</span> <span class="s2">&quot;Division&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">division1</span><span class="p">:</span> <span class="s2">&quot;Division&quot;</span><span class="p">,</span> <span class="n">division2</span><span class="p">:</span> <span class="s2">&quot;Division&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">point</span><span class="p">],</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">INTERSECTION</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_point</span> <span class="o">=</span> <span class="n">point</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">division1</span> <span class="o">=</span> <span class="n">division1</span>
@@ -235,7 +457,7 @@
 
         <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">:</span> <span class="n">array</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">:</span> <span class="n">array</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the transformation matrix of the intersection.</span>
 
 <span class="sd">        Args:</span>
@@ -259,7 +481,7 @@
 
 <div class="viewcode-block" id="Intersection.copy">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Intersection.copy">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a copy of the intersection.</span>
 
 <span class="sd">        Returns:</span>
@@ -275,7 +497,7 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the intersection point.</span>
 
 <span class="sd">        Returns:</span>
@@ -283,7 +505,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">xform_matrix</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the intersection.</span>
 
 <span class="sd">        Returns:</span>
@@ -294,7 +516,7 @@
             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">list</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">division1</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">division2</span><span class="p">]))</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the intersection.</span>
 
 <span class="sd">        Returns:</span>
@@ -302,7 +524,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if two intersections are equal.</span>
 
 <span class="sd">        Args:</span>
@@ -317,7 +539,7 @@
 
 <div class="viewcode-block" id="Partition">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Partition">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Partition</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Partition</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;These are the polygons of the non-interlaced geometry.</span>
 <span class="sd">    Fragments and partitions are scaled versions of each other.</span>
 
@@ -326,14 +548,14 @@
 <span class="sd">        **kwargs: Additional attributes for cosmetic/drawing purposes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">PART</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">area</span> <span class="o">=</span> <span class="n">polygon_area</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CG</span> <span class="o">=</span> <span class="n">polygon_cg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
         <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the partition.</span>
 
 <span class="sd">        Returns:</span>
@@ -341,7 +563,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Part(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="si">}</span><span class="s2">)&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the partition.</span>
 
 <span class="sd">        Returns:</span>
@@ -353,7 +575,7 @@
 
 <div class="viewcode-block" id="Fragment">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Fragment">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Fragment</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Fragment</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A Fragment is a collection of section objects that are connected</span>
 <span class="sd">    to each other. These sections are already defined. They belong to</span>
 <span class="sd">    the polyline objects in a lace. Fragments can be open or closed.</span>
@@ -364,7 +586,7 @@
 <span class="sd">        **kwargs: Additional attributes for cosmetic/drawing purposes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">subtype</span> <span class="o">=</span> <span class="n">Types</span><span class="o">.</span><span class="n">FRAGMENT</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">area</span> <span class="o">=</span> <span class="n">polygon_area</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
@@ -375,7 +597,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">CG</span> <span class="o">=</span> <span class="n">polygon_cg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
         <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the fragment.</span>
 
 <span class="sd">        Returns:</span>
@@ -383,7 +605,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Fragment(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="si">}</span><span class="s2">)&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the fragment.</span>
 
 <span class="sd">        Returns:</span>
@@ -392,7 +614,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the divisions of the fragment.</span>
 
 <span class="sd">        Returns:</span>
@@ -401,7 +623,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_divisions</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">center</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the center of the fragment.</span>
 
 <span class="sd">        Returns:</span>
@@ -409,7 +631,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CG</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dist_tol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dist_tol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">dist_tol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dist_tol</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;dist_tol&quot;</span><span class="p">]</span>
         <span class="n">dist_tol2</span> <span class="o">=</span> <span class="n">dist_tol</span> <span class="o">*</span> <span class="n">dist_tol</span>  <span class="c1"># squared distance tolerance</span>
@@ -446,7 +668,7 @@
             <span class="n">division</span><span class="o">.</span><span class="n">prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_divisions</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
             <span class="n">division</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_divisions</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span><span class="p">]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_twin_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_twin_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">division</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">divisions</span><span class="p">:</span>
             <span class="n">section</span> <span class="o">=</span> <span class="n">division</span><span class="o">.</span><span class="n">section</span>
             <span class="k">if</span> <span class="n">section</span><span class="o">.</span><span class="n">twin</span> <span class="ow">and</span> <span class="n">section</span><span class="o">.</span><span class="n">twin</span><span class="o">.</span><span class="n">fragment</span><span class="p">:</span>
@@ -464,7 +686,7 @@
 
 <div class="viewcode-block" id="Section">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Section">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Section</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Section</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A section is a line segment between two intersections.</span>
 <span class="sd">    A division can have multiple sections. Sections are used to</span>
 <span class="sd">    draw the over/under plaits.</span>
@@ -480,7 +702,7 @@
 <span class="sd">        **kwargs: Additional attributes for cosmetic/drawing purposes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">start</span><span class="p">:</span> <span class="n">Intersection</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">end</span><span class="p">:</span> <span class="n">Intersection</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -509,7 +731,7 @@
 
 <div class="viewcode-block" id="Section.copy">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Section.copy">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a copy of the section.</span>
 
 <span class="sd">        Returns:</span>
@@ -525,7 +747,7 @@
 
 <div class="viewcode-block" id="Section.end_point">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Section.end_point">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">end_point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">end_point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the end point of the section.</span>
 
 <span class="sd">        Returns:</span>
@@ -541,7 +763,7 @@
         <span class="k">return</span> <span class="n">res</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the section.</span>
 
 <span class="sd">        Returns:</span>
@@ -549,7 +771,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Section(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="si">}</span><span class="s2">)&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the section.</span>
 
 <span class="sd">        Returns:</span>
@@ -558,7 +780,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">is_endpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">is_endpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if the section is an endpoint.</span>
 
 <span class="sd">        Returns:</span>
@@ -570,7 +792,7 @@
 
 <div class="viewcode-block" id="Overlap">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Overlap">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Overlap</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Overlap</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;An overlap is a collection of four connected sections.</span>
 
 <span class="sd">    Args:</span>
@@ -581,7 +803,7 @@
 <span class="sd">        **kwargs: Additional attributes for cosmetic/drawing purposes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">intersections</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Intersection</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sections</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Section</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -597,7 +819,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">drawable</span> <span class="o">=</span> <span class="n">drawable</span>
         <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the overlap.</span>
 
 <span class="sd">        Returns:</span>
@@ -605,7 +827,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Overlap(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">)&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the overlap.</span>
 
 <span class="sd">        Returns:</span>
@@ -617,7 +839,7 @@
 
 <div class="viewcode-block" id="Division">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Division">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Division</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Division</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A division is a line segment between two intersections.</span>
 
 <span class="sd">    Args:</span>
@@ -627,7 +849,7 @@
 <span class="sd">        **kwargs: Additional attributes for cosmetic/drawing purposes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">],</span> <span class="n">subtype</span><span class="o">=</span><span class="n">Types</span><span class="o">.</span><span class="n">DIVISION</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">p1</span> <span class="o">=</span> <span class="n">p1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">p2</span> <span class="o">=</span> <span class="n">p2</span>
@@ -643,7 +865,7 @@
         <span class="p">)</span>
         <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the transformation matrix of the division.</span>
 
 <span class="sd">        Args:</span>
@@ -665,7 +887,7 @@
 
         <span class="k">return</span> <span class="n">res</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the division.</span>
 
 <span class="sd">        Returns:</span>
@@ -676,7 +898,7 @@
             <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">))&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the division.</span>
 
 <span class="sd">        Returns:</span>
@@ -689,7 +911,7 @@
 
 <div class="viewcode-block" id="Division.copy">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Division.copy">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">section</span><span class="p">:</span> <span class="n">Section</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">twin</span><span class="p">:</span> <span class="n">Section</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -718,7 +940,7 @@
         <span class="k">return</span> <span class="n">division</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_merged_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_merged_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge sections of the division.</span>
 
 <span class="sd">        Returns:</span>
@@ -738,13 +960,13 @@
             <span class="n">chains</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">chains</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_sort_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">_sort_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Sort intersections of the division.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">intersections</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">distance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p1</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">point</span><span class="p">))</span>
 
 <div class="viewcode-block" id="Division.is_connected">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Division.is_connected">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">is_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;Division&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">is_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;Division&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if the division is connected to another division.</span>
 
 <span class="sd">        Args:</span>
@@ -757,7 +979,7 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">end_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">end_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the end points of the division.</span>
 
 <span class="sd">        Returns:</span>
@@ -766,7 +988,7 @@
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">p1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p2</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intersection</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intersection</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the start intersection of the division.</span>
 
 <span class="sd">        Returns:</span>
@@ -775,7 +997,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">end</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intersection</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">end</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intersection</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the end intersection of the division.</span>
 
 <span class="sd">        Returns:</span>
@@ -787,7 +1009,7 @@
 
 <div class="viewcode-block" id="Polyline">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Polyline">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Polyline</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Polyline</span><span class="p">(</span><span class="n">Shape</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Connected points, similar to Shape objects.</span>
 <span class="sd">    They can be closed or open.</span>
@@ -801,7 +1023,7 @@
 <span class="sd">        **kwargs: Additional attributes for cosmetic/drawing purposes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ShapeStyle</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_style_map&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape_style_map</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_aliases</span><span class="p">()</span>
@@ -813,7 +1035,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_set_intersections</span><span class="p">()</span>
         <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the transformation matrix of the polyline.</span>
 
 <span class="sd">        Args:</span>
@@ -837,7 +1059,7 @@
 
         <span class="k">return</span> <span class="n">res</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the polyline.</span>
 
 <span class="sd">        Returns:</span>
@@ -845,7 +1067,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Polyline(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">final_coords</span><span class="p">[:,</span><span class="w"> </span><span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the polyline.</span>
 
 <span class="sd">        Returns:</span>
@@ -855,7 +1077,7 @@
 
 <div class="viewcode-block" id="Polyline.iter_sections">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Polyline.iter_sections">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">iter_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iter_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate over the sections of the polyline.</span>
 
 <span class="sd">        Yields:</span>
@@ -867,7 +1089,7 @@
 
 <div class="viewcode-block" id="Polyline.iter_intersections">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Polyline.iter_intersections">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">iter_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">iter_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate over the intersections of the polyline.</span>
 
 <span class="sd">        Yields:</span>
@@ -878,7 +1100,7 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the intersections of the polyline.</span>
 
 <span class="sd">        Returns:</span>
@@ -890,7 +1112,7 @@
         <span class="k">return</span> <span class="n">res</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the area of the polygon.</span>
 
 <span class="sd">        Returns:</span>
@@ -899,7 +1121,7 @@
         <span class="k">return</span> <span class="n">polygon_area</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">sections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">sections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the sections of the polyline.</span>
 
 <span class="sd">        Returns:</span>
@@ -911,7 +1133,7 @@
         <span class="k">return</span> <span class="n">sections</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the divisions of the polyline.</span>
 
 <span class="sd">        Returns:</span>
@@ -919,7 +1141,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;divisions&quot;</span><span class="p">]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">vertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
             <span class="n">vertices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">vertices</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
@@ -927,7 +1149,7 @@
         <span class="n">divisions</span> <span class="o">=</span> <span class="p">[</span><span class="n">Division</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span> <span class="k">for</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;divisions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">divisions</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fake intersections for open lines.&quot;&quot;&quot;</span>
         <span class="n">division1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">divisions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">division2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">divisions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -943,7 +1165,7 @@
 
 <div class="viewcode-block" id="ParallelPolyline">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.ParallelPolyline">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">ParallelPolyline</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">ParallelPolyline</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A ParallelPolylines is a collection of parallel Polylines.</span>
 <span class="sd">    They are defined by a main polyline and a list of offset</span>
 <span class="sd">    values (that can be negative or positive).</span>
@@ -958,7 +1180,7 @@
 <span class="sd">        **kwargs: Additional attributes for cosmetic/drawing purposes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">polyline</span><span class="p">,</span>
         <span class="n">offset</span><span class="p">,</span>
@@ -985,7 +1207,7 @@
         <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Section</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Section</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the sections of the parallel polyline.</span>
 
 <span class="sd">        Returns:</span>
@@ -996,7 +1218,7 @@
             <span class="n">sects</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">polyline</span><span class="o">.</span><span class="n">sections</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sects</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_offset_polylines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_offset_polylines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">polyline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">polyline</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
             <span class="n">vertices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">polyline</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
@@ -1019,7 +1241,7 @@
 
 <div class="viewcode-block" id="Lace">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">Lace</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Lace</span><span class="p">(</span><span class="n">Batch</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Lace is a collection of ParallelPolylines objects.</span>
 <span class="sd">    They are used to create interlace patterns.</span>
@@ -1042,7 +1264,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">polygon_shapes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Shape</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">polyline_shapes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Batch</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Shape</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1165,7 +1387,7 @@
         <span class="n">common_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">center</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the center of the lace.</span>
 
 <span class="sd">        Returns:</span>
@@ -1174,7 +1396,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">outline</span><span class="o">.</span><span class="n">CG</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">fragment_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">fragment_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the fragment groups of the lace.</span>
 
 <span class="sd">        Returns:</span>
@@ -1204,7 +1426,7 @@
 
         <span class="k">return</span> <span class="n">d_groups</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_check_polygons</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polygon_shapes</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_check_polygons</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polygon_shapes</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">polygon_shapes</span><span class="p">,</span> <span class="n">Batch</span><span class="p">):</span>
             <span class="n">polygon_shapes</span> <span class="o">=</span> <span class="n">polygon_shapes</span><span class="o">.</span><span class="n">all_shapes</span>
         <span class="k">for</span> <span class="n">polygon</span> <span class="ow">in</span> <span class="n">polygon_shapes</span><span class="p">:</span>
@@ -1223,7 +1445,7 @@
 
         <span class="k">return</span> <span class="n">polygon_shapes</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_check_polylines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polyline_shapes</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_check_polylines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polyline_shapes</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">polyline_shapes</span><span class="p">,</span> <span class="n">Batch</span><span class="p">):</span>
             <span class="n">polyline_shapes</span> <span class="o">=</span> <span class="n">polyline_shapes</span><span class="o">.</span><span class="n">all_shapes</span>
         <span class="k">for</span> <span class="n">polyline</span> <span class="ow">in</span> <span class="n">polyline_shapes</span><span class="p">:</span>
@@ -1233,7 +1455,7 @@
 
         <span class="k">return</span> <span class="n">polyline_shapes</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xform_matrix</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the transformation matrix of the lace.</span>
 
 <span class="sd">        Args:</span>
@@ -1280,7 +1502,7 @@
             <span class="k">return</span> <span class="n">res</span>
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_twin_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_twin_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">par_poly</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_poly_list</span><span class="p">:</span>
             <span class="n">poly1</span><span class="p">,</span> <span class="n">poly2</span> <span class="o">=</span> <span class="n">par_poly</span><span class="o">.</span><span class="n">offset_poly_list</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">poly1</span><span class="o">.</span><span class="n">iter_sections</span><span class="p">()):</span>
@@ -1290,7 +1512,7 @@
                 <span class="n">sec2</span><span class="o">.</span><span class="n">twin</span> <span class="o">=</span> <span class="n">sec1</span>
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_partitions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_partitions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">fragment</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">partitions</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">fragment</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">:</span>
@@ -1298,7 +1520,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">partition</span><span class="p">)</span>
 
     <span class="c1"># To do: This doesn&#39;t work if we have polyline shapes!</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_outline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_outline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># outline is a special fragment that covers the whole lace</span>
         <span class="n">areas</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">fragment</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">:</span>
@@ -1313,7 +1535,7 @@
 
 <div class="viewcode-block" id="Lace.set_fragment_groups">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.set_fragment_groups">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_fragment_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">set_fragment_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># to do : handle repeated code. same in _set_partition_groups</span>
         <span class="n">areas</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fragment</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">):</span>
@@ -1347,7 +1569,7 @@
 
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_partition_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_partition_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># to do : handle repeated code. same in set_fragment_groups</span>
         <span class="n">areas</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">partition</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="p">):</span>
@@ -1381,7 +1603,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">partitions_by_radius</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">partitions</span>
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_fragments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_fragments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_offset_sections</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">section</span><span class="o">.</span><span class="n">is_overlap</span><span class="p">:</span>
@@ -1420,16 +1642,16 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span> <span class="o">=</span> <span class="n">fragments</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_concave_hull</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_concave_hull</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">concave_hull</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outline</span><span class="o">.</span><span class="n">vertices</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_convex_hull</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_convex_hull</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">convex_hull</span> <span class="o">=</span> <span class="n">convex_hull</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outline</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Lace.copy">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.copy">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">class</span><span class="w"> </span><span class="nc">Dummy</span><span class="p">(</span><span class="n">Lace</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">class</span> <span class="nc">Dummy</span><span class="p">(</span><span class="n">Lace</span><span class="p">):</span>
             <span class="k">pass</span>
 
         <span class="c1"># we need to copy the polyline_list and parallel_poly_list</span>
@@ -1439,7 +1661,7 @@
 
 <div class="viewcode-block" id="Lace.get_sketch">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.get_sketch">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_sketch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_sketch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create and return a Sketch object. Sketch is a Batch object</span>
 <span class="sd">        with Shape elements corresponding to the vertices of the plaits</span>
@@ -1497,7 +1719,7 @@
 
 <div class="viewcode-block" id="Lace.group_fragments">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.group_fragments">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">group_fragments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">group_fragments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Group the fragments by the number of vertices and the area.</span>
 
 <span class="sd">        Args:</span>
@@ -1528,7 +1750,7 @@
 
 <div class="viewcode-block" id="Lace.get_fragment_cycles">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.get_fragment_cycles">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_fragment_cycles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_fragment_cycles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Iterate over the offset sections and create a graph of the</span>
 <span class="sd">        intersections (start and end of the sections). Then find the</span>
@@ -1547,7 +1769,7 @@
         <span class="k">return</span> <span class="n">get_cycles</span><span class="p">(</span><span class="n">graph_edges</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_inner_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">line_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">blue</span><span class="p">,</span> <span class="n">line_width</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_inner_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">line_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">blue</span><span class="p">,</span> <span class="n">line_width</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
             <span class="n">vertices</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">vertices</span>
             <span class="n">dist_tol</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">&quot;dist_tol&quot;</span><span class="p">]</span>
@@ -1562,7 +1784,7 @@
 
 <div class="viewcode-block" id="Lace.set_plait_lines">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.set_plait_lines">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_plait_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">line_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">blue</span><span class="p">,</span> <span class="n">line_width</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">set_plait_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">line_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">blue</span><span class="p">,</span> <span class="n">line_width</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create offset lines inside the plaits of the lace.</span>
 
 <span class="sd">        Args:</span>
@@ -1578,7 +1800,7 @@
 
 <div class="viewcode-block" id="Lace.set_fragment_lines">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.set_fragment_lines">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_fragment_lines</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">set_fragment_lines</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -1600,7 +1822,7 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">all_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">all_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a list of all the divisions (both main and offset) in the lace.</span>
 
@@ -1615,7 +1837,7 @@
 
 <div class="viewcode-block" id="Lace.iter_main_intersections">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.iter_main_intersections">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">iter_main_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iter_main_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate over the main intersections.</span>
 
 <span class="sd">        Yields:</span>
@@ -1628,7 +1850,7 @@
 
 <div class="viewcode-block" id="Lace.iter_offset_intersections">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.iter_offset_intersections">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">iter_offset_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iter_offset_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Iterate over the offset intersections.</span>
 
@@ -1643,7 +1865,7 @@
 
 <div class="viewcode-block" id="Lace.iter_offset_sections">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.iter_offset_sections">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">iter_offset_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iter_offset_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Iterate over the offset sections.</span>
 
@@ -1658,7 +1880,7 @@
 
 <div class="viewcode-block" id="Lace.iter_main_sections">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.iter_main_sections">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">iter_main_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iter_main_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate over the main sections.</span>
 
 <span class="sd">        Yields:</span>
@@ -1671,7 +1893,7 @@
 
 <div class="viewcode-block" id="Lace.iter_offset_divisions">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.iter_offset_divisions">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">iter_offset_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iter_offset_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Iterate over the offset divisions.</span>
 
@@ -1685,7 +1907,7 @@
 
 <div class="viewcode-block" id="Lace.iter_main_divisions">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.iter_main_divisions">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">iter_main_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iter_main_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Iterate over the main divisions.</span>
 
@@ -1697,7 +1919,7 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">main_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Division</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">main_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Division</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Main divisions are the divisions of the main polyline.</span>
 
 <span class="sd">        Returns:</span>
@@ -1709,7 +1931,7 @@
         <span class="k">return</span> <span class="n">res</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">offset_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Division</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">offset_divisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Division</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Offset divisions are the divisions of the offset polylines.</span>
 
 <span class="sd">        Returns:</span>
@@ -1722,7 +1944,7 @@
         <span class="k">return</span> <span class="n">res</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Intersection</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Intersection</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return all the intersections in the parallel_poly_list.</span>
 
 <span class="sd">        Returns:</span>
@@ -1735,7 +1957,7 @@
         <span class="k">return</span> <span class="n">res</span>
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_polyline_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_polyline_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Populate the self.polyline_list list with Polyline objects.</span>
 
@@ -1764,7 +1986,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">polyline_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Polyline</span><span class="p">(</span><span class="n">polyline</span><span class="o">.</span><span class="n">vertices</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_parallel_poly_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_parallel_poly_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Populate the self.parallel_poly_list list with ParallelPolyline</span>
 <span class="sd">        objects.</span>
@@ -1805,7 +2027,7 @@
                 <span class="p">)</span>
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_overlaps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_overlaps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Populate the self.overlaps list with Overlap objects. Side</span>
 <span class="sd">        effects listed below.</span>
@@ -1875,7 +2097,7 @@
 
 <div class="viewcode-block" id="Lace.set_plaits">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.set_plaits">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_plaits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">set_plaits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Populate the self.plaits list with Plait objects. Plaits are</span>
 <span class="sd">        optional for drawing. They form the under/over interlacing. They</span>
@@ -1977,7 +2199,7 @@
 
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_intersections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute all intersection points (by calling all_intersections)</span>
 <span class="sd">        among the divisions of the polylines (both main and offset).</span>
@@ -2061,7 +2283,7 @@
                 <span class="n">division</span><span class="o">.</span><span class="n">sections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">offset_sections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_all_polygons</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polylines</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_all_polygons</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polylines</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of polygons from a list of lists of points.</span>
 <span class="sd">        polylines: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]</span>
 <span class="sd">        return [[(x1, y1), (x2, y2), (x3, y3), ...], ...]</span>
@@ -2078,8 +2300,8 @@
         <span class="k">return</span> <span class="n">get_polygons</span><span class="p">(</span><span class="n">polylines</span><span class="p">,</span> <span class="n">rtol</span><span class="p">)</span>
 
     <span class="c1"># @timing</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_over_under</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">next_poly</span><span class="p">(</span><span class="n">exclude</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_over_under</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">next_poly</span><span class="p">(</span><span class="n">exclude</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">ppoly</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_poly_list</span><span class="p">:</span>
                 <span class="n">poly1</span><span class="p">,</span> <span class="n">poly2</span> <span class="o">=</span> <span class="n">ppoly</span><span class="o">.</span><span class="n">offset_poly_list</span>
                 <span class="k">if</span> <span class="n">poly1</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">:</span>
@@ -2123,7 +2345,7 @@
 
 <div class="viewcode-block" id="Lace.fragment_edge_graph">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.fragment_edge_graph">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">fragment_edge_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">fragment_edge_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a networkx graph of the connected fragments.</span>
 <span class="sd">        If two fragments have a &quot;common&quot; division then they are connected.</span>
@@ -2146,7 +2368,7 @@
 
 <div class="viewcode-block" id="Lace.fragment_vertex_graph">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.Lace.fragment_vertex_graph">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">fragment_vertex_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">fragment_vertex_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a networkx graph of the connected fragments.</span>
 <span class="sd">        If two fragments have a &quot;common&quot; vertex then they are connected.</span>
@@ -2154,7 +2376,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            nx.Graph: Graph of connected fragments.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">get_neighbours</span><span class="p">(</span><span class="n">intersection</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">get_neighbours</span><span class="p">(</span><span class="n">intersection</span><span class="p">):</span>
             <span class="n">division</span> <span class="o">=</span> <span class="n">intersection</span><span class="o">.</span><span class="n">division</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">division</span><span class="o">.</span><span class="n">next</span><span class="o">.</span><span class="n">twin</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">None</span>
@@ -2199,7 +2421,7 @@
 
 <div class="viewcode-block" id="all_intersections">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.all_intersections">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">all_intersections</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">all_intersections</span><span class="p">(</span>
     <span class="n">division_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Division</span><span class="p">],</span>
     <span class="n">d_intersections</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Intersection</span><span class="p">],</span>
     <span class="n">d_connections</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">,</span> <span class="n">Intersection</span><span class="p">],</span>
@@ -2319,7 +2541,7 @@
 
 <div class="viewcode-block" id="merge_nodes">
 <a class="viewcode-back" href="../../../simetri.lace.html#simetri.lace.lace.merge_nodes">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">merge_nodes</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">merge_nodes</span><span class="p">(</span>
     <span class="n">division_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Division</span><span class="p">],</span>
     <span class="n">d_intersections</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Intersection</span><span class="p">],</span>
     <span class="n">d_connections</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">,</span> <span class="n">Intersection</span><span class="p">],</span>
@@ -2436,69 +2658,40 @@
     <span class="k">return</span> <span class="n">intersections</span></div>
 
 </pre></div>
-
-          </div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
           
         </div>
-      </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="Main">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../../index.html">simetri.graphics</a></h1>
-
-
-
-
-
-
-
-
-
-<search id="searchbox" style="display: none" role="search">
-    <div class="searchformwrapper">
-    <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../../index.html">Documentation overview</a><ul>
-  <li><a href="../../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Fahri Basegmez
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
         </div>
-      </div>
-      <div class="clearer"></div>
+        
+      </footer>
     </div>
-    <div class="footer">
-      &#169;2025, Fahri Basegmez.
+    <aside class="toc-drawer no-toc">
       
-      |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
-    </div>
-
-    
-
-    
-  </body>
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=1fd71caa"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
 </html>
