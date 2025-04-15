@@ -13,6 +13,7 @@ Subpackages
    simetri.geometry
    simetri.graphics
    simetri.helpers
+   simetri.image
    simetri.lace
    simetri.notebook
    simetri.stars

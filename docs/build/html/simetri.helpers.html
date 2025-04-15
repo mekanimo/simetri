@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="simetri.lace package" href="simetri.lace.html" /><link rel="prev" title="simetri.graphics package" href="simetri.graphics.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="simetri.image package" href="simetri.image.html" /><link rel="prev" title="simetri.graphics package" href="simetri.graphics.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>simetri.helpers package - simetri.graphics 0.0.6 documentation</title>
@@ -208,6 +208,7 @@
 <li class="toctree-l3"><a class="reference internal" href="simetri.geometry.html">simetri.geometry package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simetri.graphics.html">simetri.graphics package</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">simetri.helpers package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simetri.image.html">simetri.image package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simetri.lace.html">simetri.lace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simetri.notebook.html">simetri.notebook package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simetri.stars.html">simetri.stars package</a></li>
@@ -1632,6 +1633,20 @@ def funct(target, modifier, <a href="#id5"><span class="problematic" id="id6">*<
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="simetri.helpers.utilities.axis">
+<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">axis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/simetri/helpers/utilities.html#axis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.helpers.utilities.axis" title="Link to this definition">¶</a></dt>
+<dd><p>Return a line [(x1, y1), (x2, y2)] with the given angle
+and length.
+:param angle: The angle between the line and the x-axis, in radians.
+:param length: The length of the line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A line represented as a tuple of two points.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="simetri.helpers.utilities.binomial">
 <span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">binomial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/helpers/utilities.html#binomial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.helpers.utilities.binomial" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the binomial coefficient.</p>
@@ -2072,14 +2087,14 @@ def funct(target, modifier, <a href="#id5"><span class="problematic" id="id6">*<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="simetri.helpers.utilities.rc">
-<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">rc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simetri.helpers.utilities.rc" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">rc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#simetri.helpers.utilities.rc" title="Link to this definition">¶</a></dt>
 <dd><p>Return the relative coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dx</strong> – The x-coordinate difference.</p></li>
 <li><p><strong>dy</strong> – The y-coordinate difference.</p></li>
-<li><p><strong>origin</strong> – The origin coordinates.</p></li>
+<li><p><strong>center</strong> – The center coordinates.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2108,14 +2123,14 @@ def funct(target, modifier, <a href="#id5"><span class="problematic" id="id6">*<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="simetri.helpers.utilities.rel_coord">
-<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">rel_coord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/helpers/utilities.html#rel_coord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.helpers.utilities.rel_coord" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">rel_coord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/simetri/helpers/utilities.html#rel_coord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.helpers.utilities.rel_coord" title="Link to this definition">¶</a></dt>
 <dd><p>Return the relative coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dx</strong> – The x-coordinate difference.</p></li>
 <li><p><strong>dy</strong> – The y-coordinate difference.</p></li>
-<li><p><strong>origin</strong> – The origin coordinates.</p></li>
+<li><p><strong>center</strong> – The center coordinates.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2126,14 +2141,14 @@ def funct(target, modifier, <a href="#id5"><span class="problematic" id="id6">*<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="simetri.helpers.utilities.rel_polar">
-<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">rel_polar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simetri/helpers/utilities.html#rel_polar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.helpers.utilities.rel_polar" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">rel_polar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/simetri/helpers/utilities.html#rel_polar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simetri.helpers.utilities.rel_polar" title="Link to this definition">¶</a></dt>
 <dd><p>Return the coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>r</strong> – The radius.</p></li>
 <li><p><strong>angle</strong> – The angle in radians.</p></li>
-<li><p><strong>origin</strong> – The origin coordinates.</p></li>
+<li><p><strong>center</strong> – The center coordinates.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2175,14 +2190,14 @@ def funct(target, modifier, <a href="#id5"><span class="problematic" id="id6">*<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="simetri.helpers.utilities.rp">
-<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">rp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#simetri.helpers.utilities.rp" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">simetri.helpers.utilities.</span></span><span class="sig-name descname"><span class="pre">rp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#simetri.helpers.utilities.rp" title="Link to this definition">¶</a></dt>
 <dd><p>Return the coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>r</strong> – The radius.</p></li>
 <li><p><strong>angle</strong> – The angle in radians.</p></li>
-<li><p><strong>origin</strong> – The origin coordinates.</p></li>
+<li><p><strong>center</strong> – The center coordinates.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2722,12 +2737,12 @@ None is not a valid boolean value.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="simetri.lace.html">
+          <a class="next-page" href="simetri.image.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">simetri.lace package</div>
+                <div class="title">simetri.image package</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -2916,6 +2931,7 @@ None is not a valid boolean value.</p>
 <li><a class="reference internal" href="#simetri.helpers.utilities.abcdef_reportlab"><code class="docutils literal notranslate"><span class="pre">abcdef_reportlab()</span></code></a></li>
 <li><a class="reference internal" href="#simetri.helpers.utilities.abcdef_svg"><code class="docutils literal notranslate"><span class="pre">abcdef_svg()</span></code></a></li>
 <li><a class="reference internal" href="#simetri.helpers.utilities.analyze_path"><code class="docutils literal notranslate"><span class="pre">analyze_path()</span></code></a></li>
+<li><a class="reference internal" href="#simetri.helpers.utilities.axis"><code class="docutils literal notranslate"><span class="pre">axis()</span></code></a></li>
 <li><a class="reference internal" href="#simetri.helpers.utilities.binomial"><code class="docutils literal notranslate"><span class="pre">binomial()</span></code></a></li>
 <li><a class="reference internal" href="#simetri.helpers.utilities.can_be_xform_matrix"><code class="docutils literal notranslate"><span class="pre">can_be_xform_matrix()</span></code></a></li>
 <li><a class="reference internal" href="#simetri.helpers.utilities.catalan"><code class="docutils literal notranslate"><span class="pre">catalan()</span></code></a></li>

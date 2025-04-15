@@ -36,6 +36,14 @@ simetri.extensions.ndfsm module
    :undoc-members:
    :show-inheritance:
 
+simetri.extensions.tree module
+------------------------------
+
+.. automodule:: simetri.extensions.tree
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 simetri.extensions.turtle\_sg module
 ------------------------------------
 
