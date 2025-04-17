@@ -5,7 +5,7 @@ It is designed to be used in conjunction with XeLaTeX rendering engine. Currentl
 
 *simetri.graphics* can generate output files with .tex, .pdf, .ps, .eps, .svg, or .png extensions. It can also generate Jupyter notebook cells with the output embedded in them.
 
-The documentation is available at [API Documentation](https://mekanimo.github.io/docs/build/html/index.html) and [simetri/docs](https://github.com/mekanimo/simetri/blob/master/docs/brief_overview.ipynb). There is also a gallery of examples available at [simetri/gallery](https://github.com/mekanimo/simetri/blob/master/gallery.ipynb).
+The documentation is available at [API Documentation](https://mekanimo.github.io/simetri-docs/simetri.html) and [simetri/docs](https://github.com/mekanimo/simetri/blob/master/docs/brief_overview.ipynb). There is also a gallery of examples available at [simetri/gallery](https://github.com/mekanimo/simetri/blob/master/gallery.ipynb).
 
 [<img alt="gallery" src="images/gallery.png" />](https://github.com/mekanimo/simetri/blob/master/gallery.ipynb)
 
@@ -15,7 +15,7 @@ This is the second alpha release of the library and is not yet ready for product
 Note: First row from the bottom, second image from left is from Jannis Maroscheck's Shape Grammars.
 [<img alt="gallery" src="images/img_grid2.png" />]
 ## What is new in 0.0.6-alpha
-- [API Documentation](https://mekanimo.github.io/docs/build/html/index.html).
+- [API Documentation](https://mekanimo.github.io/simetri-docs/simetri.html).
 - Codebase has been refactored. Since we haven't finished the testing framework we cannot be sure if we introduced new bugs with this refactoring!
 - Tested on macOS (Sequoia v.14) with MacTex, Linux (Ubuntu 24.04) with LiveTex and Windows 11 with MikTex.
 - Quadratic and cubic Bezier curve objects.
