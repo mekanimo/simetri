@@ -215,19 +215,19 @@ def inv_scale_matrix(scale_x: float, scale_y: float = None) -> 'ndarray':
     return np.array([[1 / scale_x, 0, 0], [0, 1 / scale_y, 0], [0, 0, 1.0]])
 
 
-def scale_in_place_matrix(scale_x: float, scale_y: float, point: Point) -> 'ndarray':
+def scale_in_place_matrix(scale_x: float, scale_y: float, about: Point) -> 'ndarray':
     """
     Return a scale matrix in row form that scales about a point.
 
     Args:
         scale_x (float): Scale factor in x direction.
         scale_y (float): Scale factor in y direction.
-        point (Point): Point about which the scaling is performed.
+        about (Point): Point about which the scaling is performed.
 
     Returns:
         np.ndarray: A scale matrix in row form that scales about a point.
     """
-    dx, dy = point[:2]
+    dx, dy = about[:2]
     trans_mat = translation_matrix(-dx, -dy)
     scale_mat = np.array([[scale_x, 0, 0], [0, scale_y, 0], [0, 0, 1.0]])
     inv_trans_mat = translation_matrix(dx, dy)
@@ -459,7 +459,7 @@ def scale(points: Sequence[Point], scale_x: float, scale_y: float) -> 'ndarray':
 
 
 def scale_in_place(
-    points: Sequence[Point], scale_x: float, scale_y: float, point: Point
+    points: Sequence[Point], scale_x: float, scale_y: float, about: Point
 ) -> 'ndarray':
     """
     Scale points about a point by scale_x in x direction and scale_y in y direction.
@@ -468,9 +468,9 @@ def scale_in_place(
         points (Sequence[Point]): The points to scale.
         scale_x (float): The scale factor in x direction.
         scale_y (float): The scale factor in y direction.
-        point (Point): The point about which the scaling is performed.
+        about (Point): The point about which the scaling is performed.
 
     Returns:
         np.ndarray: The scaled points.
     """
-    return points @ scale_in_place_matrix(scale_x, scale_y, point)
+    return points @ scale_in_place_matrix(scale_x, scale_y, about)
