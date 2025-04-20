@@ -184,14 +184,16 @@ def check_consecutive_duplicates(points, rtol=0, atol=None) -> bool:
     """
     if atol is None:
         atol = defaults["atol"]
-
-    for i, pnt in enumerate(points[:-1]):
-        next = points[i+1]
-        val1 = pnt[0] + pnt[1]
-        val2 = next[0] + next[1]
-        if isclose(val1, val2, rtol=0, atol=atol):
-            if np.allclose(pnt, next, rtol=0, atol=atol):
-                return True
+    if isinstance(points, np.ndarray):
+        points = points.tolist()
+    if points and len(points) > 1:
+        for i, pnt in enumerate(points[:-1]):
+            next_pnt = points[i+1]
+            val1 = pnt[0] + pnt[1]
+            val2 = next_pnt[0] + next_pnt[1]
+            if isclose(val1, val2, rtol=0, atol=atol):
+                if np.allclose(pnt, next_pnt, rtol=0, atol=atol):
+                    return True
 
     return False
 
@@ -1983,6 +1985,17 @@ def line_angle(start_point: Point, end_point: Point) -> float:
         float: Orientation angle of the line in radians.
     """
     return atan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
+
+def angle(point: Point) -> float:
+    """Return the angle of a line drawn from the given point to the origin in radians.
+
+    Args:
+        point (Point): Input point.
+
+    Returns:
+        float: Angle of the point in radians.
+    """
+    return atan2(point[1], point[0])
 
 
 def inclination_angle(start_point: Point, end_point: Point) -> float:
