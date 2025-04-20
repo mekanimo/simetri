@@ -1,6 +1,7 @@
 """Bounding box class. Shape and Batch objects have a bounding box.
 Bounding box is axis-aligned. Provides reference edges and points.
 """
+import warnings
 
 import numpy as np
 from .common import Point, common_properties, defaults
@@ -51,7 +52,9 @@ class BoundingBox:
             "m": "midpoint",
             "vcl": "vert_centerline",
             "hcl": "horiz_centerline",
+            "center": "midpoint",
         }
+
         common_properties(self)
         self.type = Types.BOUNDING_BOX
         self.subtype = Types.BOUNDING_BOX
@@ -67,6 +70,8 @@ class BoundingBox:
             Any: The attribute with the given name.
         """
         if name in self._aliases:
+            if name == "center":
+                warnings.warn('"center" is deprecated use "midpoint" instead.', DeprecationWarning)
             res = getattr(self, self._aliases[name])
         else:
             res = self.__dict__[name]
@@ -174,6 +179,7 @@ class BoundingBox:
 
         xc = (x1 + x2) / 2
         yc = (y1 + y2) / 2
+
         return (xc, yc)
 
     @property
