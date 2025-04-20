@@ -1,5 +1,5 @@
 """Create a tree structure and draw it."""
-
+import os
 from typing import Sequence, Any
 
 import simetri.graphics as sg
@@ -24,6 +24,7 @@ hexagon = sg.Batch([sg.reg_poly_shape((0, 0), 6, 4, fill_color=sg.teal,
 
 
 def next_id():
+    """Generates a unique ID for each node."""
     next_id.counter += 1
     return next_id.counter
 
@@ -64,22 +65,22 @@ class TreeNode:
 
     def add_child(self, child):
         """Adds a child node to the current node.
-        Args:
-            child (TreeNode): The child node to add.
+            Args:
+                child (TreeNode): The child node to add.
 
-        Returns:
-            None
+            Returns:
+                None
         """
         if child.id not in [c.id for c in self.children]:
             self.children.append(child)
 
     def num_all_children(self):
         """Counts the number of children and grandchildren of the node.
-        Args:
-            None
+            Args:
+                None
 
-        Returns:
-            int: The number of children and grandchildren.
+            Returns:
+                int: The number of children and grandchildren.
         """
         return len(self.children) + sum(
             child.num_all_children() for child in self.children
@@ -87,12 +88,12 @@ class TreeNode:
 
     def depth(self):
         """Calculates the depth of the node in the tree.
-        Args:
-            None
+            Args:
+                None
 
 
-        Returns:
-            int: The depth of the node.
+            Returns:
+                int: The depth of the node.
         """
         if not self.children:
             return 0
@@ -141,7 +142,7 @@ def make_tree(
 
     icon1, icon2, icon3, icon4 = icons
 
-    def print_tree(node, indent: int = 0, canvas: "Canvas" = None):
+    def draw_tree(node, indent: int = 0, canvas: "Canvas" = None):
         """Prints the tree structure of the node and its children.
         Args:
             node: The node to print.
@@ -174,13 +175,16 @@ def make_tree(
         y2 = y
         if indent > 0:
             x -= dx
-        canvas.line(
-            (x, y),
-            (x2, y2),
-            line_color=line2_color,
-            line_width=line2_width,
-            line_cap=line2_cap,
-        )
+        p1 = (x, y)
+        p2 = (x2, y2)
+        if not sg.close_points2(p1, p2):
+            canvas.line(
+                p1,
+                p2,
+                line_color=line2_color,
+                line_width=line2_width,
+                line_cap=line2_cap,
+            )
         if node.depth() > 0 and indent > 0:
             icon3.move_to((cx, cy))
             canvas.draw(icon3)
@@ -210,11 +214,50 @@ def make_tree(
             font_color=font_color,
         )
         for child in node.children:
-            print_tree(child, indent + 1, canvas=canvas)
+            draw_tree(child, indent + 1, canvas=canvas)
 
-    print_tree(node, canvas=canvas)
+    draw_tree(node, canvas=canvas)
     canvas.save(file_path, overwrite=overwrite)
 
+
+isdir = os.path.isdir
+join = os.path.join
+
+def print_tree(root_dir, prefix=""):
+    """ Recursively generates a file tree using Unicode characters """
+    entries = sorted(os.listdir(root_dir))
+    entries = [e for e in entries if not e.startswith('.')]  # Hide hidden files
+
+    for i, entry in enumerate(entries):
+        path = os.path.join(root_dir, entry)
+        is_last = i == len(entries) - 1
+
+        # Unicode branch characters
+        if not os.path.isdir(path):
+            print(f"{prefix}{'└──' if is_last else '├──'}🗎 {entry}")
+        else:
+            print(f"{prefix}{'└──' if is_last else '├──'}📁 {entry}")
+
+        if os.path.isdir(path):
+            new_prefix = f"{prefix}{'    ' if is_last else '│   '}"
+            print_tree(path, new_prefix)
+
+def list_directories(path):
+    """List all directories in a given path.
+    Args:
+        path (str): The path to search for directories.
+    Returns:
+        list: A list of directories in the given path.
+    """
+    return [e for e in os.listdir(path) if isdir(join(path, e))]
+
+
+
+
+# Example Usage
+# root_directory = "c:/simetri-blog/"  # Change this to your desired directory path
+# print("📁 File Structure:\n")
+# print_tree(root_directory)
 
 # canvas = sg.Canvas()
 # root = TreeNode("{} Base", extra="root", font_color=sg.orange)
