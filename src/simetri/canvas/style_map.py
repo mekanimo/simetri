@@ -29,7 +29,7 @@ from ..graphics.all_enums import (
     ShadeType,
     Types,
 )
-from ..colors import Color
+from ..colors.colors import Color
 
 
 def _set_style_args(obj, attribs, exact=None, prefix=None):
