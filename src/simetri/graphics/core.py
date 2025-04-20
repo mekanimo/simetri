@@ -251,7 +251,7 @@ class Base:
     def offset_point(self, anchor: Anchor, dx: float, dy: float = 0) -> Point:
         """
         Offset the point by the given anchor and offset distances.
-        anchor can be Anchor.CENTER, Anchor.SOUTHWEST, Anchor.SOUTHEAST,
+        anchor can be Anchor.MIDPOINT, Anchor.SOUTHWEST, Anchor.SOUTHEAST,
         Anchor.NORTHWEST, Anchor.NORTHEAST, Anchor.SOUTH, Anchor.WEST,
         Anchor.EAST, or Anchor.NORTH.
 
