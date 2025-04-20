@@ -7,12 +7,14 @@ drawing basic shapes like lines, circles, and polygons.
 import os
 import webbrowser
 import subprocess
+import warnings
 from typing import Optional, Any, Tuple, Sequence
 from pathlib import Path
 from dataclasses import dataclass
 from math import pi
 
 from typing_extensions import Self, Union
+import numpy as np
 import networkx as nx
 import fitz
 
@@ -20,15 +22,24 @@ from simetri.graphics.affine import (
     rotation_matrix,
     translation_matrix,
     scale_matrix,
+    scale_in_place_matrix,
     identity_matrix,
 )
 from simetri.graphics.common import common_properties, _set_Nones, VOID, Point, Vec2
-from simetri.graphics.all_enums import Types, Drawable, Result, Anchor, TexLoc, Align
+from simetri.graphics.all_enums import (
+    Types,
+    Drawable,
+    Result,
+    Anchor,
+    TexLoc,
+    Align,
+    Axis,
+)
 from simetri.settings.settings import defaults
 from simetri.graphics.bbox import bounding_box
 from simetri.graphics.batch import Batch
 from simetri.graphics.shape import Shape
-from simetri.colors import colors
+from simetri.colors.colors import Color, light_gray
 from simetri.canvas import draw
 from simetri.helpers.utilities import wait_for_file_availability
 from simetri.helpers.illustration import logo
@@ -36,8 +47,8 @@ from simetri.tikz.tikz import Tex, get_tex_code
 from simetri.helpers.validation import validate_args
 from simetri.canvas.style_map import canvas_args
 from simetri.notebook import display
+from simetri.image.image import Image
 
-Color = colors.Color
 
 
 class Canvas:
@@ -49,35 +60,50 @@ class Canvas:
 
     def __init__(
         self,
-        size: Vec2 = None,
-        back_color: Optional[Color] = None,
-        border=None,
+        back_color: Optional['Color'] = None,
+        border: Optional[float] = None,
+        size: Optional[Vec2] = None,
         **kwargs,
     ):
         """
         Initialize the Canvas.
 
         Args:
+            back_color (Optional[Color]): The background color of the canvas.
+            border (Optional[float]): The border width of the canvas.
             size (Vec2, optional): The size of the canvas with canvas.origin at (0, 0).
-            back_color (Optional[Color], optional): The background color of the canvas.
-            border (Any, optional): The border of the canvas.
-            kwargs (dict): Additional keyword arguments.
+            kwargs (dict): Additional keyword arguments. Rarely used.
+
+            You should not need to specify "size" since it is calculated.
         """
         validate_args(kwargs, canvas_args)
         _set_Nones(self, ["back_color", "border"], [back_color, border])
         self._size = size
         self.border = border
+        """This value is added to the bounding box of the canvas to expand the output size."""
         self.type = Types.CANVAS
+        """Used internally to identify the type of object. Do not change it!.
+        Most objects in simetri has a type and subtype attribute. See ... for
+        using this for user defined objects.
+        """
         self.subtype = Types.CANVAS
+        """Used internally to identify the type of object. Do not change it!.
+        Most objects in simetri has a type and subtype attribute. See ... for
+        using this for user defined objects.
+        """
         self._code = []
         self._font_list = []
-        self._pos = [0, 0]
-        self._angle = 0
-        self._scale = [1, 1]
         self.preamble = defaults["preamble"]
+        """Used for generating TikZ code."""
         self.back_color = back_color
+        """Background color of the canvas."""
         self.pages = [Page(self.size, self.back_color, self.border)]
+        """Each page of the canvas is a Page object.
+        The canvas can have multiple pages that result in multi-page PDF output,
+        or multiple images with image_name_1.svg, image_name_2.svg, etc."""
         self.active_page = self.pages[0]
+        """canvas.draw() draws on the active page. If there are multiple pages,
+        the active page is the last page created."""
         self._all_vertices = []
         self.blend_mode = None
         self.blend_group = False
@@ -97,6 +123,7 @@ class Canvas:
             setattr(self, k, v)
 
         self._xform_matrix = identity_matrix()
+        self._sketch_xform_matrix = identity_matrix()
         self.tex: Tex = Tex()
         self.render = defaults["render"]
         if self._size is not None:
@@ -116,6 +143,22 @@ class Canvas:
                 type(self).origin.fset(self, value)
             elif name == "limits":
                 type(self).limits.fset(self, value)
+        elif name == "scale":
+            if isinstance(value, (list, tuple)):
+                type(self).scale.fset(self, value[0], value[1])
+            else:
+                type(self).scale.fset(self, value)
+        elif name == "pos":
+            if isinstance(value, (list, tuple, np.ndarray)):
+                type(self).pos.fset(self, value)
+            else:
+                raise ValueError("pos must be a list, tuple or np.ndarray.")
+        elif name == "angle":
+            if isinstance(value, (int, float)):
+                type(self).angle.fset(self, value)
+            else:
+                raise ValueError("angle must be a number.")
+
         else:
             self.__dict__[name] = value
 
@@ -493,25 +536,47 @@ class Canvas:
         return self
 
     def draw(
-        self, item_s: Union[Drawable, list, tuple], pos: Point = None, **kwargs
+        self,
+        item_s: Union[Drawable, list, tuple],
+        pos: Point = None,
+        angle: float = 0,
+        rotocenter: Point = (0, 0),
+        scale=(1, 1),
+        about=(0, 0),
+        **kwargs,
     ) -> Self:
         """
         Draw the item_s. item_s can be a single item or a list of items.
 
         Args:
             item_s (Union[Drawable, list, tuple]): The item(s) to draw.
+            pos (Point, optional): The position to draw the item(s), defaults to None.
+            angle (float, optional): The angle to rotate the item(s), defaults to 0.
+            rotocenter (Point, optional): The point about which to rotate, defaults to (0, 0).
+            scale (tuple, optional): The scale factors for the x and y axes, defaults to (1, 1).
+            about (tuple, optional): The point about which to scale, defaults to (0, 0).
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
+        sketch_xform = self._sketch_xform_matrix
         if pos is not None:
-            kwargs["pos"] = pos
+            sketch_xform = translation_matrix(*pos[:2]) @ sketch_xform
+        if scale[0] != 1 or scale[1] != 1:
+            sketch_xform = scale_in_place_matrix(*pos[:2], about) @ sketch_xform
+        if angle != 0:
+            sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
+        self._sketch_xform_matrix = sketch_xform @ self._xform_matrix
+
         if isinstance(item_s, (list, tuple)):
             for item in item_s:
                 draw.draw(self, item, **kwargs)
         else:
             draw.draw(self, item_s, **kwargs)
+
+        self._sketch_xform_matrix = identity_matrix()
+
         return self
 
     def draw_CS(self, size: float = None, **kwargs) -> Self:
@@ -526,6 +591,19 @@ class Canvas:
             Self: The canvas object.
         """
         draw.draw_CS(self, size, **kwargs)
+        return self
+
+    def draw_image(self, image:Image) -> Self:
+        """
+        Draw an image on the canvas.
+
+        Args:
+            image (Image): The image to draw.
+
+        Returns:
+            Self: The canvas object.
+        """
+        draw.draw_image(self, image)
         return self
 
     def draw_frame(
@@ -550,7 +628,7 @@ class Canvas:
         box2 = b_box.get_inflated_b_box(margin)
         box3 = box2.get_inflated_b_box(15)
         shadow = Shape([box3.northwest, box3.southwest, box3.southeast])
-        self.draw(shadow, line_color=colors.light_gray, line_width=width)
+        self.draw(shadow, line_color=light_gray, line_width=width)
         self.draw(Shape(box2.corners, closed=True), fill=False, line_width=width)
 
         return self
@@ -563,9 +641,6 @@ class Canvas:
             Self: The canvas object.
         """
         self._code = []
-        self._pos = [0, 0]
-        self._angle = 0
-        self._scale = [1, 1]
         self.preamble = defaults["preamble"]
         self.pages = [Page(self.size, self.back_color, self.border)]
         self.active_page = self.pages[0]
@@ -573,6 +648,7 @@ class Canvas:
         self.tex: Tex = Tex()
         self.clip: bool = False  # if true then clip the canvas to the mask
         self._xform_matrix = identity_matrix()
+        self._sketch_xform_matrix = identity_matrix()
         self.active_page = self.pages[0]
         self._all_vertices = []
         return self
@@ -596,14 +672,105 @@ class Canvas:
         return "Canvas()"
 
     @property
-    def xform_matrix(self) -> "ndarray":
+    def pos(self) -> Point:
+        """
+        The position of the canvas.
+
+        Args:
+            point (Point, optional): The point to set the position to.
+
+        Returns:
+            Point: The position of the canvas.
+        """
+
+        return self._xform_matrix[2, :2].tolist()[:2]
+
+    @pos.setter
+    def pos(self, point: Point) -> None:
+        """
+        Set the position of the canvas.
+
+        Args:
+            point (Point): The point to set the position to.
+        """
+        self._xform_matrix[2, :2] = point[:2]
+
+    @property
+    def angle(self) -> float:
+        """
+        The angle of the canvas.
+
+        Returns:
+            float: The angle of the canvas.
+        """
+        xform = self._xform_matrix
+
+        return np.arctan2(xform[0, 1], xform[0, 0])
+
+    @angle.setter
+    def angle(self, angle: float) -> None:
+        """
+        Set the angle of the canvas.
+
+        Args:
+            angle (float): The angle to set the canvas to.
+        """
+        self._xform_matrix = rotation_matrix(angle) @ self._xform_matrix
+
+    @property
+    def scale(self) -> Vec2:
+        """
+        The scale of the canvas.
+
+        Returns:
+            Vec2: The scale of the canvas.
+        """
+        xform = self._xform_matrix
+
+        return np.linalg.norm(xform[:2, 0]), np.linalg.norm(xform[:2, 1])
+
+    @scale.setter
+    def scale(
+        self, scale_x: float = 1, scale_y: float = None, about: Point = (0, 0)
+    ) -> None:
+        """
+        Set the scale of the canvas.
+
+        Args:
+            scale_x (float): The x-scale to set the canvas to.
+            scale_y (float): The y-scale to set the canvas to.
+            about (Point): The point about which to scale the canvas.
+        """
+        if scale_y is None:
+            scale_y = scale_x
+
+        self._xform_matrix = (
+            scale_in_place_matrix(scale_x, scale_y, about=about) @ self._xform_matrix
+        )
+
+    @property
+    def xform_matrix(self) -> "np.ndarray":
         """
         The transformation matrix of the canvas.
 
         Returns:
-            ndarray: The transformation matrix of the canvas.
+            np.ndarray: The transformation matrix of the canvas.
         """
         return self._xform_matrix.copy()
+
+    def transform(self, transform_matrix: "np.ndarray") -> Self:
+        """
+        Transforms the canvas by the given transformation matrix.
+
+        Args:
+            transform_matrix (np.ndarray): The transformation matrix.
+
+        Returns:
+            Self: The Canvas object.
+        """
+        self._xform_matrix = transform_matrix @ self._xform_matrix
+
+        return self
 
     def reset_transform(self) -> Self:
         """
@@ -615,9 +782,6 @@ class Canvas:
             Self: The canvas object.
         """
         self._xform_matrix = identity_matrix()
-        self._pos = [0, 0]
-        self._angle = 0
-        self._scale = [1, 1]
 
         return self
 
@@ -632,29 +796,28 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        self._pos[0] += x
-        self._pos[1] += y
+
         self._xform_matrix = translation_matrix(x, y) @ self._xform_matrix
 
         return self
 
-    def rotate(self, angle: float) -> Self:
+    def rotate(self, angle: float, about=(0, 0)) -> Self:
         """
-        Rotate the canvas by angle in radians about the origin.
+        Rotate the canvas by angle in radians about the given point.
 
         Args:
             angle (float): The rotation angle in radians.
+            about (tuple): The point about which to rotate the canvas.
 
         Returns:
             Self: The canvas object.
         """
-        self._angle += angle
-        about = (self.x, self.y)
+
         self._xform_matrix = rotation_matrix(angle, about) @ self._xform_matrix
 
         return self
 
-    def _flip(self, axis: str) -> Self:
+    def _flip(self, axis: Axis) -> Self:
         """
         Flip the canvas along the specified axis.
 
@@ -664,24 +827,28 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        if axis == "x":
-            self._scale[0] *= -1
-        elif axis == "y":
-            self._scale[1] *= -1
+        if axis == Axis.X:
+            sx = -self.scale[0]
+            sy = 1
+        elif axis == Axis.Y:
+            sx = 1
+            sy = -self.scale[1]
 
-        sx, sy = self._scale
         self._xform_matrix = scale_matrix(sx, sy) @ self._xform_matrix
 
         return self
 
     def flip_x_axis(self) -> Self:
         """
-        Flip the x-axis direction.
+        Flip the x-axis direction. Warning: This will reverse the positive rotation direction.
 
         Returns:
             Self: The canvas object.
         """
-        return self._flip("x")
+        warnings.warn(
+            "Flipping the x-axis will change the positive rotation direction."
+        )
+        return self._flip(Axis.X)
 
     def flip_y_axis(self) -> Self:
         """
@@ -690,26 +857,11 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        return self._flip("y")
+        warnings.warn(
+            "Flipping the y-axis will reverse the positive rotation direction."
+        )
 
-    def scale(self, sx: float, sy: float = None) -> Self:
-        """
-        Scale the canvas by sx and sy about the Canvas origin.
-
-        Args:
-            sx (float): The scale factor along the x-axis.
-            sy (float, optional): The scale factor along the y-axis, defaults to None.
-
-        Returns:
-            Self: The canvas object.
-        """
-        if sy is None:
-            sy = sx
-        self._scale[0] *= sx
-        self._scale[1] *= sy
-        self._xform_matrix = scale_matrix(sx, sy) @ self._xform_matrix
-
-        return self
+        return self._flip(Axis.Y)
 
     @property
     def x(self) -> float:
@@ -719,7 +871,17 @@ class Canvas:
         Returns:
             float: The x coordinate of the canvas origin.
         """
-        return self._pos[0]
+        return self.pos[0]
+
+    @x.setter
+    def x(self, value: float) -> None:
+        """
+        Set the x coordinate of the canvas origin.
+
+        Args:
+            value (float): The x coordinate to set.
+        """
+        self.pos = [value, self.pos[1]]
 
     @property
     def y(self) -> float:
@@ -729,27 +891,17 @@ class Canvas:
         Returns:
             float: The y coordinate of the canvas origin.
         """
-        return self._pos[1]
+        return self.pos[1]
 
-    @property
-    def angle(self) -> float:
+    @y.setter
+    def y(self, value: float) -> None:
         """
-        The orientation angle in radians.
+        Set the y coordinate of the canvas origin.
 
-        Returns:
-            float: The orientation angle in radians.
+        Args:
+            value (float): The y coordinate to set.
         """
-        return self._angle
-
-    @property
-    def scale_factors(self) -> Vec2:
-        """
-        The scale factors.
-
-        Returns:
-            Vec2: The scale factors.
-        """
-        return self._scale
+        self.pos = [self.pos[0], value]
 
     def batch_graph(self, batch: "Batch") -> nx.DiGraph:
         """
@@ -1106,8 +1258,8 @@ class PageGrid:
     """
 
     spacing: float = None
-    back_color: Color = None
-    line_color: Color = None
+    back_color: 'Color' = None
+    line_color: 'Color' = None
     line_width: float = None
     line_dash_array: Sequence[float] = None
     x_shift: float = None
@@ -1143,7 +1295,7 @@ class Page:
     """
 
     size: Vec2 = None
-    back_color: Color = None
+    back_color: 'Color' = None
     mask = None
     margins = None  # left, bottom, right, top
     recto: bool = True  # True if page is recto, False if verso
