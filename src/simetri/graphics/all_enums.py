@@ -47,9 +47,10 @@ class Anchor(StrEnum):
     BASE_EAST = "base east"  # FOR TAGS ONLY
     BASE_WEST = "base west"  # FOR TAGS ONLY
     BOTTOM = "bottom"
-    ORIGIN = "origin"
+    MIDPOINT = "midpoint"
     EAST = "east"
     LEFT = "left"
+    CENTER = "center"
     MID = "mid"
     MIDEAST = "mid east"
     MIDWEST = "mid west"
@@ -479,8 +480,8 @@ class LineDashArray(StrEnum):
     LOOSELY_DOTTED, SOLID.
     """
 
-    DASHDOT = "dashdot"
-    DASHDOTDOT = "dashdotdot"
+    DASHDOT = "dash dot"
+    DASHDOTDOT = "dash dot dot"
     DASHED = "dashed"
     DENSELY_DASHED = "densely dashed"
     DENSELY_DOTTED = "densely dotted"
@@ -951,6 +952,8 @@ class Types(StrEnum):
     HEXAGONAL = "HEXAGONAL"
     HEX_GRID = "HEX_GRID"
     ICANVAS = "ICANVAS"
+    IMAGE = "IMAGE"
+    IMAGE_SKETCH = "IMAGE_SKETCH"
     INTERSECTION = "INTERSECTION"
     LABEL = "LABEL"
     LACE = "LACE"
@@ -1048,6 +1051,7 @@ drawable_types = [
     Types.ELLIPSE,
     Types.FRAGMENT,
     Types.HEX_GRID,
+    Types.IMAGE,
     Types.INTERSECTION,
     Types.LACE,
     Types.LINPATH,
@@ -1129,6 +1133,7 @@ Drawable: TypeAlias = Union[
     Types.ELLIPSE,
     Types.FRAGMENT,
     Types.HEX_GRID,
+    Types.IMAGE,
     Types.INTERSECTION,
     Types.LACE,
     Types.LINPATH,
@@ -1162,6 +1167,7 @@ anchors = [
     "east",
     "west",
     "center",
+    "midpoint",
     "left",
     "right",
     "top",
