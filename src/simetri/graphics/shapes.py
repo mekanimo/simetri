@@ -24,7 +24,7 @@ from ..geometry.geometry import (
     close_points2,
 )
 
-import simetri.colors as colors
+import simetri.colors.colors as colors
 
 Color = colors.Color
 
