@@ -514,17 +514,125 @@ class Shape:
             list[tuple[Point, Point]]: A list of edges.
         """
 
+    def translate(self, dx: float = 0, dy: float = 0, reps: int = 0) -> Self:
+        """
+        Translates the object by dx and dy.
 
+        Args:
+            dx (float): The translation distance along the x-axis.
+            dy (float): The translation distance along the y-axis.
+            reps (int, optional): The number of repetitions. Defaults to 0.
 
-def custom_attributes(item: Shape) -> List[str]:
-    """Return a list of custom attributes of a Shape or Batch instance.
+        Returns:
+            Self: The transformed object.
+        """
 
-    Args:
-        item (Shape): The Shape or Batch instance.
+    def translate_along(
+        self,
+        path: Sequence[Point],
+        step: int = 1,
+        align_tangent: bool = False,
+        scale: float = 1,  # scale factor
+        rotate: float = 0,  # angle in radians
+    ) -> Self:
+        """
+        Translates the object along the given curve.
+        Every n-th point is used to calculate the translation vector.
+        If align_tangent is True, the object is rotated to align with the tangent at each point.
+        scale is the scale factor applied at each point.
+        rotate is the angle in radians applied at each point.
 
-    Returns:
-        list[str]: A list of custom attribute names.
+        Args:
+            path (Sequence[Point]): The path to translate along.
+            step (int, optional): The step size. Defaults to 1.
+            align_tangent (bool, optional): Whether to align the object with the tangent. Defaults to False.
+            scale (float, optional): The scale factor. Defaults to 1.
+            rotate (float, optional): The rotation angle in radians. Defaults to 0.
 
-    Raises:
-        TypeError: If the item is not a Shape instance.
-    """
+        Returns:
+            Self: The transformed object.
+        """
+
+    def rotate(self, angle: float, about: Point = (0, 0), reps: int = 0) -> Self:
+        """
+        Rotates the object by the given angle (in radians) about the given point.
+
+        Args:
+            angle (float): The rotation angle in radians.
+            about (Point, optional): The point to rotate about. Defaults to (0, 0).
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The rotated object.
+        """
+
+    def mirror(self, about: Union[Line, Point], reps: int = 0) -> Self:
+        """
+        Mirrors the object about the given line or point.
+
+        Args:
+            about (Union[Line, Point]): The line or point to mirror about.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The mirrored object.
+        """
+
+    def glide(self, glide_line: Line, glide_dist: float, reps: int = 0) -> Self:
+        """
+        Glides (first mirror then translate) the object along the given line
+        by the given glide_dist.
+
+        Args:
+            glide_line (Line): The line to glide along.
+            glide_dist (float): The distance to glide.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The glided object.
+        """
+
+    def scale(
+        self,
+        scale_x: float,
+        scale_y: Union[float, None] = None,
+        about: Point = (0, 0),
+        reps: int = 0,
+    ) -> Self:
+        """
+        Scales the object by the given scale factors about the given point.
+
+        Args:
+            scale_x (float): The scale factor in the x direction.
+            scale_y (float, optional): The scale factor in the y direction. Defaults to None.
+            about (Point, optional): The point to scale about. Defaults to (0, 0).
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The scaled object.
+        """
+
+    def shear(self, theta_x: float, theta_y: float, reps: int = 0) -> Self:
+        """
+        Shears the object by the given angles.
+
+        Args:
+            theta_x (float): The shear angle in the x direction.
+            theta_y (float): The shear angle in the y direction.
+            reps (int, optional): The number of repetitions. Defaults to 0.
+
+        Returns:
+            Self: The sheared object.
+        """
+
+    def move_to(self, pos: Point, anchor: Anchor = Anchor.CENTER) -> Self:
+        """
+        Moves the object to the given position by using its center point.
+
+        Args:
+            pos (Point): The position to move to.
+            anchor (Anchor, optional): The anchor point. Defaults to Anchor.CENTER.
+
+        Returns:
+            Self: The moved object.
+        """
