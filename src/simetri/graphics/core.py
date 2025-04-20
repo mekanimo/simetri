@@ -1,7 +1,7 @@
 """Base class. This is the parent for Shape and Batch classes."""
 
 __all__ = [
-    "Base",
+    "Base", "StyleMixin"
 ]
 
 from typing import Sequence, Any, Union
@@ -202,18 +202,18 @@ class Base:
         self.__dict__["xform_matrix"] = np.identity(3)
         return self
 
-    def transform(self, xform_matrix: ndarray, reps: int = 0) -> Self:
+    def transform(self, transform_matrix: ndarray, reps: int = 0) -> Self:
         """
         Transforms the object by the given transformation matrix.
 
         Args:
-            xform_matrix (ndarray): The transformation matrix.
+            transform_matrix (ndarray): The transformation matrix.
             reps (int, optional): The number of repetitions. Defaults to 0.
 
         Returns:
             Self: The transformed object.
         """
-        return self._update(xform_matrix, reps=reps)
+        return self._update(transform_matrix, reps=reps)
 
     def move_to(self, pos: Point, anchor: Anchor = Anchor.CENTER) -> Self:
         """
