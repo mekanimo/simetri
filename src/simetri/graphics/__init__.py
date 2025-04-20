@@ -39,7 +39,7 @@ from numpy import linspace, arange, array, zeros, ones, full, eye, diag
 
 from ..helpers.utilities import *
 from .core import *
-from ..frieze import *
+from ..frieze import frieze
 from ..settings.settings import *
 from ..graphics.common import *
 
@@ -61,13 +61,14 @@ from ..helpers.constraint_solver import Constraint, solve
 from ..graphics.shapes import *
 from ..helpers.modifiers import *
 from ..lace import Lace
-from ..colors import *
+from ..colors.colors import *
+from ..colors.palettes import *
+from ..colors.swatches import *
 import simetri.colors as colors
-from ..tikz import *
+from ..tikz.tikz import *
 from ..helpers.validation import check_version
-import simetri.stars as stars
-import simetri.wallpaper as wallpaper
-import simetri.frieze as frieze
+from ..stars import stars
+from  ..wallpaper import wallpaper
 from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system
@@ -75,7 +76,7 @@ from ..extensions.easing import *
 from ..extensions.tree import make_tree, TreeNode
 from .path import LinPath
 from .pattern import *
-
+from ..image.image import Image, open
 set_tikz_defaults()
 
 import simetri.canvas.style_map as style_map
