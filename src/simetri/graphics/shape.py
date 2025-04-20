@@ -6,6 +6,7 @@ of this ShapeStyle object will superseed the style attributes of the Shape objec
 
 __all__ = ["Shape", "custom_attributes"]
 
+import warnings
 from typing import Sequence, Union, List, Tuple
 
 import numpy as np
@@ -71,16 +72,23 @@ class Shape(Base, StyleMixin):
         Raises:
             ValueError: If the provided subtype is not valid.
         """
+
         if check_consecutive_duplicates(points):
-            raise ValueError("Consecutive duplicate points found.")
+            err_msg = "Consecutive duplicate points are not allowed in Shape objects."
+            if not defaults["allow_consec_dup_points"]:
+                err_msg += ' Set sg.defaults["allow_consec_dup_points"] to True if you really, really have to avoid this error.'
+                raise ValueError(err_msg)
+            warnings.warn(err_msg, UserWarning)
+
         self.__dict__["style"] = ShapeStyle()
         self.__dict__["_style_map"] = shape_style_map
         self._set_aliases()
         valid_args = shape_args
         validate_args(kwargs, valid_args)
+        self._external = False
         if "subtype" in kwargs:
             if kwargs["subtype"] not in shape_types:
-                raise ValueError(f"Invalid subtype: {kwargs['subtype']}")
+                self._external = True
             self.subtype = kwargs["subtype"]
             kwargs.pop("subtype")
         else:
