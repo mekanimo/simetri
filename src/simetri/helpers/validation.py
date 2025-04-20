@@ -7,7 +7,7 @@ from typing import Any, Dict
 from numpy import ndarray
 from ..graphics import all_enums, __version__
 from ..graphics.all_enums import *
-from ..colors import Color
+from ..colors.colors import Color
 
 # Validation functions. They return True if the value is valid, False otherwise.
 
