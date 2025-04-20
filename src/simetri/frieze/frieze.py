@@ -102,7 +102,7 @@ def sidle(design: Batch, mirror_line: Line, dist: float, reps: int = 3) -> Batch
     Returns:
         Batch: A Batch of Shapes with the sidle symmetry.
     """
-    x, y = point_to_line_vec(design.origin, mirror_line, unit=True)[:2]
+    x, y = point_to_line_vec(design.midpoint, mirror_line, unit=True)[:2]
     dx = x * dist
     dy = y * dist
     return design.mirror(mirror_line, reps=1).translate(dist, 0, reps)
@@ -123,7 +123,7 @@ def sidle_along(
     Returns:
         Batch: A Batch of shapes with the sidle along symmetry.
     """
-    x, y = point_to_line_vec(design.origin, mirror_line, unit=True)[:2]
+    x, y = point_to_line_vec(design.midpoint, mirror_line, unit=True)[:2]
     design.mirror(mirror_line, reps=1)
     return design.translate_along(path, reps)
 
