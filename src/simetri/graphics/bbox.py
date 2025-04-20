@@ -423,7 +423,6 @@ class BoundingBox:
             res = offset_line(self.vert_center_line, offset)
         else:
             raise ValueError(f"Unknown side: {side}")
-            res = None
 
         return res
 
