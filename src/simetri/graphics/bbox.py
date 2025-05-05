@@ -622,7 +622,7 @@ class BoundingBox:
         return x, y
 
 
-    def polar_pos(self, item:'Union[Shape, Batch]', theta:float, radius:float)->Point:
+    def polar_pos(self, item:'Union[Shape, Batch]', angle:float, radius:float)->Point:
         """
         Get the polar position of the reference item.
 
@@ -637,7 +637,7 @@ class BoundingBox:
 
         x, y = item.midpoint
 
-        x1, y1 = polar_to_cartesian(radius, theta)
+        x1, y1 = polar_to_cartesian(radius, angle)
         x += x1
         y += y1
 

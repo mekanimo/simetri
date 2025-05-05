@@ -74,11 +74,8 @@ class Shape(Base, StyleMixin):
         """
 
         if check_consecutive_duplicates(points):
-            err_msg = "Consecutive duplicate points are not allowed in Shape objects."
-            if not defaults["allow_consec_dup_points"]:
-                err_msg += ' Set sg.defaults["allow_consec_dup_points"] to True if you really, really have to avoid this error.'
-                raise ValueError(err_msg)
-            warnings.warn(err_msg, UserWarning)
+            msg = "Consecutive duplicate points found."
+            warnings.warn(msg, UserWarning)
 
         self.__dict__["style"] = ShapeStyle()
         self.__dict__["_style_map"] = shape_style_map
@@ -338,7 +335,7 @@ class Shape(Base, StyleMixin):
         """
         return iter(self.vertices)
 
-    def _update(self, xform_matrix: array, reps: int = 0) -> Batch:
+    def _update(self, xform_matrix: array, reps: int = 0, merge: bool = False) -> Union['Shape', Batch]:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -346,13 +343,14 @@ class Shape(Base, StyleMixin):
             reps (int, optional): The number of repetitions, defaults to 0.
 
         Returns:
-            Batch: The updated shape or a batch of shapes.
+            Shape or Batch: The updated shape or a batch of shapes.
         """
         if reps == 0:
             fillet_radius = self.fillet_radius
             if fillet_radius:
                 scale = max(decompose_transformations(xform_matrix)[2])
                 self.fillet_radius = fillet_radius * scale
+
             self.xform_matrix = self.xform_matrix @ xform_matrix
             res = self
         else:
@@ -363,6 +361,10 @@ class Shape(Base, StyleMixin):
                 shape._update(xform_matrix)
                 shapes.append(shape)
             res = Batch(shapes)
+
+        if merge and reps > 0:
+            return res.merge_shapes()
+
         return res
 
     def __eq__(self, other):

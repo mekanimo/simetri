@@ -200,7 +200,7 @@ class Intersection(Shape):
 
         common_properties(self, id_only=True)
 
-    def _update(self, xform_matrix: array, reps=0):
+    def _update(self, xform_matrix: array, reps=0, merge: bool = False):
         """Update the transformation matrix of the intersection.
 
         Args:
@@ -219,6 +219,9 @@ class Intersection(Shape):
                 shape = self.copy()
                 shape._update(xform_matrix)
                 res.append(shape)
+
+        if merge and reps > 0:
+            res = res.merge_shapes()
 
         return res
 
@@ -584,7 +587,7 @@ class Division(Shape):
         )
         common_properties(self)
 
-    def _update(self, xform_matrix, reps=0):
+    def _update(self, xform_matrix, reps=0, merge: bool = False):
         """Update the transformation matrix of the division.
 
         Args:
@@ -603,6 +606,8 @@ class Division(Shape):
                 shape = self.copy()
                 shape._update(xform_matrix)
                 res.append(shape)
+        if merge and reps > 0:
+            res = res.merge_shapes()
 
         return res
 
@@ -745,7 +750,7 @@ class Polyline(Shape):
             self._set_intersections()
         common_properties(self)
 
-    def _update(self, xform_matrix, reps=0):
+    def _update(self, xform_matrix, reps=0, merge: bool = False):
         """Update the transformation matrix of the polyline.
 
         Args:
@@ -766,6 +771,8 @@ class Polyline(Shape):
                 shape = self.copy()
                 shape._update(xform_matrix)
                 res.append(shape)
+        if merge and reps > 0:
+            res = res.merge_shapes()
 
         return res
 
@@ -1153,7 +1160,7 @@ class Lace(Batch):
 
         return polyline_shapes
 
-    def _update(self, xform_matrix, reps=0):
+    def _update(self, xform_matrix, reps=0, merge: bool = False):
         """Update the transformation matrix of the lace.
 
         Args:
@@ -1197,6 +1204,7 @@ class Lace(Batch):
                 shape = self.copy()
                 shape._update(xform_matrix)
                 res.append(shape)
+
             return res
 
     # @timing

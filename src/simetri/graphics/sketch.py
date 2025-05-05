@@ -9,7 +9,7 @@ They are snapshots of the state of the objects and the Canvas at the time of dra
 """
 
 from dataclasses import dataclass
-from typing import List, Any
+from typing import List, Any, Union
 
 import numpy as np
 from numpy import ndarray
@@ -22,6 +22,7 @@ from ..settings.settings import defaults
 from ..geometry.geometry import homogenize
 from ..helpers.utilities import decompose_transformations
 from .pattern import Pattern
+from ..image.image import Image
 
 Color = colors.Color
 
@@ -139,6 +140,42 @@ class PatternSketch:
         self.closed = self.pattern.closed
 
 @dataclass
+class ImageSketch:
+    """ImageSketch is a dataclass for creating an image sketch object.
+
+    Attributes:
+        image Image: The Image object.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
+
+    image: Image
+    pos: Point = None
+    angle: float = None
+    scale: Union[tuple, float] = None
+    anchor: Anchor = None
+    size: tuple = None
+    file_path: str = None
+    anchor: Anchor = None
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        """Initialize the ImageSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.IMAGE_SKETCH
+
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+            self.pos = self.image.pos
+            self.size = self.image.size
+        else:
+            pos = homogenize([self.image.pos])
+            self.pos = (pos @ self.xform_matrix).tolist()[0][:2]
+            _, _, scale = decompose_transformations(self.xform_matrix)
+            w, h = self.image.size
+            self.size = scale[0] * w, scale[1] * h
+        self.image = self.image.copy()
+
+@dataclass
 class TexSketch:
     """TexSketch is a dataclass for inserting code into the tex file.
 
@@ -157,6 +194,7 @@ class TexSketch:
         """Initialize the TexSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.TEX_SKETCH
+
 
 @dataclass
 class ShapeSketch:
@@ -183,8 +221,8 @@ class ShapeSketch:
         self.type = Types.SKETCH
         self.subtype = Types.SHAPE_SKETCH
         if self.xform_matrix is None:
-            self.xform_matrix = identity_matrix()
             vertices = self.vertices
+            self.xform_matrix = identity_matrix()
         else:
             vertices = homogenize(self.vertices)
             vertices = vertices @ self.xform_matrix

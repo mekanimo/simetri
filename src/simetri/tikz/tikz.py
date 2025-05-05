@@ -25,6 +25,7 @@ from ..graphics.all_enums import (
     FrameShape,
     DocumentClass,
     Align,
+    Anchor,
     ArrowLine,
     BlendMode,
     get_enum_value,
@@ -38,7 +39,7 @@ from ..geometry.ellipse import ellipse_point
 from ..graphics.sketch import TagSketch, ShapeSketch
 from ..graphics.shape import Shape
 
-from ..colors import Color
+from ..colors.colors import Color
 
 
 np.set_printoptions(legacy="1.21")
@@ -198,6 +199,9 @@ class Tex:
                         tikz_libraries.append("patterns.meta")
                         tikz_libraries.append("backgrounds")
                         tikz_libraries.append("shadings")
+                if sketch.line_dash_array:
+                    if 'patterns' not in tikz_libraries:
+                        tikz_libraries.append("patterns")
                 if sketch.subtype == Types.TAG_SKETCH:
                     if "fontspec" not in tikz_packages:
                         tikz_packages.append("fontspec")
@@ -380,6 +384,8 @@ def get_tex_code(canvas: "Canvas") -> str:
         """
         if sketch.subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
+        elif sketch.subtype == Types.IMAGE_SKETCH:
+            code = draw_image_sketch(sketch)
         elif sketch.subtype == Types.BBOX_SKETCH:
             code = draw_bbox_sketch(sketch)
         elif sketch.subtype == Types.PATTERN_SKETCH:
@@ -1061,7 +1067,7 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
     if sketch.fill and not sketch.back_style == BackStyle.PATTERN:
         res = sg_to_tikz(sketch, attribs, attrib_map, exceptions=exceptions)
         if frame:
-            res = [f"fill = {color2tikz(getattr(sketch, 'frame_back_color'))}"] + res
+            res = [f"fill = {color2tikz(getattr(sketch, 'back_color'))}"] + res
     else:
         res = []
 
@@ -1435,7 +1441,6 @@ def draw_pattern_sketch(sketch):
         begin_scope += f"[{options}]\n"
     end_scope = get_end_scope()
 
-    pattern = sketch.pattern
     draw = get_draw(sketch)
     if not draw:
         return ""
@@ -1525,6 +1530,41 @@ def draw_tex_sketch(sketch):
     """
 
     return sketch.code
+
+def draw_image_sketch(sketch):
+    """Draws an image sketch.
+
+    Args:
+        sketch: The image sketch object.
+
+    Returns:
+        str: The TikZ code for the image sketch.
+    """
+    begin_scope = get_begin_scope()
+    options = get_line_style_options(sketch)
+    options += get_fill_style_options(sketch, frame=True)
+    # options = ", ".join(options)
+    # if options:
+    #     res += f"[{options}]"
+    x, y = sketch.pos[:2]
+    # res += f" ({x}, {y}) "
+    if sketch.angle != 0:
+        angle = degrees(sketch.angle)
+        options.append(f"rotate = {angle}")
+
+    if sketch.scale != (1, 1):
+        sx, sy = sketch.scale
+        options.append(f"xscale = {sx}, yscale = {sy}")
+
+    # res += f"node[anchor={sketch.anchor.value}, rotate={angle}] {{\\includegraphics{{{sketch.file_path}}}}};\n"
+    if sketch.anchor != Anchor.CENTER:
+        options.append(f"anchor = {sketch.anchor.value}")
+
+    # res = f"\\node[draw, {', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
+    res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
+    end_scope = get_end_scope()
+
+    return begin_scope + res + end_scope
 
 def draw_shape_sketch(sketch, ind=None):
     """Draws a shape sketch.
@@ -1784,12 +1824,13 @@ def is_stroked(shape: Shape) -> bool:
 
 
 d_sketch_draw = {
-    sg.Types.SHAPE: draw_shape_sketch,
-    sg.Types.TAG_SKETCH: draw_tag_sketch,
-    sg.Types.LACESKETCH: draw_lace_sketch,
-    sg.Types.LINE: draw_line_sketch,
-    sg.Types.CIRCLE: draw_circle_sketch,
-    sg.Types.ELLIPSE: draw_shape_sketch,
     sg.Types.ARC: draw_arc_sketch,
     sg.Types.BATCH: draw_batch_sketch,
+    sg.Types.CIRCLE: draw_circle_sketch,
+    sg.Types.ELLIPSE: draw_shape_sketch,
+    sg.Types.IMAGE_SKETCH: draw_image_sketch,
+    sg.Types.LACESKETCH: draw_lace_sketch,
+    sg.Types.LINE: draw_line_sketch,
+    sg.Types.SHAPE: draw_shape_sketch,
+    sg.Types.TAG_SKETCH: draw_tag_sketch,
 }

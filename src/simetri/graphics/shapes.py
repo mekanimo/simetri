@@ -29,6 +29,25 @@ import simetri.colors.colors as colors
 Color = colors.Color
 
 
+def square(
+    center: Point = (0, 0), size: float = 100,  angle: float=0, **kwargs
+) -> Shape:
+    """Return a square shape.
+
+    Args:
+        center (Point): The center of the square.
+        size (float): The width and height of the square.
+        angle (float): The rotation angle of the square.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Shape: A square shape.
+    """
+    points = rectangle_points(center, size, size, angle)
+
+    return Shape(points, closed=True,  **kwargs)
+
+
 class Rectangle(Shape):
     """A rectangle defined by width and height."""
 
@@ -69,36 +88,36 @@ class Rectangle(Shape):
         else:
             super().__setattr__(name, value)
 
-    def scale(
-        self,
-        scale_x: float,
-        scale_y: Union[float, None] = None,
-        about: Point = (0, 0),
-        reps: int = 0,
-    ):
-        """Scale the rectangle by scale_x and scale_y.
-        Rectangles cannot be scaled non-uniformly.
-        scale_x changes the width and scale_y changes the height.
+    # def scale(
+    #     self,
+    #     scale_x: float,
+    #     scale_y: Union[float, None] = None,
+    #     about: Point = (0, 0),
+    #     reps: int = 0,
+    # ):
+    #     """Scale the rectangle by scale_x and scale_y.
+    #     Rectangles cannot be scaled non-uniformly.
+    #     scale_x changes the width and scale_y changes the height.
 
-        Args:
-            scale_x (float): The scale factor for the width.
-            scale_y (float, optional): The scale factor for the height. Defaults to None.
-            about (Point, optional): The point to scale about. Defaults to (0, 0).
-            reps (int, optional): The number of repetitions. Defaults to 0.
+    #     Args:
+    #         scale_x (float): The scale factor for the width.
+    #         scale_y (float, optional): The scale factor for the height. Defaults to None.
+    #         about (Point, optional): The point to scale about. Defaults to (0, 0).
+    #         reps (int, optional): The number of repetitions. Defaults to 0.
 
-        Returns:
-            Rectangle: The scaled rectangle.
-        """
-        if scale_y is None:
-            scale_y = scale_x
-        center = self.center
-        _, rotation, _ = decompose_transformations(self.xform_matrix)
-        rm = rotation_matrix(-rotation, center)
-        sm = scale_in_place_matrix(scale_x, scale_y, about)
-        inv_rm = rotation_matrix(rotation, center)
-        transform = rm @ sm @ inv_rm
+    #     Returns:
+    #         Rectangle: The scaled rectangle.
+    #     """
+    #     if scale_y is None:
+    #         scale_y = scale_x
+    #     center = self.midpoint
+    #     _, rotation, _ = decompose_transformations(self.xform_matrix)
+    #     rm = rotation_matrix(-rotation, center)
+    #     sm = scale_in_place_matrix(scale_x, scale_y, about)
+    #     inv_rm = rotation_matrix(rotation, center)
+    #     transform = rm @ sm @ inv_rm
 
-        return self._update(transform, reps=reps)
+    #     return self._update(transform, reps=reps)
 
     @property
     def width(self):
@@ -493,13 +512,12 @@ def hex_points(side_length: float) -> List[List[float]]:
 
 
 def rectangle_points(
-    x: float, y: float, width: float, height: float, angle: float = 0
+    pos: Point=(0, 0), width: float=100, height: float=100, angle: float = 0
 ) -> Sequence[Point]:
     """Return a list of points that form a rectangle with the given parameters.
 
     Args:
-        x (float): The x-coordinate of the center of the rectangle.
-        y (float): The y-coordinate of the center of the rectangle.
+        pos (Point): The position of the rectangle.
         width (float): The width of the rectangle.
         height (float): The height of the rectangle.
         angle (float, optional): The rotation angle of the rectangle. Defaults to 0.
@@ -507,8 +525,8 @@ def rectangle_points(
     Returns:
         Sequence[Point]: A list of points that form the rectangle.
     """
-    from affine import rotate
-
+    from ..graphics.affine import rotate
+    x, y = pos[:2]
     points = []
     points.append([x - width / 2, y - height / 2])
     points.append([x + width / 2, y - height / 2])

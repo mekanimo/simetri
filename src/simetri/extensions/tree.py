@@ -115,7 +115,8 @@ def make_tree(
     line1_cap = sg.LineCap.ROUND,
     line2_color = sg.gray,
     line2_width = 1,
-    line2_cap = sg.LineCap.ROUND
+    line2_cap = sg.LineCap.ROUND,
+    scale=1
 ):
     """Creates a tree structure and draws it on the canvas.
     Args:
@@ -217,6 +218,8 @@ def make_tree(
             draw_tree(child, indent + 1, canvas=canvas)
 
     draw_tree(node, canvas=canvas)
+    if scale != 1:
+        canvas.scale = (scale, scale)
     canvas.save(file_path, overwrite=overwrite)
 
 

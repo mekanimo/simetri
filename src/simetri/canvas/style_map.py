@@ -12,7 +12,7 @@ from typing import List, Optional, Sequence, Union
 from dataclasses import dataclass
 
 from ..settings.settings import defaults
-from ..graphics.common import get_unique_id, VOID
+from ..graphics.common import get_unique_id, VOID, common_properties
 from ..graphics.all_enums import (
     Align,
     Anchor,
@@ -137,6 +137,7 @@ class FontStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
 
 
 @dataclass
@@ -171,6 +172,7 @@ class GridStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the GridStyle object."""
@@ -220,6 +222,7 @@ class MarkerStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the MarkerStyle object."""
@@ -289,6 +292,7 @@ class LineStyle:
         self._exact = exact
         self._exclude = exclude
         self.marker_style = MarkerStyle()
+        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the LineStyle object."""
@@ -357,6 +361,7 @@ class PatternStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the PatternStyle object."""
@@ -437,6 +442,7 @@ class ShadeStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
 
 
 @dataclass
@@ -475,6 +481,7 @@ class FillStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the FillStyle object."""
@@ -526,6 +533,7 @@ class ShapeStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the ShapeStyle object."""
@@ -581,6 +589,65 @@ class FrameStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
+
+
+@dataclass
+class ImageStyle:
+    """ImageStyle is used to set the color, and style of image objects.
+
+    Attributes:
+        align (Align): The alignment of the image.
+        alpha (float): The alpha value of the image.
+        anchor (Anchor): The anchor of the image.
+        blend_mode (BlendMode): The blend mode of the image.
+        draw_frame (bool): Whether to draw a frame around the image.
+        frame_style (FrameStyle): The frame style of the image.
+    """
+
+    align: Align = None
+    alpha: float = None
+    anchor: Anchor = None
+    blend_mode: BlendMode = None
+    draw_frame: bool = None
+    frame_style: FrameStyle = None
+    text_width: float = None
+
+    def __post_init__(self):
+        """Initialize the ImageStyle object."""
+        self.frame_style = FrameStyle()
+        self.alpha = defaults["image_alpha"]
+        self.align = defaults["image_align"]
+        self.blend_mode = defaults["image_blend_mode"]
+        exact = [
+            "alpha",
+            "blend_mode",
+            "draw_frame",
+            "anchor",
+            "bold",
+            "italic",
+            "text_width"
+        ]
+        exclude = ["frame_style"]
+
+        _style_init(
+            self,
+            exact=exact,
+            exclude=exclude,
+            prefix="image",
+            subtype=Types.IMAGE_STYLE,
+        )
+        self._exact = exact
+        self._exclude = exclude
+        common_properties(self, id_only=True)
+
+    def __str__(self):
+        """Return a string representation of the ImageStyle object."""
+        return f"ImageStyle: {self.id}"
+
+    def __repr__(self):
+        """Return a string representation of the TagStyle object."""
+        return f"TagStyle: {self.id}"
 
 
 @dataclass
@@ -641,6 +708,7 @@ class TagStyle:
         )
         self._exact = exact
         self._exclude = exclude
+        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the TagStyle object."""
@@ -767,6 +835,124 @@ def _set_marker_style_alias_map(debug=False):
     marker_style_map["marker_radius"] = ("marker_style", "radius")
 
     return marker_style_map
+
+image_style_map = {
+    'align': ('style', 'align'),
+    'alpha': ('style', 'alpha'),
+    'back_color': ('style.frame_style.fill_style', 'color'),
+    'back_style': ('style.frame_style.fill_style', 'back_style'),
+    'blend_mode': ('style', 'blend_mode'),
+    'double_distance': ('style.frame_style.line_style', 'double_distance'),
+    'double_lines': ('style.frame_style.line_style', 'double_lines'),
+    'draw_fillets': ('style.frame_style.line_style', 'draw_fillets'),
+    'draw_frame': ('style', 'draw_frame'),
+    'draw_markers': ('style.frame_style.line_style', 'draw_markers'),
+    'fill': ('style.frame_style.fill_style', 'fill'),
+    'fill_alpha': ('style.frame_style.fill_style', 'alpha'),
+    'fill_color': ('style.frame_style.fill_style', 'color'),
+    'fill_mode': ('style.frame_style.fill_style', 'mode'),
+    'fillet_radius': ('style.frame_style.line_style', 'fillet_radius'),
+    'frame_alpha': ('style.frame_style', 'alpha'),
+    'frame_inner_sep': ('style.frame_style', 'inner_sep'),
+    'frame_inner_xsep': ('style.frame_style', 'inner_xsep'),
+    'frame_inner_ysep': ('style.frame_style', 'inner_ysep'),
+    'frame_min_height': ('style.frame_style', 'min_height'),
+    'frame_min_size': ('style.frame_style', 'min_size'),
+    'frame_min_width': ('style.frame_style', 'min_width'),
+    'frame_outer_sep': ('style.frame_style', 'outer_sep'),
+    'frame_shape': ('style.frame_style', 'shape'),
+    'grid_alpha': ('style.frame_style.fill_style.grid_style', 'alpha'),
+    'grid_back_color': ('style.frame_style.fill_style.grid_style', 'back_color'),
+    'grid_line_color': ('style.frame_style.fill_style.grid_style', 'line_color'),
+    'grid_line_width': ('style.frame_style.fill_style.grid_style', 'line_width'),
+    'line_alpha': ('style.frame_style.line_style', 'alpha'),
+    'line_cap': ('style.frame_style.line_style', 'cap'),
+    'line_color': ('style.frame_style.line_style', 'color'),
+    'line_dash_array': ('style.frame_style.line_style', 'dash_array'),
+    'line_dash_phase': ('style.frame_style.line_style', 'dash_phase'),
+    'line_join': ('style.frame_style.line_style', 'join'),
+    'line_miter_limit': ('style.frame_style.line_style', 'miter_limit'),
+    'line_width': ('style.frame_style.line_style', 'width'),
+    'marker_color': ('style.frame_style.line_style.marker_style', 'color'),
+    'marker_radius': ('style.frame_style.line_style.marker_style', 'radius'),
+    'marker_size': ('style.frame_style.line_style.marker_style', 'size'),
+    'marker_type': ('style.frame_style.line_style.marker_style', 'marker_type'),
+    'markers_only': ('style.frame_style.line_style', 'markers_only'),
+    'pattern_angle': ('style.frame_style.fill_style.pattern_style', 'angle'),
+    'pattern_color': ('style.frame_style.fill_style.pattern_style', 'color'),
+    'pattern_distance': ('style.frame_style.fill_style.pattern_style', 'distance'),
+    'pattern_line_width': ('style.frame_style.fill_style.pattern_style', 'line_width'),
+    'pattern_points': ('style.frame_style.fill_style.pattern_style', 'points'),
+    'pattern_radius': ('style.frame_style.fill_style.pattern_style', 'radius'),
+    'pattern_type': ('style.frame_style.fill_style.pattern_style', 'pattern_type'),
+    'pattern_x_shift': ('style.frame_style.fill_style.pattern_style', 'x_shift'),
+    'pattern_y_shift': ('style.frame_style.fill_style.pattern_style', 'y_shift'),
+    'shade_axis_angle': ('style.frame_style.fill_style.shade_style', 'axis_angle'),
+    'shade_ball_color': ('style.frame_style.fill_style.shade_style', 'ball_color'),
+    'shade_bottom_color': ('style.frame_style.fill_style.shade_style', 'bottom_color'),
+    'shade_color_wheel': ('style.frame_style.fill_style.shade_style', 'color_wheel'),
+    'shade_color_wheel_black': ('style.frame_style.fill_style.shade_style', 'color_wheel_black'),
+    'shade_color_wheel_white': ('style.frame_style.fill_style.shade_style', 'color_wheel_white'),
+    'shade_inner_color': ('style.frame_style.fill_style.shade_style', 'inner_color'),
+    'shade_left_color': ('style.frame_style.fill_style.shade_style', 'left_color'),
+    'shade_lower_left_color': ('style.frame_style.fill_style.shade_style', 'lower_left_color'),
+    'shade_lower_right_color': ('style.frame_style.fill_style.shade_style', 'lower_right_color'),
+    'shade_middle_color': ('style.frame_style.fill_style.shade_style', 'middle_color'),
+    'shade_outer_color': ('style.frame_style.fill_style.shade_style', 'outer_color'),
+    'shade_right_color': ('style.frame_style.fill_style.shade_style', 'right_color'),
+    'shade_top_color': ('style.frame_style.fill_style.shade_style', 'top_color'),
+    'shade_type': ('style.frame_style.fill_style.shade_style', 'shade_type'),
+    'shade_upper_left_color': ('style.frame_style.fill_style.shade_style', 'upper_left_color'),
+    'shade_upper_right_color': ('style.frame_style.fill_style.shade_style', 'upper_right_color'),
+    'smooth': ('style.frame_style.line_style', 'smooth'),
+    'stroke': ('style.frame_style.line_style', 'stroke'),
+}
+
+def _set_image_style_alias_map(debug=False):
+    """Set the image-style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The image-style alias map.
+    """
+    frame_style = FrameStyle()
+    fill_style = FillStyle()
+    line_style = LineStyle()
+    pattern_style = PatternStyle()
+    shade_style = ShadeStyle()
+    grid_style = GridStyle()
+    marker_style = MarkerStyle()
+
+    styles = [
+        line_style,
+        fill_style,
+        marker_style,
+        frame_style,
+        pattern_style,
+        shade_style,
+        grid_style,
+    ]
+    paths = [
+        "style.frame_style.line_style",
+        "style.frame_style.fill_style",
+        "style.frame_style.line_style.marker_style",
+        "style.frame_style",
+        "style.frame_style.fill_style.pattern_style",
+        "style.frame_style.fill_style.shade_style",
+        "style.frame_style.fill_style.grid_style",
+    ]
+    prefixes = ["line", "fill", "marker", "frame", "pattern", "shade", "grid"]
+
+    _set_style_alias_map(image_style_map, styles, paths, prefixes, debug=debug)
+    image_style_map["alpha"] = ("style", "alpha")
+    image_style_map["align"] = ("style", "align")
+    image_style_map["blend_mode"] = ("style", "blend_mode")
+    image_style_map["draw_frame"] = ("style", "draw_frame")
+    image_style_map["back_color"] = ("style.frame_style.fill_style", "color")
+    return image_style_map
+
 
 
 # tag_style_map = {}
@@ -901,7 +1087,6 @@ def _set_tag_style_alias_map(debug=False):
     tag_style_map["blend_mode"] = ("style", "blend_mode")
     tag_style_map["draw_frame"] = ("style", "draw_frame")
     tag_style_map["back_color"] = ("style.frame_style.fill_style", "color")
-    tag_style_map["align"] = ("style", "align")
     return tag_style_map
 
 

@@ -734,7 +734,7 @@ class LinPath(Batch, StyleMixin):
         self.operations.append((PathOps.STYLE, (name, value, kwargs)))
         return self
 
-    def _update(self, xform_matrix: array, reps: int = 0) -> Batch:
+    def _update(self, xform_matrix: array, reps: int = 0, merge: bool = False) -> Batch:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -757,5 +757,6 @@ class LinPath(Batch, StyleMixin):
                 path._update(xform_matrix)
                 paths.append(path)
             res = Batch(paths)
-
+        if merge and reps > 0:
+            res = res.merge_shapes()
         return res

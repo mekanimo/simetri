@@ -1,8 +1,6 @@
 """Base class. This is the parent for Shape and Batch classes."""
 
-__all__ = [
-    "Base", "StyleMixin"
-]
+__all__ = ["Base", "StyleMixin"]
 
 from typing import Sequence, Any, Union
 from typing_extensions import Self
@@ -31,6 +29,8 @@ class Base:
 
     def __getattr__(self, name: str) -> Any:
         if name in anchors:
+            if name.startswith("bbox_"):
+                name = name[4:]
             res = getattr(self.b_box, name)
         else:
             try:
@@ -39,13 +39,16 @@ class Base:
                 try:
                     res = super().__getattr__(name)
                 except AttributeError as exc:
-                    msg = f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                    msg = (
+                        f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                    )
                     raise AttributeError(msg) from exc
 
         return res
 
-
-    def translate(self, dx: float = 0, dy: float = 0, reps: int = 0) -> Self:
+    def translate(
+        self, dx: float = 0, dy: float = 0, reps: int = 0, merge: bool = False
+    ) -> Self:
         """
         Translates the object by dx and dy.
 
@@ -57,8 +60,13 @@ class Base:
         Returns:
             Self: The transformed object.
         """
-        transform = translation_matrix(dx, dy)
-        return self._update(transform, reps=reps)
+        if self.active:
+            transform = translation_matrix(dx, dy)
+            res = self._update(transform, reps=reps, merge=merge)
+        else:
+            res = self.copy()
+
+        return res
 
     def translate_along(
         self,
@@ -108,7 +116,9 @@ class Base:
             # rotate += rotate
         return self
 
-    def rotate(self, angle: float, about: Point = (0, 0), reps: int = 0) -> Self:
+    def rotate(
+        self, angle: float, about: Point = (0, 0), reps: int = 0, merge: bool = False
+    ) -> Self:
         """
         Rotates the object by the given angle (in radians) about the given point.
 
@@ -120,10 +130,16 @@ class Base:
         Returns:
             Self: The rotated object.
         """
-        transform = rotation_matrix(angle, about)
-        return self._update(transform, reps=reps)
+        if self.active:
+            transform = rotation_matrix(angle, about)
+            res = self._update(transform, reps=reps, merge=merge)
+        else:
+            res = self.copy()
+        return res
 
-    def mirror(self, about: Union[Line, Point], reps: int = 0) -> Self:
+    def mirror(
+        self, about: Union[Line, Point], reps: int = 0, merge: bool = False
+    ) -> Self:
         """
         Mirrors the object about the given line or point.
 
@@ -134,10 +150,17 @@ class Base:
         Returns:
             Self: The mirrored object.
         """
-        transform = mirror_matrix(about)
-        return self._update(transform, reps=reps)
+        if self.active:
+            transform = mirror_matrix(about)
+            res = self._update(transform, reps=reps, merge=merge)
+        else:
+            res = self.copy()
 
-    def glide(self, glide_line: Line, glide_dist: float, reps: int = 0) -> Self:
+        return res
+
+    def glide(
+        self, glide_line: Line, glide_dist: float, reps: int = 0, merge: bool = False
+    ) -> Self:
         """
         Glides (first mirror then translate) the object along the given line
         by the given glide_dist.
@@ -150,8 +173,13 @@ class Base:
         Returns:
             Self: The glided object.
         """
-        transform = glide_matrix(glide_line, glide_dist)
-        return self._update(transform, reps=reps)
+        if self.active:
+            transform = glide_matrix(glide_line, glide_dist)
+            res = self._update(transform, reps=reps, merge=merge)
+        else:
+            res = self.copy()
+
+        return res
 
     def scale(
         self,
@@ -159,6 +187,7 @@ class Base:
         scale_y: Union[float, None] = None,
         about: Point = (0, 0),
         reps: int = 0,
+        merge: bool = False,
     ) -> Self:
         """
         Scales the object by the given scale factors about the given point.
@@ -174,10 +203,17 @@ class Base:
         """
         if scale_y is None:
             scale_y = scale_x
-        transform = scale_in_place_matrix(scale_x, scale_y, about)
-        return self._update(transform, reps=reps)
+        if self.active:
+            transform = scale_in_place_matrix(scale_x, scale_y, about)
+            res = self._update(transform, reps=reps, merge=merge)
+        else:
+            res = self.copy()
 
-    def shear(self, theta_x: float, theta_y: float, reps: int = 0) -> Self:
+        return res
+
+    def shear(
+        self, theta_x: float, theta_y: float, reps: int = 0, merge: bool = False
+    ) -> Self:
         """
         Shears the object by the given angles.
 
@@ -189,8 +225,13 @@ class Base:
         Returns:
             Self: The sheared object.
         """
-        transform = shear_matrix(theta_x, theta_y)
-        return self._update(transform, reps=reps)
+        if self.active:
+            transform = shear_matrix(theta_x, theta_y)
+            res = self._update(transform, reps=reps, merge=merge)
+        else:
+            res = self.copy()
+
+        return res
 
     def reset_xform_matrix(self) -> Self:
         """
@@ -202,7 +243,9 @@ class Base:
         self.__dict__["xform_matrix"] = np.identity(3)
         return self
 
-    def transform(self, transform_matrix: ndarray, reps: int = 0) -> Self:
+    def transform(
+        self, transform_matrix: ndarray, reps: int = 0, merge: bool = False
+    ) -> Self:
         """
         Transforms the object by the given transformation matrix.
 
@@ -213,7 +256,12 @@ class Base:
         Returns:
             Self: The transformed object.
         """
-        return self._update(transform_matrix, reps=reps)
+        if self.active:
+            res = self._update(transform_matrix, reps=reps, merge=merge)
+        else:
+            res = self.copy()
+
+        return res
 
     def move_to(self, pos: Point, anchor: Anchor = Anchor.CENTER) -> Self:
         """
@@ -226,11 +274,17 @@ class Base:
         Returns:
             Self: The moved object.
         """
-        x, y = pos[:2]
-        anchor = get_enum_value(Anchor, anchor)
-        x1, y1 = getattr(self.b_box, anchor)
-        transform = translation_matrix(x - x1, y - y1)
-        return self._update(transform, reps=0)
+        if self.active:
+            x, y = pos[:2]
+            anchor = get_enum_value(Anchor, anchor)
+            x1, y1 = getattr(self.b_box, anchor)
+            transform = translation_matrix(x - x1, y - y1)
+            res = self._update(transform, reps=0)
+        else:
+            res = self.copy()
+
+        return res
+
 
     def offset_line(self, side: Side, offset: float) -> Line:
         """
@@ -272,6 +326,7 @@ class StyleMixin:
     Shape class inherits from this.
     Some Batch classes with different subtypes also inherit from this.
     """
+
     def __setattr__(self, name, value):
         """Set an attribute of the shape.
 

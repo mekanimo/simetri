@@ -431,7 +431,7 @@ class Tag(Base):
                 _aliasses[alias] = (obj, attrib)
         self.__dict__["_aliasses"] = _aliasses
 
-    def _update(self, xform_matrix, reps: int = 0):
+    def _update(self, xform_matrix, reps: int = 0, merge: bool = False):
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
             res = self
@@ -443,6 +443,9 @@ class Tag(Base):
                 tag._update(xform_matrix)
                 tags.append(tag)
             res = Batch(tags)
+
+        if merge and reps > 0:
+            res = res.merge_shapes()
 
         return res
 
@@ -482,6 +485,16 @@ class Tag(Base):
         Returns:
             tuple: The bounds of the text (xmin, ymin, xmax, ymax).
         """
+        d_font_size = {
+            FontSize.TINY: 5,
+            FontSize.SMALL: 7,
+            FontSize.NORMAL: 10,
+            FontSize.LARGE: 12,
+            FontSize.LARGE2: 14,
+            FontSize.LARGE3: 17,
+            FontSize.HUGE: 20,
+            FontSize.HUGE2: 25,
+        }
         mult = 1 # font size multiplier
         if self.font_size is None:
             font_size = defaults["font_size"]
@@ -495,7 +508,11 @@ class Tag(Base):
             font = ImageFont.truetype(f"{self.font_family}.ttf", font_size)
         except OSError:
             font = ImageFont.load_default()
-            mult = self.font_size / 10
+            if self.font_size in d_font_size:
+                font_size = d_font_size[self.font_size]
+            else:
+                font_size = self.font_size
+            mult = font_size / 10
         xmin, ymin, xmax, ymax = font.getbbox(self.text)
         width = xmax - xmin
         height = ymax - ymin

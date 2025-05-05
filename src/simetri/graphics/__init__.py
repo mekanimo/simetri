@@ -76,7 +76,7 @@ from ..extensions.easing import *
 from ..extensions.tree import make_tree, TreeNode
 from .path import LinPath
 from .pattern import *
-from ..image.image import Image, open
+from ..image.image import Image, open_img
 set_tikz_defaults()
 
 import simetri.canvas.style_map as style_map
@@ -84,6 +84,7 @@ import simetri.canvas.style_map as style_map
 def set_alias_maps():
     style_map._set_shape_style_alias_map()
     style_map._set_tag_style_alias_map()
+    style_map._set_image_style_alias_map()
     style_map._set_line_style_alias_map()
     style_map._set_fill_style_alias_map()
     style_map._set_marker_style_alias_map()

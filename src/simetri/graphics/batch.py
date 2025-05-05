@@ -1,7 +1,7 @@
 """Batch objects are used for grouping other Shape and Batch objects.
 """
 
-from typing import Any, Iterator, List, Sequence
+from typing import Any, Iterator, List, Sequence, Callable
 
 from numpy import around, array
 from typing_extensions import Self, Dict
@@ -57,7 +57,7 @@ class Batch(Base):
             kwargs (dict): Additional keyword arguments.
         """
         validate_args(kwargs, batch_args)
-        if elements and not isinstance(elements, (list, tuple)):
+        if elements is not None and not isinstance(elements, (list, tuple)):
             self.elements = [elements]
         else:
             self.elements = elements if elements is not None else []
@@ -78,34 +78,35 @@ class Batch(Base):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    def set_attribs(self, attrib, value):
+    def set_attribs(self, attrib: str, value: Any, key: Callable = None) -> Self:
         """
         Sets the attribute to the given value for all elements in the batch if it is applicable.
 
         Args:
             attrib (str): The attribute to set.
             value (Any): The value to set the attribute to.
-        """
-        for element in self.elements:
-            if element.type == Types.BATCH:
-                setattr(element, attrib, value)
-            elif hasattr(element, attrib):
-                setattr(element, attrib, value)
-
-    def set_batch_attr(self, attrib: str, value: Any) -> Self:
-        """
-        Sets the attribute to the given value for the batch itself.
-        batch.attrib = value would set the attribute to the elements
-        of the batch object but not the batch itself.
-
-        Args:
-            attrib (str): The attribute to set.
-            value (Any): The value to set the attribute to.
+            key (Callable, optional): A function to filter elements by a specific key. Defaults to None.
 
         Returns:
             Self: The batch object.
+
+        Example: batch.set_attribs('fill_color', 'red', key=lambda x: x.type == Types.SHAPE)
         """
-        self.__dict__[attrib] = value
+        for element in self.elements:
+            if key is not None:
+                if key(element):
+                    if element.type == Types.BATCH:
+                        element.set_attribs(attrib, value, key=key)
+                    elif hasattr(element, attrib):
+                        setattr(element, attrib, value)
+            else:
+                if element.type == Types.BATCH:
+                    element.set_attribs(attrib, value)
+                elif hasattr(element, attrib):
+                    setattr(element, attrib, value)
+
+        return self
+
 
     def __str__(self):
         """
@@ -730,7 +731,7 @@ class Batch(Base):
         """
         modifier.apply()
 
-    def _update(self, xform_matrix, reps: int = 0):
+    def _update(self, xform_matrix, reps: int = 0, merge: bool = False) -> Self:
         """Updates the batch with the given transformation matrix.
         If reps is 0, the transformation is applied to all elements.
         If reps is greater than 0, the transformation creates
@@ -760,8 +761,190 @@ class Batch(Base):
                             modifier.apply(new_element)
                 elements = new[:]
                 new = []
+        if merge and reps > 0:
+            merged = self.merge_shapes()
+            self[:] = merged.elements[:]
+
         return self
 
+    def union(self, other: "Batch") -> Self:
+        """Returns the union of two batches.
+
+        Args:
+            other (Batch): The other batch to union with.
+
+        Returns:
+            Batch: The union of the two batches.
+        """
+        if not isinstance(other, Batch):
+            raise TypeError("Invalid object. Only Batch objects can be unioned!")
+
+        self_ids = {item.id for item in self.elements}
+        other_ids = {item.id for item in other.elements}
+
+        union_ids = self_ids.union(other_ids)
+
+        return Batch(
+            elements=[item for item in self.elements if item.id in union_ids],
+            modifiers=self.modifiers,
+            subtype=self.subtype,
+        )
+
+    def intersection(self, other: "Batch") -> Self:
+        """Returns the intersection of two batches.
+
+        Args:
+            other (Batch): The other batch to intersect with.
+
+        Returns:
+            Batch: The intersection of the two batches.
+        """
+        if not isinstance(other, Batch):
+            raise TypeError("Invalid object. Only Batch objects can be intersected!")
+
+        self_ids = {item.id for item in self.elements}
+        other_ids = {item.id for item in other.elements}
+
+        intersection_ids = self_ids.intersection(other_ids)
+
+        return Batch(
+            elements=[item for item in self.elements if item.id in intersection_ids],
+            modifiers=self.modifiers,
+            subtype=self.subtype,
+        )
+
+    def difference(self, other: "Batch") -> Self:
+        """Returns the difference of two batches.
+
+        Args:
+            other (Batch): The other batch to subtract.
+
+        Returns:
+            Batch: The difference of the two batches.
+        """
+        if not isinstance(other, Batch):
+            raise TypeError("Invalid object. Only Batch objects can be subtracted!")
+
+        self_ids = {item.id for item in self.elements}
+        other_ids = {item.id for item in other.elements}
+
+        difference_ids = self_ids.difference(other_ids)
+
+        return Batch(
+            elements=[item for item in self.elements if item.id in difference_ids],
+            modifiers=self.modifiers,
+            subtype=self.subtype,
+        )
+
+    def symmetric_difference(self, other: "Batch") -> Self:
+        """Returns the symmetric difference of two batches.
+
+        Args:
+            other (Batch): The other batch to find the symmetric difference with.
+
+        Returns:
+            Batch: The symmetric difference of the two batches.
+        """
+        if not isinstance(other, Batch):
+            raise TypeError("Invalid object. Only Batch objects can be symmetrically differenced!")
+
+        self_ids = {item.id for item in self.elements}
+        other_ids = {item.id for item in other.elements}
+
+        symmetric_difference_ids = self_ids.symmetric_difference(other_ids)
+
+        return Batch(
+            elements=[item for item in self.elements if item.id in symmetric_difference_ids],
+            modifiers=self.modifiers,
+            subtype=self.subtype,
+        )
+
+    def subset(self, other: "Batch") -> bool:
+        """Checks if the current batch is a subset of another batch.
+
+        Args:
+            other (Batch): The other batch to check against.
+
+        Returns:
+            bool: True if the current batch is a subset of the other batch, False otherwise.
+        """
+        if not isinstance(other, Batch):
+            raise TypeError("Invalid object. Only Batch objects can be checked for subset!")
+
+        self_ids = {item.id for item in self.elements}
+        other_ids = {item.id for item in other.elements}
+
+        return self_ids.issubset(other_ids)
+
+    def superset(self, other: "Batch") -> bool:
+        """Checks if the current batch is a superset of another batch.
+
+        Args:
+            other (Batch): The other batch to check against.
+
+        Returns:
+            bool: True if the current batch is a superset of the other batch, False otherwise.
+        """
+        if not isinstance(other, Batch):
+            raise TypeError("Invalid object. Only Batch objects can be checked for superset!")
+
+        self_ids = {item.id for item in self.elements}
+        other_ids = {item.id for item in other.elements}
+
+        return self_ids.issuperset(other_ids)
+
+    def __hash__(self) -> int:
+        """Return the hash of the batch.
+
+        Returns:
+            int: The hash of the batch.
+        """
+        return hash(tuple(self.ids))
+
+    def __eq__(self, other: object) -> bool:
+        """Check if two batches are equal.
+
+        Args:
+            other (object): The other batch to compare.
+
+        Returns:
+            bool: True if the batches are equal, False otherwise.
+        """
+        if not isinstance(other, Batch):
+            return False
+
+        if len(self.elements) != len(other.elements):
+            return False
+
+
+        return self.elements == other.elements and self.modifiers == other.modifiers
+
+@property
+def ids(self):
+    """Return a list of ids of the elements in the batch. If the element has an id attribute, it is used.
+    Otherwise, id(element) is used.
+
+    Returns:
+        list: A list of ids of the elements in the batch.
+    """
+    return [item.id if hasattr(item, "id") else id(item) for item in self.elements]
+
+@property
+def all_ids(self):
+    """Return a list of ids of the elements in the batch. If the element has an id attribute, it is used.
+    Otherwise, id(element) is used.
+
+    Returns:
+        list: A list of ids of the elements in the batch.
+    """
+    ids = []
+    for item in self.elements:
+        if hasattr(item "type") and item.type == Types.BATCH:
+            ids.extend(item.all_ids)
+        else:
+            ids.append(item.id if hasattr(item, "id") else id(item))
+
+    return ids
 
 def custom_batch_attributes(item: Batch) -> List[str]:
     """

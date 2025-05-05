@@ -109,10 +109,11 @@ class Modifier:
         """
         if self.can_continue(element):
             if self.n_func_args == 1:
-                self.function(element)
+                res = self.function(element)
             else:
-                self.function(element, self, *self.args, **self.kwargs)
+                res = self.function(element, self, *self.args, **self.kwargs)
             self._update_state()
+            return res
         else:
             self.state = State.STOPPED
 

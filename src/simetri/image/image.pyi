@@ -62,7 +62,7 @@ def eval(self, expr, channel_order=None):
         The evaluated image.
     """
 
-def merge(self, mode, *args):
+def merge_images(self, mode, *args):
     """
     Merge multiple images into one.
 

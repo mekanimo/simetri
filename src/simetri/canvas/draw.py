@@ -32,8 +32,15 @@ from ..graphics.sketch import (
     ImageSketch,
 )
 from ..settings.settings import defaults
-from ..canvas.style_map import line_style_map, shape_style_map, tag_style_map, group_args
+from ..canvas.style_map import (
+    line_style_map,
+    shape_style_map,
+    tag_style_map,
+    image_style_map,
+    group_args,
+)
 from ..helpers.illustration import Tag
+from ..helpers.utilities import decompose_transformations
 from ..graphics.affine import identity_matrix
 from ..graphics.shape import Shape
 from ..graphics.common import Point
@@ -345,21 +352,23 @@ def lines(self, points, **kwargs):
 
     return self
 
+
 def insert_code(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
-        """
-        Insert code into the canvas.
+    """
+    Insert code into the canvas.
 
-        Args:
-            code (str): The code to insert.
+    Args:
+        code (str): The code to insert.
 
-        Returns:
-            Self: The canvas object.
-        """
-        active_sketches = self.active_page.sketches
-        sketch = TexSketch(code, location=location)
-        active_sketches.append(sketch)
+    Returns:
+        Self: The canvas object.
+    """
+    active_sketches = self.active_page.sketches
+    sketch = TexSketch(code, location=location)
+    active_sketches.append(sketch)
 
-        return self
+    return self
+
 
 def draw_bbox(self, bbox, **kwargs):
     """
@@ -460,6 +469,7 @@ def draw_lace(self, lace, **kwargs):
 
     return self
 
+
 def draw_image(self, image, **kwargs):
     """Draw the image object.
 
@@ -474,18 +484,30 @@ def draw_image(self, image, **kwargs):
         return self
     if not image.active:
         return self
+    translation, rotation, scale = decompose_transformations(image.xform_matrix)
     if "pos" in kwargs:
         pos = kwargs["pos"]
     else:
         pos = image.pos
-    # todo : handle pos, angle, scale
-    sketch = ImageSketch(image, xform_matrix=self.xform_matrix, **kwargs)
-    for attrib_name in tag_style_map:
+
+    sketch = ImageSketch(
+        image,
+        pos=pos,
+        angle = rotation,
+        scale=scale,
+        size=image.size,
+        file_path=image.file_path,
+        anchor=image.anchor,
+        xform_matrix=self.xform_matrix,
+        **kwargs,
+    )
+    for attrib_name in shape_style_map:
         attrib_value = self._resolve_property(image, attrib_name)
         setattr(sketch, attrib_name, attrib_value)
     self.active_page.sketches.append(sketch)
 
     return self
+
 
 def draw_dimension(self, item, **kwargs):
     """Draw the dimension object.
@@ -521,7 +543,6 @@ def draw_dimension(self, item, **kwargs):
     tag_sketch.frame_shape = FrameShape.CIRCLE
     tag_sketch.fill = True
     tag_sketch.font_color = colors.black
-    tag_sketch.frame_back_style = BackStyle.COLOR
     tag_sketch.back_style = BackStyle.COLOR
     tag_sketch.frame_back_color = colors.white
     tag_sketch.back_color = colors.white
@@ -631,7 +652,9 @@ def extend_vertices(canvas, item):
     elif item.subtype == Types.PATTERN:
         all_vertices.extend(item.get_all_vertices())
     else:
-        corners = [x[:2] for x in homogenize(item.corners) @ canvas._sketch_xform_matrix]
+        corners = [
+            x[:2] for x in homogenize(item.corners) @ canvas._sketch_xform_matrix
+        ]
         all_vertices.extend(corners)
 
 
@@ -726,6 +749,7 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
 
     for k, v in kwargs.items():
         setattr(sketch, k, v)
+
 
 def get_verts_in_new_pos(item, **kwargs):
     """
@@ -838,7 +862,7 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             PatternSketch: Created PatternSketch.
         """
-        sketch = PatternSketch(item, xform_matrix=canvas.xform_matrix, **kwargs)
+        sketch = PatternSketch(item, xform_matrix=canvas.xform_matrix)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
@@ -858,9 +882,7 @@ def create_sketch(item, canvas, **kwargs):
             center = kwargs["pos"]
         else:
             center = item.center
-        sketch = CircleSketch(
-            center, item.radius, xform_matrix=canvas.xform_matrix
-        )
+        sketch = CircleSketch(center, item.radius, xform_matrix=canvas.xform_matrix)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
@@ -1086,12 +1108,12 @@ def create_sketch(item, canvas, **kwargs):
         vertices = [(round(x[0], nround), round(x[1], nround)) for x in item.vertices]
         if not vertices:
             return None
-        if 'pos' in kwargs:
+        if "pos" in kwargs:
             x, y = item.midpoint[:2]
             x1, y1 = kwargs["pos"][:2]
             dx = x1 - x
             dy = y1 - y
-            vertices = [(x+dx, y+dy) for x, y in vertices]
+            vertices = [(x + dx, y + dy) for x, y in vertices]
         sketches = []
         sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
         sketch.subtype = Types.HANDLE
@@ -1124,11 +1146,36 @@ def create_sketch(item, canvas, **kwargs):
 
         # vertices = get_verts_in_new_pos(item, **kwargs)
         nround = defaults["tikz_nround"]
-        vertices = [
-            (round(x[0], nround), round(x[1], nround)) for x in item.vertices
-        ]
+        vertices = [(round(x[0], nround), round(x[1], nround)) for x in item.vertices]
 
         sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
+        set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+        return sketch
+
+    def get_image_sketch(item, canvsa, **kwargs):
+        """Create an ImageSketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            ImageSketch: Created ImageSketch.
+        """
+        _, rotation, scale = decompose_transformations(item.xform_matrix)
+        sketch = ImageSketch(
+            item,
+            pos = item.pos,
+            angle = rotation,
+            scale = scale,
+            anchor = item.anchor,
+            size = item.size,
+            file_path = item.file_path,
+            xform_matrix=canvas.xform_matrix,
+            **kwargs,
+        )
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
@@ -1150,7 +1197,7 @@ def create_sketch(item, canvas, **kwargs):
         Types.FRAGMENT: get_sketch,
         Types.HANDLE: get_handle_sketch,
         Types.HEX_GRID: get_batch_sketch,
-        Types.IMAGE: get_sketch,
+        Types.IMAGE: get_image_sketch,
         Types.LACE: get_lace_sketch,
         Types.LINPATH: get_path_sketch,
         Types.MIXED_GRID: get_batch_sketch,

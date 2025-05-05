@@ -5,6 +5,9 @@ drawing basic shapes like lines, circles, and polygons.
 """
 
 import os
+import time
+import tempfile
+import shutil
 import webbrowser
 import subprocess
 import warnings
@@ -47,7 +50,7 @@ from simetri.tikz.tikz import Tex, get_tex_code
 from simetri.helpers.validation import validate_args
 from simetri.canvas.style_map import canvas_args
 from simetri.notebook import display
-from simetri.image.image import Image
+from simetri.image.image import Image, create_image_from_data
 
 
 
@@ -219,6 +222,7 @@ class Canvas:
     def limits(self) -> Vec2:
         """
         The limits of the canvas.
+        [min_x, min_y, max_x, max_y]
 
         Returns:
             Vec2: The limits of the canvas.
@@ -236,6 +240,7 @@ class Canvas:
     def limits(self, value: Vec2) -> None:
         """
         Set the limits of the canvas.
+        [min_x, min_y, max_x, max_y]
 
         Args:
             value (Vec2): The limits of the canvas.
@@ -246,6 +251,29 @@ class Canvas:
             self._origin = (x1, y1)
         else:
             raise ValueError("Limits must be a tuple of 4 values.")
+
+    def image(self, **kwargs) -> Image:
+        """
+        Create an image from the canvas.
+
+        Returns:
+            Image: The Image object.
+        """
+        tmpdirname = tempfile.TemporaryDirectory().name
+        os.makedirs(tmpdirname, exist_ok=True)
+        file_name = next(tempfile._get_candidate_names())
+        file_path = os.path.join(tmpdirname, file_name + ".ps")
+
+        self.save(file_path, show=False, print_output=False, remove_aux=False)
+        wait_for_file_availability(file_path, timeout=5)
+        temp_img = create_image_from_data(file_path)
+
+        time.sleep(1)
+        shutil.rmtree(tmpdirname, ignore_errors=True)
+        return temp_img
+
+
+
 
     def insert_code(self, code, loc: TexLoc = TexLoc.PICTURE) -> Self:
         """
@@ -404,7 +432,7 @@ class Canvas:
         Draw help lines on the canvas.
 
         Args:
-            pos (tuple): The position to start drawing the help lines.
+            pos (tuple): The lower-left corner of the grid.
             width (float): The length of the help lines along the x-axis.
             height (float): The length of the help lines along the y-axis.
             spacing (int): The spacing between the help lines.
@@ -745,7 +773,7 @@ class Canvas:
             scale_y = scale_x
 
         self._xform_matrix = (
-            scale_in_place_matrix(scale_x, scale_y, about=about) @ self._xform_matrix
+            self._xform_matrix @ scale_in_place_matrix(scale_x, scale_y, about=about)
         )
 
     @property
@@ -785,19 +813,19 @@ class Canvas:
 
         return self
 
-    def translate(self, x: float, y: float) -> Self:
+    def translate(self, dx: float, dy: float) -> Self:
         """
-        Translate the canvas by x and y.
+        Translate the canvas by dx and dy.
 
         Args:
-            x (float): The translation distance along the x-axis.
-            y (float): The translation distance along the y-axis.
+            dx (float): The translation distance along the x-axis.
+            dy (float): The translation distance along the y-axis.
 
         Returns:
             Self: The canvas object.
         """
 
-        self._xform_matrix = translation_matrix(x, y) @ self._xform_matrix
+        self._xform_matrix = translation_matrix(dx, dy) @ self._xform_matrix
 
         return self
 
@@ -1038,10 +1066,11 @@ class Canvas:
 
     def save(
         self,
-        file_path: Path = None,
+        file_path: Path,
         overwrite: bool = None,
         show: bool = None,
         print_output=False,
+        remove_aux=True,
     ) -> Self:
         """
         Save the canvas to a file.
@@ -1219,7 +1248,8 @@ class Canvas:
             return self
 
         run_job()
-        remove_aux_files(file_path)
+        if remove_aux:
+            remove_aux_files(file_path)
 
         self._show_browser(file_path=file_path, show_browser=show, multi_page_svg=False)
         return self

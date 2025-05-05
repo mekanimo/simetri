@@ -5,6 +5,8 @@ import os
 import re
 import base64
 import cmath
+import inspect
+import ast
 from functools import wraps, reduce
 from time import time, monotonic, perf_counter
 from math import factorial, cos, sin, pi, atan2, sqrt
@@ -1002,3 +1004,112 @@ def solve_complex_quadratic_eq(
         res = [x1, x2]
 
     return res
+
+def get_function_dependencies(func):
+    """
+    Extracts dependencies of a function using AST parsing.
+    """
+    source = inspect.getsource(func)
+    tree = ast.parse(source)
+    dependencies = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            dependencies.add(("ctx", node.id))
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                dependencies.add(("import", alias.name))
+        elif isinstance(node, ast.ImportFrom):
+             dependencies.add(("module", node.module))
+
+    # Remove the function name itself from dependencies
+    dependencies.discard(func.__name__)
+    # Remove built-in names
+    dependencies.discard('print') # Add more built-in names if needed
+
+    return list(dependencies)
+
+def analyze_function_dependencies(func):
+    """
+    Analyzes a function's dependencies, separating arguments, function calls, and variables.
+
+    Args:
+        func: The function to analyze.
+
+    Returns:
+        A dictionary containing lists of arguments, function calls, and variables.
+    """
+
+    source_code = inspect.getsource(func)
+    tree = ast.parse(source_code)
+
+    arguments = []
+    function_calls = []
+    variables = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            arguments.extend([arg.arg for arg in node.args.args])
+        elif isinstance(node, ast.Call):
+            function_calls.append(ast.unparse(node.func))
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            if node.id not in arguments:  # Avoid listing arguments as variables
+                variables.append(node.id)
+    # frame = None
+    # try:
+    #     # Use inspect.trace to get the frame of the function execution
+    #     trace = inspect.trace(lambda: func(*args, **kwargs), context=0)
+    #     frame = trace[0][0]
+
+    #     # Extract local and global variables from the frame
+    #     local_vars = frame.f_locals
+    #     global_vars = frame.f_globals
+    # finally:
+    #     # Ensure the frame is deleted to avoid resource leaks
+    #     del frame
+    code = func.__code__
+    local_vars = code.co_varnames[:code.co_argcount + code.co_nlocals]
+    global_names = [name for name in func.__globals__ if name in code.co_names]
+    # get the types of local_vars and make a dictionary d_local_vars = {name: type}
+    d_local_vars = {name: type(func.__code__.co_varnames) for name in local_vars if name in func.__code__.co_varnames}
+    # get the types of global_vars and make a dictionary d_global_vars = {name: type}
+    d_global_names = {name: type(func.__globals__[name]) for name in global_names if name in func.__globals__}
+
+
+
+    return {
+        "local_vars": local_vars,
+        "global_vars": global_names,
+        "d_local_vars": d_local_vars,
+        "d_global_vars": d_global_names,
+        "arguments": arguments,
+        "function_calls": function_calls,
+        "variables": list(set(variables) - set(function_calls)), # Remove function calls that are also variables
+    }
+
+def get_local_variables_info(func, *args, **kwargs):
+    """
+    Inspects a function call to retrieve local variable names and types
+    without modifying the function's execution.
+
+    Args:
+        func: The function to inspect.
+        *args: Positional arguments to pass to the function.
+        **kwargs: Keyword arguments to pass to the function.
+
+    Returns:
+        A dictionary where keys are local variable names and values are their types.
+    """
+    def tracer(frame, event, arg):
+        if event == 'call':
+            frame.f_trace = None
+            return tracer
+        elif event == 'return':
+            local_vars = frame.f_locals
+            return {name: type(value).__name__ for name, value in local_vars.items()}
+        return None
+
+    inspect.settrace(tracer)
+    result = func(*args, **kwargs)
+    inspect.settrace(None)
+    return tracer(inspect.currentframe(), 'return', result)

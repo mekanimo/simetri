@@ -1,24 +1,26 @@
 import os
+import io
+from math import degrees
 from typing import Any, Optional, Union, Callable, Tuple, Dict, List, Sequence
 
 from PIL import Image as PIL_Image
 
+from ..graphics.shapes import Rectangle
+from ..graphics.affine import identity_matrix, rotation_matrix, translation_matrix, scale_in_place_matrix
+from ..graphics.batch import Batch
+from ..graphics.common import Point
+from ..graphics.all_enums import Types, Anchor, ImageMode, Transformation
+from ..helpers.utilities import decompose_transformations
 
-from ..graphics.core import Base, StyleMixin
-from ..graphics.affine import identity_matrix
-from ..graphics.common import common_properties
-from ..graphics.all_enums import Types
-from ..graphics.bbox import BoundingBox, bounding_box
-from ..canvas.style_map import TagStyle, tag_style_map
-
-class Image(Base, StyleMixin):
+class Image(Rectangle):
     """
     A class that extends the PIL Image class to add additional functionality.
-    Image.pil_img is the PIL Image object.
+    Image.pil_img is the PIL Image object. It behaves like a TikZ node.
     For documentation see https://pillow.readthedocs.io/en/stable/.
     """
 
-    def __init__(self, img=None, pos=(0, 0), angle=0, scale=1, **kwargs):
+    def __init__(self, img: str=None, pos: Point =(0, 0), size: Sequence[int]=None,
+                                                        mode=ImageMode.RGB, **kwargs):
         """
         Initialize an Image object.
 
@@ -26,32 +28,34 @@ class Image(Base, StyleMixin):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
+        file_path = None
         if img is None:
-            # todo: add mode and size to kwargs
-            img = PIL_Image.new(**kwargs)
+            img = PIL_Image.new(mode=mode, size=size, **kwargs)
+            width, height = size
         elif isinstance(img, str):
             if os.path.exists(img):
+                file_path = img
                 img = PIL_Image.open(img)
+                width, height = img.size
             else:
                 raise FileNotFoundError(f"File {img} not found.")
+        elif isinstance(img, PIL_Image.Image):
+            width, height = img.size
         elif not isinstance(img, PIL_Image.Image):
             raise TypeError("img must be a PIL Image object or a file path.")
         self.__dict__['pil_img'] = img
-        self.__dict__["style"] = TagStyle()
-        self.__dict__["_style_map"] = tag_style_map
-        self._set_aliases()
-        self.pos = pos
+        kwargs['fill'] = False
+        kwargs['stroke'] = False
+        super().__init__(center=pos, width=width, height=height, **kwargs)
+        self.file_path = file_path
         self.type = Types.IMAGE
         self.subtype = Types.IMAGE
-        common_properties(self)
+        self.anchor = kwargs.get('anchor', Anchor.CENTER)
         if 'xform_matrix' in kwargs:
             self.xform_matrix = kwargs['xform_matrix']
         else:
             self.xform_matrix = identity_matrix()
-        if 'alpha' in kwargs:
-            self.alpha = kwargs['alpha']
-        else:
-            self.alpha = 1.0
+
     def __repr__(self):
         """
         Return a string representation of the Image object.
@@ -70,6 +74,92 @@ class Image(Base, StyleMixin):
         """
         return f"Image of size {self.pil_img.size} and mode {self.pil_img.mode}"
 
+    def __getattr__(self, name: str) -> Any:
+        """
+        Get an attribute from the underlying PIL Image object.
+
+        Args:
+            name (str): The name of the attribute to get.
+
+        Returns:
+            Any: The value of the requested attribute.
+        """
+        if name in self.__dict__:
+            res = self.__dict__[name]
+        else:
+            # Check if the attribute exists in the PIL Image object
+            if hasattr(self.pil_img, name):
+                res = getattr(self.pil_img, name)
+            else:
+                try:
+                    res = super().__getattr__(name)
+                except AttributeError:
+                    # If the attribute doesn't exist, raise an AttributeError
+                    raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+        return res
+
+    def _update(self, xform_matrix: 'array', reps: int = 0, merge: bool = False, **kwargs) -> Union[Batch, 'Image']:
+        """Used internally. Update the shape with a transformation matrix.
+
+        Args:
+            xform_matrix (array): The transformation matrix.
+            reps (int, optional): The number of repetitions, defaults to 0.
+
+        Returns:
+            Batch: The updated shape or a batch of shapes.
+        """
+        if reps == 0:
+            self.xform_matrix = self.xform_matrix @ xform_matrix
+            res = self
+        else:
+            images = [self]
+            image = self
+            for _ in range(reps):
+                image = image.copy()
+                image._update(xform_matrix)
+                images.append(image)
+            res = Batch(images)
+
+        if merge and reps > 0:
+            return res.merge_images()
+
+        return res
+
+    @property
+    def pos(self) -> Point:
+        """
+        The position of the image.
+
+        Returns:
+            Point: The position of the image.
+        """
+        return self.midpoint
+
+    @pos.setter
+    def pos(self, point: Point) -> None:
+        """
+        Set the position of the image.
+
+        Args:
+            point (Point): The new position of the image.
+        """
+        x, y = self.pos
+        dx = point[0] -x
+        dy = point[1] -y
+        self.xform_matrix = translation_matrix(dx, dy) @ self.xform_matrix
+
+    @property
+    def pil_img(self) -> PIL_Image.Image:
+        """
+        The underlying PIL Image object.
+
+        Returns:
+            PIL_Image.Image: The PIL Image object.
+        """
+        _, rotation, scale = decompose_transformations(self.xform_matrix)
+        return self.__dict__['pil_img']
+
     @property
     def filename(self) -> str:
         """
@@ -80,22 +170,6 @@ class Image(Base, StyleMixin):
         """
         return self.pil_img.info.get("filename", None)
 
-    @property
-    def b_box(self) -> BoundingBox:
-        """Return the bounding box of the shape.
-
-        Returns:
-            BoundingBox: The bounding box of the shape.
-        """
-        if self.pil_img:
-            extremes = self.pil_img.getbbox()
-            if extremes:
-                p1 = extremes[0], extremes[1]
-                p2 = extremes[2], extremes[3]
-                self._b_box = bounding_box([p1, p2])
-        else:
-            self._b_box = bounding_box([(0, 0)])
-        return self._b_box
 
     @property
     def format(self) -> str:
@@ -155,6 +229,8 @@ class Image(Base, StyleMixin):
         Returns:
             dict: A dictionary of metadata associated with the image.
         """
+        # todo: we can add more info here
+
         return self.pil_img.info
 
     @property
@@ -255,7 +331,10 @@ class Image(Base, StyleMixin):
             Image: An Image object.
         """
         img = Image(pos=self.pos, img=self.pil_img.copy())
-        img.xform_matrix = self.xform_matrix.copy()
+        img.primary_points = self.primary_points.copy()
+        img.xform_matrix = self.xform_matrix
+        img.file_path = self.file_path
+        img.anchor = self.anchor
 
         return img
 
@@ -413,22 +492,81 @@ class Image(Base, StyleMixin):
         """
         return self.pil_img.resize(size, resample, box, reducing_gap)
 
-    def rotate(self, angle, resample=0, expand=0, center=None, translate=None, fillcolor=None):
-        """
-        Returns a rotated copy of this image.
+    # def translate(self, dx: float=0, dy: float=0, reps: int=0, merge: bool=False, **kwargs)  -> Union[Batch, 'Image']:
+    #     """
+    #     Returns a translated copy of this image or a batch of translated copies of this image.
 
-        Args:
-            angle (float): The angle to rotate the image.
-            resample (int, optional): An optional resampling filter.
-            expand (int, optional): Optional expansion flag.
-            center (tuple, optional): Optional center of rotation.
-            translate (tuple, optional): An optional post-rotate translation.
-            fillcolor (tuple, optional): Optional fill color for the area outside the rotated image.
+    #     Args:
+    #         dx (float): The x-coordinate translation.
+    #         dy (float): The y-coordinate translation.
+    #         reps (int, optional): The number of repetitions.
+    #         merge (bool, optional): Whether to merge the images.
 
-        Returns:
-            Image: An Image object.
-        """
-        return self.pil_img.rotate(angle, resample, expand, center, translate, fillcolor)
+    #     Returns:
+    #         Image: An Image object or a Batch of images.
+    #     """
+    #     transform = translation_matrix(dx, dy)
+    #     kwargs = {'transform': Transformation.TRANSLATE}
+    #     return self._update(transform, reps=reps, merge=merge, kwargs=kwargs)
+
+    # def rotate(self, angle: float, about: Point=None, reps: int=0, merge: bool=False,
+    #            resample=0, expand=0, translate=None, fillcolor=None) -> Union[Batch, 'Image']:
+    #     """
+    #     Returns a rotated copy of this image or a batch of rotated Image objects.
+
+    #     Args:
+    #         angle (float): The angle to rotate the image.
+    #         about (tuple, optional): Optional center of rotation. Origin is the lower left corner.
+    #             Default is the center of the image.
+    #         resample (int, optional): An optional resampling filter. This can be one of
+    #             Resampling.NEAREST (use nearest neighbour), Resampling.BILINEAR
+    #             (linear interpolation in a 2x2 environment), or Resampling.BICUBIC
+    #             (cubic spline interpolation in a 4x4 environment).
+    #             If omitted, or if the image has mode “1” or “P”, it is set to
+    #             Resampling.NEAREST. See Filters.
+    #         expand (int, optional): Optional expansion flag. If true, expands the output
+    #             image to make it large enough to hold the entire rotated image. If false
+    #             or omitted, make the output image the same size as the input image. Note
+    #             that the expand flag assumes rotation around the center and no translation.
+    #         translate (tuple, optional): An optional post-rotate translation.
+    #         fillcolor (tuple, optional): Optional fill color for the area outside the rotated image.
+
+    #     Returns:
+    #         Image or Batch: A batch of images or an Image object.
+    #     """
+    #     if about is None:
+    #         width, height = self.pil_img.size
+    #         about = (width / 2, height / 2)
+    #     transform = rotation_matrix(angle, about=about)
+    #     angle = degrees(angle)
+    #     x, y = about[:2]
+    #     center = int(x), int(y)
+    #     kwargs = {'transform': Transformation.ROTATE, 'angle': angle, 'resample': resample,
+    #               'expand': expand, 'center': center, 'translate': translate,
+    #               'fillcolor': fillcolor}
+
+    #     return self._update(transform, reps=reps, merge=merge, **kwargs)
+
+    # def scale(self, scale_x: float=1, scale_y: float=None, about: Point=(0, 0),
+    #                                 reps: int=0, merge: bool=False) -> Union[Batch, 'Image']:
+    #     """
+    #     Scales this image by the given scale factors about the given point.
+    #         Args:
+    #             scale_x (float): The x-coordinate scale factor.
+    #             scale_y (float): The y-coordinate scale factor.
+    #             about (Point, optional): The point about which to scale. Default is the center of the image.
+    #             reps (int, optional): The number of repetitions.
+    #             merge (bool, optional): Whether to merge the images.
+
+    #         Returns:
+    #             Image: An Image object or a Batch of images.
+    #     """
+    #     if scale_y is None:
+    #         scale_y = scale_x
+    #     transform = scale_in_place_matrix(scale_x, scale_y, about=about)
+    #     kwargs = {'transform': Transformation.SCALE, 'sx': scale_x, 'sy': scale_y,
+    #                                                                 'about': about}
+    #     return self._update(transform, reps=reps, merge=merge, kwargs=kwargs)
 
     def save(self, fp, format=None, **params):
         """
@@ -478,7 +616,7 @@ class Image(Base, StyleMixin):
         """
         return self.pil_img.transpose(method)
 
-def open(file_path):
+def open_img(file_path):
     img = PIL_Image.open(file_path)
 
     return Image(img=img)
@@ -487,7 +625,7 @@ alpha_composite = PIL_Image.alpha_composite
 blend = PIL_Image.blend
 composite = PIL_Image.composite
 eval = PIL_Image.eval
-merge = PIL_Image.merge
+merge_images = PIL_Image.merge
 new = PIL_Image.new
 # fromarrow = PIL_Image.fromarrow
 frombytes = PIL_Image.frombytes
@@ -552,3 +690,22 @@ def supported_formats() -> List[str]:
     supported = {ex for ex, f in exts.items() if f in PIL_Image.OPEN}
 
     return sorted(supported)
+
+def create_image_from_data(image_path):
+    try:
+        with open(image_path, 'rb') as f:
+            image_data = f.read()
+
+        image = PIL_Image.open(io.BytesIO(image_data))
+
+        new_image = PIL_Image.new(image.mode, image.size)
+        new_image.paste(image)
+
+        return Image(new_image)
+
+    except FileNotFoundError:
+        print(f"Error: Image file not found at {image_path}")
+        return None
+    except Exception as e:
+         print(f"An error occurred: {e}")
+         return None

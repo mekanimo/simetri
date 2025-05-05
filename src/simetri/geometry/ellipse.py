@@ -229,7 +229,9 @@ class Ellipse(Shape):
     def closed(self, value: bool):
         pass
 
-    def _update(self, xform_matrix: np.array, reps: int = 0) -> Batch:
+    def _update(
+        self, xform_matrix: np.array, reps: int = 0, merge: bool = False
+    ) -> Batch:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -250,7 +252,7 @@ class Ellipse(Shape):
             self.end_point = end2[:2]
             self.start_angle = line_angle(center2, start2)
 
-        return super()._update(xform_matrix, reps)
+        return super()._update(xform_matrix, reps, merge)
 
     def copy(self):
         """Return a copy of the ellipse.
@@ -440,6 +442,7 @@ def ellipse_points(
     points = homogenize(np.column_stack((x, y))) @ rotation_matrix(angle, center)
 
     return points[:, :2].tolist()
+
 
 def elliptic_arclength(t_0, t_1, a, b):
     """Return the arclength of an ellipse between the given parametric angles.
@@ -720,6 +723,7 @@ def get_one_cubic_equation_root(a, b, c):
 
     return (A + B) - (Re(a * 0.33333333333))
 
+
 # x^4 + ax^3 + bx^2 + cx + d = 0
 def solve_quartic_equation(a, b, c, d):
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/geometry.js
@@ -727,49 +731,49 @@ def solve_quartic_equation(a, b, c, d):
     a2 = a * a
     a3 = a2 * a
     a4 = a3 * a
-    p = b - (3/8) * a2
+    p = b - (3 / 8) * a2
     q = (1 / 8) * a3 - 0.5 * a * b + c
     r = d - 0.25 * a * c + (1 / 16) * a2 * b - (3 / 256) * a4
 
     result = []
 
-    if(isclose(q, 0, 1e-7)):
+    if isclose(q, 0, 1e-7):
         D = p * p - 4 * r
-        if(abs(D) < 1e-5):
+        if abs(D) < 1e-5:
             m = -0.5 * p
-            if (m >= 0):
+            if m >= 0:
                 result.append(sqrt(m))
-            if (m > 0):
+            if m > 0:
                 result.append(-sqrt(m))
-        elif (D > 0):
+        elif D > 0:
             sqrt_D = sqrt(D)
             m1 = (-p - sqrt_D) * 0.5
             m2 = (-p + sqrt_D) * 0.5
             sqrt_m1 = sqrt(m1)
             sqrt_m2 = sqrt(m2)
-            if (m1 >= 0):
+            if m1 >= 0:
                 result.append(sqrt_m1)
-            if (m1 > 0):
+            if m1 > 0:
                 result.append(-sqrt_m1)
-            if (m2 >= 0):
+            if m2 >= 0:
                 result.append(sqrt_m2)
-            if (m2 > 0):
+            if m2 > 0:
                 result.append(-sqrt_m2)
     else:
-        t = get_one_cubic_equation_root(2 * p, p * p-4 * r, -q * q)
+        t = get_one_cubic_equation_root(2 * p, p * p - 4 * r, -q * q)
         z = cmath.sqrt(t)
-        u = (Re(p)+(t)) * 0.5
+        u = (Re(p) + (t)) * 0.5
         v = inverse_complex_number(z) * (q * 0.5)
         x12 = solve_complex_quadratic_equation(z, u - v)
         x34 = solve_complex_quadratic_equation(-z, u + v)
 
-        if (isclose(x12[0].imag, 0, 1e-7)):
+        if isclose(x12[0].imag, 0, 1e-7):
             result.append(x12[0].real)
-        if (isclose(x12[1].imag, 0, 1e-7)):
+        if isclose(x12[1].imag, 0, 1e-7):
             result.append(x12[1].real)
-        if (isclose(x34[0].imag, 0, 1e-7)):
+        if isclose(x34[0].imag, 0, 1e-7):
             result.append(x34[0].real)
-        if (isclose(x34[1].imag, 0, 1e-7)):
+        if isclose(x34[1].imag, 0, 1e-7):
             result.append(x34[1].real)
 
     # for(i = 0 i < result.length i++)

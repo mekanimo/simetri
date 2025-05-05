@@ -40,11 +40,10 @@ from ..graphics.common import (
 from ..graphics.all_enums import Connection, Types
 from ..settings.settings import defaults
 
+
 array = np.array
 around = np.around
-
-TWO_PI = 2 * pi  # 360 degrees
-
+tau = 2 * pi  # 360 degrees
 
 def is_number(x: Any) -> bool:
     """
@@ -564,6 +563,27 @@ def cross_product2(a: Point, b: Point, c: Point) -> float:
     b_c_y = c_y - b_y
     return b_a_x * b_c_y - b_a_y * b_c_x
 
+
+def triangle_angles_from_sides(a: float, b: float, c: float) -> tuple[float, float, float]:
+    """
+    Calculates the inner angles of a triangle given its side lengths.
+
+    Args:
+        a float: Length of side a.
+        b float: Length of side b.
+        c float: Length of side c.
+
+    Returns:
+        tuple[float, float, float]: A tuple containing the angles (A, B, C) in degrees.
+    """
+    a2 = a * a
+    b2 = b * b
+    c2 = c * c
+    A = acos((b2 + c2 - a2) / (2 * b * c))
+    B = acos((a2 + c2 - b2) / (2 * a * c))
+    C = acos((a2 + b2 - c2) / (2 * a * b))
+
+    return A, B, C
 
 def angle_between_lines2(point1: Point, point2: Point, point3: Point) -> float:
     """
@@ -1406,7 +1426,7 @@ def get_quadrant(x: float, y: float) -> int:
     Returns:
         int: Quadrant number.
     """
-    return int(floor((atan2(y, x) % (TWO_PI)) / (pi / 2)) + 1)
+    return int(floor((atan2(y, x) % (tau)) / (pi / 2)) + 1)
 
 
 def get_quadrant_from_deg_angle(deg_angle: float) -> int:
@@ -2254,6 +2274,45 @@ def perp_unit_vector(line: Line) -> VecType:
     return [-dy / norm_, dx / norm_]
 
 
+def tfl_by_sides(point1: Point, point2: Point, side1: float, side2: float):
+    '''Triangle from line segment and two sides.
+    Returns the points of the triangle given by the two points and the two sides.
+
+        Args:
+            point1 (Point): First point of the line segment.
+            point2 (Point): Second point of the line segment.
+            side1 (float): Length of the first side.
+            side2 (float): Length of the second side.
+
+        Returns:
+            list[Point]: List of points of the triangle.
+
+    '''
+    c = sqrt(
+        (point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2
+    )
+    if c == 0:
+        raise ValueError("Error! Points are coincident.")
+
+    if side1 + side2 < c:
+        raise ValueError("Error! The sum of the sides is less than the distance between the points.")
+
+    if side1 + c < side2:
+        raise ValueError("Error! The sum of the first side and the distance between the points is less than the second side.")
+
+    if side2 + c < side1:
+        raise ValueError("Error! The sum of the second side and the distance between the points is less than the first side.")
+
+    if side1 == 0 or side2 == 0:
+        raise ValueError("Error! One of the sides is zero.")
+
+    if side1 < 0 or side2 < 0:
+        raise ValueError("Error! One of the sides is negative.")
+
+    intersections = circle_circle_intersections(point1, side1, point2, side2)
+
+    return intersections
+
 def point_on_line(
     point: Point, line: Line, rtol: float = None, atol: float = None
 ) -> bool:
@@ -2411,6 +2470,7 @@ def polygon_area(polygon: Sequence[Point], dist_tol=None) -> float:
         x1, y1 = point
         x2, y2 = polygon[i + 1]
         area_ += x1 * y2 - x2 * y1
+
     return area_ / 2
 
 
@@ -3157,13 +3217,10 @@ def positive_angle(angle, radians=True, tol=None, atol=None):
     if radians:
         if angle < 0:
             angle += 2 * pi
-        # if isclose(angle, TWO_PI, rtol=tol, atol=atol):
-        #     angle = 0
     else:
         if angle < 0:
             angle += 360
-        # if isclose(angle, 360, rtol=tol, atol=atol):
-        #     angle = 0
+
     return angle
 
 
@@ -3482,16 +3539,14 @@ def set_vertices(points):
         p.angle = cross_product_sense(p.prev, p, p.next)
 
 
-def circle_circle_intersections(x0, y0, r0, x1, y1, r1):
+def circle_circle_intersections(point1, radius1, point2, radius2):
     """Return the intersection points of two circles.
 
     Args:
-        x0 (float): x-coordinate of the center of the first circle.
-        y0 (float): y-coordinate of the center of the first circle.
-        r0 (float): Radius of the first circle.
-        x1 (float): x-coordinate of the center of the second circle.
-        y1 (float): y-coordinate of the center of the second circle.
-        r1 (float): Radius of the second circle.
+        point1 (Point): Center of the first circle.
+        radius1 (float): Radius of the first circle.
+        point2 (Point): Center of the second circle.
+        radius2 (float): Radius of the second circle.
 
     Returns:
         tuple: Intersection points of the two circles.
@@ -3500,6 +3555,11 @@ def circle_circle_intersections(x0, y0, r0, x1, y1, r1):
     # intersection-of-two-circles
     # circle 1: (x0, y0), radius r0
     # circle 2: (x1, y1), radius r1
+
+    x0, y0 = point1
+    x1, y1 = point2
+    r0 = radius1
+    r1 = radius2
 
     d = sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
 
@@ -3522,7 +3582,7 @@ def circle_circle_intersections(x0, y0, r0, x1, y1, r1):
         x4 = x2 - h * (y1 - y0) / d
         y4 = y2 + h * (x1 - x0) / d
 
-        res = (x3, y3, x4, y4)
+        res = ((x3, y3), (x4, y4))
 
     return res
 
