@@ -9,6 +9,10 @@ The documentation is available at [API Documentation](https://mekanimo.github.io
 
 [<img alt="gallery" src="images/gallery.png" />](https://github.com/mekanimo/simetri/blob/master/gallery.ipynb)
 
+## New Website
+
+Now we have a [new website](https://simetri-graphics.github.io/simetri/) for the library. It has new documentation and updates. Go check it out!
+
 ## New Version 0.0.6-alpha
 
 This is the second alpha release of the library and is not yet ready for production use. The library is still in its early stages of development and is likely to change significantly in the near future. The beta release is expected to be in May 2025.
