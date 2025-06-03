@@ -10,6 +10,7 @@ import numpy as np
 from .core import StyleMixin
 from .batch import Batch
 from .shape import Shape
+from .bbox import bounding_box
 from .common import Point, common_properties
 from ..helpers.validation import validate_args
 from .all_enums import PathOperation as PathOps
@@ -185,6 +186,8 @@ class LinPath(Batch, StyleMixin):
         for obj in self.objects:
             if obj is not None:
                 new_path.objects.append(obj.copy())
+            else:
+                new_path.objects.append(None)
         new_path.even_odd = self.even_odd
         new_path.cur_shape = self.cur_shape.copy()
         new_path.handles = self.handles.copy()
@@ -217,6 +220,30 @@ class LinPath(Batch, StyleMixin):
             setattr(self, kwargs["name"], self.operations[-1])
         list(pos)[:2]
         self.pos = pos
+
+    @property
+    def all_vertices(self):
+        """Return all vertices of the path.
+
+        Returns:
+            list: All vertices of the path.
+        """
+        all_vertices = []
+        for obj in self.objects:
+            if obj is not None:
+                all_vertices.extend(obj.vertices)
+
+        return all_vertices
+
+    @property
+    def b_box(self):
+        """Return the bounding box of the path.
+
+        Returns:
+            The bounding box of the path.
+        """
+
+        return bounding_box(self.all_vertices)
 
     def push(self):
         """Push the current position onto the stack."""
@@ -297,6 +324,35 @@ class LinPath(Batch, StyleMixin):
         self._add((x, y), PathOps.FORWARD, (self.pos, (x, y)))
 
         return self
+
+    def orient(self, angle: float) -> Self:
+        """Set the path angle.
+
+        Args:
+            angle (float): The angle in radians.
+
+        Returns: self
+        """
+        self.angle = angle
+
+        return self
+
+    def turn(self, angle: float, distance: float) -> Self:
+        """Turn by the given angle and forward by the given distance.
+
+        Args:
+            angle (float): The angle increment.
+            distance (float): The forward distance.
+
+        Returns:
+            self: The path object.
+        """
+
+        self.angle += angle
+        self.forward(distance)
+
+        return self
+
 
     def move_to(self, point: Point, **kwargs) -> Self:
         """Move the path to a new point.
