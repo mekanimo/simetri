@@ -18,7 +18,7 @@ from ..geometry.geometry import(
     fix_degen_points,
     get_polygons,
     all_close_points,
-    mid_point,
+    midpoint,
     distance,
     connected_pairs,
     round_segment,
@@ -307,7 +307,7 @@ class Batch(Base):
             self.elements.remove(element)
         return self
 
-    def pop(self, index: int) -> Any:
+    def pop(self, index: int = -1) -> Any:
         """
         Removes the element at the given index and returns it.
 
@@ -454,7 +454,7 @@ class Batch(Base):
 
         for pair in pairs:
             id1, id2, _ = pair
-            average = tuple(mid_point(vertices[id1], vertices[id2]))
+            average = tuple(midpoint(vertices[id1], vertices[id2]))
             d_ind_coords[id1] = average
             d_ind_coords[id2] = average
             rounded_vertices[id1] = average
@@ -603,6 +603,8 @@ class Batch(Base):
         Returns:
             Self: The batch object with merged shapes.
         """
+        if len(self) == 1:
+            return self
         return _merge_shapes(self, dist_tol=dist_tol, n_round=n_round)
 
     def _get_edges_and_segments(self, dist_tol: float = None, n_round: int = None):
@@ -641,8 +643,14 @@ class Batch(Base):
             n_round (int, optional): Number of rounding digits. Defaults to 2.
         '''
 
-        coords = [tuple(round_point(coord, n_round)) for coord in coords]
-        coords = list(set(coords))   # remove duplicates
+        d_rounded_coord = {}
+        rounded = []
+        for coord in coords:
+            val = tuple(round_point(coord, n_round))
+            rounded.append(val)
+            d_rounded_coord[val] = coord
+
+        coords = list(set(rounded))   # remove duplicates
         coords.sort()    # sort by x coordinates
         coords.sort(key=lambda x: x[1])  # sort by y coordinates
 
@@ -655,6 +663,7 @@ class Batch(Base):
 
         self.d_node_coord = d_node_coord
         self.d_coord_node = d_coord_node
+        self.d_rounded_coord = d_rounded_coord
 
     def all_polygons(self, dist_tol: float = None) -> list:
         """Return a list of all polygons in the batch in their
@@ -718,8 +727,13 @@ class Batch(Base):
         """
         xy_list = []
         for elem in self.elements:
-            if hasattr(elem, "b_box"):
-                xy_list.extend(elem.b_box.corners)  # To do: we should eliminate this. Just add all points.
+            try:
+                if elem.type == Types.SHAPE:
+                    xy_list.extend(elem.vertices)
+                else:
+                    xy_list.extend(elem.all_vertices)
+            except AttributeError:
+                pass
         # To do: memoize the bounding box
         return bounding_box(array(xy_list))
 
@@ -939,7 +953,7 @@ def all_ids(self):
     """
     ids = []
     for item in self.elements:
-        if hasattr(item "type") and item.type == Types.BATCH:
+        if hasattr(item, "type") and item.type == Types.BATCH:
             ids.extend(item.all_ids)
         else:
             ids.append(item.id if hasattr(item, "id") else id(item))

@@ -20,7 +20,7 @@ from ..geometry.geometry import (
     side_len_to_radius,
     offset_polygon_points,
     distance,
-    mid_point,
+    midpoint,
     close_points2,
 )
 
@@ -162,7 +162,7 @@ class Rectangle(Shape):
         Returns:
             Point: The center of the rectangle.
         """
-        return mid_point(self.vertices[0], self.vertices[2])
+        return midpoint(self.vertices[0], self.vertices[2])
 
     def _set_center(self, new_center: Point):
         """Set the center of the rectangle.
@@ -225,8 +225,8 @@ class Circle(Shape):
 
     def __init__(
         self,
-        center: Point = (0, 0),
         radius: float = None,
+        center: Point = (0, 0),
         xform_matrix: np.array = None,
         **kwargs,
     ) -> None:
@@ -700,9 +700,8 @@ def star_shape(points, reps=5, scale=1):
 
 
 def dot_shape(
-    x,
-    y,
     radius=1,
+    pos = (0, 0),
     fill_color=None,
     line_color=None,
     line_width=None,
@@ -710,9 +709,8 @@ def dot_shape(
     """Return a Shape object with a single point.
 
     Args:
-        x (float): The x-coordinate of the point.
-        y (float): The y-coordinate of the point.
         radius (float, optional): The radius of the point. Defaults to 1.
+        pos (Point, optional): The position of the point. Defaults to (0, 0).
         fill_color (Color, optional): The fill color of the point. Defaults to None.
         line_color (Color, optional): The line color of the point. Defaults to None.
         line_width (float, optional): The line width of the point. Defaults to None.
@@ -736,10 +734,9 @@ def dot_shape(
 
 
 def rect_shape(
-    x: float,
-    y: float,
     width: float,
     height: float,
+    pos: Point = (0, 0),
     fill_color: Color = colors.white,
     line_color: Color = defaults["line_color"],
     line_width: float = defaults["line_width"],
@@ -750,10 +747,9 @@ def rect_shape(
     return a Shape object with points that form a rectangle.
 
     Args:
-        x (float): The x-coordinate of the lower left corner.
-        y (float): The y-coordinate of the lower left corner.
         width (float): The width of the rectangle.
         height (float): The height of the rectangle.
+        pos (Point, optional): The position of the lower left corner of the rectangle. Defaults to (0, 0).
         fill_color (Color, optional): The fill color of the rectangle. Defaults to colors.white.
         line_color (Color, optional): The line color of the rectangle. Defaults to defaults["line_color"].
         line_width (float, optional): The line width of the rectangle. Defaults to defaults["line_width"].
@@ -763,6 +759,11 @@ def rect_shape(
     Returns:
         Shape: A Shape object with points that form a rectangle.
     """
+    x, y = pos[:2]
+    fill_color, line_color, line_width = get_defaults(
+        ["fill_color", "line_color", "line_width"],
+        [fill_color, line_color, line_width],
+    )
     return Shape(
         [(x, y), (x + width, y), (x + width, y + height), (x, y + height)],
         closed=True,
@@ -794,31 +795,31 @@ def arc_shape(x, y, radius, start_angle, end_angle, clockwise=False, n=20):
     return Shape(points, closed=False, subtype=Types.ARC)
 
 
-def circle_shape(x, y, radius, n=30):
+def circle_shape(radius, pos=(0, 0),n=30):
     """Return a Shape object with points that form a circle with the given parameters.
 
     Args:
-        x (float): The x-coordinate of the center of the circle.
-        y (float): The y-coordinate of the center of the circle.
         radius (float): The radius of the circle.
+        pos (Point, optional): The position of the center of the circle. Defaults to (0, 0).
         n (int, optional): The number of points to use for the circle. Defaults to 30.
 
     Returns:
         Shape: A Shape object with points that form a circle.
     """
+    x, y = pos[:2]
     circ = arc_shape(x, y, radius, 0, 2 * pi, n=n)
     circ.subtype = Types.CIRCLE
     return circ
 
 
-def reg_poly_shape(pos, n, r=100, **kwargs):
+def reg_poly_shape(n, r=100, pos=(0, 0), **kwargs):
     """Return a regular polygon.
 
     Args:
-        pos (Point): The position of the center of the polygon.
         n (int): The number of sides of the polygon.
         r (float, optional): The radius of the polygon. Defaults to 100.
         kwargs (dict): Additional keyword arguments.
+        pos (Point): The position of the center of the polygon.
 
     Returns:
         Shape: A Shape object with points that form a regular polygon.
@@ -828,15 +829,15 @@ def reg_poly_shape(pos, n, r=100, **kwargs):
     return Shape(points, closed=True, **kwargs)
 
 
-def ellipse_shape(x, y, width, height, angle, n_points=None):
+def ellipse_shape(width, height, angle=0, pos=(0, 0), n_points=None):
     """Return a Shape object with points that form an ellipse with the given parameters.
 
     Args:
-        x (float): The x-coordinate of the center of the ellipse.
-        y (float): The y-coordinate of the center of the ellipse.
         width (float): The width of the ellipse.
         height (float): The height of the ellipse.
-        n (int, optional): The number of points to use for the ellipse. Defaults to 30.
+        angle (float, optional): The rotation angle of the ellipse. Defaults to 0.
+        pos (Point, optional): The position of the center of the ellipse. Defaults to (0, 0).
+        n_points (int, optional): The number of points to use for the ellipse. Defaults to 30.
 
     Returns:
         Shape: A Shape object with points that form an ellipse.
@@ -844,7 +845,7 @@ def ellipse_shape(x, y, width, height, angle, n_points=None):
     if n_points is None:
         n_points = defaults["n_ellipse_points"]
 
-    points = ellipse_points((x, y), width, height, n_points=n)
+    points = ellipse_points((x, y), width, height, n_points=n_points)
     return Shape(points, subtype=Types.ELLIPSE)
 
 

@@ -29,12 +29,13 @@ from ..geometry.geometry import (
     convex_hull,
     close_points2,
     polygon_center,
+    equal_lines,
+    lerp_point
 )
 from ..helpers.graph import get_cycles
 from ..graphics.common import get_defaults, common_properties
 from ..graphics.all_enums import Types, Connection
 from ..canvas.style_map import shape_style_map, ShapeStyle
-from ..canvas.canvas import Canvas
 from ..settings.settings import defaults
 from ..helpers.utilities import flatten, group_into_bins
 from ..helpers.validation import validate_args
@@ -185,11 +186,13 @@ class Intersection(Shape):
         point (tuple): (x, y) coordinates of the intersection point.
         division1 (Division): First division.
         division2 (Division, optional): Second division. Defaults to None.
-        endpoint (bool, optional): If the intersection is at the end of a division, then endpoint is True. Defaults to False.
+        endpoint (bool, optional): If the intersection is at the end of a division,
+        then endpoint is True. Defaults to False.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
-    def __init__(self, point: tuple, division1: "Division", division2: "Division" = None, endpoint: bool = False, **kwargs) -> None:
+    def __init__(self, point: tuple, division1: "Division", division2: "Division" = None,
+                 endpoint: bool = False, **kwargs) -> None:
         super().__init__([point], xform_matrix=None, subtype=Types.INTERSECTION, **kwargs)
         self._point = point
         self.division1 = division1
@@ -413,7 +416,7 @@ class Fragment(Shape):
                 distances = []
                 for _, division2 in enumerate(twin_fragment.divisions):
                     dist = distance(
-                        division.section.mid_point, division2.section.mid_point
+                        division.section.midpoint, division2.section.midpoint
                     )
                     distances.append((dist, division2))
                 distances.sort(key=lambda x: x[0])
@@ -457,7 +460,7 @@ class Section(Shape):
         self.fragment = fragment
         super().__init__([start.point, end.point], subtype=Types.SECTION, **kwargs)
         self.length = distance(self.start.point, self.end.point)
-        self.mid_point = [
+        self.midpoint = [
             (self.start.point[0] + self.end.point[0]) / 2,
             (self.start.point[1] + self.end.point[1]) / 2,
         ]
@@ -562,7 +565,9 @@ class Overlap(Batch):
 
 
 class Division(Shape):
-    """A division is a line segment between two intersections.
+    """A division is defined by two points. It can have multiple sections and
+    intersections.
+    Sections are formed between two consecutive intersections of the division.
 
     Args:
         p1 (tuple): Start point.
@@ -968,7 +973,6 @@ class Lace(Batch):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
-    # @timing
     def __init__(
         self,
         polygon_shapes: Union[Batch, list[Shape]] = None,
@@ -1013,11 +1017,18 @@ class Lace(Batch):
             ],
         )
         if polygon_shapes:
-            polygon_shapes = polygon_shapes.merge_shapes()
+            if isinstance(polygon_shapes, Batch):
+                polygon_shapes = polygon_shapes.merge_shapes()
+            elif isinstance(polygon_shapes, Shape):
+                polygon_shapes = Batch(polygon_shapes).merge_shapes()
             self.polygon_shapes = self._check_polygons(polygon_shapes)
         else:
             self.polygon_shapes = []
         if polyline_shapes:
+            if isinstance(polyline_shapes, Batch):
+                polyline_shapes = polyline_shapes.merge_shapes()
+            elif isinstance(polyline_shapes, List):
+                polyline_shapes = Batch(polyline_shapes).merge_shapes()
             polyline_shapes = polyline_shapes.merge_shapes()
             self.polyline_shapes = self._check_polylines(polyline_shapes)
         else:
@@ -1045,6 +1056,12 @@ class Lace(Batch):
         self._groups = None
         self.area_threshold = area_threshold
         self.radius_threshold = radius_threshold
+        self.draw_inner_lines = False
+        self.draw_inner_polygons = False
+        self.shade_plaits = True
+        self.shade_fragments = True
+        self.plait_style = None
+        self.fragment_style = None
         if kwargs and "_copy" in kwargs:
             # pass the pre-computed values
             for k, v in kwargs:
@@ -1056,12 +1073,7 @@ class Lace(Batch):
             self._set_polyline_list()  # main divisions are set here along with polylines
             # polyline.divisions is the list of Division objects
             self._set_parallel_poly_list()
-            # start_time2 = time.perf_counter()
             self._set_intersections()
-            # end_time2 = time.perf_counter()
-            # print(
-            #     f"Lace.__init__ intersections computed in {end_time2 - start_time2:0.4f} seconds"
-            # )
 
             self._set_overlaps()
             self._set_twin_sections()
@@ -1207,7 +1219,6 @@ class Lace(Batch):
 
             return res
 
-    # @timing
     def _set_twin_sections(self):
         for par_poly in self.parallel_poly_list:
             poly1, poly2 = par_poly.offset_poly_list
@@ -1217,7 +1228,6 @@ class Lace(Batch):
                 sec1.twin = sec2
                 sec2.twin = sec1
 
-    # @timing
     def _set_partitions(self):
         for fragment in self.fragments:
             self.partitions = []
@@ -1271,7 +1281,6 @@ class Lace(Batch):
                     fragments.append(self.fragments[ind])
             self.fragments_by_radius[key] = fragments
 
-    # @timing
     def _set_partition_groups(self):
         # to do : handle repeated code. same in set_fragment_groups
         areas = []
@@ -1305,7 +1314,6 @@ class Lace(Batch):
                     partitions.append(self.partitions[ind])
             self.partitions_by_radius[key] = partitions
 
-    # @timing
     def _set_fragments(self):
         G = nx.Graph()
         for section in self.iter_offset_sections():
@@ -1460,7 +1468,7 @@ class Lace(Batch):
 
         return get_cycles(graph_edges)
 
-    def _set_inner_lines(self, item, n, offset, line_color=colors.blue, line_width=1):
+    def _set_inner_loops(self, item, n, offset, line_colors=None, line_widths=None):
         for i in range(n):
             vertices = item.vertices
             dist_tol = defaults["dist_tol"]
@@ -1469,11 +1477,17 @@ class Lace(Batch):
             )
             shape = Shape(offset_poly)
             shape.fill = False
-            shape.line_width = line_width
-            shape.line_color = line_color
+            if line_widths:
+                shape.line_width = line_widths[i]
+            else:
+                shape.line_width = defaults["line_width"]
+            if line_colors:
+                shape.line_color = line_colors[i]
+            else:
+                shape.line_color = defaults["line_color"]
             item.inner_lines.append(shape)
 
-    def set_plait_lines(self, n, offset, line_color=colors.blue, line_width=1):
+    def set_plait_inner_loops(self, n, offset, line_color=colors.blue, line_width=1):
         """Create offset lines inside the plaits of the lace.
 
         Args:
@@ -1484,7 +1498,7 @@ class Lace(Batch):
         """
         for plait in self.plaits:
             plait.inner_lines = []
-            self._set_inner_lines(plait, n, offset, line_color, line_width)
+            self._set_inner_loops(plait, n, offset, line_color, line_width)
 
     def set_fragment_lines(
         self,
@@ -1623,7 +1637,6 @@ class Lace(Batch):
                 res.extend(polyline.intersections)
         return res
 
-    # @timing
     def _set_polyline_list(self):
         """
         Populate the self.polyline_list list with Polyline objects.
@@ -1652,7 +1665,6 @@ class Lace(Batch):
             for polyline in self.polyline_shapes:
                 self.polyline_list.append(Polyline(polyline.vertices, closed=False))
 
-    # @timing
     def _set_parallel_poly_list(self):
         """
         Populate the self.parallel_poly_list list with ParallelPolyline
@@ -1682,7 +1694,7 @@ class Lace(Batch):
         """
         self.parallel_poly_list = []
         if self.polyline_list:
-            for _, polyline in enumerate(self.polyline_list):
+            for polyline in self.polyline_list:
                 self.parallel_poly_list.append(
                     ParallelPolyline(
                         polyline,
@@ -1693,7 +1705,6 @@ class Lace(Batch):
                     )
                 )
 
-    # @timing
     def _set_overlaps(self):
         """
         Populate the self.overlaps list with Overlap objects. Side
@@ -1749,18 +1760,52 @@ class Lace(Batch):
                 section.start.overlap = overlap
                 section.end.overlap = overlap
             self.overlaps.append(overlap)
-        for overlap in self.overlaps:
-            for section in overlap.sections:
-                if section.is_over:
-                    line_width = 3
-                else:
-                    line_width = 1
-                line = Shape(
-                    [section.start.point, section.end.point], line_width=line_width
-                )
-        for division in self.offset_divisions:
-            p1 = division.start.point
-            p2 = division.end.point
+
+
+    def _set_plait_ends(self):
+        plaits = self.plaits
+        for plait in plaits:
+            plait.ends = []
+            plait.overlaps = []
+        for p_poly in self.parallel_poly_list:
+            for polyline in p_poly.polyline_list[1:]:
+                for sect in polyline.sections:
+                    if sect.overlap:
+                        for p in plaits:
+                            if len(p.ends) == 2:
+                                continue
+                            for i, edge in enumerate(p.edges):
+                                if equal_lines(sect, edge):
+                                    p.ends.append(i)
+                                    p.overlaps.append((i, sect.overlap))
+                                    if len(p.ends) == 2:
+                                        break
+
+
+    def _set_plait_connections(self):
+        for plait in self.plaits:
+            s = min(plait.ends) + 1
+            n = len(plait)
+            connections = []
+            # print('s:', s, 'n:', n)
+            for i, j in enumerate(range(s, s + n //2)):
+                k = (n + s - 1 - i) % n
+                connections.append((j, k))
+            plait.connections = connections
+
+    def _set_plait_inner_lines(self, percent_offsets=(.5,), line_widths=(1,)):
+        self._set_plait_ends()
+        self._set_plait_connections()
+        for plait in self.plaits:
+            plait.line_widths = line_widths
+            plait.lerp_points = lerps = []
+            for i_start, i_end in plait.connections:
+                start = plait[i_start][:2]
+                end = plait[i_end][:2]
+                offsets = []
+                for offset in percent_offsets:
+                    offsets.append(lerp_point(start, end, offset))
+                lerps.append(offsets)
 
     def set_plaits(self):
         """
@@ -1803,9 +1848,11 @@ class Lace(Batch):
             for users to call directly. Without this method, the Lace
             object cannot be created.
         """
+
         if self.plaits:
             return
         plait_sections = []
+        sections = []
         for division in self.iter_offset_divisions():
             merged_sections = division._merged_sections()
             for merged in merged_sections:
@@ -1857,12 +1904,13 @@ class Lace(Batch):
                 plait.reverse()
             shape = Shape(vertices)
             shape.intersections = intersections
-            shape.fill_color = colors.gold
+            shape.fill_color = defaults["plait_color"]
+            shape.inner_polygons = None
             shape.inner_lines = None
             shape.subtype = Types.PLAIT
+            shape.lerp_points = []
             self.plaits.append(shape)
 
-    # @timing
     def _set_intersections(self):
         """
         Compute all intersection points (by calling all_intersections)
@@ -1933,8 +1981,9 @@ class Lace(Batch):
         self.offset_intersections = all_intersections(
             offset_divisions, self.d_intersections, self.d_connections
         )
-        # set sections for the offset divisions
+
         self.offset_sections = []
+
         for i, division in enumerate(offset_divisions):
             division.intersections[0].endpoint = True
             division.intersections[-1].endpoint = True
@@ -1942,6 +1991,7 @@ class Lace(Batch):
             division.sections = []
             for j, line in enumerate(lines):
                 section = Section(*line)
+
                 if j % 2 == 1:
                     section.is_overlap = True
                 division.sections.append(section)
@@ -1963,7 +2013,6 @@ class Lace(Batch):
             rtol = self.rtol
         return get_polygons(polylines, rtol)
 
-    # @timing
     def _set_over_under(self):
         def next_poly(exclude):
             for ppoly in self.parallel_poly_list:

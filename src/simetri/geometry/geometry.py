@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from math import hypot, atan2, floor, pi, sin, cos, sqrt, exp, sqrt, acos
 from itertools import cycle
-from typing import Any, Union, Sequence
+from typing import Any, Union, Sequence, Callable
 import re
+from functools import cmp_to_key
 
 
 import numpy as np
@@ -321,7 +322,79 @@ def all_close_points(
     return res, pairs
 
 
-def is_simple(
+def sorted_edges(polygon):
+    #order the edges:increasing x coordinates then increasing y coordinates for the start points
+    #this is used for line sweep algorithm to check if the polygon is simple
+    def get_edges(polygon):
+        edges = [ ]
+        for i, p in enumerate(polygon[:-1]):
+            np = polygon[i + 1] #next point
+            edges.append((p, np))
+        p = polygon[-1]
+        np = polygon[0]
+        edges.append((p, np))
+        return edges
+
+    def compare_edges(edge1, edge2):
+        x1 = edge1[0][0]
+        x2 = edge2[0][0]
+        y1 = edge1[0][1]
+        y2 = edge2[0][1]
+        if x1 < x2:
+            return -1
+        elif x1 > x2:
+            return 1
+        else:
+            if y1 < y2:
+                return -1
+            elif y1 > y2:
+                return 1
+            else:
+                return 0
+
+    edges = get_edges(polygon)
+    oriented_edges = [ ]
+    for edge in edges:
+        if edge[0][0] > edge[1][0]:
+            oriented_edges.append((edge[1], edge[0]))
+        else:
+            oriented_edges.append(edge)
+    oriented_edges.sort(key=cmp_to_key(compare_edges))
+
+    return oriented_edges
+
+def is_simple(polygon):
+    '''Sweep line algorithm variation to test if the polygon is simple (i.e. non intersecting).
+    Returns True if it is a simple polygon, False otherwise.'''
+    queue = [ ]
+    points = [ ]
+    edges = sorted_edges(polygon)
+
+    for edge in edges:
+        for p in edge:
+            points.append(p)
+    points = [tuple(p) for p in points]
+    points = list(set(points))
+    points.sort()
+
+    for p in points:
+        for edge in edges:
+            if p == tuple(edge[0]):
+                for e in queue:
+                    if e[0] in edge or e[1] in edge:
+                        continue
+                    res = intersection(e, edge)
+                    if res not in [-1, 0]:
+                        return False
+                queue.append(edge)
+            elif p == tuple(edge[1]):
+                try:
+                    queue.remove(edge)
+                except:
+                    pass #!!!! we should not need this
+    return True
+
+def is_simple_(
     polygon,
     rtol: float = None,
     atol: float = None,
@@ -751,6 +824,199 @@ def connect2(
 
     return points
 
+def trim_right(line, x_value):
+    """
+    Trim a line to the right at a given x-coordinate.
+
+    Args:
+        line (Line): The line to trim.
+        x_value (float): The x-coordinate to trim the line at.
+
+    Returns:
+        Line: The trimmed line.
+    """
+    reverse = False
+    x1, y1 = line[0]
+    x2, y2 = line[1]
+    if x1 > x2:
+        x1, x2 = x2, x1
+        y1, y2 = y2, y1
+        reverse = True
+
+    if x1 >= x_value:
+        res = None
+    elif x2 >= x_value:
+       intersection_ = intersect(line, [(x_value,0), (x_value, 1)])
+       res = [(x1, y1), intersection_]
+    else:
+        res = line
+        reverse = False
+    if res and reverse:
+        res = [res[1], res[0]]  # Reverse the order if we swapped x1 and x2
+
+    return res
+
+
+def trim_left(line, x_value):
+    """
+    Trim a line to the left at a given x-coordinate.
+
+    Args:
+        line (Line): The line to trim.
+        x_value (float): The x-coordinate to trim the line at.
+
+    Returns:
+        Line: The trimmed line.
+    """
+    reverse = False
+    x1, y1 = line[0]
+    x2, y2 = line[1]
+    if x1 > x2:
+        x1, x2 = x2, x1
+        y1, y2 = y2, y1
+        reverse = True
+
+    if x1 >= x_value:
+        res = line
+        reverse = False
+    elif x2 >= x_value:
+       intersection_ = intersect(line, [(x_value,0), (x_value, 1)])
+       res = [intersection_, (x2, y2)]
+    else:
+        res = None
+
+    if res and reverse:
+        res = [res[1], res[0]]  # Reverse the order if we swapped x1 and x2
+
+    return res
+
+def trim_top(line, y_value):
+    """
+    Trim a line to the top at a given y-coordinate.
+
+    Args:
+        line (Line): The line to trim.
+        y_value (float): The y-coordinate to trim the line at.
+
+    Returns:
+        Line: The trimmed line.
+    """
+    reverse = False
+    x1, y1 = line[0]
+    x2, y2 = line[1]
+    if y1 > y2:
+        y1, y2 = y2, y1
+        x1, x2 = x2, x1
+        reverse = True
+
+    if y1 >= y_value:
+        res = None
+    elif y2 >= y_value:
+       intersection_ = intersect(line, [(0, y_value), (1, y_value)])
+       res = [(x1, y1), intersection_]
+    else:
+        res = line
+        reverse = False
+
+    if res and reverse:
+        res = [res[1], res[0]]
+
+    return res
+
+def trim_bottom(line, y_value):
+    """
+    Trim a line to the bottom at a given y-coordinate.
+
+    Args:
+        line (Line): The line to trim.
+        y_value (float): The y-coordinate to trim the line at.
+
+    Returns:
+        Line: The trimmed line.
+    """
+    reverse = False
+    x1, y1 = line[0]
+    x2, y2 = line[1]
+    if y1 > y2:
+        y1, y2 = y2, y1
+        x1, x2 = x2, x1
+        reverse = True
+
+    if y1 >= y_value:
+        res = line
+        reverse = False
+    elif y2 >= y_value:
+       intersection_ = intersect(line, [(0, y_value), (1, y_value)])
+       res = [intersection_, (x2, y2)]
+    else:
+        res = None
+
+    if res and reverse:
+        res = [res[1], res[0]]
+
+    return res
+
+def trim_shape(shape: 'Shape', trim_func: Callable, value:float):
+    """
+    Trim a shape using a specified trim function and value.
+
+    Args:
+        shape (Shape): The shape to trim.
+        trim_func (function): The trimming function to use. trim_righ, trim_left,
+                                                        trim_top, or trim_bottom.
+        value (float): The value at which to trim the shape.
+
+    Returns:
+        Shape: The trimmed shape.
+    """
+    new_shape = shape.copy()
+    edges = []
+    for edge in shape.edges:
+        trimmed = trim_func(edge, value)
+        if trimmed:
+            edges.append(trimmed)
+
+    points = []
+    for edge in edges:
+        if edge:
+            p1, p2 = edge
+            if points:
+                if points[-1] != p1:
+                    points.append(p1)
+            else:
+                points.append(p1)
+            points.append(p2)
+    new_shape[:] = points
+    return new_shape
+
+def clip_shape(shape: 'Shape', x_min: float=None, x_max: float=None,
+               y_min: float=None, y_max: float=None):
+    """
+    Clip a shape to the given bounding box.
+
+    Args:
+        shape (list[Point]): The shape to trim.
+        x_min (float, optional): Minimum x-coordinate. Defaults to None.
+        x_max (float, optional): Maximum x-coordinate. Defaults to None.
+        y_min (float, optional): Minimum y-coordinate. Defaults to None.
+        y_max (float, optional): Maximum y-coordinate. Defaults to None.
+
+    Returns:
+        list[Point]: The trimmed shape.
+    """
+    if not shape:
+        return []
+
+    if x_min is not None:
+        shape = trim_shape(shape, trim_left, x_min)
+    if x_max is not None:
+        shape = trim_shape(shape, trim_right, x_max)
+    if y_min is not None:
+        shape = trim_shape(shape, trim_bottom, y_min)
+    if y_max is not None:
+        shape = trim_shape(shape, trim_top, y_max)
+
+    return shape
 
 def stitch(
     lines: list[Line],
@@ -790,16 +1056,7 @@ def stitch(
         x2, y2 = lines[-1][1]
         x3, y3 = lines[0][0]
         x4, y4 = lines[0][1]
-        final_x = intersect2(
-            x1,
-            y1,
-            x2,
-            y2,
-            x3,
-            y3,
-            x4,
-            y4,
-        )
+        final_x = intersect2( x1, y1, x2, y2, x3, y3, x4, y4)
         if final_x:
             points.insert(0, final_x)
             points.append(final_x)
@@ -1076,9 +1333,14 @@ def equal_polygons(
         dist_tol = defaults["dist_tol"]
     if len(poly1) != len(poly2):
         return False
+
+    poly1_ = list(poly1[:])
+    poly1_.sort(key=lambda p: (p[0], p[1]))
+    poly2_ = list(poly2[:])
+    poly2_.sort(key=lambda p: (p[0], p[1]))
     dist_tol2 = dist_tol * dist_tol
-    for i, pnt in enumerate(poly1):
-        if not close_points2(pnt, poly2[i], dist2=dist_tol2):
+    for i, pnt in enumerate(poly1_):
+        if not close_points2(pnt, poly2_[i], dist2=dist_tol2):
             return False
     return True
 
@@ -1788,9 +2050,6 @@ def intersection(line1: Line, line2: Line, rtol: float = None) -> int:
     """return the intersection point of two line segments.
     segment1: ((x1, y1), (x2, y2))
     segment2: ((x3, y3), (x4, y4))
-    if line segments do not intersect return -1
-    if line segments are parallel return 0
-    if line segments are connected (share a point) return 1
     To find the intersection point of two lines use the "intersect" function
 
     Args:
@@ -1944,8 +2203,8 @@ def lerp_point(p1: Point, p2: Point, t: float) -> Point:
     Returns:
         Point: Interpolated point.
     """
-    x1, y1 = p1
-    x2, y2 = p2
+    x1, y1 = p1[:]
+    x2, y2 = p2[:]
     return (lerp(x1, x2, t), lerp(y1, y2, t))
 
 
@@ -2082,7 +2341,7 @@ def line_vector(line: Line) -> VecType:
     return Vector2D(x2 - x1, y2 - y1)
 
 
-def mid_point(p1: Point, p2: Point) -> Point:
+def midpoint(p1: Point, p2: Point) -> Point:
     """Return the mid point of two points.
 
     Args:
@@ -2134,8 +2393,8 @@ def offset_line(line: Sequence[Point], offset: float) -> Sequence[Point]:
     unit_vec = perp_unit_vector(line)
     dx = unit_vec[0] * offset
     dy = unit_vec[1] * offset
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     return [[x1 + dx, y1 + dy], [x2 + dx, y2 + dy]]
 
 
@@ -2266,13 +2525,28 @@ def perp_unit_vector(line: Line) -> VecType:
     Returns:
         VecType: Perpendicular unit vector.
     """
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     dx = x2 - x1
     dy = y2 - y1
     norm_ = sqrt(dx**2 + dy**2)
     return [-dy / norm_, dx / norm_]
 
+def perp_bisector(line: Line) -> Line:
+    """Return the perpendicular bisector of a line
+
+    Args:
+        line (Line): Input line.
+
+    Returns:
+        Line: Perpendicular bisector of the line.
+    """
+    x1, y1 = line[0]
+    x2, y2 = line[1]
+    mid = midpoint(line[0], line[1])
+    dx = x2 - x1
+    dy = y2 - y1
+    return [mid, [mid[0] - dy, mid[1] + dx]]
 
 def tfl_by_sides(point1: Point, point2: Point, side1: float, side2: float):
     '''Triangle from line segment and two sides.
@@ -2517,8 +2791,8 @@ def right_handed(polygon: Sequence[Point], dist_tol=None) -> float:
         added_point = True
     area_ = 0
     for i, point in enumerate(polygon[:-1]):
-        x1, y1 = point
-        x2, y2 = polygon[i + 1]
+        x1, y1 = point[:2]
+        x2, y2 = polygon[i + 1][:2]
         area_ += x1 * y2 - x2 * y1
     if added_point:
         polygon.pop()
@@ -3257,7 +3531,7 @@ def bisector_line(a: Point, b: Point, c: Point) -> Line:
     Returns:
         Line: Bisector line.
     """
-    d = mid_point(a, c)
+    d = midpoint(a, c)
 
     return [d, b]
 
@@ -3282,7 +3556,7 @@ def between(a, b, c):
     return res
 
 
-def collinear(a, b, c, area_rtol=None, area_atol=None):
+def collinear(a, b, c, area_tol=None):
     """Return True if a, b, and c are collinear.
 
     Args:
@@ -3295,13 +3569,13 @@ def collinear(a, b, c, area_rtol=None, area_atol=None):
     Returns:
         bool: True if the points are collinear, False otherwise.
     """
-    area_rtol, area_atol = get_defaults(
-        ["area_rtol", "area_atol"], [area_rtol, area_atol]
-    )
-    return isclose(area(a, b, c), 0, rtol=area_rtol, atol=area_atol)
+    if area_tol is None:
+        area_tol = defaults['area_tol']
+
+    return abs(area(a, b, c)) <= area_tol
 
 
-def polar_to_cartesian(r, theta):
+def polar_to_cartesian(r, theta, center=(0, 0)):
     """Convert polar coordinates to cartesian coordinates.
 
     Args:
@@ -3311,10 +3585,11 @@ def polar_to_cartesian(r, theta):
     Returns:
         Point: Cartesian coordinates.
     """
-    return (r * cos(theta), r * sin(theta))
+    dx, dy = center
+    return (r * cos(theta) + dx, r * sin(theta) + dy)
 
 
-def cartesian_to_polar(x, y):
+def cartesian_to_polar(x, y, center=(0, 0)):
     """Convert cartesian coordinates to polar coordinates.
 
     Args:
@@ -3324,6 +3599,9 @@ def cartesian_to_polar(x, y):
     Returns:
         tuple: Polar coordinates (r, theta).
     """
+    dx, dy = center
+    x -= dx
+    y -= dy
     r = hypot(x, y)
     theta = positive_angle(atan2(y, x))
     return r, theta
@@ -3351,7 +3629,7 @@ def fillet(a: Point, b: Point, c: Point, radius: float) -> tuple[Line, Line, Poi
     clip_length = radius * cos_alpha2 / sin_alpha2
     d = offset_point_from_start(b, a, clip_length)
     e = offset_point_from_start(b, c, clip_length)
-    mp = mid_point(a, c)  # [b, mp] is the bisector line
+    mp = midpoint(a, c)  # [b, mp] is the bisector line
     center = offset_point_from_start(b, mp, radius / sin_alpha2)
     arc_angle = angle_between_lines2(e, center, d)
 
@@ -4170,7 +4448,7 @@ def rotate_point_3D(point: Point, line: Line, angle: float) -> Point:
     translation = translation_matrix(-p1[0], -p1[1])
     rotation = rotation_matrix(-line_angle_, (0, 0))
     xform = translation @ rotation
-    x, y = point
+    x, y = point[:2]
     x, y, _ = [x, y, 1] @ xform
 
     y *= cos(angle)

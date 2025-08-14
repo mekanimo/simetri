@@ -22,14 +22,18 @@ class Align(StrEnum):
     Valid values are: NONE, CENTER, FLUSH_CENTER, FLUSH_LEFT, FLUSH_RIGHT, JUSTIFY, LEFT, RIGHT.
     """
 
-    NONE = ""
+    BOTTOM = "bottom"
     CENTER = "center"
     FLUSH_CENTER = "flush center"
     FLUSH_LEFT = "flush left"
     FLUSH_RIGHT = "flush right"
-    JUSTIFY = "justify"
+    HORIZ_CENTER = "horiz center"
+    JUSTIFIED = "justified"
     LEFT = "left"
+    NONE = ""
     RIGHT = "right"
+    TOP = "top"
+    VERT_CENTER = "vert center"
 
 
 # Anchor points
@@ -388,6 +392,16 @@ class FontWeight(StrEnum):
     NORMAL = "normal"
 
 
+class FragmentStyle(StrEnum):
+    """FragmentStyle is used to set the way lace fragments are drawn.
+    See the documentation for further explanation.
+    """
+    DIAMOND = "DIAMOND"
+    INNERLINES = "INNERLINES"
+    INNERLOOPS = "INNERLOOPS"
+    DOUBLE_LINES = "DOUBLE_LINES"
+
+
 class FrameShape(StrEnum):
     """FrameShape is used to set the shape of the frame.
     Frames are used for the tags.
@@ -486,7 +500,6 @@ class IUC(StrEnum):
     P2 = "P2"
     P2MG = "P2MG"
     P2MM = "P2MM"
-
 
 class LineCap(StrEnum):
     """LineCap is used to set the type of line cap.
@@ -794,6 +807,15 @@ class Placement(StrEnum):
     RIGHT = "right"
 
 
+class PlaitStyle(StrEnum):
+    EMBOSS1 = "EMBOSS1"
+    EMBOSS2 = "EMBOSS2"
+    DIAMOND = "DIAMOND"
+    INNERLINES = "INNERLINES"
+    INNERLOOPS = "INNERLOOPS"
+    DOUBLE_LINES = "DOUBLE_LINES"
+
+
 class Render(StrEnum):
     """Render is used to set the type of rendering.
 
@@ -949,6 +971,7 @@ class Types(StrEnum):
     CIRCLE = "CIRCLE"
     CIRCLE_SKETCH = "CIRCLE_SKETCH"
     CIRCULAR_GRID = "CIRCULAR_GRID"
+    CLIP_SKETCH = "CLIP_SKETCH"
     COLOR = "COLOR"
     CS = "CS"
     CURVE = "CURVE"
@@ -1008,6 +1031,7 @@ class Types(StrEnum):
     PATTERN = "PATTERN"
     PATTERN_SKETCH = "PATTERN_SKETCH"
     PATTERN_STYLE = "PATTERN_STYLE"
+    PDF_SKETCH = "PDF_SKETCH"
     PETAL = "PETAL"
     PLAIT = "PLAIT"
     PLAIT_SKETCH = "PLAIT_SKETCH"
@@ -1016,6 +1040,7 @@ class Types(StrEnum):
     POLYLINE = "POLYLINE"
     Q_BEZIER = "Q_BEZIER"
     RADIAL = "RADIAL"
+    RADIAL_DIMENSION = "RADIAL_DIMENSION"
     RECT_SKETCH = "RECT_SKETCH"
     RECTANGLE = "RECTANGLE"
     RECTANGULAR = "RECTANGULAR"
@@ -1090,6 +1115,7 @@ drawable_types = [
     Types.PLAIT,
     Types.POLYLINE,
     Types.Q_BEZIER,
+    Types.RADIAL_DIMENSION,
     Types.RECTANGLE,
     Types.SECTION,
     Types.SEGMENT,
@@ -1225,5 +1251,7 @@ anchors = [
     "d1",
     "d",
     "corners",
+    "height",
+    "width",
     "all_anchors",
 ]

@@ -18,8 +18,8 @@ star.set_attribs('stroke', False)
 star3 = sg.regular_star_polygon(8, 2, 5)
 star3.set_attribs('fill_color', sg.blue)
 star3.set_attribs('stroke', False)
-circle = sg.Circle((0, 0), 1.5, fill_color=sg.white, stroke=False)
-hexagon = sg.Batch([sg.reg_poly_shape((0, 0), 6, 4, fill_color=sg.teal,
+circle = sg.Circle(1.5, fill_color=sg.white, stroke=False)
+hexagon = sg.Batch([sg.reg_poly_shape(6, 4, fill_color=sg.teal,
                                                     stroke=False), circle])
 
 
@@ -289,5 +289,5 @@ def list_directories(path):
 #     methods.add_child(TreeNode(f"{trans}{args[i][:-1]}, reps: int=0) -> Self"))
 
 # make_tree(
-#     root, canvas=canvas, file_path="c:/tmp/tree_generator4.pdf", overwrite=True
+#     root, canvas=canvas, file_path="c:/tmp/tree_generator_test.pdf", overwrite=True
 # )

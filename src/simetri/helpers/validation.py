@@ -1,6 +1,7 @@
 """Validation functions for the user entered argument values and kwargs."""
 
 import re
+import numbers
 from strenum import enum
 from typing import Any, Dict
 
@@ -286,39 +287,57 @@ for item in items:
         key_ = pattern.sub("_", name).lower()
         enum_map[key_] = item[1]
 
+def is_positive_integer(value):
+    return isinstance(value, int) and value > 0
+
+def is_float(value):
+    return isinstance(value, float)
+
+def is_greater_than_zero(value):
+    return (isinstance(value, (int, float)) and value > 0)
+
+def is_positive(value):
+    return (isinstance(value, (int, float)) and value >= 0)
+
+def is_numeric(value):
+    return isinstance(value, numbers.Number)
+
+
 d_validators = {
     "alpha": check_number,
     "clip": check_bool,
     "color": check_color,
-    "dist_tol": check_number,
-    "dist_tol2": check_number,
-    "double_distance": check_number,
-    "double_lines": check_bool,
+    "dist_tol": is_positive,
+    "dist_tol2": is_positive,
+    "double_distance": is_positive,
+    "draw_double": check_bool,
+    "double_color": check_color,
     "draw_fillets": check_bool,
     "draw_frame": check_bool,
     "draw_markers": check_bool,
     "even_odd_rule": check_bool,
     "fill": check_bool,
-    "fill_alpha": check_number,
+    "fill_alpha": is_positive,
     "fill_blend_mode": check_blend_mode,
     "fill_color": check_color,
-    "fillet_radius": check_number,
+    "fillet_radius": is_positive,
     "font_color": check_color,
     "font_family": check_str,
-    "frame_inner_sep": check_number,
-    "frame_inner_xsep": check_number,
-    "frame_inner_ysep": check_number,
-    "frame_min_height": check_number,
-    "frame_min_width": check_number,
-    "grid_alpha": check_number,
+    "frame_inner_sep": is_positive,
+    "frame_inner_xsep": is_positive,
+    "frame_inner_ysep": is_positive,
+    "frame_min_height": is_greater_than_zero,
+    "frame_min_width": is_greater_than_zero,
+    "grid_alpha": is_positive,
     "grid_back_color": check_color,
     "grid_line_color": check_color,
-    "grid_line_width": check_number,
-    "line_alpha": check_number,
+    "grid_line_width": is_greater_than_zero,
+    "inset": is_positive,
+    "line_alpha": is_greater_than_zero,
     "line_blend_mode": check_blend_mode,
     "line_color": check_color,
     "line_dash_array": check_dash_array,
-    "line_dash_phase": check_number,
+    "line_dash_phase": is_numeric,
     "line_miter_limit": check_number,
     "line_width": check_line_width,
     "marker_color": check_color,

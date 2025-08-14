@@ -5,7 +5,7 @@
 # Testing is incomplete.
 # Everything is subject to change till we release a beta version.
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 __author__ = "Fahri Basegmez"
 
 from math import (
@@ -68,7 +68,8 @@ import simetri.colors as colors
 from ..tikz.tikz import *
 from ..helpers.validation import check_version
 from ..stars import stars
-from  ..wallpaper import wallpaper
+from ..stars.stars import rosette, Star
+from  ..wallpaper import wallpaper as wallpapers
 from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system

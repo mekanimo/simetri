@@ -1,9 +1,17 @@
 """Canvas object uses these methods to draw shapes and text."""
 
-from math import cos, sin
-from typing_extensions import Self, Sequence
+from math import cos, sin, pi, radians
+from typing_extensions import Self, Sequence, Union
 
-from ..geometry.geometry import homogenize, ellipse_point, close_points2
+from ..geometry.geometry import (
+    homogenize,
+    close_points2,
+    midpoint,
+    intersect,
+    inclination_angle,
+    intersection,
+    offset_polygon,
+    )
 from ..graphics.all_enums import (
     Anchor,
     BackStyle,
@@ -13,10 +21,13 @@ from ..graphics.all_enums import (
     Types,
     drawable_types,
     TexLoc,
+    PlaitStyle,
+    FragmentStyle,
+    Connection
 )
 from ..colors import colors
-from ..colors.colors import Color
-from ..tikz.tikz import scope_code_required
+from ..colors.colors import Color, change_lightness
+from ..tikz.tikz import scope_code_required, get_clip_code
 from ..graphics.sketch import (
     ArcSketch,
     BatchSketch,
@@ -30,6 +41,7 @@ from ..graphics.sketch import (
     TagSketch,
     TexSketch,
     ImageSketch,
+    PDFSketch,
 )
 from ..settings.settings import defaults
 from ..canvas.style_map import (
@@ -43,11 +55,11 @@ from ..helpers.illustration import Tag
 from ..helpers.utilities import decompose_transformations
 from ..graphics.affine import identity_matrix
 from ..graphics.shape import Shape
+from ..graphics.batch import Batch
 from ..graphics.common import Point
 from ..geometry.bezier import bezier_points
 from ..geometry.ellipse import elliptic_arc_points
 from ..graphics.affine import rotation_matrix, translation_matrix
-
 
 def help_lines(
     self,
@@ -152,13 +164,13 @@ def bezier(self, control_points, **kwargs):
     return self
 
 
-def circle(self, center: Point, radius: float, **kwargs) -> None:
+def circle(self, radius: float, center: Point, **kwargs) -> None:
     """
     Draw a circle with the given center and radius.
 
     Args:
-        center (Point): Center of the circle.
         radius (float): Radius of the circle.
+        center (Point): Center of the circle.
         **kwargs: Additional keyword arguments.
     """
     x, y = center[:2]
@@ -222,6 +234,7 @@ def text(
     font_size: int = None,
     font_color: Color = None,
     anchor: Anchor = None,
+    align: str = None,
     **kwargs,
 ) -> None:
     """
@@ -327,7 +340,7 @@ def draw_CS(self, size: float = None, **kwargs):
     self.line((0, 0), (0, size), line_color=y_color, **kwargs)
     if "line_color" not in kwargs:
         kwargs["line_color"] = defaults["CS_origin_color"]
-    self.circle((0, 0), radius=defaults["CS_origin_size"], **kwargs)
+    self.circle(radius=defaults["CS_origin_size"], **kwargs)
 
     return self
 
@@ -437,6 +450,294 @@ def draw_hobby(
             bezier_ = Shape(bezier_pnts)
             self.draw(bezier_, **kwargs)
 
+def shade_value(angle):
+    """
+    Returns a weight value (between 0 and 1) based on angle input.
+
+    Args:
+        angle (float): Angle in radians between 0 and pi
+
+    Returns:
+        float: Weight value where:
+               - angle = pi/2 -> returns 1.0
+               - angle = 0 or pi -> returns 0.0
+
+    The function follows a sine curve: sin(angle)
+    """
+    if not 0 <= angle <= 2 * pi:
+        raise ValueError("Angle must be between 0 and 2 pi radians.")
+
+
+    return sin(angle)
+
+
+def plait_emboss1(self, lace, **kwargs):
+    if 'fill_color' not in kwargs:
+        if lace.plait_color is None:
+            lace.plait_color = defaults['plait_color']
+        kwargs['fill_color'] = lace.plait_color
+    lace._set_plait_ends()
+    all_quads = []
+    for plait in lace.plaits:
+        vertices = plait.vertices
+        n = len(vertices)
+        ends = []
+        emboss_points = []
+        plait.emboss_quads = []
+        for i, overlap in enumerate(plait.overlaps):
+            quad = Shape([inter._point for inter in overlap[1].intersections])
+            ind1 = plait.ends[i]
+            ind2 = ind1 + 1
+            p1 = vertices[ind1]
+            p2 = vertices[ind2]
+            mp = midpoint(p1, p2)
+            emboss_points.append(((p1, ind1), (p2, ind2), mp))
+            ends.append(p1)
+            ends.append(p2)
+        j = plait.ends[0]
+        for i in range(1, int(n/2)-1):
+            ind1 = (j + i + 1) % n
+            ind2 = j - i
+            p1 = vertices[ind1]
+            p2 = vertices[ind2]
+            mp = midpoint(p1, p2)
+            emboss_points.append(((p1, ind1), (p2, ind2), mp))
+
+        ep = emboss_points
+        quads = plait.emboss_quads
+        (_, ind1), (p_2, ind2) , mp_1 = ep[0]
+        (_, _), (p_4, ind4) , mp_2 = ep[1]
+        (p5, ind5), (p5, ind5) , mp3 = ep[2]
+        p6 = vertices[(ind2 + 1) % n]
+        p7 = vertices[(ind5 + 1) % n]
+        quad1 = (mp_1, p_2, p6, mp3)
+        quad2 = (mp_1, mp3, p5, p7)
+        quads.append((quad1, quad2, (mp_1, mp3), (p_2, p6), (p5, p7)))
+        n_iter = len(ep)
+        for i in range(2, n_iter):
+            (p1, ind1), (p2, ind2), mp = ep[i]
+            if i == n_iter - 1:
+                p3 = vertices[(ind1 + 1) % n]
+                quad1 = (mp, p1, p3, mp_2)
+                quad2 = (mp, mp_2, p_4, p2)
+                quads.append((quad1, quad2, (mp, mp_2), (p1, p3), (p_4, p2)))
+            else:
+                (p3, _), (p4, ind4), mp_ = ep[(i + 1) % n]
+                p5 = vertices[(ind4 + 1) % n]
+                quad1 = (mp, p1, p3, mp_)
+                quad2 = (mp, mp_, p4, p5)
+                quads.append((quad1, quad2, (mp, mp_), (p1, p3), (p4, p5)))
+
+        all_quads.extend(quads)
+
+
+    if lace.shade_plaits:
+        kwargs.pop('fill_color')
+        dist = lace.width * 3
+        cx, cy = lace.midpoint
+        far_point = cx - dist, cy + dist
+        if lace.plait_color is None:
+            color = defaults["plait_color"]
+        else:
+            color = lace.plait_color
+        for quad in all_quads:
+            quad1 = Shape(quad[0], closed=True)
+            quad2 = Shape(quad[1], closed=True)
+
+            angle = inclination_angle(*quad[2])
+            shade_angle = abs(radians(135) - angle)
+            shade_factor = shade_value(shade_angle)
+
+            mid1 = midpoint(*quad[2])
+            line1 = (far_point, mid1)
+            line2 = quad[3]
+            line3 = quad[4]
+
+            x1, _ = intersect(line1, line2)
+            x2, _ = intersect(line1, line3)
+            shade_step = .2
+
+            if x2 < x1:
+                color1 = change_lightness(color, shade_factor * -shade_step)
+                color2 = change_lightness(color, shade_factor * shade_step)
+            elif x1 < x2:
+                color1 = change_lightness(color, shade_factor * shade_step)
+                color2 = change_lightness(color, shade_factor * -shade_step)
+            else:
+                color1 = color2 = color
+            self.draw(quad1, fill_color=color1, **kwargs)
+            self.draw(quad2, fill_color=color2, **kwargs)
+    else:
+        for quad in all_quads:
+            self.draw(quad, **kwargs)
+
+def plait_emboss2(self, lace, **kwargs):
+    if 'fill_color' not in kwargs:
+        if lace.plait_color is None:
+            lace.plait_color = defaults['plait_color']
+        kwargs['fill_color'] = lace.plait_color
+    quads = []
+    for ppoly in lace.parallel_poly_list:
+        for poly in ppoly.offset_poly_list:
+            n = len(poly.sections)
+            count = 0
+            for j, sect in enumerate(poly.sections):
+                if sect.is_overlap:
+                    break
+                count += 1
+
+            if count:
+                poly_sections = poly.sections[count:] + poly.sections[:count]
+            else:
+                poly_sections = poly.sections
+            quad1 = []
+            for j, sect in enumerate(poly_sections):
+                overlap_sect = sect.is_overlap
+                if overlap_sect:
+                    mp = Shape([x._point for x in sect.overlap.intersections]).midpoint
+                    quad1.append(mp)
+                else:
+                    p1 = sect.start._point
+                    p2 = sect.end._point
+                    twin = sect.twin
+                    twin_p1 = twin.end._point
+                    twin_p2 = twin.start._point
+                    intersection_ =  intersection((p1, twin_p1), (p2, twin_p2))
+                    if intersection_[0] != Connection.INTERSECT:
+                        twin_p1, twin_p2 = twin_p2, twin_p1
+                    if not quad1:
+                        quad1.append(midpoint(p1, twin_p2))
+                    quad1.extend([p1, p2])
+                    next_section = poly_sections[(j + 1) % n]
+                    if next_section.is_overlap:
+                        mp = Shape([x._point for x in next_section.overlap.intersections]).midpoint
+                    else:
+                        mp = midpoint(p2, twin_p1)
+                    quad1.append(mp)
+                    quad2 = [quad1[0], mp, twin_p1, twin_p2]
+
+                    quads.append((quad1, quad2, (quad1[0], mp), (p1, p2), (twin_p1, twin_p2)))
+                    quad1 = []
+    if lace.shade_plaits:
+        kwargs.pop('fill_color')
+        dist = lace.width * 3
+        cx, cy = lace.midpoint
+        far_point = cx - dist, cy + dist
+
+        color = lace.plait_color
+        for quad in quads:
+            quad1 = Shape(quad[0], closed=True)
+            quad2 = Shape(quad[1], closed=True)
+
+            angle = inclination_angle(*quad[2])
+            shade_angle = abs(radians(135) - angle)
+            shade_factor = shade_value(shade_angle)
+
+            mid1 = midpoint(*quad[2])
+            line1 = (far_point, mid1)
+            line2 = quad[3]
+            line3 = quad[4]
+
+            x1, y1 = intersect(line1, line2)
+            x2, y2 = intersect(line1, line3)
+            shade_step = .2
+
+            if x2 < x1:
+                color1 = change_lightness(color, shade_factor * -shade_step)
+                color2 = change_lightness(color, shade_factor * shade_step)
+            elif x1 < x2:
+                color1 = change_lightness(color, shade_factor * shade_step)
+                color2 = change_lightness(color, shade_factor * -shade_step)
+            else:
+                color1 = color2 = color
+            self.draw(quad1, fill_color=color1, **kwargs)
+            self.draw(quad2, fill_color=color2, **kwargs)
+    else:
+        for quad in quads:
+            self.draw(quad, **kwargs)
+
+
+def plait_diamond(self, lace, **kwargs):
+    lace._set_plait_ends()
+    quad_pairs = []
+    end_quads = []
+    inner_loops = []
+    if 'fill_color' not in kwargs:
+        if lace.plait_color is None:
+            lace.plait_color = defaults['plait_color']
+        kwargs['fill_color'] = lace.plait_color
+    for plait in lace.plaits:
+        vertices = list(plait.vertices)
+        e1, e2 = plait.ends
+        ends = [e1+1, e2+1]
+
+        count = 0
+        for j, vert in enumerate(vertices):
+            if j in ends:
+                break
+            count += 1
+
+        if count:
+            vertices = vertices[count:] + vertices[:count]
+
+        n = len(vertices)
+        inner_loop = Shape(offset_polygon(vertices, -5), closed=True)
+        inner_loops.append(inner_loop)
+        # self.draw(plait, fill=False,**kwargs)
+        # self.draw(inner_loop, fill=False)
+        quads = []
+
+        for i, vert in enumerate(vertices):
+            quad = (vert, vertices[(i+1)%n], inner_loop[(i + 1) % n], inner_loop[i])
+            shp = Shape(quad, closed=True)
+            quads.append(shp)
+        n2 = int(len(quads)/2)-1
+        for i in range(n2):
+            self.draw(quads[i], **kwargs)
+            self.draw(quads[-(i+2)], **kwargs)
+            quad_pairs.append((quads[i], quads[-(i+2)]))
+        end_quads.extend([quads[-1], quads[n2]])
+
+
+    dist = lace.width * 3
+    cx, cy = lace.midpoint
+    far_point = cx - dist, cy + dist
+
+    kwargs.pop('fill_color')
+    color = lace.plait_color
+    for quad1, quad2 in quad_pairs:
+        angle = inclination_angle(*quad1[:2])
+        shade_angle = abs(radians(135) - angle)
+        shade_factor = shade_value(shade_angle)
+
+        mid1 = midpoint(*quad1[:2])
+        line1 = (far_point, mid1)
+        line2 = quad1[:2]
+        line3 = quad2[:2]
+
+        x1, y1 = intersect(line1, line2)
+        x2, y2 = intersect(line1, line3)
+        shade_step = .2
+
+        if x2 < x1:
+            color1 = change_lightness(color, shade_factor * -shade_step)
+            color2 = change_lightness(color, shade_factor * shade_step)
+        elif x1 < x2:
+            color1 = change_lightness(color, shade_factor * shade_step)
+            color2 = change_lightness(color, shade_factor * -shade_step)
+        else:
+            color1 = color2 = color
+
+        self.draw(quad1, fill_color=color1, **kwargs)
+        self.draw(quad2, fill_color=color2, **kwargs)
+
+    color = change_lightness(lace.plait_color, -.1)
+    for quad in end_quads:
+        self.draw(quad, fill_color=color, **kwargs)
+
+    color = change_lightness(lace.plait_color, .1)
+    for loop in inner_loops:
+        self.draw(loop, fill_color=color, **kwargs)
 
 def draw_lace(self, lace, **kwargs):
     """Draw the lace object.
@@ -459,22 +760,62 @@ def draw_lace(self, lace, **kwargs):
         for fragment in lace.fragment_groups[key]:
             self.active_page.sketches.append(create_sketch(fragment, self, **kwargs))
     for plait in lace.plaits:
-        if lace.swatch is not None:
-            fill_color = colors.white
-            kwargs["fill_color"] = fill_color
-        else:
-            kwargs["fill_color"] = None
-        self.active_page.sketches.append(create_sketch(plait, self, **kwargs))
-        self._all_vertices.extend(plait.corners)
+        if "fill_color" not in kwargs:
+            color = defaults["plait_color"]
+            if color is not None:
+                kwargs["fill_color"] = color
+
+
+    if "plait_style" in kwargs:
+        p_style = kwargs['plait_style']
+        if p_style == PlaitStyle.INNERLINES:
+            if not lace.plaits[0].lerp_points:
+                if 'percent_offsets' in kwargs:
+                    offsets = kwargs['percent_offsets']
+                else:
+                    offsets = [.5]
+                if 'line_widths' in kwargs:
+                    widths = kwargs['line_widths']
+                else:
+                    widths = [1]
+                lace._set_plait_inner_lines(offsets, widths)
+                if 'line_widths' in kwargs and len(kwargs['line_widths']) == len(lace.plaits[0].lerp_points[0]):
+                    widths = kwargs['line_widths']
+                else:
+                    widths = False
+                for plait in lace.plaits:
+                    for i in range(len(plait.lerp_points[0])):
+                        points = [pnts[i] for pnts in plait.lerp_points]
+                        shp = Shape(points)
+                        if widths:
+                            line_width = plait.line_widths[i]
+                        else:
+                            line_width = 1
+                        self.active_page.sketches.append(create_sketch(shp, self, line_width=line_width, **kwargs))
+        elif p_style == PlaitStyle.INNERLOOPS:
+           pass
+        elif p_style == PlaitStyle.DIAMOND:
+            plait_diamond(self, lace, **kwargs)
+        elif p_style == PlaitStyle.EMBOSS1:
+            plait_emboss1(self, lace, **kwargs)
+        elif p_style == PlaitStyle.EMBOSS2:
+            plait_emboss2(self, lace, **kwargs)
+
+    else:
+        for plait in lace.plaits:
+            self.active_page.sketches.append(create_sketch(plait, self, **kwargs))
+    self._all_vertices.extend(plait.corners)
 
     return self
 
 
-def draw_image(self, image, **kwargs):
+def draw_image(self, image, position=None, scale=None, **kwargs):
     """Draw the image object.
 
     Args:
         image: Image object to be drawn.
+        position: Position to draw the image at.
+        scale: Scale to draw the image at.
         **kwargs: Additional keyword arguments.
 
     Returns:
@@ -485,10 +826,13 @@ def draw_image(self, image, **kwargs):
     if not image.active:
         return self
     translation, rotation, scale = decompose_transformations(image.xform_matrix)
-    if "pos" in kwargs:
-        pos = kwargs["pos"]
-    else:
+    if position is None:
         pos = image.pos
+    else:
+        pos = position[:2]
+
+    if scale is None:
+        scale = image.scale
 
     sketch = ImageSketch(
         image,
@@ -508,6 +852,54 @@ def draw_image(self, image, **kwargs):
 
     return self
 
+def draw_pdf(self, pdf, pos=None, size=None, scale=None, angle=0, **kwargs):
+    """Draw a PDF file on the canvas.
+
+    Args:
+        pdf: PDF object or file path.
+        position (Point): Upper-left position to draw the PDF at.
+        size (tuple, optional): Size to draw the PDF at. Defaults to None.
+        scale (float, optional): Scale factor for the PDF. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
+    if not isinstance(pdf, str):
+        if not pdf.visible:
+            return self
+        if not pdf.active:
+            return self
+        translation, rotation, scale = decompose_transformations(pdf.xform_matrix)
+        if pos is None:
+            pos = pdf.pos
+        else:
+            pos = pos[:2]
+
+        if scale is None:
+            scale = pdf.scale
+
+        if angle is None:
+            angle = rotation
+        file_path = pdf.file_path
+        if size is None:
+            size = pdf.size
+    else:
+        # If pdf is a file path, we assume it is a PDF object
+        pos = pos[:2] if pos else (0, 0)
+        scale = scale if scale is not None else 1.0
+        file_path = pdf
+    sketch = PDFSketch(
+        pdf,
+        pos=pos,
+        scale=scale,
+        angle=angle,
+        size=size,
+        **kwargs,
+    )
+    self.active_page.sketches.append(sketch)
+
+    return self
 
 def draw_dimension(self, item, **kwargs):
     """Draw the dimension object.
@@ -539,7 +931,7 @@ def draw_dimension(self, item, **kwargs):
 
     tag = Tag(item.text, (x, y), font_size=item.font_size, **kwargs)
     tag_sketch = create_sketch(tag, self, **kwargs)
-    tag_sketch.draw_frame = True
+    tag_sketch.draw_frame = False
     tag_sketch.frame_shape = FrameShape.CIRCLE
     tag_sketch.fill = True
     tag_sketch.font_color = colors.black
@@ -582,8 +974,7 @@ def grid(
         kwargs["line_color"] = defaults["grid_line_color"]
     if "line_dash_array" not in kwargs:
         kwargs["line_dash_array"] = defaults["grid_line_dash_array"]
-    # draw x-axis
-    # self.line((-size, 0), (size, 0), **kwargs)
+
     line_y = Shape([(x, y), (x + width, y)], **kwargs)
     line_x = Shape([(x, y), (x, y + height)], **kwargs)
     lines_x = line_y.translate(0, step_size, reps=int(height / step_size))
@@ -614,6 +1005,7 @@ regular_sketch_types = [
     Types.PLAIT,
     Types.POLYLINE,
     Types.Q_BEZIER,
+    Types.RADIAL_DIMENSION,
     Types.RECTANGLE,
     Types.SECTION,
     Types.SEGMENT,
@@ -649,8 +1041,11 @@ def extend_vertices(canvas, item):
             all_vertices.extend(plait.corners)
         for fragment in item.fragments:
             all_vertices.extend(fragment.corners)
-    elif item.subtype == Types.PATTERN:
-        all_vertices.extend(item.get_all_vertices())
+    elif item.subtype in [Types.PATTERN, Types.LINPATH]:
+        all_vertices.extend(item.all_vertices)
+    elif item.subtype == Types.BATCH:
+        for element in item:
+            extend_vertices(canvas, element)
     else:
         corners = [
             x[:2] for x in homogenize(item.corners) @ canvas._sketch_xform_matrix
@@ -658,7 +1053,7 @@ def extend_vertices(canvas, item):
         all_vertices.extend(corners)
 
 
-def draw(self, item: Drawable, **kwargs) -> Self:
+def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
     """The item is drawn on the canvas with the given style properties.
 
     Args:
@@ -675,6 +1070,10 @@ def draw(self, item: Drawable, **kwargs) -> Self:
     active_sketches = self.active_page.sketches
     subtype = item.subtype
     extend_vertices(self, item)
+    if "clip" in item.__dict__ and item.clip:
+        clip_code = get_clip_code(item)
+        code = "\\begin{scope}" + clip_code
+        active_sketches.append(TexSketch(code))
     if subtype in regular_sketch_types:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
@@ -693,6 +1092,8 @@ def draw(self, item: Drawable, **kwargs) -> Self:
         self.draw_lace(item, **kwargs)
     elif subtype == Types.BOUNDING_BOX:
         draw_bbox(self, item, **kwargs)
+    if "clip" in item.__dict__ and item.clip:
+        active_sketches.append(TexSketch("\\end{scope}"))
     return self
 
 
@@ -806,7 +1207,8 @@ def create_sketch(item, canvas, **kwargs):
         else:
             pos = item.pos
 
-        sketch = TagSketch(text=item.text, pos=pos, anchor=item.anchor)
+        sketch = TagSketch(text=item.text, pos=pos, anchor=item.anchor,
+                           xform_matrix=canvas.xform_matrix)
         for attrib_name in item._style_map:
             if attrib_name == "fill_color":
                 if item.fill_color in [None, colors.black]:
@@ -866,6 +1268,7 @@ def create_sketch(item, canvas, **kwargs):
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
+
 
     def get_circle_sketch(item, canvas, **kwargs):
         """Create a CircleSketch from the given item.
@@ -1206,6 +1609,7 @@ def create_sketch(item, canvas, **kwargs):
         Types.PATTERN: get_pattern_sketch,
         Types.PLAIT: get_sketch,
         Types.POLYLINE: get_sketch,
+        Types.RADIAL_DIMENSION: get_batch_sketch,
         Types.Q_BEZIER: get_sketch,
         Types.RECTANGLE: get_sketch,
         Types.SECTION: get_sketch,

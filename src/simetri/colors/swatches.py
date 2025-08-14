@@ -1,7 +1,7 @@
 """Swatches from Japanese Color Harmony Dictionary by Teruko Sakurai"""
 
 from random import randint
-
+from itertools import cycle
 
 swatches_255 = [
     [
@@ -938,6 +938,10 @@ for swatch_255 in swatches_255:
         swatch.append([color[0] / 255, color[1] / 255, color[2] / 255])
     swatches.append(swatch)
 
+def swatch_cyc():
+    """Return a swatch cycling through the swatches."""
+
+    return cycle(swatches)
 
 def random_swatch():
     """Return a random swatch."""

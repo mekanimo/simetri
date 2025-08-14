@@ -10,6 +10,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from math import pi
+from typing_extensions import Sequence, Union
 
 import numpy as np
 
@@ -277,7 +278,7 @@ def set_defaults():
     default_types["area_atol"] = float
     defaults_help["area_atol"] = (
         "Area absolute tolerance. "
-        "Positive float. Length in <points>. "
+        "Positive float."
         "Used for comparing areas."
     )
 
@@ -285,7 +286,7 @@ def set_defaults():
     default_types["area_rtol"] = float
     defaults_help["area_rtol"] = (
         "Area relative tolerance. "
-        "Positive float. Length in <points>. "
+        "Positive float."
         "Used for comparing areas."
     )
 
@@ -293,8 +294,17 @@ def set_defaults():
     default_types["area_threshold"] = float
     defaults_help["area_threshold"] = (
         "Area threshold. "
-        "Positive float. Length in <points>. "
+        "Positive float. "
         "Used for grouping fragments in a lace object."
+    )
+
+
+    defaults["area_tol"] = 0.1  # used for comparing areas
+    default_types["area_tol"] = float
+    defaults_help["area_tol"] = (
+        "Area tolerance. "
+        "Positive float."
+        "Used for comparing areas."
     )
 
     defaults["arrow_head_length"] = 8
@@ -378,6 +388,14 @@ def set_defaults():
         "Border size for the canvas."
     )
 
+    defaults["canvas_back_color"] = None  # None is transparent
+    default_types["canvas_back_color"] = colors.Color
+    defaults_help["canvas_back_color"] = (
+        "Canvas background color. Color object. "
+        "Background color for the canvas. "
+        "If None, the canvas is transparent."
+    )
+
     defaults["canvas_back_style"] = BackStyle.EMPTY
     default_types["canvas_back_style"] = BackStyle
     defaults_help["canvas_back_style"] = (
@@ -411,7 +429,7 @@ def set_defaults():
     )
 
     defaults["canvas_size"] = None  # (width, height) canvas size in points
-    default_types["canvas_size"] = tuple
+    default_types["canvas_size"] = Sequence
     defaults_help["canvas_size"] = (
         "Canvas size. "
         "Tuple of two positive floats. Length in <points>. "
@@ -526,7 +544,7 @@ def set_defaults():
     )
 
     defaults["document_options"] = ["12pt", "border=25pt"]
-    default_types["document_options"] = list
+    default_types["document_options"] = Sequence
     defaults_help["document_options"] = (
         "Options for the LaTeX document class. List of strings."
     )
@@ -535,10 +553,16 @@ def set_defaults():
     default_types["dot_color"] = colors.Color
     defaults_help["dot_color"] = "Color for Dot objects. Color object."
 
-    defaults["double_lines"] = False
-    default_types["double_lines"] = bool
-    defaults_help["double_lines"] = (
+    defaults["draw_double"] = False
+    default_types["draw_double"] = bool
+    defaults_help["draw_double"] = (
         "Boolean property for using double lines. If True, double lines are used."
+    )
+
+    defaults["double_color"] = None
+    default_types["double_color"] = colors.Color
+    defaults_help["double_color"] = (
+        "Color between double lines. Color object."
     )
 
     defaults["double_distance"] = 2
@@ -570,7 +594,7 @@ def set_defaults():
     )
 
     defaults["ellipse_width_height"] = (40, 20)  # width and height of the ellipse
-    default_types["ellipse_width_height"] = tuple
+    default_types["ellipse_width_height"] = Sequence
     defaults_help["ellipse_width_height"] = (
         "Width and height of the ellipse. "
         "Tuple of two positive floats. Length in <points>."
@@ -745,7 +769,7 @@ def set_defaults():
     defaults_help["frame_line_cap"] = "Line cap for frames. LineCap enum."
 
     defaults["frame_line_dash_array"] = []
-    default_types["frame_line_dash_array"] = list
+    default_types["frame_line_dash_array"] = Sequence
     defaults_help["frame_line_dash_array"] = (
         "Line dash array for frames. List of floats."
     )
@@ -818,7 +842,7 @@ def set_defaults():
     )
 
     defaults["graph_palette"] = seq_MATTER_256  # this needs to be a 256 color palette
-    default_types["graph_palette"] = list
+    default_types["graph_palette"] = Sequence
     defaults_help["graph_palette"] = "Graph palette. List of colors."
 
     defaults["grid_back_color"] = colors.white
@@ -840,7 +864,7 @@ def set_defaults():
     defaults_help["grid_alpha"] = "Grid alpha value. Float between 0 and 1."
 
     defaults["grid_line_dash_array"] = [2, 2]
-    default_types["grid_line_dash_array"] = list
+    default_types["grid_line_dash_array"] = Sequence
     defaults_help["grid_line_dash_array"] = "Grid line dash array. List of floats."
 
     defaults["indices_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
@@ -865,6 +889,10 @@ def set_defaults():
     defaults["image_blend_mode"] = BlendMode.NORMAL
     default_types["image_blend_mode"] = BlendMode
     defaults_help["image_blend_mode"] = "Blend mode for image. BlendMode enum."
+
+    defaults["ind_offset"] = (5, 5)  # offset for indices
+    default_types["ind_offset"] = Sequence
+    defaults_help["ind_offset"] = "Offset for shape indices. It can be a tuple of two floats or a center point and radial offset."
 
     defaults["italic"] = False
     default_types["italic"] = bool
@@ -922,7 +950,7 @@ def set_defaults():
     defaults_help["line_color"] = "Line color. Color object."
 
     defaults["line_dash_array"] = None
-    default_types["line_dash_array"] = list
+    default_types["line_dash_array"] = Sequence
     defaults_help["line_dash_array"] = "Line dash array. List of floats."
 
     defaults["line_dash_phase"] = 0
@@ -993,7 +1021,7 @@ def set_defaults():
 
     defaults["marker_palette"] = seq_MATTER_256  # this needs to be a 256 color
     # palette
-    default_types["marker_palette"] = list
+    default_types["marker_palette"] = Sequence
     defaults_help["marker_palette"] = "Marker palette. List of colors."
 
     defaults["marker_radius"] = 3  # Used for MarkerType.CIRCLE, MarkerType.STAR
@@ -1098,7 +1126,7 @@ def set_defaults():
     )
 
     defaults["packages"] = ["tikz", "pgf"]
-    default_types["packages"] = list
+    default_types["packages"] = Sequence
     defaults_help["packages"] = "Packages. List of strings."
 
     defaults["page_grid_back_color"] = colors.white
@@ -1110,7 +1138,7 @@ def set_defaults():
     defaults_help["page_grid_line_color"] = "Page grid line color. Color object."
 
     defaults["page_grid_line_dash_array"] = [2, 2]
-    default_types["page_grid_line_dash_array"] = list
+    default_types["page_grid_line_dash_array"] = Sequence
     defaults_help["page_grid_line_dash_array"] = (
         "Page grid line dash array. List of floats."
     )
@@ -1213,7 +1241,7 @@ def set_defaults():
     default_types["pdflatex_run_options"] = str
     defaults_help["pdflatex_run_options"] = "PDFLaTeX run options. String."
 
-    defaults["plait_color"] = colors.bluegreen
+    defaults["plait_color"] = colors.white
     default_types["plait_color"] = colors.Color
     defaults_help["plait_color"] = "Plait color. Color object."
 
@@ -1241,7 +1269,7 @@ def set_defaults():
     )
 
     defaults["rectangle_width_height"] = (40, 20)  # width and height of the rectangle
-    default_types["rectangle_width_height"] = tuple
+    default_types["rectangle_width_height"] = Sequence
     defaults_help["rectangle_width_height"] = (
         "Width and height of the rectangle. "
         "Tuple of two positive floats. Length in <points>."
@@ -1280,7 +1308,7 @@ def set_defaults():
     defaults_help["section_color"] = "Section color. Color object."
 
     defaults["section_dash_array"] = None
-    default_types["section_dash_array"] = list
+    default_types["section_dash_array"] = Sequence
     defaults_help["section_dash_array"] = "Section dash array. List of floats."
 
     defaults["section_line_cap"] = LineCap.BUTT.value
@@ -1409,7 +1437,7 @@ def set_defaults():
     defaults_help["stroke"] = "Boolean property for stroke. If True, stroke is used."
 
     defaults["swatch"] = seq_MATTER_256
-    default_types["swatch"] = list
+    default_types["swatch"] = Sequence
     defaults_help["swatch"] = "Swatch. List of colors."
 
     defaults["tag_align"] = Align.LEFT
@@ -1451,7 +1479,7 @@ def set_defaults():
         "shapes",
         "shadings",
     ]
-    default_types["tikz_libraries"] = list
+    default_types["tikz_libraries"] = Sequence
     defaults_help["tikz_libraries"] = "TikZ libraries. List of strings."
 
     defaults["tikz_nround"] = 3
@@ -1475,7 +1503,7 @@ def set_defaults():
     )
 
     defaults["use_packages"] = ["tikz", "pgf"]
-    default_types["use_packages"] = list
+    default_types["use_packages"] = Sequence
     defaults_help["use_packages"] = "Use packages. List of strings."
 
     defaults["validate"] = False

@@ -34,10 +34,11 @@ from ..graphics.all_enums import (
 )
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..settings.settings import defaults, tikz_defaults
-from ..geometry.geometry import homogenize, close_points2, round_point
-from ..geometry.ellipse import ellipse_point
+from ..geometry.geometry import (homogenize,
+                                 polar_to_cartesian,
+                                 cartesian_to_polar,
+                                 round_point)
 from ..graphics.sketch import TagSketch, ShapeSketch
-from ..graphics.shape import Shape
 
 from ..colors.colors import Color
 
@@ -109,9 +110,17 @@ class Tex:
             if sketch.location == TexLoc.DOCUMENT:
                 doc_code.append(sketch.code)
         doc_code = "\n".join(doc_code)
-        back_color = f"\\pagecolor{color2tikz(canvas.back_color)}"
+        if canvas.back_color is None:
+            back_color = ""
+        else:
+            back_color = f"\\pagecolor{color2tikz(canvas.back_color)}"
         self.begin_document = self.begin_document + back_color + "\n"
-        if canvas.limits is not None:
+        if canvas.overlay:
+            begin_t = self.begin_tikz
+            i = begin_t.index(']\n')
+            overlay = ', remember picture, overlay'
+            self.begin_tikz = begin_t[:i] + overlay + begin_t[i:]
+        if canvas.limits is not None or canvas.inset != 0:
             begin_tikz = self.begin_tikz + get_limits_code(canvas) + "\n"
         else:
             begin_tikz = self.begin_tikz + "\n"
@@ -187,19 +196,24 @@ class Tex:
         """
         tikz_libraries = []
         tikz_packages = ['tikz', 'pgf']
+
         for page in canvas.pages:
             for sketch in page.sketches:
+                if hasattr(sketch, "library"):
+                    if sketch.library == "fadings":
+                        if "fadings" not in tikz_libraries:
+                            tikz_libraries.append("fadings")
                 if hasattr(sketch, "draw_frame") and sketch.draw_frame:
                     if hasattr(sketch, "frame_shape") and sketch.frame_shape != FrameShape.RECTANGLE:
                         if "shapes.geometric" not in tikz_libraries:
                             tikz_libraries.append("shapes.geometric")
-                if sketch.draw_markers:
+                if hasattr(sketch, "draw_markers") and sketch.draw_markers:
                     if 'patterns' not in tikz_libraries:
                         tikz_libraries.append("patterns")
                         tikz_libraries.append("patterns.meta")
                         tikz_libraries.append("backgrounds")
                         tikz_libraries.append("shadings")
-                if sketch.line_dash_array:
+                if hasattr(sketch, "line_dash_array") and sketch.line_dash_array:
                     if 'patterns' not in tikz_libraries:
                         tikz_libraries.append("patterns")
                 if sketch.subtype == Types.TAG_SKETCH:
@@ -340,13 +354,23 @@ def get_limits_code(canvas: "Canvas") -> str:
     Returns:
         str: The limits code for clipping.
     """
-    xmin, ymin, xmax, ymax = canvas.limits
+    if canvas.limits is not None:
+        xmin, ymin, xmax, ymax = canvas.limits
+    elif canvas.inset != 0:
+        vertices = canvas._all_vertices
+        g = canvas.inset
+        x = [v[0] for v in vertices]
+        y = [v[1] for v in vertices]
+        xmin = min(x) + g
+        xmax = max(x) - g
+        ymin = min(y) + g
+        ymax = max(y) - g
+
     points = [(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]
     vertices = homogenize(points) @ canvas.xform_matrix
     coords = " ".join([f"({v[0]}, {v[1]})" for v in vertices])
 
     return f"\\clip plot[] coordinates {{{coords}}};\n"
-
 
 def get_back_code(canvas: "Canvas") -> str:
     """Get the background code for the canvas.
@@ -386,6 +410,8 @@ def get_tex_code(canvas: "Canvas") -> str:
             code = draw_tag_sketch(sketch)
         elif sketch.subtype == Types.IMAGE_SKETCH:
             code = draw_image_sketch(sketch)
+        elif sketch.subtype == Types.PDF_SKETCH:
+            code = draw_pdf_sketch(sketch)
         elif sketch.subtype == Types.BBOX_SKETCH:
             code = draw_bbox_sketch(sketch)
         elif sketch.subtype == Types.PATTERN_SKETCH:
@@ -394,7 +420,9 @@ def get_tex_code(canvas: "Canvas") -> str:
             if sketch.location == TexLoc.NONE:
                 code = sketch.code
         else:
-            if sketch.draw_markers and sketch.marker_type == MarkerType.INDICES:
+            if (hasattr(sketch, "draw_markers") and
+                sketch.draw_markers and
+                sketch.marker_type == MarkerType.INDICES):
                 code = draw_shape_sketch(sketch, ind)
                 ind += 1
             else:
@@ -409,7 +437,10 @@ def get_tex_code(canvas: "Canvas") -> str:
             sketches = page.sketches
             back_color = f"\\pagecolor{color2tikz(page.back_color)}"
             if i == 0:
-                code = [back_color]
+                if page.back_color:
+                    code = [back_color]
+                else:
+                    code = []
             else:
                 code.append(defaults["end_tikz"])
                 code.append("\\newpage")
@@ -534,8 +565,11 @@ def color2tikz(color):
         r, g, b, _ = 255, 255, 255, 255
         return f"{{rgb,255:red,{r}; green,{g}; blue,{b}}}"
     r, g, b = color.rgb255
-
-    return f"{{rgb,255:red,{r}; green,{g}; blue,{b}}}"
+    alpha = color.alpha
+    if alpha is not None and alpha < 1:
+        return f"{{rgb,255:red,{r}; green,{g}; blue,{b}}}, opacity={alpha}"
+    else:
+        return f"{{rgb,255:red,{r}; green,{g}; blue,{b}}}"
 
 
 def get_scope_options(item: Union["Canvas", "Sketch"]) -> str:
@@ -582,9 +616,11 @@ def get_clip_code(item: Union["Sketch", "Canvas"]) -> str:
         x, y = item.mask.center[:2]
         res = f"\\clip({x}, {y}) circle ({item.mask.radius});\n"
     elif item.mask.subtype == Types.RECTANGLE:
-        x, y = item.mask.center[:2]
-        width, height = item.mask.width, item.mask.height
-        res = f"\\clip({x}, {y}) rectangle ({width}, {height});\n"
+        corners = item.mask.b_box.corners
+        x1, y1 = corners[1]
+        x2, y2 = corners[3]
+        res = f"\\clip({x1}, {y1}) rectangle ({x2}, {y2});\n"
+
     elif item.mask.subtype == Types.SHAPE:
         # vertices = item.mask.primary_points.homogen_coords
         # coords = " ".join([f"({v[0]}, {v[1]})" for v in vertices])
@@ -659,6 +695,8 @@ def draw_bbox_sketch(sketch):
         "line_color": "color",
         "line_width": "line width",
         "line_dash_array": "dash pattern",
+        "double_color": "double",
+        "double_distance": "double distance"
     }
     attrib_list = ["line_color", "line_width", "line_dash_array"]
     options = sg_to_tikz(sketch, attrib_list, attrib_map)
@@ -716,7 +754,7 @@ def get_draw(sketch):
         (False, False, False, True): False,
         (False, False, False, False): False,
     }
-    if sketch.markers_only:
+    if hasattr(sketch, "markers_only") and sketch.markers_only:
         res = "\\draw"
     else:
         if hasattr(sketch, 'back_style'):
@@ -956,6 +994,7 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
     d_converters = {
         "line_color": color2tikz,
         "fill_color": color2tikz,
+        "double_color": color2tikz,
         "draw": color2tikz,
         "line_dash_array": get_dash_pattern,
     }
@@ -980,9 +1019,9 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
         if hasattr(sketch, attrib):
             value = getattr(sketch, attrib)
             if value is not None and tikz_attrib in list(attrib_map.values()):
-                if attrib in ['smooth']: # smooth is a boolean
+                if attrib in ['smooth', 'draw_double']: # boolean values
                     if value:
-                        options.append("smooth")
+                        options.append(attrib)
 
                 elif attrib in skip:
                     value = color2tikz(getattr(sketch, attrib))
@@ -1007,6 +1046,8 @@ def get_line_style_options(sketch, exceptions=None):
         list: The line style options as a list.
     """
     attrib_map = {
+        "double_color": "double",
+        "double_distance": "double distance",
         "line_color": "color",
         "line_width": "line width",
         "line_dash_array": "dash pattern",
@@ -1019,7 +1060,7 @@ def get_line_style_options(sketch, exceptions=None):
         "fillet_radius": "rounded corners",
     }
     attribs = list(line_style_map.keys())
-    if sketch.stroke:
+    if hasattr(sketch, "stroke") and sketch.stroke:
         if exceptions and "draw_fillets" not in exceptions:
             conditions = {"fillet_radius": sketch.draw_fillets}
         else:
@@ -1030,6 +1071,9 @@ def get_line_style_options(sketch, exceptions=None):
             sketch.fill_alpha = sketch.alpha
         else:
             attribs.remove("line_alpha")
+        if not sketch.draw_double:
+            attribs.remove('double_color')
+            attribs.remove('double_distance')
         if not sketch.smooth:
             attribs.remove("smooth")
         res = sg_to_tikz(sketch, attribs, attrib_map, conditions, exceptions)
@@ -1281,17 +1325,17 @@ def get_marker_options(sketch):
     return res
 
 
-def draw_shape_sketch_with_indices(sketch, ind):
+def draw_shape_sketch_with_indices(sketch, index=0):
     """Draws a shape sketch with circle markers with index numbers in them.
 
     Args:
         sketch: The shape sketch object.
-        ind: The index.
+        index: The index.
 
     Returns:
         str: The TikZ code for the shape sketch with indices.
     """
-    begin_scope = get_begin_scope(ind)
+    begin_scope = get_begin_scope(index)
     body = get_draw(sketch)
     if body:
         options = get_line_style_options(sketch)
@@ -1307,24 +1351,52 @@ def draw_shape_sketch_with_indices(sketch, ind):
     else:
         body = ""
     vertices = sketch.vertices
+    indices = None
+    if hasattr(sketch, "ind_offset"):
+        offset = sketch.ind_offset
+        if isinstance(offset[0], float):
+            dx, dy = offset[:2]
+            indices = [str((x+dx, y+dy)) for (x, y) in vertices]
+        else:
+            # offset is in polar coordinates
+            center, offset_val = offset
+            indices = []
+            for vert in vertices:
+                x, y = vert[:2]
+                r, theta = cartesian_to_polar(x, y, center)
+                new_x, new_y = polar_to_cartesian(r+offset_val, theta, center)
+                indices.append(f"({new_x}, {new_y})")
+    else:
+        indices = [str(x) for x in vertices]
     vertices = [str(x) for x in vertices]
-    str_lines = [vertices[0] + "node{0}"]
+    str_lines = [vertices[0]]
     n = len(vertices)
     for i, vertice in enumerate(vertices[1:]):
         if (i + 1) % 6 == 0:
             if i == n - 1:
-                str_lines.append(f" -- {vertice} node{{{i+1}}}\n")
+                str_lines.append(f" -- {vertice}\n")
             else:
-                str_lines.append(f"\n\t-- {vertice} node{{{i+1}}}")
+                str_lines.append(f"\n\t-- {vertice}")
         else:
-            str_lines.append(f"-- {vertice} node{{{i+1}}}")
+            str_lines.append(f"-- {vertice}")
+
     if body:
         if sketch.closed:
             str_lines.append(" -- cycle;\n")
         str_lines.append(";\n")
-    end_scope = get_end_scope()
+    if indices:
+        str_lines.append(f"\\node at {indices[0]} {{{0}}};\n")
+        for i , pos in enumerate(indices[1:]):
+            str_lines.append(f"\\node at {pos} {{{i+1}}};\n")
 
-    return begin_scope + body + "".join(str_lines) + end_scope
+
+    end_scope = get_end_scope()
+    if begin_scope == '\\begin{scope}[]\n':
+        res = body + "".join(str_lines)
+    else:
+        res = begin_scope + body + "".join(str_lines) + end_scope
+
+    return res
 
 
 def draw_shape_sketch_with_markers(sketch):
@@ -1566,6 +1638,36 @@ def draw_image_sketch(sketch):
 
     return begin_scope + res + end_scope
 
+
+def draw_pdf_sketch(sketch):
+    """Draws a PDF sketch.
+
+    Args:
+        sketch: The PDF sketch object.
+
+    Returns:
+        str: The TikZ code for the image sketch.
+    """
+    begin_scope = get_begin_scope()
+    options = get_line_style_options(sketch)
+    # options += get_fill_style_options(sketch, frame=True)
+    x, y = sketch.pos[:2]
+    if sketch.angle != 0:
+        angle = degrees(sketch.angle)
+        options.append(f"rotate = {angle}")
+
+    if sketch.scale != 1:
+        scale = sketch.scale
+        options.append(f"xscale = {scale}, yscale = {scale}")
+
+    if sketch.anchor != Anchor.CENTER:
+        options.append(f"anchor = {sketch.anchor.value}")
+
+    res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
+    end_scope = get_end_scope()
+
+    return begin_scope + res + end_scope
+
 def draw_shape_sketch(sketch, ind=None):
     """Draws a shape sketch.
 
@@ -1585,9 +1687,12 @@ def draw_shape_sketch(sketch, ind=None):
     }
     if sketch.subtype in d_subtype_draw:
         res = d_subtype_draw[sketch.subtype](sketch)
-    elif sketch.draw_markers and sketch.marker_type == MarkerType.INDICES:
+    elif ((hasattr(sketch, "draw_markers") and sketch.draw_markers and
+          sketch.marker_type == MarkerType.INDICES) or
+          (hasattr(sketch, "indices") and sketch.indices)):
         res = draw_shape_sketch_with_indices(sketch, ind)
-    elif sketch.draw_markers or sketch.smooth:
+    elif (hasattr(sketch, "draw_markers") and sketch.draw_markers or
+          (hasattr(sketch, "smooth") and sketch.smooth)):
         res = draw_shape_sketch_with_markers(sketch)
     else:
         res = draw_sketch(sketch)

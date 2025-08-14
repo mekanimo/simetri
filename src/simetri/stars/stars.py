@@ -1,6 +1,6 @@
 """This module contains classes and functions for creating stars and rosettes."""
 
-from math import pi, sin, cos
+from math import pi, sin, cos, tan, sqrt, asin, acos, atan
 from typing import Union
 
 from ..graphics.batch import Batch
@@ -36,9 +36,11 @@ def rosette(
         petal = kernel.mirror(axis, reps=1)
         if merge:
             petal = petal.merge_shapes()
-    petal = petal.rotate(2 * pi / n, reps=n - 1)
+    star = petal.rotate(2 * pi / n, reps=n - 1)
+    if merge:
+        star = star.merge_shapes()
 
-    return petal
+    return star
 
 
 class Star(Batch):
@@ -80,29 +82,31 @@ class Star(Batch):
         Raises:
             ValueError: If n is less than 7.
         """
-        if n < 7:
-            raise ValueError("n must be greater than 6")
+        if n < 6:
+            raise ValueError("n must be greater than 5")
         if self.inner_radius is None:
             r = 50
         else:
             r = self.inner_radius  # start with a reasonable value
-        alpha = (n - 2) * pi / n
-        beta = (pi - alpha) / 2
-        gamma = 2 * pi / n
-        theta = 3 * pi / n
-        t = r * sin(theta)
-        x = t / cos(beta)
+        # alpha = (n - 2) * pi / n
+        # beta = (pi - alpha) / 2
+        phi = pi / n
+        gamma = 2 * phi
+        theta = 3 * phi
 
         x1, y1 = r * cos(theta), r * sin(theta)
         up1 = (x1, y1)
-        up2_ = 100, r * sin(theta)
+        up2_ = 100, y1
         line1 = Shape([up1, up2_])
         lp1 = x1, -y1
-        lp2_ = 100, -r * sin(theta)
+        lp2_ = 100, -y1
         line2 = Shape([lp1, lp2_])
         up1_ = intersect(line1, line2.copy().rotate(gamma))
-        up2 = up1_[0] + r, y1
-        up3 = up2[0] + x * sin(beta), 0
+        ext = y1 / cos(phi)
+        up2 = up1_[0] + ext, y1
+        up3 = up2[0] + ext * sin(phi), 0
+
+
 
         self._kernel2 = Shape([up1, up2, up3])
         self._petal2 = self._kernel2.copy().mirror(axis_x, reps=1)
@@ -253,7 +257,12 @@ class Star(Batch):
             scale_factor = self._get_scale_factor(level, inner_radius, circumradius)
             petal = kernel.mirror(axis_x, reps=1).scale(scale_factor)
 
-        return petal
+        res  = petal.merge_shapes()
+        if len(res) == 1:
+            res = res[0]
+
+        return res
+
 
     def level(self, n: int) -> Batch:
         """Returns the star at the specified level.
@@ -298,4 +307,52 @@ class Star(Batch):
             star.circumradius = circumradius
             star.inner_radius = inner_radius
 
+        star = star.merge_shapes()
+        if len(star) == 1:
+            star = star[0]
+
         return star
+
+    def find_trig_representation(target_value: float, tolerance: float = 1e-6) -> str:
+        """Find trigonometric representations of a decimal value.
+
+        Args:
+            target_value (float): The decimal value to represent.
+            tolerance (float): Tolerance for matching. Defaults to 1e-6.
+
+        Returns:
+            str: String representation of possible trigonometric forms.
+        """
+        representations = []
+
+        # Check common angles in degrees and radians
+        common_angles_deg = [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180]
+        common_angles_rad = [deg * pi / 180 for deg in common_angles_deg]
+
+        # Check basic trig functions
+        for angle_deg, angle_rad in zip(common_angles_deg, common_angles_rad):
+            if abs(sin(angle_rad) - target_value) < tolerance:
+                representations.append(f"sin({angle_deg}°) = sin({angle_rad:.6f})")
+            if abs(cos(angle_rad) - target_value) < tolerance:
+                representations.append(f"cos({angle_deg}°) = cos({angle_rad:.6f})")
+            if angle_deg not in [90, 270] and abs(tan(angle_rad) - target_value) < tolerance:
+                representations.append(f"tan({angle_deg}°) = tan({angle_rad:.6f})")
+
+        # Check combinations with sqrt, pi, etc.
+        common_values = [pi/6, pi/4, pi/3, pi/2, 2*pi/3, 3*pi/4, 5*pi/6, pi]
+        for val in common_values:
+            if abs(val - target_value) < tolerance:
+                representations.append(f"π/{6*val/pi:.0f}" if val < pi else f"{val/pi:.3f}π")
+
+        # Check sqrt combinations
+        for i in range(1, 10):
+            if abs(sqrt(i) - target_value) < tolerance:
+                representations.append(f"√{i}")
+
+        # For 1.847759, check specific combinations
+        if abs(target_value - 1.847759) < tolerance:
+            # This is approximately tan(61.58°) or related to golden ratio calculations
+            representations.append("≈ tan(61.58°)")
+            representations.append("≈ (1 + √5)/2 * cos(36°)")  # Related to golden ratio and pentagon
+
+        return "; ".join(representations) if representations else f"No simple trig representation found for {target_value}"

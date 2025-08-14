@@ -42,6 +42,7 @@ from simetri.settings.settings import defaults
 from simetri.graphics.bbox import bounding_box
 from simetri.graphics.batch import Batch
 from simetri.graphics.shape import Shape
+from simetri.graphics.sketch import TexSketch
 from simetri.colors.colors import Color, light_gray
 from simetri.canvas import draw
 from simetri.helpers.utilities import wait_for_file_availability
@@ -120,6 +121,8 @@ class Canvas:
         self.even_odd_rule = None  # True or False
         self.draw_grid = False
         self._origin = [0, 0]
+        self.inset = 0
+        self.page_size = None
         common_properties(self)
 
         for k, v in kwargs.items():
@@ -134,6 +137,7 @@ class Canvas:
             self._limits = [x, y, x + self.size[0], y + self.size[1]]
         else:
             self._limits = None
+        self.overlay = False # used for inserting pdf pictures
 
     def __setattr__(self, name, value):
         if hasattr(self, "active_page") and name in ["back_color", "border"]:
@@ -252,7 +256,7 @@ class Canvas:
         else:
             raise ValueError("Limits must be a tuple of 4 values.")
 
-    def image(self, **kwargs) -> Image:
+    def capture(self, **kwargs) -> Image:
         """
         Create an image from the canvas.
 
@@ -342,7 +346,7 @@ class Canvas:
         draw.bezier(self, control_points, **kwargs)
         return self
 
-    def circle(self, center: Point, radius: float, **kwargs) -> Self:
+    def circle(self, radius: float, center: Point=(0, 0), **kwargs) -> Self:
         """
         Draw a circle with the given center and radius.
 
@@ -354,7 +358,7 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        draw.circle(self, center, radius, **kwargs)
+        draw.circle(self, radius, center, **kwargs)
         return self
 
     def ellipse(
@@ -382,6 +386,7 @@ class Canvas:
         pos: Point,
         font_family: str = None,
         font_size: int = None,
+        font_color: Color = None,
         anchor: Anchor = None,
         align: Align = None,
         **kwargs,
@@ -414,7 +419,9 @@ class Canvas:
             pos=pos,
             font_family=font_family,
             font_size=font_size,
+            font_color=font_color,
             anchor=anchor,
+            align=align,
             **kwargs,
         )
         return self
@@ -503,6 +510,62 @@ class Canvas:
         draw.rectangle(self, center, width, height, angle, **kwargs)
         return self
 
+    def rectangle2(
+        self,
+        corner1: Point = (0, 0),
+        corner2: Point = (0, 0),
+        angle: float = 0,
+        **kwargs,
+    ) -> Self:
+        """
+        Draw a rectangle.
+
+        Args:
+            corner1 (Point): The first corner of the rectangle.
+            corner2 (Point): The diagonally opposing corner.
+            angle (float, optional): The angle of the rectangle, defaults to 0.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
+        """
+        x1, y1 = corner1
+        x2, y2 = corner2
+        width = abs(x2 - x1)
+        height = abs(y2 - y1)
+        center = ((x1 + x2) / 2, (y1 + y2) / 2)
+
+        draw.rectangle(self, center, width, height, angle, **kwargs)
+        return self
+
+    def rectangle3(
+        self,
+        upper_left: Point,
+        width: float = 100,
+        height: float = 100,
+        angle: float = 0,
+        **kwargs,
+    ) -> Self:
+        """
+        Draw a rectangle.
+
+        Args:
+            upper_left (Point): The upper_left corner of the rectangle.
+            width (float): The width of the rectangle.
+            height (float): The height of the rectangle.
+            angle (float, optional): The angle of the rectangle, defaults to 0.
+            kwargs (dict): Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
+        """
+        x1, y1 = upper_left[:2]
+        x2, y2 = x1 + width, y1 - height
+        center = ((x1 + x2) / 2, (y1 + y2) / 2)
+
+        draw.rectangle(self, center, width, height, angle, **kwargs)
+        return self
+
     def square(
         self, center: Point = (0, 0), size: float = 100, angle: float = 0, **kwargs
     ) -> Self:
@@ -563,14 +626,99 @@ class Canvas:
         draw.draw_dimension(self, dim, **kwargs)
         return self
 
+    def begin_clip(self, item: Union[Shape, Batch] = None,
+                   corners: Sequence[Point] = None,
+                   margins: Sequence[float] = None,
+                   fade: Anchor = None,
+                   fade_margins: Sequence[float] = None,
+                   fillet_radius: float = None) -> Self:
+        """Insert a TeX code into the canvas.
+
+        Args:
+            item (Shape or Batch): The item to clip.
+            margins: [top, right, bottom, left] margins to apply to the clipping area.
+            fade (Anchor, optional): The direction of the fade effect. Defaults to None.
+            fade_margins (Sequence[float], optional): Margins for the fade effect.
+            fade_margins are applied after the clipping margins.
+
+        Returns:
+            Self: The canvas object.
+        """
+        d_directions = {Anchor.NORTH: "north",
+                        Anchor.SOUTH: "south",
+                        Anchor.EAST: "east",
+                        Anchor.WEST: "west",
+                        Anchor.SOUTHWEST: "south west",
+                        Anchor.SOUTHEAST: "south east",
+                        Anchor.NORTHEAST: "north east",
+                        Anchor.NORTHWEST: "north west"}
+
+        active_sketches = self.active_page.sketches
+        if item is not None:
+            corners = item.corners
+            x1, y1 = corners[1]
+            x2, y2 = corners[3]
+            top, right, bottom, left = margins
+            x1 += left
+            y1 += bottom
+            x2 -= right
+            y2 -= top
+        else:
+            x1, y1, x2, y2 = corners
+        clip_code = ""
+        if fillet_radius is not None:
+            if fillet_radius < 0:
+                raise ValueError("Fillet radius must be a positive number.")
+            clip_code = f"[rounded corners={fillet_radius}]"
+        code = f"""\\begin{{scope}}
+\\clip{clip_code}({x1}, {y1}) rectangle ({x2}, {y2});\n"""
+        if fade is not None:
+            if fade_margins is not None:
+                top, right, bottom, left = fade_margins
+                x1 += left
+                y1 += bottom
+                x2 -= right
+                y2 -= top
+            code += f"\\path [scope fading={d_directions[fade]}] ({x1}, {y1}) rectangle ({x2}, {y2});\n"
+
+        sketch = TexSketch(code)
+        if fade is not None:
+            sketch.library = "fadings"
+        active_sketches.append(sketch)
+        return self
+
+    def begin_style(self, style:str):
+        # code = rf'\begin{{scope}}[every path/.append style={{dashed, draw=green}}]'
+        code = rf'\begin{{scope}}[every path/.append style={{ {style} }}]'
+        code += '\n'
+        sketch = TexSketch(code)
+        self.active_page.sketches.append(sketch)
+
+        return self
+
+    def end_clip(self):
+
+        return self._end_scope()
+
+    def end_style(self):
+
+        return self._end_scope()
+
+    def _end_scope(self):
+        sketch = TexSketch("\\end{scope}\n")
+        self.active_page.sketches.append(sketch)
+
+        return self
+
     def draw(
         self,
-        item_s: Union[Drawable, list, tuple],
+        item_s: Union[Shape, Batch, list, tuple],
         pos: Point = None,
         angle: float = 0,
         rotocenter: Point = (0, 0),
         scale=(1, 1),
         about=(0, 0),
+        display: bool = False,
         **kwargs,
     ) -> Self:
         """
@@ -583,15 +731,22 @@ class Canvas:
             rotocenter (Point, optional): The point about which to rotate, defaults to (0, 0).
             scale (tuple, optional): The scale factors for the x and y axes, defaults to (1, 1).
             about (tuple, optional): The point about which to scale, defaults to (0, 0).
+            display (bool, optional): If True, draws the canvas in a Jupyter cell.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
+        if display:
+            self.display()
+            return Self
+
         sketch_xform = self._sketch_xform_matrix
         if pos is not None:
             sketch_xform = translation_matrix(*pos[:2]) @ sketch_xform
         if scale[0] != 1 or scale[1] != 1:
+            if pos is None:
+                pos = (0, 0)
             sketch_xform = scale_in_place_matrix(*pos[:2], about) @ sketch_xform
         if angle != 0:
             sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
@@ -621,17 +776,33 @@ class Canvas:
         draw.draw_CS(self, size, **kwargs)
         return self
 
-    def draw_image(self, image:Image) -> Self:
+    def draw_pdf(self, pdf, pos: Point, size=None, scale=None, angle=0,
+                 **kwargs) -> Self:
+        """
+        Draw a PDF on the canvas.
+
+        Args:
+            pdf (PDF): The PDF object to draw or file path.
+            pos (Point): Upper-left position to draw the PDF at.
+
+        Returns:
+            Self: The canvas object.
+        """
+        draw.draw_pdf(self, pdf, pos, size, scale, angle, **kwargs)
+        return self
+
+    def draw_image(self, image:Image, pos:Point) -> Self:
         """
         Draw an image on the canvas.
 
         Args:
             image (Image): The image to draw.
+            pos (Point): The position to draw the image at.
 
         Returns:
             Self: The canvas object.
         """
-        draw.draw_image(self, image)
+        draw.draw_image(self, image, pos)
         return self
 
     def draw_frame(
@@ -1013,6 +1184,24 @@ class Canvas:
                     user_fonts.add(name)
         return list(user_fonts.difference(latex_fonts))
 
+    def clip(self, x_min: float=None, x_max: float=None,
+                        y_min: float=None, y_max: float=None) -> Self:
+        """
+        Clip the canvas to the specified bounding box.
+
+        Args:
+            x_min (float): The minimum x coordinate of the bounding box.
+            x_max (float): The maximum x coordinate of the bounding box.
+            y_min (float): The minimum y coordinate of the bounding box.
+            y_max (float): The maximum y coordinate of the bounding box.
+
+        Returns:
+            Self: The canvas object.
+        """
+
+    def set_page_size(self, width, height):
+        self.page_size = (width, height)
+
     def _calculate_size(self, border=None, b_box=None) -> Tuple[float, float]:
         """
         Calculate the size of the canvas based on the bounding box and border.
@@ -1071,6 +1260,8 @@ class Canvas:
         show: bool = None,
         print_output=False,
         remove_aux=True,
+        inset=None,
+        display=False,
     ) -> Self:
         """
         Save the canvas to a file.
@@ -1079,12 +1270,10 @@ class Canvas:
             file_path (Path, optional): The path to save the file.
             overwrite (bool, optional): Whether to overwrite the file if it exists.
             show (bool, optional): Whether to show the file in the browser.
-            print_output (bool, optional): Whether to print the output of the compilation.
-
+            inset (float, optional): The inset value will be clipped from all sides, defaults to None.
         Returns:
             Self: The canvas object.
         """
-
         def validate_file_path(file_path: Path, overwrite: bool) -> Result:
             """
             Validate the file path.
@@ -1237,7 +1426,8 @@ class Canvas:
                 pix = page.get_pixmap()
                 pix.save(output_path)
                 pdf_file.close()
-
+        if inset is not None:
+            self.inset = inset
         parent_dir, file_name, extension = validate_file_path(file_path, overwrite)
 
         tex_code = get_tex_code(self)

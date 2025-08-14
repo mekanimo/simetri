@@ -249,7 +249,8 @@ class LineStyle:
         draw_markers (bool): Whether to draw markers on the line.
         draw_fillets (bool): Whether to draw fillets on the line.
         markers_only (bool): Whether to draw only markers on the line.
-        double_lines (bool): Whether to draw double lines.
+        draw_double (bool): Wheter to draw double lines.
+        double_color(Color): Double line color.
         double_distance (float): The distance between double lines.
     """
 
@@ -269,7 +270,8 @@ class LineStyle:
     draw_markers: bool = None
     draw_fillets: bool = None
     markers_only: bool = None
-    double_lines: bool = None
+    draw_double: bool = None
+    double_color: Color = None
     double_distance: float = None
 
     def __post_init__(self):
@@ -281,9 +283,9 @@ class LineStyle:
             "draw_fillets",
             "draw_markers",
             "markers_only",
-            "double",
+            "draw_double",
+            "double_color",
             "double_distance",
-            "double_lines",
         ]
         exclude = ["marker_style"]
         _style_init(
@@ -725,7 +727,8 @@ frame_style_map = {
     'alpha': ('frame_style', 'alpha'),
     'back_style': ('frame_style.fill_style', 'back_style'),
     'double_distance': ('frame_style.line_style', 'double_distance'),
-    'double_lines': ('frame_style.line_style', 'double_lines'),
+    'double_color': ('frame_style.line_style', 'double_color'),
+    'draw_double': ('frame_style.line_style', 'draw_double'),
     'draw_fillets': ('frame_style.line_style', 'draw_fillets'),
     'draw_markers': ('frame_style.line_style', 'draw_markers'),
     'fill': ('frame_style.fill_style', 'fill'),
@@ -786,7 +789,8 @@ def _set_frame_style_alias_map(debug=False):
 marker_style_map = {
     'back_style': ('marker_style.fill_style', 'back_style'),
     'double_distance': ('marker_style.line_style', 'double_distance'),
-    'double_lines': ('marker_style.line_style', 'double_lines'),
+    'double_color': ('marker_style.line_style', 'double_color'),
+    'draw_double': ('marker_style.line_style', 'draw_double'),
     'draw_fillets': ('marker_style.line_style', 'draw_fillets'),
     'draw_markers': ('marker_style.line_style', 'draw_markers'),
     'fill': ('marker_style.fill_style', 'fill'),
@@ -843,7 +847,8 @@ image_style_map = {
     'back_style': ('style.frame_style.fill_style', 'back_style'),
     'blend_mode': ('style', 'blend_mode'),
     'double_distance': ('style.frame_style.line_style', 'double_distance'),
-    'double_lines': ('style.frame_style.line_style', 'double_lines'),
+    'double_color': ('style.frame_style.line_style', 'double_color'),
+    'draw_double': ('style.frame_style.line_style', 'draw_double'),
     'draw_fillets': ('style.frame_style.line_style', 'draw_fillets'),
     'draw_frame': ('style', 'draw_frame'),
     'draw_markers': ('style.frame_style.line_style', 'draw_markers'),
@@ -964,7 +969,8 @@ tag_style_map = {
     'blend_mode': ('style', 'blend_mode'),
     'bold': ('style.font_style', 'bold'),
     'double_distance': ('style.frame_style.line_style', 'double_distance'),
-    'double_lines': ('style.frame_style.line_style', 'double_lines'),
+    'double_color': ('style.frame_style.line_style', 'double_color'),
+    'draw_double': ('style.frame_style.line_style', 'draw_double'),
     'draw_fillets': ('style.frame_style.line_style', 'draw_fillets'),
     'draw_frame': ('style', 'draw_frame'),
     'draw_markers': ('style.frame_style.line_style', 'draw_markers'),
@@ -1196,7 +1202,8 @@ def _set_pattern_style_alias_map(debug=False):
 # line_style_map = {}
 line_style_map = {
     'double_distance': ('line_style', 'double_distance'),
-    'double_lines': ('line_style', 'double_lines'),
+    'double_color': ('line_style', 'double_color'),
+    'draw_double': ('line_style', 'draw_double'),
     'draw_fillets': ('line_style', 'draw_fillets'),
     'draw_markers': ('line_style', 'draw_markers'),
     'fillet_radius': ('line_style', 'fillet_radius'),
@@ -1245,7 +1252,8 @@ shape_style_map = {
     'alpha': ('style', 'alpha'),
     'back_style': ('style.fill_style', 'back_style'),
     'double_distance': ('style.line_style', 'double_distance'),
-    'double_lines': ('style.line_style', 'double_lines'),
+    'double_color': ('style.line_style', 'double_color'),
+    'draw_double': ('style.line_style', 'draw_double'),
     'draw_fillets': ('style.line_style', 'draw_fillets'),
     'draw_markers': ('style.line_style', 'draw_markers'),
     'fill': ('style.fill_style', 'fill'),
@@ -1380,7 +1388,8 @@ shape_args = [
     'back_style',
     'dist_tol',
     'double_distance',
-    'double_lines',
+    'double_color',
+    'draw_double',
     'draw_fillets',
     'draw_markers',
     'fill',
@@ -1467,7 +1476,8 @@ batch_args = [
 'clip',
 'dist_tol',
 'double_distance',
-'double_lines',
+'double_color',
+'draw_double',
 'draw_fillets',
 'draw_markers',
 'even_odd_rule',
@@ -1535,7 +1545,7 @@ def _set_batch_args(debug=False):
     batch_args.extend(group_args)
     print()
 
-canvas_args = ["size", "back_color", "border"]
+canvas_args = ["size", "back_color", "border", "inset"]
 canvas_args.extend(group_args)
 
 shape_aliases_dict = {}
@@ -1777,7 +1787,8 @@ def _set_shape_aliases_dict(shape):
 # style.line_style.draw_markers draw_markers
 # style.line_style.draw_fillets draw_fillets
 # style.line_style.markers_only markers_only
-# style.line_style.double double
+# style.line_style.double_color double_color
+# style.line_style.draw_double draw_double
 # style.line_style.double_distance double_distance
 # style.fill_style.color fill_color
 # style.fill_style.alpha fill_alpha

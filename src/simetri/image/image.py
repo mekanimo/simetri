@@ -12,6 +12,60 @@ from ..graphics.common import Point
 from ..graphics.all_enums import Types, Anchor, ImageMode, Transformation
 from ..helpers.utilities import decompose_transformations
 
+class PDF(Rectangle):
+    """
+    A class to represent a PDF file as a drawable object.
+    """
+
+    def __init__(self, pdf_path: str, pos: Point =(0, 0), size: Sequence[int]=None, **kwargs):
+        """
+        Initialize a PDF object.
+
+        Args:
+            pdf_path (str): The path to the PDF file.
+            pos (Point, optional): The position of the PDF on the canvas. Defaults to (0, 0).
+            size (Sequence[int], optional): The size of the PDF. If None, uses the original size. Defaults to None.
+            **kwargs: Additional keyword arguments for the Rectangle base class.
+        """
+        if not os.path.exists(pdf_path):
+            raise FileNotFoundError(f"File {pdf_path} not found.")
+        self.pdf_path = pdf_path
+        self.type = Types.PDF
+        self.subtype = Types.PDF
+        self.anchor = kwargs.get('anchor', Anchor.CENTER)
+        if 'xform_matrix' in kwargs:
+            self.xform_matrix = kwargs['xform_matrix']
+        else:
+            self.xform_matrix = identity_matrix()
+
+        # For simplicity, we will not load the actual PDF content here.
+        # In a full implementation, you might want to use a library like PyMuPDF or pdf2image
+        # to render the PDF pages into images.
+
+        # Placeholder width and height; in a real implementation, extract from PDF metadata
+        width, height = (100, 100) if size is None else size
+        kwargs['fill'] = False
+        kwargs['stroke'] = False
+        super().__init__(center=pos, width=width, height=height, **kwargs)
+
+    def __repr__(self):
+        """
+        Return a string representation of the PDF object.
+
+        Returns:
+            str: A string representation of the PDF object.
+        """
+        return f"PDF({self.pdf_path})"
+
+    def __str__(self):
+        """
+        Return a human-readable string representation of the PDF object.
+
+        Returns:
+            str: A human-readable string representation of the PDF object.
+        """
+        return f"PDF file at {self.pdf_path}"
+
 class Image(Rectangle):
     """
     A class that extends the PIL Image class to add additional functionality.
@@ -144,7 +198,7 @@ class Image(Rectangle):
         Args:
             point (Point): The new position of the image.
         """
-        x, y = self.pos
+        x, y = self.pos[:2]
         dx = point[0] -x
         dy = point[1] -y
         self.xform_matrix = translation_matrix(dx, dy) @ self.xform_matrix

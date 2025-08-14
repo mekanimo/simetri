@@ -35,7 +35,8 @@ from ..geometry.geometry import (
     polyline_length,
     close_points2,
     connected_pairs,
-    check_consecutive_duplicates
+    check_consecutive_duplicates,
+    distance,
 )
 from ..helpers.graph import Node, Graph, GraphEdge
 from .core import Base, StyleMixin
@@ -72,10 +73,6 @@ class Shape(Base, StyleMixin):
         Raises:
             ValueError: If the provided subtype is not valid.
         """
-
-        if check_consecutive_duplicates(points):
-            msg = "Consecutive duplicate points found."
-            warnings.warn(msg, UserWarning)
 
         self.__dict__["style"] = ShapeStyle()
         self.__dict__["_style_map"] = shape_style_map
@@ -406,6 +403,46 @@ class Shape(Base, StyleMixin):
             bool: True if the shape has points, False otherwise.
         """
         return len(self.primary_points) > 0
+
+
+    def is_clockwise(self) -> bool:
+        """Check if the shape is oriented clockwise.
+
+        Returns:
+            bool: True if the shape is oriented clockwise, False otherwise.
+        """
+        if not self.closed:
+            raise ValueError("Shape must be closed to check orientation")
+        vertices = self.vertices
+        area = polygon_area(vertices)
+        return area < 0
+
+    def reordered(self, index) -> Self:
+        """Return a copy of the shape starting from a point
+        at the given index.
+
+        Args:
+            point (Point): The point to start from.
+
+        Returns:
+            Shape: The shape with the starting point set.
+        """
+        if not isinstance(index, int):
+            raise TypeError("Index must be an integer")
+        if not self.closed:
+            raise ValueError("Shape must be closed to start from a point")
+
+        if index == 0:
+            res = self.copy()
+        else:
+            shape = self.copy()
+            vertices = shape.vertices
+            shape[:] = vertices[index:] + vertices[:index]
+            res = shape
+
+        return res
+
+
 
     def topology(self) -> Topology:
         """Return info about the topology of the shape.
@@ -752,7 +789,7 @@ class Shape(Base, StyleMixin):
             points = []
         shape = Shape(
             points,
-            xform_matrix=self.xform_matrix,
+            xform_matrix=self.xform_matrix.copy(),
             closed=self.closed,
             marker_type=self.marker_type,
         )
@@ -805,6 +842,65 @@ class Shape(Base, StyleMixin):
         self.primary_points.reverse()
 
         return self
+
+    def reorder_vertices(self, value:Point, index:int=0, tol:float=None) -> Union['Shape', None]:
+        """If index is not given, the vertex with the given value will be
+        the first index.
+        If index is given, the vertex with the given value will be
+        at the given index.
+        The rest of the indices will be shifted accordingly.
+
+        Shape must be closed.
+
+        Args:
+            index (int): The target index.
+            value (Point): The vertex to relocate at the given index.
+
+        Returns:
+            Shape: A new shape with the adjusted vertices.
+        """
+        if not isinstance(index, int):
+            raise TypeError("Index must be an integer")
+
+        if not isinstance(value, Sequence) or len(value) < 2:
+            raise TypeError("Value must be a [x, y] sequence")
+
+        if self.closed:
+            vertices = list(self.vertices)
+            if value in vertices:
+                cur_index = vertices.index(value)
+            else:
+                if tol is None:
+                    tol = defaults["dist_tol"]
+                dist, ind = min([(distance(value, v), i) for i, v in enumerate(vertices)],
+                                key=lambda x: x[0])
+                if dist < tol:
+                    cur_index = ind
+                else:
+                    return None
+
+            shift = index - cur_index
+            if shift == 0:
+                return None
+
+            if value in vertices:
+                new_vertices = vertices[cur_index:] + vertices[:cur_index]
+            else:
+                if tol is None:
+                    tol = defaults["dist_tol"]
+                if distance(value, vertices[cur_index]) < tol:
+                    new_vertices = vertices[cur_index:] + vertices[:cur_index]
+                else:
+                    new_vertices = None
+            if new_vertices is not None:
+                res = self.copy()
+                res[:] = new_vertices
+            else:
+                res = None
+        else:
+            res = None
+
+        return res
 
 
 def custom_attributes(item: Shape) -> List[str]:

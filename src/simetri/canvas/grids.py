@@ -52,9 +52,11 @@ class Grid(Batch):
         self.n_circles = n_circles
         pairs = list(product(points, repeat=2))
 
-        self.points = points if points else []
+        self._points = Shape(points)
+        self.append(self._points)
+
         for i, point in enumerate(self.points):
-                next_point = self.points[(i + 1) % len(self.points)]
+                next_point = self._points[(i + 1) % len(self._points)]
                 self.append(Shape([point, next_point]))
 
         if grid_type == GridType.SQUARE:
@@ -75,6 +77,16 @@ class Grid(Batch):
                 if point1 != point2:
                     self.append(Shape([point1, point2], line_color=gray))
 
+    @property
+    def points(self):
+        """
+        Returns the points of the grid.
+
+        Returns:
+            list: The points of the grid.
+        """
+        return self._points.vertices
+
     def intersect(self, line1: Sequence[int], line2: Sequence[int]):
         """
         Returns the intersection of the lines connecting the given indices.
@@ -88,9 +100,9 @@ class Grid(Batch):
         """
         ind1, ind2 = line1
         ind3, ind4 = line2
-
-        line1 = (self.points[ind1], self.points[ind2])
-        line2 = (self.points[ind3], self.points[ind4])
+        points = self.points
+        line1 = (points[ind1], points[ind2])
+        line2 = (points[ind3], points[ind4])
 
         return intersect(line1, line2)
 
@@ -143,6 +155,7 @@ class Grid(Batch):
             raise ValueError("ind1 and ind2 must be different.")
 
         return lerp_point(self.points[ind1], self.points[ind2], t)
+
 
 
 class CircularGrid(Grid):

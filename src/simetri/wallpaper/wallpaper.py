@@ -7,7 +7,7 @@ from math import sqrt, pi, cos
 
 from typing import Union
 
-from ..geometry.geometry import mid_point, line_through_point_and_angle
+from ..geometry.geometry import midpoint, line_through_point_and_angle
 from ..graphics.common import VecType, Point, Line
 from ..helpers.illustration import Tag
 from ..graphics.batch import Batch
@@ -245,7 +245,7 @@ def wallpaper_p2(
     Returns:
         Batch: The resulting wallpaper pattern as a Batch object.
     """
-    rotocenter = mid_point(vector1, vector2)
+    rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
     dx1, dy1 = vector1
     wallpaper.translate(dx1, dy1, reps=reps1)
@@ -290,7 +290,7 @@ def wallpaper_p2_rect_lattice(
 
     # """
 
-    rotocenter = mid_point(vector1, vector2)
+    rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
     dx1, dy1 = vector1
     wallpaper.translate(dx1, dy1, reps=reps1)
@@ -579,10 +579,10 @@ def wallpaper_pmg(
     """
     x, y = center_point[:2]
     if horizontal:
-        rotocenter = mid_point((x, y), (x, (y + dy) / 2))
+        rotocenter = midpoint((x, y), (x, (y + dy) / 2))
         mirror_line = ((x, y), (x + 1, y))
     else:
-        rotocenter = mid_point((x, y), (-(x + dx) / 2, y))
+        rotocenter = midpoint((x, y), (-(x + dx) / 2, y))
         mirror_line = ((x, y), (x, y + 1))
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
     wallpaper.mirror(mirror_line, reps=1)

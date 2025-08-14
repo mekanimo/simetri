@@ -8,7 +8,7 @@ from .common import Point, common_properties, defaults
 from .all_enums import Side, Types, Anchor
 from ..geometry.geometry import (
     distance,
-    mid_point,
+    midpoint,
     offset_line,
     line_angle,
     intersect,
@@ -260,7 +260,7 @@ class BoundingBox:
         Returns:
             tuple: The left edge midpoint.
         """
-        return mid_point(*self.left)
+        return midpoint(*self.left)
 
     @property
     def south(self):
@@ -270,7 +270,7 @@ class BoundingBox:
         Returns:
             tuple: The bottom edge midpoint.
         """
-        return mid_point(*self.bottom)
+        return midpoint(*self.bottom)
 
     @property
     def east(self):
@@ -280,7 +280,7 @@ class BoundingBox:
         Returns:
             tuple: The right edge midpoint.
         """
-        return mid_point(*self.right)
+        return midpoint(*self.right)
 
     @property
     def north(self):
@@ -290,7 +290,7 @@ class BoundingBox:
         Returns:
             tuple: The top edge midpoint.
         """
-        return mid_point(*self.top)
+        return midpoint(*self.top)
 
     @property
     def northwest(self):
@@ -461,7 +461,7 @@ class BoundingBox:
             Point: The item.midpoint of the reference item's bounding-box.
         """
 
-        x, y = item.midpoint
+        x, y = item.midpoint[:2]
         x += dx
         y += dy
         return x, y
@@ -478,7 +478,7 @@ class BoundingBox:
         Returns:
             Point: The item.west of the reference item's bounding-box.
         """
-        x, y = item.west
+        x, y = item.west[:2]
         w2 = self.width / 2
         x += (dx - w2)
         y += dy
@@ -496,7 +496,7 @@ class BoundingBox:
         Returns:
             Point: The item.east of the reference item's bounding-box.
         """
-        x, y = item.east
+        x, y = item.east[:2]
         w2 = self.width / 2
         x += (dx + w2)
         y += dy
@@ -514,7 +514,7 @@ class BoundingBox:
         Returns:
             Point: The item.north of the reference item's bounding-box.
         """
-        x, y = item.north
+        x, y = item.north[:2]
         h2 = self.height / 2
         x += dx
         y += (dy + h2)
@@ -532,7 +532,7 @@ class BoundingBox:
         Returns:
             Point: The item.south of the reference item's bounding-box.
         """
-        x, y = item.south
+        x, y = item.south[:2]
         h2 = self.height / 2
         x += dx
         y += (dy - h2)
@@ -550,7 +550,7 @@ class BoundingBox:
         Returns:
             Point: The item.northwest of the reference item's bounding-box.
         """
-        x, y = item.northwest
+        x, y = item.northwest[:]
         w2 = self.width / 2
         h2 = self.height / 2
         x += (dx - w2)
@@ -571,7 +571,7 @@ class BoundingBox:
         Returns:
             Point: The item.northeast of the reference item's bounding-box.
         """
-        x, y = item.northeast
+        x, y = item.northeast[:2]
         w2 = self.width / 2
         h2 = self.height / 2
         x += (dx + w2)
@@ -592,7 +592,7 @@ class BoundingBox:
         Returns:
             Point: The item.southwest of the reference item's bounding-box.
         """
-        x, y = item.southwest
+        x, y = item.southwest[:2]
         w2 = self.width / 2
         h2 = self.height / 2
         x += (dx - w2)
@@ -613,7 +613,7 @@ class BoundingBox:
         Returns:
             Point: The item.southeast of the reference item's bounding-box.
         """
-        x, y = item.southeast
+        x, y = item.southeast[:2]
         w2 = self.width / 2
         h2 = self.height / 2
         x += (dx + w2)
@@ -635,7 +635,7 @@ class BoundingBox:
             Point: The polar position of the reference item.
         """
 
-        x, y = item.midpoint
+        x, y = item.midpoint[:2]
 
         x1, y1 = polar_to_cartesian(radius, angle)
         x += x1

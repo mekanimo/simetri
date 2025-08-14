@@ -11,7 +11,8 @@ from ..geometry.geometry import (
     fix_degen_points,
     inclination_angle,
     round_segment,
-    round_point
+    round_point,
+    pi
 )
 from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges2nodes
 from ..settings.settings import defaults
@@ -51,6 +52,7 @@ def _merge_shapes(
             vertices = [d_node_coord[node] for node in nodes]
             if not right_handed(vertices):
                 vertices.reverse()
+            vertices =  [self.d_rounded_coord[vert] for vert in vertices]
             shape = Shape(vertices, closed=True)
             new_shapes.append(shape)
     islands = list(nx.connected_components(nx_graph))
@@ -69,6 +71,7 @@ def _merge_shapes(
                 vertices = [d_node_coord[node] for node in nodes]
                 if not right_handed(vertices):
                     vertices.reverse()
+                vertices =  [self.d_rounded_coord[vert] for vert in vertices]
                 shape = Shape(vertices)
                 new_shapes.append(shape)
 
@@ -156,6 +159,8 @@ def _merge_collinears(
         p1 = d_node_coord[edge[0]]
         p2 = d_node_coord[edge[1]]
         angle = inclination_angle(p1, p2)
+        if abs(angle - pi) < angle_bin_size:
+            angle = 0
         angles_edges.append((angle, edge))
 
     # group angles into bins
@@ -164,8 +169,13 @@ def _merge_collinears(
     bins = []
     bin_ = [angles_edges[0]]
     for angle, edge in angles_edges[1:]:
+        if abs(angle - pi) < angle_bin_size:
+            angle = 0
         angle1 = bin_[0][i_angle]
-        if abs(angle - angle1) <= angle_bin_size:
+        if abs(angle1 - pi) < angle_bin_size:
+            angle1 = 0
+        diff = abs(angle - angle1)
+        if diff <= angle_bin_size:
             bin_.append((angle, edge))
         else:
             bins.append(bin_)

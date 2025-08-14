@@ -89,7 +89,6 @@ class EllipseSketch:
         self.center = center
         self.closed = True
 
-
 @dataclass
 class LineSketch:
     """LineSketch is a dataclass for creating a line sketch object.
@@ -362,7 +361,8 @@ class FrameSketch:
         back_color (Color, optional): The background color. Defaults to colors.white.
         fill (bool, optional): Whether to fill the frame. Defaults to False.
         stroke (bool, optional): Whether to stroke the frame. Defaults to True.
-        double (bool, optional): Whether to draw a double line. Defaults to False.
+        draw_double (bool, optional): Whether to draw a double line. Defaults to False.
+        double (Color, optional): Color of the double lines.
         double_distance (float, optional): The distance between double lines. Defaults to 2.
         inner_sep (float, optional): The inner separation. Defaults to 10.
         outer_sep (float, optional): The outer separation. Defaults to 10.
@@ -388,7 +388,8 @@ class FrameSketch:
     back_color: Color = colors.white
     fill: bool = False
     stroke: bool = True
-    double: bool = False
+    draw_double: bool = False
+    double_color: Color = None
     double_distance: float = 2
     inner_sep: float = 10
     outer_sep: float = 10
@@ -445,6 +446,30 @@ class TagSketch:
             pos = (pos @ self.xform_matrix).tolist()[0][:2]
         self.pos = pos
 
+
+@dataclass
+class PDFSketch:
+    """PDFSketch is a dataclass for creating a PDF sketch object.
+
+    Attributes:
+        pdf_path (str): The path to the PDF file.
+        pos (Point, optional): The position of the PDF. Defaults to None.
+        scale (float, optional): The scale of the PDF. Defaults to 1.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
+
+    file_path: str
+    pos: Point = None
+    scale: float = 1
+    angle: float = 0
+    size: tuple = None
+    anchor: Anchor = Anchor.CENTER
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        """Initialize the PDFSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.PDF_SKETCH
 
 @dataclass
 class RectSketch:
