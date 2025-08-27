@@ -54,7 +54,6 @@ from simetri.notebook import display
 from simetri.image.image import Image, create_image_from_data
 
 
-
 class Canvas:
     """Canvas class for drawing shapes and text on a page. All drawing
     operations are handled by the Canvas class. Canvas class can draw all
@@ -64,7 +63,7 @@ class Canvas:
 
     def __init__(
         self,
-        back_color: Optional['Color'] = None,
+        back_color: Optional["Color"] = None,
         border: Optional[float] = None,
         size: Optional[Vec2] = None,
         **kwargs,
@@ -137,7 +136,7 @@ class Canvas:
             self._limits = [x, y, x + self.size[0], y + self.size[1]]
         else:
             self._limits = None
-        self.overlay = False # used for inserting pdf pictures
+        self.overlay = False  # used for inserting pdf pictures
 
     def __setattr__(self, name, value):
         if hasattr(self, "active_page") and name in ["back_color", "border"]:
@@ -276,9 +275,6 @@ class Canvas:
         shutil.rmtree(tmpdirname, ignore_errors=True)
         return temp_img
 
-
-
-
     def insert_code(self, code, loc: TexLoc = TexLoc.PICTURE) -> Self:
         """
         Insert code into the canvas.
@@ -346,7 +342,7 @@ class Canvas:
         draw.bezier(self, control_points, **kwargs)
         return self
 
-    def circle(self, radius: float, center: Point=(0, 0), **kwargs) -> Self:
+    def circle(self, radius: float, center: Point = (0, 0), **kwargs) -> Self:
         """
         Draw a circle with the given center and radius.
 
@@ -626,12 +622,15 @@ class Canvas:
         draw.draw_dimension(self, dim, **kwargs)
         return self
 
-    def begin_clip(self, item: Union[Shape, Batch] = None,
-                   corners: Sequence[Point] = None,
-                   margins: Sequence[float] = None,
-                   fade: Anchor = None,
-                   fade_margins: Sequence[float] = None,
-                   fillet_radius: float = None) -> Self:
+    def begin_clip(
+        self,
+        item: Union[Shape, Batch] = None,
+        corners: Sequence[Point] = None,
+        margins: Sequence[float] = None,
+        fade: Anchor = None,
+        fade_margins: Sequence[float] = None,
+        fillet_radius: float = None,
+    ) -> Self:
         """Insert a TeX code into the canvas.
 
         Args:
@@ -644,14 +643,16 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        d_directions = {Anchor.NORTH: "north",
-                        Anchor.SOUTH: "south",
-                        Anchor.EAST: "east",
-                        Anchor.WEST: "west",
-                        Anchor.SOUTHWEST: "south west",
-                        Anchor.SOUTHEAST: "south east",
-                        Anchor.NORTHEAST: "north east",
-                        Anchor.NORTHWEST: "north west"}
+        d_directions = {
+            Anchor.NORTH: "north",
+            Anchor.SOUTH: "south",
+            Anchor.EAST: "east",
+            Anchor.WEST: "west",
+            Anchor.SOUTHWEST: "south west",
+            Anchor.SOUTHEAST: "south east",
+            Anchor.NORTHEAST: "north east",
+            Anchor.NORTHWEST: "north west",
+        }
 
         active_sketches = self.active_page.sketches
         if item is not None:
@@ -687,21 +688,19 @@ class Canvas:
         active_sketches.append(sketch)
         return self
 
-    def begin_style(self, style:str):
+    def begin_style(self, style: str):
         # code = rf'\begin{{scope}}[every path/.append style={{dashed, draw=green}}]'
-        code = rf'\begin{{scope}}[every path/.append style={{ {style} }}]'
-        code += '\n'
+        code = rf"\begin{{scope}}[every path/.append style={{ {style} }}]"
+        code += "\n"
         sketch = TexSketch(code)
         self.active_page.sketches.append(sketch)
 
         return self
 
     def end_clip(self):
-
         return self._end_scope()
 
     def end_style(self):
-
         return self._end_scope()
 
     def _end_scope(self):
@@ -712,36 +711,42 @@ class Canvas:
 
     def draw(
         self,
-        item_s: Union[Shape, Batch, list, tuple],
+        item_s: Union[Shape, Batch, Sequence],
         pos: Point = None,
         angle: float = 0,
         rotocenter: Point = (0, 0),
         scale=(1, 1),
         about=(0, 0),
-        display: bool = False,
+        show: bool = False,
         **kwargs,
     ) -> Self:
         """
         Draw the item_s. item_s can be a single item or a list of items.
 
         Args:
-            item_s (Union[Drawable, list, tuple]): The item(s) to draw.
+            item_s (Union[Batch, Shape, Sequence]): The item(s) to draw.
             pos (Point, optional): The position to draw the item(s), defaults to None.
             angle (float, optional): The angle to rotate the item(s), defaults to 0.
             rotocenter (Point, optional): The point about which to rotate, defaults to (0, 0).
             scale (tuple, optional): The scale factors for the x and y axes, defaults to (1, 1).
             about (tuple, optional): The point about which to scale, defaults to (0, 0).
-            display (bool, optional): If True, draws the canvas in a Jupyter cell.
+            show (bool, optional): If True, draws the canvas in a Jupyter cell.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
-        if display:
-            self.display()
-            return Self
-
         sketch_xform = self._sketch_xform_matrix
+
+        swatch = kwargs.get("swatch", None)
+        if swatch:
+            n_swatch = len(swatch)
+
+        color = kwargs.get("color", None)
+        if color:
+            kwargs["line_color"] = color
+            kwargs["fill_color"] = color
+
         if pos is not None:
             sketch_xform = translation_matrix(*pos[:2]) @ sketch_xform
         if scale[0] != 1 or scale[1] != 1:
@@ -753,14 +758,18 @@ class Canvas:
         self._sketch_xform_matrix = sketch_xform @ self._xform_matrix
 
         if isinstance(item_s, (list, tuple)):
-            for item in item_s:
+            for i, item in enumerate(item_s):
+                if swatch:
+                    kwargs["fill_color"] = Color(*swatch[i % n_swatch])
                 draw.draw(self, item, **kwargs)
         else:
             draw.draw(self, item_s, **kwargs)
 
         self._sketch_xform_matrix = identity_matrix()
-
-        return self
+        if show:
+            self.display()
+        else:
+            return self
 
     def draw_CS(self, size: float = None, **kwargs) -> Self:
         """
@@ -776,8 +785,9 @@ class Canvas:
         draw.draw_CS(self, size, **kwargs)
         return self
 
-    def draw_pdf(self, pdf, pos: Point, size=None, scale=None, angle=0,
-                 **kwargs) -> Self:
+    def draw_pdf(
+        self, pdf, pos: Point, size=None, scale=None, angle=0, **kwargs
+    ) -> Self:
         """
         Draw a PDF on the canvas.
 
@@ -791,7 +801,7 @@ class Canvas:
         draw.draw_pdf(self, pdf, pos, size, scale, angle, **kwargs)
         return self
 
-    def draw_image(self, image:Image, pos:Point) -> Self:
+    def draw_image(self, image: Image, pos: Point) -> Self:
         """
         Draw an image on the canvas.
 
@@ -943,8 +953,8 @@ class Canvas:
         if scale_y is None:
             scale_y = scale_x
 
-        self._xform_matrix = (
-            self._xform_matrix @ scale_in_place_matrix(scale_x, scale_y, about=about)
+        self._xform_matrix = self._xform_matrix @ scale_in_place_matrix(
+            scale_x, scale_y, about=about
         )
 
     @property
@@ -1158,6 +1168,22 @@ class Canvas:
                 value = None
         return value
 
+    def draw_split_segments(self, item: Union[Shape, Batch], **kwargs) -> Self:
+        '''
+        Using intersections, splits edges of the item into separate segments and
+        draws them with their indices. This is usually used for the "get_loop"
+        function.
+
+        Args:
+            item: A shape or a batch.
+
+        Returns:
+            The canvas object.
+        '''
+
+        return draw.draw_split_segments(self, item, **kwargs)
+
+
     def get_fonts_list(self) -> list[str]:
         """
         Get the list of fonts used in the canvas.
@@ -1184,8 +1210,13 @@ class Canvas:
                     user_fonts.add(name)
         return list(user_fonts.difference(latex_fonts))
 
-    def clip(self, x_min: float=None, x_max: float=None,
-                        y_min: float=None, y_max: float=None) -> Self:
+    def clip(
+        self,
+        x_min: float = None,
+        x_max: float = None,
+        y_min: float = None,
+        y_max: float = None,
+    ) -> Self:
         """
         Clip the canvas to the specified bounding box.
 
@@ -1274,6 +1305,7 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
+
         def validate_file_path(file_path: Path, overwrite: bool) -> Result:
             """
             Validate the file path.
@@ -1426,6 +1458,7 @@ class Canvas:
                 pix = page.get_pixmap()
                 pix.save(output_path)
                 pdf_file.close()
+
         if inset is not None:
             self.inset = inset
         parent_dir, file_name, extension = validate_file_path(file_path, overwrite)
@@ -1478,8 +1511,8 @@ class PageGrid:
     """
 
     spacing: float = None
-    back_color: 'Color' = None
-    line_color: 'Color' = None
+    back_color: "Color" = None
+    line_color: "Color" = None
     line_width: float = None
     line_dash_array: Sequence[float] = None
     x_shift: float = None
@@ -1515,7 +1548,7 @@ class Page:
     """
 
     size: Vec2 = None
-    back_color: 'Color' = None
+    back_color: "Color" = None
     mask = None
     margins = None  # left, bottom, right, top
     recto: bool = True  # True if page is recto, False if verso

@@ -43,7 +43,6 @@ class CircleSketch:
     radius: float
     xform_matrix: ndarray = None
 
-
     def __post_init__(self):
         """Initialize the CircleSketch object."""
         self.type = Types.SKETCH
@@ -88,6 +87,7 @@ class EllipseSketch:
             center = (center @ self.xform_matrix).tolist()[0][:2]
         self.center = center
         self.closed = True
+
 
 @dataclass
 class LineSketch:
@@ -138,6 +138,7 @@ class PatternSketch:
         self.count = self.pattern.count
         self.closed = self.pattern.closed
 
+
 @dataclass
 class ImageSketch:
     """ImageSketch is a dataclass for creating an image sketch object.
@@ -173,6 +174,7 @@ class ImageSketch:
             w, h = self.image.size
             self.size = scale[0] * w, scale[1] * h
         self.image = self.image.copy()
+
 
 @dataclass
 class TexSketch:
@@ -284,8 +286,6 @@ class ArcSketch:
         self.type = Types.SKETCH
         self.subtype = Types.ARC_SKETCH
         self.closed = self.mode != CurveMode.OPEN
-
-
 
 
 @dataclass
@@ -470,6 +470,7 @@ class PDFSketch:
         """Initialize the PDFSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PDF_SKETCH
+
 
 @dataclass
 class RectSketch:

@@ -9,7 +9,8 @@ import numpy as np
 
 from ..graphics.batch import Batch
 from ..graphics.bbox import BoundingBox
-from ..graphics.shape import Shape, custom_attributes
+from ..graphics.shape import (Shape, custom_attributes, clip_shape, clip_batch,
+                              all_segments, get_loop, get_partition)
 from ..graphics.common import axis_x, get_defaults, Sequence, Point
 from ..graphics.all_enums import Types
 from ..helpers.utilities import decompose_transformations
@@ -30,7 +31,7 @@ Color = colors.Color
 
 
 def square(
-    center: Point = (0, 0), size: float = 100,  angle: float=0, **kwargs
+    center: Point = (0, 0), size: float = 100, angle: float = 0, **kwargs
 ) -> Shape:
     """Return a square shape.
 
@@ -45,7 +46,7 @@ def square(
     """
     points = rectangle_points(center, size, size, angle)
 
-    return Shape(points, closed=True,  **kwargs)
+    return Shape(points, closed=True, **kwargs)
 
 
 class Rectangle(Shape):
@@ -512,7 +513,7 @@ def hex_points(side_length: float) -> List[List[float]]:
 
 
 def rectangle_points(
-    pos: Point=(0, 0), width: float=100, height: float=100, angle: float = 0
+    pos: Point = (0, 0), width: float = 100, height: float = 100, angle: float = 0
 ) -> Sequence[Point]:
     """Return a list of points that form a rectangle with the given parameters.
 
@@ -526,6 +527,7 @@ def rectangle_points(
         Sequence[Point]: A list of points that form the rectangle.
     """
     from ..graphics.affine import rotate
+
     x, y = pos[:2]
     points = []
     points.append([x - width / 2, y - height / 2])
@@ -701,7 +703,7 @@ def star_shape(points, reps=5, scale=1):
 
 def dot_shape(
     radius=1,
-    pos = (0, 0),
+    pos=(0, 0),
     fill_color=None,
     line_color=None,
     line_width=None,
@@ -795,7 +797,7 @@ def arc_shape(x, y, radius, start_angle, end_angle, clockwise=False, n=20):
     return Shape(points, closed=False, subtype=Types.ARC)
 
 
-def circle_shape(radius, pos=(0, 0),n=30):
+def circle_shape(radius, pos=(0, 0), n=30):
     """Return a Shape object with points that form a circle with the given parameters.
 
     Args:

@@ -1,5 +1,8 @@
 from enum import Enum
+from datetime import datetime
+from random import randint
 
+from simetri.colors.colors import Color
 
 # __all__ = ['dictPaletteType', 'dictPaletteLength', 'dictPalette']
 
@@ -17858,3 +17861,26 @@ dictPaletteType[PaletteType.SEQUENTIAL] = [
 #     print(len(names))
 #     print(len(allNames))
 # getNames()
+
+
+def random_palette():
+    """Return a random swatch."""
+
+    i = randint(0, len(dictPaletteLength[256]) - 1)
+    try:
+        current_datetime = datetime.now()
+        formatted = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        with open(r"C:\tmp\rand_swatch_indices\swatches.txt", "a") as file:
+            file.write(f"{formatted}, palette index: {i}\n")
+    except FileNotFoundError:
+        pass
+
+    return list(dictPaletteLength[256].values())[i]
+
+
+def get_palette(n_colors, ind):
+    palettes = dictPaletteLength[n_colors]
+    palette = dictPalette[palettes[ind]]
+    palette = [Color(*c) for c in palette]
+
+    return palette

@@ -2,6 +2,9 @@
 
 from random import randint
 from itertools import cycle
+from datetime import datetime
+
+from simetri.colors.colors import Color
 
 swatches_255 = [
     [
@@ -938,11 +941,30 @@ for swatch_255 in swatches_255:
         swatch.append([color[0] / 255, color[1] / 255, color[2] / 255])
     swatches.append(swatch)
 
+
 def swatch_cyc():
     """Return a swatch cycling through the swatches."""
 
     return cycle(swatches)
 
+
 def random_swatch():
     """Return a random swatch."""
-    return swatches[randint(0, 83)]
+
+    i = randint(0, 83)
+    try:
+        current_datetime = datetime.now()
+        formatted = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        with open(r"C:\tmp\rand_swatch_indices\swatches.txt", "a") as file:
+            file.write(f"{formatted}, swatch index: {i}\n")
+    except FileNotFoundError:
+        pass
+
+    return swatches[i]
+
+
+def get_swatch(ind):
+    """Returns a nine color swatch."""
+    swatch_ = [Color(*c) for c in swatches_255[ind]]
+
+    return swatch_

@@ -30,6 +30,7 @@ def check_version(required_version: str) -> bool:
     Returns:
         bool: True if the current version is compatible.
     """
+
     def version_value(str_version: str) -> int:
         digits = str_version.split(".")
         return int(digits[0]) * 100 + int(digits[1]) * 10 + int(digits[2])
@@ -108,12 +109,11 @@ def check_dash_array(dash_array: Any) -> bool:
         bool: True if the dash array is valid, False otherwise.
     """
     if isinstance(dash_array, (list, tuple, ndarray)):
-            res = all([isinstance(x, (int, float)) for x in dash_array])
+        res = all([isinstance(x, (int, float)) for x in dash_array])
     elif dash_array in LineDashArray:
         res = True
     elif dash_array is None:
         res = True
-
 
     return res
 
@@ -287,17 +287,22 @@ for item in items:
         key_ = pattern.sub("_", name).lower()
         enum_map[key_] = item[1]
 
+
 def is_positive_integer(value):
     return isinstance(value, int) and value > 0
+
 
 def is_float(value):
     return isinstance(value, float)
 
+
 def is_greater_than_zero(value):
-    return (isinstance(value, (int, float)) and value > 0)
+    return isinstance(value, (int, float)) and value > 0
+
 
 def is_positive(value):
-    return (isinstance(value, (int, float)) and value >= 0)
+    return isinstance(value, (int, float)) and value >= 0
+
 
 def is_numeric(value):
     return isinstance(value, numbers.Number)

@@ -11,8 +11,27 @@ from typing_extensions import Self
 
 from ..geometry.geometry import homogenize
 from .common import Point, common_properties
-from .all_enums import *
+from .all_enums import Types
 from ..settings.settings import defaults
+
+
+class _BatchUpdateContext:
+    """Context manager for batch operations on Points to avoid redundant cache invalidations."""
+
+    def __init__(self, points_obj):
+        self.points_obj = points_obj
+        self.original_invalidate = None
+
+    def __enter__(self):
+        # Replace the invalidate method with a no-op during batch operations
+        self.original_invalidate = self.points_obj._invalidate_cache
+        self.points_obj._invalidate_cache = lambda: None
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Restore original method and invalidate cache once
+        self.points_obj._invalidate_cache = self.original_invalidate
+        self.points_obj._invalidate_cache()
 
 
 class Points:
@@ -32,13 +51,17 @@ class Points:
         else:
             coords = [tuple(x) for x in coords]
         self.coords = coords
-        if self.coords:
-            self.nd_array = homogenize(coords)  # homogeneous coordinates
+
+        # Initialize cache variables for lazy evaluation of homogeneous coordinates
+        self._nd_array_cache = None
+        self._coords_dirty = True
+
         self.type = Types.POINTS
         self.subtype = Types.POINTS
         self.dist_tol = defaults["dist_tol"]
         self.dist_tol2 = self.dist_tol**2
         common_properties(self, False)
+        self.nd_array_changed = False
 
     def __str__(self):
         """Return a string representation of the points.
@@ -47,6 +70,47 @@ class Points:
             str: The string representation of the points.
         """
         return f"Points({self.coords})"
+
+    @property
+    def nd_array(self):
+        """Get the homogeneous coordinates of the points (computed lazily).
+
+        Returns:
+            ndarray: The homogeneous coordinates.
+        """
+        if self._coords_dirty or self._nd_array_cache is None:
+            if self.coords:
+                self._nd_array_cache = homogenize(self.coords)
+            else:
+                self._nd_array_cache = ndarray((0, 3))
+            self._coords_dirty = False
+        return self._nd_array_cache
+
+    @nd_array.setter
+    def nd_array(self, value):
+        """Set the homogeneous coordinates directly and mark as clean.
+
+        Args:
+            value: The homogeneous coordinate array to set.
+        """
+        self._nd_array_cache = value
+        self._coords_dirty = False
+
+    def _invalidate_cache(self):
+        """Mark the homogeneous coordinates cache as dirty and notify shape if needed."""
+        self._coords_dirty = True
+        self.nd_array_changed = True
+
+    def batch_update(self):
+        """Context manager for batch operations to avoid redundant cache invalidations.
+
+        Usage:
+            with points.batch_update():
+                points.append(point1)
+                points.append(point2)
+                # Cache invalidation happens only once when exiting the context
+        """
+        return _BatchUpdateContext(self)
 
     def __repr__(self):
         """Return a string representation of the points.
@@ -77,8 +141,8 @@ class Points:
         return res
 
     def _update_coords(self):
-        """Update the homogeneous coordinates of the points."""
-        self.nd_array = homogenize(self.coords)
+        """Mark homogeneous coordinates as needing update (replaced with lazy evaluation)."""
+        self._invalidate_cache()
 
     def __setitem__(self, subscript, value):
         """Set the point(s) at the given subscript.
@@ -114,8 +178,8 @@ class Points:
             and allclose(
                 self.nd_array,
                 other.nd_array,
-                rtol=defaults["rtol"],
-                atol=defaults["atol"],
+                rtol=defaults["rel_tol"],
+                atol=defaults["abs_tol"],
             )
         )
 
@@ -198,7 +262,7 @@ class Points:
     def clear(self):
         """Clear all points."""
         self.coords.clear()
-        self.nd_array = ndarray((0, 3))
+        self._invalidate_cache()
 
     def reverse(self):
         """Reverse the order of the points."""
@@ -245,7 +309,10 @@ class Points:
             Points: A copy of the Points object.
         """
         points = Points(copy.copy(self.coords))
-        points.nd_array = ndarray.copy(self.nd_array)
+        # Copy the cached homogeneous coordinates if they exist
+        if not self._coords_dirty and self._nd_array_cache is not None:
+            points._nd_array_cache = ndarray.copy(self._nd_array_cache)
+            points._coords_dirty = False
         return points
 
     @property

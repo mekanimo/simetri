@@ -7,7 +7,7 @@ import base64
 import cmath
 import inspect
 import ast
-from functools import wraps, reduce
+from functools import wraps, reduce, cmp_to_key
 from time import time, monotonic, perf_counter
 from math import factorial, cos, sin, pi, atan2, sqrt
 from pathlib import Path
@@ -447,6 +447,7 @@ def rel_polar(r: float, angle: float, center: Point) -> Point:
 rc = rel_coord  # alias for rel_coord
 rp = rel_polar  # alias for rel_polar
 
+
 def axis(angle: float, length: float = 10) -> Line:
     """Return a line [(x1, y1), (x2, y2)] with the given angle
     and length.
@@ -464,8 +465,6 @@ def axis(angle: float, length: float = 10) -> Line:
     y2 = -y1
 
     return (x1, y1), (x2, y2)
-
-
 
 
 def flatten(points):
@@ -804,48 +803,62 @@ def is_nested_sequence(value):
     return True  # All elements are sequences
 
 
-def group_into_bins(values, delta):
+def group_into_bins(values, delta, compare_function=None, with_objects=True):
     """Group values into bins.
 
     Args:
-        values: A list of numbers.
-        delta: The bin size.
+        values: A list of (value, obj) pairs, or just values.
+        delta: Bin size tolerance value.
+        with_objects: If True, values are (value, obj) pairs.
 
     Returns:
         A list of bins.
     """
-    values.sort()
+    if compare_function:
+        values = sorted(values, key=cmp_to_key(compare_function))
+    else:
+        values = sorted(values)
     bins = []
     bin_ = [values[0]]
-    for value in values[1:]:
-        if value[0] - bin_[0][0] <= delta:
-            bin_.append(value)
-        else:
-            bins.append(bin_)
-            bin_ = [value]
-    bins.append(bin_)
+    if with_objects:
+        for value in values[1:]:
+            if value[0] - bin_[0][0] <= delta:
+                bin_.append(value)
+            else:
+                bins.append(bin_)
+                bin_ = [value]
+        bins.append(bin_)
+    else:
+        for value in values[1:]:
+            if value - bin_[0] <= delta:
+                bin_.append(value)
+            else:
+                bins.append(bin_)
+                bin_ = [value]
+        bins.append(bin_)
+
     return bins
 
 
 def equal_cycles(
-    cycle1: list[float], cycle2: list[float], rtol=None, atol=None
+    cycle1: list[float], cycle2: list[float], rel_tol=None, abs_tol=None
 ) -> bool:
     """Check if two cycles are circularly equal.
 
     Args:
         cycle1: The first cycle.
         cycle2: The second cycle.
-        rtol: The relative tolerance.
-        atol: The absolute tolerance.
+        rel_tol: The relative tolerance.
+        abs_tol: The absolute tolerance.
 
     Returns:
         True if the cycles are circularly equal, False otherwise.
     """
-    rtol, atol = get_defaults(["rtol", "atol"], [rtol, atol])
+    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
 
-    def check_cycles(cyc1, cyc2, rtol=defaults["rtol"]):
+    def check_cycles(cyc1, cyc2, rel_tol=defaults["rel_tol"]):
         for i, val in enumerate(cyc1):
-            if not isclose(val, cyc2[i], rtol=rtol, atol=atol):
+            if not isclose(val, cyc2[i], rel_tol=rel_tol, abs_tol=abs_tol):
                 return False
         return True
 
@@ -856,7 +869,7 @@ def equal_cycles(
     cycle1 = cycle1[:]
     cycle1.extend(cycle1)
     for i in range(len_cycle1):
-        if check_cycles(cycle2, cycle1[i : i + len_cycle2], rtol):
+        if check_cycles(cycle2, cycle1[i : i + len_cycle2], rel_tol):
             return True
 
     return False
@@ -886,7 +899,7 @@ def map_ranges(
     return (value - range1_min) / delta1 * delta2 + range2_min
 
 
-def binomial(n, k):
+def binomial(n: int, k:int) -> int:
     """Calculate the binomial coefficient.
 
     Args:
@@ -900,8 +913,22 @@ def binomial(n, k):
         res = 1
     else:
         res = factorial(n) / (factorial(k) * factorial(n - k))
-    return res
 
+    return int(res)
+
+
+def n_permutations(n:int, k:int) -> int:
+    """Calculate the binomial coefficient.
+
+    Args:
+        n: The sequence length.
+        k: The number of distinct elements.
+
+    Returns:
+        The number of nPk permutations.
+    """
+
+    return int(factorial(n)/factorial(n-k))
 
 def catalan(n):
     """Calculate the nth Catalan number.
@@ -937,14 +964,14 @@ def reg_poly_points(pos: Point, n: int, r: float) -> Sequence[Point]:
     return points
 
 
-def solve_quadratic_eq(a, b, c, tolerance=1e-5):
+def solve_quadratic_eq(a, b, c, abs_tolerance=1e-5):
     """Solves a quadratic equation of the form ax^2 + bx + c = 0."""
 
     discr = b**2 - (4 * a * c)  # discriminant
 
     if discr < 0:
         res = []
-    elif isclose(discr, 0, rtol=0, atol=tolerance):
+    elif isclose(discr, 0, rel_tol=0, abs_tol=abs_tolerance):
         # one solution
         res = [(-b + discr) / (2 * a)]
     else:
@@ -989,7 +1016,7 @@ def solve_complex_quadratic_eq(
     """
     discr = (b**2) - 4 * (a * c)  # discriminant
     a2 = a * 2
-    if isclose(discr, 0, rtol=0, atol=tolerance):
+    if isclose(discr, 0, rel_tol=0, abs_tol=tolerance):
         x1 = -b / a2
         res = [x1]
     elif discr > 0:
@@ -1004,6 +1031,7 @@ def solve_complex_quadratic_eq(
         res = [x1, x2]
 
     return res
+
 
 def get_function_dependencies(func):
     """
@@ -1020,14 +1048,15 @@ def get_function_dependencies(func):
             for alias in node.names:
                 dependencies.add(("import", alias.name))
         elif isinstance(node, ast.ImportFrom):
-             dependencies.add(("module", node.module))
+            dependencies.add(("module", node.module))
 
     # Remove the function name itself from dependencies
     dependencies.discard(func.__name__)
     # Remove built-in names
-    dependencies.discard('print') # Add more built-in names if needed
+    dependencies.discard("print")  # Add more built-in names if needed
 
     return list(dependencies)
+
 
 def analyze_function_dependencies(func):
     """
@@ -1068,14 +1097,20 @@ def analyze_function_dependencies(func):
     #     # Ensure the frame is deleted to avoid resource leaks
     #     del frame
     code = func.__code__
-    local_vars = code.co_varnames[:code.co_argcount + code.co_nlocals]
+    local_vars = code.co_varnames[: code.co_argcount + code.co_nlocals]
     global_names = [name for name in func.__globals__ if name in code.co_names]
     # get the types of local_vars and make a dictionary d_local_vars = {name: type}
-    d_local_vars = {name: type(func.__code__.co_varnames) for name in local_vars if name in func.__code__.co_varnames}
+    d_local_vars = {
+        name: type(func.__code__.co_varnames)
+        for name in local_vars
+        if name in func.__code__.co_varnames
+    }
     # get the types of global_vars and make a dictionary d_global_vars = {name: type}
-    d_global_names = {name: type(func.__globals__[name]) for name in global_names if name in func.__globals__}
-
-
+    d_global_names = {
+        name: type(func.__globals__[name])
+        for name in global_names
+        if name in func.__globals__
+    }
 
     return {
         "local_vars": local_vars,
@@ -1084,8 +1119,11 @@ def analyze_function_dependencies(func):
         "d_global_vars": d_global_names,
         "arguments": arguments,
         "function_calls": function_calls,
-        "variables": list(set(variables) - set(function_calls)), # Remove function calls that are also variables
+        "variables": list(
+            set(variables) - set(function_calls)
+        ),  # Remove function calls that are also variables
     }
+
 
 def get_local_variables_info(func, *args, **kwargs):
     """
@@ -1100,11 +1138,12 @@ def get_local_variables_info(func, *args, **kwargs):
     Returns:
         A dictionary where keys are local variable names and values are their types.
     """
+
     def tracer(frame, event, arg):
-        if event == 'call':
+        if event == "call":
             frame.f_trace = None
             return tracer
-        elif event == 'return':
+        elif event == "return":
             local_vars = frame.f_locals
             return {name: type(value).__name__ for name, value in local_vars.items()}
         return None
@@ -1112,4 +1151,4 @@ def get_local_variables_info(func, *args, **kwargs):
     inspect.settrace(tracer)
     result = func(*args, **kwargs)
     inspect.settrace(None)
-    return tracer(inspect.currentframe(), 'return', result)
+    return tracer(inspect.currentframe(), "return", result)

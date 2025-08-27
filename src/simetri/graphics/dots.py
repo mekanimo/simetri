@@ -1,5 +1,4 @@
-"""Dot and Dots classes for creating dots.
-"""
+"""Dot and Dots classes for creating dots."""
 
 __all__ = ["Dot", "Dots"]
 

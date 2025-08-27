@@ -1,5 +1,4 @@
-"""Simetri graphics library's wallpaper patterns.
-"""
+"""Simetri graphics library's wallpaper patterns."""
 
 # Only six of the 17 wallpaper groups are tested yet.
 
@@ -42,7 +41,7 @@ def cover_hex(
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
-    if (flat):
+    if flat:
         w = 2 * size
         h = sqrt(3) * size
         dx = 3 * size + (gap_x * 2)

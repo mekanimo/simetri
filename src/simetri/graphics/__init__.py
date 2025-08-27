@@ -69,7 +69,7 @@ from ..tikz.tikz import *
 from ..helpers.validation import check_version
 from ..stars import stars
 from ..stars.stars import rosette, Star
-from  ..wallpaper import wallpaper as wallpapers
+from ..wallpaper import wallpaper as wallpapers
 from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system
@@ -78,9 +78,11 @@ from ..extensions.tree import make_tree, TreeNode
 from .path import LinPath
 from .pattern import *
 from ..image.image import Image, open_img
+
 set_tikz_defaults()
 
 import simetri.canvas.style_map as style_map
+
 
 def set_alias_maps():
     style_map._set_shape_style_alias_map()

@@ -100,7 +100,7 @@ class Bezier(Shape):
         Returns:
             Sequence[Point]: Control points of the Bezier curve.
         """
-        return self.__dict__['control_points']
+        return self.__dict__["control_points"]
 
     @control_points.setter
     def control_points(self, new_control_points: Sequence[Point]) -> None:
@@ -131,7 +131,11 @@ class Bezier(Shape):
             Shape: Copy of the Bezier curve.
         """
         # to do: copy style and other attributes
-        copy_ = Bezier(self.control_points, xform_matrix=self.xform_matrix, n_points=len(self.vertices))
+        copy_ = Bezier(
+            self.control_points,
+            xform_matrix=self.xform_matrix,
+            n_points=len(self.vertices),
+        )
 
         return copy_
 
@@ -341,7 +345,7 @@ class BezierPoints(Shape):
         self.normals = normals
         self.n_points = n_points
 
-    def offsets(self, offset: float, double: bool=False):
+    def offsets(self, offset: float, double: bool = False):
         """Return the points on the offset curve.
 
         Args:
@@ -434,7 +438,7 @@ def q_bezier_points(p0: Point, p1: Point, p2: Point, n_points: int):
     return TMQ @ P
 
 
-def split_bezier(p0: Point, p1: Point, p2: Point, p3: Point, z:float, n_points=10):
+def split_bezier(p0: Point, p1: Point, p2: Point, p3: Point, z: float, n_points=10):
     """Split a cubic Bezier curve at t=z.
 
     Args:
@@ -474,7 +478,7 @@ def split_bezier(p0: Point, p1: Point, p2: Point, p3: Point, z:float, n_points=1
     return Bezier(bezier1, n_points=n_points), Bezier(bezier2, n_points=n_points)
 
 
-def split_q_bezier(p0: Point, p1: Point, p2: Point, z:float, n_points=10):
+def split_q_bezier(p0: Point, p1: Point, p2: Point, z: float, n_points=10):
     """Split a quadratic Bezier curve at t=z.
 
     Args:

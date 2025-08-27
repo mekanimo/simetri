@@ -12,12 +12,14 @@ array = np.array
 dot = np.dot
 linalg = np.linalg
 
+
 @dataclass
 class Circle_:
     """A simple circle class."""
 
     center: tuple
     radius: float
+
 
 def circle_tangent_to_3_circles(c1, r1, c2, r2, c3, r3, s1=-1, s2=-1, s3=-1):
     """Given the centers and radii of 3 circles, return the center and radius
@@ -65,7 +67,7 @@ def circle_tangent_to_3_circles(c1, r1, c2, r2, c3, r3, s1=-1, s2=-1, s3=-1):
     M = -w12 * P - w13
     N = w14 - w12 * Q
 
-    a = N*N + Q*Q - 1
+    a = N * N + Q * Q - 1
     b = 2 * M * N - 2 * N * x1 + 2 * P * Q - 2 * Q * y1 + 2 * s1 * r1
     c = x1 * x1 + M * M - 2 * M * x1 + P * P + y1 * y1 - 2 * P * y1 - r1 * r1
 
@@ -78,6 +80,7 @@ def circle_tangent_to_3_circles(c1, r1, c2, r2, c3, r3, s1=-1, s2=-1, s3=-1):
     ys = P + Q * rs
 
     return (xs, ys, rs)
+
 
 def apollonius(r1, r2, r3, z1, z2, z3, plus_minus=1):
     """Solves the Problem of Apollonius using Descartes' Theorem.
@@ -94,21 +97,26 @@ def apollonius(r1, r2, r3, z1, z2, z3, plus_minus=1):
     Returns:
         tuple: Radius and center coordinates (x, y) of the tangent circle, or None if no solution is found.
     """
-    k1, k2, k3 = 1/r1, 1/r2, 1/r3
+    k1, k2, k3 = 1 / r1, 1 / r2, 1 / r3
 
     # Applying Descartes' Theorem
-    k4_values = (k1 + k2 + k3) + plus_minus * 2 * sqrt(k1*k2 + k2*k3 + k3*k1)
+    k4_values = (k1 + k2 + k3) + plus_minus * 2 * sqrt(k1 * k2 + k2 * k3 + k3 * k1)
 
     # Handle cases where no solution exists (e.g., division by zero)
     if k4_values == 0:
         return None
 
-    r4 = 1/k4_values
-    z4 = ((k1*z1 + k2*z2 + k3*z3 + plus_minus * 2 *
-           cmath.sqrt(k1*k2*z1*z2 + k2*k3*z2*z3 + k3*k1*z3*z1)) / k4_values)
+    r4 = 1 / k4_values
+    z4 = (
+        k1 * z1
+        + k2 * z2
+        + k3 * z3
+        + plus_minus
+        * 2
+        * cmath.sqrt(k1 * k2 * z1 * z2 + k2 * k3 * z2 * z3 + k3 * k1 * z3 * z1)
+    ) / k4_values
 
     return r4, z4
-
 
 
 def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
@@ -416,12 +424,24 @@ def flower_angle(r1, r2, r3):
     return angle
 
 
+ratios = {
+    8: 0.4974,
+    9: 0.5394,
+    10: 0.575,
+    11: 0.6056,
+    12: 0.6321,
+    13: 0.6553,
+    14: 0.6757,
+    15: 0.6939,
+    16: 0.7101,
+    17: 0.7248,
+    18: 0.738,
+    19: 0.75,
+    20: 0.7609,
+}
 
-ratios = {8: 0.4974, 9: 0.5394, 10: 0.575, 11: 0.6056,
-        12: 0.6321, 13: 0.6553, 14: 0.6757, 15: 0.6939, 16: 0.7101,
-        17: 0.7248, 18: 0.738, 19: 0.75, 20: 0.7609}
 
-def circle_flower(n, radius=25, layers=6, ratio = None):
+def circle_flower(n, radius=25, layers=6, ratio=None):
     """Steiner chain. Return a list of circles that form a flower-like pattern.
 
     Args:
@@ -436,17 +456,22 @@ def circle_flower(n, radius=25, layers=6, ratio = None):
     Raises:
         ValueError: If n is less than 8.
     """
-    if n<8:
-        raise ValueError('n must be greater than 7')
+    if n < 8:
+        raise ValueError("n must be greater than 7")
     if ratio is None:
-        if n<21:
+        if n < 21:
             ratio = ratios[n]
         else:
-            ratio = (-0.000000089767 * n**4 + 0.000015821834 * n**3 +
-                    -0.001100867708 * n **2+ 0.038096046379 * n + 0.327363569038)
+            ratio = (
+                -0.000000089767 * n**4
+                + 0.000015821834 * n**3
+                + -0.001100867708 * n**2
+                + 0.038096046379 * n
+                + 0.327363569038
+            )
 
-    r1 = side_len_to_radius(n, 2*radius)
-    circles = Circle((r1, 0), radius).rotate(pi/(n/2), (0, 0), reps=n-1)
-    xform = scale_matrix(ratio) @ rotation_matrix(pi/n)
+    r1 = side_len_to_radius(n, 2 * radius)
+    circles = Circle((r1, 0), radius).rotate(pi / (n / 2), (0, 0), reps=n - 1)
+    xform = scale_matrix(ratio) @ rotation_matrix(pi / n)
 
     return circles.transform(xform_matrix=xform, reps=layers)

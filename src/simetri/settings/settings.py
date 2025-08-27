@@ -14,12 +14,11 @@ from typing_extensions import Sequence, Union
 
 import numpy as np
 
-from ..graphics.all_enums import FontFamily
-
-VOID = 'VOID'
+VOID = "VOID"
 
 # This is the alpha testing stage for the Simetri library.
 # These default values may change in the future.
+
 
 @dataclass
 class Default:
@@ -33,6 +32,7 @@ class Default:
         user_value (any): The user-defined value for the default value.
 
     """
+
     name: str
     simetri_value: any
     type: type
@@ -41,9 +41,9 @@ class Default:
 
     @property
     def value(self):
-        '''
+        """
         Returns the simetri_value if user_value is not set.
-        '''
+        """
         res = self.simetri_value
         if self.user_value is not None:
             res = self.user_value
@@ -136,6 +136,7 @@ defaults = _Defaults()
 default_types = {}
 defaults_help = {}
 
+
 def set_defaults():
     """Sets the default values for the Simetri library."""
     from ..graphics.all_enums import (
@@ -144,6 +145,7 @@ def set_defaults():
         BlendMode,
         DocumentClass,
         FillMode,
+        FontFamily,
         FrameShape,
         LineCap,
         LineJoin,
@@ -174,17 +176,17 @@ def set_defaults():
     global default_types
     global defaults_help
 
-    # tol, rtol, and rtol are used for comparing floats
+    # tol, rel_tol, and rel_tol are used for comparing floats
     # These are used in numpy.isclose and numpy.allclose
     # If you are not careful you may get unexpected results
     # They do not mean that the difference in the compared numbers are within these values
-    # numpy isclose returns np.absolute(a - b) <= (atol + rtol * np.absolute(b))
-    # if you set atol=.1 and rtol=.1, it means that the difference between a and b
+    # isclose returns abs(a - b) <= (abs_tol + rel_tol * absolute(b))
+    # if you set abs_tol=.1 and rel_tol=.1, it means that the difference between a and b
     # is within .1 and .1 * b
-    # np.isclose(721, 800, rtol=.1) returns True
-    # np.isclose(800, 721, rtol=.1) returns False
-    # atol makes a bigger difference when comparing values close to zero
-    # if this surrprises you, please read the numpy documentation
+    # isclose(721, 800, rel_tol=.1) returns True
+    # isclose(800, 721, rel_tol=.1) returns False
+    # abs_tol makes a bigger difference when comparing values close to zero
+
     defaults["BB_EPSILON"] = 0.01
     default_types["BB_EPSILON"] = float
     defaults_help["BB_EPSILON"] = (
@@ -218,8 +220,7 @@ def set_defaults():
     defaults["all_caps"] = False  # use all caps for text
     default_types["all_caps"] = bool
     defaults_help["all_caps"] = (
-        "Boolean property for text objects. "
-        "If True, the text is displayed in all caps."
+        "Boolean property for text objects. If True, the text is displayed in all caps."
     )
 
     defaults["allow_consec_dup_points"] = False  # use all caps for text
@@ -269,42 +270,31 @@ def set_defaults():
     )
     default_types["angle_tol"] = float
     defaults_help["angle_tol"] = (
-        "Angle tolerance. "
-        "Positive float. Angle in radians. "
-        "Used for comparing angles."
+        "Angle tolerance. Positive float. Angle in radians. Used for comparing angles."
     )
 
     defaults["area_atol"] = 0.001  # used for comparing areas
     default_types["area_atol"] = float
     defaults_help["area_atol"] = (
-        "Area absolute tolerance. "
-        "Positive float."
-        "Used for comparing areas."
+        "Area absolute tolerance. Positive float.Used for comparing areas."
     )
 
     defaults["area_rtol"] = 0.001  # used for comparing areas
     default_types["area_rtol"] = float
     defaults_help["area_rtol"] = (
-        "Area relative tolerance. "
-        "Positive float."
-        "Used for comparing areas."
+        "Area relative tolerance. Positive float.Used for comparing areas."
     )
 
     defaults["area_threshold"] = 1  # used for grouping fragments in a lace object
     default_types["area_threshold"] = float
     defaults_help["area_threshold"] = (
-        "Area threshold. "
-        "Positive float. "
-        "Used for grouping fragments in a lace object."
+        "Area threshold. Positive float. Used for grouping fragments in a lace object."
     )
-
 
     defaults["area_tol"] = 0.1  # used for comparing areas
     default_types["area_tol"] = float
     defaults_help["area_tol"] = (
-        "Area tolerance. "
-        "Positive float."
-        "Used for comparing areas."
+        "Area tolerance. Positive float.Used for comparing areas."
     )
 
     defaults["arrow_head_length"] = 8
@@ -318,14 +308,12 @@ def set_defaults():
     defaults["arrow_head_width"] = 3
     default_types["arrow_head_width"] = float
     defaults_help["arrow_head_width"] = (
-        "Arrow head width. "
-        "Positive float. Length in <points>. "
-        "Width of the arrow head."
+        "Arrow head width. Positive float. Length in <points>. Width of the arrow head."
     )
 
-    defaults["atol"] = 0.05  # used for comparing floats
-    default_types["atol"] = float
-    defaults_help["atol"] = (
+    defaults["abs_tol"] = 0.05  # used for comparing floats
+    default_types["abs_tol"] = float
+    defaults_help["abs_tol"] = (
         "Absolute tolerance. "
         "Positive float. Length in <points>. "
         "1in = 72pt."
@@ -338,7 +326,9 @@ def set_defaults():
         "Background color. Color object. Background color for the canvas."
     )
 
-    defaults["back_style"] = BackStyle.COLOR  # EMPTY, COLOR, SHADING, PATTERN, GRIDLINES
+    defaults["back_style"] = (
+        BackStyle.COLOR
+    )  # EMPTY, COLOR, SHADING, PATTERN, GRIDLINES
     default_types["back_style"] = BackStyle
     defaults_help["back_style"] = (
         "Background style for the Canvas. "
@@ -404,23 +394,17 @@ def set_defaults():
         "BackStyle.PATTERN, BackStyle.GRIDLINES."
     )
 
-    defaults["canvas_frame_color"] = colors.black # frame color for the canvas
+    defaults["canvas_frame_color"] = colors.black  # frame color for the canvas
     default_types["canvas_frame_color"] = colors.Color
-    defaults_help["canvas_frame_color"] = (
-        "Frame color for the canvas. Color object."
-    )
+    defaults_help["canvas_frame_color"] = "Frame color for the canvas. Color object."
 
     defaults["canvas_frame_margin"] = 15  # margin around the canvas frame
     default_types["canvas_frame_margin"] = float
-    defaults_help["canvas_frame_margin"] = (
-        "Margin around the canvas frame. "
-    )
+    defaults_help["canvas_frame_margin"] = "Margin around the canvas frame. "
 
     defaults["canvas_frame_shadow_width"] = 5  # shadow width for the canvas frame
     default_types["canvas_frame_shadow_width"] = float
-    defaults_help["canvas_frame_shadow_width"] = (
-        "Shadow width for the canvas frame. "
-    )
+    defaults_help["canvas_frame_shadow_width"] = "Shadow width for the canvas frame. "
 
     defaults["canvas_frame_width"] = 45  # frame width for the canvas
     default_types["canvas_frame_width"] = float
@@ -487,9 +471,7 @@ def set_defaults():
     defaults["CS_origin_color"] = colors.gray
     default_types["CS_origin_color"] = colors.Color
     defaults_help["CS_origin_color"] = (
-        "Color of the circle at the origin of the coordinate "
-        "system. "
-        "Color object."
+        "Color of the circle at the origin of the coordinate system. Color object."
     )
 
     defaults["CS_size"] = (
@@ -503,8 +485,7 @@ def set_defaults():
     defaults["CS_line_width"] = 2
     default_types["CS_line_width"] = float
     defaults_help["CS_line_width"] = (
-        "Line width of the coordinate system axes. "
-        "Positive float. Length in <points>."
+        "Line width of the coordinate system axes. Positive float. Length in <points>."
     )
 
     defaults["CS_x_color"] = colors.red
@@ -561,9 +542,7 @@ def set_defaults():
 
     defaults["double_color"] = None
     default_types["double_color"] = colors.Color
-    defaults_help["double_color"] = (
-        "Color between double lines. Color object."
-    )
+    defaults_help["double_color"] = "Color between double lines. Color object."
 
     defaults["double_distance"] = 2
     default_types["double_distance"] = float
@@ -678,9 +657,7 @@ def set_defaults():
     defaults["font_size"] = 12
     default_types["font_size"] = float
     defaults_help["font_size"] = (
-        "Font size. "
-        "Positive float. Length in <points>. "
-        "Font size for the text objects."
+        "Font size. Positive float. Length in <points>. Font size for the text objects."
     )
 
     defaults["font_style"] = ""
@@ -720,8 +697,7 @@ def set_defaults():
     defaults["frame_draw_fillets"] = False
     default_types["frame_draw_fillets"] = bool
     defaults_help["frame_draw_fillets"] = (
-        "Boolean property for drawing fillets for frames. "
-        "If True, fillets are drawn."
+        "Boolean property for drawing fillets for frames. If True, fillets are drawn."
     )
 
     defaults["frame_fill"] = True
@@ -892,7 +868,9 @@ def set_defaults():
 
     defaults["ind_offset"] = (5, 5)  # offset for indices
     default_types["ind_offset"] = Sequence
-    defaults_help["ind_offset"] = "Offset for shape indices. It can be a tuple of two floats or a center point and radial offset."
+    defaults_help["ind_offset"] = (
+        "Offset for shape indices. It can be a tuple of two floats or a center point and radial offset."
+    )
 
     defaults["italic"] = False
     default_types["italic"] = bool
@@ -1067,29 +1045,37 @@ def set_defaults():
     default_types["mono_font"] = str
     defaults_help["mono_font"] = "Monospace font. String."
 
-    defaults['n_arc_points'] = 40  # number of proportional points for arcs
-    default_types['n_arc_points'] = int
-    defaults_help['n_arc_points'] = 'Number of points for arcs. Positive integer.'
+    defaults["n_arc_points"] = 40  # number of proportional points for arcs
+    default_types["n_arc_points"] = int
+    defaults_help["n_arc_points"] = "Number of points for arcs. Positive integer."
 
-    defaults['n_circle_points'] = 30  # number of points for circles
-    default_types['n_circle_points'] = int
-    defaults_help['n_circle_points'] = 'Number of points for circles. Positive integer.'
+    defaults["n_circle_points"] = 30  # number of points for circles
+    default_types["n_circle_points"] = int
+    defaults_help["n_circle_points"] = "Number of points for circles. Positive integer."
 
-    defaults['n_bezier_points'] = 40  # number of points for Bezier curves
-    default_types['n_bezier_points'] = int
-    defaults_help['n_bezier_points'] = 'Number of points for Bezier curves. Positive integer.'
+    defaults["n_bezier_points"] = 40  # number of points for Bezier curves
+    default_types["n_bezier_points"] = int
+    defaults_help["n_bezier_points"] = (
+        "Number of points for Bezier curves. Positive integer."
+    )
 
-    defaults['n_ellipse_points'] = 40  # number of points for ellipses
-    default_types['n_ellipse_points'] = int
-    defaults_help['n_ellipse_points'] = 'Number of points for ellipses. Positive integer.'
+    defaults["n_ellipse_points"] = 40  # number of points for ellipses
+    default_types["n_ellipse_points"] = int
+    defaults_help["n_ellipse_points"] = (
+        "Number of points for ellipses. Positive integer."
+    )
 
-    defaults['n_hobby_points'] = 40  # number of points for Hobby curves
-    default_types['n_hobby_points'] = int
-    defaults_help['n_hobby_points'] = 'Number of points for Hobby curves. Positive integer.'
+    defaults["n_hobby_points"] = 40  # number of points for Hobby curves
+    default_types["n_hobby_points"] = int
+    defaults_help["n_hobby_points"] = (
+        "Number of points for Hobby curves. Positive integer."
+    )
 
-    defaults['n_q_bezier_points'] = 30  # number of points for quadratic Bezier curves
-    default_types['n_q_bezier_points'] = int
-    defaults_help['n_q_bezier_points'] = 'Number of points for quadratic Bezier curves. Positive integer.'
+    defaults["n_q_bezier_points"] = 30  # number of points for quadratic Bezier curves
+    default_types["n_q_bezier_points"] = int
+    defaults_help["n_q_bezier_points"] = (
+        "Number of points for quadratic Bezier curves. Positive integer."
+    )
 
     defaults["n_round"] = 2  # used for rounding floats
     default_types["n_round"] = int
@@ -1100,8 +1086,7 @@ def set_defaults():
     defaults["old_style_nums"] = False
     default_types["old_style_nums"] = bool
     defaults_help["old_style_nums"] = (
-        "Boolean property for old style numbers. "
-        "If True, old style numbers are used."
+        "Boolean property for old style numbers. If True, old style numbers are used."
     )
 
     defaults["orientation"] = PageOrientation.PORTRAIT  # PORTRAIT, LANDSCAPE
@@ -1264,8 +1249,7 @@ def set_defaults():
     defaults["random_node_colors"] = True
     default_types["random_node_colors"] = bool
     defaults_help["random_node_colors"] = (
-        "Boolean property for random node colors. "
-        "If True, random node colors are used."
+        "Boolean property for random node colors. If True, random node colors are used."
     )
 
     defaults["rectangle_width_height"] = (40, 20)  # width and height of the rectangle
@@ -1285,11 +1269,11 @@ def set_defaults():
         "Length of reverse arrow. Positive float. Length in <points>."
     )
 
-    defaults["rtol"] = (
-        0  # used for comparing floats. If this is 0 then only atol is used
+    defaults["rel_tol"] = (
+        0  # used for comparing floats. If this is 0 then only abs_tol is used
     )
-    default_types["rtol"] = float
-    defaults_help["rtol"] = "Relative tolerance. Positive float. Length in <points>. "
+    default_types["rel_tol"] = float
+    defaults_help["rel_tol"] = "Relative tolerance. Positive float. Length in <points>. "
 
     defaults["sans_font"] = str
     defaults_help["sans_font"] = "Sans font. String."
@@ -1409,8 +1393,7 @@ def set_defaults():
     defaults["slanted"] = False
     default_types["slanted"] = bool
     defaults_help["slanted"] = (
-        "Boolean property for slanted font. "
-        "If True, the font is displayed in slanted."
+        "Boolean property for slanted font. If True, the font is displayed in slanted."
     )
 
     defaults["small_caps"] = False
@@ -1546,7 +1529,6 @@ def set_defaults():
     defaults["shape_style"] = ShapeStyle()
     defaults["tag_frame_style"] = FrameStyle()
     defaults["tag_style"] = TagStyle()
-
 
 
 tikz_defaults = defaultdict(str)

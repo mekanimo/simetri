@@ -2,6 +2,9 @@
 
 import colorsys
 
+from colorspace import palette
+from coloraide import Color as Color_aide
+
 from colorsys import (
     rgb_to_hls,
     hls_to_rgb,
@@ -21,7 +24,24 @@ from ..graphics.common import common_properties, Point
 from ..graphics.all_enums import ColorSpace, Types
 
 
-def change_hue(color: 'Color', delta: float) -> 'Color':
+def get_lighter(rgb255_color1:Sequence, rgb255_color2:Sequence):
+    '''Given two rgb255 colors, returns the lighter color.'''
+    lightness1 = rgb2hls(*rgb255_color1)[1]
+    lightness2 = rgb2hls(*rgb255_color2)[1]
+    if lightness1 < lightness2:
+        return rgb255_color2
+
+    return rgb255_color1
+
+def get_lightest(rgb255_palette:Sequence):
+    '''Given a sequence of rgb255 colors, returns the lightest color.'''
+    lightest = [0, 0, 0]
+    for i, color in enumerate(rgb255_palette):
+        lightest = get_lighter(color, lightest)
+
+    return lightest
+
+def change_hue(color: "Color", delta: float) -> "Color":
     """Changes the hue of a color by a specified delta value.
 
     Args:
@@ -38,7 +58,7 @@ def change_hue(color: 'Color', delta: float) -> 'Color':
     return Color(r, g, b, a)
 
 
-def change_lightness(color: 'Color', delta: float) -> 'Color':
+def change_lightness(color: "Color", delta: float) -> "Color":
     """Changes the lightness of a color by a specified delta value.
 
     Args:
@@ -55,7 +75,7 @@ def change_lightness(color: 'Color', delta: float) -> 'Color':
     return Color(r, g, b, a)
 
 
-def change_saturation(color: 'Color', delta: float) -> 'Color':
+def change_saturation(color: "Color", delta: float) -> "Color":
     """Changes the saturation of a color by a specified delta value.
 
     Args:
@@ -110,8 +130,6 @@ def rgb_to_hex(r, g, b):
     return f"{r:X}{g:X}{b:X}"
 
 
-
-
 @dataclass
 class Color:
     """A class representing an RGB or RGBA color.
@@ -132,6 +150,7 @@ class Color:
         >>> transparent_blue = Color(0.0, 0.0, 1.0, 0.5)
         >>> rgb255 = Color(255, 0, 128)  # Will be automatically normalized
     """
+
     red: int = 0
     green: int = 0
     blue: int = 0
@@ -196,19 +215,26 @@ class Color:
         return tuple(round(i * 255) for i in self.rgba)
 
 
-def map_color(r:float, g:float, b:float, r_max:float, g_max:float,
-                                                    b_max:float) -> Color:
+def hex_color(hex_value: str):
+    """Returns RGB equivalent of the given hex color."""
+    return Color(*hex2rgb(hex_value))
+
+
+def map_color(
+    r: float, g: float, b: float, r_max: float, g_max: float, b_max: float
+) -> Color:
     """Map RGB values to a range of 0-255."""
     i_range = range(256)
-    r_range = np.arange(0, r_max, r_max/256)
-    g_range = np.arange(0, g_max, g_max/256)
-    b_range = np.arange(0, b_max, b_max/256)
+    r_range = np.arange(0, r_max, r_max / 256)
+    g_range = np.arange(0, g_max, g_max / 256)
+    b_range = np.arange(0, b_max, b_max / 256)
 
     r_ = np.interp(r, r_range, i_range)
     g_ = np.interp(g, g_range, i_range)
     b_ = np.interp(b, b_range, i_range)
 
     return Color(r_, g_, b_)
+
 
 def blend(color1: Color, percent: int, color2: Color):
     """percent% of color1 and (100-percent)% of color2
@@ -287,17 +313,114 @@ def hex2rgb(hex_val):
     return tuple(round(int(hex_val[i : i + 2], 16) / 255, 3) for i in (0, 2, 4))
 
 
-def cmyk2rgb(c, m, y, k):
-    """Convert a CMYK color value to an RGB tuple."""
-    r = 1 - min(1, c * (1 - k) + k)
-    g = 1 - min(1, m * (1 - k) + k)
-    b = 1 - min(1, y * (1 - k) + k)
-    return (r, g, b)
+def cmyk2rgb(c, m, y, k, cmyk_scale=100, rgb_scale=255):
+    """
+    Converts CMYK color values to RGB.
+
+    Args:
+        c (float): Cyan value (0-cmyk_scale).
+        m (float): Magenta value (0-cmyk_scale).
+        y (float): Yellow value (0-cmyk_scale).
+        k (float): Black (Key) value (0-cmyk_scale).
+        cmyk_scale (int): The maximum value for CMYK components (default is 100 for percentages).
+        rgb_scale (int): The maximum value for RGB components (default is 255).
+
+    Returns:
+        tuple: A tuple containing the R, G, and B values.
+    """
+
+    # Normalize CMYK values to a 0-1 range
+    c_norm = c / float(cmyk_scale)
+    m_norm = m / float(cmyk_scale)
+    y_norm = y / float(cmyk_scale)
+    k_norm = k / float(cmyk_scale)
+
+    # Calculate RGB values
+    r = rgb_scale * (1.0 - c_norm) * (1.0 - k_norm)
+    g = rgb_scale * (1.0 - m_norm) * (1.0 - k_norm)
+    b = rgb_scale * (1.0 - y_norm) * (1.0 - k_norm)
+
+    # Ensure values are within the valid RGB range (0-255)
+    r = max(0, min(rgb_scale, int(round(r))))
+    g = max(0, min(rgb_scale, int(round(g))))
+    b = max(0, min(rgb_scale, int(round(b))))
+
+    return r, g, b
+
+
+def rgb2cmyk(r, g, b):
+    """Convert RGB to CMYK color space.
+    This function takes RGB values (0-255) and converts them to CMYK values (0-100).
+    Args:
+        r (int): The red component (0-255).
+        g (int): The green component (0-255).
+        b (int): The blue component (0-255).
+
+    Returns:
+        tuple: A tuple containing the C, M, Y, and K values.
+    """
+    # Normalize RGB values to the range [0, 1]
+    r_norm = r / 255.0
+    g_norm = g / 255.0
+    b_norm = b / 255.0
+
+    # Handle the case of pure black
+    if (r_norm, g_norm, b_norm) == (0, 0, 0):
+        return 0, 0, 0, 100  # CMYK values for pure black
+
+    # Calculate Black (K)
+    k = 1 - max(r_norm, g_norm, b_norm)
+
+    # Calculate Cyan (C), Magenta (M), Yellow (Y)
+    c = (1 - r_norm - k) / (1 - k) if (1 - k) != 0 else 0
+    m = (1 - g_norm - k) / (1 - k) if (1 - k) != 0 else 0
+    y = (1 - b_norm - k) / (1 - k) if (1 - k) != 0 else 0
+
+    # Convert to percentage and round
+    c = round(c * 100)
+    m = round(m * 100)
+    y = round(y * 100)
+    k = round(k * 100)
+
+    return c, m, y, k
 
 
 def random_color():
     """Return a random color."""
     return Color(random(), random(), random())
+
+
+def expand_palette(rgb255_palette, n):
+    """Given a list of (r, g, b) values, creates a
+    new interpolated palette with n colors."""
+    hex_colors = [rgb2hex(c) for c in rgb255_palette]
+    interp_func = Color_aide.interpolate(hex_colors)
+    expanded = [interp_func(i / (n - 1)) for i in range(n)]
+    new_hex_colors = [c.convert("srgb").to_string(hex=True) for c in expanded]
+
+    expanded_rgb = [hex2rgb(c) for c in new_hex_colors]
+
+    return expanded_rgb
+
+
+def show_expanded(rgb255_palette, n, name=""):
+    hex_colors = [rgb2hex(c) for c in rgb255_palette]
+    interp_func = Color_aide.interpolate(hex_colors)
+    expanded = [interp_func(i / (n - 1)) for i in range(n)]
+    new_hex_colors = [c.convert("srgb").to_string(hex=True) for c in expanded]
+    hex_palette = palette(new_hex_colors, name=name)
+
+    hex_palette.swatchplot()
+    expanded_rgb = [hex2rgb(c) for c in new_hex_colors]
+
+    return expanded_rgb
+
+
+def show_swatch(rgb255_palette, name=""):
+    hex_colors = [rgb2hex(c) for c in rgb255_palette]
+    hex_palette = palette(hex_colors, name=name)
+
+    hex_palette.swatchplot()
 
 
 @dataclass
@@ -321,6 +444,7 @@ class LinearGradient:
         ...                          [Color(1, 0, 0), Color(0, 0, 1)],
         ...                          [Point(0, 0), Point(100, 100)])
     """
+
     x1: float = 0.0
     y1: float = 0.0
     x2: float = 0.0
@@ -355,6 +479,7 @@ class RadialGradient:
         ...                         [Color(1, 1, 1), Color(0, 0, 0)],
         ...                         [Point(50, 50), Point(80, 50)])
     """
+
     x: float = 0.0
     y: float = 0.0
     radius: float = 0.0
@@ -1275,7 +1400,7 @@ sunny_yellow = Color(1.0, 0.976, 0.09)
 sunshine_yellow = Color(1.0, 0.992, 0.216)
 swamp = Color(0.412, 0.514, 0.224)
 swamp_green = Color(0.455, 0.522, 0.0)
-tan_ = Color(0.82, 0.698, 0.435) # tan is a reserved word
+tan_ = Color(0.82, 0.698, 0.435)  # tan is a reserved word
 tan_brown = Color(0.671, 0.494, 0.298)
 tan_green = Color(0.663, 0.745, 0.439)
 tangerine = Color(1.0, 0.58, 0.031)

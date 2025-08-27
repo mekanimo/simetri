@@ -1,10 +1,8 @@
 """Provides facilities for working with grids of cells."""
 
 from itertools import product
-from math import sin, cos, pi, sqrt
+from math import sin, cos, pi, sqrt, isclose
 from typing import Sequence
-
-from numpy import isclose
 
 from ..helpers.utilities import reg_poly_points
 from ..geometry.geometry import (
@@ -12,7 +10,7 @@ from ..geometry.geometry import (
     cartesian_to_polar,
     polar_to_cartesian,
     lerp_point,
-    distance
+    distance,
 )
 from ..geometry.circle import Circle
 from ..graphics.common import Point, common_properties
@@ -56,8 +54,8 @@ class Grid(Batch):
         self.append(self._points)
 
         for i, point in enumerate(self.points):
-                next_point = self._points[(i + 1) % len(self._points)]
-                self.append(Shape([point, next_point]))
+            next_point = self._points[(i + 1) % len(self._points)]
+            self.append(Shape([point, next_point]))
 
         if grid_type == GridType.SQUARE:
             # Draw only the horizontal and vertical lines in the grid
@@ -69,7 +67,7 @@ class Grid(Batch):
                 cond2 = y1 == y2
                 if cond1 ^ cond2:
                     dist = distance(p1, p2)
-                    if isclose(dist, width, rtol=0, atol=1e-5):
+                    if isclose(dist, width, rel_tol=0, abs_tol=1e-5):
                         self.append(Shape([p1, p2], line_color=gray))
         else:
             # Draw the lines connecting the points in the grid
@@ -157,7 +155,6 @@ class Grid(Batch):
         return lerp_point(self.points[ind1], self.points[ind2], t)
 
 
-
 class CircularGrid(Grid):
     """A grid formed by connections of regular polygon points."""
 
@@ -177,6 +174,7 @@ class CircularGrid(Grid):
         super().__init__(GridType.CIRCULAR, center, n, radius, points, n_circles)
 
         self.append(Circle(center, radius, fill=False))
+
 
 class HexGrid(Grid):
     """A grid formed by connections of regular polygon points."""
@@ -225,8 +223,9 @@ class SquareGrid(Grid):
         coords = coords[:n]
         coords.sort(key=sort_key2)
         points = coords
-        radius = (2 * (cell_size * sqrt(n))**2)**.5
+        radius = (2 * (cell_size * sqrt(n)) ** 2) ** 0.5
         super().__init__(GridType.SQUARE, center, n, radius, points)
+
 
 # change of basis conversion
 

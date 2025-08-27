@@ -6,18 +6,26 @@ from typing import Any, Optional, Union, Callable, Tuple, Dict, List, Sequence
 from PIL import Image as PIL_Image
 
 from ..graphics.shapes import Rectangle
-from ..graphics.affine import identity_matrix, rotation_matrix, translation_matrix, scale_in_place_matrix
+from ..graphics.affine import (
+    identity_matrix,
+    rotation_matrix,
+    translation_matrix,
+    scale_in_place_matrix,
+)
 from ..graphics.batch import Batch
 from ..graphics.common import Point
 from ..graphics.all_enums import Types, Anchor, ImageMode, Transformation
 from ..helpers.utilities import decompose_transformations
+
 
 class PDF(Rectangle):
     """
     A class to represent a PDF file as a drawable object.
     """
 
-    def __init__(self, pdf_path: str, pos: Point =(0, 0), size: Sequence[int]=None, **kwargs):
+    def __init__(
+        self, pdf_path: str, pos: Point = (0, 0), size: Sequence[int] = None, **kwargs
+    ):
         """
         Initialize a PDF object.
 
@@ -32,9 +40,9 @@ class PDF(Rectangle):
         self.pdf_path = pdf_path
         self.type = Types.PDF
         self.subtype = Types.PDF
-        self.anchor = kwargs.get('anchor', Anchor.CENTER)
-        if 'xform_matrix' in kwargs:
-            self.xform_matrix = kwargs['xform_matrix']
+        self.anchor = kwargs.get("anchor", Anchor.CENTER)
+        if "xform_matrix" in kwargs:
+            self.xform_matrix = kwargs["xform_matrix"]
         else:
             self.xform_matrix = identity_matrix()
 
@@ -44,8 +52,8 @@ class PDF(Rectangle):
 
         # Placeholder width and height; in a real implementation, extract from PDF metadata
         width, height = (100, 100) if size is None else size
-        kwargs['fill'] = False
-        kwargs['stroke'] = False
+        kwargs["fill"] = False
+        kwargs["stroke"] = False
         super().__init__(center=pos, width=width, height=height, **kwargs)
 
     def __repr__(self):
@@ -66,6 +74,7 @@ class PDF(Rectangle):
         """
         return f"PDF file at {self.pdf_path}"
 
+
 class Image(Rectangle):
     """
     A class that extends the PIL Image class to add additional functionality.
@@ -73,8 +82,14 @@ class Image(Rectangle):
     For documentation see https://pillow.readthedocs.io/en/stable/.
     """
 
-    def __init__(self, img: str=None, pos: Point =(0, 0), size: Sequence[int]=None,
-                                                        mode=ImageMode.RGB, **kwargs):
+    def __init__(
+        self,
+        img: str = None,
+        pos: Point = (0, 0),
+        size: Sequence[int] = None,
+        mode=ImageMode.RGB,
+        **kwargs,
+    ):
         """
         Initialize an Image object.
 
@@ -97,16 +112,16 @@ class Image(Rectangle):
             width, height = img.size
         elif not isinstance(img, PIL_Image.Image):
             raise TypeError("img must be a PIL Image object or a file path.")
-        self.__dict__['pil_img'] = img
-        kwargs['fill'] = False
-        kwargs['stroke'] = False
+        self.__dict__["pil_img"] = img
+        kwargs["fill"] = False
+        kwargs["stroke"] = False
         super().__init__(center=pos, width=width, height=height, **kwargs)
         self.file_path = file_path
         self.type = Types.IMAGE
         self.subtype = Types.IMAGE
-        self.anchor = kwargs.get('anchor', Anchor.CENTER)
-        if 'xform_matrix' in kwargs:
-            self.xform_matrix = kwargs['xform_matrix']
+        self.anchor = kwargs.get("anchor", Anchor.CENTER)
+        if "xform_matrix" in kwargs:
+            self.xform_matrix = kwargs["xform_matrix"]
         else:
             self.xform_matrix = identity_matrix()
 
@@ -149,11 +164,15 @@ class Image(Rectangle):
                     res = super().__getattr__(name)
                 except AttributeError:
                     # If the attribute doesn't exist, raise an AttributeError
-                    raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+                    raise AttributeError(
+                        f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                    )
 
         return res
 
-    def _update(self, xform_matrix: 'array', reps: int = 0, merge: bool = False, **kwargs) -> Union[Batch, 'Image']:
+    def _update(
+        self, xform_matrix: "array", reps: int = 0, merge: bool = False, **kwargs
+    ) -> Union[Batch, "Image"]:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -199,8 +218,8 @@ class Image(Rectangle):
             point (Point): The new position of the image.
         """
         x, y = self.pos[:2]
-        dx = point[0] -x
-        dy = point[1] -y
+        dx = point[0] - x
+        dy = point[1] - y
         self.xform_matrix = translation_matrix(dx, dy) @ self.xform_matrix
 
     @property
@@ -212,7 +231,7 @@ class Image(Rectangle):
             PIL_Image.Image: The PIL Image object.
         """
         _, rotation, scale = decompose_transformations(self.xform_matrix)
-        return self.__dict__['pil_img']
+        return self.__dict__["pil_img"]
 
     @property
     def filename(self) -> str:
@@ -223,7 +242,6 @@ class Image(Rectangle):
             str: The filename of the image or None if not set.
         """
         return self.pil_img.info.get("filename", None)
-
 
     @property
     def format(self) -> str:
@@ -337,8 +355,9 @@ class Image(Rectangle):
         """
         return self.pil_img.decodermaxblock
 
-    def alpha_composite(self, im: 'Image', dest: Sequence[int] = (0, 0),
-                                    source: Sequence[int] = (0, 0)) -> 'Image':
+    def alpha_composite(
+        self, im: "Image", dest: Sequence[int] = (0, 0), source: Sequence[int] = (0, 0)
+    ) -> "Image":
         """
         Blend two images together using alpha compositing.
         This method is a wrapper around the PIL alpha_composite method.
@@ -670,10 +689,12 @@ class Image(Rectangle):
         """
         return self.pil_img.transpose(method)
 
+
 def open_img(file_path):
     img = PIL_Image.open(file_path)
 
     return Image(img=img)
+
 
 alpha_composite = PIL_Image.alpha_composite
 blend = PIL_Image.blend
@@ -699,6 +720,7 @@ registered_extensions = PIL_Image.registered_extensions
 register_decoder = PIL_Image.register_decoder
 register_encoder = PIL_Image.register_encoder
 
+
 def is_pil_image(obj):
     """
     Checks if an object is a PIL Image object.
@@ -711,6 +733,7 @@ def is_pil_image(obj):
     """
     return isinstance(obj, PIL_Image.Image)
 
+
 def convert_png_to_ico(png_path, ico_path, sizes=None):
     """Converts a PNG image to an ICO file.
 
@@ -721,23 +744,24 @@ def convert_png_to_ico(png_path, ico_path, sizes=None):
                e.g., [(16, 16), (32, 32), (48, 48)]. If None, defaults to [(32, 32)].
     """
     if sizes is None:
-      sizes = [(32, 32)]
+        sizes = [(32, 32)]
 
     img = Image.open(png_path)
 
     icon_sizes = []
     for size in sizes:
-      icon_sizes.append(size)
+        icon_sizes.append(size)
 
     img.save(ico_path, sizes=icon_sizes)
 
     # Example usage:
     convert_png_to_ico("input.png", "output.ico", sizes=[(16, 16), (32, 32)])
 
+
 def supported_formats() -> List[str]:
     """Generates a list of supported image formats available in your system.
-        Returns:
-            List[str]: A list of supported image formats available in your system.
+    Returns:
+        List[str]: A list of supported image formats available in your system.
     """
 
     exts = PIL_Image.registered_extensions()
@@ -745,9 +769,10 @@ def supported_formats() -> List[str]:
 
     return sorted(supported)
 
+
 def create_image_from_data(image_path):
     try:
-        with open(image_path, 'rb') as f:
+        with open(image_path, "rb") as f:
             image_data = f.read()
 
         image = PIL_Image.open(io.BytesIO(image_data))
@@ -761,5 +786,5 @@ def create_image_from_data(image_path):
         print(f"Error: Image file not found at {image_path}")
         return None
     except Exception as e:
-         print(f"An error occurred: {e}")
-         return None
+        print(f"An error occurred: {e}")
+        return None

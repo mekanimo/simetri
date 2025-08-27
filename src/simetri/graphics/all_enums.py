@@ -396,6 +396,7 @@ class FragmentStyle(StrEnum):
     """FragmentStyle is used to set the way lace fragments are drawn.
     See the documentation for further explanation.
     """
+
     DIAMOND = "DIAMOND"
     INNERLINES = "INNERLINES"
     INNERLOOPS = "INNERLOOPS"
@@ -462,29 +463,30 @@ class HeadPos(StrEnum):
     START = "START"
     NONE = "NONE"
 
+
 class ImageMode(StrEnum):
-    MODE_1 = "1" # 1 bit per pixel (black and white)
-    L = "L" # 8 bits per pixel (grayscale)
-    P = "P" # 8 bits per pixel, mapped to any other mode using a color palette
-    RGB = "RGB" # 3x8 bits per pixel (true color)
-    RGBA = "RGBA" # 4x8 bits per pixel (true color with transparency mask)
-    CMYK = "CMYK" # 4x8 bits per pixel (color separation)
-    YCbCr = "YCbCr" # 3x8 bits per pixel (color video format)
-    LAB = "LAB" # 3x8 bits per pixel (CIE L*a*b* color space)
-    HSV = "HSV" # 3x8 bits per pixel (Hue, Saturation, Value color space)
+    MODE_1 = "1"  # 1 bit per pixel (black and white)
+    L = "L"  # 8 bits per pixel (grayscale)
+    P = "P"  # 8 bits per pixel, mapped to any other mode using a color palette
+    RGB = "RGB"  # 3x8 bits per pixel (true color)
+    RGBA = "RGBA"  # 4x8 bits per pixel (true color with transparency mask)
+    CMYK = "CMYK"  # 4x8 bits per pixel (color separation)
+    YCbCr = "YCbCr"  # 3x8 bits per pixel (color video format)
+    LAB = "LAB"  # 3x8 bits per pixel (CIE L*a*b* color space)
+    HSV = "HSV"  # 3x8 bits per pixel (Hue, Saturation, Value color space)
     # * Hue's range of 0-255 is a scaled version of 0 degrees <= Hue < 360 degrees
-    I = "I" # 32 bits per pixel (32-bit signed integer pixels)
-    F = "F" # 32 bits per pixel (floating point pixels)
+    I = "I"  # 32 bits per pixel (32-bit signed integer pixels)
+    F = "F"  # 32 bits per pixel (floating point pixels)
     # limited support for the following modes:
-    LA = "LA" # L with alpha
-    PA = "PA" # P with alpha
-    RGBX = "RGBX" # true color with padding
-    RGBa = "RGBa" # true color with premultilied alpha
-    La = "La" # L with premultilied alpha
-    I_16 = "I;16" # 16 bits per pixel (16-bit signed integer pixels)
-    I_16L = "I;16L" # 16 bits per pixel (16-bit signed integer pixels)
-    I_16B = "I;16B" # 16 bits per pixel (16-bit unsigned integer pixels)
-    I_16N = "I;16N" # 16 bits per pixel (16-bit unsigned integer pixels)
+    LA = "LA"  # L with alpha
+    PA = "PA"  # P with alpha
+    RGBX = "RGBX"  # true color with padding
+    RGBa = "RGBa"  # true color with premultilied alpha
+    La = "La"  # L with premultilied alpha
+    I_16 = "I;16"  # 16 bits per pixel (16-bit signed integer pixels)
+    I_16L = "I;16L"  # 16 bits per pixel (16-bit signed integer pixels)
+    I_16B = "I;16B"  # 16 bits per pixel (16-bit unsigned integer pixels)
+    I_16N = "I;16N"  # 16 bits per pixel (16-bit unsigned integer pixels)
 
 
 class IUC(StrEnum):
@@ -500,6 +502,7 @@ class IUC(StrEnum):
     P2 = "P2"
     P2MG = "P2MG"
     P2MM = "P2MM"
+
 
 class LineCap(StrEnum):
     """LineCap is used to set the type of line cap.

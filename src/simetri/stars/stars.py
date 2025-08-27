@@ -39,6 +39,8 @@ def rosette(
     star = petal.rotate(2 * pi / n, reps=n - 1)
     if merge:
         star = star.merge_shapes()
+        if len(star) == 1:
+            star = star[0]
 
     return star
 
@@ -65,7 +67,7 @@ class Star(Batch):
         self.circumradius = circumradius
         self.inner_radius = inner_radius
         if circumradius is None and inner_radius is None:
-            self.inner_radius = 50
+            self.inner_radius = 54.12
 
         self.center = (0, 0)
         self.subtype = Types.STAR
@@ -105,8 +107,6 @@ class Star(Batch):
         ext = y1 / cos(phi)
         up2 = up1_[0] + ext, y1
         up3 = up2[0] + ext * sin(phi), 0
-
-
 
         self._kernel2 = Shape([up1, up2, up3])
         self._petal2 = self._kernel2.copy().mirror(axis_x, reps=1)
@@ -257,12 +257,11 @@ class Star(Batch):
             scale_factor = self._get_scale_factor(level, inner_radius, circumradius)
             petal = kernel.mirror(axis_x, reps=1).scale(scale_factor)
 
-        res  = petal.merge_shapes()
+        res = petal.merge_shapes()
         if len(res) == 1:
             res = res[0]
 
         return res
-
 
     def level(self, n: int) -> Batch:
         """Returns the star at the specified level.
@@ -307,10 +306,6 @@ class Star(Batch):
             star.circumradius = circumradius
             star.inner_radius = inner_radius
 
-        star = star.merge_shapes()
-        if len(star) == 1:
-            star = star[0]
-
         return star
 
     def find_trig_representation(target_value: float, tolerance: float = 1e-6) -> str:
@@ -335,14 +330,28 @@ class Star(Batch):
                 representations.append(f"sin({angle_deg}°) = sin({angle_rad:.6f})")
             if abs(cos(angle_rad) - target_value) < tolerance:
                 representations.append(f"cos({angle_deg}°) = cos({angle_rad:.6f})")
-            if angle_deg not in [90, 270] and abs(tan(angle_rad) - target_value) < tolerance:
+            if (
+                angle_deg not in [90, 270]
+                and abs(tan(angle_rad) - target_value) < tolerance
+            ):
                 representations.append(f"tan({angle_deg}°) = tan({angle_rad:.6f})")
 
         # Check combinations with sqrt, pi, etc.
-        common_values = [pi/6, pi/4, pi/3, pi/2, 2*pi/3, 3*pi/4, 5*pi/6, pi]
+        common_values = [
+            pi / 6,
+            pi / 4,
+            pi / 3,
+            pi / 2,
+            2 * pi / 3,
+            3 * pi / 4,
+            5 * pi / 6,
+            pi,
+        ]
         for val in common_values:
             if abs(val - target_value) < tolerance:
-                representations.append(f"π/{6*val/pi:.0f}" if val < pi else f"{val/pi:.3f}π")
+                representations.append(
+                    f"π/{6 * val / pi:.0f}" if val < pi else f"{val / pi:.3f}π"
+                )
 
         # Check sqrt combinations
         for i in range(1, 10):
@@ -353,6 +362,12 @@ class Star(Batch):
         if abs(target_value - 1.847759) < tolerance:
             # This is approximately tan(61.58°) or related to golden ratio calculations
             representations.append("≈ tan(61.58°)")
-            representations.append("≈ (1 + √5)/2 * cos(36°)")  # Related to golden ratio and pentagon
+            representations.append(
+                "≈ (1 + √5)/2 * cos(36°)"
+            )  # Related to golden ratio and pentagon
 
-        return "; ".join(representations) if representations else f"No simple trig representation found for {target_value}"
+        return (
+            "; ".join(representations)
+            if representations
+            else f"No simple trig representation found for {target_value}"
+        )

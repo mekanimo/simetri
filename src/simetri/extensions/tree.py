@@ -1,4 +1,5 @@
 """Create a tree structure and draw it."""
+
 import os
 from typing import Sequence, Any
 
@@ -9,18 +10,17 @@ diamond = sg.Shape([(0, 5), (3, 0), (0, -5), (-3, 0)], closed=True)
 diamond.fill_color = sg.black
 diamond.stroke = False
 star2 = sg.regular_star_polygon(5, 2, 7)
-star2.set_attribs('fill_color', sg.red)
-star2.set_attribs('stroke', False)
+star2.set_attribs("fill_color", sg.red)
+star2.set_attribs("stroke", False)
 square = sg.Shape([(0, 5), (5, 5), (5, 0), (0, 0)], closed=True)
 star = sg.regular_star_polygon(8, 3, 7)
-star.set_attribs('fill_color', sg.red)
-star.set_attribs('stroke', False)
+star.set_attribs("fill_color", sg.red)
+star.set_attribs("stroke", False)
 star3 = sg.regular_star_polygon(8, 2, 5)
-star3.set_attribs('fill_color', sg.blue)
-star3.set_attribs('stroke', False)
+star3.set_attribs("fill_color", sg.blue)
+star3.set_attribs("stroke", False)
 circle = sg.Circle(1.5, fill_color=sg.white, stroke=False)
-hexagon = sg.Batch([sg.reg_poly_shape(6, 4, fill_color=sg.teal,
-                                                    stroke=False), circle])
+hexagon = sg.Batch([sg.reg_poly_shape(6, 4, fill_color=sg.teal, stroke=False), circle])
 
 
 def next_id():
@@ -51,9 +51,9 @@ class TreeNode:
         tag: str = "",
         children: Sequence["TreeNode"] = None,
         extra: Any = None,
-        font_size = 12,
-        font_color = sg.black,
-        bold = False
+        font_size=12,
+        font_color=sg.black,
+        bold=False,
     ):
         self.tag = tag
         self.id = next_id()
@@ -65,22 +65,22 @@ class TreeNode:
 
     def add_child(self, child):
         """Adds a child node to the current node.
-            Args:
-                child (TreeNode): The child node to add.
+        Args:
+            child (TreeNode): The child node to add.
 
-            Returns:
-                None
+        Returns:
+            None
         """
         if child.id not in [c.id for c in self.children]:
             self.children.append(child)
 
     def num_all_children(self):
         """Counts the number of children and grandchildren of the node.
-            Args:
-                None
+        Args:
+            None
 
-            Returns:
-                int: The number of children and grandchildren.
+        Returns:
+            int: The number of children and grandchildren.
         """
         return len(self.children) + sum(
             child.num_all_children() for child in self.children
@@ -88,12 +88,12 @@ class TreeNode:
 
     def depth(self):
         """Calculates the depth of the node in the tree.
-            Args:
-                None
+        Args:
+            None
 
 
-            Returns:
-                int: The depth of the node.
+        Returns:
+            int: The depth of the node.
         """
         if not self.children:
             return 0
@@ -109,14 +109,14 @@ def make_tree(
     overwrite: bool = False,
     dx: float = 10,
     dy: float = 18,
-    icons = None,
-    line1_color = sg.gray,
-    line1_width = 1.75,
-    line1_cap = sg.LineCap.ROUND,
-    line2_color = sg.gray,
-    line2_width = 1,
-    line2_cap = sg.LineCap.ROUND,
-    scale=1
+    icons=None,
+    line1_color=sg.gray,
+    line1_width=1.75,
+    line1_cap=sg.LineCap.ROUND,
+    line2_color=sg.gray,
+    line2_width=1,
+    line2_cap=sg.LineCap.ROUND,
+    scale=1,
 ):
     """Creates a tree structure and draws it on the canvas.
     Args:
@@ -136,7 +136,7 @@ def make_tree(
 
     Returns:
         None
-"""
+    """
     count = 0
     if icons is None:
         icons = [star, diamond, star3, hexagon]
@@ -170,7 +170,6 @@ def make_tree(
                 line_width=line1_width,
                 line_cap=line1_cap,
             )
-
 
         x2 = x1 + indent * dx
         y2 = y
@@ -226,10 +225,11 @@ def make_tree(
 isdir = os.path.isdir
 join = os.path.join
 
+
 def print_tree(root_dir, prefix=""):
-    """ Recursively generates a file tree using Unicode characters """
+    """Recursively generates a file tree using Unicode characters"""
     entries = sorted(os.listdir(root_dir))
-    entries = [e for e in entries if not e.startswith('.')]  # Hide hidden files
+    entries = [e for e in entries if not e.startswith(".")]  # Hide hidden files
 
     for i, entry in enumerate(entries):
         path = os.path.join(root_dir, entry)
@@ -245,6 +245,7 @@ def print_tree(root_dir, prefix=""):
             new_prefix = f"{prefix}{'    ' if is_last else '│   '}"
             print_tree(path, new_prefix)
 
+
 def list_directories(path):
     """List all directories in a given path.
     Args:
@@ -253,8 +254,6 @@ def list_directories(path):
         list: A list of directories in the given path.
     """
     return [e for e in os.listdir(path) if isdir(join(path, e))]
-
-
 
 
 # Example Usage

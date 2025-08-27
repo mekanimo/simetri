@@ -28,7 +28,7 @@ from ..graphics.all_enums import (
     HeadPos,
     ArrowLine,
     Placement,
-    FontSize
+    FontSize,
 )
 from ..canvas.style_map import shape_style_map, tag_style_map, TagStyle
 from ..graphics.affine import identity_matrix
@@ -39,7 +39,7 @@ from ..geometry.geometry import (
     extended_line,
     line_by_point_angle_length,
     midpoint,
-    polar_to_cartesian
+    polar_to_cartesian,
 )
 from .utilities import get_transform, detokenize
 from ..colors.swatches import swatches_255
@@ -212,6 +212,7 @@ def cube(size: float = 100):
 
     return cube_
 
+
 def get_pdf_dimensions(pdf_path):
     """
     Retrieves the width and height of the first page of a PDF file.
@@ -241,7 +242,6 @@ def get_pdf_dimensions(pdf_path):
         return None
 
 
-
 def get_image_dimensions_from_pdf_pages(pdf_path):
     """
     Extracts and prints the dimensions (width and height) of images found in a PDF.
@@ -266,7 +266,6 @@ def get_image_dimensions_from_pdf_pages(pdf_path):
         return pages
     except Exception as e:
         print(f"An error occurred: {e}")
-
 
 
 def pdf_to_svg(pdf_path, svg_path):
@@ -556,7 +555,7 @@ class Tag(Base):
             FontSize.HUGE: 20,
             FontSize.HUGE2: 25,
         }
-        mult = 1 # font size multiplier
+        mult = 1  # font size multiplier
         if self.font_size is None:
             font_size = defaults["font_size"]
         elif type(self.font_size) in [int, float]:
@@ -805,6 +804,7 @@ class ArcArrow(Batch):
                 raise AttributeError(f"{k}. Invalid attribute!")
         self.xform_matrix = get_transform(xform_matrix)
 
+
 class RadialDimension(Batch):
     """A RadialDimension object is a dimension that represents a radius.
 
@@ -822,7 +822,7 @@ class RadialDimension(Batch):
         center: Point,
         radius: float = None,
         angle: float = 0,
-        text: str = '',
+        text: str = "",
         text_offset: Sequence = (0, 0),
         ext_length: float = 10,
         reverse_arrow: bool = False,
@@ -849,7 +849,7 @@ class RadialDimension(Batch):
         if self.reverse_arrow:
             self.extension = extended_line(ext_length, [center, p2])
 
-        if self.text == '':
+        if self.text == "":
             if self.radius is not None:
                 self.text = f"{self.radius:.2f}"
             else:
@@ -859,6 +859,7 @@ class RadialDimension(Batch):
         self._items = [self.arrow, self.tag]
 
         super().__init__(self._items, subtype=Types.RADIAL_DIMENSION, **kwargs)
+
 
 class Arrow(Batch):
     """An Arrow object is a line with an arrow head.
@@ -890,7 +891,12 @@ class Arrow(Batch):
         self.kwargs = kwargs
         length = distance(p1, p2)
         angle = line_angle(p1, p2)
-        self.line = Shape([(0, 0), (length, 0)], line_width=line_width, line_color=self.color, **kwargs)
+        self.line = Shape(
+            [(0, 0), (length, 0)],
+            line_width=line_width,
+            line_color=self.color,
+            **kwargs,
+        )
         if head is None:
             self.head = ArrowHead()
             self.head.fill_color = color
@@ -998,7 +1004,7 @@ class Dimension(Batch):
         ext_length: float,
         ext_length2: float = None,
         orientation: Anchor = None,
-        text: str = '',
+        text: str = "",
         text_pos: Anchor = Anchor.CENTER,
         text_offset: tuple = (0, 0),
         gap: float = None,
@@ -1010,7 +1016,7 @@ class Dimension(Batch):
         scale: float = 1,
         font_size: int = 12,
         keep_centered: bool = False,
-        text_side: Anchor = None, #(Anchor.TOP, Anchor.BOTTOM, Anchor.LEFT, Anchor.RIGHT)
+        text_side: Anchor = None,  # (Anchor.TOP, Anchor.BOTTOM, Anchor.LEFT, Anchor.RIGHT)
         **kwargs,
     ):
         ext_length2, gap, reverse_arrow_length = get_defaults(
@@ -1061,7 +1067,7 @@ class Dimension(Batch):
         # ptext : text point
         super().__init__(subtype=Types.DIMENSION, **kwargs)
         dist_tol = defaults["dist_tol"]
-        space = gap * .75
+        space = gap * 0.75
         if font_size is not None:
             self.font_size = font_size
         if parallel:
@@ -1104,7 +1110,7 @@ class Dimension(Batch):
             self.append(self.ext2)
 
         else:
-            if self.text == '':
+            if self.text == "":
                 if orientation in [Anchor.NORTH, Anchor.SOUTH]:
                     self.text = f"{(max_x - min_x / scale):.2f}"
                 elif orientation in [Anchor.EAST, Anchor.WEST]:

@@ -285,7 +285,6 @@ class Base:
 
         return res
 
-
     def offset_line(self, side: Side, offset: float) -> Line:
         """
         Offset the line by the given side and offset distance.

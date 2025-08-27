@@ -11,7 +11,7 @@ from simetri.geometry.geometry import (
     distance,
     is_line,
     angle_between_two_lines,
-    point_to_line_distance
+    point_to_line_distance,
 )
 from simetri.geometry.circle import Circle_ as Circle
 
@@ -143,7 +143,7 @@ def outer_tangent_eq(constraint):
     """
     if is_line(constraint.item1):
         circle = constraint.item2
-        res = circle.radius -  point_to_line_distance(circle.center, constraint.item1)
+        res = circle.radius - point_to_line_distance(circle.center, constraint.item1)
     elif is_line(constraint.item2):
         circle = constraint.item1
         res = circle.radius - point_to_line_distance(circle.center, constraint.item2)
@@ -158,6 +158,7 @@ def outer_tangent_eq(constraint):
         res = dist - (rad1 + rad2)
 
     return res
+
 
 def inner_tangent_eq(constraint):
     """Return the difference between the distance of the circles and the sum of the radii.
@@ -250,7 +251,7 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
     Returns:
         OptimizeResult: The optimization result represented as a `OptimizeResult` object.
     """
-    from scipy.optimize import minimize # this takes too long to import!!!
+    from scipy.optimize import minimize  # this takes too long to import!!!
 
     def objective(x):
         """Objective function for the minimization.

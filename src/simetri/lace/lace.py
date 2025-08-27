@@ -1,7 +1,7 @@
 """Simetri library's interlace objects."""
 
 from itertools import combinations
-from typing import Iterator, List, Any, Union
+from typing import Iterator, List, Any, Union, Sequence, Tuple
 from collections import OrderedDict
 
 import networkx as nx
@@ -30,7 +30,7 @@ from ..geometry.geometry import (
     close_points2,
     polygon_center,
     equal_lines,
-    lerp_point
+    lerp_point,
 )
 from ..helpers.graph import get_cycles
 from ..graphics.common import get_defaults, common_properties
@@ -177,6 +177,7 @@ array = np.array
 # * intersections have a point, division1, division2 attributes.
 # """
 
+
 class Intersection(Shape):
     """Intersection of two divisions. They are at the endpoints of Section
     objects. A division can have multiple sections and multiple
@@ -191,9 +192,17 @@ class Intersection(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
-    def __init__(self, point: tuple, division1: "Division", division2: "Division" = None,
-                 endpoint: bool = False, **kwargs) -> None:
-        super().__init__([point], xform_matrix=None, subtype=Types.INTERSECTION, **kwargs)
+    def __init__(
+        self,
+        point: tuple,
+        division1: "Division",
+        division2: "Division" = None,
+        endpoint: bool = False,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            [point], xform_matrix=None, subtype=Types.INTERSECTION, **kwargs
+        )
         self._point = point
         self.division1 = division1
         self.division2 = division2
@@ -937,7 +946,8 @@ class ParallelPolyline(Batch):
             vertices = list(polyline.vertices)
             vertices = vertices + [vertices[0]]
             offset_polygons = double_offset_polygons(
-                vertices, self.offset, dist_tol=self.dist_tol)
+                vertices, self.offset, dist_tol=self.dist_tol
+            )
         else:
             offset_polylines = double_offset_polylines(polyline.vertices, self.offset)
         polylines = []
@@ -957,10 +967,9 @@ class Lace(Batch):
     They are used to create interlace patterns.
 
     Args:
-        polygon_shapes (Union[Batch, list[Shape]], optional): List of polygon shapes. Defaults to None.
-        polyline_shapes (Union[Batch, list[Shape]], optional): List of polyline shapes. Defaults to None.
+        shapes (Union[Batch, list[Shape]], optional): Sequence of shapes.
         offset (float, optional): Offset value. Defaults to 2.
-        rtol (float, optional): Relative tolerance. Defaults to None.
+        rel_tol (float, optional): Relative tolerance. Defaults to None.
         swatch (list, optional): Swatch list. Defaults to None.
         breakpoints (list, optional): Breakpoints list. Defaults to None.
         plait_color (colors.Color, optional): Plait color. Defaults to None.
@@ -975,10 +984,9 @@ class Lace(Batch):
 
     def __init__(
         self,
-        polygon_shapes: Union[Batch, list[Shape]] = None,
-        polyline_shapes: Union[Batch, list[Shape]] = None,
+        shapes: Union[Batch, list[Shape]] = None,
         offset: float = 2,
-        rtol: float = None,
+        rel_tol: float = None,
         swatch: list = None,
         breakpoints: list = None,
         plait_color: colors.Color = None,
@@ -992,7 +1000,7 @@ class Lace(Batch):
     ) -> None:
         validate_args(kwargs, shape_style_map)
         (
-            rtol,
+            rel_tol,
             swatch,
             plait_color,
             draw_fragments,
@@ -1000,7 +1008,7 @@ class Lace(Batch):
             radius_threshold,
         ) = get_defaults(
             [
-                "rtol",
+                "rel_tol",
                 "swatch",
                 "plait_color",
                 "draw_fragments",
@@ -1008,7 +1016,7 @@ class Lace(Batch):
                 "radius_threshold",
             ],
             [
-                rtol,
+                rel_tol,
                 swatch,
                 plait_color,
                 draw_fragments,
@@ -1016,32 +1024,26 @@ class Lace(Batch):
                 radius_threshold,
             ],
         )
-        if polygon_shapes:
-            if isinstance(polygon_shapes, Batch):
-                polygon_shapes = polygon_shapes.merge_shapes()
-            elif isinstance(polygon_shapes, Shape):
-                polygon_shapes = Batch(polygon_shapes).merge_shapes()
-            self.polygon_shapes = self._check_polygons(polygon_shapes)
-        else:
-            self.polygon_shapes = []
-        if polyline_shapes:
-            if isinstance(polyline_shapes, Batch):
-                polyline_shapes = polyline_shapes.merge_shapes()
-            elif isinstance(polyline_shapes, List):
-                polyline_shapes = Batch(polyline_shapes).merge_shapes()
+        if isinstance(shapes, Shape):
+            shapes = sg.Batch([shapes])
+        if isinstance(shapes, (Batch, List, Tuple)):
+            polygon_shapes = Batch([shp for shp in shapes if shp.closed])
+            polyline_shapes = Batch([shp for shp in shapes if not shp.closed])
+            polygon_shapes = polygon_shapes.merge_shapes()
             polyline_shapes = polyline_shapes.merge_shapes()
-            self.polyline_shapes = self._check_polylines(polyline_shapes)
         else:
-            self.polyline_shapes = []
-        if not self.polygon_shapes and not self.polyline_shapes:
+            raise TypeError("Lace.__init__ : Invalid shapes argument.")
+
+        if not polygon_shapes and not polyline_shapes:
             msg = "Lace.__init__ : No polygons or polylines found."
             raise ValueError(msg)
+        self.polygon_shapes = polygon_shapes
         self.polyline_shapes = polyline_shapes
         self.offset = offset
         self.main_intersections = None
         self.offset_intersections = None
         self.xform_matrix = np.eye(3)
-        self.rtol = rtol
+        self.rel_tol = rel_tol
         self.swatch = swatch
         self.breakpoints = breakpoints
         self.plait_color = plait_color
@@ -1360,12 +1362,14 @@ class Lace(Batch):
         self.convex_hull = convex_hull(self.outline.vertices)
 
     def copy(self):
-        class Dummy(Lace):
-            pass
+        # class Dummy(Lace):
+        #     pass
 
         # we need to copy the polyline_list and parallel_poly_list
-        for polyline in self.polyline_list:
-            polyline.copy()
+        plaits = self.plaits[:]
+        fragments = self.fragments[:]
+
+        return Batch(plaits + fragments)
 
     def get_sketch(self):
         """
@@ -1422,17 +1426,21 @@ class Lace(Batch):
         sketch.draw_fragments = True
         return sketch
 
-    def group_fragments(self, tol=None):
+    def group_fragments(self, rel_tol=None, abs_tol=None):
         """Group the fragments by the number of vertices and the area.
 
         Args:
-            tol (float, optional): Tolerance value. Defaults to None.
+            rel_tol (float, optional): Relative tolerance value. Defaults to None.
+            abs_tol (float, optional): Absolute tolerance value. Defaults to None.
 
         Returns:
             list: List of grouped fragments.
         """
-        if tol is None:
-            tol = defaults["tol"]
+        if rel_tol is None:
+            rel_tol = defaults["rel_tol"]
+        if abs_tol is None:
+            abs_tol = defaults["abs_tol"]
+
         frags = self.fragments
         vert_groups = [
             [frag for frag in frags if len(frag.vertices) == n]
@@ -1441,7 +1449,7 @@ class Lace(Batch):
         groups = []
         for group in vert_groups:
             areas = [
-                [f for f in group if isclose(f.area, area, rtol=tol)]
+                [f for f in group if isclose(f.area, area, rel_tol=rel_tol, abs_tol=abs_tol)]
                 for area in set([frag.area for frag in group])
             ]
             areas.sort(key=lambda x: x[0].area, reverse=True)
@@ -1701,7 +1709,7 @@ class Lace(Batch):
                         self.offset,
                         lace=self,
                         closed=polyline.closed,
-                        dist_tol=defaults["dist_tol"]
+                        dist_tol=defaults["dist_tol"],
                     )
                 )
 
@@ -1761,7 +1769,6 @@ class Lace(Batch):
                 section.end.overlap = overlap
             self.overlaps.append(overlap)
 
-
     def _set_plait_ends(self):
         plaits = self.plaits
         for plait in plaits:
@@ -1781,19 +1788,18 @@ class Lace(Batch):
                                     if len(p.ends) == 2:
                                         break
 
-
     def _set_plait_connections(self):
         for plait in self.plaits:
             s = min(plait.ends) + 1
             n = len(plait)
             connections = []
             # print('s:', s, 'n:', n)
-            for i, j in enumerate(range(s, s + n //2)):
+            for i, j in enumerate(range(s, s + n // 2)):
                 k = (n + s - 1 - i) % n
                 connections.append((j, k))
             plait.connections = connections
 
-    def _set_plait_inner_lines(self, percent_offsets=(.5,), line_widths=(1,)):
+    def _set_plait_inner_lines(self, percent_offsets=(0.5,), line_widths=(1,)):
         self._set_plait_ends()
         self._set_plait_connections()
         for plait in self.plaits:
@@ -1997,21 +2003,21 @@ class Lace(Batch):
                 division.sections.append(section)
                 self.offset_sections.append(section)
 
-    def _all_polygons(self, polylines, rtol=None):
+    def _all_polygons(self, polylines, rel_tol=None):
         """Return a list of polygons from a list of lists of points.
         polylines: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
         return [[(x1, y1), (x2, y2), (x3, y3), ...], ...]
 
         Args:
             polylines (list): List of lists of points.
-            rtol (float, optional): Relative tolerance. Defaults to None.
+            rel_tol (float, optional): Relative tolerance. Defaults to None.
 
         Returns:
             list: List of polygons.
         """
-        if rtol is None:
-            rtol = self.rtol
-        return get_polygons(polylines, rtol)
+        if rel_tol is None:
+            rel_tol = self.rel_tol
+        return get_polygons(polylines, rel_tol)
 
     def _set_over_under(self):
         def next_poly(exclude):
@@ -2084,6 +2090,7 @@ class Lace(Batch):
         Returns:
             nx.Graph: Graph of connected fragments.
         """
+
         def get_neighbours(intersection):
             division = intersection.division
             if not division.next.twin:

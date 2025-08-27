@@ -4,23 +4,24 @@ If a style argument (a ShapeStyle object) is provided, then the style attributes
 of this ShapeStyle object will superseed the style attributes of the Shape object.
 """
 
-__all__ = ["Shape", "custom_attributes"]
+__all__ = ["Shape", "custom_attributes", "clip_shape", "clip_batch",
+           "all_segments", "get_loop"]
 
-import warnings
 from typing import Sequence, Union, List, Tuple
+from math import pi
 
 import numpy as np
-from numpy import array, allclose
+from numpy import around, array, allclose
 from numpy.linalg import inv
 import networkx as nx
 from typing_extensions import Self
 
 from .affine import identity_matrix
-from .all_enums import *
+from .all_enums import Types, Topology, shape_types
 from .bbox import BoundingBox
 from ..canvas.style_map import ShapeStyle, shape_style_map, shape_args
 from ..helpers.validation import validate_args
-from .common import Point, common_properties, Line
+from .common import Point, common_properties, Line, get_defaults
 from ..settings.settings import defaults
 from ..helpers.utilities import (
     get_transform,
@@ -35,8 +36,12 @@ from ..geometry.geometry import (
     polyline_length,
     close_points2,
     connected_pairs,
-    check_consecutive_duplicates,
     distance,
+    remove_duplicate_points,
+    multi_split_segment,
+    in_polygon,
+    midpoint,
+    angle_between_lines2,
 )
 from ..helpers.graph import Node, Graph, GraphEdge
 from .core import Base, StyleMixin
@@ -102,6 +107,7 @@ class Shape(Base, StyleMixin):
         else:
             self.closed, points = self._get_closed(points, closed)
             self.primary_points = Points(points)
+            self.primary_points.nd_array_changed = True
         self.xform_matrix = get_transform(xform_matrix)
         self.type = Types.SHAPE
         for key, value in kwargs.items():
@@ -134,7 +140,10 @@ class Shape(Base, StyleMixin):
         try:
             res = super().__getattr__(name)
         except AttributeError:
-            res = self.__dict__[name]
+            try:
+                res = self.__dict__[name]
+            except KeyError:
+                raise AttributeError(f"'Shape' object has no attribute '{name}'")
         return res
 
     def _get_closed(self, points: Sequence[Point], closed: bool):
@@ -208,14 +217,14 @@ class Shape(Base, StyleMixin):
         Raises:
             TypeError: If the subscript type is invalid.
         """
+        # Use cached final_coords instead of recalculating matrix multiplication
+        final_coords = self.final_coords
+
         if isinstance(subscript, slice):
-            coords = self.primary_points.homogen_coords
-            res = list(
-                coords[subscript.start : subscript.stop : subscript.step]
-                @ self.xform_matrix
-            )
+            res = [tuple(coord[:2]) for coord in final_coords[subscript]]
         else:
-            res = self.primary_points.homogen_coords[subscript] @ self.xform_matrix
+            coord = final_coords[subscript]
+            res = (coord[0], coord[1])
         return res
 
     def __setitem__(self, subscript, value):
@@ -236,9 +245,11 @@ class Shape(Base, StyleMixin):
             self.primary_points[subscript.start : subscript.stop : subscript.step] = [
                 tuple(x[:2]) for x in value
             ]
+            self.primary_points.nd_array_changed = True
         elif isinstance(subscript, int):
             value = homogenize([value]) @ inv(self.xform_matrix)
             self.primary_points[subscript] = tuple(value[0][:2])
+            self.primary_points.nd_array_changed = True
         else:
             raise TypeError("Invalid subscript type")
 
@@ -250,20 +261,21 @@ class Shape(Base, StyleMixin):
         """
         del self.primary_points[subscript]
 
-    def index(self, point: Point, atol=None) -> int:
+    def index(self, point: Point, abs_tol=None) -> int:
         """Return the index of the given point.
 
         Args:
             point (Point): The point to find the index of.
+            abs_tol (float, optional): Absolute tolerance for comparison. Defaults to None.
 
         Returns:
             int: The index of the point.
         """
         point = tuple(point[:2])
 
-        if atol is None:
-            atol = defaults["atol"]
-        ind = np.where((np.isclose(self.vertices, point, atol=atol)).all(axis=1))[0][0]
+        if abs_tol is None:
+            abs_tol = defaults["abs_tol"]
+        ind = np.where((np.isclose(self.vertices, point, atol=abs_tol)).all(axis=1))[0][0]
 
         return ind
 
@@ -332,7 +344,9 @@ class Shape(Base, StyleMixin):
         """
         return iter(self.vertices)
 
-    def _update(self, xform_matrix: array, reps: int = 0, merge: bool = False) -> Union['Shape', Batch]:
+    def _update(
+        self, xform_matrix: array, reps: int = 0, merge: bool = False
+    ) -> Union["Shape", Batch]:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -349,6 +363,11 @@ class Shape(Base, StyleMixin):
                 self.fillet_radius = fillet_radius * scale
 
             self.xform_matrix = self.xform_matrix @ xform_matrix
+            # Invalidate coordinate caches when transformation changes
+            if '_final_coords' in self.__dict__:
+                delattr(self, '_final_coords')
+            if '_vertices' in self.__dict__:
+                delattr(self, '_vertices')
             res = self
         else:
             shapes = [self]
@@ -388,9 +407,14 @@ class Shape(Base, StyleMixin):
             res = allclose(
                 self.xform_matrix,
                 other.xform_matrix,
-                rtol=defaults["rtol"],
-                atol=defaults["atol"],
-            ) and allclose(self.primary_points.nd_array, other.primary_points.nd_array)
+                rtol=defaults["rel_tol"],
+                atol=defaults["abs_tol"],
+            ) and allclose(
+                self.primary_points.nd_array,
+                other.primary_points.nd_array,
+                rtol=defaults["rel_tol"],
+                atol=defaults["abs_tol"]
+            )
         else:
             res = False
 
@@ -403,7 +427,6 @@ class Shape(Base, StyleMixin):
             bool: True if the shape has points, False otherwise.
         """
         return len(self.primary_points) > 0
-
 
     def is_clockwise(self) -> bool:
         """Check if the shape is oriented clockwise.
@@ -442,8 +465,6 @@ class Shape(Base, StyleMixin):
 
         return res
 
-
-
     def topology(self) -> Topology:
         """Return info about the topology of the shape.
 
@@ -470,6 +491,10 @@ class Shape(Base, StyleMixin):
             topology.discard(Topology.SIMPLE)
 
         return topology
+
+    def merge_collinears(self):
+        '''Merges collinear edges.'''
+        return Batch([self]).merge_shapes()[0]
 
     def merge(self, other, dist_tol: float = None) -> Union[Self, None]:
         """Merge two shapes if they are connected. Does not work for polygons.
@@ -526,12 +551,12 @@ class Shape(Base, StyleMixin):
         start1, end1 = verts1[0], verts1[-1]
         start2, end2 = verts2[0], verts2[-1]
         same_starts = close_points2(start1, start2, dist2=dist_tol2)
-        same_ends = close_points2(end1, end2, dist2=self.dist_tol2)
+        same_ends = close_points2(end1, end2, dist2=dist_tol2)
         if same_starts and same_ends:
             res = verts1
-        elif close_points2(end1, start2, dist2=self.dist_tol2):
+        elif close_points2(end1, start2, dist2=dist_tol2):
             verts2.pop(0)
-        elif close_points2(start1, end2, dist2=self.dist_tol2):
+        elif close_points2(start1, end2, dist2=dist_tol2):
             verts2.reverse()
             verts1.reverse()
             verts2.pop(0)
@@ -568,13 +593,15 @@ class Shape(Base, StyleMixin):
         """
         return close_points2(vertices[0][:2], vertices[-1][:2], dist2=self.dist_tol2)
 
-    def as_graph(self, directed=False, weighted=False, n_round=None) -> nx.Graph:
+    def as_graph(self, directed=False, weighted=False, n_round=None, cycles=False) -> nx.Graph:
         """Return the shape as a graph object.
 
         Args:
             directed (bool, optional): Whether the graph is directed, defaults to False.
             weighted (bool, optional): Whether the graph is weighted, defaults to False.
             n_round (int, optional): The number of decimal places to round to, defaults to None.
+
+            cycles (bool, optional): If True, cycles are returned.
 
         Returns:
             Graph: The graph object.
@@ -608,18 +635,22 @@ class Shape(Base, StyleMixin):
             subtype = Types.NONE
         pairs = [(e.start.id, e.end.id) for e in edges]
         try:
-            cycles = nx.cycle_basis(nx_graph)
+            cycles_ = nx.cycle_basis(nx_graph)
         except nx.exception.NetworkXNoCycle:
-            cycles = None
+            cycles_ = None
 
         if cycles:
             n = len(cycles)
-            for cycle in cycles:
+            for cycle in cycles_:
                 cycle.append(cycle[0])
             if n == 1:
                 cycle = cycles[0]
         else:
-            cycles = None
+            cycles_ = None
+
+        if cycles:
+            return cycles_
+
         graph = Graph(type=graph_type, subtype=subtype, nx_graph=nx_graph)
         return graph
 
@@ -633,7 +664,8 @@ class Shape(Base, StyleMixin):
             ndarray: The vertices as an array.
         """
         if homogeneous:
-            res = self.primary_points.nd_array @ self.xform_matrix
+            # Use cached final_coords to avoid redundant matrix multiplication
+            res = self.final_coords
         else:
             res = array(self.vertices)
         return res
@@ -654,9 +686,12 @@ class Shape(Base, StyleMixin):
             ndarray: The final coordinates of the shape.
         """
         if self.primary_points:
-            res = self.primary_points.homogen_coords @ self.xform_matrix
+            # Cache the expensive matrix multiplication
+            if '_final_coords' not in self.__dict__ or self.primary_points.nd_array_changed:
+                self._final_coords = self.primary_points.homogen_coords @ self.xform_matrix
+            res = self._final_coords
         else:
-            res = []
+            res = array([])
 
         return res
 
@@ -667,10 +702,17 @@ class Shape(Base, StyleMixin):
         Returns:
             tuple: The final coordinates of the shape.
         """
+
         if self.primary_points:
-            res = tuple(((x[0], x[1]) for x in (self.final_coords[:, :2])))
+            # Cache vertices computation and only recompute when data changes
+            if '_vertices' not in self.__dict__ or self.primary_points.nd_array_changed:
+                res = tuple(((x[0], x[1]) for x in (self.final_coords[:, :2])))
+                self._vertices = res
+                self.primary_points.nd_array_changed = False
+            else:
+                res = self._vertices
         else:
-            res = []
+            res = ()
 
         return res
 
@@ -754,6 +796,11 @@ class Shape(Base, StyleMixin):
         self.style = ShapeStyle()
         self._set_aliases()
         self._b_box = None
+        # Clear coordinate caches
+        if '_final_coords' in self.__dict__:
+            delattr(self, '_final_coords')
+        if '_vertices' in self.__dict__:
+            delattr(self, '_vertices')
 
         return self
 
@@ -843,7 +890,9 @@ class Shape(Base, StyleMixin):
 
         return self
 
-    def reorder_vertices(self, value:Point, index:int=0, tol:float=None) -> Union['Shape', None]:
+    def reorder_vertices(
+        self, value: Point, index: int = 0, tol: float = None
+    ) -> Union["Shape", None]:
         """If index is not given, the vertex with the given value will be
         the first index.
         If index is given, the vertex with the given value will be
@@ -872,8 +921,10 @@ class Shape(Base, StyleMixin):
             else:
                 if tol is None:
                     tol = defaults["dist_tol"]
-                dist, ind = min([(distance(value, v), i) for i, v in enumerate(vertices)],
-                                key=lambda x: x[0])
+                dist, ind = min(
+                    [(distance(value, v), i) for i, v in enumerate(vertices)],
+                    key=lambda x: x[0],
+                )
                 if dist < tol:
                     cur_index = ind
                 else:
@@ -902,6 +953,63 @@ class Shape(Base, StyleMixin):
 
         return res
 
+def clip_batch(batch:Batch, clipper:Shape, exclude_clipper: bool = True, dist_tol=.01):
+    '''
+    batch Batch: batch to be clipped
+    clipper Shape: clipping region
+    exclude_clipper bool: If True, clipper's edges are excluded.
+    '''
+    res = Batch()
+    for shp in batch.all_shapes:
+        res.append(clip_shape(shp, clipper, exclude_clipper, dist_tol))
+
+    return res
+
+def clip_shape(shape: 'Shape', clipper: 'Shape', exclude_clipper: bool = False,
+                                                    dist_tol: float =.01):
+    '''
+    shape Shape: shape to be clipped
+    clipper Shape: clipping region
+    exclude_clipper bool: If True, clipper's edges are excluded.
+    '''
+    if not clipper.closed:
+        raise Warning("Clipper shape is not closed")
+
+    n_shape = len(shape)
+    segments = ([[p1[:2], p2[:2]] for (p1, p2) in shape.edges] +
+                [[p1[:2], p2[:2]] for (p1, p2) in clipper.edges])
+    intersections = all_intersections(segments)
+
+    all_segments = []
+    for key, value in intersections[0].items():
+        segment = segments[key]
+        points = [x[0] for x in value]
+        points = remove_duplicate_points(points)
+        all_segments.append(multi_split_segment(segment, points))
+
+    clipped = Batch()
+    shape_vertices = shape.vertices
+    polygon = clipper.vertices
+    if shape.closed:
+        max_i = n_shape
+    else:
+        max_i = n_shape - 1
+    for i, segs in enumerate(all_segments):
+        if i >= max_i:
+            if not shape.closed or exclude_clipper:
+                break
+            polygon = shape_vertices
+        for seg in segs:
+            if distance(*seg) > dist_tol:
+                if in_polygon(midpoint(*seg), polygon):
+                    clipped.append(Shape(seg))
+
+    clipped = clipped.merge_shapes()
+    if len(clipped) == 1:
+        clipped = clipped[0]
+
+    return clipped
+
 
 def custom_attributes(item: Shape) -> List[str]:
     """Return a list of custom attributes of a Shape or Batch instance.
@@ -923,3 +1031,102 @@ def custom_attributes(item: Shape) -> List[str]:
     custom_attribs = set(dir(item)) - native_attribs
 
     return list(custom_attribs)
+
+def all_segments(item: Union[Shape, Batch], n_round: int = 1,
+                 rel_tol: float = None, abs_tol: float = None):
+    '''
+        Get all line segments from a Shape or Batch instance.
+        Args:
+            item (Union[Shape, Batch]): The input shape or batch.
+            n_round (int): The number of decimal places to round segment coordinates.
+            rel_tol (float): The relative tolerance for segment comparison.
+            abs_tol (float): The absolute tolerance for segment comparison.
+        Returns:
+            List[Line]: A list of line segments.
+    '''
+
+    rel_tol, abs_tol = get_defaults(['rel_tol', 'abs_tol'], [rel_tol, abs_tol])
+    if isinstance(item, Batch):
+        shapes = item.all_shapes
+    else:
+        shapes = [item]
+    edges = []
+    for shp in shapes:
+        edges.extend(shp.edges)
+    segments = ([[p1[:2], p2[:2]] for (p1, p2) in edges])
+    intersections = all_intersections(segments)
+
+    all_segments_ = []
+    for key, value in intersections[0].items():
+        segment = segments[key]
+        points = [x[0] for x in value]
+        points = remove_duplicate_points(points)
+        all_segments_.append(multi_split_segment(segment, points))
+
+    edges = []
+    for segs in all_segments_:
+        for seg in segs:
+            if distance(*seg) < .1:
+                continue
+            seg = around((seg), n_round)
+            seg = (tuple(seg[0]), tuple(seg[1]))
+            edges.append(seg)
+
+    return edges
+
+def get_loop(edges: Sequence[Line], start_edge: Line):
+    '''
+    Find a loop in a set of edges starting from a given edge.
+        Args:
+            edges (Sequence[Line]): The set of edges to search.
+            start_edge (Line): The edge to start the search from.
+        Returns:
+            Shape: A shape representing the found loop, or an empty shape if no loop is found.
+    '''
+    G = nx.Graph()
+    G.add_edges_from(edges)
+
+    res = [*start_edge]
+    start_node = start_edge[0]
+    cur_node = start_edge[1]
+    cur_edge = start_edge
+    open_ = True
+    while open_:
+        edges_cur_node = set(G.edges(cur_node))
+        angles = []
+        for edge in edges_cur_node:
+            if (edge[1], edge[0]) == cur_edge:
+                continue
+            if edge[1] == start_node:
+                open_ = False
+                break
+            angle = angle_between_lines2(*cur_edge, edge[1])
+            pi_ = round(pi, 2)
+            if round(angle, 2) not in [0, -pi_, pi_, 2*pi_]:
+                angles.append((angle, edge))
+        angles.sort()
+        if not angles:
+            break
+        cur_edge = angles[0][1]
+        cur_node = cur_edge[1]
+        res.append(cur_node)
+
+    return Shape(res, closed=not(open_))
+
+def get_partition(item: Union[Shape, Batch], edge_index: int, ccw: bool=True) -> Shape:
+    '''
+        Get a sub-region from a shape or batch object.
+        Draw the segments by using canvas.draw_split_segments first to get the indices.
+        Args:
+            item Union[Shape, Batch]: A shape or a batch object.
+            edge_index int: Index of the starting edge of the partition.
+            ccw bool: If True, the region is formed by looping in
+            counterclockwise direction, clockwise otherwise.
+
+        Returns:
+            The resulting shape object.
+    '''
+
+    edges = all_segments(item)
+
+    return get_loop(edges, edges[edge_index])

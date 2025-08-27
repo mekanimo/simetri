@@ -28,7 +28,8 @@ two_pi = 2 * pi  # 360 degrees
 tau = 2 * pi  # 360 degrees
 phi = (1 + 5**0.5) / 2  # golden ratio
 
-_d_id_obj = {}  # dictionary of obj.id: obj, use get_item_by_id(id)
+d_id_obj = {}  # dictionary of obj.id: obj, use get_item_by_id(id)
+
 
 def common_properties(obj, graphics_object=True, id_only=False):
     """
@@ -40,12 +41,13 @@ def common_properties(obj, graphics_object=True, id_only=False):
         id_only (bool, optional): Whether to set only the id. Defaults to False.
     """
     obj.id = get_unique_id(obj)
-    _d_id_obj[obj.id] = obj
+    d_id_obj[obj.id] = obj
     if id_only:
         return
     obj.active = True
     if graphics_object:
         obj.visible = True
+
 
 def gen_unique_ids() -> Iterator[int]:
     """
@@ -60,6 +62,7 @@ def gen_unique_ids() -> Iterator[int]:
         yield id_
         id_ += 1
 
+
 def get_item_by_id(id_: int) -> Any:
     """
     Return an object by its id.
@@ -70,15 +73,17 @@ def get_item_by_id(id_: int) -> Any:
     Returns:
         Any: The object with the given id.
     """
-    return _d_id_obj[id_]
+    return d_id_obj[id_]
+
 
 unique_id = gen_unique_ids()
+
 
 def get_unique_id(item) -> int:
     """
     Return a unique id.
     Every object in Simetri has a unique id.
-    Register the object in _d_id_obj.
+    Register the object in d_id_obj.
 
     Args:
         item (Any): The object to get a unique id for.
@@ -87,8 +92,9 @@ def get_unique_id(item) -> int:
         int: The unique id.
     """
     id_ = next(unique_id)
-    _d_id_obj[id_] = item
+    d_id_obj[id_] = item
     return id_
+
 
 origin = (0.0, 0.0)  # used for a point at the origin
 axis_x = (origin, (1.0, 0.0))  # used for a line along x axis
@@ -104,6 +110,7 @@ axis_hex = (
 i_vec = Vector2D(1.0, 0.0)  # x direction unit vector
 j_vec = Vector2D(0.0, 1.0)  # y direction unit vector
 
+
 def _set_Nones(obj, args, values):
     """
     Internally used in instance construction to set default values for None values.
@@ -118,6 +125,7 @@ def _set_Nones(obj, args, values):
             setattr(obj, arg, defaults[arg])
         else:
             setattr(obj, arg, values[i])
+
 
 def get_defaults(args, values):
     """

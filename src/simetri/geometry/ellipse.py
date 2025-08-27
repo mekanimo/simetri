@@ -2,7 +2,7 @@
 
 import cmath
 from copy import deepcopy
-from math import cos, sin, pi, atan2, sqrt, degrees, ceil
+from math import cos, sin, pi, atan2, sqrt, degrees, ceil, isclose
 
 import numpy as np
 
@@ -23,7 +23,7 @@ from ..canvas.style_map import shape_style_map
 from ..settings.settings import defaults
 from ..helpers.utilities import solve_quadratic_eq
 
-isclose = np.isclose
+
 
 
 class Arc(Shape):
@@ -271,7 +271,7 @@ class Ellipse(Shape):
         return ellipse
 
 
-def ellipse_tangent(a, b, x, y, tol=0.001):
+def ellipse_tangent(a, b, x, y, abs_tol=0.001):
     """Calculates the angle of the tangent line to an ellipse at the point (x, y).
 
     Args:
@@ -279,15 +279,14 @@ def ellipse_tangent(a, b, x, y, tol=0.001):
         b (float): Semi-minor axis of the ellipse.
         x (float): x-coordinate of the point.
         y (float): y-coordinate of the point.
-        tol (float, optional): Tolerance for point on ellipse check. Defaults to .001.
+        abs_tol (float, optional): Tolerance for point on ellipse check. Defaults to .001.
 
     Returns:
         float: Angle of the tangent line in radians.
     """
-    if abs((x**2 / a**2) + (y**2 / b**2) - 1) >= tol:
+    if abs((x**2 / a**2) + (y**2 / b**2) - 1) >= abs_tol:
         res = False
     else:
-        # res = atan2(-(b**2 * x), (a**2 * y))
         res = atan2((b**2 * x), -(a**2 * y))
 
     return res

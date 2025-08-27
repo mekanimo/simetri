@@ -23,7 +23,7 @@ from ..geometry.geometry import (
     positive_angle,
     polar_to_cartesian,
     sine_points,
-    close_points2
+    close_points2,
 )
 from ..geometry.ellipse import (
     ellipse_point,
@@ -63,7 +63,7 @@ class LinPath(Batch, StyleMixin):
     Path objects can be transformed like other Shape and Batch objects.
     """
 
-    def __init__(self, start: Point = (0, 0), angle: float = pi/2, **kwargs):
+    def __init__(self, start: Point = (0, 0), angle: float = pi / 2, **kwargs):
         """Initialize a Path object.
 
         Args:
@@ -157,7 +157,7 @@ class LinPath(Batch, StyleMixin):
                 self.handles.append((data[0], data[1]))
                 self.handles.append((data[1], data[2]))
         elif op_type in [PO.HOBBY_TO]:
-            n_points = defaults['n_hobby_points']
+            n_points = defaults["n_hobby_points"]
             curve = hobby_shape(data[1], n_points=n_points)
             self.objects.append(Shape(curve.vertices))
         elif op_type in [PO.ARC, PO.BLEND_ARC]:
@@ -353,7 +353,6 @@ class LinPath(Batch, StyleMixin):
 
         return self
 
-
     def move_to(self, point: Point, **kwargs) -> Self:
         """Move the path to a new point.
 
@@ -439,10 +438,14 @@ class LinPath(Batch, StyleMixin):
             Path: The path object.
         """
 
-        self._add(points[-1], PathOps.SEGMENTS, (self.pos, points), pnt2=points[-2], **kwargs)
+        self._add(
+            points[-1], PathOps.SEGMENTS, (self.pos, points), pnt2=points[-2], **kwargs
+        )
         return self
 
-    def cubic_to(self, control1: Point, control2: Point, end: Point, *args, **kwargs) -> Self:
+    def cubic_to(
+        self, control1: Point, control2: Point, end: Point, *args, **kwargs
+    ) -> Self:
         """Add a Bézier curve with two control points to the path. Multiple blended curves can be added
         by providing additional arguments.
 
@@ -478,7 +481,6 @@ class LinPath(Batch, StyleMixin):
         self._add(points[-1], PathOps.HOBBY_TO, (self.pos, points))
         return self
 
-
     def quad_to(self, control: Point, end: Point, *args, **kwargs) -> Self:
         """Add a quadratic Bézier curve to the path. Multiple blended curves can be added by providing
         additional arguments.
@@ -496,7 +498,11 @@ class LinPath(Batch, StyleMixin):
             ValueError: If an argument does not have exactly two elements.
         """
         self._add(
-            end, PathOps.QUAD_TO, (self.pos[:2], control, end[:2]), pnt2=control, **kwargs
+            end,
+            PathOps.QUAD_TO,
+            (self.pos[:2], control, end[:2]),
+            pnt2=control,
+            **kwargs,
         )
         pos = end
         for arg in args:
@@ -517,7 +523,9 @@ class LinPath(Batch, StyleMixin):
                 pos = end
         return self
 
-    def blend_cubic(self, control1_length, control2: Point, end: Point, **kwargs) -> Self:
+    def blend_cubic(
+        self, control1_length, control2: Point, end: Point, **kwargs
+    ) -> Self:
         """Add a cubic Bézier curve to the path where the first control point is computed based on a length.
 
         Args:
@@ -766,7 +774,7 @@ class LinPath(Batch, StyleMixin):
             if obj is not None and obj.vertices:
                 obj_verts = obj.vertices
                 if last_vert:
-                    if close_points2(last_vert,  obj_verts[0], dist_tol2):
+                    if close_points2(last_vert, obj_verts[0], dist_tol2):
                         vertices.extend(obj_verts[1:])
                     else:
                         vertices.extend(obj_verts)

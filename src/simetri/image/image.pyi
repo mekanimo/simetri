@@ -1,18 +1,16 @@
 from typing import List, Optional, Union
 
-
 class Image:
     def __init__(self, *args, **kwargs):
         pass
 
-
 def supported_formats() -> List[str]:
     """Generates a list of supported image formats available in your system.
-        Returns:
-            List[str]: A list of supported image formats available in your system.
+    Returns:
+        List[str]: A list of supported image formats available in your system.
     """
 
-def open(self, fp, mode='r', formats=None):
+def open(self, fp, mode="r", formats=None):
     """
     Open an image file and return an Image object.
 
@@ -24,7 +22,6 @@ def open(self, fp, mode='r', formats=None):
     Returns:
         Image object.
     """
-
 
 def alpha_composite(self, im, dest=None):
     """
@@ -110,7 +107,7 @@ def fromarrow(self, obj):
         A new Image object.
     """
 
-def frombytes(self, mode, size, data, decoder_name='raw', *args):
+def frombytes(self, mode, size, data, decoder_name="raw", *args):
     """
     Create an image from bytes.
 
@@ -124,7 +121,7 @@ def frombytes(self, mode, size, data, decoder_name='raw', *args):
         A new Image object.
     """
 
-def frombuffer(self, mode, size, data, decoder_name='raw', *args):
+def frombuffer(self, mode, size, data, decoder_name="raw", *args):
     """
     Create an image from a buffer.
 
@@ -183,7 +180,6 @@ def radial_gradient(self, *args, **kwargs):
     Returns:
         A new Image object with the radial gradient.
     """
-
 
 def preinit(self, mode, size):
     """
@@ -280,7 +276,6 @@ def registered_extensions(self, format):
     Returns:
         A list of registered file extensions.
     """
-
 
 def register_decoder(self, format, decoder):
     """

@@ -18,6 +18,7 @@ def display(canvas):
 
     """
     # open a temporary directory
+    # this doesn't work with Python 3.9
     with tempfile.TemporaryDirectory(
         ignore_cleanup_errors=True, delete=True
     ) as tmpdirname:

@@ -34,10 +34,12 @@ from ..graphics.all_enums import (
 )
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..settings.settings import defaults, tikz_defaults
-from ..geometry.geometry import (homogenize,
-                                 polar_to_cartesian,
-                                 cartesian_to_polar,
-                                 round_point)
+from ..geometry.geometry import (
+    homogenize,
+    polar_to_cartesian,
+    cartesian_to_polar,
+    round_point,
+)
 from ..graphics.sketch import TagSketch, ShapeSketch
 
 from ..colors.colors import Color
@@ -117,8 +119,8 @@ class Tex:
         self.begin_document = self.begin_document + back_color + "\n"
         if canvas.overlay:
             begin_t = self.begin_tikz
-            i = begin_t.index(']\n')
-            overlay = ', remember picture, overlay'
+            i = begin_t.index("]\n")
+            overlay = ", remember picture, overlay"
             self.begin_tikz = begin_t[:i] + overlay + begin_t[i:]
         if canvas.limits is not None or canvas.inset != 0:
             begin_tikz = self.begin_tikz + get_limits_code(canvas) + "\n"
@@ -195,7 +197,7 @@ class Tex:
             str: The required TeX packages.
         """
         tikz_libraries = []
-        tikz_packages = ['tikz', 'pgf']
+        tikz_packages = ["tikz", "pgf"]
 
         for page in canvas.pages:
             for sketch in page.sketches:
@@ -204,26 +206,32 @@ class Tex:
                         if "fadings" not in tikz_libraries:
                             tikz_libraries.append("fadings")
                 if hasattr(sketch, "draw_frame") and sketch.draw_frame:
-                    if hasattr(sketch, "frame_shape") and sketch.frame_shape != FrameShape.RECTANGLE:
+                    if (
+                        hasattr(sketch, "frame_shape")
+                        and sketch.frame_shape != FrameShape.RECTANGLE
+                    ):
                         if "shapes.geometric" not in tikz_libraries:
                             tikz_libraries.append("shapes.geometric")
                 if hasattr(sketch, "draw_markers") and sketch.draw_markers:
-                    if 'patterns' not in tikz_libraries:
+                    if "patterns" not in tikz_libraries:
                         tikz_libraries.append("patterns")
                         tikz_libraries.append("patterns.meta")
                         tikz_libraries.append("backgrounds")
                         tikz_libraries.append("shadings")
                 if hasattr(sketch, "line_dash_array") and sketch.line_dash_array:
-                    if 'patterns' not in tikz_libraries:
+                    if "patterns" not in tikz_libraries:
                         tikz_libraries.append("patterns")
                 if sketch.subtype == Types.TAG_SKETCH:
                     if "fontspec" not in tikz_packages:
                         tikz_packages.append("fontspec")
                 else:
-                    if hasattr(sketch, "marker_type") and sketch.marker_type == "indices":
+                    if (
+                        hasattr(sketch, "marker_type")
+                        and sketch.marker_type == "indices"
+                    ):
                         if "fontspec" not in tikz_packages:
                             tikz_packages.append("fontspec")
-                if hasattr(sketch, 'back_style'):
+                if hasattr(sketch, "back_style"):
                     if sketch.back_style == BackStyle.COLOR:
                         if "xcolor" not in tikz_packages:
                             tikz_packages.append("xcolor")
@@ -234,7 +242,6 @@ class Tex:
                         if "patterns" not in tikz_libraries:
                             tikz_libraries.append("patterns")
                             tikz_libraries.append("patterns.meta")
-
 
         return tikz_libraries, tikz_packages
 
@@ -250,14 +257,14 @@ class Tex:
         libraries, packages = self.get_packages(canvas)
 
         if packages:
-            packages = f'\\usepackage{{{",".join(packages)}}}\n'
-            if 'fontspec' in packages:
-                fonts_section = f"""\\setmainfont{{{defaults['main_font']}}}
-\\setsansfont{{{defaults['sans_font']}}}
-\\setmonofont{{{defaults['mono_font']}}}\n"""
+            packages = f"\\usepackage{{{','.join(packages)}}}\n"
+            if "fontspec" in packages:
+                fonts_section = f"""\\setmainfont{{{defaults["main_font"]}}}
+\\setsansfont{{{defaults["sans_font"]}}}
+\\setmonofont{{{defaults["mono_font"]}}}\n"""
 
         if libraries:
-            libraries = f'\\usetikzlibrary{{{",".join(libraries)}}}\n'
+            libraries = f"\\usetikzlibrary{{{','.join(libraries)}}}\n"
 
         if canvas.border is None:
             border = defaults["border"]
@@ -372,6 +379,7 @@ def get_limits_code(canvas: "Canvas") -> str:
 
     return f"\\clip plot[] coordinates {{{coords}}};\n"
 
+
 def get_back_code(canvas: "Canvas") -> str:
     """Get the background code for the canvas.
 
@@ -420,9 +428,11 @@ def get_tex_code(canvas: "Canvas") -> str:
             if sketch.location == TexLoc.NONE:
                 code = sketch.code
         else:
-            if (hasattr(sketch, "draw_markers") and
-                sketch.draw_markers and
-                sketch.marker_type == MarkerType.INDICES):
+            if (
+                hasattr(sketch, "draw_markers")
+                and sketch.draw_markers
+                and sketch.marker_type == MarkerType.INDICES
+            ):
                 code = draw_shape_sketch(sketch, ind)
                 ind += 1
             else:
@@ -681,6 +691,7 @@ def draw_batch_sketch(sketch, canvas):
 
     return res
 
+
 def draw_bbox_sketch(sketch):
     """Converts a BBoxSketch to TikZ code.
 
@@ -696,7 +707,7 @@ def draw_bbox_sketch(sketch):
         "line_width": "line width",
         "line_dash_array": "dash pattern",
         "double_color": "double",
-        "double_distance": "double distance"
+        "double_distance": "double distance",
     }
     attrib_list = ["line_color", "line_width", "line_dash_array"]
     options = sg_to_tikz(sketch, attrib_list, attrib_map)
@@ -707,6 +718,7 @@ def draw_bbox_sketch(sketch):
     res += f"({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
     return res
+
 
 def draw_lace_sketch(item):
     """Converts a LaceSketch to TikZ code.
@@ -757,19 +769,19 @@ def get_draw(sketch):
     if hasattr(sketch, "markers_only") and sketch.markers_only:
         res = "\\draw"
     else:
-        if hasattr(sketch, 'back_style'):
+        if hasattr(sketch, "back_style"):
             shading = sketch.back_style == BackStyle.SHADING
         else:
             shading = False
-        if not hasattr(sketch, 'closed'):
+        if not hasattr(sketch, "closed"):
             closed = False
         else:
             closed = sketch.closed
-        if not hasattr(sketch, 'fill'):
+        if not hasattr(sketch, "fill"):
             fill = False
         else:
             fill = sketch.fill
-        if not hasattr(sketch, 'stroke'):
+        if not hasattr(sketch, "stroke"):
             stroke = False
         else:
             stroke = sketch.stroke
@@ -817,45 +829,49 @@ def draw_tag_sketch(sketch):
     Returns:
         str: The TikZ code for the TagSketch.
     """
+
     # \node at (0,0) {some text};
     def get_font_family(sketch):
-        default_fonts = [defaults['main_font'], defaults['sans_font'], defaults['mono_font']]
+        default_fonts = [
+            defaults["main_font"],
+            defaults["sans_font"],
+            defaults["mono_font"],
+        ]
 
         if sketch.font_family in default_fonts:
-            if sketch.font_family == defaults['main_font']:
-                res = 'tex_family', ''
-            elif sketch.font_family == defaults['sans_font']:
-                res = 'tex_family', 'textsf'
-            else: # defaults['mono_font']
-                res = 'tex_family', 'texttt'
+            if sketch.font_family == defaults["main_font"]:
+                res = "tex_family", ""
+            elif sketch.font_family == defaults["sans_font"]:
+                res = "tex_family", "textsf"
+            else:  # defaults['mono_font']
+                res = "tex_family", "texttt"
         elif sketch.font_family:
             if isinstance(sketch.font_family, FontFamily):
                 if sketch.font_family == FontFamily.SANSSERIF:
-                    res = 'tex_family', 'textsf'
+                    res = "tex_family", "textsf"
                 elif sketch.font_family == FontFamily.MONOSPACE:
-                    res = 'tex_family', 'texttt'
+                    res = "tex_family", "texttt"
                 else:
-                    res = 'tex_family', 'textrm'
+                    res = "tex_family", "textrm"
 
             elif isinstance(sketch.font_family, str):
-                res = 'new_family', sketch.font_family.replace(" ", "")
+                res = "new_family", sketch.font_family.replace(" ", "")
 
             else:
                 raise ValueError(f"Font family {sketch.font_family} not supported.")
         else:
-            res = 'no_family', None
+            res = "no_family", None
 
         return res
 
     def get_font_size(sketch):
-
         if sketch.font_size:
             if isinstance(sketch.font_size, FontSize):
-                res = 'tex_size', sketch.font_size.value
+                res = "tex_size", sketch.font_size.value
             else:
-                res = 'num_size', sketch.font_size
+                res = "num_size", sketch.font_size
         else:
-            res = 'no_size', None
+            res = "no_size", None
 
         return res
 
@@ -870,7 +886,7 @@ def draw_tag_sketch(sketch):
                 options += f", {sketch.frame_shape}, "
             line_style_options = get_line_style_options(sketch)
             if line_style_options:
-                options += ', ' + ', '.join(line_style_options)
+                options += ", " + ", ".join(line_style_options)
             if sketch.frame_inner_sep:
                 options += f", inner sep={sketch.frame_inner_sep}"
             if sketch.minimum_width:
@@ -896,63 +912,62 @@ def draw_tag_sketch(sketch):
     if sketch.text_width:
         options += f", text width={sketch.text_width}"
 
+    # no_family, tex_family, new_family
+    # no_size, tex_size, num_size
 
-# no_family, tex_family, new_family
-# no_size, tex_size, num_size
+    # num_size and new_family {\fontsize{20}{24} \selectfont \Verdana ABCDEFG Hello, World! 25}
+    # tex_size and new_family {\large{\selectfont \Verdana ABCDEFG Hello, World! 50}}
+    # no_size and new_family {\selectfont \Verdana ABCDEFG Hello, World! 50}
 
-# num_size and new_family {\fontsize{20}{24} \selectfont \Verdana ABCDEFG Hello, World! 25}
-# tex_size and new_family {\large{\selectfont \Verdana ABCDEFG Hello, World! 50}}
-# no_size and new_family {\selectfont \Verdana ABCDEFG Hello, World! 50}
+    # tex_family {\textsc{\textit{\textbf{\Huge{\texttt{ABCDG Just a test -50}}}}}};
 
-# tex_family {\textsc{\textit{\textbf{\Huge{\texttt{ABCDG Just a test -50}}}}}};
-
-# no_family {\textsc{\textit{\textbf{\Huge{ABCDG Just a test -50}}}}};
+    # no_family {\textsc{\textit{\textbf{\Huge{ABCDG Just a test -50}}}}};
 
     if sketch.font_color is not None and sketch.font_color != defaults["font_color"]:
         options += f", text={color2tikz(sketch.font_color)}"
     family, font_family = get_font_family(sketch)
     size, font_size = get_font_size(sketch)
-    tex_text = ''
+    tex_text = ""
     if sketch.small_caps:
-        tex_text += '\\textsc{'
+        tex_text += "\\textsc{"
 
     if sketch.italic:
-        tex_text += '\\textit{'
+        tex_text += "\\textit{"
 
     if sketch.bold:
-        tex_text += '\\textbf{'
+        tex_text += "\\textbf{"
 
-    if size == 'num_size':
+    if size == "num_size":
         f_size = font_size
         f_size2 = ceil(font_size * 1.2)
         tex_text += f"\\fontsize{{{f_size}}}{{{f_size2}}}\\selectfont "
 
-    elif size == 'tex_size':
+    elif size == "tex_size":
         tex_text += f"\\{font_size}{{\\selectfont "
 
     else:
         tex_text += "\\selectfont "
 
-    if family == 'new_family':
+    if family == "new_family":
         tex_text += f"\\{font_family} {sketch.text}}}"
 
-    elif family == 'tex_family':
+    elif family == "tex_family":
         if font_family:
             tex_text += f"\\{font_family}{{ {sketch.text}}}}}"
         else:
             tex_text += f"{{ {sketch.text}}}"
-    else: # no_family
+    else:  # no_family
         tex_text += f"{{ {sketch.text}}}"
 
-    tex_text = '{' + tex_text
+    tex_text = "{" + tex_text
 
-    open_braces = tex_text.count('{')
-    close_braces = tex_text.count('}')
-    tex_text = tex_text + '}' * (open_braces - close_braces)
+    open_braces = tex_text.count("{")
+    close_braces = tex_text.count("}")
+    tex_text = tex_text + "}" * (open_braces - close_braces)
 
     res.append(f"\\node[{options}] at ({x}, {y}) {tex_text};\n")
 
-    return ''.join(res)
+    return "".join(res)
 
 
 def get_dash_pattern(line_dash_array):
@@ -988,7 +1003,7 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
         list: The TikZ options as a list.
     """
     skip = ["marker_color", "fill_color"]
-    tikz_way = {'line_width':LineWidth, 'line_dash_array':LineDashArray}
+    tikz_way = {"line_width": LineWidth, "line_dash_array": LineDashArray}
     if exceptions:
         skip += exceptions
     d_converters = {
@@ -1019,7 +1034,7 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
         if hasattr(sketch, attrib):
             value = getattr(sketch, attrib)
             if value is not None and tikz_attrib in list(attrib_map.values()):
-                if attrib in ['smooth', 'draw_double']: # boolean values
+                if attrib in ["smooth", "draw_double"]:  # boolean values
                     if value:
                         options.append(attrib)
 
@@ -1072,8 +1087,8 @@ def get_line_style_options(sketch, exceptions=None):
         else:
             attribs.remove("line_alpha")
         if not sketch.draw_double:
-            attribs.remove('double_color')
-            attribs.remove('double_distance')
+            attribs.remove("double_color")
+            attribs.remove("double_distance")
         if not sketch.smooth:
             attribs.remove("smooth")
         res = sg_to_tikz(sketch, attribs, attrib_map, conditions, exceptions)
@@ -1127,6 +1142,7 @@ def get_axis_shading_colors(sketch):
     Returns:
         str: The shading colors for the axis.
     """
+
     def get_color(color, color_key):
         if isinstance(color, Color):
             res = color2tikz(color)
@@ -1356,7 +1372,7 @@ def draw_shape_sketch_with_indices(sketch, index=0):
         offset = sketch.ind_offset
         if isinstance(offset[0], float):
             dx, dy = offset[:2]
-            indices = [str((x+dx, y+dy)) for (x, y) in vertices]
+            indices = [str((x + dx, y + dy)) for (x, y) in vertices]
         else:
             # offset is in polar coordinates
             center, offset_val = offset
@@ -1364,7 +1380,7 @@ def draw_shape_sketch_with_indices(sketch, index=0):
             for vert in vertices:
                 x, y = vert[:2]
                 r, theta = cartesian_to_polar(x, y, center)
-                new_x, new_y = polar_to_cartesian(r+offset_val, theta, center)
+                new_x, new_y = polar_to_cartesian(r + offset_val, theta, center)
                 indices.append(f"({new_x}, {new_y})")
     else:
         indices = [str(x) for x in vertices]
@@ -1386,12 +1402,11 @@ def draw_shape_sketch_with_indices(sketch, index=0):
         str_lines.append(";\n")
     if indices:
         str_lines.append(f"\\node at {indices[0]} {{{0}}};\n")
-        for i , pos in enumerate(indices[1:]):
-            str_lines.append(f"\\node at {pos} {{{i+1}}};\n")
-
+        for i, pos in enumerate(indices[1:]):
+            str_lines.append(f"\\node at {pos} {{{i + 1}}};\n")
 
     end_scope = get_end_scope()
-    if begin_scope == '\\begin{scope}[]\n':
+    if begin_scope == "\\begin{scope}[]\n":
         res = body + "".join(str_lines)
     else:
         res = begin_scope + body + "".join(str_lines) + end_scope
@@ -1485,6 +1500,7 @@ def get_end_scope():
     """
     return "\\end{scope}\n"
 
+
 def draw_pattern_sketch(sketch):
     """Draws a pattern sketch.
 
@@ -1521,7 +1537,7 @@ def draw_pattern_sketch(sketch):
     shapes = []
     for vertices in vertices_list:
         vertices @= sketch.xform_matrix
-        vertices = [tuple(vert) for vert in vertices[:,:2].tolist()]
+        vertices = [tuple(vert) for vert in vertices[:, :2].tolist()]
         n = len(vertices)
         str_lines = [f"{vertices[0]}"]
         for i, vertice in enumerate(vertices[1:]):
@@ -1538,8 +1554,7 @@ def draw_pattern_sketch(sketch):
             str_lines.append(";\n")
         shapes.append(draw + "".join(str_lines))
 
-
-    return begin_scope + f"[{options}]\n" +  "\n".join(shapes) + end_scope
+    return begin_scope + f"[{options}]\n" + "\n".join(shapes) + end_scope
 
 
 def draw_sketch(sketch):
@@ -1602,6 +1617,7 @@ def draw_tex_sketch(sketch):
     """
 
     return sketch.code
+
 
 def draw_image_sketch(sketch):
     """Draws an image sketch.
@@ -1668,6 +1684,7 @@ def draw_pdf_sketch(sketch):
 
     return begin_scope + res + end_scope
 
+
 def draw_shape_sketch(sketch, ind=None):
     """Draws a shape sketch.
 
@@ -1687,17 +1704,23 @@ def draw_shape_sketch(sketch, ind=None):
     }
     if sketch.subtype in d_subtype_draw:
         res = d_subtype_draw[sketch.subtype](sketch)
-    elif ((hasattr(sketch, "draw_markers") and sketch.draw_markers and
-          sketch.marker_type == MarkerType.INDICES) or
-          (hasattr(sketch, "indices") and sketch.indices)):
+    elif (
+        hasattr(sketch, "draw_markers")
+        and sketch.draw_markers
+        and sketch.marker_type == MarkerType.INDICES
+    ) or (hasattr(sketch, "indices") and sketch.indices):
         res = draw_shape_sketch_with_indices(sketch, ind)
-    elif (hasattr(sketch, "draw_markers") and sketch.draw_markers or
-          (hasattr(sketch, "smooth") and sketch.smooth)):
+    elif (
+        hasattr(sketch, "draw_markers")
+        and sketch.draw_markers
+        or (hasattr(sketch, "smooth") and sketch.smooth)
+    ):
         res = draw_shape_sketch_with_markers(sketch)
     else:
         res = draw_sketch(sketch)
 
     return res
+
 
 def draw_line_sketch(sketch):
     """Draws a line sketch.
@@ -1778,6 +1801,7 @@ def draw_rect_sketch(sketch):
 
     return begin_scope + res + end_scope
 
+
 def draw_ellipse_sketch(sketch):
     """Draws an ellipse sketch.
 
@@ -1826,7 +1850,7 @@ def draw_arc_sketch(sketch):
     if sketch.closed:
         options = ["smooth cycle"]
     else:
-        options = ['smooth']
+        options = ["smooth"]
 
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options += get_pattern_options(sketch)
@@ -1860,6 +1884,7 @@ def draw_arc_sketch(sketch):
     else:
         res = "".join(str_lines)
     return res
+
 
 def draw_bezier_sketch(sketch):
     """Draws a Bezier curve sketch.

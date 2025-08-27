@@ -1,5 +1,4 @@
-"""Batch objects are used for grouping other Shape and Batch objects.
-"""
+"""Batch objects are used for grouping other Shape and Batch objects."""
 
 from typing import Any, Iterator, List, Sequence, Callable
 
@@ -14,7 +13,7 @@ from .core import Base
 from .bbox import bounding_box
 from ..canvas.style_map import batch_args
 from ..helpers.validation import validate_args
-from ..geometry.geometry import(
+from ..geometry.geometry import (
     fix_degen_points,
     get_polygons,
     all_close_points,
@@ -22,7 +21,7 @@ from ..geometry.geometry import(
     distance,
     connected_pairs,
     round_segment,
-    round_point
+    round_point,
 )
 from ..helpers.graph import is_cycle, is_open_walk, Graph
 from ..settings.settings import defaults
@@ -106,7 +105,6 @@ class Batch(Base):
                     setattr(element, attrib, value)
 
         return self
-
 
     def __str__(self):
         """
@@ -425,7 +423,6 @@ class Batch(Base):
                 segments.extend(element.vertex_pairs)
         return segments
 
-
     def _get_graph_nodes_and_edges(self, dist_tol: float = None, n_round=None):
         """Get the graph nodes and edges for the batch.
 
@@ -487,8 +484,9 @@ class Batch(Base):
         directed: bool = False,
         weighted: bool = False,
         dist_tol: float = None,
-        atol=None,
+        abs_tol=None,
         n_round: int = None,
+        cycles: bool = False,
     ) -> Graph:
         """Return the batch as a Graph object.
         Graph.nx is the networkx graph.
@@ -497,13 +495,14 @@ class Batch(Base):
             directed (bool, optional): Whether the graph is directed. Defaults to False.
             weighted (bool, optional): Whether the graph is weighted. Defaults to False.
             dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
-            atol (optional): The absolute tolerance. Defaults to None.
+            abs_tol (optional): The absolute tolerance. Defaults to None.
             n_round (int, optional): The number of decimal places to round to. Defaults to None.
+            cycles (bool, optional): If true, cycles are returned.
 
         Returns:
             Graph: The batch as a Graph object.
         """
-        _set_Nones(self, ["dist_tol", "atol", "n_round"], [dist_tol, atol, n_round])
+        _set_Nones(self, ["dist_tol", "abs_tol", "n_round"], [dist_tol, abs_tol, n_round])
         d_node_id_coords, edges = self._get_graph_nodes_and_edges(dist_tol, n_round)
         if directed:
             nx_graph = nx.DiGraph()
@@ -524,6 +523,27 @@ class Batch(Base):
         else:
             nx_graph.update(edges)
             subtype = Types.NONE
+
+        try:
+            cycles_ = nx.cycle_basis(nx_graph)
+        except nx.exception.NetworkXNoCycle:
+            cycles_ = None
+
+        # if cycles:
+        #     n = len(cycles_)
+        #     for cycle in cycles_:
+        #         cycle.append(cycle[0])
+        #     if n == 1:
+        #         cycle = cycles_[0]
+        # else:
+        #     cycles_ = None
+        res = []
+        if cycles:
+            for cycle in cycles_:
+                res.append([d_node_id_coords[i] for i in cycle])
+
+        if cycles:
+            return res
 
         graph = Graph(type=graph_type, subtype=subtype, nx_graph=nx_graph)
         return graph
@@ -555,7 +575,7 @@ class Batch(Base):
                     f"{shape.subtype}): {len(shape.vertices)}"
                 )
             else:
-                s = f"# vertices in shape(id: {shape.id}): " f"{len(shape.vertices)}"
+                s = f"# vertices in shape(id: {shape.id}): {len(shape.vertices)}"
             lines.append(s)
         graph = self.as_graph(dist_tol=dist_tol, n_round=n_round).nx_graph
 
@@ -567,44 +587,40 @@ class Batch(Base):
                 lines.append(f"Open Walk: {len(island)} nodes")
             else:
                 degens = [node for node in island if graph.degree(node) > 2]
-                degrees = f"{[(node, graph.degree(node)) for node in degens]}"
+                degrees_ = f"{[(node, graph.degree(node)) for node in degens]}"
                 lines.append(f"Degenerate: {len(island)} nodes")
-                lines.append(f"(Node, Degree): {degrees}")
+                lines.append(f"(Node, Degree): {degrees_}")
             lines.append("-" * 40)
 
         return "\n".join(lines)
 
-    def _merge_collinears(self, edges, n_round=2):
+    def merge_collinears(self, edges, rel_tol=None, abs_tol=None):
         """Merge collinear edges in the batch.
 
         Args:
             d_node_id_coords (dict): The node coordinates.
             edges (list): The edges to merge.
-            tol (float, optional): The tolerance for merging. Defaults to None.
-            rtol (float, optional): The relative tolerance. Defaults to None.
-            atol (float, optional): The absolute tolerance. Defaults to None.
+            rel_tol (float, optional): The relative tolerance. Defaults to None.
+            abs_tol (float, optional): The absolute tolerance. Defaults to None.
 
         Returns:
             list: The merged edges.
         """
-        return _merge_collinears(self, edges, n_round=n_round)
+        return _merge_collinears(self, edges)
 
-    def merge_shapes(
-        self, dist_tol: float = None, n_round: int = None) -> Self:
+    def merge_shapes(self, dist_tol: float = None, n_round: int = None) -> Self:
         """Merges the shapes in the batch if they are connected.
         Returns a new batch with the merged shapes as well as the shapes
         as well as the shapes that could not be merged.
 
         Args:
             tol (float, optional): The tolerance for merging shapes. Defaults to None.
-            rtol (float, optional): The relative tolerance. Defaults to None.
-            atol (float, optional): The absolute tolerance. Defaults to None.
+            rel_tol (float, optional): The relative tolerance. Defaults to None.
+            abs_tol (float, optional): The absolute tolerance. Defaults to None.
 
         Returns:
             Self: The batch object with merged shapes.
         """
-        if len(self) == 1:
-            return self
         return _merge_shapes(self, dist_tol=dist_tol, n_round=n_round)
 
     def _get_edges_and_segments(self, dist_tol: float = None, n_round: int = None):
@@ -633,15 +649,17 @@ class Batch(Base):
 
         return edges, segments
 
-    def _set_node_dictionaries(self, coords: List[Point], n_round: int=2) -> List[Dict]:
-        '''Set dictionaries for nodes and coordinates.
+    def _set_node_dictionaries(
+        self, coords: List[Point], n_round: int = 2
+    ) -> List[Dict]:
+        """Set dictionaries for nodes and coordinates.
         d_node_coord: Dictionary of node id to coordinates.
         d_coord_node: Dictionary of coordinates to node id.
 
         Args:
             nodes (List[Point]): List of vertices.
             n_round (int, optional): Number of rounding digits. Defaults to 2.
-        '''
+        """
 
         d_rounded_coord = {}
         rounded = []
@@ -650,8 +668,8 @@ class Batch(Base):
             rounded.append(val)
             d_rounded_coord[val] = coord
 
-        coords = list(set(rounded))   # remove duplicates
-        coords.sort()    # sort by x coordinates
+        coords = list(set(rounded))  # remove duplicates
+        coords.sort()  # sort by x coordinates
         coords.sort(key=lambda x: x[1])  # sort by y coordinates
 
         d_node_coord = {}
@@ -860,7 +878,9 @@ class Batch(Base):
             Batch: The symmetric difference of the two batches.
         """
         if not isinstance(other, Batch):
-            raise TypeError("Invalid object. Only Batch objects can be symmetrically differenced!")
+            raise TypeError(
+                "Invalid object. Only Batch objects can be symmetrically differenced!"
+            )
 
         self_ids = {item.id for item in self.elements}
         other_ids = {item.id for item in other.elements}
@@ -868,7 +888,9 @@ class Batch(Base):
         symmetric_difference_ids = self_ids.symmetric_difference(other_ids)
 
         return Batch(
-            elements=[item for item in self.elements if item.id in symmetric_difference_ids],
+            elements=[
+                item for item in self.elements if item.id in symmetric_difference_ids
+            ],
             modifiers=self.modifiers,
             subtype=self.subtype,
         )
@@ -883,7 +905,9 @@ class Batch(Base):
             bool: True if the current batch is a subset of the other batch, False otherwise.
         """
         if not isinstance(other, Batch):
-            raise TypeError("Invalid object. Only Batch objects can be checked for subset!")
+            raise TypeError(
+                "Invalid object. Only Batch objects can be checked for subset!"
+            )
 
         self_ids = {item.id for item in self.elements}
         other_ids = {item.id for item in other.elements}
@@ -900,7 +924,9 @@ class Batch(Base):
             bool: True if the current batch is a superset of the other batch, False otherwise.
         """
         if not isinstance(other, Batch):
-            raise TypeError("Invalid object. Only Batch objects can be checked for superset!")
+            raise TypeError(
+                "Invalid object. Only Batch objects can be checked for superset!"
+            )
 
         self_ids = {item.id for item in self.elements}
         other_ids = {item.id for item in other.elements}
@@ -930,8 +956,8 @@ class Batch(Base):
         if len(self.elements) != len(other.elements):
             return False
 
-
         return self.elements == other.elements and self.modifiers == other.modifiers
+
 
 @property
 def ids(self):
@@ -942,6 +968,7 @@ def ids(self):
         list: A list of ids of the elements in the batch.
     """
     return [item.id if hasattr(item, "id") else id(item) for item in self.elements]
+
 
 @property
 def all_ids(self):
@@ -959,6 +986,7 @@ def all_ids(self):
             ids.append(item.id if hasattr(item, "id") else id(item))
 
     return ids
+
 
 def custom_batch_attributes(item: Batch) -> List[str]:
     """

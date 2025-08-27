@@ -8,12 +8,15 @@ authors = [
 ]
 requires-python = ">=3.9"
 dependencies = [
+    "ipykernel>=6.30.1",
     "ipython>=8.18.1",
+    "manim>=0.19.0",
     "matplotlib>=3.9.4",
     "networkx>=3.2.1",
     "numpy>=2.0.2",
     "pillow>=11.1.0",
     "pymupdf>=1.25.1",
+    "pypdf>=5.9.0",
     "scipy>=1.13.1",
     "strenum>=0.4.15",
     "typing-extensions>=4.12.2",
@@ -36,6 +39,11 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/mekanimo/simetri.graphics"
+
+[tool.ruff]
+line-length = 88
+ignore = ["F405", "F403", "F401", "F821"]
+
 
 [dependency-groups]
 dev = [

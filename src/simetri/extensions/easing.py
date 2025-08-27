@@ -1,4 +1,4 @@
-#Penner's easing functions
+# Penner's easing functions
 # from https://github.com/semitable/easing-functions
 
 import math
@@ -28,9 +28,12 @@ class EasingBase:
 """
 Linear
 """
+
+
 class LinearInOut(EasingBase):
     def func(self, t: float) -> float:
         return t
+
 
 """
 Quadratic easing functions
@@ -279,7 +282,6 @@ class BounceEaseInOut(EasingBase):
         return 0.5 * BounceEaseOut().func(t * 2 - 1) + 0.5
 
 
-
 #####################################################################
 
 q = QuadEaseInOut(1, 0, 1)
@@ -288,33 +290,26 @@ q = QuadEaseInOut(1, 0, 1)
 #     print(q(i/10))
 
 
-
-
-
 def cubicInterpolation(p0, p1, p2, p3, t):
     t2 = t * t
     t3 = t2 * t
-    return (
-        0.5
-        * (
-            (2 * p1)
-            + (-p0 + p2) * t
-            + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2
-            + (-p0 + 3 * p1 - 3 * p2 + p3) * t3
-        )
+    return 0.5 * (
+        (2 * p1)
+        + (-p0 + p2) * t
+        + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2
+        + (-p0 + 3 * p1 - 3 * p2 + p3) * t3
     )
 
 
-
 from numpy import array
+
 p1 = array([0, 0])
 p2 = array([1, 1])
 p3 = array([2, 1])
 p4 = array([3, 0])
 
 
-
-#print(cubicInterpolation(p1, p2, p3, p4, .5))
+# print(cubicInterpolation(p1, p2, p3, p4, .5))
 
 
 def ease(alpha: float, duration=10, minV=0, maxV=1) -> float:
@@ -325,4 +320,4 @@ def ease(alpha: float, duration=10, minV=0, maxV=1) -> float:
     # return self.end * a + self.start * (1 - a)
 
 
-#print(ease(1))
+# print(ease(1))

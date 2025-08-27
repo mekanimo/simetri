@@ -1,6 +1,7 @@
 """Bounding box class. Shape and Batch objects have a bounding box.
 Bounding box is axis-aligned. Provides reference edges and points.
 """
+
 import warnings
 
 import numpy as np
@@ -13,7 +14,7 @@ from ..geometry.geometry import (
     line_angle,
     intersect,
     positive_angle,
-    polar_to_cartesian
+    polar_to_cartesian,
 )
 
 
@@ -71,7 +72,9 @@ class BoundingBox:
         """
         if name in self._aliases:
             if name == "center":
-                warnings.warn('"center" is deprecated use "midpoint" instead.', DeprecationWarning)
+                warnings.warn(
+                    '"center" is deprecated use "midpoint" instead.', DeprecationWarning
+                )
             res = getattr(self, self._aliases[name])
         else:
             res = self.__dict__[name]
@@ -447,8 +450,9 @@ class BoundingBox:
             raise ValueError(f"Unknown anchor: {anchor}")
         return [x + dx, y + dy]
 
-
-    def centered(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def centered(
+        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+    ) -> Point:
         """
         Get the center of the reference item.
 
@@ -466,7 +470,9 @@ class BoundingBox:
         y += dy
         return x, y
 
-    def left_of(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def left_of(
+        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+    ) -> Point:
         """
         Get the item.west of the reference item.
 
@@ -480,11 +486,13 @@ class BoundingBox:
         """
         x, y = item.west[:2]
         w2 = self.width / 2
-        x += (dx - w2)
+        x += dx - w2
         y += dy
         return x, y
 
-    def right_of(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def right_of(
+        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+    ) -> Point:
         """
         Get the item.east of the reference item.
 
@@ -498,11 +506,11 @@ class BoundingBox:
         """
         x, y = item.east[:2]
         w2 = self.width / 2
-        x += (dx + w2)
+        x += dx + w2
         y += dy
         return x, y
 
-    def above(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def above(self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0) -> Point:
         """
         Get the item.north of the reference item.
 
@@ -517,10 +525,10 @@ class BoundingBox:
         x, y = item.north[:2]
         h2 = self.height / 2
         x += dx
-        y += (dy + h2)
+        y += dy + h2
         return x, y
 
-    def below(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def below(self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0) -> Point:
         """
         Get the item.south of the reference item.
 
@@ -535,10 +543,12 @@ class BoundingBox:
         x, y = item.south[:2]
         h2 = self.height / 2
         x += dx
-        y += (dy - h2)
+        y += dy - h2
         return x, y
 
-    def above_left(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def above_left(
+        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+    ) -> Point:
         """
         Get the item.northwest of the reference item.
 
@@ -553,13 +563,14 @@ class BoundingBox:
         x, y = item.northwest[:]
         w2 = self.width / 2
         h2 = self.height / 2
-        x += (dx - w2)
-        y += (dy + h2)
+        x += dx - w2
+        y += dy + h2
 
         return x, y
 
-
-    def above_right(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def above_right(
+        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+    ) -> Point:
         """
         Get the item.northeast of the reference item.
 
@@ -574,13 +585,14 @@ class BoundingBox:
         x, y = item.northeast[:2]
         w2 = self.width / 2
         h2 = self.height / 2
-        x += (dx + w2)
-        y += (dy + h2)
+        x += dx + w2
+        y += dy + h2
 
         return x, y
 
-
-    def below_left(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def below_left(
+        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+    ) -> Point:
         """
         Get the item.southwest of the reference item.
 
@@ -595,13 +607,14 @@ class BoundingBox:
         x, y = item.southwest[:2]
         w2 = self.width / 2
         h2 = self.height / 2
-        x += (dx - w2)
-        y += (dy - h2)
+        x += dx - w2
+        y += dy - h2
 
         return x, y
 
-
-    def below_right(self, item:'Union[Shape, Batch]', dx:float = 0, dy:float = 0)->Point:
+    def below_right(
+        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+    ) -> Point:
         """
         Get the item.southeast of the reference item.
 
@@ -616,13 +629,14 @@ class BoundingBox:
         x, y = item.southeast[:2]
         w2 = self.width / 2
         h2 = self.height / 2
-        x += (dx + w2)
-        y += (dy - h2)
+        x += dx + w2
+        y += dy - h2
 
         return x, y
 
-
-    def polar_pos(self, item:'Union[Shape, Batch]', angle:float, radius:float)->Point:
+    def polar_pos(
+        self, item: "Union[Shape, Batch]", angle: float, radius: float
+    ) -> Point:
         """
         Get the polar position of the reference item.
 

@@ -24,6 +24,7 @@ class State:
     angle: float
     pen_is_down: bool
 
+
 class Turtle(Batch):
     """A Turtle graphics variant, with a twist.
 
@@ -168,7 +169,6 @@ class Turtle(Batch):
         else:
             self._angle += pi
 
-
     def pen_up(self) -> None:
         """Lift the pen.
 
@@ -196,7 +196,6 @@ class Turtle(Batch):
         self.pos = pos
         if self.pen_is_down:
             self.current_list.append(self.pos)
-
 
     def push(self) -> None:
         """Save the current state of the turtle.
@@ -290,7 +289,9 @@ def spirolateral(
     return turtle
 
 
-def spiral(turtle: Turtle, side: float, angle: float, delta: float, cycles: int = 15) -> Turtle:
+def spiral(
+    turtle: Turtle, side: float, angle: float, delta: float, cycles: int = 15
+) -> Turtle:
     """Draw a spiral with the given side, angle, delta, and cycles.
 
     Args:

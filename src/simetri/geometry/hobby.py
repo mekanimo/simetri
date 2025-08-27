@@ -371,7 +371,10 @@ def velocity(theta: float, phi: float) -> float:
     )
     return numerator / denominator
 
-def hobby_shape(points, cyclic=False, tension=1, begin_curl=1, end_curl=1, n_points=None):
+
+def hobby_shape(
+    points, cyclic=False, tension=1, begin_curl=1, end_curl=1, n_points=None
+):
     """Create a Shape object from points using John Hobby's algorithm.
 
     This function calculates cubic Bezier control points using Hobby's algorithm,
@@ -388,8 +391,9 @@ def hobby_shape(points, cyclic=False, tension=1, begin_curl=1, end_curl=1, n_poi
     Returns:
         A Shape object containing points along the smooth Hobby curve.
     """
-    controls = hobby_ctrl_points(points, tension=tension, cyclic=cyclic,
-                                            begin_curl=begin_curl, end_curl=end_curl)
+    controls = hobby_ctrl_points(
+        points, tension=tension, cyclic=cyclic, begin_curl=begin_curl, end_curl=end_curl
+    )
     n = len(points)
     res = []
     if cyclic:
@@ -398,7 +402,7 @@ def hobby_shape(points, cyclic=False, tension=1, begin_curl=1, end_curl=1, n_poi
             p0 = points[i]
             p1 = controls[ind]
             p2 = controls[ind + 1]
-            p3 = points[(i + 1)%n]
+            p3 = points[(i + 1) % n]
             bez_pnts = bezier_points(p0, p1, p2, p3, 10)
             res.extend(bez_pnts)
     else:

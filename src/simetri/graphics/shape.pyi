@@ -40,67 +40,67 @@ class Shape:
         Raises:
             ValueError: If the provided subtype is not valid.
         """
-        self.line_alpha: float = 1,
-        self.line_cap: LineCap = LineCap.BUTT,
-        self.line_color: Color = Color(0.0, 0.0, 0.0),
-        self.line_dash_array: Union[list, LineDashArray] = None,
-        self.line_dash_phase: float = 0,
-        self.double: None = None,
-        self.double_distance: float = 2,
-        self.draw_fillets: bool = False,
-        self.draw_markers: bool = False,
-        self.fillet_radius: float = None,
-        self.line_join: LineJoin = LineJoin.MITER,
-        self.marker_color: Color = Color(0.0, 0.0, 0.0),
-        self.marker_type: MarkerType = MarkerType.FCIRCLE,
-        self.marker_size: float = 3,
-        self.markers_only: bool = False,
-        self.line_miter_limit: float = 10,
-        self.smooth: bool = False,
-        self.stroke: bool = True,
-        self.line_width: float = 1,
-        self.fill_alpha: float = 1,
-        self.back_style: BackStyle = BackStyle.COLOR,
-        self.fill_color: Color = Color(0.0, 0.0, 0.0),
-        self.fill: bool = True,
-        self.grid_alpha: float = 0.5,
-        self.grid_back_color: Color = Color(1.0, 1.0, 1.0),
-        self.grid_line_color: Color = Color(0.573, 0.584, 0.569),
-        self.grid_line_width: float = 0.5,
-        self.fill_mode: FillMode = FillMode.EVENODD,
-        self.pattern_angle: float = 0,
-        self.pattern_color: Color = Color(0.0, 0.0, 0.0),
-        self.pattern_distance: float = 3,
-        self.pattern_line_width: float = 0,
-        self.pattern_type: PatternType = PatternType.HORIZONTAL_LINES,
-        self.pattern_points: int = 5,
-        self.pattern_radius: float = 10,
-        self.pattern_x_shift: float = 0,
-        self.pattern_y_shift: float = 0,
-        self.shade_bottom_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_color_wheel: bool = False,
-        self.shade_color_wheel_black: bool = False,
-        self.shade_color_wheel_white: bool = False,
-        self.shade_inner_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_left_color: Color = Color(0.0, 0.0, 0.0),
-        self.shade_lower_left_color: Color = Color(0.0, 0.0, 0.0),
-        self.shade_lower_right_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_outer_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_outer_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_outer_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_middle_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_outer_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_right_color: Color = Color(1.0, 1.0, 1.0),
-        self.shade_top_color: Color = Color(0.0, 0.0, 0.0),
-        self.shade_upper_left_color: Color = Color(0.0, 0.0, 0.0),
+        self.line_alpha: float = (1,)
+        self.line_cap: LineCap = (LineCap.BUTT,)
+        self.line_color: Color = (Color(0.0, 0.0, 0.0),)
+        self.line_dash_array: Union[list, LineDashArray] = (None,)
+        self.line_dash_phase: float = (0,)
+        self.double: None = (None,)
+        self.double_distance: float = (2,)
+        self.draw_fillets: bool = (False,)
+        self.draw_markers: bool = (False,)
+        self.fillet_radius: float = (None,)
+        self.line_join: LineJoin = (LineJoin.MITER,)
+        self.marker_color: Color = (Color(0.0, 0.0, 0.0),)
+        self.marker_type: MarkerType = (MarkerType.FCIRCLE,)
+        self.marker_size: float = (3,)
+        self.markers_only: bool = (False,)
+        self.line_miter_limit: float = (10,)
+        self.smooth: bool = (False,)
+        self.stroke: bool = (True,)
+        self.line_width: float = (1,)
+        self.fill_alpha: float = (1,)
+        self.back_style: BackStyle = (BackStyle.COLOR,)
+        self.fill_color: Color = (Color(0.0, 0.0, 0.0),)
+        self.fill: bool = (True,)
+        self.grid_alpha: float = (0.5,)
+        self.grid_back_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.grid_line_color: Color = (Color(0.573, 0.584, 0.569),)
+        self.grid_line_width: float = (0.5,)
+        self.fill_mode: FillMode = (FillMode.EVENODD,)
+        self.pattern_angle: float = (0,)
+        self.pattern_color: Color = (Color(0.0, 0.0, 0.0),)
+        self.pattern_distance: float = (3,)
+        self.pattern_line_width: float = (0,)
+        self.pattern_type: PatternType = (PatternType.HORIZONTAL_LINES,)
+        self.pattern_points: int = (5,)
+        self.pattern_radius: float = (10,)
+        self.pattern_x_shift: float = (0,)
+        self.pattern_y_shift: float = (0,)
+        self.shade_bottom_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_color_wheel: bool = (False,)
+        self.shade_color_wheel_black: bool = (False,)
+        self.shade_color_wheel_white: bool = (False,)
+        self.shade_inner_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_left_color: Color = (Color(0.0, 0.0, 0.0),)
+        self.shade_lower_left_color: Color = (Color(0.0, 0.0, 0.0),)
+        self.shade_lower_right_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_outer_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_outer_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_outer_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_middle_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_outer_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_right_color: Color = (Color(1.0, 1.0, 1.0),)
+        self.shade_top_color: Color = (Color(0.0, 0.0, 0.0),)
+        self.shade_upper_left_color: Color = (Color(0.0, 0.0, 0.0),)
         self.shade_upper_right_color: Color = Color(1.0, 1.0, 1.0)
 
         self.type: Types = Types.SHAPE
@@ -111,7 +111,7 @@ class Shape:
         self.primary_points: Points = None
         self.closed: bool = False
         self.b_box: BoundingBox = None
-        self.xform_matrix: 'ndarray' = None
+        self.xform_matrix: "ndarray" = None
 
     def __setattr__(self, name, value):
         """Set an attribute of the shape.
@@ -120,7 +120,6 @@ class Shape:
             name (str): The name of the attribute.
             value (Any): The value to set.
         """
-
 
     def __getattr__(self, name):
         """Retrieve an attribute of the shape.
@@ -135,7 +134,6 @@ class Shape:
             AttributeError: If the attribute cannot be found.
         """
 
-
     def _get_closed(self, points: Sequence[Point], closed: bool):
         """Determine whether the shape should be considered closed.
 
@@ -149,14 +147,12 @@ class Shape:
                 - list: The (possibly modified) list of points.
         """
 
-
     def __len__(self):
         """Return the number of points in the shape.
 
         Returns:
             int: The number of primary points.
         """
-
 
     def __str__(self):
         """Return a string representation of the shape.
@@ -165,14 +161,12 @@ class Shape:
             str: A string representation of the shape.
         """
 
-
     def __repr__(self):
         """Return a string representation of the shape.
 
         Returns:
             str: A string representation of the shape.
         """
-
 
     def __getitem__(self, subscript: Union[int, slice]):
         """Retrieve point(s) from the shape by index or slice.
@@ -187,7 +181,6 @@ class Shape:
             TypeError: If the subscript type is invalid.
         """
 
-
     def __setitem__(self, subscript, value):
         """Set the point(s) at the given subscript.
 
@@ -199,14 +192,12 @@ class Shape:
             TypeError: If the subscript type is invalid.
         """
 
-
     def __delitem__(self, subscript) -> Self:
         """Delete the point(s) at the given subscript.
 
         Args:
             subscript (int or slice): The subscript to delete the point(s) from.
         """
-
 
     def index(self, point: Point, atol=None) -> int:
         """Return the index of the given point.
@@ -218,8 +209,6 @@ class Shape:
             int: The index of the point.
         """
 
-
-
     def remove(self, point: Point) -> Self:
         """Remove a point from the shape.
 
@@ -227,14 +216,12 @@ class Shape:
             point (Point): The point to remove.
         """
 
-
     def append(self, point: Point) -> Self:
         """Append a point to the shape.
 
         Args:
             point (Point): The point to append.
         """
-
 
     def insert(self, index: int, point: Point) -> Self:
         """Insert a point at a given index.
@@ -244,14 +231,12 @@ class Shape:
             point (Point): The point to insert.
         """
 
-
     def extend(self, points: Sequence[Point]) -> Self:
         """Extend the shape with a list of points.
 
         Args:
             points (list[Point]): The points to extend the shape with.
         """
-
 
     def pop(self, index: int = -1) -> Point:
         """Pop a point from the shape.
@@ -263,14 +248,12 @@ class Shape:
             Point: The popped point.
         """
 
-
     def __iter__(self):
         """Return an iterator over the vertices of the shape.
 
         Returns:
             Iterator[Point]: An iterator over the vertices of the shape.
         """
-
 
     def _update(self, xform_matrix: array, reps: int = 0) -> Batch:
         """Used internally. Update the shape with a transformation matrix.
@@ -283,7 +266,6 @@ class Shape:
             Batch: The updated shape or a batch of shapes.
         """
 
-
     def __eq__(self, other):
         """Check if the shape is equal to another shape.
 
@@ -294,7 +276,6 @@ class Shape:
             bool: True if the shapes are equal, False otherwise.
         """
 
-
     def __bool__(self):
         """Return whether the shape has any points.
 
@@ -302,14 +283,12 @@ class Shape:
             bool: True if the shape has points, False otherwise.
         """
 
-
     def topology(self) -> Topology:
         """Return info about the topology of the shape.
 
         Returns:
             set: A set of topology values.
         """
-
 
     def merge(self, other, dist_tol: float = None) -> Union[Self, None]:
         """Merge two shapes if they are connected. Does not work for polygons.
@@ -323,14 +302,12 @@ class Shape:
             Shape or None: The merged shape or None if the shapes cannot be merged.
         """
 
-
     def connect(self, other) -> Self:
         """Connect two shapes by adding the other shape's vertices to self.
 
         Args:
             other (Shape): The other shape to connect.
         """
-
 
     def _chain_vertices(
         self, verts1: Sequence[Point], verts2: Sequence[Point], dist_tol: float = None
@@ -346,7 +323,6 @@ class Shape:
             list[Point] or None: The chained vertices or None if the vertices cannot be chained.
         """
 
-
     def _is_polygon(self, vertices: Sequence[Point]) -> bool:
         """Return True if the vertices form a polygon.
 
@@ -357,8 +333,7 @@ class Shape:
             bool: True if the vertices form a polygon, False otherwise.
         """
 
-
-    def as_graph(self, directed=False, weighted=False, n_round=None) -> 'nx.Graph':
+    def as_graph(self, directed=False, weighted=False, n_round=None) -> "nx.Graph":
         """Return the shape as a graph object.
 
         Args:
@@ -370,8 +345,7 @@ class Shape:
             Graph: The graph object.
         """
 
-
-    def as_array(self, homogeneous=False) -> 'ndarray':
+    def as_array(self, homogeneous=False) -> "ndarray":
         """Return the vertices as an array.
 
         Args:
@@ -381,7 +355,6 @@ class Shape:
             ndarray: The vertices as an array.
         """
 
-
     def as_list(self) -> List[Point]:
         """Return the vertices as a list of tuples.
 
@@ -389,15 +362,13 @@ class Shape:
             list[tuple]: The vertices as a list of tuples.
         """
 
-
     @property
-    def final_coords(self) -> 'ndarray':
+    def final_coords(self) -> "ndarray":
         """The final coordinates of the shape. primary_points @ xform_matrix.
 
         Returns:
             ndarray: The final coordinates of the shape.
         """
-
 
     @property
     def vertices(self) -> Tuple[Point]:
@@ -407,7 +378,6 @@ class Shape:
             tuple: The final coordinates of the shape.
         """
 
-
     @property
     def vertex_pairs(self) -> List[Tuple[Point, Point]]:
         """Return a list of connected pairs of vertices.
@@ -416,15 +386,13 @@ class Shape:
             list[tuple[Point, Point]]: A list of connected pairs of vertices.
         """
 
-
     @property
-    def orig_coords(self) -> 'ndarray':
+    def orig_coords(self) -> "ndarray":
         """The primary points in homogeneous coordinates.
 
         Returns:
             ndarray: The primary points in homogeneous coordinates.
         """
-
 
     @property
     def b_box(self) -> BoundingBox:
@@ -434,7 +402,6 @@ class Shape:
             BoundingBox: The bounding box of the shape.
         """
 
-
     @property
     def area(self) -> float:
         """Return the area of the shape.
@@ -442,7 +409,6 @@ class Shape:
         Returns:
             float: The area of the shape.
         """
-
 
     @property
     def total_length(self) -> float:
@@ -452,7 +418,6 @@ class Shape:
             float: The total length of the shape.
         """
 
-
     @property
     def is_polygon(self) -> bool:
         """Return True if 'closed'.
@@ -461,14 +426,12 @@ class Shape:
             bool: True if the shape is closed, False otherwise.
         """
 
-
     def clear(self) -> Self:
         """Clear all points and reset the style attributes.
 
         Returns:
             None
         """
-
 
     def count(self, point: Point) -> int:
         """Return the number of times the point is found in the shape.
@@ -480,14 +443,12 @@ class Shape:
             int: The number of times the point is found in the shape.
         """
 
-
-    def copy(self) -> 'Shape':
+    def copy(self) -> "Shape":
         """Return a copy of the shape.
 
         Returns:
             Shape: A copy of the shape.
         """
-
 
     @property
     def edges(self) -> List[Line]:
@@ -500,7 +461,6 @@ class Shape:
         Returns:
             list[tuple[Point, Point]]: A list of edges.
         """
-
 
     @property
     def segments(self) -> List[Line]:
