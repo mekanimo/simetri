@@ -1025,14 +1025,19 @@ class Lace(Batch):
             ],
         )
         if isinstance(shapes, Shape):
-            shapes = sg.Batch([shapes])
-        if isinstance(shapes, (Batch, List, Tuple)):
-            polygon_shapes = Batch([shp for shp in shapes if shp.closed])
-            polyline_shapes = Batch([shp for shp in shapes if not shp.closed])
-            polygon_shapes = polygon_shapes.merge_shapes()
-            polyline_shapes = polyline_shapes.merge_shapes()
+            shapes = Batch([shapes]).merge_shapes()
+        elif isinstance(shapes, Batch):
+            shapes = shapes.merge_shapes()
+        elif isinstance(shapes, (list, tuple)):
+            shapes = Batch(shapes).merge_shapes()
         else:
             raise TypeError("Lace.__init__ : Invalid shapes argument.")
+
+        polygon_shapes = Batch([shp for shp in shapes if shp.closed])
+        polyline_shapes = Batch([shp for shp in shapes if not shp.closed])
+        polygon_shapes = polygon_shapes.merge_shapes()
+        polyline_shapes = polyline_shapes.merge_shapes()
+
 
         if not polygon_shapes and not polyline_shapes:
             msg = "Lace.__init__ : No polygons or polylines found."
@@ -1804,7 +1809,7 @@ class Lace(Batch):
         self._set_plait_connections()
         for plait in self.plaits:
             plait.line_widths = line_widths
-            plait.lerp_points = lerps = []
+            lerps = []
             for i_start, i_end in plait.connections:
                 start = plait[i_start][:2]
                 end = plait[i_end][:2]
@@ -1812,6 +1817,7 @@ class Lace(Batch):
                 for offset in percent_offsets:
                     offsets.append(lerp_point(start, end, offset))
                 lerps.append(offsets)
+            plait.lerp_points = lerps
 
     def set_plaits(self):
         """
