@@ -8,7 +8,7 @@ __all__ = ["Shape", "custom_attributes", "clip_shape", "clip_batch",
            "all_segments", "get_loop"]
 
 from typing import Sequence, Union, List, Tuple
-from math import pi
+from math import pi, isclose
 
 import numpy as np
 from numpy import around, array, allclose
@@ -42,6 +42,7 @@ from ..geometry.geometry import (
     in_polygon,
     midpoint,
     angle_between_lines2,
+    positive_angle,
 )
 from ..helpers.graph import Node, Graph, GraphEdge
 from .core import Base, StyleMixin
@@ -143,7 +144,12 @@ class Shape(Base, StyleMixin):
             try:
                 res = self.__dict__[name]
             except KeyError:
-                raise AttributeError(f"'Shape' object has no attribute '{name}'")
+                # Check if it's a style attribute alias
+                if hasattr(self, '_aliasses') and name in self._aliasses:
+                    obj, attrib = self._aliasses[name]
+                    res = getattr(obj, attrib)
+                else:
+                    raise AttributeError(f"'Shape' object has no attribute '{name}'")
         return res
 
     def _get_closed(self, points: Sequence[Point], closed: bool):
@@ -357,7 +363,7 @@ class Shape(Base, StyleMixin):
             Shape or Batch: The updated shape or a batch of shapes.
         """
         if reps == 0:
-            fillet_radius = self.fillet_radius
+            fillet_radius = getattr(self, 'fillet_radius', None)
             if fillet_radius:
                 scale = max(decompose_transformations(xform_matrix)[2])
                 self.fillet_radius = fillet_radius * scale
@@ -834,14 +840,17 @@ class Shape(Base, StyleMixin):
             points = self.primary_points.copy()
         else:
             points = []
+        marker_type = getattr(self, 'marker_type', defaults.get('marker_type'))
         shape = Shape(
             points,
             xform_matrix=self.xform_matrix.copy(),
             closed=self.closed,
-            marker_type=self.marker_type,
+            marker_type=marker_type,
         )
         for attrib in shape_style_map:
-            setattr(shape, attrib, getattr(self, attrib))
+            value = getattr(self, attrib, defaults.get(attrib))
+            if value is not None:
+                setattr(shape, attrib, value)
         shape.subtype = self.subtype
         custom_attribs = custom_attributes(self)
         for attrib in custom_attribs:
@@ -953,7 +962,36 @@ class Shape(Base, StyleMixin):
 
         return res
 
-def clip_batch(batch:Batch, clipper:Shape, exclude_clipper: bool = True, dist_tol=.01):
+def trim_margins(item: Union[Shape, Batch], left: float = 0, bottom: float = 0,
+                            right: float = 0, top: float = 0) -> Union[Shape, Batch]:
+    """Trim the margins of a Shape or Batch.
+
+    Args:
+        item (Union[Shape, Batch]): The Shape or Batch to trim.
+        left (float, optional): The left margin to trim. Defaults to 0.
+        bottom (float, optional): The bottom margin to trim. Defaults to 0.
+        right (float, optional): The right margin to trim. Defaults to 0.
+        top (float, optional): The top margin to trim. Defaults to 0.
+
+    Returns:
+        Union[Shape, Batch]: The trimmed Shape or Batch.
+    """
+    corners = item.b_box.get_inflated_b_box(-left, -bottom, -right, -top).corners
+    clipper = Shape(corners, closed=True)
+
+    return clip(item, clipper, exclude_clipper=True)
+
+def clip(item: Union[Shape, Batch], clipper: Shape, exclude_clipper: bool=False,
+                                        rel_tol:float=None, abs_tol:float=None):
+    if isinstance(item, Batch):
+        return _clip_batch(item, clipper, exclude_clipper, rel_tol, abs_tol)
+    elif isinstance(item, Shape):
+        return _clip_shape(item, clipper, exclude_clipper, rel_tol, abs_tol)
+    else:
+        raise TypeError("Invalid item type")
+
+def _clip_batch(batch:Batch, clipper:Shape, exclude_clipper: bool = True,
+                                    rel_tol:float=None, abs_tol:float=None):
     '''
     batch Batch: batch to be clipped
     clipper Shape: clipping region
@@ -961,12 +999,12 @@ def clip_batch(batch:Batch, clipper:Shape, exclude_clipper: bool = True, dist_to
     '''
     res = Batch()
     for shp in batch.all_shapes:
-        res.append(clip_shape(shp, clipper, exclude_clipper, dist_tol))
+        res.append(_clip_shape(shp, clipper, exclude_clipper, rel_tol, abs_tol))
 
     return res
 
-def clip_shape(shape: 'Shape', clipper: 'Shape', exclude_clipper: bool = False,
-                                                    dist_tol: float =.01):
+def _clip_shape(shape: 'Shape', clipper: 'Shape', exclude_clipper: bool = False,
+                                    rel_tol:float=None, abs_tol:float=None):
     '''
     shape Shape: shape to be clipped
     clipper Shape: clipping region
@@ -974,18 +1012,18 @@ def clip_shape(shape: 'Shape', clipper: 'Shape', exclude_clipper: bool = False,
     '''
     if not clipper.closed:
         raise Warning("Clipper shape is not closed")
-
+    rel_tol, abs_tol = get_defaults(['rel_tol', 'abs_tol'], [rel_tol, abs_tol])
     n_shape = len(shape)
     segments = ([[p1[:2], p2[:2]] for (p1, p2) in shape.edges] +
                 [[p1[:2], p2[:2]] for (p1, p2) in clipper.edges])
     intersections = all_intersections(segments)
 
-    all_segments = []
+    all_segments_ = []
     for key, value in intersections[0].items():
         segment = segments[key]
         points = [x[0] for x in value]
         points = remove_duplicate_points(points)
-        all_segments.append(multi_split_segment(segment, points))
+        all_segments_.append(multi_split_segment(segment, points))
 
     clipped = Batch()
     shape_vertices = shape.vertices
@@ -994,14 +1032,14 @@ def clip_shape(shape: 'Shape', clipper: 'Shape', exclude_clipper: bool = False,
         max_i = n_shape
     else:
         max_i = n_shape - 1
-    for i, segs in enumerate(all_segments):
+    for i, segs in enumerate(all_segments_):
         if i >= max_i:
             if not shape.closed or exclude_clipper:
                 break
             polygon = shape_vertices
         for seg in segs:
-            if distance(*seg) > dist_tol:
-                if in_polygon(midpoint(*seg), polygon):
+            if not isclose(distance(*seg), 0, rel_tol=rel_tol, abs_tol=abs_tol):
+                if in_polygon(midpoint(*seg), polygon, exclude_clipper):
                     clipped.append(Shape(seg))
 
     clipped = clipped.merge_shapes()
@@ -1074,7 +1112,7 @@ def all_segments(item: Union[Shape, Batch], n_round: int = 1,
 
     return edges
 
-def get_loop(edges: Sequence[Line], start_edge: Line):
+def get_loop(edges: Sequence[Line], start_edge: Line, ccw: bool=True):
     '''
     Find a loop in a set of edges starting from a given edge.
         Args:
@@ -1085,6 +1123,8 @@ def get_loop(edges: Sequence[Line], start_edge: Line):
     '''
     G = nx.Graph()
     G.add_edges_from(edges)
+    if not ccw:
+        start_edge = (start_edge[1], start_edge[0])
 
     res = [*start_edge]
     start_node = start_edge[0]
@@ -1101,22 +1141,24 @@ def get_loop(edges: Sequence[Line], start_edge: Line):
                 open_ = False
                 break
             angle = angle_between_lines2(*cur_edge, edge[1])
+            angle = positive_angle(angle)
             pi_ = round(pi, 2)
             if round(angle, 2) not in [0, -pi_, pi_, 2*pi_]:
                 angles.append((angle, edge))
-        angles.sort()
-        if not angles:
-            break
-        cur_edge = angles[0][1]
-        cur_node = cur_edge[1]
-        res.append(cur_node)
+        if open_:
+            angles.sort()
+            if not angles:
+                break
+            cur_edge = angles[0][1]
+            cur_node = cur_edge[1]
+            res.append(cur_node)
 
     return Shape(res, closed=not(open_))
 
 def get_partition(item: Union[Shape, Batch], edge_index: int, ccw: bool=True) -> Shape:
     '''
         Get a sub-region from a shape or batch object.
-        Draw the segments by using canvas.draw_split_segments first to get the indices.
+        Draw the segments by using canvas.draw_all_segments first to get the indices.
         Args:
             item Union[Shape, Batch]: A shape or a batch object.
             edge_index int: Index of the starting edge of the partition.
@@ -1129,4 +1171,4 @@ def get_partition(item: Union[Shape, Batch], edge_index: int, ccw: bool=True) ->
 
     edges = all_segments(item)
 
-    return get_loop(edges, edges[edge_index])
+    return get_loop(edges, edges[edge_index], ccw)
