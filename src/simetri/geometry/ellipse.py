@@ -595,15 +595,15 @@ def ellipse_intersection(x1, y1, a, b, phi, x2, y2, c, d, phi2):
 
     roots = []
     L = G * G + I * I
-    if isclose(L, 0, 0, 1e-7):
+    if isclose(L, 0, rel_tol=0, abs_tol=1e-7):
         # Gx + Hy + K = 0
         roots = solve_quadratic_eq(G, H, K)
 
-    elif isclose(I, 0, 1e-7):
+    elif isclose(I, 0, rel_tol=0, abs_tol=1e-7):
         # Gx^2 + Hx + K = 0
         roots = solve_quadratic_eq(G, H, K)
 
-    elif isclose(G, 0, 1e-7):
+    elif isclose(G, 0, rel_tol=0, abs_tol=1e-7):
         # Hx + Jy + K = 0
         roots = solve_quadratic_eq(H * H + J * J, 2 * K * H, K * K - J * J)
 
@@ -622,11 +622,11 @@ def ellipse_intersection(x1, y1, a, b, phi, x2, y2, c, d, phi2):
     # for i in range(len(roots)):
     for i, x in enumerate(roots):
         # x = roots[i]
-        if isclose(I * x + J, 0, 1e-7):
+        if isclose(I * x + J, rel_tol=0, abs_tol=1e-7):
             y = sqrt(1 - x * x)
             points.append((x, y))
 
-            if not isclose(y, 0, 1e-7):
+            if not isclose(y, 0, rel_tol=0, abs_tol=1e-7):
                 points.append((x, -y))
         else:
             y = -(G * x * x + H * x + K) / (I * x + J)
@@ -736,7 +736,7 @@ def solve_quartic_equation(a, b, c, d):
 
     result = []
 
-    if isclose(q, 0, 1e-7):
+    if isclose(q, 0, rel_tol=0, abs_tol=1e-7):
         D = p * p - 4 * r
         if abs(D) < 1e-5:
             m = -0.5 * p
@@ -766,13 +766,13 @@ def solve_quartic_equation(a, b, c, d):
         x12 = solve_complex_quadratic_equation(z, u - v)
         x34 = solve_complex_quadratic_equation(-z, u + v)
 
-        if isclose(x12[0].imag, 0, 1e-7):
+        if isclose(x12[0].imag, 0, rel_tol=0, abs_tol=1e-7):
             result.append(x12[0].real)
-        if isclose(x12[1].imag, 0, 1e-7):
+        if isclose(x12[1].imag, 0, rel_tol=0, abs_tol=1e-7):
             result.append(x12[1].real)
-        if isclose(x34[0].imag, 0, 1e-7):
+        if isclose(x34[0].imag, 0, rel_tol=0, abs_tol=1e-7):
             result.append(x34[0].real)
-        if isclose(x34[1].imag, 0, 1e-7):
+        if isclose(x34[1].imag, 0, rel_tol=0, abs_tol=1e-7):
             result.append(x34[1].real)
 
     # for(i = 0 i < result.length i++)
