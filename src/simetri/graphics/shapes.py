@@ -9,7 +9,7 @@ import numpy as np
 
 from ..graphics.batch import Batch
 from ..graphics.bbox import BoundingBox
-from ..graphics.shape import (Shape, custom_attributes, clip_shape, clip_batch,
+from ..graphics.shape import (Shape, custom_attributes, clip, trim_margins,
                               all_segments, get_loop, get_partition)
 from ..graphics.common import axis_x, get_defaults, Sequence, Point
 from ..graphics.all_enums import Types
