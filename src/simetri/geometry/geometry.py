@@ -369,7 +369,12 @@ def sorted_edges(polygon):
 
 def is_simple(polygon):
     """Sweep line algorithm variation to test if the polygon is simple (i.e. non intersecting).
-    Returns True if it is a simple polygon, False otherwise."""
+    Returns True if it is a simple polygon, False otherwise.
+    If the polygon has more than 100 vertices, is_simple2 is used.
+    """
+    if len(polygon) > 100:
+        return is_simple2(polygon)
+
     queue = []
     points = []
     edges = sorted_edges(polygon)
@@ -388,7 +393,8 @@ def is_simple(polygon):
                     if e[0] in edge or e[1] in edge:
                         continue
                     res = intersection(e, edge)
-                    if res not in [-1, 0]:
+
+                    if res == Connection.INTERSECT:
                         return False
                 queue.append(edge)
             elif p == tuple(edge[1]):
@@ -399,7 +405,7 @@ def is_simple(polygon):
     return True
 
 
-def is_simple_(
+def is_simple2(
     polygon,
     rel_tol: float = None,
     abs_tol: float = None,
@@ -431,7 +437,7 @@ def is_simple_(
     n_rows = seg_arr.shape[0]
     xmin = np.minimum(seg_arr[:, 0], seg_arr[:, 2]).reshape(n_rows, 1)
     xmax = np.maximum(seg_arr[:, 0], seg_arr[:, 2]).reshape(n_rows, 1)
-    ymin = np.minimum(seg_arr[:, 1], np.maximum(seg_arr[:, 3])).reshape(n_rows, 1)
+    ymin = np.minimum(seg_arr[:, 1], seg_arr[:, 3]).reshape(n_rows, 1)
     ymax = np.maximum(seg_arr[:, 1], seg_arr[:, 3]).reshape(n_rows, 1)
     id_ = np.arange(n_rows).reshape(n_rows, 1)
     seg_arr = np.concatenate((seg_arr, xmin, ymin, xmax, ymax, id_), 1)
@@ -558,7 +564,9 @@ def all_intersections(
             seg2 = cand[:4]
             if use_intersection3:
                 # connection type, point/segment
-                res = intersection3(*segment, *seg2, rel_tol, abs_tol)
+                (x1, y1, x2, y2) = segment
+                (x3, y3, x4, y4) = seg2
+                res = intersection3(x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol)
                 conn_type, x_res = res  # x_res can be a segment or a point
             else:
                 # connection type, point
@@ -1016,7 +1024,7 @@ def left(a: Point, b: Point, c: Point) -> bool:
 
     return area(a, b, c) > 0
 
-def in_polygon(point: Point, polygon_vertices: Sequence[Point]) -> bool:
+def in_polygon(point: Point, polygon_vertices: Sequence[Point], exclude_border: bool =False) -> bool:
     """
     Checks if a point is inside a polygon using the winding number algorithm.
 
@@ -1039,6 +1047,8 @@ def in_polygon(point: Point, polygon_vertices: Sequence[Point]) -> bool:
         _, y1 = p1
         _, y2 = p2
         if point_on_line_segment(point, [p1, p2]):
+            if exclude_border:
+                return False
             return True
         if y1 <= y:  # Start y <= P.y
             if y2 > y:  # An upward crossing
@@ -1704,8 +1714,8 @@ def collinear_segments(segment1, segment2, rel_tol=None, abs_tol=None):
     a1, b1 = segment1
     a2, b2 = segment2
 
-    return isclose(direction(a1, b1, a2), 0, rel_tol, abs_tol) and isclose(
-        direction(a1, b1, b2), 0, rel_tol, abs_tol
+    return isclose(direction(a1, b1, a2), 0, rel_tol=rel_tol, abs_tol=abs_tol) and isclose(
+        direction(a1, b1, b2), 0, rel_tol=rel_tol, abs_tol=abs_tol
     )
 
 
@@ -2039,7 +2049,7 @@ def intersection3(
                 return Connection.CONTAINS, segment1
             if l2_eq_total:
                 return Connection.WITHIN, segment2
-            if isclose(length1 + length2, total_length, rel_tol, abs_tol):
+            if isclose(length1 + length2, total_length, rel_tol=rel_tol, abs_tol=abs_tol):
                 # chained and collienar
                 if s1s2:
                     return Connection.COLL_CHAIN, (e1, s1, e2)
