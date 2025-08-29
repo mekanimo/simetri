@@ -407,8 +407,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        pos = [pos[0], pos[1], 1]
-        pos = pos @ self._xform_matrix
         draw.text(
             self,
             txt=text,
@@ -1168,7 +1166,7 @@ class Canvas:
                 value = None
         return value
 
-    def draw_split_segments(self, item: Union[Shape, Batch], **kwargs) -> Self:
+    def draw_all_segments(self, item: Union[Shape, Batch], vert_indices=False, **kwargs) -> Self:
         '''
         Using intersections, splits edges of the item into separate segments and
         draws them with their indices. This is usually used for the "get_loop"
@@ -1176,12 +1174,13 @@ class Canvas:
 
         Args:
             item: A shape or a batch.
-
+            vert_indices: If True, vertex indices are shown.
+                          Default is False, edge indices are shown.
         Returns:
             The canvas object.
         '''
 
-        return draw.draw_split_segments(self, item, **kwargs)
+        return draw.draw_all_segments(self, item, vert_indices, **kwargs)
 
 
     def get_fonts_list(self) -> list[str]:
