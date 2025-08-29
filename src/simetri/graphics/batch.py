@@ -1,5 +1,4 @@
 """Batch objects are used for grouping other Shape and Batch objects."""
-
 from typing import Any, Iterator, List, Sequence, Callable
 
 from numpy import around, array
@@ -13,6 +12,7 @@ from .core import Base
 from .bbox import bounding_box
 from ..canvas.style_map import batch_args
 from ..helpers.validation import validate_args
+from ..helpers.utilities import flatten2
 from ..geometry.geometry import (
     fix_degen_points,
     get_polygons,
@@ -55,11 +55,39 @@ class Batch(Base):
             subtype (Types, optional): The subtype of the batch.
             kwargs (dict): Additional keyword arguments.
         """
+        def flatten_elements(nested_list):
+            """Flatten a nested list.
+
+            Args:
+                nested_list: The nested list to flatten.
+
+            Yields:
+                The flattened elements.
+            """
+            for i in nested_list:
+                if isinstance(i, (list, tuple)):
+                    yield from flatten_elements(i)
+                else:
+                    yield i
+
         validate_args(kwargs, batch_args)
-        if elements is not None and not isinstance(elements, (list, tuple)):
+        if elements is None:
+            self.elements = []
+        elif not isinstance(elements, (list, tuple)):
             self.elements = [elements]
         else:
-            self.elements = elements if elements is not None else []
+            _elements = []
+            for element in elements:
+                if isinstance(element, (list, tuple)):
+                    for elem in flatten_elements(element):
+                        if elem:
+                            _elements.append(elem)
+                else:
+                    if element:
+                        _elements.append(element)
+            self.elements = _elements[:]
+            # self.elements = elements if elements is not None else []
+
         self.type = Types.BATCH
         self.subtype = get_enum_value(Types, subtype)
         self.modifiers = modifiers
