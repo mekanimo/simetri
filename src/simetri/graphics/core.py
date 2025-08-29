@@ -37,7 +37,7 @@ class Base:
                 res = self.__dict__[name]
             except KeyError as exc:
                 try:
-                    res = super().__getattr__(name)
+                    res = getattr(super(), name)
                 except AttributeError as exc:
                     msg = (
                         f"'{self.__class__.__name__}' object has no attribute '{name}'"
