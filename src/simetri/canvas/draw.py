@@ -773,6 +773,9 @@ def draw_lace(self, lace, **kwargs):
     if "plait_style" in kwargs:
         p_style = kwargs["plait_style"]
         if p_style == PlaitStyle.INNERLINES:
+            for plait in lace.plaits:
+                self.active_page.sketches.append(
+                            create_sketch(plait, self, **kwargs))
             if not lace.plaits[0].lerp_points:
                 if "percent_offsets" in kwargs:
                     offsets = kwargs["percent_offsets"]
@@ -1106,22 +1109,34 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
         active_sketches.append(TexSketch("\\end{scope}"))
     return self
 
-def draw_split_segments(self, item: Union[Shape, Batch], **kwargs) -> Self:
+def draw_all_segments(self, item: Union[Shape, Batch], vert_indices=False, **kwargs) -> Self:
     '''
     Using intersections, splits edges of the item into separate segments and
     draws them with their indices. This is usually used for the "get_loop"
     function.
+    If vert_indices is True, then vertex indices are shown instead of edge
+    indices.
 
     Args:
         item: A shape or a batch.
+        vert_indices: If vert_indices is True, then vertex indices are
+        shown instead of edge indices.
 
     Returns:
         The canvas object.
     '''
     segments = all_segments(item)
+    count = 0
     for i, edge in enumerate(segments):
         draw(self, Shape(edge), **kwargs)
-        text(self, f'{i}', midpoint(*edge), **kwargs)
+        if vert_indices:
+            p1, p2 = edge
+            text(self, f'{count}', p1, **kwargs)
+            count += 1
+            text(self, f'{count}', p2, **kwargs)
+            count += 1
+        else:
+            text(self, f'{i}', midpoint(*edge), **kwargs)
 
     return self
 
