@@ -6,23 +6,6 @@ from typing import Sequence, Any
 import simetri.graphics as sg
 
 
-diamond = sg.Shape([(0, 5), (3, 0), (0, -5), (-3, 0)], closed=True)
-diamond.fill_color = sg.black
-diamond.stroke = False
-star2 = sg.regular_star_polygon(5, 2, 7)
-star2.set_attribs("fill_color", sg.red)
-star2.set_attribs("stroke", False)
-square = sg.Shape([(0, 5), (5, 5), (5, 0), (0, 0)], closed=True)
-star = sg.regular_star_polygon(8, 3, 7)
-star.set_attribs("fill_color", sg.red)
-star.set_attribs("stroke", False)
-star3 = sg.regular_star_polygon(8, 2, 5)
-star3.set_attribs("fill_color", sg.blue)
-star3.set_attribs("stroke", False)
-circle = sg.Circle(1.5, fill_color=sg.white, stroke=False)
-hexagon = sg.Batch([sg.reg_poly_shape(6, 4, fill_color=sg.teal, stroke=False), circle])
-
-
 def next_id():
     """Generates a unique ID for each node."""
     next_id.counter += 1
@@ -137,6 +120,22 @@ def make_tree(
     Returns:
         None
     """
+    diamond = sg.Shape([(0, 5), (3, 0), (0, -5), (-3, 0)], closed=True)
+    diamond.fill_color = sg.black
+    diamond.stroke = False
+    star2 = sg.regular_star_polygon(5, 2, 7)
+    star2.set_attribs("fill_color", sg.red)
+    star2.set_attribs("stroke", False)
+    square = sg.Shape([(0, 5), (5, 5), (5, 0), (0, 0)], closed=True)
+    star = sg.regular_star_polygon(8, 3, 7)
+    star.set_attribs("fill_color", sg.red)
+    star.set_attribs("stroke", False)
+    star3 = sg.regular_star_polygon(8, 2, 5)
+    star3.set_attribs("fill_color", sg.blue)
+    star3.set_attribs("stroke", False)
+    circle = sg.Circle(1.5, fill_color=sg.white, stroke=False)
+    hexagon = sg.Batch([sg.reg_poly_shape(6, 4, fill_color=sg.teal, stroke=False), circle])
+
     count = 0
     if icons is None:
         icons = [star, diamond, star3, hexagon]
