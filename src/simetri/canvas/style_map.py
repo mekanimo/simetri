@@ -9,9 +9,10 @@ Documentation list all aliases for each style class.
 # to do: Change this so that IDEs can find the classes and methods.
 
 from typing import List, Optional, Sequence, Union
-from dataclasses import dataclass
+from dataclasses import dataclass, InitVar
+import enum
 
-from ..settings.settings import defaults
+from ..settings.settings import defaults, default_types
 from ..graphics.common import get_unique_id, VOID, common_properties
 from ..graphics.all_enums import (
     Align,
@@ -32,7 +33,7 @@ from ..graphics.all_enums import (
 from ..colors.colors import Color
 
 
-def _set_style_args(obj, attribs, exact=None, prefix=None):
+def _set_style_args(obj, attribs, exact=None, prefix=None, values=None):
     """Set the style arguments for the given object.
 
     Args:
@@ -42,17 +43,20 @@ def _set_style_args(obj, attribs, exact=None, prefix=None):
         prefix: Prefix to use for the attributes.
     """
     for attrib in attribs:
-        if exact and attrib in exact:
-            default = defaults.get(attrib, VOID)
-            if default != VOID:
-                setattr(obj, attrib, default)
+        if values and values.get(attrib, None) is not None:
+            setattr(obj, attrib, values[attrib])
         else:
-            if prefix:
-                setattr(obj, attrib, defaults[f"{prefix}_{attrib}"])
-            else:
+            if exact and attrib in exact:
                 default = defaults.get(attrib, VOID)
                 if default != VOID:
                     setattr(obj, attrib, default)
+            else:
+                if prefix:
+                    setattr(obj, attrib, defaults[f"{prefix}_{attrib}"])
+                else:
+                    default = defaults.get(attrib, VOID)
+                    if default != VOID:
+                        setattr(obj, attrib, default)
 
 
 def _get_style_attribs(
@@ -279,16 +283,16 @@ class LineStyle:
     def __post_init__(self):
         """Initialize the LineStyle object."""
         exact = [
-            "smooth",
-            "stroke",
-            "fillet_radius",
-            "draw_fillets",
-            "draw_markers",
-            "markers_only",
-            "draw_double",
-            "double_color",
-            "double_distance",
-        ]
+                "smooth",
+                "stroke",
+                "fillet_radius",
+                "draw_fillets",
+                "draw_markers",
+                "markers_only",
+                "draw_double",
+                "double_color",
+                "double_distance",
+            ]
         exclude = ["marker_style"]
         _style_init(self, exact, exclude, prefix="line", subtype=Types.LINE_STYLE)
         self._exact = exact
@@ -1610,6 +1614,269 @@ def _set_shape_aliases_dict(shape):
                 shape_aliases_dict[alias] = (obj, attrib)
     self.__dict__["_aliasses"] = _aliasses
 
+
+
+class StyleObj:
+    """
+    An object-based style class that only allows updates to predefined attributes.
+    Setting new attributes will raise an AttributeError.
+    Provides attribute-style access (obj.attr) instead of dictionary access.
+    Includes type validation based on settings.default_types.
+    """
+
+    def __init__(self, style_map, validate_types=True, **kwargs):
+        """Initialize StyleObj with predefined attributes from style_map.
+
+        Args:
+            style_map: Dictionary mapping attribute names to their paths
+            validate_types: Whether to validate types against default_types
+            **kwargs: Initial attribute values
+        """
+        # Store the allowed attributes and validation setting
+        object.__setattr__(self, '_allowed_attrs', set(style_map.keys()))
+        object.__setattr__(self, '_validate_types', validate_types)
+
+        # Initialize all attributes to None
+        for attr in style_map.keys():
+            object.__setattr__(self, attr, None)
+
+        # Set any provided values (with validation)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def _validate_value(self, name, value):
+        """Validate a value against its expected type from default_types.
+
+        Args:
+            name: The attribute name
+            value: The value to validate
+
+        Raises:
+            TypeError: If value doesn't match expected type
+            ValueError: If value is invalid for the type
+        """
+        if not self._validate_types or value is None:
+            return  # Skip validation if disabled or value is None
+
+        # Get expected type from default_types
+        expected_type = default_types.get(name)
+        if expected_type is None:
+            return  # No type information available, skip validation
+
+        # Handle special cases
+        if expected_type == Sequence:
+            # Check if it's sequence-like (list, tuple, etc.)
+            if not hasattr(value, '__iter__') or isinstance(value, (str, bytes)):
+                raise TypeError(f"Attribute '{name}' must be a sequence (list, tuple, etc.), got {type(value).__name__}")
+            return
+
+        # Handle enum types
+        if hasattr(expected_type, '__bases__') and enum.Enum in expected_type.__bases__:
+            if not isinstance(value, expected_type):
+                # Allow string values for enums if they match enum names
+                if isinstance(value, str):
+                    try:
+                        # Try to convert string to enum - just check validity
+                        _ = expected_type[value.upper()]
+                        return  # String matches enum name, validation passes
+                    except (KeyError, AttributeError):
+                        pass
+                raise TypeError(f"Attribute '{name}' must be of type {expected_type.__name__} or a valid enum name, got {type(value).__name__}")
+            return
+
+        # Handle Union types (e.g., Union[FontFamily, str])
+        if hasattr(expected_type, '__origin__') and expected_type.__origin__ is Union:
+            # Check if value matches any of the union types
+            union_args = expected_type.__args__
+            for union_type in union_args:
+                try:
+                    if isinstance(value, union_type):
+                        return  # Matches one of the union types
+                except TypeError:
+                    continue  # Some types can't be used with isinstance
+            raise TypeError(f"Attribute '{name}' must be one of {union_args}, got {type(value).__name__}")
+
+        # Handle basic types
+        if not isinstance(value, expected_type):
+            # Special case for numeric types - allow some flexibility
+            if expected_type is float and isinstance(value, (int, float)):
+                return  # Allow int for float attributes
+
+            raise TypeError(f"Attribute '{name}' must be of type {expected_type.__name__}, got {type(value).__name__}")
+
+        # Additional validation for specific types
+        if expected_type is float:
+            # Check for special float constraints (e.g., alpha should be 0-1)
+            if name.endswith('_alpha') or name == 'alpha':
+                if not (0 <= value <= 1):
+                    raise ValueError(f"Alpha attribute '{name}' must be between 0 and 1, got {value}")
+
+            # Check for positive values where appropriate
+            if any(keyword in name for keyword in ['width', 'height', 'size', 'radius', 'distance', 'gap', 'sep', 'length']):
+                if value < 0:
+                    raise ValueError(f"Attribute '{name}' must be non-negative, got {value}")
+
+    def __setattr__(self, name, value):
+        """Override attribute setting to prevent adding new attributes and validate values."""
+        if hasattr(self, '_allowed_attrs') and name not in self._allowed_attrs:
+            raise AttributeError(f"Cannot add new attribute '{name}' to StyleObj. "
+                               f"Allowed attributes are: {sorted(self._allowed_attrs)}")
+
+        # Validate the value if not a private attribute
+        if hasattr(self, '_validate_types') and not name.startswith('_'):
+            self._validate_value(name, value)
+
+        object.__setattr__(self, name, value)
+
+    def __getattr__(self, name):
+        """Provide helpful error message for non-existent attributes."""
+        if hasattr(self, '_allowed_attrs'):
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'. "
+                               f"Allowed attributes are: {sorted(self._allowed_attrs)}")
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+    def update(self, **kwargs):
+        """Update multiple attributes at once."""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def to_dict(self):
+        """Convert StyleObj to dictionary, excluding None values."""
+        return {attr: getattr(self, attr) for attr in self._allowed_attrs
+                if getattr(self, attr) is not None}
+
+    def __repr__(self):
+        """Provide a readable representation showing non-None attributes."""
+        non_none_attrs = {attr: getattr(self, attr) for attr in self._allowed_attrs
+                         if getattr(self, attr) is not None}
+        return f"{self.__class__.__name__}({non_none_attrs})"
+
+
+def _get_style_obj(style_map, validate_types=True, **kwargs):
+    """Helper function to create StyleObj from style_map."""
+    return StyleObj(style_map, validate_types=validate_types, **kwargs)
+
+
+def line_style_obj(validate_types=True, **kwargs):
+    """Returns a line-style object.
+    These style objects can be used for overwriting objects'
+    style attributes during drawing.
+
+    Args:
+        validate_types: Whether to validate attribute types (default: True)
+        **kwargs: Style attribute values
+
+    Example:
+        line_obj = line_style_obj(line_color="red", line_width=2)
+        line_obj.line_dash_array = [5, 2]
+    """
+    return _get_style_obj(line_style_map, validate_types=validate_types, **kwargs)
+
+
+def fill_style_obj(validate_types=True, **kwargs):
+    """Returns a fill-style object.
+    These style objects can be used for overwriting objects'
+    style attributes during drawing.
+
+    Args:
+        validate_types: Whether to validate attribute types (default: True)
+        **kwargs: Style attribute values
+
+    Example:
+        fill_obj = fill_style_obj(color="blue", alpha=0.5)
+        fill_obj.mode = "solid"
+    """
+    return _get_style_obj(fill_style_map, validate_types=validate_types, **kwargs)
+
+
+def shape_style_obj(validate_types=True, **kwargs):
+    """Returns a shape-style object.
+    These style objects can be used for overwriting objects'
+    style attributes during drawing.
+
+    Args:
+        validate_types: Whether to validate attribute types (default: True)
+        **kwargs: Style attribute values
+
+    Example:
+        shape_obj = shape_style_obj(line_color="red", fill_color="blue")
+    """
+    return _get_style_obj(shape_style_map, validate_types=validate_types, **kwargs)
+
+
+def frame_style_obj(validate_types=True, **kwargs):
+    """Returns a frame-style object.
+    These style objects can be used for overwriting objects'
+    style attributes during drawing.
+
+    Args:
+        validate_types: Whether to validate attribute types (default: True)
+        **kwargs: Style attribute values
+
+    Example:
+        frame_obj = frame_style_obj(frame_inner_sep=5, frame_shape="rectangle")
+    """
+    return _get_style_obj(frame_style_map, validate_types=validate_types, **kwargs)
+
+
+def image_style_obj(validate_types=True, **kwargs):
+    """Returns an image-style object.
+    These style objects can be used for overwriting objects'
+    style attributes during drawing.
+
+    Args:
+        validate_types: Whether to validate attribute types (default: True)
+        **kwargs: Style attribute values
+
+    Example:
+        img_obj = image_style_obj(alpha=0.8, blend_mode="normal")
+    """
+    return _get_style_obj(image_style_map, validate_types=validate_types, **kwargs)
+
+
+def tag_style_obj(validate_types=True, **kwargs):
+    """Returns a tag-style object.
+    These style objects can be used for overwriting objects'
+    style attributes during drawing.
+
+    Args:
+        validate_types: Whether to validate attribute types (default: True)
+        **kwargs: Style attribute values
+
+    Example:
+        tag_obj = tag_style_obj(font_color="black", font_size=12)
+    """
+    return _get_style_obj(tag_style_map, validate_types=validate_types, **kwargs)
+
+
+def marker_style_obj(validate_types=True, **kwargs):
+    """Returns a marker-style object.
+    These style objects can be used for overwriting objects'
+    style attributes during drawing.
+
+    Args:
+        validate_types: Whether to validate attribute types (default: True)
+        **kwargs: Style attribute values
+
+    Example:
+        marker_obj = marker_style_obj(marker_color="red", marker_size=3)
+    """
+    return _get_style_obj(marker_style_map, validate_types=validate_types, **kwargs)
+
+
+def pattern_style_obj(validate_types=True, **kwargs):
+    """Returns a pattern-style object.
+    These style objects can be used for overwriting objects'
+    style attributes during drawing.
+
+    Args:
+        validate_types: Whether to validate attribute types (default: True)
+        **kwargs: Style attribute values
+
+    Example:
+        pattern_obj = pattern_style_obj(pattern_color="green", pattern_type="lines")
+    """
+    return _get_style_obj(pattern_style_map, validate_types=validate_types, **kwargs)
 
 # From: https://tikz.dev/library-patterns#pgf.patterns
 

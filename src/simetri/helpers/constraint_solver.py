@@ -90,8 +90,17 @@ def parallel_eq(constraint):
     Returns:
         float: The cross product of the vectors.
     """
-    vec1 = Vector2D(*constraint.item1)
-    vec2 = Vector2D(*constraint.item2)
+    # constraint.item1 and constraint.item2 are line segments (pairs of points)
+    # We need to calculate direction vectors from these segments
+    seg1 = constraint.item1  # [[x1, y1], [x2, y2]]
+    seg2 = constraint.item2  # [[x3, y3], [x4, y4]]
+
+    # Calculate direction vectors
+    dir1 = [seg1[1][0] - seg1[0][0], seg1[1][1] - seg1[0][1]]  # [x2-x1, y2-y1]
+    dir2 = [seg2[1][0] - seg2[0][0], seg2[1][1] - seg2[0][1]]  # [x4-x3, y4-y3]
+
+    vec1 = Vector2D(*dir1)
+    vec2 = Vector2D(*dir2)
 
     return vec1.cross(vec2)
 
@@ -105,11 +114,17 @@ def perpendicular_eq(constraint):
     Returns:
         float: The dot product of the vectors.
     """
-    seg1 = constraint.item1
-    seg2 = constraint.item2
+    # constraint.item1 and constraint.item2 are line segments (pairs of points)
+    # We need to calculate direction vectors from these segments
+    seg1 = constraint.item1  # [[x1, y1], [x2, y2]]
+    seg2 = constraint.item2  # [[x3, y3], [x4, y4]]
 
-    vec1 = Vector2D(*seg1)
-    vec2 = Vector2D(*seg2)
+    # Calculate direction vectors
+    dir1 = [seg1[1][0] - seg1[0][0], seg1[1][1] - seg1[0][1]]  # [x2-x1, y2-y1]
+    dir2 = [seg2[1][0] - seg2[0][0], seg2[1][1] - seg2[0][1]]  # [x4-x3, y4-y3]
+
+    vec1 = Vector2D(*dir1)
+    vec2 = Vector2D(*dir2)
 
     return vec1.dot(vec2)
 
@@ -296,11 +311,11 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
 # # that is tangent to both circles.
 # x1 = y1 = 0
 # r1 = 40
-# c1 = Circle((x1, y1), r1) # this would be sg.Circle((x1, y1), r1)
+# c1 = Circle((x1, y1), r1) # this would be sg.Circle(r1, (x1, y1))
 # x2 = 100
 # y2 = 0
 # r2 = 35
-# c2 = Circle((x2, y2), r2)
+# c2 = Circle(r2, (x2, y2))
 
 # # c3 position is estimated at this point
 # # c3 radius is fixed
@@ -308,7 +323,7 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
 # x3 = 45
 # y3 = 45
 # r3 = 50
-# c3 = Circle((x3, y3), r3)
+# c3 = Circle(r3, (x3, y3))
 
 # const1 = Constraint(c1, c3, ConstType.OUTER_TANGENT)
 # const2 = Constraint(c2, c3, ConstType.OUTER_TANGENT)
@@ -326,12 +341,12 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
 
 # start with 2 identical circles tangent to each other
 
-# c1 = Circle((0, 0), 50)
-# c2 = Circle((100, 0), 50)
+# c1 = Circle(50, (0, 0))
+# c2 = Circle(50, (100, 0))
 
 # c3 is the big circle
 
-# c3 = Circle((50, -200), 200)
+# c3 = Circle(200, (50, -200))
 
 # const1 = Constraint(c1, c3, ConstType.INNER_TANGENT)
 # const2 = Constraint(c2, c3, ConstType.INNER_TANGENT)
@@ -350,7 +365,7 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
 # # We will add a circle tangent to the 3 circles
 # # c4 is the circle we are looking for
 
-# c4 = Circle((50, 55), 5)
+# c4 = Circle(5, (50, 55))
 
 # const1 = Constraint(c1, c4, ConstType.OUTER_TANGENT)
 # const2 = Constraint(c2, c4, ConstType.OUTER_TANGENT)
@@ -366,3 +381,21 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
 
 # print(solve([const1, const2, const3], update, guess, bounds))
 # print(c4.center, c4.radius)
+
+
+item1 = [0, 0]
+item2 = [50, 0]
+
+dist_const = Constraint(item1, item2, ConstType.DISTANCE, value=45)
+
+paralell_const = Constraint([[0, 0], [1, 0]], [item1, item2], ConstType.PARALLEL)
+
+# print(distance([0, 0], [4.465e+01,  5.582e+00]))
+def update(x):
+    print('x', x)
+    x_, y_ = x
+    item2[0] = x_
+    item2[1] = y_
+
+
+print(solve([dist_const, paralell_const], update, [40, 5]))

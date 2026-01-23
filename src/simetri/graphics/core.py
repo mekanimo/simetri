@@ -23,6 +23,19 @@ from .affine import (
 )
 from ..geometry.geometry import line_angle
 
+# Import style attributes that should return None instead of raising errors
+try:
+    from ..canvas.style_map import batch_args, shape_args
+    STYLE_ATTRIBUTES = set(batch_args + shape_args)
+except ImportError:
+    # Fallback list of common style attributes if import fails
+    STYLE_ATTRIBUTES = {
+        'alpha', 'line_alpha', 'fill_alpha', 'text_alpha', 'blend_mode',
+        'back_style', 'line_color', 'fill_color', 'line_width', 'stroke',
+        'fill', 'marker_color', 'marker_size', 'pattern_color', 'shade_type',
+        'grid_alpha', 'fillet_radius', 'smooth', 'clip', 'mask', 'modifiers'
+    }
+
 
 class Base:
     """Base class for Shape and Batch objects."""
@@ -38,11 +51,15 @@ class Base:
             except KeyError as exc:
                 try:
                     res = getattr(super(), name)
-                except AttributeError as exc:
+                except AttributeError as attr_exc:
+                    # For style attributes, return None instead of raising an error
+                    # This allows the canvas property resolution to work properly
+                    if name in STYLE_ATTRIBUTES:
+                        return None
                     msg = (
                         f"'{self.__class__.__name__}' object has no attribute '{name}'"
                     )
-                    raise AttributeError(msg) from exc
+                    raise AttributeError(msg) from attr_exc
 
         return res
 
@@ -333,7 +350,9 @@ class StyleMixin:
             name (str): The name of the attribute.
             value (Any): The value to set.
         """
-        obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
+        # Handle case where _aliasses might not be set up yet
+        aliasses = self.__dict__.get("_aliasses", {})
+        obj, attrib = aliasses.get(name, (None, None))
         if obj:
             setattr(obj, attrib, value)
         else:

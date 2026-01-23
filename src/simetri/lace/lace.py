@@ -1,7 +1,7 @@
 """Simetri library's interlace objects."""
 
 from itertools import combinations
-from typing import Iterator, List, Any, Union, Sequence, Tuple
+from typing import Iterator, List, Any, Union
 from collections import OrderedDict
 
 import networkx as nx
@@ -33,7 +33,7 @@ from ..geometry.geometry import (
     lerp_point,
 )
 from ..helpers.graph import get_cycles
-from ..graphics.common import get_defaults, common_properties
+from ..graphics.common import get_defaults, common_properties, d_id_obj
 from ..graphics.all_enums import Types, Connection
 from ..canvas.style_map import shape_style_map, ShapeStyle
 from ..settings.settings import defaults
@@ -971,7 +971,6 @@ class Lace(Batch):
         offset (float, optional): Offset value. Defaults to 2.
         rel_tol (float, optional): Relative tolerance. Defaults to None.
         swatch (list, optional): Swatch list. Defaults to None.
-        breakpoints (list, optional): Breakpoints list. Defaults to None.
         plait_color (colors.Color, optional): Plait color. Defaults to None.
         draw_fragments (bool, optional): If fragments should be drawn. Defaults to True.
         palette (list, optional): Palette list. Defaults to None.
@@ -988,7 +987,6 @@ class Lace(Batch):
         offset: float = 2,
         rel_tol: float = None,
         swatch: list = None,
-        breakpoints: list = None,
         plait_color: colors.Color = None,
         draw_fragments: bool = True,
         palette: list = None,
@@ -1038,7 +1036,6 @@ class Lace(Batch):
         polygon_shapes = polygon_shapes.merge_shapes()
         polyline_shapes = polyline_shapes.merge_shapes()
 
-
         if not polygon_shapes and not polyline_shapes:
             msg = "Lace.__init__ : No polygons or polylines found."
             raise ValueError(msg)
@@ -1050,7 +1047,6 @@ class Lace(Batch):
         self.xform_matrix = np.eye(3)
         self.rel_tol = rel_tol
         self.swatch = swatch
-        self.breakpoints = breakpoints
         self.plait_color = plait_color
         self.draw_fragments = draw_fragments
         self.palette = palette
@@ -1069,6 +1065,7 @@ class Lace(Batch):
         self.shade_fragments = True
         self.plait_style = None
         self.fragment_style = None
+
         if kwargs and "_copy" in kwargs:
             # pass the pre-computed values
             for k, v in kwargs:
@@ -1091,10 +1088,7 @@ class Lace(Batch):
             self._set_over_under()
             if self.with_plaits:
                 self.set_plaits()
-            # self._set_convex_hull()
-            # self._set_concave_hull()
-            # self._set_fragment_groups()
-            # self._set_partition_groups()
+
             self._b_box = None
         elements = [polyline for polyline in self.parallel_poly_list] + self.fragments
 
@@ -1120,6 +1114,49 @@ class Lace(Batch):
         return self.outline.CG
 
     @property
+    def fragments_by_radius(self):
+        """Groups fragments into bins by using their distances to
+        the lace midpoint."""
+        center = self.center
+        rad_frags = []
+        for fragment in self.fragments:
+            radius = distance(center, fragment.CG)
+            rad_frags.append((radius, fragment.id))
+        delta = max([x[0] for x in rad_frags]) / 100
+        bins = group_into_bins(rad_frags, delta)
+
+        res = {}
+        for bin_ in bins:
+            grp = []
+            radius_ = None
+            for radius_, fragment_id in bin_:
+                fragment = d_id_obj[fragment_id]
+                grp.append(fragment)
+            res[round(radius_, 2)] = grp
+
+        return res
+
+    @property
+    def fragments_by_area(self):
+        """Groups fragments into bins by using their areas."""
+        areas = []
+        for fragment in self.fragments:
+            areas.append((fragment.area, fragment.id))
+        delta = max([x[0] for x in areas]) / 100
+        bins = group_into_bins(areas, delta)
+
+        res = {}
+        for bin_ in bins:
+            grp = []
+            area = None
+            for area, fragment_id in bin_:
+                fragment = d_id_obj[fragment_id]
+                grp.append(fragment)
+            res[round(area, 2)] = grp
+
+        return res
+
+    @property
     def fragment_groups(self):
         """Return the fragment groups of the lace.
 
@@ -1130,7 +1167,7 @@ class Lace(Batch):
         radius_frag = []
         for fragment in self.fragments:
             radius = int(distance(center, fragment.CG))
-            for rad, frag in radius_frag:
+            for rad, _ in radius_frag:
                 if abs(radius - rad) <= 2:
                     radius = rad
                     break
@@ -1264,9 +1301,9 @@ class Lace(Batch):
         areas.sort()
         bins = group_into_bins(areas, self.area_threshold)
         self.fragments_by_area = OrderedDict()
-        for i, bin in enumerate(bins):
-            area_values = [x[0] for x in bin]
-            key = sum([x[0] for x in bin]) / len(bin)
+        for i, bin_ in enumerate(bins):
+            area_values = [x[0] for x in bin_]
+            key = sum([x[0] for x in bin_]) / len(bin_)
             fragments = []
             for area, ind in areas:
                 if area in area_values:
@@ -1279,9 +1316,9 @@ class Lace(Batch):
         radii.sort()
         bins = group_into_bins(radii, self.radius_threshold)
         self.fragments_by_radius = OrderedDict()
-        for i, bin in enumerate(bins):
-            radius_values = [x[0] for x in bin]
-            key = sum([x[0] for x in bin]) / len(bin)
+        for i, bin_ in enumerate(bins):
+            radius_values = [x[0] for x in bin_]
+            key = sum([x[0] for x in bin_]) / len(bin_)
             fragments = []
             for radius, ind in radii:
                 if radius in radius_values:
@@ -1454,7 +1491,11 @@ class Lace(Batch):
         groups = []
         for group in vert_groups:
             areas = [
-                [f for f in group if isclose(f.area, area, rel_tol=rel_tol, abs_tol=abs_tol)]
+                [
+                    f
+                    for f in group
+                    if isclose(f.area, area, rel_tol=rel_tol, abs_tol=abs_tol)
+                ]
                 for area in set([frag.area for frag in group])
             ]
             areas.sort(key=lambda x: x[0].area, reverse=True)
@@ -1864,7 +1905,6 @@ class Lace(Batch):
         if self.plaits:
             return
         plait_sections = []
-        sections = []
         for division in self.iter_offset_divisions():
             merged_sections = division._merged_sections()
             for merged in merged_sections:
@@ -1922,6 +1962,11 @@ class Lace(Batch):
             shape.subtype = Types.PLAIT
             shape.lerp_points = []
             self.plaits.append(shape)
+
+        # set the plait-ends
+        self._set_plait_ends()
+        # set the plait_connections
+        self._set_plait_connections()
 
     def _set_intersections(self):
         """

@@ -1000,6 +1000,7 @@ class Types(StrEnum):
     GRADIENT = "GRADIENT"
     GRID = "GRID"
     GRID_STYLE = "GRID_STYLE"
+    GROUP = "GROUP"
     HANDLE = "HANDLE"
     HEXAGONAL = "HEXAGONAL"
     HEX_GRID = "HEX_GRID"

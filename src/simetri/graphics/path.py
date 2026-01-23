@@ -72,11 +72,7 @@ class LinPath(Batch, StyleMixin):
             **kwargs: Additional keyword arguments. Common properties are line_width,
             line_color, stroke, etc.
         """
-        if "style" in kwargs:
-            self.__dict__["style"] = kwargs["style"]
-            del kwargs["style"]
-        else:
-            self.__dict__["style"] = ShapeStyle()
+        self.__dict__["style"] = ShapeStyle()
         self.__dict__["_style_map"] = shape_style_map
         self._set_aliases()
         valid_args = shape_args
@@ -112,6 +108,10 @@ class LinPath(Batch, StyleMixin):
         Raises:
             AttributeError: If the attribute cannot be found.
         """
+        # First try StyleMixin for style attributes (which handles aliases)
+        if hasattr(self, '_aliasses') and name in self._aliasses:
+            return StyleMixin.__getattr__(self, name)
+
         try:
             res = super().__getattr__(name)
         except AttributeError:

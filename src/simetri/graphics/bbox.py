@@ -214,7 +214,6 @@ class BoundingBox:
             tuple: All anchors of the bounding box.
         """
         return (
-            self.northwest,
             self.west,
             self.southwest,
             self.south,
@@ -222,8 +221,29 @@ class BoundingBox:
             self.east,
             self.northeast,
             self.north,
+            self.northwest,
             self.midpoint,
         )
+
+    @property
+    def all_lines(self):
+        """
+        Return all lines of the bounding box.
+
+        Returns:
+            tuple: All lines of the bounding box.
+        """
+
+        return (
+            self.left,
+            self.bottom,
+            self.right,
+            self.top,
+            self.horiz_centerline,
+            self.vert_centerline,
+            self.diagonal1,
+            self.diagonal2
+            )
 
     @property
     def width(self):

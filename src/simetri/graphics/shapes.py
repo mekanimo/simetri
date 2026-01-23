@@ -10,7 +10,7 @@ import numpy as np
 from ..graphics.batch import Batch
 from ..graphics.bbox import BoundingBox
 from ..graphics.shape import (Shape, custom_attributes, clip, trim_margins,
-                              all_segments, get_loop, get_partition)
+                              all_segments, get_loop, get_partition, union, diff, xor)
 from ..graphics.common import axis_x, get_defaults, Sequence, Point
 from ..graphics.all_enums import Types
 from ..helpers.utilities import decompose_transformations
@@ -191,7 +191,7 @@ class Rectangle(Shape):
         _, rotation, _ = decompose_transformations(self.xform_matrix)
         rectangle.rotate(rotation, about=center, reps=0)
         style = copy.copy(self.style)
-        rectangle.style = style
+        # rectangle.style = style
         rectangle._set_aliases()
         custom_attribs = custom_attributes(self)
         for attrib in custom_attribs:
@@ -328,7 +328,7 @@ class Circle(Shape):
         radius = self.radius
         circle = Circle(center=center, radius=radius)
         style = copy.deepcopy(self.style)
-        circle.style = style
+        # circle.style = style
         circle._set_aliases()
 
         custom_attribs = custom_attributes(self)

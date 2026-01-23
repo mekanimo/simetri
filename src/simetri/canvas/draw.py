@@ -26,7 +26,8 @@ from ..graphics.all_enums import (
     Connection,
 )
 from ..colors import colors
-from ..colors.colors import Color, change_lightness
+from ..colors.palettes import d_n_palette, d_name_palette
+from ..colors.colors import Color, change_lightness, get_lightest
 from ..tikz.tikz import scope_code_required, get_clip_code
 from ..graphics.sketch import (
     ArcSketch,
@@ -50,13 +51,14 @@ from ..canvas.style_map import (
     tag_style_map,
     image_style_map,
     group_args,
+    StyleObj
 )
 from ..helpers.illustration import Tag
-from ..helpers.utilities import decompose_transformations
+from ..helpers.utilities import decompose_transformations, group_into_bins
 from ..graphics.affine import identity_matrix
 from ..graphics.shape import Shape, all_segments
 from ..graphics.batch import Batch
-from ..graphics.common import Point
+from ..graphics.common import Point, d_id_obj
 from ..geometry.bezier import bezier_points
 from ..geometry.ellipse import elliptic_arc_points
 from ..graphics.affine import rotation_matrix, translation_matrix
@@ -154,7 +156,7 @@ def bezier(self, control_points, **kwargs):
     sketch = BezierSketch(control_points, self.xform_matrix)
     for attrib_name in shape_style_map:
         if hasattr(sketch, attrib_name):
-            attrib_value = self._resolve_property(sketch, attrib_name)
+            attrib_value = self.resolve_property(sketch, attrib_name)
         else:
             attrib_value = defaults[attrib_name]
         setattr(sketch, attrib_name, attrib_value)
@@ -258,6 +260,7 @@ def text(
         font_size=font_size,
         font_color=font_color,
         anchor=anchor,
+
         **kwargs,
     )
     tag_obj.draw_frame = False
@@ -360,7 +363,7 @@ def lines(self, points, **kwargs):
     self._all_vertices.extend(points)
     sketch = LineSketch(points, self.xform_matrix, **kwargs)
     for attrib_name in line_style_map:
-        attrib_value = self._resolve_property(sketch, attrib_name)
+        attrib_value = self.resolve_property(sketch, attrib_name)
         setattr(sketch, attrib_name, attrib_value)
     self.active_page.sketches.append(sketch)
 
@@ -744,6 +747,75 @@ def plait_diamond(self, lace, **kwargs):
         self.draw(loop, fill_color=color, **kwargs)
 
 
+def draw_fragments(self, lace, palette=None, **kwargs):
+    areas = []
+    for fragment in lace.fragments:
+        areas.append((fragment.area, fragment.id))
+    bins = group_into_bins(areas, 2)
+
+    if palette is None:
+        palette = d_name_palette["div_ROMA_256"]
+    n_palette = len(palette)
+    n_bins = len(bins)
+    palette = palette[::n_palette//n_bins]
+    palette = [Color(*c) for c in palette]
+    n = len(palette)
+    for i, bin_ in enumerate(bins):
+        color = palette[i%n]
+        for _, fragment_id in bin_:
+            fragment = d_id_obj[fragment_id]
+            self.draw(fragment, fill_color=color)
+
+def _handle_plait_innerlines(canvas, lace, **kwargs):
+    """Handle INNERLINES plait style."""
+    for plait in lace.plaits:
+        canvas.active_page.sketches.append(create_sketch(plait, canvas, **kwargs))
+
+    if not lace.plaits[0].lerp_points:
+        offsets = kwargs.get("percent_offsets", [0.5])
+        widths = kwargs.get("line_widths", [1])
+
+        lace._set_plait_inner_lines(offsets, widths)
+
+        # Check if line widths match the number of lerp points
+        if ("line_widths" in kwargs and
+            len(kwargs["line_widths"]) == len(lace.plaits[0].lerp_points[0])):
+            widths = kwargs["line_widths"]
+        else:
+            widths = False
+
+        for plait in lace.plaits:
+            for i in range(len(plait.lerp_points[0])):
+                points = [pnts[i] for pnts in plait.lerp_points]
+                shp = Shape(points)
+                line_width = plait.line_widths[i] if widths else 1
+                canvas.active_page.sketches.append(
+                    create_sketch(shp, canvas, line_width=line_width, **kwargs)
+                )
+
+
+def _handle_plait_style(canvas, lace, kwargs):
+    """Handle different plait styles."""
+    p_style = kwargs["plait_style"]
+
+    if p_style == PlaitStyle.INNERLINES:
+        _handle_plait_innerlines(canvas, lace, **kwargs)
+    elif p_style == PlaitStyle.INNERLOOPS:
+        pass  # No implementation yet
+    elif p_style == PlaitStyle.DIAMOND:
+        plait_diamond(canvas, lace, **kwargs)
+    elif p_style == PlaitStyle.EMBOSS1:
+        plait_emboss1(canvas, lace, **kwargs)
+    elif p_style == PlaitStyle.EMBOSS2:
+        plait_emboss2(canvas, lace, **kwargs)
+
+
+def _draw_default_plaits(canvas, lace, kwargs):
+    """Draw plaits with default style."""
+    for plait in lace.plaits:
+        canvas.active_page.sketches.append(create_sketch(plait, canvas, **kwargs))
+
+
 def draw_lace(self, lace, **kwargs):
     """Draw the lace object.
 
@@ -754,16 +826,18 @@ def draw_lace(self, lace, **kwargs):
     Returns:
         Self: The canvas object.
     """
-    keys = list(lace.fragment_groups.keys())
-    keys.sort()
-    if lace.swatch is not None:
-        n_colors = len(lace.swatch)
-    for i, key in enumerate(keys):
-        if lace.swatch is not None:
-            fill_color = colors.Color(*lace.swatch[i % n_colors])
-            kwargs["fill_color"] = fill_color
-        for fragment in lace.fragment_groups[key]:
-            self.active_page.sketches.append(create_sketch(fragment, self, **kwargs))
+    # keys = list(lace.fragment_groups.keys())
+    # keys.sort()
+    # if lace.swatch is not None:
+    #     n_colors = len(lace.swatch)
+    # for i, key in enumerate(keys):
+    #     if lace.swatch is not None:
+    #         fill_color = colors.Color(*lace.swatch[i % n_colors])
+    #         kwargs["fill_color"] = fill_color
+    #     for fragment in lace.fragment_groups[key]:
+    #         self.active_page.sketches.append(create_sketch(fragment, self, **kwargs))
+    self.draw_fragments(lace, **kwargs)
+
     for plait in lace.plaits:
         if "fill_color" not in kwargs:
             color = defaults["plait_color"]
@@ -771,50 +845,9 @@ def draw_lace(self, lace, **kwargs):
                 kwargs["fill_color"] = color
 
     if "plait_style" in kwargs:
-        p_style = kwargs["plait_style"]
-        if p_style == PlaitStyle.INNERLINES:
-            for plait in lace.plaits:
-                self.active_page.sketches.append(
-                            create_sketch(plait, self, **kwargs))
-            if not lace.plaits[0].lerp_points:
-                if "percent_offsets" in kwargs:
-                    offsets = kwargs["percent_offsets"]
-                else:
-                    offsets = [0.5]
-                if "line_widths" in kwargs:
-                    widths = kwargs["line_widths"]
-                else:
-                    widths = [1]
-                lace._set_plait_inner_lines(offsets, widths)
-                if "line_widths" in kwargs and len(kwargs["line_widths"]) == len(
-                    lace.plaits[0].lerp_points[0]
-                ):
-                    widths = kwargs["line_widths"]
-                else:
-                    widths = False
-                for plait in lace.plaits:
-                    for i in range(len(plait.lerp_points[0])):
-                        points = [pnts[i] for pnts in plait.lerp_points]
-                        shp = Shape(points)
-                        if widths:
-                            line_width = plait.line_widths[i]
-                        else:
-                            line_width = 1
-                        self.active_page.sketches.append(
-                            create_sketch(shp, self, line_width=line_width, **kwargs)
-                        )
-        elif p_style == PlaitStyle.INNERLOOPS:
-            pass
-        elif p_style == PlaitStyle.DIAMOND:
-            plait_diamond(self, lace, **kwargs)
-        elif p_style == PlaitStyle.EMBOSS1:
-            plait_emboss1(self, lace, **kwargs)
-        elif p_style == PlaitStyle.EMBOSS2:
-            plait_emboss2(self, lace, **kwargs)
-
+        _handle_plait_style(self, lace, kwargs)
     else:
-        for plait in lace.plaits:
-            self.active_page.sketches.append(create_sketch(plait, self, **kwargs))
+        _draw_default_plaits(self, lace, kwargs)
     self._all_vertices.extend(plait.corners)
 
     return self
@@ -841,6 +874,9 @@ def draw_image(self, image, position=None, scale=None, **kwargs):
         pos = image.pos
     else:
         pos = position[:2]
+    dx, dy = translation
+    pos[0] += dx
+    pos[1] += dy
 
     if scale is None:
         scale = image.scale
@@ -857,7 +893,7 @@ def draw_image(self, image, position=None, scale=None, **kwargs):
         **kwargs,
     )
     for attrib_name in shape_style_map:
-        attrib_value = self._resolve_property(image, attrib_name)
+        attrib_value = self.resolve_property(image, attrib_name)
         setattr(sketch, attrib_name, attrib_value)
     self.active_page.sketches.append(sketch)
 
@@ -887,6 +923,9 @@ def draw_pdf(self, pdf, pos=None, size=None, scale=None, angle=0, **kwargs):
             pos = pdf.pos
         else:
             pos = pos[:2]
+        dx, dy = translation
+        pos[0] += dx
+        pos[1] += dy
 
         if scale is None:
             scale = pdf.scale
@@ -902,7 +941,7 @@ def draw_pdf(self, pdf, pos=None, size=None, scale=None, angle=0, **kwargs):
         scale = scale if scale is not None else 1.0
         file_path = pdf
     sketch = PDFSketch(
-        pdf,
+        file_path,
         pos=pos,
         scale=scale,
         angle=angle,
@@ -1183,14 +1222,13 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
         style_map = shape_style_map
 
     for attrib_name in style_map:
-        attrib_value = canvas._resolve_property(item, attrib_name)
+        attrib_value = canvas.resolve_property(item, attrib_name)
         setattr(sketch, attrib_name, attrib_value)
 
     sketch.visible = item.visible
     sketch.active = item.active
     sketch.closed = item.closed
-    sketch.fill = item.fill
-    sketch.stroke = item.stroke
+    # fill and stroke are resolved through resolve_property in the loop above
 
     for k, v in kwargs.items():
         setattr(sketch, k, v)
@@ -1264,7 +1302,7 @@ def create_sketch(item, canvas, **kwargs):
                 else:
                     setattr(sketch, "frame_back_color", item.fill_color)
                 continue
-            attrib_value = canvas._resolve_property(item, attrib_name)
+            attrib_value = canvas.resolve_property(item, attrib_name)
             setattr(sketch, attrib_name, attrib_value)
         sketch.text_width = item.text_width
         sketch.visible = item.visible
@@ -1420,7 +1458,8 @@ def create_sketch(item, canvas, **kwargs):
                 if element.visible and element.active:
                     if swatch:
                         kwargs["fill_color"] = Color(*swatch[count % n_swatch])
-                    sketches.extend(get_sketches(element, canvas, **kwargs))
+                    sketches.extend(get_sketches(element, canvas, style,
+                                                                    **kwargs))
                     count += 1
 
             sketch = BatchSketch(sketches=sketches)
@@ -1614,7 +1653,7 @@ def create_sketch(item, canvas, **kwargs):
 
         return sketch
 
-    def get_image_sketch(item, canvsa, **kwargs):
+    def get_image_sketch(item, canvas, **kwargs):
         """Create an ImageSketch from the given item.
 
         Args:

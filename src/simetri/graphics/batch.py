@@ -4,6 +4,7 @@ from typing import Any, Iterator, List, Sequence, Callable
 from numpy import around, array
 from typing_extensions import Self, Dict
 import networkx as nx
+import json
 
 
 from .all_enums import Types, batch_types, get_enum_value
@@ -260,6 +261,90 @@ class Batch(Base):
                 raise ValueError("Only unique elements are allowed!")
 
         return len(set(elements)) != len(elements)
+
+    def to_json(self) -> str:
+        """Serialize the Batch into a JSON string.
+
+        The payload includes:
+          - type, subtype
+          - elements (recursively serialized)
+          - modifiers (stringified)
+          - attributes (common batch attributes incl. mask if present)
+        """
+        def _to_jsonable(obj):
+            # Enum-like with 'value'
+            if hasattr(obj, "value"):
+                return obj.value
+            if isinstance(obj, (str, int, float, bool)) or obj is None:
+                return obj
+            if isinstance(obj, dict):
+                return {k: _to_jsonable(v) for k, v in obj.items()}
+            if isinstance(obj, (list, tuple)):
+                return [_to_jsonable(x) for x in obj]
+            try:
+                return float(obj)
+            except Exception:
+                try:
+                    return str(obj)
+                except Exception:
+                    return None
+
+        # Elements
+        elems = []
+        for elem in (self.elements or []):
+            if hasattr(elem, "to_json") and callable(elem.to_json):
+                try:
+                    elems.append(json.loads(elem.to_json()))
+                    continue
+                except Exception:
+                    pass
+            # Fallback summary for unknown elements
+            summary = {
+                "type": _to_jsonable(getattr(getattr(elem, "type", None), "value", getattr(elem, "type", "UNKNOWN"))),
+                "repr": str(elem),
+            }
+            elems.append(summary)
+
+        # Modifiers (stringify conservatively)
+        mods = None
+        if self.modifiers:
+            mods = []
+            for m in self.modifiers:
+                name = getattr(m, "name", None)
+                mods.append(name if isinstance(name, str) else str(m))
+
+        # Mask (serialize if possible)
+        mask_payload = None
+        if getattr(self, "mask", None) is not None:
+            m = self.mask
+            if hasattr(m, "to_json") and callable(m.to_json):
+                try:
+                    mask_payload = json.loads(m.to_json())
+                except Exception:
+                    mask_payload = str(m)
+            else:
+                mask_payload = str(m)
+
+        data = {
+            "type": _to_jsonable(getattr(self.type, "value", self.type)),
+            "subtype": _to_jsonable(self.subtype),
+            "elements": elems,
+            "modifiers": mods,
+            "attributes": {
+                "blend_mode": _to_jsonable(getattr(self, "blend_mode", None)),
+                "alpha": _to_jsonable(getattr(self, "alpha", None)),
+                "line_alpha": _to_jsonable(getattr(self, "line_alpha", None)),
+                "fill_alpha": _to_jsonable(getattr(self, "fill_alpha", None)),
+                "text_alpha": _to_jsonable(getattr(self, "text_alpha", None)),
+                "clip": _to_jsonable(getattr(self, "clip", None)),
+                "mask": mask_payload,
+                "even_odd_rule": _to_jsonable(getattr(self, "even_odd_rule", None)),
+                "blend_group": _to_jsonable(getattr(self, "blend_group", None)),
+                "transparency_group": _to_jsonable(getattr(self, "transparency_group", None)),
+            },
+        }
+
+        return json.dumps(data, ensure_ascii=False)
 
     def proximity(self, dist_tol: float = None, n: int = 5) -> list[Point]:
         """
@@ -800,6 +885,7 @@ class Batch(Base):
         Args:
             xform_matrix (ndarray): The transformation matrix.
             reps (int, optional): The number of repetitions. Defaults to 0.
+            merge(bool, optional): If True, shapes are merged.
         """
         if reps == 0:
             for element in self.elements:

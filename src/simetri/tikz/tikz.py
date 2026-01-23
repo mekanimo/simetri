@@ -39,6 +39,7 @@ from ..geometry.geometry import (
     polar_to_cartesian,
     cartesian_to_polar,
     round_point,
+    close_points2
 )
 from ..graphics.sketch import TagSketch, ShapeSketch
 
@@ -781,10 +782,16 @@ def get_draw(sketch):
             fill = False
         else:
             fill = sketch.fill
+            # Safety check: if fill is still None (edge case), convert to False
+            if fill is None:
+                fill = False
         if not hasattr(sketch, "stroke"):
             stroke = False
         else:
             stroke = sketch.stroke
+            # Safety check: if stroke is still None (edge case), convert to False
+            if stroke is None:
+                stroke = False
 
         res = decision_table[(closed, fill, stroke, shading)]
 
@@ -1444,7 +1451,11 @@ def draw_shape_sketch_with_markers(sketch):
     else:
         marker_options = ""
 
-    vertices = [str(x) for x in sketch.vertices]
+    if sketch.closed and not close_points2(vertices[0], vertices[1]) :
+        vertices = [str(x) for x in sketch.vertices + [sketch.vertices[0]]]
+    else:
+        vertices = [str(x) for x in sketch.vertices]
+
 
     str_lines = [vertices[0]]
     for i, vertice in enumerate(vertices[1:]):

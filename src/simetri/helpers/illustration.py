@@ -429,7 +429,7 @@ class Tag(Base):
             self.frame = TagFrame()
         self.type = Types.TAG
         self.subtype = Types.TAG
-        self.style = TagStyle()
+        # self.style = TagStyle()
         self.style.draw_frame = True
         if font_family:
             self.font_family = font_family
@@ -779,14 +779,14 @@ class ArcArrow(Batch):
         self.start_angle = start_angle
         self.end_angle = end_angle
         # create the arc
-        self.arc = Arc(center, radius, start_angle, end_angle)
+        self.arc = Arc(center, radius, start_angle=start_angle, end_angle=end_angle)
         self.arc.fill = False
         # create arrow_head1
         self.arrow_head1 = ArrowHead()
         # create arrow_head2
         self.arrow_head2 = ArrowHead()
-        start = self.arc.start_point
-        end = self.arc.end_point
+        start = self.arc[0]
+        end = self.arc[-1]
         self.points = [center, start, end]
 
         self.arrow_head1.translate(-1 * self.arrow_head1.head_length, 0)
@@ -1102,10 +1102,35 @@ class Dimension(Batch):
             self.text_pos = (tx + text_dx, ty + text_dy)
             if self.text == "":
                 self.text = f"{distance(p1, p2):.2f}"
-            self.dim_line = Arrow(pa1, pa2, head_pos=HeadPos.BOTH)
+
+            # Handle reverse_arrows for parallel dimensions
+            if self.reverse_arrows:
+                dist = self.reverse_arrow_length
+                p2 = extended_line(dist, [pa1, pa2])[1]
+                self.arrow1 = Arrow(p2, pa2)
+                p2 = extended_line(dist, [pa2, pa1])[1]
+                self.arrow2 = Arrow(p2, pa1)
+                self.append(self.arrow1)
+                self.append(self.arrow2)
+                self.mid_line = Shape([pa1, pa2])
+                self.append(self.mid_line)
+                dist = self.text_offset[0] + self.reverse_arrow_length
+                if not self.keep_centered:
+                    if orientation in [Anchor.EAST, Anchor.NORTHEAST, Anchor.NORTH]:
+                        if self.text_side == Anchor.BOTTOM:
+                            tx, ty = extended_line(dist, [pa2, pa1])[1]
+                        else:
+                            tx, ty = extended_line(dist, [pa1, pa2])[1]
+                            self.text_pos = (tx + text_dx, ty + text_dy)
+                    else:
+                        tx, ty = extended_line(dist, [pa1, pa2])[1]
+                        self.text_pos = (tx + text_dx, ty + text_dy)
+            else:
+                self.dim_line = Arrow(pa1, pa2, head_pos=HeadPos.BOTH)
+                self.append(self.dim_line)
+
             self.ext1 = Shape([px1_1, px1_2])
             self.ext2 = Shape([px2_1, px2_2])
-            self.append(self.dim_line)
             self.append(self.ext1)
             self.append(self.ext2)
 
@@ -1285,10 +1310,14 @@ class Dimension(Batch):
                     self.ext2 = Shape([px2_1, px2_2])
                 elif orientation is Anchor.SOUTH:
                     bottommost = min_y - self.gap - self.ext_length
-                    px1_1 = (min_x, max_y - self.gap)
-                    px1_2 = (min_x, bottommost)
-                    px2_1 = (max_x, min_y - self.gap)
-                    px2_2 = (max_x, bottommost)
+                    # px1_1 = (min_x, max_y - self.gap)
+                    px1_1 = (p1[0], p1[1] - self.gap)
+                    # px1_2 = (min_x, bottommost)
+                    px1_2 = (p1[0], bottommost)
+                    # px2_1 = (max_x, min_y - self.gap)
+                    px2_1 = (p2[0], p2[1] - self.gap)
+                    # px2_2 = (max_x, bottommost)
+                    px2_2 = (p2[0], bottommost)
                     pa1 = (min_x, bottommost + space)
                     pa2 = (max_x, bottommost + space)
                     self.ext1 = Shape([px1_1, px1_2])

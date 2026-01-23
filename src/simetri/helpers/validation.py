@@ -406,7 +406,8 @@ def validate_args(args: Dict[str, Any], valid_args: list[str]) -> None:
             if not d_validators[key](value):
                 raise ValueError(f"Invalid value for {key}: {value}")
         elif key in enum_map:
-            if value not in enum_map[key]:
+            # Allow None values for enum fields (they'll be resolved to defaults later)
+            if value is not None and value not in enum_map[key]:
                 raise ValueError(f"Invalid value for {key}: {value}")
         elif not d_validators[key](value):
             raise ValueError(f"Invalid value for {key}: {value}")

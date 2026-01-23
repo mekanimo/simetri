@@ -49,7 +49,7 @@ from simetri.helpers.utilities import wait_for_file_availability
 from simetri.helpers.illustration import logo
 from simetri.tikz.tikz import Tex, get_tex_code
 from simetri.helpers.validation import validate_args
-from simetri.canvas.style_map import canvas_args
+from simetri.canvas.style_map import canvas_args, StyleObj
 from simetri.notebook import display
 from simetri.image.image import Image, create_image_from_data
 
@@ -376,6 +376,10 @@ class Canvas:
         draw.ellipse(self, center, width, height, angle, **kwargs)
         return self
 
+    def draw_fragments(self, lace, palette=None, **kwargs):
+        draw.draw_fragments(self, lace, palette, **kwargs)
+        return self
+
     def text(
         self,
         text: str,
@@ -633,7 +637,7 @@ class Canvas:
 
         Args:
             item (Shape or Batch): The item to clip.
-            margins: [top, right, bottom, left] margins to apply to the clipping area.
+            margins: [left, bottom, right, top] margins to apply to the clipping area.
             fade (Anchor, optional): The direction of the fade effect. Defaults to None.
             fade_margins (Sequence[float], optional): Margins for the fade effect.
             fade_margins are applied after the clipping margins.
@@ -657,7 +661,7 @@ class Canvas:
             corners = item.corners
             x1, y1 = corners[1]
             x2, y2 = corners[3]
-            top, right, bottom, left = margins
+            left, bottom, right, top = margins
             x1 += left
             y1 += bottom
             x2 -= right
@@ -673,7 +677,7 @@ class Canvas:
 \\clip{clip_code}({x1}, {y1}) rectangle ({x2}, {y2});\n"""
         if fade is not None:
             if fade_margins is not None:
-                top, right, bottom, left = fade_margins
+                left, bottom, right, top = fade_margins
                 x1 += left
                 y1 += bottom
                 x2 -= right
@@ -799,7 +803,7 @@ class Canvas:
         draw.draw_pdf(self, pdf, pos, size, scale, angle, **kwargs)
         return self
 
-    def draw_image(self, image: Image, pos: Point) -> Self:
+    def draw_image(self, image: Image, pos: Point, **kwargs) -> Self:
         """
         Draw an image on the canvas.
 
@@ -810,7 +814,7 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        draw.draw_image(self, image, pos)
+        draw.draw_image(self, image, pos, **kwargs)
         return self
 
     def draw_frame(
@@ -835,8 +839,8 @@ class Canvas:
         box2 = b_box.get_inflated_b_box(margin)
         box3 = box2.get_inflated_b_box(15)
         shadow = Shape([box3.northwest, box3.southwest, box3.southeast])
-        self.draw(shadow, line_color=light_gray, line_width=width)
-        self.draw(Shape(box2.corners, closed=True), fill=False, line_width=width)
+        self.draw(shadow, line_color=light_gray, line_width=width,  style=style)
+        self.draw(Shape(box2.corners, closed=True), fill=False, line_width=width, style=style)
 
         return self
 
@@ -1142,10 +1146,11 @@ class Canvas:
 
         return di_graph
 
-    def _resolve_property(self, item: Drawable, property_name: str) -> Any:
+    def resolve_property(self, item: Drawable, property_name: str) -> Any:
         """
         Handles None values for properties.
         try item.property_name first,
+        then try style-object,
         then try canvas.property_name,
         finally use the default value.
 

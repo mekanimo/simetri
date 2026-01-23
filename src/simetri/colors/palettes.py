@@ -4,194 +4,192 @@ from random import randint
 
 from simetri.colors.colors import Color
 
-# __all__ = ['dictPaletteType', 'dictPaletteLength', 'dictPalette']
 
-"""
-All palettes are prefixed with div, qual, or seq for diverging, qualitative,
-an sequential, respectively. The name of the palette is the original name from
-the indicated sources. The number of colors is appended to the end of the name.
+# Some palettes are prefixed with div, qual, or seq for diverging, qualitative,
+# an sequential, respectively. The name of the palette is the original name from
+# the indicated sources. The number of colors is appended to the end of the name.
 
 
-##############################################################################
-Color palettes adapted from palettable
+# ##############################################################################
+# Color palettes adapted from palettable
 
-https://github.com/jiffyclub/palettable
-https://jiffyclub.github.io/palettable/
+# https://github.com/jiffyclub/palettable
+# https://jiffyclub.github.io/palettable/
 
-palettable compiled the data from the following sources:
-    CartoColors
-    cmocean
-    Colorbrewer2
-    Cubehelix
-    Light & Bartlein
-    matplotlib
-    MyCarta
-    Scientific
-    Tableau
-    The Wes Anderson Palettes blog
+# palettable compiled the data from the following sources:
+#     CartoColors
+#     cmocean
+#     Colorbrewer2
+#     Cubehelix
+#     Light & Bartlein
+#     matplotlib
+#     MyCarta
+#     Scientific
+#     Tableau
+#     The Wes Anderson Palettes blog
 
-##############################################################################
-palettable
-Copyright (c) 2019 Matt Davis
+# ##############################################################################
+# palettable
+# Copyright (c) 2019 Matt Davis
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-and associated documentation files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+# and associated documentation files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all copies or
+# substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-##############################################################################
-Colorbrewer
-##############################################################################
-    Apache-Style Software License for ColorBrewer software and ColorBrewer Color Schemes
+# ##############################################################################
+# Colorbrewer
+# ##############################################################################
+#     Apache-Style Software License for ColorBrewer software and ColorBrewer Color Schemes
 
-Copyright (c) 2002 Cynthia Brewer, Mark Harrower, and The Pennsylvania State University.
+# Copyright (c) 2002 Cynthia Brewer, Mark Harrower, and The Pennsylvania State University.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
-compliance with the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
+# compliance with the License. You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is
-distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-implied. See the License for the specific language governing permissions and limitations under the
-License.
+# Unless required by applicable law or agreed to in writing, software distributed under the License is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and limitations under the
+# License.
 
-Redistribution and use in source and binary forms, with or without modification, are permitted
-provided that the following conditions are met: 1. Redistributions as source code must retain the
-above copyright notice, this list of conditions and the following disclaimer. 2. The end-user
-documentation included with the redistribution, if any, must include the following acknowledgment:
-This product includes color specifications and designs developed by Cynthia Brewer
-(http://colorbrewer.org/). Alternately, this acknowledgment may appear in the software itself, if
-and wherever such third-party acknowledgments normally appear. 4. The name "ColorBrewer" must not be
-used to endorse or promote products derived from this software without prior written permission. For
-written permission, please contact Cynthia Brewer at cbrewer@psu.edu. 5. Products derived from this
-software may not be called "ColorBrewer", nor may "ColorBrewer" appear in their name, without prior
-written permission of Cynthia Brewer.
+# Redistribution and use in source and binary forms, with or without modification, are permitted
+# provided that the following conditions are met: 1. Redistributions as source code must retain the
+# above copyright notice, this list of conditions and the following disclaimer. 2. The end-user
+# documentation included with the redistribution, if any, must include the following acknowledgment:
+# This product includes color specifications and designs developed by Cynthia Brewer
+# (http://colorbrewer.org/). Alternately, this acknowledgment may appear in the software itself, if
+# and wherever such third-party acknowledgments normally appear. 4. The name "ColorBrewer" must not be
+# used to endorse or promote products derived from this software without prior written permission. For
+# written permission, please contact Cynthia Brewer at cbrewer@psu.edu. 5. Products derived from this
+# software may not be called "ColorBrewer", nor may "ColorBrewer" appear in their name, without prior
+# written permission of Cynthia Brewer.
 
-##############################################################################
-Cubehelix
-##############################################################################
+# ##############################################################################
+# Cubehelix
+# ##############################################################################
 
-Copyright (c) 2014, James R. A. Davenport and contributors
-All rights reserved.
+# Copyright (c) 2014, James R. A. Davenport and contributors
+# All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-##############################################################################
-CartoColor
-##############################################################################
-CARTOColors are made available under a Creative Commons Attribution license:
-https://creativecommons.org/licenses/by/3.0/us/
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# ##############################################################################
+# CartoColor
+# ##############################################################################
+# CARTOColors are made available under a Creative Commons Attribution license:
+# https://creativecommons.org/licenses/by/3.0/us/
 
-##############################################################################
-cmocean
-##############################################################################
-The MIT License (MIT)
+# ##############################################################################
+# cmocean
+# ##############################################################################
+# The MIT License (MIT)
 
-Copyright (c) 2015 Kristen M. Thyng
+# Copyright (c) 2015 Kristen M. Thyng
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
-We have a paper with guidelines to colormap selection for your application and
-a description of the cmocean colormaps:
-
-Thyng, K. M., Greene, C. A., Hetland, R. D., Zimmerle, H. M., & DiMarco, S. F.
-(2016). True colors of oceanography. Oceanography, 29(3), 10.
-
-link: http://tos.org/oceanography/assets/docs/29-3_thyng.pdf
-
-##############################################################################
-matplotlib
-##############################################################################
-New matplotlib colormaps by Nathaniel J. Smith, Stefan van der Walt,
-and (in the case of viridis) Eric Firing.
-This file and the colormaps in it are released under the CC0 license /
-public domain dedication. We would appreciate credit if you use or
-redistribute these colormaps, but do not impose any legal restrictions.
-To the extent possible under law, the persons who associated CC0 with
-mpl-colormaps have waived all copyright and related or neighboring right
-to mpl-colormaps.
-You should have received a copy of the CC0 legalcode along with this
-work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 
-##############################################################################
-mycarta
-##############################################################################
-Mycarta palettes as described at https://mycarta.wordpress.com/color-palettes/
+# We have a paper with guidelines to colormap selection for your application and
+# a description of the cmocean colormaps:
 
-##############################################################################
-The Scientific Colour-Maps
-##############################################################################
-The Scientific colour maps are licensed under a MIT License Copyright (c) 2022,
-Fabio Crameri Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and
-associated documentation files (the ”Software”), to deal in the Software without
-restriction, including without limitation the rights to use, copy, modify,
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-to permit persons to whom the Software is furnished to do so, subject to the
-following conditions: The above copyright notice and this permission notice
-shall be included in all copies or substantial portions of the Software. THE
-SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# Thyng, K. M., Greene, C. A., Hetland, R. D., Zimmerle, H. M., & DiMarco, S. F.
+# (2016). True colors of oceanography. Oceanography, 29(3), 10.
+
+# link: http://tos.org/oceanography/assets/docs/29-3_thyng.pdf
+
+# ##############################################################################
+# matplotlib
+# ##############################################################################
+# New matplotlib colormaps by Nathaniel J. Smith, Stefan van der Walt,
+# and (in the case of viridis) Eric Firing.
+# This file and the colormaps in it are released under the CC0 license /
+# public domain dedication. We would appreciate credit if you use or
+# redistribute these colormaps, but do not impose any legal restrictions.
+# To the extent possible under law, the persons who associated CC0 with
+# mpl-colormaps have waived all copyright and related or neighboring right
+# to mpl-colormaps.
+# You should have received a copy of the CC0 legalcode along with this
+# work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 
-##############################################################################
-Wes Anderson Palettes
-##############################################################################
-Could not find a license for Wes Anderson palettes.
-##############################################################################
-Colorbrewer Palettes
-##############################################################################
-"""
+# ##############################################################################
+# mycarta
+# ##############################################################################
+# Mycarta palettes as described at https://mycarta.wordpress.com/color-palettes/
+
+# ##############################################################################
+# The Scientific Colour-Maps
+# ##############################################################################
+# The Scientific colour maps are licensed under a MIT License Copyright (c) 2022,
+# Fabio Crameri Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and
+# associated documentation files (the ”Software”), to deal in the Software without
+# restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+# to permit persons to whom the Software is furnished to do so, subject to the
+# following conditions: The above copyright notice and this permission notice
+# shall be included in all copies or substantial portions of the Software. THE
+# SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+# ##############################################################################
+# Wes Anderson Palettes
+# ##############################################################################
+# Could not find a license for Wes Anderson palettes.
+# ##############################################################################
+# Colorbrewer Palettes
+# ##############################################################################
+
 
 
 class PaletteType(Enum):
@@ -16501,7 +16499,7 @@ qual_IsleOfDogs2_6 = [
 qual_IsleOfDogs3_4 = [(229, 142, 167), (224, 193, 160), (30, 18, 99), (216, 177, 72)]
 
 
-dictPalette = {
+d_name_palette = {
     "seq_Blues_3": seq_Blues_3,
     "seq_Blues_4": seq_Blues_4,
     "seq_Blues_5": seq_Blues_5,
@@ -16923,9 +16921,9 @@ dictPalette = {
     "qual_IsleOfDogs3_4": qual_IsleOfDogs3_4,
 }
 
-dictPaletteLength = {}
+d_n_palette = {}
 
-dictPaletteLength[3] = [
+d_n_palette[3] = [
     "seq_Blues_3",
     "seq_BuGn_3",
     "seq_BuPu_3",
@@ -16963,7 +16961,7 @@ dictPaletteLength[3] = [
     "qual_Set3_3",
 ]
 
-dictPaletteLength[4] = [
+d_n_palette[4] = [
     "seq_Blues_4",
     "seq_BuGn_4",
     "seq_BuPu_4",
@@ -17012,7 +17010,7 @@ dictPaletteLength[4] = [
     "qual_IsleOfDogs3_4",
 ]
 
-dictPaletteLength[5] = [
+d_n_palette[5] = [
     "seq_Blues_5",
     "seq_BuGn_5",
     "seq_BuPu_5",
@@ -17071,7 +17069,7 @@ dictPaletteLength[5] = [
     "qual_IsleOfDogs1_5",
 ]
 
-dictPaletteLength[6] = [
+d_n_palette[6] = [
     "seq_Blues_6",
     "seq_BuGn_6",
     "seq_BuPu_6",
@@ -17115,7 +17113,7 @@ dictPaletteLength[6] = [
     "qual_IsleOfDogs2_6",
 ]
 
-dictPaletteLength[7] = [
+d_n_palette[7] = [
     "seq_Blues_7",
     "seq_BuGn_7",
     "seq_BuPu_7",
@@ -17182,7 +17180,7 @@ dictPaletteLength[7] = [
     "seq_BLUE_7",
 ]
 
-dictPaletteLength[8] = [
+d_n_palette[8] = [
     "seq_Blues_8",
     "seq_BuGn_8",
     "seq_BuPu_8",
@@ -17222,7 +17220,7 @@ dictPaletteLength[8] = [
     "div_BLUE_TO_GREY_8",
 ]
 
-dictPaletteLength[9] = [
+d_n_palette[9] = [
     "seq_Blues_9",
     "seq_BuGn_9",
     "seq_BuPu_9",
@@ -17256,7 +17254,7 @@ dictPaletteLength[9] = [
     "qual_Set3_9",
     "qual_TrafficLight_9",
 ]
-dictPaletteLength[10] = [
+d_n_palette[10] = [
     "div_BrBG_10",
     "div_PiYG_10",
     "div_PRGn_10",
@@ -17277,7 +17275,7 @@ dictPaletteLength[10] = [
     "qual_ColorBlind_10",
 ]
 
-dictPaletteLength[11] = [
+d_n_palette[11] = [
     "div_BrBG_11",
     "div_PiYG_11",
     "div_PRGn_11",
@@ -17298,7 +17296,7 @@ dictPaletteLength[11] = [
     "div_RED_YELLOW_BLUE_11",
 ]
 
-dictPaletteLength[12] = [
+d_n_palette[12] = [
     "qual_Paired_12",
     "qual_Set3_12",
     "div_BROWN_TO_BLUE_12",
@@ -17310,9 +17308,9 @@ dictPaletteLength[12] = [
     "qual_GreenOrange_12",
 ]
 
-dictPaletteLength[14] = ["div_BLUE_TO_GREEN_14", "div_BLUE_ORANGE_RED_14"]
+d_n_palette[14] = ["div_BLUE_TO_GREEN_14", "div_BLUE_ORANGE_RED_14"]
 
-dictPaletteLength[16] = [
+d_n_palette[16] = [
     "seq_classic_16",
     "seq_perceptual_rainbow_16",
     "seq_purple_16",
@@ -17324,11 +17322,11 @@ dictPaletteLength[16] = [
     "div_GREEN_TO_MAGENTA_16",
 ]
 
-dictPaletteLength[18] = ["div_BLUE_TO_DARK_RED_18", "div_BLUE_TO_DARK_ORANGE_18"]
+d_n_palette[18] = ["div_BLUE_TO_DARK_RED_18", "div_BLUE_TO_DARK_ORANGE_18"]
 
-dictPaletteLength[20] = ["qual_Tableau_20"]
+d_n_palette[20] = ["qual_Tableau_20"]
 
-dictPaletteLength[256] = [
+d_n_palette[256] = [
     "seq_ALGAE_256",
     "seq_AMP_256",
     "div_BALANCE_256",
@@ -17378,11 +17376,11 @@ dictPaletteLength[256] = [
     "div_VIK_256",
 ]
 
-dictPaletteLength[512] = ["div_CURL_512", "div_DELTA_512"]
+d_n_palette[512] = ["div_CURL_512", "div_DELTA_512"]
 
-dictPaletteType = {}
+d_name_palette_type = {}
 
-dictPaletteType[PaletteType.DIVERGENT] = [
+d_name_palette_type[PaletteType.DIVERGENT] = [
     "div_BrBG_3",
     "div_BrBG_4",
     "div_BrBG_5",
@@ -17497,7 +17495,7 @@ dictPaletteType[PaletteType.DIVERGENT] = [
     "div_VIK_256",
 ]
 
-dictPaletteType[PaletteType.QUALITATIVE] = [
+d_name_palette_type[PaletteType.QUALITATIVE] = [
     "qual_Accent_3",
     "qual_Accent_4",
     "qual_Accent_5",
@@ -17611,7 +17609,7 @@ dictPaletteType[PaletteType.QUALITATIVE] = [
     "qual_IsleOfDogs3_4",
 ]
 
-dictPaletteType[PaletteType.SEQUENTIAL] = [
+d_name_palette_type[PaletteType.SEQUENTIAL] = [
     "seq_Blues_3",
     "seq_Blues_4",
     "seq_Blues_5",
@@ -17829,7 +17827,7 @@ dictPaletteType[PaletteType.SEQUENTIAL] = [
 #                 continue
 #             if name.startswith(type_):
 #                 names.append(name)
-#         print(f"dictPaletteType['{type_}'] = {names}")
+#         print(f"d_name_paletteType['{type_}'] = {names}")
 
 
 # @dataclass
@@ -17866,7 +17864,7 @@ dictPaletteType[PaletteType.SEQUENTIAL] = [
 def random_palette():
     """Return a random swatch."""
 
-    i = randint(0, len(dictPaletteLength[256]) - 1)
+    i = randint(0, len(d_n_palette[256]) - 1)
     try:
         current_datetime = datetime.now()
         formatted = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
@@ -17875,12 +17873,12 @@ def random_palette():
     except FileNotFoundError:
         pass
 
-    return list(dictPaletteLength[256].values())[i]
+    return list(d_n_palette[256].values())[i]
 
 
 def get_palette(n_colors, ind):
-    palettes = dictPaletteLength[n_colors]
-    palette = dictPalette[palettes[ind]]
+    palettes = d_n_palette[n_colors]
+    palette = d_name_palette[palettes[ind]]
     palette = [Color(*c) for c in palette]
 
     return palette

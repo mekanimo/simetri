@@ -4,12 +4,13 @@ If a style argument (a ShapeStyle object) is provided, then the style attributes
 of this ShapeStyle object will superseed the style attributes of the Shape object.
 """
 
-__all__ = ["Shape", "custom_attributes", "clip_shape", "clip_batch",
-           "all_segments", "get_loop"]
+__all__ = ["Shape", "custom_attributes", "clip", "trim_margins",
+           "all_segments", "get_loop", "get_partition", "union", "diff", "xor"]
 
 from typing import Sequence, Union, List, Tuple
 from math import pi, isclose
 
+import json
 import numpy as np
 from numpy import around, array, allclose
 from numpy.linalg import inv
@@ -117,15 +118,6 @@ class Shape(Base, StyleMixin):
         self._b_box = None
         common_properties(self)
 
-    def __setattr__(self, name, value):
-        """Set an attribute of the shape.
-
-        Args:
-            name (str): The name of the attribute.
-            value (Any): The value to set.
-        """
-        super().__setattr__(name, value)
-
     def __getattr__(self, name):
         """Retrieve an attribute of the shape.
 
@@ -138,18 +130,19 @@ class Shape(Base, StyleMixin):
         Raises:
             AttributeError: If the attribute cannot be found.
         """
+        # Check if it's a style attribute alias first (StyleMixin behavior)
+        if hasattr(self, '_aliasses') and name in self._aliasses:
+            obj, attrib = self._aliasses[name]
+            return getattr(obj, attrib)
+
+        # Try the normal attribute resolution chain
         try:
             res = super().__getattr__(name)
         except AttributeError:
             try:
                 res = self.__dict__[name]
-            except KeyError:
-                # Check if it's a style attribute alias
-                if hasattr(self, '_aliasses') and name in self._aliasses:
-                    obj, attrib = self._aliasses[name]
-                    res = getattr(obj, attrib)
-                else:
-                    raise AttributeError(f"'Shape' object has no attribute '{name}'")
+            except KeyError as exc:
+                raise AttributeError(f"'Shape' object has no attribute '{name}'") from exc
         return res
 
     def _get_closed(self, points: Sequence[Point], closed: bool):
@@ -164,19 +157,14 @@ class Shape(Base, StyleMixin):
                 - bool: True if the shape is closed, False otherwise.
                 - list: The (possibly modified) list of points.
         """
-        decision_table = {
-            (True, True): True,
-            (True, False): True,
-            (False, True): True,
-            (False, False): False,
-        }
+
         n = len(points)
         if n < 3:
             res = False
         else:
             points = [tuple(x[:2]) for x in points]
             polygon = self._is_polygon(points)
-            res = decision_table[(bool(closed), polygon)]
+            res = bool(closed) or polygon
             if polygon:
                 points.pop()
         return res, points
@@ -433,6 +421,65 @@ class Shape(Base, StyleMixin):
             bool: True if the shape has points, False otherwise.
         """
         return len(self.primary_points) > 0
+
+    def to_json(self) -> str:
+        """Serialize the Shape into a JSON string.
+
+        The payload includes:
+          - type, subtype (as strings)
+          - closed (bool)
+          - points (original primary points, not transformed)
+          - xform_matrix (3x3)
+          - style (resolved style attributes present on the shape)
+        """
+
+        def _to_jsonable(obj):
+            # Enums (StrEnum) -> value
+            if hasattr(obj, "value"):
+                return obj.value
+            # Native primitives
+            if isinstance(obj, (str, int, float, bool)) or obj is None:
+                return obj
+            # Numpy arrays -> lists
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            # Sequences -> list
+            if isinstance(obj, (list, tuple)):
+                return [_to_jsonable(x) for x in obj]
+            # Dict -> dict
+            if isinstance(obj, dict):
+                return {k: _to_jsonable(v) for k, v in obj.items()}
+            # Fallbacks
+            try:
+                return float(obj)
+            except Exception:
+                try:
+                    return str(obj)
+                except Exception:
+                    return None
+
+        # Original points (primary points before transform)
+        try:
+            prim_points = list(self.primary_points) if self.primary_points else []
+        except Exception:
+            prim_points = []
+
+        data = {
+            "type": getattr(self.type, "value", str(self.type)),
+            "subtype": getattr(self.subtype, "value", str(self.subtype)),
+            "closed": bool(self.closed),
+            "points": [(float(p[0]), float(p[1])) for p in prim_points],
+            "xform_matrix": _to_jsonable(self.xform_matrix),
+            "style": {},
+        }
+
+        # Include style attributes that are set on the shape
+        for attrib in shape_style_map:
+            val = getattr(self, attrib, None)
+            if val is not None:
+                data["style"][attrib] = _to_jsonable(val)
+
+        return json.dumps(data, ensure_ascii=False)
 
     def is_clockwise(self) -> bool:
         """Check if the shape is oriented clockwise.
@@ -799,7 +846,7 @@ class Shape(Base, StyleMixin):
         """
         self.primary_points = Points()
         self.xform_matrix = identity_matrix()
-        self.style = ShapeStyle()
+        # self.style = ShapeStyle()
         self._set_aliases()
         self._b_box = None
         # Clear coordinate caches
@@ -873,7 +920,7 @@ class Shape(Base, StyleMixin):
         if self.closed:
             vertices.append(vertices[0])
 
-        return connected_pairs(vertices)
+        return tuple(connected_pairs(vertices))
 
     @property
     def segments(self) -> List[Line]:
@@ -1053,8 +1100,7 @@ def custom_attributes(item: Shape) -> List[str]:
     """Return a list of custom attributes of a Shape or Batch instance.
 
     Args:
-        item (Shape): The Shape or Batch instance.
-
+        item (Shape): The Shape or Batch instanc
     Returns:
         list[str]: A list of custom attribute names.
 
@@ -1069,6 +1115,87 @@ def custom_attributes(item: Shape) -> List[str]:
     custom_attribs = set(dir(item)) - native_attribs
 
     return list(custom_attribs)
+
+def union(shape1: 'Shape', shape2: 'Shape'):
+    '''
+    shape1 Shape: shape to be clipped
+    shape2 Shape: clipping region
+    '''
+    if not (shape1.closed and shape2.closed):
+        raise Warning("Both shapes must be closed")
+
+    segments = ([[p1[:2], p2[:2]] for (p1, p2) in shape1.edges] +
+                [[p1[:2], p2[:2]] for (p1, p2) in shape2.edges])
+    intersections = all_intersections(segments)
+
+    all_segments_ = []
+    for key, value in intersections[0].items():
+        segment = segments[key]
+        points = [x[0] for x in value]
+        points = remove_duplicate_points(points)
+        all_segments_.append(multi_split_segment(segment, points))
+
+    union_ = Batch()
+    shape_vertices = shape1.vertices
+    shape2_vertices = shape2.vertices
+    for segs in all_segments_:
+        for seg in segs:
+            in1 = in_polygon(midpoint(*seg), shape_vertices)
+            in2 = in_polygon(midpoint(*seg), shape2_vertices)
+            if in1 ^ in2: # only one can be True
+                union_.append(Shape(seg))
+
+    return union_
+
+def diff(shape1: 'Shape', shape2: 'Shape', exclude_clipper: bool = False,
+                                                    dist_tol: float =.01):
+    '''
+    shape1 Shape: shape to be clipped
+    shape2 Shape: clipping region
+    exclude_clipper bool: If True, clipper's edges are excluded.
+    '''
+    if not (shape1.closed and shape2.closed):
+        raise Warning("Both shapes must be closed")
+
+    segments = ([[p1[:2], p2[:2]] for (p1, p2) in shape1.edges] +
+                [[p1[:2], p2[:2]] for (p1, p2) in shape2.edges])
+    intersections = all_intersections(segments)
+
+    all_segments_ = []
+    for key, value in intersections[0].items():
+        segment = segments[key]
+        points = [x[0] for x in value]
+        points = remove_duplicate_points(points)
+        all_segments_.append(multi_split_segment(segment, points))
+
+    diff_ = Batch()
+    shape_vertices = shape1.vertices
+    shape2_vertices = shape2.vertices
+    for segs in all_segments_:
+        for seg in segs:
+            in1 = in_polygon(midpoint(*seg), shape_vertices)
+            in2 = in_polygon(midpoint(*seg), shape2_vertices, not exclude_clipper)
+            if in1 and not in2:
+                diff_.append(Shape(seg))
+
+    # diff_ = diff_.merge_shapes()
+    # if len(diff_) == 1:
+    #     diff_ = diff_[0]
+
+    return diff_
+
+def xor(shape1: 'Shape', shape2: 'Shape', exclude_clipper: bool = False,
+                                                    dist_tol: float =.01):
+    '''
+    shape1 Shape: shape to be clipped
+    shape2 Shape: clipping region
+    exclude_clipper bool: If True, clipper's edges are excluded.
+    '''
+    res1 = diff(shape1, shape2, exclude_clipper)
+    res2 = diff(shape2, shape1, exclude_clipper)
+
+    return Batch([res1, res2])
+
 
 def all_segments(item: Union[Shape, Batch], n_round: int = 1,
                  rel_tol: float = None, abs_tol: float = None):

@@ -55,6 +55,7 @@ from .affine import *
 from .dots import *
 from ..graphics.sketch import *
 from ..canvas.canvas import *
+from ..canvas.style_map import *
 from ..canvas.grids import *
 from ..helpers.illustration import *
 from ..helpers.constraint_solver import Constraint, solve
@@ -63,6 +64,7 @@ from ..helpers.modifiers import *
 from ..lace import Lace
 from ..colors.colors import *
 from ..colors.palettes import *
+from ..colors.pastels import figma_palettes, pastels_2
 from ..colors.swatches import *
 import simetri.colors as colors
 from ..tikz.tikz import *
@@ -99,3 +101,5 @@ def set_alias_maps():
 
 # if any of the styles is changed, this should be called again!!!
 # set_alias_maps()
+
+Group = Batch # This is temporary. Batch will be changed to Group soon.
