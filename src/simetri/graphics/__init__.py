@@ -71,7 +71,7 @@ from ..tikz.tikz import *
 from ..helpers.validation import check_version
 from ..stars import stars
 from ..stars.stars import rosette, Star
-from ..wallpaper import wallpaper as wallpapers
+from ..wallpaper import wallpaper
 from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system
