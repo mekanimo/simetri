@@ -208,12 +208,16 @@ class MarkerStyle:
         size (float): The size of the marker.
         color (Color): The color of the marker.
         radius (float): The radius of the marker.
+        alpha (float): The alpha/opacity of the marker.
+        shape: The custom shape to use when marker_type is SHAPE.
     """
 
     marker_type: MarkerType = None
     size: float = None
     color: Color = None
     radius: float = None
+    alpha: float = None
+    shape = None
 
     def __post_init__(self):
         """Initialize the MarkerStyle object."""
@@ -283,16 +287,16 @@ class LineStyle:
     def __post_init__(self):
         """Initialize the LineStyle object."""
         exact = [
-                "smooth",
-                "stroke",
-                "fillet_radius",
-                "draw_fillets",
-                "draw_markers",
-                "markers_only",
-                "draw_double",
-                "double_color",
-                "double_distance",
-            ]
+            "smooth",
+            "stroke",
+            "fillet_radius",
+            "draw_fillets",
+            "draw_markers",
+            "markers_only",
+            "draw_double",
+            "double_color",
+            "double_distance",
+        ]
         exclude = ["marker_style"]
         _style_init(self, exact, exclude, prefix="line", subtype=Types.LINE_STYLE)
         self._exact = exact
@@ -454,6 +458,131 @@ class ShadeStyle:
 
 
 @dataclass
+class SVG_TileStyle:
+    """SVG_TileStyle is used to configure SVG pattern attributes.
+
+    This class is specific to SVG pattern generation. The name "TileStyle" is
+    reserved for future generic Tile objects.
+
+    Attributes:
+        width (float): The width of the pattern tile.
+        height (float): The height of the pattern tile.
+        angle (float): The rotation angle of the pattern.
+        x_shift (float): The x-axis shift of the pattern.
+        y_shift (float): The y-axis shift of the pattern.
+        scale_x (float): The x-axis scale factor of the pattern.
+        scale_y (float): The y-axis scale factor of the pattern.
+        units (str): Pattern units ('userSpaceOnUse' or 'objectBoundingBox').
+    """
+
+    width: float = None
+    height: float = None
+    angle: float = None
+    x_shift: float = None
+    y_shift: float = None
+    scale_x: float = None
+    scale_y: float = None
+    units: str = None  # 'userSpaceOnUse' or 'objectBoundingBox'
+
+    def __post_init__(self):
+        """Initialize the SVG_TileStyle object."""
+        exact = ["units"]
+        exclude = []
+        _style_init(
+            self,
+            exact=exact,
+            exclude=exclude,
+            prefix="tile",
+            subtype=Types.PATTERN_STYLE,  # Reuse PATTERN_STYLE type for now
+        )
+        self._exact = exact
+        self._exclude = exclude
+        common_properties(self, id_only=True)
+
+    def __str__(self):
+        """Return a string representation of the SVG_TileStyle object."""
+        return f"SVG_TileStyle: {self.id}"
+
+    def __repr__(self):
+        """Return a string representation of the SVG_TileStyle object."""
+        return f"SVG_TileStyle: {self.id}"
+
+
+@dataclass
+class SVG_GradientStyle:
+    """SVG_GradientStyle is used to configure SVG gradient attributes.
+
+    This class is specific to SVG gradient generation. Gradients and pattern tiles
+    can be used simultaneously.
+
+    Attributes:
+        gradient_type (str): The type of gradient ('linear' or 'radial').
+        x1 (float): Start x-coordinate (linear gradient).
+        y1 (float): Start y-coordinate (linear gradient).
+        x2 (float): End x-coordinate (linear gradient).
+        y2 (float): End y-coordinate (linear gradient).
+        cx (float): Center x-coordinate (radial gradient).
+        cy (float): Center y-coordinate (radial gradient).
+        r (float): Radius (radial gradient).
+        fx (float): Focal point x-coordinate (radial gradient).
+        fy (float): Focal point y-coordinate (radial gradient).
+        units (str): Gradient units ('userSpaceOnUse' or 'objectBoundingBox').
+        spread_method (str): Spread method ('pad', 'reflect', 'repeat').
+        transform (str): Gradient transform attribute.
+        stops: Gradient color stops definition.
+    """
+
+    gradient_type: str = None  # 'linear' or 'radial'
+    x1: float = None  # linear gradient start x
+    y1: float = None  # linear gradient start y
+    x2: float = None  # linear gradient end x
+    y2: float = None  # linear gradient end y
+    cx: float = None  # radial gradient center x
+    cy: float = None  # radial gradient center y
+    r: float = None  # radial gradient radius
+    fx: float = None  # radial gradient focal point x
+    fy: float = None  # radial gradient focal point y
+    units: str = None  # 'userSpaceOnUse' or 'objectBoundingBox'
+    spread_method: str = None  # 'pad', 'reflect', 'repeat'
+    transform: str = None  # gradient transform
+    stops: object = None  # gradient color stops (list of tuples or objects)
+
+    def __post_init__(self):
+        """Initialize the SVG_GradientStyle object."""
+        exact = ["gradient_type", "spread_method", "transform"]
+        exclude = []
+        _style_init(
+            self,
+            exact=exact,
+            exclude=exclude,
+            prefix="gr",
+            subtype=Types.PATTERN_STYLE,  # Reuse PATTERN_STYLE type for now
+        )
+        self._exact = exact
+        self._exclude = exclude
+        common_properties(self, id_only=True)
+
+    def __str__(self):
+        """Return a string representation of the SVG_GradientStyle object."""
+        return f"SVG_GradientStyle: {self.id}"
+
+    def __repr__(self):
+        """Return a string representation of the SVG_GradientStyle object."""
+        return f"SVG_GradientStyle: {self.id}"
+
+    def _get_attributes(self):
+        """Get the attributes of the SVG_GradientStyle object."""
+        attribs = [x for x in self.__dict__ if not x.startswith("_")]
+        res = []
+        for attrib in attribs:
+            if attrib in self._exact:
+                res.append(attrib)
+            else:
+                res.append(f"gr_{attrib}")
+        return res
+
+
+@dataclass
 class FillStyle:
     """FillStyle is used to set the fill color, alpha, and pattern of a shape.
 
@@ -466,6 +595,8 @@ class FillStyle:
         pattern_style (PatternStyle): The pattern style of the fill.
         shade_style (ShadeStyle): The shade style of the fill.
         grid_style (GridStyle): The grid style of the fill.
+        svg_tile_style (SVG_TileStyle): The SVG tile style for pattern configuration.
+        gradient_style (SVG_GradientStyle): The SVG gradient style configuration.
     """
 
     color: Color = None
@@ -476,14 +607,24 @@ class FillStyle:
     pattern_style: PatternStyle = None
     shade_style: ShadeStyle = None
     grid_style: GridStyle = None
+    svg_tile_style: SVG_TileStyle = None
+    gradient_style: SVG_GradientStyle = None
 
     def __post_init__(self):
         """Initialize the FillStyle object."""
         self.shade_style = ShadeStyle()
         self.grid_style = GridStyle()
         self.pattern_style = PatternStyle()
+        self.svg_tile_style = SVG_TileStyle()
+        self.gradient_style = SVG_GradientStyle()
         exact = ["fill", "back_style"]
-        exclude = ["pattern_style", "shade_style", "grid_style"]
+        exclude = [
+            "pattern_style",
+            "shade_style",
+            "grid_style",
+            "svg_tile_style",
+            "gradient_style"
+        ]
         _style_init(self, exact, exclude, prefix="fill", subtype=Types.FILL_STYLE)
         self._exact = exact
         self._exclude = exclude
@@ -842,6 +983,7 @@ def _set_marker_style_alias_map(debug=False):
     marker_style_map["marker_alpha"] = ("marker_style", "alpha")
     marker_style_map["marker_size"] = ("marker_style", "size")
     marker_style_map["marker_radius"] = ("marker_style", "radius")
+    marker_style_map["marker_shape"] = ("marker_style", "marker_shape")
 
     return marker_style_map
 
@@ -1189,14 +1331,24 @@ def _set_fill_style_alias_map(debug=False):
     pattern_style = PatternStyle()
     shade_style = ShadeStyle()
     grid_style = GridStyle()
+    svg_tile_style = SVG_TileStyle()
+    gradient_style = SVG_GradientStyle()
 
-    styles = [pattern_style, shade_style, grid_style]
+    styles = [
+        pattern_style,
+        shade_style,
+        grid_style,
+        svg_tile_style,
+        gradient_style,
+    ]
     paths = [
         "fill_style.pattern_style",
         "fill_style.shade_style",
         "fill_style.grid_style",
+        "fill_style.svg_tile_style",
+        "fill_style.gradient_style",
     ]
-    prefixes = ["pattern", "shade", "grid"]
+    prefixes = ["pattern", "shade", "grid", "tile", "gradient"]
 
     _set_style_alias_map(fill_style_map, styles, paths, prefixes, debug=debug)
     fill_style_map["alpha"] = ("fill_style", "alpha")
@@ -1241,6 +1393,80 @@ def _set_pattern_style_alias_map(debug=False):
     pattern_style_map["alpha"] = ("pattern_style", "alpha")
 
     return pattern_style_map
+
+
+# svg_tile_style_map = {}
+
+svg_tile_style_map = {
+    "tile_angle": ("svg_tile_style", "angle"),
+    "tile_height": ("svg_tile_style", "height"),
+    "tile_scale_x": ("svg_tile_style", "scale_x"),
+    "tile_scale_y": ("svg_tile_style", "scale_y"),
+    "tile_units": ("svg_tile_style", "units"),
+    "tile_width": ("svg_tile_style", "width"),
+    "tile_x_shift": ("svg_tile_style", "x_shift"),
+    "tile_y_shift": ("svg_tile_style", "y_shift"),
+}
+
+
+def _set_svg_tile_style_alias_map(debug=False):
+    """Set the SVG tile style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The SVG tile style alias map.
+    """
+    svg_tile_style = SVG_TileStyle()
+
+    styles = [svg_tile_style]
+    paths = ["svg_tile_style"]
+    prefixes = ["tile"]
+
+    _set_style_alias_map(svg_tile_style_map, styles, paths, prefixes, debug=debug)
+
+    return svg_tile_style_map
+
+
+# svg_gradient_style_map = {}
+
+svg_gradient_style_map = {
+    "gradient_spread_method": ("gradient_style", "spread_method"),
+    "gradient_transform": ("gradient_style", "transform"),
+    "gradient_type": ("gradient_style", "gradient_type"),
+    "gr_stops": ("gradient_style", "stops"),
+    "gr_units": ("gradient_style", "units"),
+    "gr_cx": ("gradient_style", "cx"),
+    "gr_cy": ("gradient_style", "cy"),
+    "gr_fx": ("gradient_style", "fx"),
+    "gr_fy": ("gradient_style", "fy"),
+    "gr_r": ("gradient_style", "r"),
+    "gr_x1": ("gradient_style", "x1"),
+    "gr_x2": ("gradient_style", "x2"),
+    "gr_y1": ("gradient_style", "y1"),
+    "gr_y2": ("gradient_style", "y2"),
+}
+
+
+def _set_svg_gradient_style_alias_map(debug=False):
+    """Set the SVG gradient style alias map.
+
+    Args:
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: The SVG gradient style alias map.
+    """
+    gradient_style = SVG_GradientStyle()
+
+    styles = [gradient_style]
+    paths = ["gradient_style"]
+    prefixes = ["gradient"]
+
+    _set_style_alias_map(svg_gradient_style_map, styles, paths, prefixes, debug=debug)
+
+    return svg_gradient_style_map
 
 
 # line_style_map = {}
@@ -1317,8 +1543,10 @@ shape_style_map = {
     "line_join": ("style.line_style", "join"),
     "line_miter_limit": ("style.line_style", "miter_limit"),
     "line_width": ("style.line_style", "width"),
+    "marker_alpha": ("style.line_style.marker_style", "alpha"),
     "marker_color": ("style.line_style.marker_style", "color"),
     "marker_radius": ("style.line_style.marker_style", "radius"),
+    "marker_shape": ("style.line_style.marker_style", "shape"),
     "marker_size": ("style.line_style.marker_style", "size"),
     "marker_type": ("style.line_style.marker_style", "marker_type"),
     "markers_only": ("style.line_style", "markers_only"),
@@ -1331,6 +1559,28 @@ shape_style_map = {
     "pattern_type": ("style.fill_style.pattern_style", "pattern_type"),
     "pattern_x_shift": ("style.fill_style.pattern_style", "x_shift"),
     "pattern_y_shift": ("style.fill_style.pattern_style", "y_shift"),
+    "tile_angle": ("style.fill_style.svg_tile_style", "angle"),
+    "tile_height": ("style.fill_style.svg_tile_style", "height"),
+    "tile_scale_x": ("style.fill_style.svg_tile_style", "scale_x"),
+    "tile_scale_y": ("style.fill_style.svg_tile_style", "scale_y"),
+    "tile_units": ("style.fill_style.svg_tile_style", "units"),
+    "tile_width": ("style.fill_style.svg_tile_style", "width"),
+    "tile_x_shift": ("style.fill_style.svg_tile_style", "x_shift"),
+    "tile_y_shift": ("style.fill_style.svg_tile_style", "y_shift"),
+    "gradient_spread_method": ("style.fill_style.gradient_style", "spread_method"),
+    "gradient_transform": ("style.fill_style.gradient_style", "transform"),
+    "gradient_type": ("style.fill_style.gradient_style", "gradient_type"),
+    "gr_stops": ("style.fill_style.gradient_style", "stops"),
+    "gr_units": ("style.fill_style.gradient_style", "units"),
+    "gr_cx": ("style.fill_style.gradient_style", "cx"),
+    "gr_cy": ("style.fill_style.gradient_style", "cy"),
+    "gr_fx": ("style.fill_style.gradient_style", "fx"),
+    "gr_fy": ("style.fill_style.gradient_style", "fy"),
+    "gr_r": ("style.fill_style.gradient_style", "r"),
+    "gr_x1": ("style.fill_style.gradient_style", "x1"),
+    "gr_x2": ("style.fill_style.gradient_style", "x2"),
+    "gr_y1": ("style.fill_style.gradient_style", "y1"),
+    "gr_y2": ("style.fill_style.gradient_style", "y2"),
     "shade_axis_angle": ("style.fill_style.shade_style", "axis_angle"),
     "shade_ball_color": ("style.fill_style.shade_style", "ball_color"),
     "shade_bottom_color": ("style.fill_style.shade_style", "bottom_color"),
@@ -1368,6 +1618,8 @@ def _set_shape_style_alias_map(debug=False):
     pattern_style = PatternStyle()
     shade_style = ShadeStyle()
     grid_style = GridStyle()
+    svg_tile_style = SVG_TileStyle()
+    gradient_style = SVG_GradientStyle()
 
     styles = [
         line_style,
@@ -1376,6 +1628,8 @@ def _set_shape_style_alias_map(debug=False):
         pattern_style,
         shade_style,
         grid_style,
+        svg_tile_style,
+        gradient_style,
     ]
     paths = [
         "style.line_style",
@@ -1384,11 +1638,23 @@ def _set_shape_style_alias_map(debug=False):
         "style.fill_style.pattern_style",
         "style.fill_style.shade_style",
         "style.fill_style.grid_style",
+        "style.fill_style.svg_tile_style",
+        "style.fill_style.gradient_style",
     ]
-    prefixes = ["line", "fill", "marker", "pattern", "shade", "grid"]
+    prefixes = [
+        "line",
+        "fill",
+        "marker",
+        "pattern",
+        "shade",
+        "grid",
+        "tile",
+        "gradient",
+    ]
 
     _set_style_alias_map(shape_style_map, styles, paths, prefixes, debug=debug)
     shape_style_map["alpha"] = ("style", "alpha")
+    print(shape_style_map)
     return shape_style_map
 
 
@@ -1454,8 +1720,10 @@ shape_args = [
     "line_join",
     "line_miter_limit",
     "line_width",
+    "marker_alpha",
     "marker_color",
     "marker_radius",
+    "marker_shape",
     "marker_size",
     "marker_type",
     "markers_only",
@@ -1615,7 +1883,6 @@ def _set_shape_aliases_dict(shape):
     self.__dict__["_aliasses"] = _aliasses
 
 
-
 class StyleObj:
     """
     An object-based style class that only allows updates to predefined attributes.
@@ -1633,8 +1900,8 @@ class StyleObj:
             **kwargs: Initial attribute values
         """
         # Store the allowed attributes and validation setting
-        object.__setattr__(self, '_allowed_attrs', set(style_map.keys()))
-        object.__setattr__(self, '_validate_types', validate_types)
+        object.__setattr__(self, "_allowed_attrs", set(style_map.keys()))
+        object.__setattr__(self, "_validate_types", validate_types)
 
         # Initialize all attributes to None
         for attr in style_map.keys():
@@ -1666,12 +1933,14 @@ class StyleObj:
         # Handle special cases
         if expected_type == Sequence:
             # Check if it's sequence-like (list, tuple, etc.)
-            if not hasattr(value, '__iter__') or isinstance(value, (str, bytes)):
-                raise TypeError(f"Attribute '{name}' must be a sequence (list, tuple, etc.), got {type(value).__name__}")
+            if not hasattr(value, "__iter__") or isinstance(value, (str, bytes)):
+                raise TypeError(
+                    f"Attribute '{name}' must be a sequence (list, tuple, etc.), got {type(value).__name__}"
+                )
             return
 
         # Handle enum types
-        if hasattr(expected_type, '__bases__') and enum.Enum in expected_type.__bases__:
+        if hasattr(expected_type, "__bases__") and enum.Enum in expected_type.__bases__:
             if not isinstance(value, expected_type):
                 # Allow string values for enums if they match enum names
                 if isinstance(value, str):
@@ -1681,11 +1950,13 @@ class StyleObj:
                         return  # String matches enum name, validation passes
                     except (KeyError, AttributeError):
                         pass
-                raise TypeError(f"Attribute '{name}' must be of type {expected_type.__name__} or a valid enum name, got {type(value).__name__}")
+                raise TypeError(
+                    f"Attribute '{name}' must be of type {expected_type.__name__} or a valid enum name, got {type(value).__name__}"
+                )
             return
 
         # Handle Union types (e.g., Union[FontFamily, str])
-        if hasattr(expected_type, '__origin__') and expected_type.__origin__ is Union:
+        if hasattr(expected_type, "__origin__") and expected_type.__origin__ is Union:
             # Check if value matches any of the union types
             union_args = expected_type.__args__
             for union_type in union_args:
@@ -1694,7 +1965,9 @@ class StyleObj:
                         return  # Matches one of the union types
                 except TypeError:
                     continue  # Some types can't be used with isinstance
-            raise TypeError(f"Attribute '{name}' must be one of {union_args}, got {type(value).__name__}")
+            raise TypeError(
+                f"Attribute '{name}' must be one of {union_args}, got {type(value).__name__}"
+            )
 
         # Handle basic types
         if not isinstance(value, expected_type):
@@ -1702,38 +1975,62 @@ class StyleObj:
             if expected_type is float and isinstance(value, (int, float)):
                 return  # Allow int for float attributes
 
-            raise TypeError(f"Attribute '{name}' must be of type {expected_type.__name__}, got {type(value).__name__}")
+            raise TypeError(
+                f"Attribute '{name}' must be of type {expected_type.__name__}, got {type(value).__name__}"
+            )
 
         # Additional validation for specific types
         if expected_type is float:
             # Check for special float constraints (e.g., alpha should be 0-1)
-            if name.endswith('_alpha') or name == 'alpha':
+            if name.endswith("_alpha") or name == "alpha":
                 if not (0 <= value <= 1):
-                    raise ValueError(f"Alpha attribute '{name}' must be between 0 and 1, got {value}")
+                    raise ValueError(
+                        f"Alpha attribute '{name}' must be between 0 and 1, got {value}"
+                    )
 
             # Check for positive values where appropriate
-            if any(keyword in name for keyword in ['width', 'height', 'size', 'radius', 'distance', 'gap', 'sep', 'length']):
+            if any(
+                keyword in name
+                for keyword in [
+                    "width",
+                    "height",
+                    "size",
+                    "radius",
+                    "distance",
+                    "gap",
+                    "sep",
+                    "length",
+                ]
+            ):
                 if value < 0:
-                    raise ValueError(f"Attribute '{name}' must be non-negative, got {value}")
+                    raise ValueError(
+                        f"Attribute '{name}' must be non-negative, got {value}"
+                    )
 
     def __setattr__(self, name, value):
         """Override attribute setting to prevent adding new attributes and validate values."""
-        if hasattr(self, '_allowed_attrs') and name not in self._allowed_attrs:
-            raise AttributeError(f"Cannot add new attribute '{name}' to StyleObj. "
-                               f"Allowed attributes are: {sorted(self._allowed_attrs)}")
+        if hasattr(self, "_allowed_attrs") and name not in self._allowed_attrs:
+            raise AttributeError(
+                f"Cannot add new attribute '{name}' to StyleObj. "
+                f"Allowed attributes are: {sorted(self._allowed_attrs)}"
+            )
 
         # Validate the value if not a private attribute
-        if hasattr(self, '_validate_types') and not name.startswith('_'):
+        if hasattr(self, "_validate_types") and not name.startswith("_"):
             self._validate_value(name, value)
 
         object.__setattr__(self, name, value)
 
     def __getattr__(self, name):
         """Provide helpful error message for non-existent attributes."""
-        if hasattr(self, '_allowed_attrs'):
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'. "
-                               f"Allowed attributes are: {sorted(self._allowed_attrs)}")
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        if hasattr(self, "_allowed_attrs"):
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'. "
+                f"Allowed attributes are: {sorted(self._allowed_attrs)}"
+            )
+        raise AttributeError(
+            f"'{self.__class__.__name__}' object has no attribute '{name}'"
+        )
 
     def update(self, **kwargs):
         """Update multiple attributes at once."""
@@ -1742,13 +2039,19 @@ class StyleObj:
 
     def to_dict(self):
         """Convert StyleObj to dictionary, excluding None values."""
-        return {attr: getattr(self, attr) for attr in self._allowed_attrs
-                if getattr(self, attr) is not None}
+        return {
+            attr: getattr(self, attr)
+            for attr in self._allowed_attrs
+            if getattr(self, attr) is not None
+        }
 
     def __repr__(self):
         """Provide a readable representation showing non-None attributes."""
-        non_none_attrs = {attr: getattr(self, attr) for attr in self._allowed_attrs
-                         if getattr(self, attr) is not None}
+        non_none_attrs = {
+            attr: getattr(self, attr)
+            for attr in self._allowed_attrs
+            if getattr(self, attr) is not None
+        }
         return f"{self.__class__.__name__}({non_none_attrs})"
 
 
@@ -1877,6 +2180,7 @@ def pattern_style_obj(validate_types=True, **kwargs):
         pattern_obj = pattern_style_obj(pattern_color="green", pattern_type="lines")
     """
     return _get_style_obj(pattern_style_map, validate_types=validate_types, **kwargs)
+
 
 # From: https://tikz.dev/library-patterns#pgf.patterns
 

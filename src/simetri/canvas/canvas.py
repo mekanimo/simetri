@@ -9,7 +9,6 @@ import time
 import tempfile
 import shutil
 import webbrowser
-import subprocess
 import warnings
 from typing import Optional, Any, Tuple, Sequence
 from pathlib import Path
@@ -19,7 +18,6 @@ from math import pi
 from typing_extensions import Self, Union
 import numpy as np
 import networkx as nx
-import fitz
 
 from simetri.graphics.affine import (
     rotation_matrix,
@@ -37,6 +35,7 @@ from simetri.graphics.all_enums import (
     TexLoc,
     Align,
     Axis,
+    FilterType
 )
 from simetri.settings.settings import defaults
 from simetri.graphics.bbox import bounding_box
@@ -47,11 +46,13 @@ from simetri.colors.colors import Color, light_gray
 from simetri.canvas import draw
 from simetri.helpers.utilities import wait_for_file_availability
 from simetri.helpers.illustration import logo
-from simetri.tikz.tikz import Tex, get_tex_code
+from simetri.helpers.file_operations import validate_filepath
+from simetri.tikz.tikz import get_tex_code
 from simetri.helpers.validation import validate_args
-from simetri.canvas.style_map import canvas_args, StyleObj
+from simetri.canvas.style_map import canvas_args
 from simetri.notebook import display
 from simetri.image.image import Image, create_image_from_data
+from simetri.tex.tex import remove_aux_files, run_job, Tex
 
 
 class Canvas:
@@ -137,6 +138,7 @@ class Canvas:
         else:
             self._limits = None
         self.overlay = False  # used for inserting pdf pictures
+
 
     def __setattr__(self, name, value):
         if hasattr(self, "active_page") and name in ["back_color", "border"]:
@@ -265,11 +267,11 @@ class Canvas:
         tmpdirname = tempfile.TemporaryDirectory().name
         os.makedirs(tmpdirname, exist_ok=True)
         file_name = next(tempfile._get_candidate_names())
-        file_path = os.path.join(tmpdirname, file_name + ".ps")
+        filepath = os.path.join(tmpdirname, file_name + ".ps")
 
-        self.save(file_path, show=False, print_output=False, remove_aux=False)
-        wait_for_file_availability(file_path, timeout=5)
-        temp_img = create_image_from_data(file_path)
+        self.save(filepath, show=False, print_output=False, remove_aux=False)
+        wait_for_file_availability(filepath, timeout=5)
+        temp_img = create_image_from_data(filepath)
 
         time.sleep(1)
         shutil.rmtree(tmpdirname, ignore_errors=True)
@@ -720,6 +722,7 @@ class Canvas:
         scale=(1, 1),
         about=(0, 0),
         show: bool = False,
+        filter: FilterType = None,
         **kwargs,
     ) -> Self:
         """
@@ -733,6 +736,7 @@ class Canvas:
             scale (tuple, optional): The scale factors for the x and y axes, defaults to (1, 1).
             about (tuple, optional): The point about which to scale, defaults to (0, 0).
             show (bool, optional): If True, draws the canvas in a Jupyter cell.
+            filter (FilterType, optional): SVG filter type to apply to the drawn item(s).
             kwargs (dict): Additional keyword arguments.
 
         Returns:
@@ -748,6 +752,9 @@ class Canvas:
         if color:
             kwargs["line_color"] = color
             kwargs["fill_color"] = color
+
+        if filter is not None:
+            kwargs["filter"] = filter
 
         if pos is not None:
             sketch_xform = translation_matrix(*pos[:2]) @ sketch_xform
@@ -839,8 +846,10 @@ class Canvas:
         box2 = b_box.get_inflated_b_box(margin)
         box3 = box2.get_inflated_b_box(15)
         shadow = Shape([box3.northwest, box3.southwest, box3.southeast])
-        self.draw(shadow, line_color=light_gray, line_width=width,  style=style)
-        self.draw(Shape(box2.corners, closed=True), fill=False, line_width=width, style=style)
+        self.draw(shadow, line_color=light_gray, line_width=width, style=style)
+        self.draw(
+            Shape(box2.corners, closed=True), fill=False, line_width=width, style=style
+        )
 
         return self
 
@@ -1171,8 +1180,10 @@ class Canvas:
                 value = None
         return value
 
-    def draw_all_segments(self, item: Union[Shape, Batch], vert_indices=False, **kwargs) -> Self:
-        '''
+    def draw_all_segments(
+        self, item: Union[Shape, Batch], vert_indices=False, **kwargs
+    ) -> Self:
+        """
         Using intersections, splits edges of the item into separate segments and
         draws them with their indices. This is usually used for the "get_loop"
         function.
@@ -1183,10 +1194,9 @@ class Canvas:
                           Default is False, edge indices are shown.
         Returns:
             The canvas object.
-        '''
+        """
 
         return draw.draw_all_segments(self, item, vert_indices, **kwargs)
-
 
     def get_fonts_list(self) -> list[str]:
         """
@@ -1267,30 +1277,30 @@ class Canvas:
         return res
 
     def _show_browser(
-        self, file_path: Path, show_browser: bool, multi_page_svg: bool
+        self, filepath: Path, show_browser: bool, multi_page_svg: bool
     ) -> None:
         """
         Show the file in the browser.
 
         Args:
-            file_path (Path): The path to the file.
+            filepath (Path): The path to the file.
             show_browser (bool): Whether to show the file in the browser.
             multi_page_svg (bool): Whether the file is a multi-page SVG.
         """
         if show_browser is None:
             show_browser = defaults["show_browser"]
         if show_browser:
-            file_path = "file:///" + file_path
+            filepath = "file:///" + filepath
             if multi_page_svg:
                 for i, _ in enumerate(self.pages):
-                    f_path = file_path.replace(".svg", f"_page{i + 1}.svg")
+                    f_path = filepath.replace(".svg", f"_page{i + 1}.svg")
                     webbrowser.open(f_path)
             else:
-                webbrowser.open(file_path)
+                webbrowser.open(filepath)
 
     def save(
         self,
-        file_path: Path,
+        filepath: Path,
         overwrite: bool = None,
         show: bool = None,
         print_output=False,
@@ -1302,7 +1312,7 @@ class Canvas:
         Save the canvas to a file.
 
         Args:
-            file_path (Path, optional): The path to save the file.
+            filepath (Path, optional): The path to save the file.
             overwrite (bool, optional): Whether to overwrite the file if it exists.
             show (bool, optional): Whether to show the file in the browser.
             inset (float, optional): The inset value will be clipped from all sides, defaults to None.
@@ -1310,175 +1320,27 @@ class Canvas:
             Self: The canvas object.
         """
 
-        def validate_file_path(file_path: Path, overwrite: bool) -> Result:
-            """
-            Validate the file path.
-
-            Args:
-                file_path (Path): The path to the file.
-                overwrite (bool): Whether to overwrite the file if it exists.
-
-            Returns:
-                Result: The parent directory, file name, and extension.
-            """
-            path_exists = os.path.exists(file_path)
-            if path_exists and not overwrite:
-                raise FileExistsError(
-                    f"File {file_path} already exists. \n"
-                    "Use canvas.save(file_path, overwrite=True) to overwrite the file."
-                )
-            parent_dir, file_name = os.path.split(file_path)
-            file_name, extension = os.path.splitext(file_name)
-            if extension not in [".pdf", ".eps", ".ps", ".svg", ".png", ".tex"]:
-                raise RuntimeError("File type is not supported.")
-            if not os.path.exists(parent_dir):
-                raise NotADirectoryError(f"Directory {parent_dir} does not exist.")
-            if not os.access(parent_dir, os.W_OK):
-                raise PermissionError(f"Directory {parent_dir} is not writable.")
-
-            return parent_dir, file_name, extension
-
-        def compile_tex(cmd):
-            """
-            Compile the TeX file.
-
-            Args:
-                cmd (str): The command to compile the TeX file.
-
-            Returns:
-                str: The output of the compilation.
-            """
-            os.chdir(parent_dir)
-            with subprocess.Popen(
-                cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                shell=True,
-                text=True,
-            ) as p:
-                output = p.communicate("_s\n_l\n")[0]
-            if print_output:
-                print(output.split("\n")[-3:])
-            return output
-
-        def remove_aux_files(file_path):
-            """
-            Remove auxiliary files generated during compilation.
-
-            Args:
-                file_path (Path): The path to the file.
-            """
-            time_out = 1  # seconds
-            parent_dir, file_name = os.path.split(file_path)
-            file_name, extension = os.path.splitext(file_name)
-            aux_file = os.path.join(parent_dir, file_name + ".aux")
-            if os.path.exists(aux_file):
-                if not wait_for_file_availability(aux_file, time_out):
-                    print(
-                        (
-                            f"File '{aux_file}' is not available after waiting for "
-                            f"{time_out} seconds."
-                        )
-                    )
-                else:
-                    os.remove(aux_file)
-            log_file = os.path.join(parent_dir, file_name + ".log")
-            if os.path.exists(log_file):
-                if not wait_for_file_availability(log_file, time_out):
-                    print(
-                        (
-                            f"File '{log_file}' is not available after waiting for "
-                            f"{time_out} seconds."
-                        )
-                    )
-                else:
-                    if not defaults["keep_log_files"]:
-                        os.remove(log_file)
-            tex_file = os.path.join(parent_dir, file_name + ".tex")
-            if os.path.exists(tex_file):
-                if not wait_for_file_availability(tex_file, time_out):
-                    print(
-                        (
-                            f"File '{tex_file}' is not available after waiting for "
-                            f"{time_out} seconds."
-                        )
-                    )
-                else:
-                    os.remove(tex_file)
-            file_name, extension = os.path.splitext(file_name)
-            if extension not in [".pdf", ".tex"]:
-                pdf_file = os.path.join(parent_dir, file_name + ".pdf")
-                if os.path.exists(pdf_file):
-                    if not wait_for_file_availability(pdf_file, time_out):
-                        print(
-                            (
-                                f"File '{pdf_file}' is not available after waiting for "
-                                f"{time_out} seconds."
-                            )
-                        )
-                    else:
-                        # os.remove(pdf_file)
-                        pass
-            log_file = os.path.join(parent_dir, "simetri.log")
-            if os.path.exists(log_file):
-                try:
-                    os.remove(log_file)
-                except PermissionError:
-                    # to do: log the error
-                    pass
-
-        def run_job():
-            """
-            Run the job to compile and save the file.
-
-            Returns:
-                None
-            """
-            output_path = os.path.join(parent_dir, file_name + extension)
-            cmd = "xelatex " + tex_path + " --output-directory " + parent_dir
-            res = compile_tex(cmd)
-            if "No pages of output" in res:
-                raise RuntimeError("Failed to compile the tex file.")
-            pdf_path = os.path.join(parent_dir, file_name + ".pdf")
-            if not os.path.exists(pdf_path):
-                raise RuntimeError("Failed to compile the tex file.")
-
-            if extension in [".eps", ".ps"]:
-                ps_path = os.path.join(parent_dir, file_name + extension)
-                os.chdir(parent_dir)
-                cmd = f"pdf2ps {pdf_path} {ps_path}"
-                res = subprocess.run(cmd, shell=True, check=False)
-                if res.returncode != 0:
-                    raise RuntimeError("Failed to convert pdf to ps.")
-            elif extension == ".svg":
-                doc = fitz.open(pdf_path)
-                page = doc.load_page(0)
-                svg = page.get_svg_image()
-                with open(output_path, "w", encoding="utf-8") as f:
-                    f.write(svg)
-            elif extension == ".png":
-                pdf_file = fitz.open(pdf_path)
-                page = pdf_file[0]
-                pix = page.get_pixmap()
-                pix.save(output_path)
-                pdf_file.close()
-
         if inset is not None:
             self.inset = inset
-        parent_dir, file_name, extension = validate_file_path(file_path, overwrite)
+        parent_dir, file_name, extension = validate_filepath(filepath, overwrite)
+        if extension == ".svg":
+            from simetri.svg.svg import get_svg_code
+            svg_code = get_svg_code(self)
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(svg_code)
+        else:
+            tex_code = get_tex_code(self)
+            tex_path = os.path.join(parent_dir, file_name + ".tex")
+            with open(tex_path, "w", encoding="utf-8") as f:
+                f.write(tex_code)
+            if extension == ".tex":
+                return self
 
-        tex_code = get_tex_code(self)
-        tex_path = os.path.join(parent_dir, file_name + ".tex")
-        with open(tex_path, "w", encoding="utf-8") as f:
-            f.write(tex_code)
-        if extension == ".tex":
-            return self
+            run_job(parent_dir, file_name, extension, tex_path)
+            if remove_aux:
+                remove_aux_files(filepath)
 
-        run_job()
-        if remove_aux:
-            remove_aux_files(file_path)
-
-        self._show_browser(file_path=file_path, show_browser=show, multi_page_svg=False)
+        self._show_browser(filepath=filepath, show_browser=show, multi_page_svg=False)
         return self
 
     def new_page(self, **kwargs) -> Self:

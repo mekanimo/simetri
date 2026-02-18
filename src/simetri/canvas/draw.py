@@ -35,6 +35,7 @@ from ..graphics.sketch import (
     BezierSketch,
     CircleSketch,
     EllipseSketch,
+    GroupSketch,
     LineSketch,
     PatternSketch,
     RectSketch,
@@ -264,6 +265,8 @@ def text(
         **kwargs,
     )
     tag_obj.draw_frame = False
+    # extend vertices with the Tag's bounding box
+    extend_vertices(self, tag_obj)
     # then call get_tag_sketch to create a TagSketch object
     sketch = create_sketch(tag_obj, self, **kwargs)
     self.active_page.sketches.append(sketch)
@@ -416,6 +419,22 @@ def draw_pattern(self, pattern, **kwargs):
         Self: The canvas object.
     """
     sketch = create_sketch(pattern, self, **kwargs)
+    self.active_page.sketches.append(sketch)
+
+    return self
+
+def draw_group(self, group, **kwargs):
+    """
+    Draw the group object.
+
+    Args:
+        pattern: Pattern object to be drawn.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Self: The canvas object.
+    """
+    sketch = create_sketch(group, self, **kwargs)
     self.active_page.sketches.append(sketch)
 
     return self
@@ -869,17 +888,16 @@ def draw_image(self, image, position=None, scale=None, **kwargs):
         return self
     if not image.active:
         return self
-    translation, rotation, scale = decompose_transformations(image.xform_matrix)
+    translation, rotation, decomposed_scale = decompose_transformations(image.xform_matrix)
     if position is None:
-        pos = image.pos
+        x, y = image.pos[:2]
     else:
-        pos = position[:2]
+        x, y = position[:2]
     dx, dy = translation
-    pos[0] += dx
-    pos[1] += dy
+    pos = [x + dx, y + dy]
 
     if scale is None:
-        scale = image.scale
+        scale = decomposed_scale
 
     sketch = ImageSketch(
         image,
@@ -890,10 +908,11 @@ def draw_image(self, image, position=None, scale=None, **kwargs):
         file_path=image.file_path,
         anchor=image.anchor,
         xform_matrix=self.xform_matrix,
-        **kwargs,
     )
     for attrib_name in shape_style_map:
         attrib_value = self.resolve_property(image, attrib_name)
+        setattr(sketch, attrib_name, attrib_value)
+    for attrib_name, attrib_value in kwargs.items():
         setattr(sketch, attrib_name, attrib_value)
     self.active_page.sketches.append(sketch)
 
@@ -918,17 +937,16 @@ def draw_pdf(self, pdf, pos=None, size=None, scale=None, angle=0, **kwargs):
             return self
         if not pdf.active:
             return self
-        translation, rotation, scale = decompose_transformations(pdf.xform_matrix)
+        translation, rotation, decomposed_scale = decompose_transformations(pdf.xform_matrix)
         if pos is None:
-            pos = pdf.pos
+            x, y = pdf.pos[:2]
         else:
-            pos = pos[:2]
+            x, y = pos[:2]
         dx, dy = translation
-        pos[0] += dx
-        pos[1] += dy
+        pos = [x + dx, y + dy]
 
         if scale is None:
-            scale = pdf.scale
+            scale = pdf.scale if pdf.scale is not None else decomposed_scale
 
         if angle is None:
             angle = rotation
@@ -946,8 +964,9 @@ def draw_pdf(self, pdf, pos=None, size=None, scale=None, angle=0, **kwargs):
         scale=scale,
         angle=angle,
         size=size,
-        **kwargs,
     )
+    for attrib_name, attrib_value in kwargs.items():
+        setattr(sketch, attrib_name, attrib_value)
     self.active_page.sketches.append(sketch)
 
     return self
@@ -982,6 +1001,8 @@ def draw_dimension(self, item, **kwargs):
     x, y = item.text_pos[:2]
 
     tag = Tag(item.text, (x, y), font_size=item.font_size, **kwargs)
+    # extend vertices with the Tag's bounding box
+    extend_vertices(self, tag)
     tag_sketch = create_sketch(tag, self, **kwargs)
     tag_sketch.draw_frame = False
     tag_sketch.frame_shape = FrameShape.CIRCLE
@@ -1085,6 +1106,12 @@ def extend_vertices(canvas, item):
         vertices = [item.pos]
         vertices = [x[:2] for x in homogenize(vertices) @ canvas._sketch_xform_matrix]
         all_vertices.extend(vertices)
+    elif item.subtype == Types.TAG:
+        # Tag objects have all_vertices property that includes text bounding box
+        vertices = [
+            x[:2] for x in homogenize(item.all_vertices) @ canvas._sketch_xform_matrix
+        ]
+        all_vertices.extend(vertices)
     elif item.subtype == Types.ARROW:
         for shape in item.all_shapes:
             all_vertices.extend(shape.corners)
@@ -1122,7 +1149,8 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
     active_sketches = self.active_page.sketches
     subtype = item.subtype
     extend_vertices(self, item)
-    if "clip" in item.__dict__ and item.clip:
+    # Only apply TikZ/TeX clipping code when rendering to TeX format
+    if "clip" in item.__dict__ and item.clip is True and self.render == "TEX":
         clip_code = get_clip_code(item)
         code = "\\begin{scope}" + clip_code
         active_sketches.append(TexSketch(code))
@@ -1134,6 +1162,8 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
         draw_image(self, item, **kwargs)
     elif subtype == Types.PATTERN:
         draw_pattern(self, item, **kwargs)
+    elif subtype == Types.GROUP:
+        draw_group(self, item, **kwargs)
     elif subtype == Types.DIMENSION:
         self.draw_dimension(item, **kwargs)
     elif subtype == Types.ARROW:
@@ -1144,7 +1174,8 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
         self.draw_lace(item, **kwargs)
     elif subtype == Types.BOUNDING_BOX:
         draw_bbox(self, item, **kwargs)
-    if "clip" in item.__dict__ and item.clip:
+    # Only close TikZ/TeX clipping scope when rendering to TeX format
+    if "clip" in item.__dict__ and item.clip is True and self.render == "TEX":
         active_sketches.append(TexSketch("\\end{scope}"))
     return self
 
@@ -1229,6 +1260,27 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
     sketch.active = item.active
     sketch.closed = item.closed
     # fill and stroke are resolved through resolve_property in the loop above
+
+    # Copy tile_svg (direct shape property, not style attribute)
+    if hasattr(item, 'tile_svg'):
+        sketch.tile_svg = item.tile_svg
+
+    # Copy gradient_style nested structure if it exists
+    if hasattr(item, 'style') and hasattr(item.style, 'fill_style'):
+        if hasattr(item.style.fill_style, 'gradient_style'):
+            # Copy the entire style object to preserve nested structures
+            if not hasattr(sketch, 'style'):
+                sketch.style = item.style
+            elif not hasattr(sketch.style, 'fill_style'):
+                sketch.style.fill_style = item.style.fill_style
+            elif not hasattr(sketch.style.fill_style, 'gradient_style'):
+                sketch.style.fill_style.gradient_style = item.style.fill_style.gradient_style
+
+    # Copy clip and mask for clipping support
+    if hasattr(item, 'clip'):
+        sketch.clip = item.clip
+    if hasattr(item, 'mask'):
+        sketch.mask = item.mask
 
     for k, v in kwargs.items():
         setattr(sketch, k, v)
@@ -1355,6 +1407,22 @@ def create_sketch(item, canvas, **kwargs):
 
         return sketch
 
+    def get_group_sketch(item, canvas, **kwargs):
+        """Create a GroupSketch from the given item.
+
+        Args:
+            item: Item to be sketched.
+            canvas: Canvas object.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            GroupSketch: Created GroupSketch.
+        """
+        sketch = GroupSketch(item, xform_matrix=canvas.xform_matrix)
+        set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+        return sketch
+
     def get_circle_sketch(item, canvas, **kwargs):
         """Create a CircleSketch from the given item.
 
@@ -1451,7 +1519,8 @@ def create_sketch(item, canvas, **kwargs):
         swatch = kwargs.get("swatch", None)
         if swatch:
             n_swatch = len(swatch)
-        if scope_code_required(item):
+        # Only use TikZ scope code when rendering to TEX format
+        if canvas.render == "TEX" and scope_code_required(item):
             sketches = []
             count = 0
             for element in item.elements:
@@ -1695,6 +1764,7 @@ def create_sketch(item, canvas, **kwargs):
         Types.DOTS: get_dots_sketch,
         Types.ELLIPSE: get_sketch,
         Types.FRAGMENT: get_sketch,
+        Types.GROUP: get_group_sketch,
         Types.HANDLE: get_handle_sketch,
         Types.HEX_GRID: get_batch_sketch,
         Types.IMAGE: get_image_sketch,
