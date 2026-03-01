@@ -3,7 +3,9 @@ from __future__ import annotations
 from math import degrees, cos, sin, ceil
 from typing import List, Union
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 import warnings
+import html
 
 import numpy as np
 
@@ -27,7 +29,7 @@ from ..graphics.all_enums import (
     get_enum_value,
     LineWidth,
     LineDashArray,
-    FilterType,
+    Extent,
 )
 from ..graphics.bbox import bounding_box
 from ..geometry.geometry import (
@@ -41,12 +43,35 @@ from ..colors.colors import black, white
 from ..settings.settings import defaults, svg_defaults
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..graphics.sketch import TagSketch, ShapeSketch
+from .filters import SVG_Filter
+from .svg_utils import round_corners
 
 from ..colors.colors import Color
 from .svg_colors import color_to_svg
 
 
 from PIL import ImageFont
+
+
+def sketch_attrib(sketch, attrib):
+    try:
+        return object.__getattribute__(sketch, attrib)
+    except AttributeError:
+        return defaults.get(attrib)
+
+
+def get_alpha(sketch, alpha_attrib):
+    sketch_dict = sketch_attrib(sketch, '__dict__')
+    if 'alpha' in sketch_dict:
+        return sketch_dict['alpha']
+    return sketch_attrib(sketch, alpha_attrib)
+
+
+def get_color(sketch, color_attrib):
+    sketch_dict = sketch_attrib(sketch, '__dict__')
+    if 'color' in sketch_dict:
+        return sketch_dict['color']
+    return sketch_attrib(sketch, color_attrib)
 
 
 def get_text_size(text, font_name, font_size):
@@ -109,19 +134,17 @@ def draw_shape_sketch(sketch, ind=None):
         Types.ELLIPSE_SKETCH: draw_ellipse_sketch,
         Types.LINE_SKETCH: draw_line_sketch,
     }
-    if sketch.subtype in d_subtype_draw:
-        res = d_subtype_draw[sketch.subtype](sketch)
-    elif (
-        hasattr(sketch, "draw_markers")
-        and sketch.draw_markers
-        and sketch.marker_type == MarkerType.INDICES
-    ) or (hasattr(sketch, "indices") and sketch.indices):
+    subtype = sketch_attrib(sketch, 'subtype')
+    draw_markers = sketch_attrib(sketch, 'draw_markers')
+    marker_type = sketch_attrib(sketch, 'marker_type')
+    indices = sketch_attrib(sketch, 'indices')
+    smooth = sketch_attrib(sketch, 'smooth')
+
+    if subtype in d_subtype_draw:
+        res = d_subtype_draw[subtype](sketch)
+    elif (draw_markers and marker_type == MarkerType.INDICES) or indices:
         res = draw_shape_sketch_with_indices(sketch, ind)
-    elif (
-        hasattr(sketch, "draw_markers")
-        and sketch.draw_markers
-        or (hasattr(sketch, "smooth") and sketch.smooth)
-    ):
+    elif draw_markers or smooth:
         res = draw_shape_sketch_with_markers(sketch)
     else:
         res = draw_sketch(sketch)
@@ -142,32 +165,36 @@ def draw_sketch(sketch):
     if not res:
         return ""
     options = []
+    back_style = sketch_attrib(sketch, 'back_style')
+    fill = sketch_attrib(sketch, 'fill')
+    closed = sketch_attrib(sketch, 'closed')
+    smooth = sketch_attrib(sketch, 'smooth')
 
-    if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
+    if back_style == BackStyle.PATTERN and fill and closed:
         options += get_pattern_options(sketch)
-    if sketch.stroke:
+    if sketch_attrib(sketch, 'stroke'):
         options += get_line_style_options(sketch)
-    if sketch.closed and sketch.fill:
+    if closed and fill:
         options += get_fill_style_options(sketch)
-    if sketch.smooth:
+    if smooth:
         options += ["smooth"]
-    if sketch.back_style == BackStyle.SHADING and sketch.fill and sketch.closed:
+    if back_style == BackStyle.SHADING and fill and closed:
         options += get_shading_options(sketch)
     options = ", ".join(options)
     if options:
         res += f"[{options}]"
-    vertices = sketch.vertices
+    vertices = sketch_attrib(sketch, 'vertices')
     n = len(vertices)
     str_lines = [f"{vertices[0]}"]
-    for i, vertice in enumerate(vertices[1:]):
+    for i, vertex in enumerate(vertices[1:]):
         if (i + 1) % 8 == 0:
             if i == n - 1:
-                str_lines.append(f"-- {vertice} \n")
+                str_lines.append(f"-- {vertex} \n")
             else:
-                str_lines.append(f"\n\t-- {vertice} ")
+                str_lines.append(f"\n\t-- {vertex} ")
         else:
-            str_lines.append(f"-- {vertice} ")
-    if sketch.closed:
+            str_lines.append(f"-- {vertex} ")
+    if closed:
         str_lines.append("-- cycle;\n")
     else:
         str_lines.append(";\n")
@@ -176,6 +203,24 @@ def draw_sketch(sketch):
     else:
         res = "".join(str_lines)
     return res
+
+
+def append_non_default_style_options(options, sketch, style_map):
+    """Append CSS style options for sketch attributes that differ from defaults.
+
+    Args:
+        options: List of style option strings.
+        sketch: Sketch object.
+        style_map: Dictionary mapping sketch attribute name to (css_name, default_key).
+    """
+    sketch_dict = sketch_attrib(sketch, '__dict__')
+    for attrib_name, (css_name, default_key) in style_map.items():
+        if attrib_name not in sketch_dict:
+            continue
+        value = sketch_dict[attrib_name]
+        default_value = defaults[default_key]
+        if value != default_value:
+            options.append(f"{css_name}: {value};")
 
 
 def get_line_style_options(sketch, exceptions=None):
@@ -190,43 +235,33 @@ def get_line_style_options(sketch, exceptions=None):
     """
 
     options = []
-    # line color - use color as fallback if line_color is not set
-    if sketch.stroke:
-        effective_line_color = sketch.line_color
-        if effective_line_color is None and hasattr(sketch, 'color') and sketch.color is not None:
-            effective_line_color = sketch.color
-        line_color = color_to_svg(effective_line_color)
+    stroke = sketch_attrib(sketch, 'stroke')
+    if stroke:
+        line_color = color_to_svg(get_color(sketch, 'line_color'))
     else:
         line_color = "none"
     options.append(f"stroke: {line_color};")
 
-    # line opacity - use alpha as fallback if line_alpha is not set
-    effective_line_alpha = sketch.line_alpha
-    if effective_line_alpha == 1 and hasattr(sketch, 'alpha') and sketch.alpha not in [None, 1]:
-        effective_line_alpha = sketch.alpha
+    line_alpha = get_alpha(sketch, 'line_alpha')
+    if line_alpha is not None and line_alpha != defaults["line_alpha"]:
+        options.append(f"stroke-opacity: {line_alpha};")
 
-    if effective_line_alpha != 1:
-        options.append(f"stroke-opacity: {effective_line_alpha};")
-
-    # line width
-    if sketch.line_width != 1:
-        options.append(f"stroke-width: {sketch.line_width};")
-
-    # linecap
-    if sketch.line_cap != LineCap.BUTT:
-        options.append(f"stroke-linecap: {sketch.line_cap};")
-
-    # linejoin
-    if sketch.line_join != LineJoin.MITER:
-        options.append(f"stroke-linejoin: {sketch.line_join};")
+    style_map = {
+        "line_width": ("stroke-width", "line_width"),
+        "line_cap": ("stroke-linecap", "line_cap"),
+        "line_join": ("stroke-linejoin", "line_join"),
+    }
+    append_non_default_style_options(options, sketch, style_map)
 
     # miter limit
-    if hasattr(sketch, "miter_limit") and sketch.miter_limit != 4:
-        options.append(f"stroke-miterlimit: {sketch.miter_limit}")
+    miter_limit = sketch_attrib(sketch, 'miter_limit')
+    if miter_limit:
+        options.append(f"stroke-miterlimit: {miter_limit}")
 
     # dash pattern
-    if hasattr(sketch, "line_dash_array") and sketch.line_dash_array:
-        options.append(f"stroke-dasharray: {get_dash_pattern(sketch.line_dash_array)}")
+    line_dash_array = sketch_attrib(sketch, 'line_dash_array')
+    if line_dash_array:
+        options.append(f"stroke-dasharray: {get_dash_pattern(line_dash_array)}")
 
     return " ".join(options)
 
@@ -244,26 +279,19 @@ def get_fill_style_options(sketch, shape_type, exceptions=None, frame=False):
     """
 
     options = []
-    # fill color - use color as fallback if fill_color is not set
-    if sketch.fill and shape_type != "polyline":
-        effective_fill_color = sketch.fill_color
-        if effective_fill_color is None and hasattr(sketch, 'color') and sketch.color is not None:
-            effective_fill_color = sketch.color
-        fill_color = color_to_svg(effective_fill_color)
+    fill = sketch_attrib(sketch, 'fill')
+    if fill and shape_type != "polyline":
+        fill_color = color_to_svg(get_color(sketch, 'fill_color'))
     else:
         fill_color = "none"
 
     options.append(f"fill: {fill_color};")
 
-    # fill opacity - use alpha as fallback if fill_alpha is not set
-    effective_fill_alpha = sketch.fill_alpha
-    if effective_fill_alpha == 1 and hasattr(sketch, 'alpha') and sketch.alpha not in [None, 1]:
-        effective_fill_alpha = sketch.alpha
+    fill_alpha = get_alpha(sketch, 'fill_alpha')
+    if fill_alpha != defaults["fill_alpha"]:
+        options.append(f"fill-opacity: {fill_alpha};")
 
-    if effective_fill_alpha != 1:
-        options.append(f"fill-opacity: {effective_fill_alpha};")
-
-    if hasattr(sketch, "even_odd") and sketch.even_odd:
+    if sketch_attrib(sketch, 'even_odd'):
         options.append("fill-rule: evenodd;")
 
     return " ".join(options)
@@ -281,6 +309,104 @@ def get_dash_pattern(line_dash_array):
     """
 
     return " ".join([str(x) for x in line_dash_array])
+
+
+def _line_limits(canvas):
+    if canvas is None:
+        return None
+    limits = None
+    if canvas.limits is not None:
+        limits = tuple(canvas.limits)
+    elif canvas._all_vertices:
+        bbox = bounding_box(canvas._all_vertices)
+        limits = (*bbox.southwest, *bbox.northeast)
+
+    page = canvas.active_page
+    sketches = page.sketches
+    for sketch in sketches:
+        if sketch_attrib(sketch, 'subtype') == Types.HELPLINES_SKETCH:
+            x, y = sketch_attrib(sketch, 'pos')[:2]
+            candidate = (x, y, x + sketch_attrib(sketch, 'width'), y + sketch_attrib(sketch, 'height'))
+            if limits is None:
+                limits = candidate
+            else:
+                limits = (
+                    min(limits[0], candidate[0]),
+                    min(limits[1], candidate[1]),
+                    max(limits[2], candidate[2]),
+                    max(limits[3], candidate[3]),
+                )
+
+    return limits
+
+
+def _clip_line_to_rect(start, end, rect, draw_type):
+    if rect is None:
+        return start, end
+
+    x1, y1 = start[:2]
+    x2, y2 = end[:2]
+    dx = x2 - x1
+    dy = y2 - y1
+    if abs(dx) < 1e-12 and abs(dy) < 1e-12:
+        return start, end
+
+    xmin, ymin, xmax, ymax = rect
+    t_min = float("-inf")
+    t_max = float("inf")
+
+    if abs(dx) < 1e-12:
+        if x1 < xmin or x1 > xmax:
+            return start, end
+    else:
+        tx1 = (xmin - x1) / dx
+        tx2 = (xmax - x1) / dx
+        t_min = max(t_min, min(tx1, tx2))
+        t_max = min(t_max, max(tx1, tx2))
+
+    if abs(dy) < 1e-12:
+        if y1 < ymin or y1 > ymax:
+            return start, end
+    else:
+        ty1 = (ymin - y1) / dy
+        ty2 = (ymax - y1) / dy
+        t_min = max(t_min, min(ty1, ty2))
+        t_max = min(t_max, max(ty1, ty2))
+
+    if t_min > t_max:
+        return start, end
+
+    if draw_type == Extent.INFINITE:
+        t0, t1 = t_min, t_max
+    elif draw_type == Extent.RAY:
+        t0, t1 = max(0.0, t_min), t_max
+        if t0 > t1:
+            return start, end
+    else:
+        return start, end
+
+    p0 = (x1 + t0 * dx, y1 + t0 * dy)
+    p1 = (x1 + t1 * dx, y1 + t1 * dy)
+    return p0, p1
+
+
+def draw_line_sketch(sketch, canvas):
+    vertices = sketch_attrib(sketch, 'vertices')
+    start = vertices[0]
+    end = vertices[1]
+    extent = sketch_attrib(sketch, 'extent')
+    if not isinstance(extent, Extent) and extent is not None:
+        extent = Extent(extent)
+
+    if extent in [Extent.RAY, Extent.INFINITE]:
+        limits = _line_limits(canvas)
+        start, end = _clip_line_to_rect(start, end, limits, extent)
+
+    style = get_line_style_options(sketch)
+    return (
+        f'<line x1="{start[0]}" y1="{start[1]}" '
+        f'x2="{end[0]}" y2="{end[1]}" style="{style}" />'
+    )
 
 
 def get_marker_options(sketch):
@@ -308,7 +434,7 @@ def get_marker_options(sketch):
         # 'line_color': 'line color',
     }
     # if mark_stroke is false make line color same as fill color
-    if sketch.draw_markers:
+    if sketch_attrib(sketch, 'draw_markers'):
         res = sg_to_tikz(sketch, marker_style_map.keys(), attrib_map)
     else:
         res = []
@@ -317,141 +443,53 @@ def get_marker_options(sketch):
 
 
 def draw_shape_sketch_with_indices(sketch, index=0):
-    """Draws a shape sketch with circle markers with index numbers in them.
+    """Draws a shape sketch with index numbers at each vertex for SVG.
 
     Args:
         sketch: The shape sketch object.
         index: The index.
 
     Returns:
-        str: The TikZ code for the shape sketch with indices.
+        str: The SVG code for the shape sketch with indices.
     """
-    begin_scope = get_begin_scope(index)
-    body = get_draw(sketch)
-    if body:
-        options = get_line_style_options(sketch)
-        if sketch.fill and sketch.closed:
-            options += get_fill_style_options(sketch)
-        if sketch.smooth:
-            if sketch.closed:
-                options += ["smooth cycle"]
-            else:
-                options += ["smooth"]
-        options = ", ".join(options)
-        body += f"[{options}]"
+    vertices = sketch_attrib(sketch, 'vertices')
+
+    shape_type = "polygon" if sketch_attrib(sketch, 'closed') else "polyline"
+
+    line_style = get_line_style_options(sketch)
+    fill_style = get_fill_style_options(sketch, shape_type)
+    style = f"{line_style} {fill_style}".strip()
+    style_attr = f'style="{style}"' if style else ""
+
+    verts = " ".join([f"{vertex[0]},{vertex[1]}" for vertex in vertices])
+    shape_svg = f'<{shape_type} points="{verts}" {style_attr}/>'
+
+    offset = sketch_attrib(sketch, 'ind_offset')
+    label_positions = []
+    if isinstance(offset[0], float):
+        dx, dy = offset[:2]
+        for vertex in vertices:
+            lx, ly = vertex[:2]
+            label_positions.append((lx + dx, ly + dy))
     else:
-        body = ""
-    vertices = sketch.vertices
-    indices = None
-    if hasattr(sketch, "ind_offset"):
-        offset = sketch.ind_offset
-        if isinstance(offset[0], float):
-            dx, dy = offset[:2]
-            indices = [str((x + dx, y + dy)) for (x, y) in vertices]
-        else:
-            # offset is in polar coordinates
-            center, offset_val = offset
-            indices = []
-            for vert in vertices:
-                x, y = vert[:2]
-                r, theta = cartesian_to_polar(x, y, center)
-                new_x, new_y = polar_to_cartesian(r + offset_val, theta, center)
-                indices.append(f"({new_x}, {new_y})")
-    else:
-        indices = [str(x) for x in vertices]
-    vertices = [str(x) for x in vertices]
-    str_lines = [vertices[0]]
-    n = len(vertices)
-    for i, vertice in enumerate(vertices[1:]):
-        if (i + 1) % 6 == 0:
-            if i == n - 1:
-                str_lines.append(f" -- {vertice}\n")
-            else:
-                str_lines.append(f"\n\t-- {vertice}")
-        else:
-            str_lines.append(f"-- {vertice}")
+        center, offset_val = offset
+        for vertex in vertices:
+            vx, vy = vertex[:2]
+            r, theta = cartesian_to_polar(vx, vy, center)
+            new_x, new_y = polar_to_cartesian(r + offset_val, theta, center)
+            label_positions.append((new_x, new_y))
 
-    if body:
-        if sketch.closed:
-            str_lines.append(" -- cycle;\n")
-        str_lines.append(";\n")
-    if indices:
-        str_lines.append(f"\\node at {indices[0]} {{{0}}};\n")
-        for i, pos in enumerate(indices[1:]):
-            str_lines.append(f"\\node at {pos} {{{i + 1}}};\n")
+    font_size = defaults["font_size"]
+    elements = [shape_svg]
+    for i, (lx, ly) in enumerate(label_positions):
+        elements.append(
+            f'<g transform="translate({lx} {ly}) scale(1,-1)">'
+            f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+            f' font-size="{font_size}">{i}</text>'
+            f'</g>'
+        )
 
-    end_scope = get_end_scope()
-    if begin_scope == "\\begin{scope}[]\n":
-        res = body + "".join(str_lines)
-    else:
-        res = begin_scope + body + "".join(str_lines) + end_scope
-
-    return res
-
-# This is what TikZ renderer uses
-# def draw_shape_sketch_with_markers(sketch):
-#     """Draws a shape sketch with markers.
-
-#     Args:
-#         sketch: The shape sketch object.
-
-#     Returns:
-#         str: The TikZ code for the shape sketch with markers.
-#     """
-#     # begin_scope = get_begin_scope()
-#     body = get_draw(sketch)
-#     if body:
-#         options = get_line_style_options(sketch)
-#         if sketch.fill and sketch.closed:
-#             options += get_fill_style_options(sketch)
-#         if sketch.smooth and sketch.closed:
-#             options += ["smooth cycle"]
-#         elif sketch.smooth:
-#             options += ["smooth"]
-#         options = ", ".join(options)
-#         if options:
-#             body += f"[{options}]"
-#     else:
-#         body = ""
-
-#     if sketch.draw_markers:
-#         marker_options = ", ".join(get_marker_options(sketch))
-#     else:
-#         marker_options = ""
-
-#     if sketch.closed and not close_points2(vertices[0], vertices[1]):
-#         vertices = [str(x) for x in sketch.vertices + [sketch.vertices[0]]]
-#     else:
-#         vertices = [str(x) for x in sketch.vertices]
-
-#     str_lines = [vertices[0]]
-#     for i, vertice in enumerate(vertices[1:]):
-#         if (i + 1) % 6 == 0:
-#             str_lines.append(f"\n\t{vertice} ")
-#         else:
-#             str_lines.append(f" {vertice} ")
-#     coordinates = "".join(str_lines)
-
-#     marker = get_enum_value(MarkerType, sketch.marker_type)
-#     # marker = sketch.marker_type.value
-#     if sketch.markers_only:
-#         markers_only = "only marks ,"
-#     else:
-#         markers_only = ""
-#     if sketch.draw_markers and marker_options:
-#         body += (
-#             f" plot[mark = {marker}, {markers_only}mark options = {{{marker_options}}}] "
-#             f"\ncoordinates {{{coordinates}}};\n"
-#         )
-#     elif sketch.draw_markers:
-#         body += (
-#             f" plot[mark = {marker}, {markers_only}] coordinates {{{coordinates}}};\n"
-#         )
-#     else:
-#         body += f" plot[tension=.5] coordinates {{{coordinates}}};\n"
-
-#     return body
-
+    return "\n".join(elements)
 
 """
 <polyline
@@ -503,22 +541,28 @@ def draw_tag_sketch(sketch):
     Returns:
         str: The SVG code for the TagSketch.
     """
-    x, y = sketch.pos[:2]
+    x, y = sketch_attrib(sketch, 'pos')[:2]
     elements = []
 
     # Calculate text properties
-    font_size = getattr(sketch, 'font_size', defaults['font_size'])
-    font_family = getattr(sketch, 'font_family', defaults['font_family'])
-    font_color = getattr(sketch, 'font_color', defaults['font_color'])
-    text = getattr(sketch, 'text', None)
+    font_size = sketch_attrib(sketch, 'font_size')
+    font_family = sketch_attrib(sketch, 'font_family')
+    font_color = sketch_attrib(sketch, 'font_color')
+    text = sketch_attrib(sketch, 'text')
+    if text is None:
+        text = ""
+    if not isinstance(text, str):
+        text = str(text)
+    text = text.replace(r"\_", "_")
+    escaped_text = html.escape(html.unescape(text), quote=False)
 
     # Text styling
-    font_weight = 'bold' if getattr(sketch, 'bold', None) else 'normal'
-    font_style = 'italic' if getattr(sketch, 'italic', None) else 'normal'
+    font_weight = 'bold' if sketch_attrib(sketch, 'bold') else 'normal'
+    font_style = 'italic' if sketch_attrib(sketch, 'italic') else 'normal'
     text_anchor = 'middle'  # Default for centered text
 
     # Handle anchor positioning
-    anchor = getattr(sketch, 'anchor', None)
+    anchor = sketch_attrib(sketch, 'anchor')
     if anchor:
         if anchor in [Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST]:
             text_anchor = 'start'
@@ -526,13 +570,13 @@ def draw_tag_sketch(sketch):
             text_anchor = 'end'
 
     # Draw frame if needed
-    if getattr(sketch, 'draw_frame', None):
-        frame_shape = getattr(sketch, 'frame_shape', defaults['frame_shape'])
-        fill_color = getattr(sketch, 'frame_back_color', defaults['frame_back_color']) if getattr(sketch, 'fill', None) else 'none'
-        stroke_color = getattr(sketch, 'line_color', defaults['line_color']) if getattr(sketch, 'stroke', None) else 'none'
-        stroke_width = getattr(sketch, 'line_width', defaults['line_width'])
-        inner_sep = getattr(sketch, 'frame_inner_sep', defaults['frame_inner_sep'])
-        minimum_width = getattr(sketch, 'minimum_width', None)
+    if sketch_attrib(sketch, 'draw_frame'):
+        frame_shape = sketch_attrib(sketch, 'frame_shape')
+        fill_color = sketch_attrib(sketch, 'frame_back_color') if sketch_attrib(sketch, 'fill') else 'none'
+        stroke_color = sketch_attrib(sketch, 'line_color') if sketch_attrib(sketch, 'stroke') else 'none'
+        stroke_width = sketch_attrib(sketch, 'line_width')
+        inner_sep = sketch_attrib(sketch, 'frame_inner_sep')
+        minimum_width = sketch_attrib(sketch, 'minimum_width')
 
         # Get accurate text dimensions using PIL
         text_width, text_height = get_text_size(text, font_family, font_size)
@@ -577,13 +621,14 @@ def draw_tag_sketch(sketch):
 
     # SVG text element
     text_decoration = ''
-    if getattr(sketch, 'small_caps', None):
+    if sketch_attrib(sketch, 'small_caps'):
         text_decoration = 'font-variant="small-caps" '
 
-    align = getattr(sketch, 'align', None)
+    align = sketch_attrib(sketch, 'align')
+    text_width = sketch_attrib(sketch, 'text_width')
     text_width_attr = ''
-    if hasattr(sketch, 'text_width') and sketch.text_width:
-        text_width_attr = f'textLength="{sketch.text_width}" '
+    if text_width:
+        text_width_attr = f'textLength="{text_width}" '
 
     # Wrap text in a transform group to flip y-axis (prevents upside-down text)
     elements.append(f'<g transform="translate({x} {y}) scale(1,-1)">')
@@ -598,11 +643,110 @@ def draw_tag_sketch(sketch):
         f'text-anchor="{text_anchor}" '
         f'dominant-baseline="middle" '
         f'{text_width_attr}'
-        f'>{text}</text>'
+        f'>{escaped_text}</text>'
     )
     elements.append('</g>')
 
     return '\n'.join(elements)
+
+
+def draw_helplines_sketch(sketch):
+    x, y = sketch_attrib(sketch, 'pos')[:2]
+    width = sketch_attrib(sketch, 'width')
+    height = sketch_attrib(sketch, 'height')
+    spacing = sketch_attrib(sketch, 'spacing')
+    cs_size = sketch_attrib(sketch, 'cs_size')
+    kwargs = dict(sketch_attrib(sketch, 'kwargs'))
+
+    if "line_width" not in kwargs:
+        kwargs["line_width"] = defaults["grid_line_width"]
+    if "line_color" not in kwargs:
+        kwargs["line_color"] = defaults["grid_line_color"]
+    if "line_dash_array" not in kwargs:
+        kwargs["line_dash_array"] = defaults["grid_line_dash_array"]
+    if "line_alpha" not in kwargs:
+        if "alpha" in kwargs:
+            kwargs["line_alpha"] = kwargs["alpha"]
+        else:
+            kwargs["line_alpha"] = defaults["line_alpha"]
+    if "line_cap" not in kwargs:
+        kwargs["line_cap"] = defaults["line_cap"]
+    if "line_join" not in kwargs:
+        kwargs["line_join"] = defaults["line_join"]
+    if "line_miter_limit" not in kwargs:
+        kwargs["line_miter_limit"] = defaults["line_miter_limit"]
+
+    # Match draw.grid defaults
+    grid_line_width = kwargs["line_width"]
+    grid_line_color = kwargs["line_color"]
+    grid_line_dash_array = kwargs["line_dash_array"]
+    line_alpha = kwargs["line_alpha"]
+    line_cap = kwargs["line_cap"]
+    line_join = kwargs["line_join"]
+    line_miter_limit = kwargs["line_miter_limit"]
+
+    def _line_style(line_color, line_width, line_dash_array=None, alpha=None):
+        style_obj = SimpleNamespace(
+            stroke=True,
+            line_color=line_color,
+            line_width=line_width,
+            line_dash_array=line_dash_array,
+            line_alpha=line_alpha,
+            line_cap=line_cap,
+            line_join=line_join,
+            miter_limit=line_miter_limit,
+        )
+        return get_line_style_options(style_obj)
+
+    elements = []
+
+    # Grid lines (horizontal + vertical)
+    n_h = int(height / spacing)
+    n_v = int(width / spacing)
+    grid_style = _line_style(grid_line_color, grid_line_width, grid_line_dash_array)
+
+    for i in range(n_h + 1):
+        yi = y + i * spacing
+        elements.append(
+            f'<line x1="{x}" y1="{yi}" x2="{x + width}" y2="{yi}" style="{grid_style}" />'
+        )
+
+    for i in range(n_v + 1):
+        xi = x + i * spacing
+        elements.append(
+            f'<line x1="{xi}" y1="{y}" x2="{xi}" y2="{y + height}" style="{grid_style}" />'
+        )
+
+    # Coordinate system axes + origin marker
+    if cs_size and cs_size > 0:
+        if "colors" not in kwargs:
+            kwargs["colors"] = (defaults["CS_x_color"], defaults["CS_y_color"])
+        x_color, y_color = kwargs["colors"]
+
+        if "line_width" not in kwargs:
+            kwargs["line_width"] = defaults["CS_line_width"]
+        cs_line_width = kwargs["line_width"]
+
+
+        x_axis_style = _line_style(x_color, cs_line_width, kwargs["line_dash_array"])
+        y_axis_style = _line_style(y_color, cs_line_width, kwargs["line_dash_array"])
+
+        elements.append(
+            f'<line x1="0" y1="0" x2="{cs_size}" y2="0" style="{x_axis_style}" />'
+        )
+        elements.append(
+            f'<line x1="0" y1="0" x2="0" y2="{cs_size}" style="{y_axis_style}" />'
+        )
+
+        origin_color = kwargs["line_color"]
+        origin_color_svg = color_to_svg(origin_color) if isinstance(origin_color, Color) else origin_color
+        elements.append(
+            f'<circle cx="0" cy="0" r="{defaults["CS_origin_size"]}" '
+            f'fill="{origin_color_svg}" stroke="{origin_color_svg}" />'
+        )
+
+    return "\n".join(elements)
+
 
 
 def draw_image_sketch(sketch):
@@ -614,50 +758,36 @@ def draw_image_sketch(sketch):
     Returns:
         str: The SVG code for the ImageSketch.
     """
-    x, y = sketch.pos[:2]
-    width, height = sketch.size if sketch.size else (100, 100)
-    angle = degrees(sketch.angle) if sketch.angle != 0 else 0
+    x, y = sketch_attrib(sketch, 'pos')[:2]
+    size = sketch_attrib(sketch, 'size')
+    width, height = size if size else (100, 100)
+    angle_value = sketch_attrib(sketch, 'angle')
+    angle = degrees(angle_value) if angle_value != 0 else 0
 
     # Get scale - can be tuple or single value
-    if isinstance(sketch.scale, (tuple, list)):
-        sx, sy = sketch.scale
+    scale = sketch_attrib(sketch, 'scale')
+    if isinstance(scale, (tuple, list)):
+        sx, sy = scale
     else:
-        sx = sy = sketch.scale
+        sx = sy = scale
 
     # Get anchor offset
-    anchor = sketch.anchor if hasattr(sketch, 'anchor') else Anchor.CENTER
+    anchor = sketch_attrib(sketch, 'anchor')
 
     # Calculate anchor offset
     # In SVG, image x,y is at top-left, so we need to adjust based on anchor
-    dx = 0
-    dy = 0
-    if anchor == Anchor.CENTER:
-        dx = -width / 2
-        dy = -height / 2
-    elif anchor == Anchor.NORTH:
-        dx = -width / 2
-        dy = 0
-    elif anchor == Anchor.SOUTH:
-        dx = -width / 2
-        dy = -height
-    elif anchor == Anchor.EAST:
-        dx = -width
-        dy = -height / 2
-    elif anchor == Anchor.WEST:
-        dx = 0
-        dy = -height / 2
-    elif anchor == Anchor.NORTHEAST:
-        dx = -width
-        dy = 0
-    elif anchor == Anchor.NORTHWEST:
-        dx = 0
-        dy = 0
-    elif anchor == Anchor.SOUTHEAST:
-        dx = -width
-        dy = -height
-    elif anchor == Anchor.SOUTHWEST:
-        dx = 0
-        dy = -height
+    anchor_offsets = {
+        Anchor.CENTER: (-width / 2, -height / 2),
+        Anchor.NORTH: (-width / 2, 0),
+        Anchor.SOUTH: (-width / 2, -height),
+        Anchor.EAST: (-width, -height / 2),
+        Anchor.WEST: (0, -height / 2),
+        Anchor.NORTHEAST: (-width, 0),
+        Anchor.NORTHWEST: (0, 0),
+        Anchor.SOUTHEAST: (-width, -height),
+        Anchor.SOUTHWEST: (0, -height),
+    }
+    dx, dy = anchor_offsets[anchor]
 
     # Build transform string
     transforms = []
@@ -669,10 +799,15 @@ def draw_image_sketch(sketch):
     if dx != 0 or dy != 0:
         transforms.append(f"translate({dx}, {dy})")
 
+    # Images are rendered inside a globally flipped SVG group (scale(1,-1)).
+    # Apply a local counter-flip so raster images remain upright.
+    transforms.append(f"translate(0, {height})")
+    transforms.append("scale(1, -1)")
+
     transform_attr = f' transform="{" ".join(transforms)}"' if transforms else ''
 
     # Use href (modern SVG) or xlink:href (legacy)
-    file_path = sketch.file_path if hasattr(sketch, 'file_path') and sketch.file_path else ''
+    file_path = sketch_attrib(sketch, 'file_path')
 
     return f'<image x="0" y="0" width="{width}" height="{height}" href="{file_path}"{transform_attr} />'
 
@@ -721,10 +856,6 @@ def get_marker_path(marker_type, size=1.0):
         MarkerType.HALF_DIAMOND_F: ('path', f'<path d="M 0,{s} L {s},0 L 0,{-s} Z"/>'),
     }
 
-    # Default to circle if marker type not found
-    if marker_type not in marker_paths:
-        return marker_paths.get(MarkerType.CIRCLE, ('circle', f'<circle cx="0" cy="0" r="{s}"/>'))
-
     return marker_paths[marker_type]
 
 
@@ -741,88 +872,62 @@ def generate_marker_def(marker_id, marker_type, sketch, canvas=None, styles_dict
     Returns:
         str: SVG <marker> element
     """
+    marker_size = sketch_attrib(sketch, 'marker_size')
+    marker_color = sketch_attrib(sketch, 'marker_color')
+    marker_alpha = sketch_attrib(sketch, 'marker_alpha')
+
     # Handle custom shape markers
     if marker_type == MarkerType.SHAPE:
-        marker_shape = getattr(sketch, 'marker_shape', None)
-        if marker_shape is None:
-            # Fallback to circle if no custom shape provided
-            marker_type = MarkerType.CIRCLE
+        marker_shape = sketch_attrib(sketch, 'marker_shape')
+        from ..canvas.draw import create_sketch
+        marker_sketch = create_sketch(marker_shape, canvas)
+
+        if marker_sketch is None:
+            raise ValueError("marker_shape sketch could not be created.")
+
+        if isinstance(marker_color, Color):
+            marker_color_svg = color_to_svg(marker_color)
         else:
-            # Convert marker_shape to sketch
-            from ..canvas.draw import create_sketch
-            marker_sketch = create_sketch(marker_shape, canvas)
+            marker_color_svg = marker_color
 
-            if marker_sketch is None:
-                # Fallback to circle if sketch creation failed
-                marker_type = MarkerType.CIRCLE
+        shape_type = get_shape_type(marker_sketch)
+        if shape_type == "polygon" or shape_type == "polyline":
+            vertices = marker_sketch.vertices
+            points = " ".join([f"{x},{y}" for x, y in vertices])
+
+            if marker_sketch.fill:
+                fill_color = marker_sketch.fill_color
+                if isinstance(fill_color, Color):
+                    fill_color = color_to_svg(fill_color)
+                fill_attr = f'fill="{fill_color}" fill-opacity="{marker_alpha}"'
+                stroke_attr = 'stroke="none"'
             else:
-                # Get marker size and color from the main sketch
-                marker_size = getattr(sketch, 'marker_size', defaults.get('marker_size', 3))
-                marker_color = getattr(sketch, 'marker_color', getattr(sketch, 'line_color', defaults.get('line_color', black)))
-                marker_alpha = getattr(sketch, 'marker_alpha', getattr(sketch, 'alpha', 1.0))
+                fill_attr = 'fill="none"'
+                stroke_attr = f'stroke="{marker_color_svg}" stroke-width="1" stroke-opacity="{marker_alpha}"'
 
-                if isinstance(marker_color, Color):
-                    marker_color_svg = color_to_svg(marker_color)
-                else:
-                    marker_color_svg = marker_color
+            shape_svg = f'<{shape_type} points="{points}" {fill_attr} {stroke_attr}/>'
+        else:
+            shape_svg = svg_shape(marker_sketch, styles_dict)
 
-                # Get the shape type and coordinates from the custom marker shape
-                shape_type = get_shape_type(marker_sketch)
+        from ..graphics.bbox import bounding_box
+        bbox = bounding_box(marker_sketch.vertices)
+        vb_width = bbox.width
+        vb_height = bbox.height
+        vb_cx = (bbox.southwest[0] + bbox.northeast[0]) / 2
+        vb_cy = (bbox.southwest[1] + bbox.northeast[1]) / 2
+        scale_factor = marker_size / max(vb_width, vb_height, 1)
+        vb_width *= scale_factor * 1.5
+        vb_height *= scale_factor * 1.5
 
-                # Build inline SVG element with fill/stroke attributes
-                if shape_type == "polygon" or shape_type == "polyline":
-                    vertices = marker_sketch.vertices
-                    points = " ".join([f"{x},{y}" for x, y in vertices])
-
-                    # Check if marker shape should be filled
-                    if hasattr(marker_sketch, 'fill') and marker_sketch.fill:
-                        fill_color = getattr(marker_sketch, 'fill_color', marker_color_svg)
-                        if isinstance(fill_color, Color):
-                            fill_color = color_to_svg(fill_color)
-                        fill_attr = f'fill="{fill_color}" fill-opacity="{marker_alpha}"'
-                        stroke_attr = 'stroke="none"'
-                    else:
-                        fill_attr = 'fill="none"'
-                        stroke_attr = f'stroke="{marker_color_svg}" stroke-width="1" stroke-opacity="{marker_alpha}"'
-
-                    shape_svg = f'<{shape_type} points="{points}" {fill_attr} {stroke_attr}/>'
-                else:
-                    # For other shape types, use a basic path rendering
-                    fill_attr = f'fill="{marker_color_svg}" fill-opacity="{marker_alpha}"'
-                    stroke_attr = 'stroke="none"'
-                    shape_svg = svg_shape(marker_sketch, styles_dict or {})
-
-                # Calculate bounding box of the marker shape
-                from ..graphics.bbox import bounding_box
-                if hasattr(marker_sketch, 'vertices') and marker_sketch.vertices:
-                    bbox = bounding_box(marker_sketch.vertices)
-                    vb_width = bbox.width
-                    vb_height = bbox.height
-                    # Use southwest and northeast corners
-                    vb_cx = (bbox.southwest[0] + bbox.northeast[0]) / 2
-                    vb_cy = (bbox.southwest[1] + bbox.northeast[1]) / 2
-
-                    # Scale viewBox based on marker_size
-                    scale_factor = marker_size / max(vb_width, vb_height, 1)
-                    vb_width *= scale_factor * 1.5  # Add some padding
-                    vb_height *= scale_factor * 1.5
-                else:
-                    # Fallback dimensions
-                    vb_width = vb_height = marker_size * 2.5
-                    vb_cx = vb_cy = 0
-
-                return f'''  <marker id="{marker_id}" markerWidth="{vb_width}" markerHeight="{vb_height}"
+        return f'''  <marker id="{marker_id}" markerWidth="{vb_width}" markerHeight="{vb_height}"
       refX="{vb_cx}" refY="{vb_cy}" viewBox="{vb_cx - vb_width/2} {vb_cy - vb_height/2} {vb_width} {vb_height}" orient="auto">
     {shape_svg}
   </marker>'''
 
     # Handle predefined marker types
     # Get marker properties from sketch
-    marker_size = getattr(sketch, 'marker_size', defaults.get('marker_size', 3))
-    marker_color = getattr(sketch, 'marker_color', getattr(sketch, 'line_color', defaults.get('line_color', black)))
-    marker_alpha = getattr(sketch, 'marker_alpha', getattr(sketch, 'alpha', 1.0))
-    marker_fill = getattr(sketch, 'marker_fill', True)
-    marker_line_width = getattr(sketch, 'marker_line_width', 1)
+    marker_fill = sketch_attrib(sketch, 'marker_fill')
+    marker_line_width = sketch_attrib(sketch, 'marker_line_width')
 
     # Convert color
     if isinstance(marker_color, Color):
@@ -869,12 +974,13 @@ def draw_shape_sketch_with_markers(sketch):
         str: The SVG code for the shape sketch with markers.
     """
     # Get vertices
-    vertices = sketch.vertices
-    if sketch.closed and not close_points2(vertices[0], vertices[-1]):
+    vertices = sketch_attrib(sketch, 'vertices')
+    closed = sketch_attrib(sketch, 'closed')
+    if closed and not close_points2(vertices[0], vertices[-1]):
         vertices = list(vertices) + [vertices[0]]
 
     # Get marker type
-    marker_type = sketch.marker_type
+    marker_type = sketch_attrib(sketch, 'marker_type')
     if not isinstance(marker_type, MarkerType):
         # Try to convert by value first, then by name
         try:
@@ -887,7 +993,7 @@ def draw_shape_sketch_with_markers(sketch):
                 raise
 
     # Check if markers only (no line)
-    markers_only = getattr(sketch, 'markers_only', False)
+    markers_only = sketch_attrib(sketch, 'markers_only')
 
     # Build path for the line
     if not markers_only:
@@ -897,53 +1003,48 @@ def draw_shape_sketch_with_markers(sketch):
             path_data += f' L {v[0]},{v[1]}'
 
         # Get line styling
-        line_color = getattr(sketch, 'line_color', defaults.get('line_color', black))
+        line_color = get_color(sketch, 'line_color')
         if isinstance(line_color, Color):
             line_color = color_to_svg(line_color)
 
-        line_width = getattr(sketch, 'line_width', defaults.get('line_width', 1))
-        line_alpha = getattr(sketch, 'line_alpha', getattr(sketch, 'alpha', 1.0))
+        line_width = sketch_attrib(sketch, 'line_width')
+        line_alpha = get_alpha(sketch, 'line_alpha')
 
         # Get fill styling if closed
         fill_str = '"none"'
-        if sketch.fill and sketch.closed:
-            fill_color = getattr(sketch, 'fill_color', defaults.get('fill_color', white))
+        if sketch_attrib(sketch, 'fill') and closed:
+            fill_color = get_color(sketch, 'fill_color')
             if isinstance(fill_color, Color):
                 fill_color = color_to_svg(fill_color)
-            fill_alpha = getattr(sketch, 'fill_alpha', getattr(sketch, 'alpha', 1.0))
+            fill_alpha = get_alpha(sketch, 'fill_alpha')
             fill_str = f'"{fill_color}" fill-opacity="{fill_alpha}"'
+
+        fill_rule_attr = ''
+        if 'even_odd' in sketch_attrib(sketch, '__dict__') and sketch_attrib(sketch, 'even_odd'):
+            fill_rule_attr = ' fill-rule="evenodd"'
 
         # Create unique marker ID for this sketch
         marker_id = f'marker_{id(sketch)}'
 
         # Build path element with marker reference
         path_element = f'<path d="{path_data}" stroke="{line_color}" stroke-width="{line_width}" '
-        path_element += f'stroke-opacity="{line_alpha}" fill={fill_str} '
+        path_element += f'stroke-opacity="{line_alpha}" fill={fill_str}{fill_rule_attr} '
         path_element += f'marker-start="url(#{marker_id})" marker-mid="url(#{marker_id})" marker-end="url(#{marker_id})"/>'
 
         return path_element
     else:
         # Markers only - draw individual markers at each vertex
-        marker_size = getattr(sketch, 'marker_size', defaults.get('marker_size', 3))
-        marker_color = getattr(sketch, 'marker_color', getattr(sketch, 'line_color', defaults.get('line_color', black)))
+        marker_size = sketch_attrib(sketch, 'marker_size')
+        marker_color = sketch_attrib(sketch, 'marker_color')
         if isinstance(marker_color, Color):
             marker_color = color_to_svg(marker_color)
-        marker_alpha = getattr(sketch, 'marker_alpha', getattr(sketch, 'alpha', 1.0))
-        marker_fill = getattr(sketch, 'marker_fill', True)
+        marker_alpha = sketch_attrib(sketch, 'marker_alpha')
+        marker_fill = sketch_attrib(sketch, 'marker_fill')
 
         # Handle custom shape markers
         if marker_type == MarkerType.SHAPE:
-            marker_shape = getattr(sketch, 'marker_shape', None)
-            if marker_shape is not None:
-                # Import here to avoid circular dependency
-                from ..canvas.draw import create_sketch
-                # We'll need canvas to create the sketch, but it's not available here
-                # For now, render a simple placeholder or fallback
-                # TODO: This needs canvas context - consider refactoring
-                # For now, fallback to circle
-                elem_type, path_data = get_marker_path(MarkerType.CIRCLE, marker_size)
-            else:
-                elem_type, path_data = get_marker_path(MarkerType.CIRCLE, marker_size)
+            marker_shape = sketch_attrib(sketch, 'marker_shape')
+            elem_type, path_data = get_marker_path(marker_type, marker_size)
         else:
             # Get marker path for predefined types
             elem_type, path_data = get_marker_path(marker_type, marker_size)
@@ -992,27 +1093,39 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         Returns:
             tuple: The SVG code and the updated index.
         """
-        if sketch.subtype == Types.TAG_SKETCH:
+        subtype = sketch_attrib(sketch, 'subtype')
+        draw_markers = sketch_attrib(sketch, 'draw_markers')
+        indices = sketch_attrib(sketch, 'indices')
+
+        if subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
-        elif sketch.subtype == Types.TEX_SKETCH:
+        elif subtype == Types.TEX_SKETCH:
             # TexSketch is for TikZ/LaTeX output, skip in SVG
             code = ""
-        elif sketch.subtype == Types.IMAGE_SKETCH:
+        elif subtype == Types.IMAGE_SKETCH:
             code = draw_image_sketch(sketch)
-        # elif sketch.subtype == Types.PDF_SKETCH:
+        elif subtype == Types.HELPLINES_SKETCH:
+            code = draw_helplines_sketch(sketch)
+        elif subtype == Types.LINE_SKETCH:
+            code = draw_line_sketch(sketch, canvas)
+        # elif sketch_attrib(sketch, 'subtype') == Types.PDF_SKETCH:
         #     code = draw_pdf_sketch(sketch)
-        # elif sketch.subtype == Types.BBOX_SKETCH:
+        # elif sketch_attrib(sketch, 'subtype') == Types.BBOX_SKETCH:
         #     code = draw_bbox_sketch(sketch)
-        # elif sketch.subtype == Types.PATTERN_SKETCH:
+        # elif sketch_attrib(sketch, 'subtype') == Types.PATTERN_SKETCH:
         #     code = draw_pattern_sketch(sketch)
-        elif hasattr(sketch, 'draw_markers') and sketch.draw_markers:
+        elif (draw_markers and sketch_attrib(sketch, 'marker_type') == MarkerType.INDICES) or indices:
+            code = draw_shape_sketch_with_indices(sketch)
+        elif draw_markers:
             # Use marker rendering for shapes with markers enabled
             code = draw_shape_sketch_with_markers(sketch)
         else:
             code = svg_shape(sketch, styles_dict)
 
-        if 'filter' in sketch.__dict__ and sketch.filter is not None:
-            filter_id = f'filter_{id(sketch)}'
+        sketch_dict = sketch_attrib(sketch, '__dict__')
+        sketch_filter = sketch_attrib(sketch, 'filter')
+        if 'filter' in sketch_dict and sketch_filter is not None:
+            filter_id = sketch_filter.id
             code = f'<g filter="url(#{filter_id})">\n{code}\n</g>'
         return code
 
@@ -1020,6 +1133,7 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
 
     if pages:
         for i, page in enumerate(pages):
+            canvas.active_page = page
             sketches = page.sketches
             if i == 0:
                 if page.back_color:
@@ -1030,6 +1144,14 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
                 code.append(defaults["end_SVG"])
                 code.append("\\newpage")
                 code.append(defaults["begin_SVG"])
+            # check for deferred helplines
+            helplines = [sk for sk in sketches if sk.subtype == Types.HELPLINES_SKETCH]
+            if helplines:
+                helplines[0].populate(canvas)
+            # check for deferred line clipping (RAY / INFINITE)
+            lines = [sk for sk in sketches if sk.subtype == Types.LINE_SKETCH]
+            for line in lines:
+                line.populate(canvas)
             ind = 0
             for sketch in sketches:
                 sketch_code = get_sketch_code(sketch, canvas, ind)
@@ -1043,18 +1165,20 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
 
 d_shape_types = {
     Types.LINE_SKETCH: "line",
+    Types.BBOX_SKETCH: "shape",
     Types.CIRCLE_SKETCH: "circle",
     Types.ELLIPSE_SKETCH: "ellipse",
     Types.RECTANGLE_SKETCH: "rect",
+    Types.HANDLE: "shape",
     Types.SHAPE_SKETCH: "shape",
     Types.TAG_SKETCH: "tag"
 }
 
 
 def get_shape_type(sketch):
-    shape_type = d_shape_types[sketch.subtype]
+    shape_type = d_shape_types[sketch_attrib(sketch, 'subtype')]
     if shape_type == "shape":
-        if sketch.closed:
+        if sketch_attrib(sketch, 'closed'):
             shape_type = "polygon"
         else:
             shape_type = "polyline"
@@ -1064,21 +1188,34 @@ def get_shape_type(sketch):
 
 def get_coordinates(sketch, shape_type):
     if shape_type in ["polygon", "polyline"]:
-        vertices = sketch.vertices
+        vertices = sketch_attrib(sketch, 'vertices')
         verts = ", ".join([f"{x} {y}" for x, y in vertices])
 
         res = f'points = "{verts}"'
     elif shape_type == "rect":
-        pass
+        vertices = sketch_attrib(sketch, 'vertices')
+        if vertices:
+            xs = [v[0] for v in vertices]
+            ys = [v[1] for v in vertices]
+            x = min(xs)
+            y = min(ys)
+            width = max(xs) - x
+            height = max(ys) - y
+        else:
+            x, y = sketch_attrib(sketch, 'pos')[:2]
+            width = sketch_attrib(sketch, 'width')
+            height = sketch_attrib(sketch, 'height')
+
+        res = f'x = "{x}" y = "{y}" width = "{width}" height = "{height}"'
     elif shape_type == "circle":
-        cx, cy = sketch.center
-        r = sketch.radius
+        cx, cy = sketch_attrib(sketch, 'center')
+        r = sketch_attrib(sketch, 'radius')
 
         res = f'cx = "{cx}" cy = "{cy}" r = "{r}"'
     elif shape_type == "ellipse":
-        cx, cy = sketch.center
-        rx = sketch.x_radius
-        ry = sketch.y_radius
+        cx, cy = sketch_attrib(sketch, 'center')
+        rx = sketch_attrib(sketch, 'x_radius')
+        ry = sketch_attrib(sketch, 'y_radius')
 
         res = f'cx = "{cx}" cy = "{cy}" rx = "{rx}" ry = "{ry}"'
 
@@ -1132,8 +1269,9 @@ def get_styles_dict(canvas):
         for page in pages:
             sketches = page.sketches
             for sketch in sketches:
+                subtype = sketch_attrib(sketch, 'subtype')
                 # Skip non-shape sketches (like TexSketch)
-                if not hasattr(sketch, 'stroke'):
+                if subtype not in d_shape_types:
                     continue
 
                 # Get line style
@@ -1150,7 +1288,7 @@ def get_styles_dict(canvas):
                         line_counter += 1
 
                 # Get fill style for sketches with a mapped SVG shape type
-                if sketch.subtype not in d_shape_types:
+                if subtype not in d_shape_types:
                     continue
 
                 shape_type = get_shape_type(sketch)
@@ -1224,32 +1362,62 @@ def get_style_class(sketch, shape_type, styles_dict, skip_fill=False):
 
 def svg_shape(sketch, styles_dict):
     shape_type = get_shape_type(sketch)
+    style_shape_type = shape_type
     coordinates = get_coordinates(sketch, shape_type)
+
+    draw_fillets = sketch_attrib(sketch, 'draw_fillets')
+    fillet_radius = sketch_attrib(sketch, 'fillet_radius')
+    if (
+        shape_type in ["polygon", "polyline"]
+        and draw_fillets
+        and fillet_radius is not None
+        and fillet_radius > 0
+    ):
+        vertices = [vertex[:2] for vertex in sketch_attrib(sketch, 'vertices')]
+        path_data = round_corners(vertices, radius=fillet_radius, closed=sketch_attrib(sketch, 'closed'))
+        shape_type = "path"
+        coordinates = f'd="{path_data}"'
 
     # Check for pattern or gradient fill
     fill_attr = ''
     skip_fill_style = False
-    if hasattr(sketch, 'tile_svg') and sketch.tile_svg is not None:
+    if sketch_attrib(sketch, 'tile_svg') is not None:
         pattern_id = f'pattern_{id(sketch)}'
         fill_attr = f'fill="url(#{pattern_id})"'
         skip_fill_style = True
     elif has_gradient(sketch):
-        gradient_id = f'gradient_{id(sketch)}'
+        gradient_id = sketch_attrib(sketch, '_gradient_context_id')
+        if gradient_id is None:
+            gradient_id = f'gradient_{id(sketch)}'
         fill_attr = f'fill="url(#{gradient_id})"'
         skip_fill_style = True
 
     # Check for clip property (clip=True with mask holding the clipping shape)
     clip_attr = ''
-    if hasattr(sketch, 'clip') and sketch.clip is True and hasattr(sketch, 'mask') and sketch.mask is not None:
+    clip = sketch_attrib(sketch, 'clip')
+    mask = sketch_attrib(sketch, 'mask')
+    if clip is True and mask is not None:
         clippath_id = f'clippath_{id(sketch)}'
         clip_attr = f' clip-path="url(#{clippath_id})"'
 
+    # Check for opacity mask property (mask shape + clip is not enabled)
+    mask_attr = ''
+    if mask is not None and not (clip is True):
+        mask_id = sketch_attrib(sketch, '_mask_context_id')
+        mask_attr = f' mask="url(#{mask_id})"'
+    elif has_mask_style(sketch) and not (clip is True):
+        mask_id = sketch_attrib(sketch, '_mask_context_id')
+        mask_attr = f' mask="url(#{mask_id})"'
+
     # Get style class, skipping fill style if gradient/pattern is used
-    style_class = get_style_class(sketch, shape_type, styles_dict, skip_fill=skip_fill_style)
+    style_class = get_style_class(sketch, style_shape_type, styles_dict, skip_fill=skip_fill_style)
     fill_attr_str = f' {fill_attr}' if fill_attr else ''
+    fill_rule_attr = ''
+    if 'even_odd' in sketch_attrib(sketch, '__dict__') and sketch_attrib(sketch, 'even_odd'):
+        fill_rule_attr = ' fill-rule="evenodd"'
 
     return f'''<{shape_type}
-class= "{style_class}"{fill_attr_str}{clip_attr}
+class= "{style_class}"{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}
 {coordinates}
 />'''
 
@@ -1264,11 +1432,27 @@ def has_gradient(sketch):
         bool: True if sketch has gradient configuration
     """
     try:
-        grad_style = sketch.style.fill_style.gradient_style
-        return grad_style.stops is not None
+        grad_style = sketch_attrib(sketch, 'style').fill_style.gradient_style
+        if grad_style.stops is not None:
+            return True
     except AttributeError:
-        return False
+        pass
+    if sketch_attrib(sketch, 'gr_stops') is not None:
+        return True
+    if sketch_attrib(sketch, 'gradient_stops') is not None:
+        return True
     return False
+
+
+def has_mask_style(sketch):
+    """Check if a sketch has mask style configuration."""
+    try:
+        mask_style = sketch_attrib(sketch, 'style').fill_style.mask_style
+        if mask_style.stops is not None:
+            return True
+    except AttributeError:
+        pass
+    return sketch_attrib(sketch, 'msk_stops') is not None
 
 
 def collect_patterns_and_gradients(canvas):
@@ -1284,11 +1468,15 @@ def collect_patterns_and_gradients(canvas):
         for page in canvas.pages:
             for sketch in page.sketches:
                 # Check for tile_svg pattern
-                if hasattr(sketch, 'tile_svg') and sketch.tile_svg is not None:
+                if sketch_attrib(sketch, 'tile_svg'):
                     patterns[id(sketch)] = sketch
                 # Check for gradient
                 if has_gradient(sketch):
-                    gradients[id(sketch)] = sketch
+                    gradient_key = sketch_attrib(sketch, '_gradient_context_id')
+                    if gradient_key is None:
+                        gradient_key = f'gradient_{id(sketch)}'
+                    if gradient_key not in gradients:
+                        gradients[gradient_key] = sketch
 
     return patterns, gradients
 
@@ -1305,8 +1493,7 @@ def collect_markers(canvas):
         for page in canvas.pages:
             for sketch in page.sketches:
                 # Check for draw_markers and not INDICES type (INDICES are handled separately)
-                if (hasattr(sketch, 'draw_markers') and sketch.draw_markers and
-                    hasattr(sketch, 'marker_type') and sketch.marker_type != MarkerType.INDICES):
+                if sketch_attrib(sketch, 'draw_markers') and sketch_attrib(sketch, 'marker_type') != MarkerType.INDICES:
                     markers[id(sketch)] = sketch
 
     return markers
@@ -1324,10 +1511,36 @@ def collect_clip_paths(canvas):
         for page in canvas.pages:
             for sketch in page.sketches:
                 # Check for clip=True with mask holding the clipping shape
-                if hasattr(sketch, 'clip') and sketch.clip is True and hasattr(sketch, 'mask') and sketch.mask is not None:
-                    clip_paths[id(sketch)] = (sketch, sketch.mask)
+                mask = sketch_attrib(sketch, 'mask')
+                if sketch_attrib(sketch, 'clip') is True and mask is not None:
+                    clip_paths[id(sketch)] = (sketch, mask)
 
     return clip_paths
+
+
+def collect_masks(canvas):
+    """Collect all shapes that have opacity mask property from the canvas.
+
+    Returns:
+        dict: Dictionary mapping sketch id to (sketch, mask_shape) for shapes with mask property
+    """
+    masks = {}
+
+    if canvas.pages:
+        for page in canvas.pages:
+            for sketch in page.sketches:
+                mask = sketch_attrib(sketch, 'mask')
+                clip = sketch_attrib(sketch, 'clip')
+                if mask is not None and not (clip is True):
+                    mask_key = sketch_attrib(sketch, '_mask_context_id')
+                    if mask_key not in masks:
+                        masks[mask_key] = (sketch, mask)
+                elif has_mask_style(sketch):
+                    mask_key = sketch_attrib(sketch, '_mask_context_id')
+                    if mask_key not in masks:
+                        masks[mask_key] = (sketch, None)
+
+    return masks
 
 
 def get_limits_clippath(canvas):
@@ -1341,11 +1554,8 @@ def get_limits_clippath(canvas):
     Returns:
         tuple: (clippath_id, clippath_def) or (None, None) if no limits
     """
-    if not hasattr(canvas, 'limits') and not hasattr(canvas, 'inset'):
-        return None, None
-
-    limits = getattr(canvas, 'limits', None)
-    inset = getattr(canvas, 'inset', 0)
+    limits = canvas.limits
+    inset = canvas.inset
 
     if limits is None and inset == 0:
         return None, None
@@ -1369,7 +1579,7 @@ def get_limits_clippath(canvas):
     points = [(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]
 
     # Apply transformation matrix if it exists
-    if hasattr(canvas, 'xform_matrix') and canvas.xform_matrix is not None:
+    if canvas.xform_matrix is not None:
         vertices = homogenize(points) @ canvas.xform_matrix
     else:
         vertices = points
@@ -1395,17 +1605,17 @@ def generate_pattern_def(sketch, pattern_id, canvas, styles_dict):
     Returns:
         str: SVG <pattern> element
     """
-    tile = sketch.tile_svg
-    width = getattr(sketch, 'tile_width', defaults['tile_width'])
-    height = getattr(sketch, 'tile_height', defaults['tile_height'])
-    units = getattr(sketch, 'tile_units', defaults['tile_units'])
+    tile = sketch_attrib(sketch, 'tile_svg')
+    width = sketch_attrib(sketch, 'tile_width')
+    height = sketch_attrib(sketch, 'tile_height')
+    units = sketch_attrib(sketch, 'tile_units')
 
     # Get transformation attributes
-    angle = getattr(sketch, 'tile_angle', defaults['tile_angle'])
-    x_shift = getattr(sketch, 'tile_x_shift', defaults['tile_x_shift'])
-    y_shift = getattr(sketch, 'tile_y_shift', defaults['tile_y_shift'])
-    scale_x = getattr(sketch, 'tile_scale_x', defaults['tile_scale_x'])
-    scale_y = getattr(sketch, 'tile_scale_y', defaults['tile_scale_y'])
+    angle = sketch_attrib(sketch, 'tile_angle')
+    x_shift = sketch_attrib(sketch, 'tile_x_shift')
+    y_shift = sketch_attrib(sketch, 'tile_y_shift')
+    scale_x = sketch_attrib(sketch, 'tile_scale_x')
+    scale_y = sketch_attrib(sketch, 'tile_scale_y')
 
     # Build pattern transform if needed
     transforms = []
@@ -1422,7 +1632,7 @@ def generate_pattern_def(sketch, pattern_id, canvas, styles_dict):
     from ..graphics.all_enums import Types as GTypes
     from ..canvas.draw import create_sketch
 
-    if hasattr(tile, 'type') and tile.type == GTypes.BATCH:
+    if tile.type == GTypes.BATCH:
         # Handle batch - multiple shapes in pattern
         tile_contents = []
         for shape in tile.shapes:
@@ -1453,45 +1663,107 @@ def generate_gradient_def(sketch, gradient_id):
     Returns:
         str: SVG <linearGradient> or <radialGradient> element
     """
-    grad = sketch.style.fill_style.gradient_style
+    def _first_not_none(*values):
+        for value in values:
+            if value is not None:
+                return value
+        return None
 
-    gradient_type = grad.gradient_type if grad.gradient_type is not None else defaults['gradient_type']
-    units = grad.units if grad.units is not None else defaults['gr_units']
-    spread_method = grad.spread_method if grad.spread_method is not None else defaults['gradient_spread_method']
-    transform = grad.transform if grad.transform is not None else defaults['gradient_transform']
-    stops = grad.stops if grad.stops is not None else defaults['gr_stops']
+    grad = None
+    try:
+        grad = sketch_attrib(sketch, 'style').fill_style.gradient_style
+    except AttributeError:
+        pass
+
+    gradient_type = _first_not_none(
+        getattr(grad, 'gradient_type', None),
+        sketch_attrib(sketch, 'gradient_type'),
+        'linear',
+    )
+    units = _first_not_none(
+        getattr(grad, 'units', None),
+        sketch_attrib(sketch, 'gr_units'),
+        sketch_attrib(sketch, 'gradient_units'),
+        'objectBoundingBox',
+    )
+    spread_method = _first_not_none(
+        getattr(grad, 'spread_method', None),
+        sketch_attrib(sketch, 'gradient_spread_method'),
+        'pad',
+    )
+    transform = _first_not_none(
+        getattr(grad, 'transform', None),
+        sketch_attrib(sketch, 'gradient_transform'),
+    )
+    stops = _first_not_none(
+        getattr(grad, 'stops', None),
+        sketch_attrib(sketch, 'gr_stops'),
+        sketch_attrib(sketch, 'gradient_stops'),
+    )
+
+    context_bbox = sketch_attrib(sketch, '_gradient_context_bbox')
 
     transform_attr = f' gradientTransform="{transform}"' if transform else ''
 
     if gradient_type == 'linear':
-        x1 = grad.x1 if grad.x1 is not None else defaults['gr_x1']
-        y1 = grad.y1 if grad.y1 is not None else defaults['gr_y1']
-        x2 = grad.x2 if grad.x2 is not None else defaults['gr_x2']
-        y2 = grad.y2 if grad.y2 is not None else defaults['gr_y2']
+        x1 = _first_not_none(getattr(grad, 'x1', None), sketch_attrib(sketch, 'gr_x1'), sketch_attrib(sketch, 'gradient_x1'), 0.0)
+        y1 = _first_not_none(getattr(grad, 'y1', None), sketch_attrib(sketch, 'gr_y1'), sketch_attrib(sketch, 'gradient_y1'), 0.0)
+        x2 = _first_not_none(getattr(grad, 'x2', None), sketch_attrib(sketch, 'gr_x2'), sketch_attrib(sketch, 'gradient_x2'), 1.0)
+        y2 = _first_not_none(getattr(grad, 'y2', None), sketch_attrib(sketch, 'gr_y2'), sketch_attrib(sketch, 'gradient_y2'), 0.0)
+
+        if context_bbox is not None and units == 'objectBoundingBox':
+            bx, by, bw, bh = context_bbox
+            x1 = bx + x1 * bw
+            y1 = by + y1 * bh
+            x2 = bx + x2 * bw
+            y2 = by + y2 * bh
+            units = 'userSpaceOnUse'
 
         gradient_start = f'  <linearGradient id="{gradient_id}" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" gradientUnits="{units}" spreadMethod="{spread_method}"{transform_attr}>'
         gradient_end = '  </linearGradient>'
     else:  # radial
-        cx = grad.cx if grad.cx is not None else defaults['gr_cx']
-        cy = grad.cy if grad.cy is not None else defaults['gr_cy']
-        r = grad.r if grad.r is not None else defaults['gr_r']
-        fx = grad.fx if grad.fx is not None else defaults['gr_fx']
-        fy = grad.fy if grad.fy is not None else defaults['gr_fy']
+        cx = _first_not_none(getattr(grad, 'cx', None), sketch_attrib(sketch, 'gr_cx'), sketch_attrib(sketch, 'gradient_cx'), 0.5)
+        cy = _first_not_none(getattr(grad, 'cy', None), sketch_attrib(sketch, 'gr_cy'), sketch_attrib(sketch, 'gradient_cy'), 0.5)
+        r = _first_not_none(getattr(grad, 'r', None), sketch_attrib(sketch, 'gr_r'), sketch_attrib(sketch, 'gradient_r'), 0.5)
+        fx = _first_not_none(getattr(grad, 'fx', None), sketch_attrib(sketch, 'gr_fx'), sketch_attrib(sketch, 'gradient_fx'), cx)
+        fy = _first_not_none(getattr(grad, 'fy', None), sketch_attrib(sketch, 'gr_fy'), sketch_attrib(sketch, 'gradient_fy'), cy)
 
-        if fx is None:
-            fx = cx
-        if fy is None:
-            fy = cy
+        if context_bbox is not None and units == 'objectBoundingBox':
+            bx, by, bw, bh = context_bbox
+            cx = bx + cx * bw
+            cy = by + cy * bh
+            r = r * min(bw, bh)
+            fx = bx + fx * bw
+            fy = by + fy * bh
+            units = 'userSpaceOnUse'
 
         gradient_start = f'  <radialGradient id="{gradient_id}" cx="{cx}" cy="{cy}" r="{r}" fx="{fx}" fy="{fy}" gradientUnits="{units}" spreadMethod="{spread_method}"{transform_attr}>'
         gradient_end = '  </radialGradient>'
 
     # Generate color stops
+    # Supported stop formats:
+    # - (offset, color)
+    # - (offset, color, opacity)
+    # - {"offset": ..., "color": ..., "opacity": ...} / {"stop_opacity": ...}
     stops_svg = []
     if stops:
-        for offset, color in stops:
-            color_svg = color_to_svg(color) if hasattr(color, '__iter__') and not isinstance(color, str) else color
-            stops_svg.append(f'    <stop offset="{offset}" stop-color="{color_svg}" />')
+        for stop in stops:
+            if isinstance(stop, dict):
+                offset = stop["offset"]
+                color = stop["color"]
+                opacity = stop["opacity"]
+            else:
+                if len(stop) < 2:
+                    continue
+                offset, color = stop[0], stop[1]
+                opacity = stop[2] if len(stop) > 2 else None
+
+            if offset is None or color is None:
+                continue
+
+            color_svg = color_to_svg(color) if isinstance(color, (tuple, list, np.ndarray)) else color
+            stop_opacity_attr = f' stop-opacity="{opacity}"' if opacity is not None else ''
+            stops_svg.append(f'    <stop offset="{offset}" stop-color="{color_svg}"{stop_opacity_attr} />')
 
     stops_str = '\n'.join(stops_svg)
     return f'{gradient_start}\n{stops_str}\n{gradient_end}'
@@ -1514,7 +1786,7 @@ def generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict):
     from ..canvas.draw import create_sketch
 
     # Convert clip shape to sketch
-    if hasattr(clip_shape, 'type') and clip_shape.type == GTypes.BATCH:
+    if clip_shape.type == GTypes.BATCH:
         # Handle batch - multiple shapes in clipPath
         clip_contents = []
         for shape in clip_shape.shapes:
@@ -1533,6 +1805,252 @@ def generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict):
     return f'  <clipPath id="{clippath_id}">\n    {clip_content}\n  </clipPath>'
 
 
+def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
+    """Generate SVG mask definition for a shape's mask property.
+
+    Args:
+        sketch: The shape that has mask property
+        mask_shape: The shape/batch used for masking
+        mask_id: Unique ID for this mask
+        canvas: The canvas object for property resolution
+        styles_dict: Styles dictionary for rendering the mask shape
+
+    Returns:
+        str: SVG <mask> element
+    """
+    from ..graphics.all_enums import Types as GTypes
+    from ..canvas.draw import create_sketch
+
+    def _normalize_mask_stop(stop):
+        if isinstance(stop, dict):
+            if "offset" not in stop:
+                return None
+            offset = stop["offset"]
+            stop_color = stop.get("stop-color", stop.get("stop_color", "white"))
+            stop_opacity = stop.get("stop-opacity", stop.get("stop_opacity", stop.get("opacity", None)))
+        elif isinstance(stop, (list, tuple)):
+            if len(stop) < 2:
+                return None
+            offset = stop[0]
+            second = stop[1]
+            if len(stop) >= 3:
+                stop_color = second
+                stop_opacity = stop[2]
+            elif isinstance(second, (int, float)):
+                stop_color = "white"
+                stop_opacity = second
+            else:
+                stop_color = second
+                stop_opacity = None
+        else:
+            return None
+
+        if isinstance(offset, (int, float)):
+            offset = f"{float(offset) * 100}%"
+
+        if isinstance(stop_color, Color):
+            stop_color = color_to_svg(stop_color)
+        elif stop_color is None:
+            stop_color = "white"
+
+        return offset, stop_color, stop_opacity
+
+    def _stops_to_svg(stops, indent="      "):
+        stop_lines = []
+        has_color = False
+        for stop in stops or []:
+            normalized = _normalize_mask_stop(stop)
+            if normalized is None:
+                continue
+            offset, stop_color, stop_opacity = normalized
+            if str(stop_color).lower() != "white":
+                has_color = True
+            stop_opacity_attr = f' stop-opacity="{stop_opacity}"' if stop_opacity is not None else ''
+            stop_lines.append(
+                f'{indent}<stop offset="{offset}" stop-color="{stop_color}"{stop_opacity_attr} />'
+            )
+        return "\n".join(stop_lines), has_color
+
+    def _mask_bounds_in_user_space():
+        if canvas._all_vertices:
+            canvas_bbox = bounding_box(canvas._all_vertices)
+            border = defaults["border"] if canvas.border is None else canvas.border
+            x = canvas_bbox.southwest[0] - border
+            y = canvas_bbox.southwest[1] - border
+            width = canvas_bbox.width + 2 * border
+            height = canvas_bbox.height + 2 * border
+            return x, y, width, height
+
+        mask_bbox = mask_shape.b_box
+        return (
+            mask_bbox.southwest[0],
+            mask_bbox.southwest[1],
+            mask_bbox.width,
+            mask_bbox.height,
+        )
+
+    if mask_shape is None and has_mask_style(sketch):
+        msk = sketch_attrib(sketch, 'style').fill_style.mask_style
+
+        mask_type = msk.mask_type
+        units = msk.units
+        spread_method = msk.spread_method
+        transform = msk.transform
+        stops = msk.stops
+        mask_units = msk.mask_units
+        mask_content_units = msk.mask_content_units
+
+        transform_attr = f' gradientTransform="{transform}"' if transform else ''
+
+        if mask_type == 'linear':
+            x1 = msk.x1
+            y1 = msk.y1
+            x2 = msk.x2
+            y2 = msk.y2
+            gradient_start = (
+                f'    <linearGradient id="{mask_id}_gradient" x1="{x1}" y1="{y1}" '
+                f'x2="{x2}" y2="{y2}" gradientUnits="{units}" '
+                f'spreadMethod="{spread_method}"{transform_attr}>'
+            )
+            gradient_end = '    </linearGradient>'
+        else:
+            cx = msk.cx
+            cy = msk.cy
+            r = msk.r
+            fx = msk.fx
+            fy = msk.fy
+            gradient_start = (
+                f'    <radialGradient id="{mask_id}_gradient" cx="{cx}" cy="{cy}" '
+                f'r="{r}" fx="{fx}" fy="{fy}" gradientUnits="{units}" '
+                f'spreadMethod="{spread_method}"{transform_attr}>'
+            )
+            gradient_end = '    </radialGradient>'
+
+        stops_str, has_color_stops = _stops_to_svg(stops, indent="      ")
+        mask_type_attr = 'luminance' if has_color_stops else 'alpha'
+
+        context_bbox = sketch_attrib(sketch, '_mask_context_bbox')
+        bbox = sketch_attrib(sketch, 'b_box')
+        if context_bbox is not None:
+            x, y, width, height = context_bbox
+        elif bbox is not None:
+            mask_bbox = bbox
+            x = mask_bbox.southwest[0]
+            y = mask_bbox.southwest[1]
+            width = mask_bbox.width
+            height = mask_bbox.height
+        else:
+            mask_bbox = bounding_box(np.array(sketch_attrib(sketch, 'vertices')))
+            x = mask_bbox.southwest[0]
+            y = mask_bbox.southwest[1]
+            width = mask_bbox.width
+            height = mask_bbox.height
+
+        return (
+            f'  <mask id="{mask_id}" maskUnits="{mask_units}" '
+            f'maskContentUnits="{mask_content_units}" mask-type="{mask_type_attr}">\n'
+            f'{gradient_start}\n'
+            f'{stops_str}\n'
+            f'{gradient_end}\n'
+            f'    <rect x="{x}" y="{y}" width="{width}" height="{height}" '
+            f'fill="url(#{mask_id}_gradient)" />\n'
+            f'  </mask>'
+        )
+
+    def _mask_shape_svg(mask_sketch, fill_value="white", fill_opacity=None):
+        shape_type = get_shape_type(mask_sketch)
+        coordinates = get_coordinates(mask_sketch, shape_type)
+        fill_opacity_attr = (
+            f' fill-opacity="{fill_opacity}"' if fill_opacity is not None else ''
+        )
+        fill_rule_attr = ''
+        if 'even_odd' in mask_sketch.__dict__ and mask_sketch.even_odd:
+            fill_rule_attr = ' fill-rule="evenodd"'
+
+        return (
+            f'<{shape_type} fill="{fill_value}"{fill_opacity_attr} '
+            f'stroke="none"{fill_rule_attr} {coordinates} />'
+        )
+
+    mask_opacity = sketch_attrib(sketch, '_mask_opacity')
+    if mask_opacity is None:
+        mask_opacity = 1.0
+    mask_stops = sketch_attrib(sketch, '_mask_stops')
+    mask_x1 = sketch_attrib(sketch, '_mask_x1')
+    mask_y1 = sketch_attrib(sketch, '_mask_y1')
+    mask_x2 = sketch_attrib(sketch, '_mask_x2')
+    mask_y2 = sketch_attrib(sketch, '_mask_y2')
+    gradient_opacity = mask_stops is not None
+
+    if gradient_opacity:
+        mask_bbox = mask_shape.b_box
+        bbox_x = mask_bbox.southwest[0]
+        bbox_y = mask_bbox.southwest[1]
+        bbox_width = mask_bbox.width
+        bbox_height = mask_bbox.height
+        x1 = bbox_x + float(mask_x1) * bbox_width
+        y1 = bbox_y + float(mask_y1) * bbox_height
+        x2 = bbox_x + float(mask_x2) * bbox_width
+        y2 = bbox_y + float(mask_y2) * bbox_height
+        mask_x, mask_y, mask_width, mask_height = _mask_bounds_in_user_space()
+        gradient_id = f"{mask_id}_opacity_gradient"
+        if mask_shape.type == GTypes.BATCH:
+            gradient_contents = []
+            for shape in mask_shape.shapes:
+                mask_sketch = create_sketch(shape, canvas)
+                if mask_sketch:
+                    gradient_contents.append(
+                        _mask_shape_svg(mask_sketch, fill_value=f"url(#{gradient_id})")
+                    )
+            gradient_mask_content = '\n      '.join(gradient_contents)
+        else:
+            mask_sketch = create_sketch(mask_shape, canvas)
+            if mask_sketch:
+                gradient_mask_content = _mask_shape_svg(
+                    mask_sketch, fill_value=f"url(#{gradient_id})"
+                )
+            else:
+                gradient_mask_content = ''
+
+        stops_str, has_color_stops = _stops_to_svg(mask_stops, indent="        ")
+        mask_type_attr = 'luminance' if has_color_stops else 'alpha'
+
+        return (
+            f'  <linearGradient id="{gradient_id}" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" gradientUnits="userSpaceOnUse">\n'
+            f'{stops_str}\n'
+            f'  </linearGradient>\n'
+            f'  <mask id="{mask_id}" maskUnits="userSpaceOnUse" '
+            f'maskContentUnits="userSpaceOnUse" mask-type="{mask_type_attr}" '
+            f'x="{mask_x}" y="{mask_y}" width="{mask_width}" height="{mask_height}">\n'
+            f'    {gradient_mask_content}\n'
+            f'  </mask>'
+        )
+
+    if mask_shape.type == GTypes.BATCH:
+        mask_contents = []
+        for shape in mask_shape.shapes:
+            mask_sketch = create_sketch(shape, canvas)
+            if mask_sketch:
+                mask_contents.append(_mask_shape_svg(mask_sketch, fill_opacity=mask_opacity))
+        mask_content = '\n    '.join(mask_contents)
+    else:
+        mask_sketch = create_sketch(mask_shape, canvas)
+        if mask_sketch:
+            mask_content = _mask_shape_svg(mask_sketch, fill_opacity=mask_opacity)
+        else:
+            mask_content = ''
+
+    mask_x, mask_y, mask_width, mask_height = _mask_bounds_in_user_space()
+
+    return (
+        f'  <mask id="{mask_id}" maskUnits="userSpaceOnUse" '
+        f'maskContentUnits="userSpaceOnUse" mask-type="alpha" '
+        f'x="{mask_x}" y="{mask_y}" width="{mask_width}" height="{mask_height}">\n'
+        f'    {mask_content}\n'
+        f'  </mask>'
+    )
+
+
 def generate_defs(canvas, styles_dict):
     """Generate SVG <defs> section with patterns, gradients, clipPaths, and markers.
 
@@ -1546,10 +2064,26 @@ def generate_defs(canvas, styles_dict):
     patterns, gradients = collect_patterns_and_gradients(canvas)
     markers = collect_markers(canvas)
     clip_paths = collect_clip_paths(canvas)
+    masks = collect_masks(canvas)
     filters = collect_filters(canvas)
     limits_clippath_id, limits_clippath_def = get_limits_clippath(canvas)
+    canvas_mask = getattr(canvas, "_mask", None)
+    canvas_mask_opacity = getattr(canvas, "_mask_opacity", 1.0)
+    canvas_mask_stops = getattr(canvas, "_mask_stops", None)
+    canvas_mask_x1 = getattr(canvas, "_mask_x1", 0.0)
+    canvas_mask_y1 = getattr(canvas, "_mask_y1", 0.0)
+    canvas_mask_x2 = getattr(canvas, "_mask_x2", 1.0)
+    canvas_mask_y2 = getattr(canvas, "_mask_y2", 0.0)
+    canvas_gradient_opacity = canvas_mask_stops is not None
+    canvas_mask_clippath_id = None
+    canvas_mask_mask_id = None
+    if canvas.clip and canvas_mask is not None:
+        if canvas_mask_opacity >= 1.0 and not canvas_gradient_opacity:
+            canvas_mask_clippath_id = "canvas_mask_clip"
+        else:
+            canvas_mask_mask_id = "canvas_mask_alpha"
 
-    if not patterns and not gradients and not markers and not clip_paths and not filters and not limits_clippath_def:
+    if not patterns and not gradients and not markers and not clip_paths and not masks and not filters and not limits_clippath_def and not canvas_mask_clippath_id and not canvas_mask_mask_id:
         return ''
 
     defs_content = []
@@ -1558,10 +2092,35 @@ def generate_defs(canvas, styles_dict):
     if limits_clippath_def:
         defs_content.append(limits_clippath_def)
 
+    # Generate canvas-level clipPath from canvas._mask (if exists)
+    if canvas_mask_clippath_id is not None:
+        defs_content.append(
+            generate_clippath_def(None, canvas_mask, canvas_mask_clippath_id, canvas, styles_dict)
+        )
+    if canvas_mask_mask_id is not None:
+        canvas_mask_sketch = SimpleNamespace(
+            _mask_opacity=canvas_mask_opacity,
+            _mask_stops=canvas_mask_stops,
+            _mask_x1=canvas_mask_x1,
+            _mask_y1=canvas_mask_y1,
+            _mask_x2=canvas_mask_x2,
+            _mask_y2=canvas_mask_y2,
+        )
+        defs_content.append(
+            generate_mask_def(canvas_mask_sketch, canvas_mask, canvas_mask_mask_id, canvas, styles_dict)
+        )
+
     # Generate clipPath definitions (must come before shapes that use them)
     for sketch_id, (sketch, clip_shape) in clip_paths.items():
         clippath_id = f'clippath_{sketch_id}'
         defs_content.append(generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict))
+
+    # Generate mask definitions
+    for sketch_id, (sketch, mask_shape) in masks.items():
+        mask_id = str(sketch_id)
+        if not mask_id.startswith('mask_'):
+            mask_id = f'mask_{mask_id}'
+        defs_content.append(generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict))
 
     # Generate pattern definitions
     for sketch_id, sketch in patterns.items():
@@ -1570,13 +2129,15 @@ def generate_defs(canvas, styles_dict):
 
     # Generate gradient definitions
     for sketch_id, sketch in gradients.items():
-        gradient_id = f'gradient_{sketch_id}'
+        gradient_id = str(sketch_id)
+        if not gradient_id.startswith('gradient_'):
+            gradient_id = f'gradient_{gradient_id}'
         defs_content.append(generate_gradient_def(sketch, gradient_id))
 
     # Generate marker definitions
     for sketch_id, sketch in markers.items():
         marker_id = f'marker_{sketch_id}'
-        marker_type = sketch.marker_type
+        marker_type = sketch_attrib(sketch, 'marker_type')
         if not isinstance(marker_type, MarkerType):
             # Try to convert by value first, then by name
             try:
@@ -1590,8 +2151,8 @@ def generate_defs(canvas, styles_dict):
         defs_content.append(generate_marker_def(marker_id, marker_type, sketch, canvas, styles_dict))
 
     # Generate filter definitions
-    for sketch_id, filter_type in filters.items():
-        defs_content.append(generate_filter_def(sketch_id, filter_type))
+    for sketch_id, svg_filter in filters.items():
+        defs_content.append(generate_filter_def(sketch_id, svg_filter))
 
     defs_str = '\n'.join(defs_content)
     return f'  <defs>\n{defs_str}\n  </defs>'
@@ -1604,21 +2165,24 @@ def collect_filters(canvas):
     if canvas.pages:
         for page in canvas.pages:
             for sketch in page.sketches:
-                if 'filter' in sketch.__dict__ and sketch.filter is not None:
-                    filters[id(sketch)] = sketch.filter
+                sketch_dict = sketch_attrib(sketch, '__dict__')
+                sketch_filter = sketch_attrib(sketch, 'filter')
+                if 'filter' in sketch_dict and sketch_filter is not None:
+                    if not isinstance(sketch_filter, SVG_Filter):
+                        raise TypeError("filter must be an SVG_Filter instance.")
+                    if sketch_filter.id is None:
+                        sketch_filter.id = f'filter_{id(sketch)}'
+                    filters[id(sketch)] = sketch_filter
 
     return filters
 
 
-def generate_filter_def(sketch_id, filter_type):
+def generate_filter_def(sketch_id, svg_filter):
     """Generate SVG filter definition for a sketch filter."""
-    if isinstance(filter_type, FilterType):
-        filter_tag = filter_type.value
-    else:
-        filter_tag = FilterType(filter_type).value
-
-    filter_id = f'filter_{sketch_id}'
-    return f'  <filter id="{filter_id}">\n    <{filter_tag} />\n  </filter>'
+    filter_svg = svg_filter.to_string(pretty=True, include_defs=False, include_xmlns=False)
+    lines = filter_svg.split('\n')
+    indented = '\n'.join([f'  {line}' if line else line for line in lines])
+    return indented
 
 
 def header(
@@ -1677,17 +2241,67 @@ def get_svg_code(canvas):
 
     # Check if canvas has limits that require clipping
     limits_clippath_id, _ = get_limits_clippath(canvas)
+    canvas_mask = getattr(canvas, "_mask", None)
+    canvas_mask_opacity = getattr(canvas, "_mask_opacity", 1.0)
+    canvas_mask_stops = getattr(canvas, "_mask_stops", None)
+    canvas_gradient_opacity = canvas_mask_stops is not None
+    canvas_mask_clippath_id = None
+    canvas_mask_mask_id = None
+    if canvas.clip and canvas_mask is not None:
+        if canvas_mask_opacity >= 1.0 and not canvas_gradient_opacity:
+            canvas_mask_clippath_id = "canvas_mask_clip"
+        else:
+            canvas_mask_mask_id = "canvas_mask_alpha"
 
     code = [header(width, height, minx, miny, width, height, color, dy, styles, defs)]
 
-    # Wrap shapes in a clipping group if limits are defined
+    shapes_code = get_svg_shapes(canvas, styles_dict)
+
     if limits_clippath_id:
-        code.append(f'  <g clip-path="url(#{limits_clippath_id})">')
-        code.append(get_svg_shapes(canvas, styles_dict))
-        code.append('  </g>')
-    else:
-        code.append(get_svg_shapes(canvas, styles_dict))
+        shapes_code = f'  <g clip-path="url(#{limits_clippath_id})">\n{shapes_code}\n  </g>'
+
+    if canvas_mask_clippath_id:
+        shapes_code = f'  <g clip-path="url(#{canvas_mask_clippath_id})">\n{shapes_code}\n  </g>'
+    elif canvas_mask_mask_id:
+        shapes_code = f'  <g mask="url(#{canvas_mask_mask_id})">\n{shapes_code}\n  </g>'
+
+    code.append(shapes_code)
 
     code.append(footer())
 
     return "\n".join(code)
+
+
+@dataclass
+class SVG_Mask:
+    """SVG_Mask is used to configure SVG opacity mask attributes.
+
+    Attributes mirror SVG gradient-style masks for alpha/luminance masking.
+    """
+
+    mask_type: str = None  # 'linear' or 'radial'
+    x1: float = None
+    y1: float = None
+    x2: float = None
+    y2: float = None
+    cx: float = None
+    cy: float = None
+    r: float = None
+    fx: float = None
+    fy: float = None
+    units: str = None  # gradient units
+    spread_method: str = None
+    transform: str = None
+    stops: object = None  # mask stops: [(offset, opacity)] or [(offset, color, opacity)]
+    mask_units: str = None  # maskUnits
+    mask_content_units: str = None  # maskContentUnits
+
+    def __post_init__(self):
+        """Initialize the SVG_Mask object."""
+        common_properties(self, id_only=True)
+
+    def __str__(self):
+        return f"SVG_Mask: {self.id}"
+
+    def __repr__(self):
+        return f"SVG_Mask: {self.id}"
