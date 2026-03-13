@@ -4,7 +4,7 @@ from math import sqrt, cos, sin, acos, radians, pi, degrees
 
 import numpy as np
 
-from ..graphics.common import Point
+from ..graphics.common import PointType
 from ..geometry.geometry import (
     offset_polygon,
     double_offset_polygons,
@@ -18,7 +18,7 @@ def fmt(val, digits=3):
     return f"{val:.{digits}f}".rstrip("0").rstrip(".")
 
 
-def round_corner(points: List["Point"], radius: float) -> str:
+def round_corner(points: List["PointType"], radius: float) -> str:
     """Given a list of three points generates an svg path corresponding to a
     polyline with two segments and a rounded corner between them"""
     if len(points) != 3:
@@ -46,7 +46,7 @@ def round_corner(points: List["Point"], radius: float) -> str:
     theta = np.arccos(cos_theta)
 
     # Distance from corner to tangent points
-    dist = radius * np.tan(theta / 2)
+    dist = radius / np.tan(theta / 2)
 
     # Clamp distance to half of the shortest segment to avoid overlap
     limit = min(l1 / 2, l2 / 2)
@@ -73,7 +73,7 @@ def round_corner(points: List["Point"], radius: float) -> str:
 
 
 def round_corners(
-    points: List["Point"],
+    points: List["PointType"],
     radius: float = 0,
     fillets: List[tuple[int, float]] = None,
     closed: bool = False,
@@ -127,7 +127,7 @@ def round_corners(
     return " ".join(path)
 
 
-def _extract_vertices(svg_path: str) -> Tuple[List[Point], bool]:
+def _extract_vertices(svg_path: str) -> Tuple[List[PointType], bool]:
     tokens = re.findall(r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+)", svg_path)
     points = []
     i = 0
@@ -195,7 +195,7 @@ def _extract_vertices(svg_path: str) -> Tuple[List[Point], bool]:
     return points, closed
 
 
-def _points_to_svg(points: List[Point], closed: bool) -> str:
+def _points_to_svg(points: List[PointType], closed: bool) -> str:
     if not points:
         return ""
     parts = [f"M {fmt(points[0][0])},{fmt(points[0][1])}"]
