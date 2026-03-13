@@ -5,7 +5,7 @@ Bounding box is axis-aligned. Provides reference edges and points.
 import warnings
 
 import numpy as np
-from .common import Point, common_properties, defaults
+from .common import PointType, common_properties, defaults
 from .all_enums import Side, Types, Anchor
 from ..geometry.geometry import (
     distance,
@@ -26,13 +26,13 @@ class BoundingBox:
     Provides reference edges and points as shown in the Book page ???.
     """
 
-    def __init__(self, southwest: Point, northeast: Point):
+    def __init__(self, southwest: PointType, northeast: PointType):
         """
         Initialize a BoundingBox object.
 
         Args:
-            southwest (Point): The southwest corner of the bounding box.
-            northeast (Point): The northeast corner of the bounding box.
+            southwest (PointType): The southwest corner of the bounding box.
+            northeast (PointType): The northeast corner of the bounding box.
         """
         # define the four corners
         self.__dict__["southwest"] = southwest
@@ -465,14 +465,14 @@ class BoundingBox:
             anchor = Anchor[anchor.upper()]
             x, y = getattr(self, anchor.value)[:2]
         elif isinstance(anchor, Anchor):
-            x, y = anchor.value[:2]
+            x, y = getattr(self, anchor.value)[:2]
         else:
             raise ValueError(f"Unknown anchor: {anchor}")
         return [x + dx, y + dy]
 
     def centered(
         self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
-    ) -> Point:
+    ) -> PointType:
         """
         Get the center of the reference item.
 
@@ -482,7 +482,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.midpoint of the reference item's bounding-box.
+            PointType: The item.midpoint of the reference item's bounding-box.
         """
 
         x, y = item.midpoint[:2]
@@ -492,7 +492,7 @@ class BoundingBox:
 
     def left_of(
         self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
-    ) -> Point:
+    ) -> PointType:
         """
         Get the item.west of the reference item.
 
@@ -502,7 +502,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.west of the reference item's bounding-box.
+            PointType: The item.west of the reference item's bounding-box.
         """
         x, y = item.west[:2]
         w2 = self.width / 2
@@ -512,7 +512,7 @@ class BoundingBox:
 
     def right_of(
         self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
-    ) -> Point:
+    ) -> PointType:
         """
         Get the item.east of the reference item.
 
@@ -522,7 +522,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.east of the reference item's bounding-box.
+            PointType: The item.east of the reference item's bounding-box.
         """
         x, y = item.east[:2]
         w2 = self.width / 2
@@ -530,7 +530,7 @@ class BoundingBox:
         y += dy
         return x, y
 
-    def above(self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0) -> Point:
+    def above(self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0) -> PointType:
         """
         Get the item.north of the reference item.
 
@@ -540,7 +540,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.north of the reference item's bounding-box.
+            PointType: The item.north of the reference item's bounding-box.
         """
         x, y = item.north[:2]
         h2 = self.height / 2
@@ -548,7 +548,7 @@ class BoundingBox:
         y += dy + h2
         return x, y
 
-    def below(self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0) -> Point:
+    def below(self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0) -> PointType:
         """
         Get the item.south of the reference item.
 
@@ -558,7 +558,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.south of the reference item's bounding-box.
+            PointType: The item.south of the reference item's bounding-box.
         """
         x, y = item.south[:2]
         h2 = self.height / 2
@@ -568,7 +568,7 @@ class BoundingBox:
 
     def above_left(
         self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
-    ) -> Point:
+    ) -> PointType:
         """
         Get the item.northwest of the reference item.
 
@@ -578,7 +578,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.northwest of the reference item's bounding-box.
+            PointType: The item.northwest of the reference item's bounding-box.
         """
         x, y = item.northwest[:]
         w2 = self.width / 2
@@ -590,7 +590,7 @@ class BoundingBox:
 
     def above_right(
         self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
-    ) -> Point:
+    ) -> PointType:
         """
         Get the item.northeast of the reference item.
 
@@ -600,7 +600,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.northeast of the reference item's bounding-box.
+            PointType: The item.northeast of the reference item's bounding-box.
         """
         x, y = item.northeast[:2]
         w2 = self.width / 2
@@ -612,7 +612,7 @@ class BoundingBox:
 
     def below_left(
         self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
-    ) -> Point:
+    ) -> PointType:
         """
         Get the item.southwest of the reference item.
 
@@ -622,7 +622,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.southwest of the reference item's bounding-box.
+            PointType: The item.southwest of the reference item's bounding-box.
         """
         x, y = item.southwest[:2]
         w2 = self.width / 2
@@ -634,7 +634,7 @@ class BoundingBox:
 
     def below_right(
         self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
-    ) -> Point:
+    ) -> PointType:
         """
         Get the item.southeast of the reference item.
 
@@ -644,7 +644,7 @@ class BoundingBox:
             dy (float): The y offset.
 
         Returns:
-            Point: The item.southeast of the reference item's bounding-box.
+            PointType: The item.southeast of the reference item's bounding-box.
         """
         x, y = item.southeast[:2]
         w2 = self.width / 2
@@ -656,7 +656,7 @@ class BoundingBox:
 
     def polar_pos(
         self, item: "Union[Shape, Batch]", angle: float, radius: float
-    ) -> Point:
+    ) -> PointType:
         """
         Get the polar position of the reference item.
 
@@ -666,7 +666,7 @@ class BoundingBox:
             radius (float): The radius.
 
         Returns:
-            Point: The polar position of the reference item.
+            PointType: The polar position of the reference item.
         """
 
         x, y = item.midpoint[:2]

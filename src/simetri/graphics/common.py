@@ -5,14 +5,13 @@ from typing import Sequence, Tuple, Any, Iterator
 from ..settings.settings import defaults
 from ..helpers.vector import Vector2D
 
-Point = Sequence[float]  # used for type hinting
-Vec2 = Tuple[float, float]  # used for type hinting size, scale, offset etc.
-Line = Sequence[Sequence]  # used for type hinting
+PointType = Sequence[float]  # used for type hinting
+LineType = Sequence[Sequence]  # used for type hinting
 VecType = Sequence[float]  # used for type hinting
-Polyline = Sequence[Point]  # used for type hinting
-Polygon = Sequence[Point]  # used for type hinting
-GraphEdge = Tuple[int, int]  # used for type hinting
-Matrix = Sequence[Sequence[float]]  # used for type hinting
+PolylineType = Sequence[PointType]  # used for type hinting
+PolygonType = Sequence[PointType]  # used for type hinting
+GraphEdgeType = Tuple[int, int]  # used for type hinting
+MatrixType = Sequence[Sequence[float]]  # used for type hinting
 
 INCH = 72  # (used for converting inches to points)
 CM = 28.3464  # (used for converting centimeters to points)

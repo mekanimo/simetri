@@ -26,7 +26,7 @@ from simetri.graphics.affine import (
     scale_in_place_matrix,
     identity_matrix,
 )
-from simetri.graphics.common import common_properties, _set_Nones, VOID, Point, Vec2
+from simetri.graphics.common import common_properties, _set_Nones, VOID, PointType, VecType
 from simetri.graphics.all_enums import (
     Types,
     Drawable,
@@ -35,7 +35,6 @@ from simetri.graphics.all_enums import (
     TexLoc,
     Align,
     Axis,
-    FilterType
 )
 from simetri.settings.settings import defaults
 from simetri.graphics.bbox import bounding_box
@@ -44,7 +43,7 @@ from simetri.graphics.shape import Shape
 from simetri.graphics.sketch import TexSketch
 from simetri.colors.colors import Color, light_gray
 from simetri.canvas import draw
-from simetri.helpers.utilities import wait_for_file_availability
+from simetri.helpers.utilities import wait_for_file_availability, round_symmetric
 from simetri.helpers.illustration import logo
 from simetri.helpers.file_operations import validate_filepath
 from simetri.tikz.tikz import get_tex_code
@@ -53,6 +52,9 @@ from simetri.canvas.style_map import canvas_args
 from simetri.notebook import display
 from simetri.image.image import Image, create_image_from_data
 from simetri.tex.tex import remove_aux_files, run_job, Tex
+from simetri.svg.filters import SVG_Filter
+from simetri.svg.mask import Mask, clip_mask as apply_svg_mask
+from simetri.tikz.tikz_mask import clip_mask as apply_tikz_mask
 
 
 class Canvas:
@@ -66,7 +68,7 @@ class Canvas:
         self,
         back_color: Optional["Color"] = None,
         border: Optional[float] = None,
-        size: Optional[Vec2] = None,
+        size: Optional[VecType] = None,
         **kwargs,
     ):
         """
@@ -75,7 +77,7 @@ class Canvas:
         Args:
             back_color (Optional[Color]): The background color of the canvas.
             border (Optional[float]): The border width of the canvas.
-            size (Vec2, optional): The size of the canvas with canvas.origin at (0, 0).
+            size (VecType, optional): The size of the canvas with canvas.origin at (0, 0).
             kwargs (dict): Additional keyword arguments. Rarely used.
 
             You should not need to specify "size" since it is calculated.
@@ -109,16 +111,6 @@ class Canvas:
         """canvas.draw() draws on the active page. If there are multiple pages,
         the active page is the last page created."""
         self._all_vertices = []
-        self.blend_mode = None
-        self.blend_group = False
-        self.transparency_group = False
-        self.alpha = None
-        self.line_alpha = None
-        self.fill_alpha = None
-        self.text_alpha = None
-        self.clip = None  # if True then clip the canvas to the mask
-        self.mask = None  # Mask object
-        self.even_odd_rule = None  # True or False
         self.draw_grid = False
         self._origin = [0, 0]
         self.inset = 0
@@ -138,7 +130,6 @@ class Canvas:
         else:
             self._limits = None
         self.overlay = False  # used for inserting pdf pictures
-
 
     def __setattr__(self, name, value):
         if hasattr(self, "active_page") and name in ["back_color", "border"]:
@@ -175,22 +166,22 @@ class Canvas:
         display(self)
 
     @property
-    def size(self) -> Vec2:
+    def size(self) -> VecType:
         """
         The size of the canvas.
 
         Returns:
-            Vec2: The size of the canvas.
+            VecType: The size of the canvas.
         """
         return self._size
 
     @size.setter
-    def size(self, value: Vec2) -> None:
+    def size(self, value: VecType) -> None:
         """
         Set the size of the canvas.
 
         Args:
-            value (Vec2): The size of the canvas.
+            value (VecType): The size of the canvas.
         """
         if len(value) == 2:
             self._size = value
@@ -201,22 +192,22 @@ class Canvas:
             raise ValueError("Size must be a tuple of 2 values.")
 
     @property
-    def origin(self) -> Vec2:
+    def origin(self) -> VecType:
         """
         The origin of the canvas.
 
         Returns:
-            Vec2: The origin of the canvas.
+            VecType: The origin of the canvas.
         """
         return self._origin[:2]
 
     @origin.setter
-    def origin(self, value: Vec2) -> None:
+    def origin(self, value: VecType) -> None:
         """
         Set the origin of the canvas.
 
         Args:
-            value (Vec2): The origin of the canvas.
+            value (VecType): The origin of the canvas.
         """
         if len(value) == 2:
             self._origin = value
@@ -224,13 +215,13 @@ class Canvas:
             raise ValueError("Origin must be a tuple of 2 values.")
 
     @property
-    def limits(self) -> Vec2:
+    def limits(self) -> VecType:
         """
         The limits of the canvas.
         [min_x, min_y, max_x, max_y]
 
         Returns:
-            Vec2: The limits of the canvas.
+            VecType: The limits of the canvas.
         """
         if self.size is None:
             res = None
@@ -242,13 +233,13 @@ class Canvas:
         return res
 
     @limits.setter
-    def limits(self, value: Vec2) -> None:
+    def limits(self, value: VecType) -> None:
         """
         Set the limits of the canvas.
         [min_x, min_y, max_x, max_y]
 
         Args:
-            value (Vec2): The limits of the canvas.
+            value (VecType): The limits of the canvas.
         """
         if len(value) == 4:
             x1, y1, x2, y2 = value
@@ -256,6 +247,9 @@ class Canvas:
             self._origin = (x1, y1)
         else:
             raise ValueError("Limits must be a tuple of 4 values.")
+
+    def b_box(self):
+        return bounding_box(self._all_vertices)
 
     def capture(self, **kwargs) -> Image:
         """
@@ -293,7 +287,7 @@ class Canvas:
 
     def arc(
         self,
-        center: Point,
+        center: PointType,
         radius_x: float,
         radius_y: float = None,
         start_angle: float = 0,
@@ -305,7 +299,7 @@ class Canvas:
         Draw an arc with the given center, radius, start angle and end angle.
 
         Args:
-            center (Point): The center of the arc.
+            center (PointType): The center of the arc.
             radius_x (float): The radius of the arc.
             radius_y (float, optional): The second radius of the arc, defaults to None.
             start_angle (float): The start angle of the arc.
@@ -330,12 +324,12 @@ class Canvas:
         )
         return self
 
-    def bezier(self, control_points: Sequence[Point], **kwargs) -> Self:
+    def bezier(self, control_points: Sequence[PointType], **kwargs) -> Self:
         """
         Draw a bezier curve.
 
         Args:
-            control_points (Sequence[Point]): The control points of the bezier curve.
+            control_points (Sequence[PointType]): The control points of the bezier curve.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
@@ -344,12 +338,12 @@ class Canvas:
         draw.bezier(self, control_points, **kwargs)
         return self
 
-    def circle(self, radius: float, center: Point = (0, 0), **kwargs) -> Self:
+    def circle(self, radius: float, center: PointType = (0, 0), **kwargs) -> Self:
         """
         Draw a circle with the given center and radius.
 
         Args:
-            center (Point): The center of the circle.
+            center (PointType): The center of the circle.
             radius (float): The radius of the circle.
             kwargs (dict): Additional keyword arguments.
 
@@ -360,13 +354,13 @@ class Canvas:
         return self
 
     def ellipse(
-        self, center: Point, width: float, height: float, angle: float = 0, **kwargs
+        self, center: PointType, width: float, height: float, angle: float = 0, **kwargs
     ) -> Self:
         """
         Draw an ellipse with the given center and radius.
 
         Args:
-            center (Point): The center of the ellipse.
+            center (PointType): The center of the ellipse.
             width (float): The width of the ellipse.
             height (float): The height of the ellipse.
             angle (float, optional): The angle of the ellipse, defaults to 0.
@@ -385,7 +379,7 @@ class Canvas:
     def text(
         self,
         text: str,
-        pos: Point,
+        pos: PointType,
         font_family: str = None,
         font_size: int = None,
         font_color: Color = None,
@@ -398,7 +392,7 @@ class Canvas:
 
         Args:
             text (str): The text to draw.
-            pos (Point): The position to draw the text.
+            pos (PointType): The position to draw the text.
             font_family (str, optional): The font family of the text, defaults to None.
             font_size (int, optional): The font size of the text, defaults to None.
             anchor (Anchor, optional): The anchor of the text, defaults to None.
@@ -428,11 +422,12 @@ class Canvas:
 
     def help_lines(
         self,
-        pos=(-100, -100),
-        width: float = 400,
-        height: float = 400,
-        spacing=25,
-        cs_size: float = 25,
+        pos: tuple[float, float] = None,
+        width: float = None,
+        height: float = None,
+        spacing=None,
+        cs_size: float = None,
+        deferred: bool = False,
         **kwargs,
     ) -> Self:
         """
@@ -449,17 +444,32 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        draw.help_lines(self, pos, width, height, spacing, cs_size, **kwargs)
+        if spacing is None:
+            spacing = defaults["help_lines_spacing"]
+        if cs_size is None:
+            cs_size = defaults["CS_size"]
+        if pos is None:
+            margin = defaults["help_lines_margin"]
+            pos = (-margin, -margin)
+        if width is None:
+            width = defaults["help_lines_width"]
+        if height is None:
+            height = defaults["help_lines_height"]
+
+        draw.help_lines(
+            self, pos, width, height, spacing, cs_size, deferred, **kwargs
+        )
+
         return self
 
     def grid(
-        self, pos: Point, width: float, height: float, spacing: float, **kwargs
+        self, pos: PointType, width: float, height: float, spacing: float, **kwargs
     ) -> Self:
         """
         Draw a grid with the given size and spacing.
 
         Args:
-            pos (Point): The position to start drawing the grid.
+            pos (PointType): The position to start drawing the grid.
             width (float): The length of the grid along the x-axis.
             height (float): The length of the grid along the y-axis.
             spacing (float): The spacing between the grid lines.
@@ -471,13 +481,13 @@ class Canvas:
         draw.grid(self, pos, width, height, spacing, **kwargs)
         return self
 
-    def line(self, start: Point, end: Point, **kwargs) -> Self:
+    def line(self, start: PointType, end: PointType, **kwargs) -> Self:
         """
         Draw a line from start to end.
 
         Args:
-            start (Point): The starting point of the line.
-            end (Point): The ending point of the line.
+            start (PointType): The starting point of the line.
+            end (PointType): The ending point of the line.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
@@ -488,7 +498,7 @@ class Canvas:
 
     def rectangle(
         self,
-        center: Point = (0, 0),
+        center: PointType = (0, 0),
         width: float = 100,
         height: float = 100,
         angle: float = 0,
@@ -498,7 +508,7 @@ class Canvas:
         Draw a rectangle.
 
         Args:
-            center (Point): The center of the rectangle.
+            center (PointType): The center of the rectangle.
             width (float): The width of the rectangle.
             height (float): The height of the rectangle.
             angle (float, optional): The angle of the rectangle, defaults to 0.
@@ -512,8 +522,8 @@ class Canvas:
 
     def rectangle2(
         self,
-        corner1: Point = (0, 0),
-        corner2: Point = (0, 0),
+        corner1: PointType = (0, 0),
+        corner2: PointType = (0, 0),
         angle: float = 0,
         **kwargs,
     ) -> Self:
@@ -521,8 +531,8 @@ class Canvas:
         Draw a rectangle.
 
         Args:
-            corner1 (Point): The first corner of the rectangle.
-            corner2 (Point): The diagonally opposing corner.
+            corner1 (PointType): The first corner of the rectangle.
+            corner2 (PointType): The diagonally opposing corner.
             angle (float, optional): The angle of the rectangle, defaults to 0.
             kwargs (dict): Additional keyword arguments.
 
@@ -540,7 +550,7 @@ class Canvas:
 
     def rectangle3(
         self,
-        upper_left: Point,
+        upper_left: PointType,
         width: float = 100,
         height: float = 100,
         angle: float = 0,
@@ -550,7 +560,7 @@ class Canvas:
         Draw a rectangle.
 
         Args:
-            upper_left (Point): The upper_left corner of the rectangle.
+            upper_left (PointType): The upper_left corner of the rectangle.
             width (float): The width of the rectangle.
             height (float): The height of the rectangle.
             angle (float, optional): The angle of the rectangle, defaults to 0.
@@ -567,13 +577,13 @@ class Canvas:
         return self
 
     def square(
-        self, center: Point = (0, 0), size: float = 100, angle: float = 0, **kwargs
+        self, center: PointType = (0, 0), size: float = 100, angle: float = 0, **kwargs
     ) -> Self:
         """
         Draw a square with the given center and size.
 
         Args:
-            center (Point): The center of the square.
+            center (PointType): The center of the square.
             size (float): The size of the square.
             angle (float, optional): The angle of the square, defaults to 0.
             kwargs (dict): Additional keyword arguments.
@@ -584,12 +594,12 @@ class Canvas:
         draw.rectangle(self, center, size, size, angle, **kwargs)
         return self
 
-    def lines(self, points: Sequence[Point], **kwargs) -> Self:
+    def lines(self, points: Sequence[PointType], **kwargs) -> Self:
         """
         Draw a polyline through the given points.
 
         Args:
-            points (Sequence[Point]): The points to draw the polyline through.
+            points (Sequence[PointType]): The points to draw the polyline through.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
@@ -629,7 +639,7 @@ class Canvas:
     def begin_clip(
         self,
         item: Union[Shape, Batch] = None,
-        corners: Sequence[Point] = None,
+        corners: Sequence[PointType] = None,
         margins: Sequence[float] = None,
         fade: Anchor = None,
         fade_margins: Sequence[float] = None,
@@ -716,13 +726,14 @@ class Canvas:
     def draw(
         self,
         item_s: Union[Shape, Batch, Sequence],
-        pos: Point = None,
+        pos: PointType = None,
         angle: float = 0,
-        rotocenter: Point = (0, 0),
+        rotocenter: PointType = (0, 0),
         scale=(1, 1),
         about=(0, 0),
         show: bool = False,
-        filter: FilterType = None,
+        mask: Mask = None,
+        filter: SVG_Filter = None,
         **kwargs,
     ) -> Self:
         """
@@ -730,13 +741,13 @@ class Canvas:
 
         Args:
             item_s (Union[Batch, Shape, Sequence]): The item(s) to draw.
-            pos (Point, optional): The position to draw the item(s), defaults to None.
+            pos (PointType, optional): The position to draw the item(s), defaults to None.
             angle (float, optional): The angle to rotate the item(s), defaults to 0.
-            rotocenter (Point, optional): The point about which to rotate, defaults to (0, 0).
+            rotocenter (PointType, optional): The point about which to rotate, defaults to (0, 0).
             scale (tuple, optional): The scale factors for the x and y axes, defaults to (1, 1).
             about (tuple, optional): The point about which to scale, defaults to (0, 0).
             show (bool, optional): If True, draws the canvas in a Jupyter cell.
-            filter (FilterType, optional): SVG filter type to apply to the drawn item(s).
+            filter (SVG_Filter, optional): SVG filter object to apply to the drawn item(s).
             kwargs (dict): Additional keyword arguments.
 
         Returns:
@@ -747,11 +758,6 @@ class Canvas:
         swatch = kwargs.get("swatch", None)
         if swatch:
             n_swatch = len(swatch)
-
-        color = kwargs.get("color", None)
-        if color:
-            kwargs["line_color"] = color
-            kwargs["fill_color"] = color
 
         if filter is not None:
             kwargs["filter"] = filter
@@ -766,7 +772,15 @@ class Canvas:
             sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
         self._sketch_xform_matrix = sketch_xform @ self._xform_matrix
 
-        if isinstance(item_s, (list, tuple)):
+        if mask is not None:
+            if isinstance(item_s, (list, tuple)):
+                for i, item in enumerate(item_s):
+                    if swatch:
+                        kwargs["fill_color"] = Color(*swatch[i % n_swatch])
+                    self._apply_mask(target=item, mask=mask, **kwargs)
+            else:
+                self._apply_mask(target=item_s, mask=mask, **kwargs)
+        elif isinstance(item_s, (list, tuple)):
             for i, item in enumerate(item_s):
                 if swatch:
                     kwargs["fill_color"] = Color(*swatch[i % n_swatch])
@@ -795,14 +809,14 @@ class Canvas:
         return self
 
     def draw_pdf(
-        self, pdf, pos: Point, size=None, scale=None, angle=0, **kwargs
+        self, pdf, pos: PointType, size=None, scale=None, angle=0, **kwargs
     ) -> Self:
         """
         Draw a PDF on the canvas.
 
         Args:
             pdf (PDF): The PDF object to draw or file path.
-            pos (Point): Upper-left position to draw the PDF at.
+            pos (PointType): Upper-left position to draw the PDF at.
 
         Returns:
             Self: The canvas object.
@@ -810,19 +824,52 @@ class Canvas:
         draw.draw_pdf(self, pdf, pos, size, scale, angle, **kwargs)
         return self
 
-    def draw_image(self, image: Image, pos: Point, **kwargs) -> Self:
+    def draw_image(self, image: Image, pos: PointType, **kwargs) -> Self:
         """
         Draw an image on the canvas.
 
         Args:
             image (Image): The image to draw.
-            pos (Point): The position to draw the image at.
+            pos (PointType): The position to draw the image at.
 
         Returns:
             Self: The canvas object.
         """
         draw.draw_image(self, image, pos, **kwargs)
         return self
+
+    def draw_latex(self, formula: str, pos: PointType, font_size: int = 14,
+                   font_family: str = None, font_color=None, bold: bool = False,
+                   anchor=None, **kwargs) -> Self:
+        """Draw a LaTeX math formula on the canvas using matplotlib mathtext (no TeX compiler needed).
+
+        Args:
+            formula (str): LaTeX math string without surrounding $. E.g. r'\\frac{a}{b}'.
+                Text-mode commands are silently mapped to their math-mode equivalents:
+                \\texttt → \\mathtt (monospace), \\textrm → \\mathrm, \\textbf → \\mathbf,
+                \\textit → \\mathit, \\textsf → \\mathsf.
+            pos (PointType): Canvas position for the formula anchor.
+            font_size (int): Font size in points. Defaults to 14.
+            font_family (str, optional): Mathtext fontset — 'computer modern'/'cm', 'stix',
+                'stix sans'/'stixsans', 'dejavu sans'/'dejavusans', 'dejavu serif'/'dejavuserif'.
+                If omitted and the formula contains \\mathbf{}, STIX is chosen automatically
+                (closest to LaTeX output). Otherwise matplotlib's current default is used.
+            font_color: Formula colour — simetri Color, (r,g,b) tuple, or matplotlib colour
+                string (e.g. 'red', '#ff0000'). Defaults to black.
+            bold (bool): Wrap the *entire* formula in \\mathbf{}. For partial bold, write
+                \\mathbf{} directly in the formula string — STIX is still selected automatically.
+                Defaults to False.
+            anchor: Anchor point for the formula box. Defaults to Anchor.SOUTHWEST.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Self: The canvas object.
+        """
+        draw.draw_latex(self, formula, pos, font_size=font_size,
+                        font_family=font_family, font_color=font_color,
+                        bold=bold, anchor=anchor, **kwargs)
+        return self
+
 
     def draw_frame(
         self, margin: Union[float, Sequence] = None, width=None, **kwargs
@@ -837,7 +884,7 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        # to do: add shadow and frame color, shadow width. Check canvas.clip.
+        # to do: add shadow and frame color, shadow width.
         if margin is None:
             margin = defaults["canvas_frame_margin"]
         if width is None:
@@ -866,7 +913,6 @@ class Canvas:
         self.active_page = self.pages[0]
         self._all_vertices = []
         self.tex: Tex = Tex()
-        self.clip: bool = False  # if true then clip the canvas to the mask
         self._xform_matrix = identity_matrix()
         self._sketch_xform_matrix = identity_matrix()
         self.active_page = self.pages[0]
@@ -892,26 +938,26 @@ class Canvas:
         return "Canvas()"
 
     @property
-    def pos(self) -> Point:
+    def pos(self) -> PointType:
         """
         The position of the canvas.
 
         Args:
-            point (Point, optional): The point to set the position to.
+            point (PointType, optional): The point to set the position to.
 
         Returns:
-            Point: The position of the canvas.
+            PointType: The position of the canvas.
         """
 
         return self._xform_matrix[2, :2].tolist()[:2]
 
     @pos.setter
-    def pos(self, point: Point) -> None:
+    def pos(self, point: PointType) -> None:
         """
         Set the position of the canvas.
 
         Args:
-            point (Point): The point to set the position to.
+            point (PointType): The point to set the position to.
         """
         self._xform_matrix[2, :2] = point[:2]
 
@@ -938,12 +984,12 @@ class Canvas:
         self._xform_matrix = rotation_matrix(angle) @ self._xform_matrix
 
     @property
-    def scale(self) -> Vec2:
+    def scale(self) -> VecType:
         """
         The scale of the canvas.
 
         Returns:
-            Vec2: The scale of the canvas.
+            VecType: The scale of the canvas.
         """
         xform = self._xform_matrix
 
@@ -951,7 +997,7 @@ class Canvas:
 
     @scale.setter
     def scale(
-        self, scale_x: float = 1, scale_y: float = None, about: Point = (0, 0)
+        self, scale_x: float = 1, scale_y: float = None, about: PointType = (0, 0)
     ) -> None:
         """
         Set the scale of the canvas.
@@ -959,7 +1005,7 @@ class Canvas:
         Args:
             scale_x (float): The x-scale to set the canvas to.
             scale_y (float): The y-scale to set the canvas to.
-            about (Point): The point about which to scale the canvas.
+            about (PointType): The point about which to scale the canvas.
         """
         if scale_y is None:
             scale_y = scale_x
@@ -1159,9 +1205,7 @@ class Canvas:
         """
         Handles None values for properties.
         try item.property_name first,
-        then try style-object,
-        then try canvas.property_name,
-        finally use the default value.
+        then use the default value.
 
         Args:
             item (Drawable): The item to resolve the property for.
@@ -1170,15 +1214,82 @@ class Canvas:
         Returns:
             Any: The resolved property value.
         """
-        value = getattr(item, property_name)
+        value = getattr(item, property_name, None)
         if value is None:
-            value = self.__dict__.get(property_name, None)
-            if value is None:
-                value = defaults.get(property_name, VOID)
+            value = defaults.get(property_name, VOID)
             if value == VOID:
                 print(f"Property {property_name} is not in defaults.")
                 value = None
         return value
+
+    def resolve_style_properties(
+        self, item: Drawable, style_map, **draw_kwargs
+    ) -> dict[str, Any]:
+        """Resolve style values for sketch creation in one place.
+
+        Resolution order:
+        1) item attribute
+        2) defaults
+        3) color/alpha precedence overrides from draw kwargs and item fallbacks
+        """
+        resolved = {
+            attrib_name: self.resolve_property(item, attrib_name)
+            for attrib_name in style_map
+        }
+
+        draw_color = draw_kwargs.get("color", None)
+        draw_line_color = draw_kwargs.get("line_color", None)
+        draw_fill_color = draw_kwargs.get("fill_color", None)
+        item_color = getattr(item, "color", None)
+        item_line_color = getattr(item, "line_color", None)
+        item_fill_color = getattr(item, "fill_color", None)
+
+        draw_alpha = draw_kwargs.get("alpha", None)
+        draw_line_alpha = draw_kwargs.get("line_alpha", None)
+        draw_fill_alpha = draw_kwargs.get("fill_alpha", None)
+        item_alpha = getattr(item, "alpha", None)
+
+        if draw_color is not None:
+            resolved["line_color"] = draw_color
+            resolved["fill_color"] = draw_color
+            resolved["color"] = draw_color
+        else:
+            if draw_line_color is not None:
+                resolved["line_color"] = draw_line_color
+            if draw_fill_color is not None:
+                resolved["fill_color"] = draw_fill_color
+            line_is_default = item_line_color in (None, defaults["line_color"])
+            fill_is_default = item_fill_color in (None, defaults["fill_color"])
+            if (
+                draw_line_color is None
+                and draw_fill_color is None
+                and item_color is not None
+                and line_is_default
+                and fill_is_default
+            ):
+                resolved["line_color"] = item_color
+                resolved["fill_color"] = item_color
+                resolved["color"] = item_color
+
+        if draw_alpha is not None:
+            resolved["alpha"] = draw_alpha
+            resolved["line_alpha"] = draw_alpha
+            resolved["fill_alpha"] = draw_alpha
+        else:
+            if draw_line_alpha is not None:
+                resolved["line_alpha"] = draw_line_alpha
+            if draw_fill_alpha is not None:
+                resolved["fill_alpha"] = draw_fill_alpha
+            if (
+                draw_line_alpha is None
+                and draw_fill_alpha is None
+                and item_alpha is not None
+            ):
+                resolved["alpha"] = item_alpha
+                resolved["line_alpha"] = item_alpha
+                resolved["fill_alpha"] = item_alpha
+
+        return resolved
 
     def draw_all_segments(
         self, item: Union[Shape, Batch], vert_indices=False, **kwargs
@@ -1224,25 +1335,13 @@ class Canvas:
                     user_fonts.add(name)
         return list(user_fonts.difference(latex_fonts))
 
-    def clip(
-        self,
-        x_min: float = None,
-        x_max: float = None,
-        y_min: float = None,
-        y_max: float = None,
-    ) -> Self:
-        """
-        Clip the canvas to the specified bounding box.
+    def _apply_mask(self, target: Union[Shape, Batch, None] = None, mask: "Mask" = None, **kwargs) -> Self:
+        if self.render == "TEX":
+            clip_mask_fn = apply_tikz_mask
+        else:
+            clip_mask_fn = apply_svg_mask
 
-        Args:
-            x_min (float): The minimum x coordinate of the bounding box.
-            x_max (float): The maximum x coordinate of the bounding box.
-            y_min (float): The minimum y coordinate of the bounding box.
-            y_max (float): The maximum y coordinate of the bounding box.
-
-        Returns:
-            Self: The canvas object.
-        """
+        return clip_mask_fn(self, target, mask, **kwargs)
 
     def set_page_size(self, width, height):
         self.page_size = (width, height)
@@ -1323,8 +1422,9 @@ class Canvas:
         if inset is not None:
             self.inset = inset
         parent_dir, file_name, extension = validate_filepath(filepath, overwrite)
-        if extension == ".svg":
+        if self.render == 'SVG':
             from simetri.svg.svg import get_svg_code
+
             svg_code = get_svg_code(self)
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(svg_code)
@@ -1404,7 +1504,7 @@ class Page:
     operations result as sketches on the canvas.active_page.
 
     Args:
-        size (Vec2, optional): The size of the page.
+        size (VecType, optional): The size of the page.
         back_color (Color, optional): The background color of the page.
         mask (Any, optional): The mask of the page.
         margins (Any, optional): The margins of the page (left, bottom, right, top).
@@ -1413,7 +1513,7 @@ class Page:
         kwargs (dict, optional): Additional keyword arguments.
     """
 
-    size: Vec2 = None
+    size: VecType = None
     back_color: "Color" = None
     mask = None
     margins = None  # left, bottom, right, top

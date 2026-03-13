@@ -16,13 +16,14 @@ from numpy import ndarray
 
 from ..colors import colors
 from .affine import identity_matrix
-from .common import common_properties, Point
-from .all_enums import Types, Anchor, FrameShape, CurveMode, TexLoc
+from .common import common_properties, PointType
+from .all_enums import Types, Anchor, FrameShape, CurveMode, TexLoc, Extent
 from ..settings.settings import defaults
 from ..geometry.geometry import homogenize
-from ..helpers.utilities import decompose_transformations
-from .pattern import Pattern
+from ..helpers.utilities import decompose_transformations, round_symmetric
+from .pattern import Pattern, Group
 from ..image.image import Image
+from ..graphics.bbox import bounding_box
 
 Color = colors.Color
 
@@ -90,6 +91,33 @@ class EllipseSketch:
 
 
 @dataclass
+class RectangleSketch:
+    """RectangleSketch is a dataclass for creating an rectangle sketch object.
+
+    Attributes:
+        lower_left (PointType): The center of the ellipse.
+        width (PointType); Width of the rectangle
+        height (PointType); Height of the rectangle
+        angle (float, optional): The orientation angle. Defaults to 0.
+        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+    """
+
+    lower_left: PointType
+    width: float
+    height: float
+    angle: float = 0  # orientation angle
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        """Initialize the RectangleSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.RECTANGLE_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+
+        self.closed = True
+
+@dataclass
 class LineSketch:
     """LineSketch is a dataclass for creating a line sketch object.
 
@@ -113,6 +141,107 @@ class LineSketch:
             vertices = homogenize(self.vertices)
             vertices = vertices @ self.xform_matrix
         self.vertices = [tuple(x) for x in vertices[:, :2]]
+        self._raw_vertices = self.vertices[:]
+
+    @staticmethod
+    def _line_limits(canvas):
+        if canvas is None:
+            return None
+        limits = None
+        if canvas.limits is not None:
+            limits = tuple(canvas.limits)
+        elif canvas._all_vertices:
+            bbox = bounding_box(canvas._all_vertices)
+            limits = (*bbox.southwest, *bbox.northeast)
+
+        page = getattr(canvas, "active_page", None)
+        sketches = getattr(page, "sketches", []) if page is not None else []
+        for sketch in sketches:
+            if (
+                getattr(sketch, "subtype", None) == Types.HELPLINES_SKETCH
+                and hasattr(sketch, "pos")
+                and hasattr(sketch, "width")
+                and hasattr(sketch, "height")
+            ):
+                x, y = sketch.pos[:2]
+                candidate = (x, y, x + sketch.width, y + sketch.height)
+                if limits is None:
+                    limits = candidate
+                else:
+                    limits = (
+                        min(limits[0], candidate[0]),
+                        min(limits[1], candidate[1]),
+                        max(limits[2], candidate[2]),
+                        max(limits[3], candidate[3]),
+                    )
+
+        return limits
+
+    @staticmethod
+    def _clip_line_to_rect(start, end, rect, draw_type):
+        if rect is None:
+            return start, end
+
+        x1, y1 = start[:2]
+        x2, y2 = end[:2]
+        dx = x2 - x1
+        dy = y2 - y1
+        if abs(dx) < 1e-12 and abs(dy) < 1e-12:
+            return start, end
+
+        xmin, ymin, xmax, ymax = rect
+        t_min = float("-inf")
+        t_max = float("inf")
+
+        if abs(dx) < 1e-12:
+            if x1 < xmin or x1 > xmax:
+                return start, end
+        else:
+            tx1 = (xmin - x1) / dx
+            tx2 = (xmax - x1) / dx
+            t_min = max(t_min, min(tx1, tx2))
+            t_max = min(t_max, max(tx1, tx2))
+
+        if abs(dy) < 1e-12:
+            if y1 < ymin or y1 > ymax:
+                return start, end
+        else:
+            ty1 = (ymin - y1) / dy
+            ty2 = (ymax - y1) / dy
+            t_min = max(t_min, min(ty1, ty2))
+            t_max = min(t_max, max(ty1, ty2))
+
+        if t_min > t_max:
+            return start, end
+
+        if draw_type == Extent.INFINITE:
+            t0, t1 = t_min, t_max
+        elif draw_type == Extent.RAY:
+            t0, t1 = max(0.0, t_min), t_max
+            if t0 > t1:
+                return start, end
+        else:
+            return start, end
+
+        p0 = (x1 + t0 * dx, y1 + t0 * dy)
+        p1 = (x1 + t1 * dx, y1 + t1 * dy)
+        return p0, p1
+
+    def populate(self, canvas):
+        """Populate rendered vertices for deferred draw types (RAY/INFINITE)."""
+        extent = getattr(self, "extent", getattr(self, "draw_type", Extent.SEGMENT))
+        if not isinstance(extent, Extent) and extent is not None:
+            extent = Extent(extent)
+
+        self.vertices = self._raw_vertices[:]
+        if extent not in [Extent.RAY, Extent.INFINITE]:
+            return
+
+        limits = self._line_limits(canvas)
+        start, end = self._clip_line_to_rect(
+            self._raw_vertices[0], self._raw_vertices[1], limits, extent
+        )
+        self.vertices = [start, end]
 
 
 @dataclass
@@ -140,6 +269,28 @@ class PatternSketch:
 
 
 @dataclass
+class GroupSketch:
+    """GroupSketch is a dataclass for creating a group sketch object.
+    Group sketches do not freeze anything. sketch.group is used during
+    canvas.save or canvas.display.
+
+    Attributes:
+        group Group: The group object.
+
+    """
+
+    group: Group = None
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        """Initialize the PatternSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.GROUP_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+
+
+@dataclass
 class ImageSketch:
     """ImageSketch is a dataclass for creating an image sketch object.
 
@@ -149,7 +300,7 @@ class ImageSketch:
     """
 
     image: Image
-    pos: Point = None
+    pos: PointType = None
     angle: float = None
     scale: Union[tuple, float] = None
     anchor: Anchor = None
@@ -177,6 +328,53 @@ class ImageSketch:
 
 
 @dataclass
+class LatexSketch:
+    """LatexSketch renders a LaTeX math formula inline in SVG via matplotlib mathtext.
+
+    Attributes:
+        formula (str): LaTeX math string, e.g. r'\frac{a}{b}'.  Do NOT wrap in $..$.            Text-mode commands are silently mapped to their math-mode equivalents:
+            \\texttt → \\mathtt, \\textrm → \\mathrm, \\textbf → \\mathbf,
+            \\textit → \\mathit, \\textsf → \\mathsf.        pos (PointType): Canvas-space position (x, y) of the formula's anchor point.
+        font_size (int): Font size in points. Defaults to 14.
+        font_family (str, optional): Mathtext fontset name. Accepted values (case-insensitive):
+            'computer modern'/'cm', 'stix', 'stix sans'/'stixsans',
+            'dejavu sans'/'dejavusans' (default), 'dejavu serif'/'dejavuserif'.
+            When bold=True and font_family is omitted, defaults to 'stix'.
+        font_color: Formula colour — a simetri Color, an (r,g,b) tuple, or any
+            matplotlib-accepted colour string (e.g. 'red', '#ff0000'). Defaults to black.
+        bold (bool): If True, wraps the entire formula in \\mathbf{}. Defaults to False.
+            For partial bold (e.g. only some symbols), put \\mathbf{} directly in the
+            formula string instead — STIX will be selected automatically.
+        anchor (Anchor): Anchor point of the rendered box. Defaults to Anchor.SOUTHWEST.
+        xform_matrix (ndarray, optional): The canvas transformation matrix.
+    """
+
+    formula: str
+    pos: PointType
+    font_size: int = 14
+    font_family: str = None
+    font_color: object = None
+    bold: bool = False
+    anchor: Anchor = None
+    xform_matrix: ndarray = None
+    formula_size: tuple = None  # (W, H) in points, filled by draw_latex
+
+    def __post_init__(self):
+        """Initialize the LatexSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.LATEX_SKETCH
+        if self.anchor is None:
+            self.anchor = Anchor.SOUTHWEST
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+            pos = self.pos
+        else:
+            pos = homogenize([self.pos])
+            pos = (pos @ self.xform_matrix).tolist()[0][:2]
+        self.pos = pos
+
+
+@dataclass
 class TexSketch:
     """TexSketch is a dataclass for inserting code into the tex file.
 
@@ -195,6 +393,31 @@ class TexSketch:
         """Initialize the TexSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.TEX_SKETCH
+
+
+@dataclass
+class MaskSketch:
+    """Sketch-like container for canvas-level mask scope metadata."""
+
+    mask: Any = None
+    clip: bool = True
+    mask_opacity: float = 1.0
+    mask_stops: list = None
+    mask_axis: Any = ((0.0, 0.0), (1.0, 0.0))
+    mask_units: Any = None
+    mask_content_units: Any = None
+
+    def __post_init__(self):
+        self.type = Types.SKETCH
+        self.subtype = Types.MASK_SKETCH
+        self.code = ""
+        self.location = TexLoc.NONE
+        self._canvas_mask_scope = True
+        self._mask_opacity = self.mask_opacity
+        self._mask_stops = self.mask_stops
+        self._mask_axis = self.mask_axis
+        self._mask_units = self.mask_units
+        self._mask_content_units = self.mask_content_units
 
 
 @dataclass
@@ -418,7 +641,7 @@ class TagSketch:
 
     Attributes:
         text (str, optional): The text of the tag. Defaults to None.
-        pos (Point, optional): The position of the tag. Defaults to None.
+        pos (PointType, optional): The position of the tag. Defaults to None.
         anchor (Anchor, optional): The anchor of the tag. Defaults to None.
         font_family (str, optional): The font family. Defaults to None.
         font_size (float, optional): The font size. Defaults to None.
@@ -427,7 +650,7 @@ class TagSketch:
     """
 
     text: str = None
-    pos: Point = None
+    pos: PointType = None
     anchor: Anchor = None
     font_family: str = None
     font_size: float = None
@@ -453,13 +676,13 @@ class PDFSketch:
 
     Attributes:
         pdf_path (str): The path to the PDF file.
-        pos (Point, optional): The position of the PDF. Defaults to None.
+        pos (PointType, optional): The position of the PDF. Defaults to None.
         scale (float, optional): The scale of the PDF. Defaults to 1.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     """
 
     file_path: str
-    pos: Point = None
+    pos: PointType = None
     scale: float = 1
     angle: float = 0
     size: tuple = None
@@ -477,13 +700,13 @@ class RectSketch:
     """RectSketch is a dataclass for creating a rectangle sketch object.
 
     Attributes:
-        pos (Point): The position of the rectangle.
+        pos (PointType): The position of the rectangle.
         width (float): The width of the rectangle.
         height (float): The height of the rectangle.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     """
 
-    pos: Point
+    pos: PointType
     width: float
     height: float
     xform_matrix: ndarray = None
@@ -492,13 +715,13 @@ class RectSketch:
         """Initialize the RectSketch object.
 
         Args:
-            pos (Point): The position of the rectangle.
+            pos (PointType): The position of the rectangle.
             width (float): The width of the rectangle.
             height (float): The height of the rectangle.
             xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
         """
         self.type = Types.SKETCH
-        self.subtype = Types.RECT_SKETCH
+        self.subtype = Types.RECTANGLE_SKETCH
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             pos = self.pos
@@ -515,3 +738,32 @@ class RectSketch:
             (pos[0] - w2, pos[1] + h2),
         ]
         self.closed = True
+
+@dataclass
+class HelpLinesSketch:
+    spacing: float
+    cs_size: float
+
+    def __post_init__(self):
+        """Initialize the ShapeSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.HELPLINES_SKETCH
+
+    def populate(self, canvas):
+        bbox = bounding_box(canvas._all_vertices)
+        x, y = bbox.southwest
+        width = bbox.width
+        height = bbox.height
+        spacing = self.spacing
+        if spacing in [None, 0]:
+            spacing = defaults["help_lines_spacing"]
+            self.spacing = spacing
+
+        d = defaults["help_lines_margin"]
+        x1 = round_symmetric(x - d, self.spacing)
+        y1 = round_symmetric(y - d, self.spacing)
+        w = round_symmetric(width + 2 * d, self.spacing)
+        h = round_symmetric(height + 2 * d, self.spacing)
+        self.pos = (x1, y1)
+        self.width = w
+        self.height = h

@@ -509,80 +509,6 @@ class SVG_TileStyle:
 
 
 @dataclass
-class SVG_GradientStyle:
-    """SVG_GradientStyle is used to configure SVG gradient attributes.
-
-    This class is specific to SVG gradient generation. Gradients and pattern tiles
-    can be used simultaneously.
-
-    Attributes:
-        gradient_type (str): The type of gradient ('linear' or 'radial').
-        x1 (float): Start x-coordinate (linear gradient).
-        y1 (float): Start y-coordinate (linear gradient).
-        x2 (float): End x-coordinate (linear gradient).
-        y2 (float): End y-coordinate (linear gradient).
-        cx (float): Center x-coordinate (radial gradient).
-        cy (float): Center y-coordinate (radial gradient).
-        r (float): Radius (radial gradient).
-        fx (float): Focal point x-coordinate (radial gradient).
-        fy (float): Focal point y-coordinate (radial gradient).
-        units (str): Gradient units ('userSpaceOnUse' or 'objectBoundingBox').
-        spread_method (str): Spread method ('pad', 'reflect', 'repeat').
-        transform (str): Gradient transform attribute.
-        stops: Gradient color stops definition.
-    """
-
-    gradient_type: str = None  # 'linear' or 'radial'
-    x1: float = None  # linear gradient start x
-    y1: float = None  # linear gradient start y
-    x2: float = None  # linear gradient end x
-    y2: float = None  # linear gradient end y
-    cx: float = None  # radial gradient center x
-    cy: float = None  # radial gradient center y
-    r: float = None  # radial gradient radius
-    fx: float = None  # radial gradient focal point x
-    fy: float = None  # radial gradient focal point y
-    units: str = None  # 'userSpaceOnUse' or 'objectBoundingBox'
-    spread_method: str = None  # 'pad', 'reflect', 'repeat'
-    transform: str = None  # gradient transform
-    stops: object = None  # gradient color stops (list of tuples or objects)
-
-    def __post_init__(self):
-        """Initialize the SVG_GradientStyle object."""
-        exact = ["gradient_type", "spread_method", "transform"]
-        exclude = []
-        _style_init(
-            self,
-            exact=exact,
-            exclude=exclude,
-            prefix="gr",
-            subtype=Types.PATTERN_STYLE,  # Reuse PATTERN_STYLE type for now
-        )
-        self._exact = exact
-        self._exclude = exclude
-        common_properties(self, id_only=True)
-
-    def __str__(self):
-        """Return a string representation of the SVG_GradientStyle object."""
-        return f"SVG_GradientStyle: {self.id}"
-
-    def __repr__(self):
-        """Return a string representation of the SVG_GradientStyle object."""
-        return f"SVG_GradientStyle: {self.id}"
-
-    def _get_attributes(self):
-        """Get the attributes of the SVG_GradientStyle object."""
-        attribs = [x for x in self.__dict__ if not x.startswith("_")]
-        res = []
-        for attrib in attribs:
-            if attrib in self._exact:
-                res.append(attrib)
-            else:
-                res.append(f"gr_{attrib}")
-        return res
-
-
-@dataclass
 class FillStyle:
     """FillStyle is used to set the fill color, alpha, and pattern of a shape.
 
@@ -596,7 +522,7 @@ class FillStyle:
         shade_style (ShadeStyle): The shade style of the fill.
         grid_style (GridStyle): The grid style of the fill.
         svg_tile_style (SVG_TileStyle): The SVG tile style for pattern configuration.
-        gradient_style (SVG_GradientStyle): The SVG gradient style configuration.
+        gradient_style (object): The gradient object.
     """
 
     color: Color = None
@@ -608,7 +534,7 @@ class FillStyle:
     shade_style: ShadeStyle = None
     grid_style: GridStyle = None
     svg_tile_style: SVG_TileStyle = None
-    gradient_style: SVG_GradientStyle = None
+    gradient_style: object = None
 
     def __post_init__(self):
         """Initialize the FillStyle object."""
@@ -616,14 +542,14 @@ class FillStyle:
         self.grid_style = GridStyle()
         self.pattern_style = PatternStyle()
         self.svg_tile_style = SVG_TileStyle()
-        self.gradient_style = SVG_GradientStyle()
+        self.gradient_style = None
         exact = ["fill", "back_style"]
         exclude = [
             "pattern_style",
             "shade_style",
             "grid_style",
             "svg_tile_style",
-            "gradient_style"
+            "gradient_style",
         ]
         _style_init(self, exact, exclude, prefix="fill", subtype=Types.FILL_STYLE)
         self._exact = exact
@@ -662,6 +588,7 @@ class ShapeStyle:
     line_style: LineStyle = None
     fill_style: FillStyle = None
     alpha: float = None
+    color: Color = None
 
     def __post_init__(self):
         """Initialize the ShapeStyle object."""
@@ -1332,23 +1259,19 @@ def _set_fill_style_alias_map(debug=False):
     shade_style = ShadeStyle()
     grid_style = GridStyle()
     svg_tile_style = SVG_TileStyle()
-    gradient_style = SVG_GradientStyle()
-
     styles = [
         pattern_style,
         shade_style,
         grid_style,
         svg_tile_style,
-        gradient_style,
     ]
     paths = [
         "fill_style.pattern_style",
         "fill_style.shade_style",
         "fill_style.grid_style",
         "fill_style.svg_tile_style",
-        "fill_style.gradient_style",
     ]
-    prefixes = ["pattern", "shade", "grid", "tile", "gradient"]
+    prefixes = ["pattern", "shade", "grid", "tile"]
 
     _set_style_alias_map(fill_style_map, styles, paths, prefixes, debug=debug)
     fill_style_map["alpha"] = ("fill_style", "alpha")
@@ -1375,14 +1298,7 @@ pattern_style_map = {
 
 
 def _set_pattern_style_alias_map(debug=False):
-    """Set the pattern style alias map.
-
-    Args:
-        debug (bool, optional): Whether to enable debug mode. Defaults to False.
-
-    Returns:
-        dict: The pattern style alias map.
-    """
+    """Set the pattern style alias map."""
     pattern_style = PatternStyle()
 
     styles = [pattern_style]
@@ -1390,12 +1306,9 @@ def _set_pattern_style_alias_map(debug=False):
     prefixes = ["pattern"]
 
     _set_style_alias_map(pattern_style_map, styles, paths, prefixes, debug=debug)
-    pattern_style_map["alpha"] = ("pattern_style", "alpha")
 
     return pattern_style_map
 
-
-# svg_tile_style_map = {}
 
 svg_tile_style_map = {
     "tile_angle": ("svg_tile_style", "angle"),
@@ -1427,46 +1340,6 @@ def _set_svg_tile_style_alias_map(debug=False):
     _set_style_alias_map(svg_tile_style_map, styles, paths, prefixes, debug=debug)
 
     return svg_tile_style_map
-
-
-# svg_gradient_style_map = {}
-
-svg_gradient_style_map = {
-    "gradient_spread_method": ("gradient_style", "spread_method"),
-    "gradient_transform": ("gradient_style", "transform"),
-    "gradient_type": ("gradient_style", "gradient_type"),
-    "gr_stops": ("gradient_style", "stops"),
-    "gr_units": ("gradient_style", "units"),
-    "gr_cx": ("gradient_style", "cx"),
-    "gr_cy": ("gradient_style", "cy"),
-    "gr_fx": ("gradient_style", "fx"),
-    "gr_fy": ("gradient_style", "fy"),
-    "gr_r": ("gradient_style", "r"),
-    "gr_x1": ("gradient_style", "x1"),
-    "gr_x2": ("gradient_style", "x2"),
-    "gr_y1": ("gradient_style", "y1"),
-    "gr_y2": ("gradient_style", "y2"),
-}
-
-
-def _set_svg_gradient_style_alias_map(debug=False):
-    """Set the SVG gradient style alias map.
-
-    Args:
-        debug (bool, optional): Whether to enable debug mode. Defaults to False.
-
-    Returns:
-        dict: The SVG gradient style alias map.
-    """
-    gradient_style = SVG_GradientStyle()
-
-    styles = [gradient_style]
-    paths = ["gradient_style"]
-    prefixes = ["gradient"]
-
-    _set_style_alias_map(svg_gradient_style_map, styles, paths, prefixes, debug=debug)
-
-    return svg_gradient_style_map
 
 
 # line_style_map = {}
@@ -1521,8 +1394,9 @@ shape_style_map_ = {}  # if any of the styles are changed, the alias-map must be
 shape_style_map = {
     "alpha": ("style", "alpha"),
     "back_style": ("style.fill_style", "back_style"),
-    "double_distance": ("style.line_style", "double_distance"),
+    "color": ("style", "color"),
     "double_color": ("style.line_style", "double_color"),
+    "double_distance": ("style.line_style", "double_distance"),
     "draw_double": ("style.line_style", "draw_double"),
     "draw_fillets": ("style.line_style", "draw_fillets"),
     "draw_markers": ("style.line_style", "draw_markers"),
@@ -1531,6 +1405,7 @@ shape_style_map = {
     "fill_color": ("style.fill_style", "color"),
     "fill_mode": ("style.fill_style", "mode"),
     "fillet_radius": ("style.line_style", "fillet_radius"),
+    "gradient": ("style.fill_style", "gradient_style"),
     "grid_alpha": ("style.fill_style.grid_style", "alpha"),
     "grid_back_color": ("style.fill_style.grid_style", "back_color"),
     "grid_line_color": ("style.fill_style.grid_style", "line_color"),
@@ -1559,28 +1434,6 @@ shape_style_map = {
     "pattern_type": ("style.fill_style.pattern_style", "pattern_type"),
     "pattern_x_shift": ("style.fill_style.pattern_style", "x_shift"),
     "pattern_y_shift": ("style.fill_style.pattern_style", "y_shift"),
-    "tile_angle": ("style.fill_style.svg_tile_style", "angle"),
-    "tile_height": ("style.fill_style.svg_tile_style", "height"),
-    "tile_scale_x": ("style.fill_style.svg_tile_style", "scale_x"),
-    "tile_scale_y": ("style.fill_style.svg_tile_style", "scale_y"),
-    "tile_units": ("style.fill_style.svg_tile_style", "units"),
-    "tile_width": ("style.fill_style.svg_tile_style", "width"),
-    "tile_x_shift": ("style.fill_style.svg_tile_style", "x_shift"),
-    "tile_y_shift": ("style.fill_style.svg_tile_style", "y_shift"),
-    "gradient_spread_method": ("style.fill_style.gradient_style", "spread_method"),
-    "gradient_transform": ("style.fill_style.gradient_style", "transform"),
-    "gradient_type": ("style.fill_style.gradient_style", "gradient_type"),
-    "gr_stops": ("style.fill_style.gradient_style", "stops"),
-    "gr_units": ("style.fill_style.gradient_style", "units"),
-    "gr_cx": ("style.fill_style.gradient_style", "cx"),
-    "gr_cy": ("style.fill_style.gradient_style", "cy"),
-    "gr_fx": ("style.fill_style.gradient_style", "fx"),
-    "gr_fy": ("style.fill_style.gradient_style", "fy"),
-    "gr_r": ("style.fill_style.gradient_style", "r"),
-    "gr_x1": ("style.fill_style.gradient_style", "x1"),
-    "gr_x2": ("style.fill_style.gradient_style", "x2"),
-    "gr_y1": ("style.fill_style.gradient_style", "y1"),
-    "gr_y2": ("style.fill_style.gradient_style", "y2"),
     "shade_axis_angle": ("style.fill_style.shade_style", "axis_angle"),
     "shade_ball_color": ("style.fill_style.shade_style", "ball_color"),
     "shade_bottom_color": ("style.fill_style.shade_style", "bottom_color"),
@@ -1600,6 +1453,14 @@ shape_style_map = {
     "shade_upper_right_color": ("style.fill_style.shade_style", "upper_right_color"),
     "smooth": ("style.line_style", "smooth"),
     "stroke": ("style.line_style", "stroke"),
+    "tile_angle": ("style.fill_style.svg_tile_style", "angle"),
+    "tile_height": ("style.fill_style.svg_tile_style", "height"),
+    "tile_scale_x": ("style.fill_style.svg_tile_style", "scale_x"),
+    "tile_scale_y": ("style.fill_style.svg_tile_style", "scale_y"),
+    "tile_units": ("style.fill_style.svg_tile_style", "units"),
+    "tile_width": ("style.fill_style.svg_tile_style", "width"),
+    "tile_x_shift": ("style.fill_style.svg_tile_style", "x_shift"),
+    "tile_y_shift": ("style.fill_style.svg_tile_style", "y_shift"),
 }
 
 
@@ -1619,8 +1480,6 @@ def _set_shape_style_alias_map(debug=False):
     shade_style = ShadeStyle()
     grid_style = GridStyle()
     svg_tile_style = SVG_TileStyle()
-    gradient_style = SVG_GradientStyle()
-
     styles = [
         line_style,
         fill_style,
@@ -1629,7 +1488,6 @@ def _set_shape_style_alias_map(debug=False):
         shade_style,
         grid_style,
         svg_tile_style,
-        gradient_style,
     ]
     paths = [
         "style.line_style",
@@ -1639,18 +1497,8 @@ def _set_shape_style_alias_map(debug=False):
         "style.fill_style.shade_style",
         "style.fill_style.grid_style",
         "style.fill_style.svg_tile_style",
-        "style.fill_style.gradient_style",
     ]
-    prefixes = [
-        "line",
-        "fill",
-        "marker",
-        "pattern",
-        "shade",
-        "grid",
-        "tile",
-        "gradient",
-    ]
+    prefixes = ["", "line", "marker", "pattern", "shade", "grid", "tile"]
 
     _set_style_alias_map(shape_style_map, styles, paths, prefixes, debug=debug)
     shape_style_map["alpha"] = ("style", "alpha")
@@ -1692,8 +1540,6 @@ def _set_style_alias_map(map_dict, styles, paths, prefixes, debug=False):
     return map_dict
 
 
-# shape_args = []
-
 shape_args = [
     "alpha",
     "back_style",
@@ -1708,10 +1554,6 @@ shape_args = [
     "fill_color",
     "fill_mode",
     "fillet_radius",
-    "grid_alpha",
-    "grid_back_color",
-    "grid_line_color",
-    "grid_line_width",
     "line_alpha",
     "line_cap",
     "line_color",
@@ -1727,33 +1569,7 @@ shape_args = [
     "marker_size",
     "marker_type",
     "markers_only",
-    "pattern_angle",
-    "pattern_color",
-    "pattern_distance",
-    "pattern_line_width",
-    "pattern_points",
-    "pattern_radius",
-    "pattern_type",
-    "pattern_x_shift",
-    "pattern_y_shift",
     "points",
-    "shade_axis_angle",
-    "shade_ball_color",
-    "shade_bottom_color",
-    "shade_color_wheel",
-    "shade_color_wheel_black",
-    "shade_color_wheel_white",
-    "shade_inner_color",
-    "shade_left_color",
-    "shade_lower_left_color",
-    "shade_lower_right_color",
-    "shade_middle_color",
-    "shade_outer_color",
-    "shade_right_color",
-    "shade_top_color",
-    "shade_type",
-    "shade_upper_left_color",
-    "shade_upper_right_color",
     "smooth",
     "stroke",
     "subtype",
@@ -1780,88 +1596,8 @@ group_args = [
     "text_alpha",
 ]
 
-# batch_args = []
-
-batch_args = [
-    "alpha",
-    "back_style",
-    "blend_group",
-    "blend_mode",
-    "clip",
-    "dist_tol",
-    "double_distance",
-    "double_color",
-    "draw_double",
-    "draw_fillets",
-    "draw_markers",
-    "even_odd_rule",
-    "fill",
-    "fill_alpha",
-    "fill_color",
-    "fill_mode",
-    "fillet_radius",
-    "grid_alpha",
-    "grid_back_color",
-    "grid_line_color",
-    "grid_line_width",
-    "line_alpha",
-    "line_cap",
-    "line_color",
-    "line_dash_array",
-    "line_dash_phase",
-    "line_join",
-    "line_miter_limit",
-    "line_width",
-    "marker_color",
-    "marker_radius",
-    "marker_size",
-    "marker_type",
-    "markers_only",
-    "mask",
-    "modifiers",
-    "pattern_angle",
-    "pattern_color",
-    "pattern_distance",
-    "pattern_line_width",
-    "pattern_points",
-    "pattern_radius",
-    "pattern_type",
-    "pattern_x_shift",
-    "pattern_y_shift",
-    "shade_axis_angle",
-    "shade_ball_color",
-    "shade_bottom_color",
-    "shade_color_wheel",
-    "shade_color_wheel_black",
-    "shade_color_wheel_white",
-    "shade_inner_color",
-    "shade_left_color",
-    "shade_lower_left_color",
-    "shade_lower_right_color",
-    "shade_middle_color",
-    "shade_outer_color",
-    "shade_right_color",
-    "shade_top_color",
-    "shade_type",
-    "shade_upper_left_color",
-    "shade_upper_right_color",
-    "smooth",
-    "stroke",
-    "subtype",
-    "text_alpha",
-    "transparency_group",
-]
-
-
-def _set_batch_args(debug=False):
-    batch_args.extend(list(shape_style_map.keys()))
-    batch_args.extend(["subtype", "dist_tol", "modifiers", "dist_tol"])
-    batch_args.extend(group_args)
-    print()
-
 
 canvas_args = ["size", "back_color", "border", "inset"]
-canvas_args.extend(group_args)
 
 shape_aliases_dict = {}
 
@@ -1880,7 +1616,6 @@ def _set_shape_aliases_dict(shape):
 
             if obj is not shape:
                 shape_aliases_dict[alias] = (obj, attrib)
-    self.__dict__["_aliasses"] = _aliasses
 
 
 class StyleObj:

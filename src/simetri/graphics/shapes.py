@@ -11,8 +11,8 @@ from ..graphics.batch import Batch
 from ..graphics.bbox import BoundingBox
 from ..graphics.shape import (Shape, custom_attributes, clip, trim_margins,
                               all_segments, get_loop, get_partition, union, diff, xor)
-from ..graphics.common import axis_x, get_defaults, Sequence, Point
-from ..graphics.all_enums import Types
+from ..graphics.common import axis_x, get_defaults, Sequence, PointType
+from ..graphics.all_enums import Types, Extent
 from ..helpers.utilities import decompose_transformations
 from ..settings.settings import defaults
 from .affine import scale_in_place_matrix, rotation_matrix
@@ -24,6 +24,15 @@ from ..geometry.geometry import (
     midpoint,
     close_points2,
 )
+from ..geometry.vectors import v_scale, v_diff, v_sum
+from ..canvas.style_map import (
+    line_style_map,
+    shape_style_map,
+    tag_style_map,
+    image_style_map,
+    group_args,
+    StyleObj
+)
 
 import simetri.colors.colors as colors
 
@@ -31,12 +40,12 @@ Color = colors.Color
 
 
 def square(
-    center: Point = (0, 0), size: float = 100, angle: float = 0, **kwargs
+    center: PointType = (0, 0), size: float = 100, angle: float = 0, **kwargs
 ) -> Shape:
     """Return a square shape.
 
     Args:
-        center (Point): The center of the square.
+        center (PointType): The center of the square.
         size (float): The width and height of the square.
         angle (float): The rotation angle of the square.
         **kwargs: Additional keyword arguments.
@@ -49,14 +58,187 @@ def square(
     return Shape(points, closed=True, **kwargs)
 
 
+class Line(Shape):
+    """A line defined by two points.
+    They are drawn different depending on their types.
+    line.extent == sg.Extent.INFINITE drawn to the canvas limits
+    on both sides.
+    line.extent == sg.Extent.RAY drawn from the first point to the
+    canvas.limit.
+    line.extent == sg.Extent.SEGMENT drawn from the first point to
+    the second point as a line segment.
+    For representing the line in Ax + By + C = 0 (general form) use:
+    line.A -> A, line.B -> B, line.C -> C, and line.ABC -> (A, B, C)
+    For representing the line in mx + b = 0 (slope and intercept form) use:
+    line.slope -> m and line.intercept -> b, and line.m_b -> (m, b)
+    line.parametric_function Return a callable f(t) that gives points on the line.
+    line.t returns an interpolation using the parametric form of the line.
+    """
+
+    def __init__(
+        self,
+        start: PointType,
+        end: PointType,
+        extent: Extent = Extent.SEGMENT,
+        draw_type: Extent = None,
+        **kwargs,
+    ) -> None:
+        """Initialize a Line object.
+
+        Args:
+            start (PointType): The start point of the line.
+            end (PointType): The end point of the line.
+            extent (Extent, optional): Rendering mode. Defaults to Extent.SEGMENT.
+            draw_type (Extent, optional): Backward-compatible alias for extent.
+            **kwargs: Additional keyword arguments.
+
+        Raises:
+            ValueError: If start and end points are the same.
+        """
+        dist_tol2 = defaults["dist_tol"] ** 2
+        if close_points2(start, end, dist2=dist_tol2):
+            raise ValueError("Line: start and end points are the same!")
+
+        if draw_type is not None:
+            extent = draw_type
+
+        if not isinstance(extent, Extent):
+            extent = Extent(extent)
+
+        super().__init__([start, end], closed=False, **kwargs)
+        self.subtype = Types.LINE
+        self.extent = extent
+
+    def __setattr__(self, name, value):
+        if name == "draw_type":
+            name = "extent"
+        super().__setattr__(name, value)
+
+    @property
+    def draw_type(self) -> Extent:
+        """Backward-compatible alias for extent."""
+        return self.extent
+
+    @draw_type.setter
+    def draw_type(self, value: Extent):
+        self.extent = value
+
+    @property
+    def start(self) -> PointType:
+        """Return the start point of the line."""
+        return self.vertices[0]
+
+    @start.setter
+    def start(self, point: PointType):
+        self[0] = point[:2]
+
+    @property
+    def end(self) -> PointType:
+        """Return the end point of the line."""
+        return self.vertices[1]
+
+    @end.setter
+    def end(self, point: PointType):
+        self[1] = point[:2]
+
+    @property
+    def length(self) -> float:
+        """Return the length between start and end points."""
+        return distance(self.start, self.end)
+
+    @property
+    def A(self) -> float:
+        """Return A coefficient of Ax + By + C = 0."""
+        x1, y1 = self.start
+        x2, y2 = self.end
+        return y1 - y2
+
+    @property
+    def B(self) -> float:
+        """Return B coefficient of Ax + By + C = 0."""
+        x1, y1 = self.start
+        x2, y2 = self.end
+        return x2 - x1
+
+    @property
+    def C(self) -> float:
+        """Return C coefficient of Ax + By + C = 0."""
+        x1, y1 = self.start
+        x2, y2 = self.end
+        return x1 * y2 - x2 * y1
+
+    @property
+    def ABC(self) -> tuple[float, float, float]:
+        """Return line coefficients (A, B, C) in general form."""
+        return (self.A, self.B, self.C)
+
+    @property
+    def slope(self) -> float:
+        """Return slope m for y = mx + b.
+
+        Raises:
+            ValueError: If the line is vertical.
+        """
+        x1, y1 = self.start
+        x2, y2 = self.end
+        dx = x2 - x1
+        if abs(dx) <= defaults["dist_tol"]:
+            raise ValueError("Line is vertical; slope is undefined.")
+        return (y2 - y1) / dx
+
+    @property
+    def intercept(self) -> float:
+        """Return y-intercept b for y = mx + b.
+
+        Raises:
+            ValueError: If the line is vertical.
+        """
+        m = self.slope
+        x1, y1 = self.start
+        return y1 - (m * x1)
+
+    @property
+    def m_b(self) -> tuple[float, float]:
+        """Return (slope, intercept) for y = mx + b."""
+        return (self.slope, self.intercept)
+
+    @property
+    def parametric_function(self):
+        """Return a callable f(t) that gives points on the line.
+
+        For SEGMENT lines, meaningful values are typically 0 <= t <= 1.
+        """
+        return lambda t: self.t(t)
+
+    def copy(self):
+        """Return a copy of the line."""
+        line = Line(self.start, self.end, extent=self.extent)
+        for attrib in custom_attributes(self):
+            if attrib in ["vertices", "draw_type", "extent"]:
+                continue
+            setattr(line, attrib, getattr(self, attrib))
+        for attrib in shape_style_map:
+            value = getattr(self, attrib, defaults[attrib])
+            if value is not None:
+                setattr(line, attrib, value)
+        return line
+
+
+    def t(self, t: float):
+        """Return point at parameter t using start + t * (end - start)."""
+        direction = v_diff(self.end, self.start)
+
+        return v_sum(self.start, v_scale(direction, t))
+
+
 class Rectangle(Shape):
     """A rectangle defined by width and height."""
 
-    def __init__(self, center: Point, width: float, height: float, **kwargs) -> None:
+    def __init__(self, center: PointType, width: float, height: float, **kwargs) -> None:
         """Initialize a Rectangle object.
 
         Args:
-            center (Point): The center point of the rectangle.
+            center (PointType): The center point of the rectangle.
             width (float): The width of the rectangle.
             height (float): The height of the rectangle.
             **kwargs: Additional keyword arguments.
@@ -93,7 +275,7 @@ class Rectangle(Shape):
     #     self,
     #     scale_x: float,
     #     scale_y: Union[float, None] = None,
-    #     about: Point = (0, 0),
+    #     about: PointType = (0, 0),
     #     reps: int = 0,
     # ):
     #     """Scale the rectangle by scale_x and scale_y.
@@ -103,7 +285,7 @@ class Rectangle(Shape):
     #     Args:
     #         scale_x (float): The scale factor for the width.
     #         scale_y (float, optional): The scale factor for the height. Defaults to None.
-    #         about (Point, optional): The point to scale about. Defaults to (0, 0).
+    #         about (PointType, optional): The point to scale about. Defaults to (0, 0).
     #         reps (int, optional): The number of repetitions. Defaults to 0.
 
     #     Returns:
@@ -161,15 +343,15 @@ class Rectangle(Shape):
         """Return the center of the rectangle.
 
         Returns:
-            Point: The center of the rectangle.
+            PointType: The center of the rectangle.
         """
         return midpoint(self.vertices[0], self.vertices[2])
 
-    def _set_center(self, new_center: Point):
+    def _set_center(self, new_center: PointType):
         """Set the center of the rectangle.
 
         Args:
-            new_center (Point): The new center of the rectangle.
+            new_center (PointType): The new center of the rectangle.
         """
         center = self.center
         x_diff = new_center[0] - center[0]
@@ -195,20 +377,26 @@ class Rectangle(Shape):
         rectangle._set_aliases()
         custom_attribs = custom_attributes(self)
         for attrib in custom_attribs:
-            setattr(rectangle, attrib, getattr(self, attrib))
-
+            if attrib.startswith("_"):
+                continue
+            if hasattr(self, attrib):
+                setattr(rectangle, attrib, getattr(self, attrib))
+        for attrib in shape_style_map:
+            value = getattr(self, attrib, defaults[attrib])
+            if value is not None:
+                setattr(rectangle, attrib, value)
         return rectangle
 
 
 class Rectangle2(Rectangle):
     """A rectangle defined by two opposite corners."""
 
-    def __init__(self, corner1: Point, corner2: Point, **kwargs) -> None:
+    def __init__(self, corner1: PointType, corner2: PointType, **kwargs) -> None:
         """Initialize a Rectangle2 object.
 
         Args:
-            corner1 (Point): The first corner of the rectangle.
-            corner2 (Point): The second corner of the rectangle.
+            corner1 (PointType): The first corner of the rectangle.
+            corner2 (PointType): The second corner of the rectangle.
             **kwargs: Additional keyword arguments.
         """
         x1, y1 = corner1
@@ -227,14 +415,14 @@ class Circle(Shape):
     def __init__(
         self,
         radius: float = None,
-        center: Point = (0, 0),
+        center: PointType = (0, 0),
         xform_matrix: np.array = None,
         **kwargs,
     ) -> None:
         """Initialize a Circle object.
 
         Args:
-            center (Point, optional): The center point of the circle. Defaults to (0, 0).
+            center (PointType, optional): The center point of the circle. Defaults to (0, 0).
             radius (float, optional): The radius of the circle. Defaults to None.
             xform_matrix (np.array, optional): The transformation matrix. Defaults to None.
             **kwargs: Additional keyword arguments.
@@ -295,16 +483,16 @@ class Circle(Shape):
         """Return the center of the circle.
 
         Returns:
-            Point: The center of the circle.
+            PointType: The center of the circle.
         """
         return self.vertices[0]
 
     @center.setter
-    def center(self, value: Point):
+    def center(self, value: PointType):
         """Set the center of the circle.
 
         Args:
-            value (Point): The new center of the circle.
+            value (PointType): The new center of the circle.
         """
         self[0] = value[:2]
 
@@ -324,10 +512,11 @@ class Circle(Shape):
         Returns:
             Circle: A copy of the circle.
         """
+
         center = self.center
         radius = self.radius
         circle = Circle(center=center, radius=radius)
-        style = copy.deepcopy(self.style)
+        # style = copy.deepcopy(self.style)
         # circle.style = style
         circle._set_aliases()
 
@@ -337,6 +526,10 @@ class Circle(Shape):
         custom_attribs.remove("radius")
         for attrib in custom_attribs:
             setattr(circle, attrib, getattr(self, attrib))
+        for attrib in shape_style_map:
+            value = getattr(self, attrib, defaults[attrib])
+            if value is not None:
+                setattr(circle, attrib, value)
 
         return circle
 
@@ -346,12 +539,12 @@ class Segment(Shape):
     This is not used in the code-base, but is here for the API.
     """
 
-    def __init__(self, start: Point, end: Point, **kwargs) -> None:
+    def __init__(self, start: PointType, end: PointType, **kwargs) -> None:
         """Initialize a Segment object.
 
         Args:
-            start (Point): The start point of the segment.
-            end (Point): The end point of the segment.
+            start (PointType): The start point of the segment.
+            end (PointType): The end point of the segment.
             **kwargs: Additional keyword arguments.
 
         Raises:
@@ -369,7 +562,7 @@ class Segment(Shape):
         """Return the start point of the segment.
 
         Returns:
-            Point: The start point of the segment.
+            PointType: The start point of the segment.
         """
         return self.vertices[0]
 
@@ -378,7 +571,7 @@ class Segment(Shape):
         """Return the end point of the segment.
 
         Returns:
-            Point: The end point of the segment.
+            PointType: The end point of the segment.
         """
         return self.vertices[1]
 
@@ -397,7 +590,18 @@ class Segment(Shape):
         Returns:
             Shape: A copy of the segment.
         """
-        return Segment(self.start, self.end, **self.kwargs)
+        segment = Segment(self.start, self.end)
+        custom_attribs = custom_attributes(self)
+        for attrib in custom_attribs:
+            if attrib.startswith("_"):
+                continue
+            if hasattr(self, attrib):
+                setattr(segment, attrib, getattr(self, attrib))
+        for attrib in shape_style_map:
+            value = getattr(self, attrib, defaults[attrib])
+            if value is not None:
+                setattr(segment, attrib, value)
+        return segment
 
     def __str__(self):
         """Return a string representation of the segment.
@@ -440,42 +644,42 @@ class Mask(Shape):
         """Initialize a Mask object.
 
         Args:
-            points (Sequence[Point]): The points that make up the mask.
+            points (Sequence[PointType]): The points that make up the mask.
             reverse (bool, optional): Whether to reverse the mask. Defaults to False.
             xform_matrix (np.array, optional): The transformation matrix. Defaults to None.
         """
-        super().__init__(points, xform_matrix, subtype=Types.MASK, closed=True)
+        super().__init__(points=points, closed=True, xform_matrix=xform_matrix, subtype=Types.MASK)
         self.reverse: bool = reverse
         # mask should be between \begin{scope} and \end{scope}
         # canvas, batch, and shapes can have scope
 
 
-def circle_points(center: Point, radius: float, n: int = 30) -> list[Point]:
+def circle_points(center: PointType, radius: float, n: int = 30) -> list[PointType]:
     """Return a list of points that form a circle with the given parameters.
 
     Args:
-        center (Point): The center point of the circle.
+        center (PointType): The center point of the circle.
         radius (float): The radius of the circle.
         n (int, optional): The number of points in the circle. Defaults to 30.
 
     Returns:
-        list[Point]: A list of points that form a circle.
+        list[PointType]: A list of points that form a circle.
     """
     return arc_points(center, radius, 0, 2 * pi, n=n)
 
 
 def arc_points(
-    center: Point,
+    center: PointType,
     radius: float,
     start_angle: float,
     end_angle: float,
     clockwise: bool = False,
     n: int = 20,
-) -> list[Point]:
+) -> list[PointType]:
     """Return a list of points that form a circular arc with the given parameters.
 
     Args:
-        center (Point): The center point of the arc.
+        center (PointType): The center point of the arc.
         radius (float): The radius of the arc.
         start_angle (float): The starting angle of the arc.
         end_angle (float): The ending angle of the arc.
@@ -483,7 +687,7 @@ def arc_points(
         n (int, optional): The number of points in the arc. Defaults to 20.
 
     Returns:
-        list[Point]: A list of points that form a circular arc.
+        list[PointType]: A list of points that form a circular arc.
     """
     x, y = center[:2]
     points = []
@@ -513,18 +717,18 @@ def hex_points(side_length: float) -> List[List[float]]:
 
 
 def rectangle_points(
-    pos: Point = (0, 0), width: float = 100, height: float = 100, angle: float = 0
-) -> Sequence[Point]:
+    pos: PointType = (0, 0), width: float = 100, height: float = 100, angle: float = 0
+) -> Sequence[PointType]:
     """Return a list of points that form a rectangle with the given parameters.
 
     Args:
-        pos (Point): The position of the rectangle.
+        pos (PointType): The position of the rectangle.
         width (float): The width of the rectangle.
         height (float): The height of the rectangle.
         angle (float, optional): The rotation angle of the rectangle. Defaults to 0.
 
     Returns:
-        Sequence[Point]: A list of points that form the rectangle.
+        Sequence[PointType]: A list of points that form the rectangle.
     """
     from ..graphics.affine import rotate
 
@@ -539,16 +743,16 @@ def rectangle_points(
     return points
 
 
-def reg_poly_points_side_length(pos: Point, n: int, side_len: float) -> Sequence[Point]:
+def reg_poly_points_side_length(pos: PointType, n: int, side_len: float) -> Sequence[PointType]:
     """Return a regular polygon points list with n sides and side_len length.
 
     Args:
-        pos (Point): The position of the center of the polygon.
+        pos (PointType): The position of the center of the polygon.
         n (int): The number of sides of the polygon.
         side_len (float): The length of each side of the polygon.
 
     Returns:
-        Sequence[Point]: A list of points that form the polygon.
+        Sequence[PointType]: A list of points that form the polygon.
     """
     rad = side_len_to_radius(n, side_len)
     angle = 2 * pi / n
@@ -558,16 +762,16 @@ def reg_poly_points_side_length(pos: Point, n: int, side_len: float) -> Sequence
     return points
 
 
-def reg_poly_points(pos: Point, n: int, r: float) -> Sequence[Point]:
+def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
     """Return a regular polygon points list with n sides and radius r.
 
     Args:
-        pos (Point): The position of the center of the polygon.
+        pos (PointType): The position of the center of the polygon.
         n (int): The number of sides of the polygon.
         r (float): The radius of the polygon.
 
     Returns:
-        Sequence[Point]: A list of points that form the polygon.
+        Sequence[PointType]: A list of points that form the polygon.
     """
     angle = 2 * pi / n
     x, y = pos[:2]
@@ -576,11 +780,11 @@ def reg_poly_points(pos: Point, n: int, r: float) -> Sequence[Point]:
     return points
 
 
-def di_star(points: Sequence[Point], n: int) -> Batch:
+def di_star(points: Sequence[PointType], n: int) -> Batch:
     """Return a dihedral star with n petals.
 
     Args:
-        points (Sequence[Point]): List of [x, y] points.
+        points (Sequence[PointType]): List of [x, y] points.
         n (int): Number of petals.
 
     Returns:
@@ -601,7 +805,7 @@ def hex_grid_centers(x, y, side_length, n_rows, n_cols):
         n_cols (int): The number of columns in the grid.
 
     Returns:
-        list[Point]: A list of points that define the centers of the hexagons.
+        list[PointType]: A list of points that define the centers of the hexagons.
     """
     centers = []
     for row in range(n_rows):
@@ -614,8 +818,8 @@ def hex_grid_centers(x, y, side_length, n_rows, n_cols):
 
     centers = []
     # first row
-    origin = Point(x, y)
-    grid = Batch(Point)
+    origin = PointType(x, y)
+    grid = Batch(PointType)
     grid.transform()
     return centers
 
@@ -659,7 +863,7 @@ def rect_grid(x, y, cell_width, cell_height, n_rows, n_cols, pattern):
     return grid
 
 
-def regular_star_polygon(n, step, rad):
+def reg_star_polygon(n, step, rad, **kwargs)-> Shape|Batch:
     """
     Return a regular star polygon with the given parameters.
 
@@ -679,14 +883,21 @@ def regular_star_polygon(n, step, rad):
     else:
         indices = [i % n for i in list(range(0, ((n // step) + 1) * step, step))]
     vertices = [points[ind] for ind in indices]
-    return Batch(Shape(vertices)).rotate(angle, reps=gcd(n, step) - 1)
+    reps = gcd(n, step) - 1
+    shape = Shape(vertices, **kwargs)
+    if reps > 1:
+        res = Batch(shape.rotate(angle, reps=reps))
+    else:
+        res = shape
+
+    return res
 
 
 def star_shape(points, reps=5, scale=1):
     """Return a dihedral star from a list of points.
 
     Args:
-        points (list[Point]): The list of points that form the star.
+        points (list[PointType]): The list of points that form the star.
         reps (int, optional): The number of repetitions. Defaults to 5.
         scale (float, optional): The scale factor. Defaults to 1.
 
@@ -712,7 +923,7 @@ def dot_shape(
 
     Args:
         radius (float, optional): The radius of the point. Defaults to 1.
-        pos (Point, optional): The position of the point. Defaults to (0, 0).
+        pos (PointType, optional): The position of the point. Defaults to (0, 0).
         fill_color (Color, optional): The fill color of the point. Defaults to None.
         line_color (Color, optional): The line color of the point. Defaults to None.
         line_width (float, optional): The line width of the point. Defaults to None.
@@ -738,12 +949,13 @@ def dot_shape(
 def rect_shape(
     width: float,
     height: float,
-    pos: Point = (0, 0),
+    pos: PointType = (0, 0),
     fill_color: Color = colors.white,
     line_color: Color = defaults["line_color"],
     line_width: float = defaults["line_width"],
     fill: bool = True,
     marker: "Marker" = None,
+    **kwargs,
 ) -> Shape:
     """Given lower left corner position, width, and height,
     return a Shape object with points that form a rectangle.
@@ -751,7 +963,7 @@ def rect_shape(
     Args:
         width (float): The width of the rectangle.
         height (float): The height of the rectangle.
-        pos (Point, optional): The position of the lower left corner of the rectangle. Defaults to (0, 0).
+        pos (PointType, optional): The position of the lower left corner of the rectangle. Defaults to (0, 0).
         fill_color (Color, optional): The fill color of the rectangle. Defaults to colors.white.
         line_color (Color, optional): The line color of the rectangle. Defaults to defaults["line_color"].
         line_width (float, optional): The line width of the rectangle. Defaults to defaults["line_width"].
@@ -766,16 +978,19 @@ def rect_shape(
         ["fill_color", "line_color", "line_width"],
         [fill_color, line_color, line_width],
     )
-    return Shape(
+    rect = Shape(
         [(x, y), (x + width, y), (x + width, y + height), (x, y + height)],
         closed=True,
         fill_color=fill_color,
         line_color=line_color,
         fill=fill,
         line_width=line_width,
-        marker=marker,
         subtype=Types.RECTANGLE,
+        **kwargs,
     )
+    if marker is not None:
+        rect.marker = marker
+    return rect
 
 
 def arc_shape(x, y, radius, start_angle, end_angle, clockwise=False, n=20):
@@ -793,25 +1008,24 @@ def arc_shape(x, y, radius, start_angle, end_angle, clockwise=False, n=20):
     Returns:
         Shape: A Shape object with points that form a circular arc.
     """
-    points = arc_points(x, y, radius, start_angle, end_angle, clockwise=clockwise, n=n)
+    points = arc_points((x, y), radius, start_angle, end_angle, clockwise=clockwise, n=n)
     return Shape(points, closed=False, subtype=Types.ARC)
 
 
-def circle_shape(radius, pos=(0, 0), n=30):
+def circle_shape(radius, pos=(0, 0), n=30, **kwargs):
     """Return a Shape object with points that form a circle with the given parameters.
 
     Args:
         radius (float): The radius of the circle.
-        pos (Point, optional): The position of the center of the circle. Defaults to (0, 0).
+        pos (PointType, optional): The position of the center of the circle. Defaults to (0, 0).
         n (int, optional): The number of points to use for the circle. Defaults to 30.
 
     Returns:
         Shape: A Shape object with points that form a circle.
     """
     x, y = pos[:2]
-    circ = arc_shape(x, y, radius, 0, 2 * pi, n=n)
-    circ.subtype = Types.CIRCLE
-    return circ
+    points = circle_points((x, y), radius, n=n)
+    return Shape(points, closed=True, **kwargs)
 
 
 def reg_poly_shape(n, r=100, pos=(0, 0), **kwargs):
@@ -821,7 +1035,7 @@ def reg_poly_shape(n, r=100, pos=(0, 0), **kwargs):
         n (int): The number of sides of the polygon.
         r (float, optional): The radius of the polygon. Defaults to 100.
         kwargs (dict): Additional keyword arguments.
-        pos (Point): The position of the center of the polygon.
+        pos (PointType): The position of the center of the polygon.
 
     Returns:
         Shape: A Shape object with points that form a regular polygon.
@@ -831,14 +1045,14 @@ def reg_poly_shape(n, r=100, pos=(0, 0), **kwargs):
     return Shape(points, closed=True, **kwargs)
 
 
-def ellipse_shape(width, height, angle=0, pos=(0, 0), n_points=None):
+def ellipse_shape(width, height, angle=0, pos=(0, 0), n_points=None, **kwargs):
     """Return a Shape object with points that form an ellipse with the given parameters.
 
     Args:
         width (float): The width of the ellipse.
         height (float): The height of the ellipse.
         angle (float, optional): The rotation angle of the ellipse. Defaults to 0.
-        pos (Point, optional): The position of the center of the ellipse. Defaults to (0, 0).
+        pos (PointType, optional): The position of the center of the ellipse. Defaults to (0, 0).
         n_points (int, optional): The number of points to use for the ellipse. Defaults to 30.
 
     Returns:
@@ -847,16 +1061,16 @@ def ellipse_shape(width, height, angle=0, pos=(0, 0), n_points=None):
     if n_points is None:
         n_points = defaults["n_ellipse_points"]
 
-    points = ellipse_points((x, y), width, height, n_points=n_points)
-    return Shape(points, subtype=Types.ELLIPSE)
+    points = ellipse_points(pos, width, height, angle, n_points=n_points)
+    return Shape(points, subtype=Types.ELLIPSE, **kwargs)
 
 
 def line_shape(p1, p2, line_width=1, line_color=colors.black, **kwargs):
     """Return a Shape object with two points p1 and p2.
 
     Args:
-        p1 (Point): The first point of the line.
-        p2 (Point): The second point of the line.
+        p1 (PointType): The first point of the line.
+        p2 (PointType): The second point of the line.
         line_width (float, optional): The width of the line. Defaults to 1.
         line_color (Color, optional): The color of the line. Defaults to colors.black.
         kwargs (dict): Additional keyword arguments.
@@ -866,19 +1080,18 @@ def line_shape(p1, p2, line_width=1, line_color=colors.black, **kwargs):
     """
     x1, y1 = p1
     x2, y2 = p2
-    return Shape(
-        [(x1, y1), (x2, y2)],
-        closed=False,
+    return Line(
+        (x1, y1),
+        (x2, y2),
         line_color=line_color,
         line_width=line_width,
-        subtype=Types.L_i_n_e,
         **kwargs,
     )
 
 
 def offset_polygon_shape(
     polygon_shape, offset: float = 1, dist_tol: float = defaults["dist_tol"]
-) -> list[Point]:
+) -> list[PointType]:
     """Return a copy of a polygon with offset edges.
 
     Args:
@@ -887,7 +1100,7 @@ def offset_polygon_shape(
         dist_tol (float, optional): The distance tolerance. Defaults to defaults["dist_tol"].
 
     Returns:
-        list[Point]: A list of points that form the offset polygon.
+        list[PointType]: A list of points that form the offset polygon.
     """
     vertices = offset_polygon_points(polygon_shape.vertices, offset, dist_tol)
 

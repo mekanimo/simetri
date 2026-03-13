@@ -36,6 +36,7 @@ from ..graphics.sketch import (
     CircleSketch,
     EllipseSketch,
     GroupSketch,
+    HelpLinesSketch,
     LineSketch,
     PatternSketch,
     RectSketch,
@@ -44,7 +45,9 @@ from ..graphics.sketch import (
     TexSketch,
     ImageSketch,
     PDFSketch,
+    LatexSketch,
 )
+from ..graphics.bbox import bounding_box
 from ..settings.settings import defaults
 from ..canvas.style_map import (
     line_style_map,
@@ -52,51 +55,62 @@ from ..canvas.style_map import (
     tag_style_map,
     image_style_map,
     group_args,
-    StyleObj
+    StyleObj,
 )
 from ..helpers.illustration import Tag
-from ..helpers.utilities import decompose_transformations, group_into_bins
+from ..helpers.utilities import (
+    decompose_transformations,
+    group_into_bins,
+    round_symmetric,
+)
 from ..graphics.affine import identity_matrix
 from ..graphics.shape import Shape, all_segments
 from ..graphics.batch import Batch
-from ..graphics.common import Point, d_id_obj
+from ..graphics.common import PointType, d_id_obj
 from ..geometry.bezier import bezier_points
 from ..geometry.ellipse import elliptic_arc_points
 from ..graphics.affine import rotation_matrix, translation_matrix
+from ..svg.filters import SVG_Filter
 
 
 def help_lines(
     self,
-    pos: Point = None,
+    pos: PointType = None,
     width: float = None,
     height: float = None,
-    step_size=None,
+    spacing=None,
     cs_size: float = None,
+    deferred: bool = False,
     **kwargs,
 ):
     """
     Draw a square grid with the given size.
 
     Args:
-        pos (Point, optional): Position of the grid. Defaults to None.
+        pos (PointType, optional): Position of the grid. Defaults to None.
         width (float, optional): Length of the grid along the x-axis. Defaults to None.
         height (float, optional): Length of the grid along the y-axis. Defaults to None.
-        step_size (optional): Step size for the grid. Defaults to None.
+        spacing (optional): Step size for the grid. Defaults to None.
         cs_size (float, optional): Size of the coordinate system. Defaults to None.
         **kwargs: Additional keyword arguments.
 
     Returns:
         Self: The canvas object.
     """
-    self.grid(pos, width, height, step_size, **kwargs)
-    if cs_size > 0:
-        self.draw_CS(cs_size, **kwargs)
+    if deferred:
+        sketch = HelpLinesSketch(spacing, cs_size)
+        sketch.kwargs = kwargs
+        self.active_page.sketches.append(sketch)
+    else:
+        self.grid(pos, width, height, spacing, **kwargs)
+        if cs_size > 0:
+            self.draw_CS(cs_size, **kwargs)
     return self
 
 
 def arc(
     self,
-    center: Point,
+    center: PointType,
     radius_x: float,
     radius_y: float,
     start_angle: float,
@@ -110,7 +124,7 @@ def arc(
     Arc is drawn in counterclockwise direction from start to end.
 
     Args:
-        center (Point): Center of the arc.
+        center (PointType): Center of the arc.
         radius_x (float): Radius of the arc.
         radius_y (float): Second radius of the arc.
         start_angle (float): Start angle of the arc in radians.
@@ -129,14 +143,13 @@ def arc(
     self._all_vertices.extend(vertices.tolist() + [center])
 
     sketch = ArcSketch(vertices=vertices, xform_matrix=self.xform_matrix)
-    for attrib_name in shape_style_map:
-        if hasattr(sketch, attrib_name):
-            attrib_value = self.resolve_property(sketch, attrib_name)
-        else:
-            attrib_value = defaults[attrib_name]
+    resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
+    for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
+    precedence_keys = {"color", "line_color", "fill_color", "alpha", "line_alpha", "fill_alpha"}
     for k, v in kwargs.items():
-        setattr(sketch, k, v)
+        if k not in precedence_keys:
+            setattr(sketch, k, v)
     self.active_page.sketches.append(sketch)
 
     return self
@@ -155,26 +168,24 @@ def bezier(self, control_points, **kwargs):
     """
     self._all_vertices.extend(control_points)
     sketch = BezierSketch(control_points, self.xform_matrix)
-    for attrib_name in shape_style_map:
-        if hasattr(sketch, attrib_name):
-            attrib_value = self.resolve_property(sketch, attrib_name)
-        else:
-            attrib_value = defaults[attrib_name]
+    resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
+    for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
-    self.active_page.sketches.append(sketch)
-
+    precedence_keys = {"color", "line_color", "fill_color", "alpha", "line_alpha", "fill_alpha"}
     for k, v in kwargs.items():
-        setattr(sketch, k, v)
+        if k not in precedence_keys:
+            setattr(sketch, k, v)
+    self.active_page.sketches.append(sketch)
     return self
 
 
-def circle(self, radius: float, center: Point, **kwargs) -> None:
+def circle(self, radius: float, center: PointType, **kwargs) -> None:
     """
     Draw a circle with the given center and radius.
 
     Args:
         radius (float): Radius of the circle.
-        center (Point): Center of the circle.
+        center (PointType): Center of the circle.
         **kwargs: Additional keyword arguments.
     """
     x, y = center[:2]
@@ -184,25 +195,24 @@ def circle(self, radius: float, center: Point, **kwargs) -> None:
     p4 = x + radius, y - radius
     self._all_vertices.extend([p1, p2, p3, p4])
     sketch = CircleSketch(center, radius, self.xform_matrix)
-    for attrib_name in shape_style_map:
-        if hasattr(sketch, attrib_name):
-            attrib_value = self.resolve_property(sketch, attrib_name)
-        else:
-            attrib_value = defaults[attrib_name]
+    resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
+    for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
+    precedence_keys = {"color", "line_color", "fill_color", "alpha", "line_alpha", "fill_alpha"}
     for k, v in kwargs.items():
-        setattr(sketch, k, v)
+        if k not in precedence_keys:
+            setattr(sketch, k, v)
     self.active_page.sketches.append(sketch)
 
     return self
 
 
-def ellipse(self, center: Point, width: float, height, angle, **kwargs) -> None:
+def ellipse(self, center: PointType, width: float, height, angle, **kwargs) -> None:
     """
     Draw an ellipse with the given center and x_radius and y_radius.
 
     Args:
-        center (Point): Center of the ellipse.
+        center (PointType): Center of the ellipse.
         width (float): Width of the ellipse.
         height: Height of the ellipse.
         angle: Angle of the ellipse.
@@ -217,14 +227,13 @@ def ellipse(self, center: Point, width: float, height, angle, **kwargs) -> None:
     p4 = x + x_radius, y - y_radius
     self._all_vertices.extend([p1, p2, p3, p4])
     sketch = EllipseSketch(center, x_radius, y_radius, angle, self.xform_matrix)
-    for attrib_name in shape_style_map:
-        if hasattr(sketch, attrib_name):
-            attrib_value = self.resolve_property(sketch, attrib_name)
-        else:
-            attrib_value = defaults[attrib_name]
+    resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
+    for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
+    precedence_keys = {"color", "line_color", "fill_color", "alpha", "line_alpha", "fill_alpha"}
     for k, v in kwargs.items():
-        setattr(sketch, k, v)
+        if k not in precedence_keys:
+            setattr(sketch, k, v)
     self.active_page.sketches.append(sketch)
 
     return self
@@ -233,7 +242,7 @@ def ellipse(self, center: Point, width: float, height, angle, **kwargs) -> None:
 def text(
     self,
     txt: str,
-    pos: Point,
+    pos: PointType,
     font_family: str = None,
     font_size: int = None,
     font_color: Color = None,
@@ -246,7 +255,7 @@ def text(
 
     Args:
         txt (str): Text to be drawn.
-        pos (Point): Position of the text.
+        pos (PointType): Position of the text.
         font_family (str, optional): Font family of the text. Defaults to None.
         font_size (int, optional): Font size of the text. Defaults to None.
         font_color (Color, optional): Font color of the text. Defaults to None.
@@ -261,7 +270,6 @@ def text(
         font_size=font_size,
         font_color=font_color,
         anchor=anchor,
-
         **kwargs,
     )
     tag_obj.draw_frame = False
@@ -294,12 +302,12 @@ def line(self, start, end, **kwargs):
     return self
 
 
-def rectangle(self, center: Point, width: float, height: float, angle: float, **kwargs):
+def rectangle(self, center: PointType, width: float, height: float, angle: float, **kwargs):
     """
     Draw a rectangle with the given center, width, height and angle.
 
     Args:
-        center (Point): Center of the rectangle.
+        center (PointType): Center of the rectangle.
         width (float): Width of the rectangle.
         height (float): Height of the rectangle.
         angle (float): Angle of the rectangle.
@@ -373,6 +381,121 @@ def lines(self, points, **kwargs):
     return self
 
 
+def _measure_latex_formula(formula, font_size, font_family, bold):
+    """Render the formula to SVG and return its (width, height) in points."""
+    import io
+    import re
+    import matplotlib
+    import matplotlib.pyplot as plt
+
+    _FONTSET_MAP = {
+        'computer modern': 'cm', 'cm': 'cm',
+        'stix': 'stix',
+        'stix sans': 'stixsans', 'stixsans': 'stixsans',
+        'dejavu sans': 'dejavusans', 'dejavusans': 'dejavusans', 'dejavu': 'dejavusans',
+        'dejavu serif': 'dejavuserif', 'dejavuserif': 'dejavuserif',
+    }
+    _TEXT_MODE_MAP = [
+        (r'\texttt', r'\mathtt'), (r'\textrm', r'\mathrm'),
+        (r'\textbf', r'\mathbf'), (r'\textit', r'\mathit'),
+        (r'\textsf', r'\mathsf'),
+    ]
+
+    if bold:
+        formula = rf'\boldsymbol{{{formula}}}'
+    for src, dst in _TEXT_MODE_MAP:
+        formula = formula.replace(src, dst)
+    if not font_family and (r'\mathbf' in formula or r'\boldsymbol' in formula):
+        font_family = 'stix'
+
+    fontset = _FONTSET_MAP.get((font_family or '').strip().lower())
+    rc_overrides = {'mathtext.fontset': fontset} if fontset else {}
+
+    with matplotlib.rc_context(rc_overrides):
+        fig = matplotlib.pyplot.figure(figsize=(0.01, 0.01), dpi=72)
+        fig.text(0, 0, f'${formula}$', fontsize=font_size, usetex=False)
+        buf = io.StringIO()
+        fig.savefig(buf, format='svg', bbox_inches='tight', transparent=True, pad_inches=0.05)
+        matplotlib.pyplot.close(fig)
+
+    svg_str = buf.getvalue()
+    w_match = re.search(r'<svg[^>]*\bwidth="([\d.]+)pt"', svg_str)
+    h_match = re.search(r'<svg[^>]*\bheight="([\d.]+)pt"', svg_str)
+    W = float(w_match.group(1)) if w_match else 100.0
+    H = float(h_match.group(1)) if h_match else 20.0
+    return W, H
+
+
+def draw_latex(self, formula: str, pos: PointType, font_size: int = 14,
+               font_family: str = None, font_color=None, bold: bool = False,
+               anchor: Anchor = None, **kwargs) -> Self:
+    """Draw a LaTeX math formula on the canvas using matplotlib mathtext (no TeX compiler needed).
+
+    Args:
+        formula (str): LaTeX math string without surrounding $. E.g. r'\\frac{a}{b}'.
+            Text-mode commands are silently mapped to their math-mode equivalents:
+            \\texttt → \\mathtt (monospace), \\textrm → \\mathrm, \\textbf → \\mathbf,
+            \\textit → \\mathit, \\textsf → \\mathsf.
+        pos (PointType): Canvas position of the formula anchor.
+        font_size (int): Font size in points. Defaults to 14.
+        font_family (str, optional): Mathtext fontset — 'computer modern'/'cm', 'stix',
+            'stix sans'/'stixsans', 'dejavu sans'/'dejavusans', 'dejavu serif'/'dejavuserif'.
+            If omitted and the formula contains \\mathbf{}, STIX is chosen automatically
+            (closest to LaTeX output). Otherwise matplotlib's current default is used.
+        font_color: Formula colour — simetri Color, (r,g,b) tuple, or matplotlib colour
+            string (e.g. 'red', '#ff0000'). Defaults to black.
+        bold (bool): Wrap the *entire* formula in \\mathbf{}. For partial bold, write
+            \\mathbf{} directly in the formula string — STIX is still selected automatically.
+            Defaults to False.
+        anchor (Anchor, optional): Anchor point. Defaults to Anchor.SOUTHWEST.
+        **kwargs: Additional keyword arguments (passed through for future use).
+
+    Returns:
+        Self: The canvas object.
+    """
+    sketch = LatexSketch(
+        formula=formula,
+        pos=pos,
+        font_size=font_size,
+        font_family=font_family,
+        font_color=font_color,
+        bold=bold,
+        anchor=anchor,
+        xform_matrix=self.xform_matrix,
+    )
+    # Measure the formula's rendered bounding box so we can register the
+    # correct canvas extents in _all_vertices.
+    W, H = _measure_latex_formula(formula, font_size, font_family, bold)
+    sketch.formula_size = (W, H)
+
+    # Compute the anchor offset within the formula box (same table as svg.py)
+    _anchor_offsets = {
+        Anchor.SOUTHWEST: (0,     0),
+        Anchor.SOUTH:     (W / 2, 0),
+        Anchor.SOUTHEAST: (W,     0),
+        Anchor.WEST:      (0,     H / 2),
+        Anchor.CENTER:    (W / 2, H / 2),
+        Anchor.EAST:      (W,     H / 2),
+        Anchor.NORTHWEST: (0,     H),
+        Anchor.NORTH:     (W / 2, H),
+        Anchor.NORTHEAST: (W,     H),
+    }
+    resolved_anchor = anchor if anchor is not None else Anchor.SOUTHWEST
+    ax, ay = _anchor_offsets.get(resolved_anchor, (0, 0))
+
+    # sketch.pos is already in transformed canvas-space (xform_matrix applied)
+    sx, sy = sketch.pos[:2]
+    # All four corners of the formula box in canvas-space (y-up)
+    self._all_vertices.extend([
+        (sx - ax,       sy - ay),        # SW
+        (sx + W - ax,   sy - ay),        # SE
+        (sx - ax,       sy + H - ay),    # NW
+        (sx + W - ax,   sy + H - ay),    # NE
+    ])
+    self.active_page.sketches.append(sketch)
+    return self
+
+
 def insert_code(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
     """
     Insert code into the canvas.
@@ -411,6 +534,9 @@ def draw_pattern(self, pattern, **kwargs):
     """
     Draw the pattern object.
 
+    Expands the pattern into individual shapes via get_shapes() and
+    creates a sketch for each shape.
+
     Args:
         pattern: Pattern object to be drawn.
         **kwargs: Additional keyword arguments.
@@ -418,10 +544,15 @@ def draw_pattern(self, pattern, **kwargs):
     Returns:
         Self: The canvas object.
     """
-    sketch = create_sketch(pattern, self, **kwargs)
-    self.active_page.sketches.append(sketch)
+    active_sketches = self.active_page.sketches
+    shapes = pattern.get_shapes()
+    for shape in shapes:
+        sketches = get_sketches(shape, self, **kwargs)
+        if sketches:
+            active_sketches.extend(sketches)
 
     return self
+
 
 def draw_group(self, group, **kwargs):
     """
@@ -442,16 +573,16 @@ def draw_group(self, group, **kwargs):
 
 def draw_hobby(
     self,
-    points: Sequence[Point],
-    controls: Sequence[Point],
+    points: Sequence[PointType],
+    controls: Sequence[PointType],
     cyclic: bool = False,
     **kwargs,
 ):
     """Draw a Hobby curve through the given points using the control points.
 
     Args:
-        points (Sequence[Point]): Points through which the curve passes.
-        controls (Sequence[Point]): Control points for the curve.
+        points (Sequence[PointType]): Points through which the curve passes.
+        controls (Sequence[PointType]): Control points for the curve.
         cyclic (bool, optional): Whether the curve is cyclic. Defaults to False.
         **kwargs: Additional keyword arguments.
     """
@@ -772,18 +903,23 @@ def draw_fragments(self, lace, palette=None, **kwargs):
         areas.append((fragment.area, fragment.id))
     bins = group_into_bins(areas, 2)
 
-    if palette is None:
-        palette = d_name_palette["div_ROMA_256"]
+    if 'swatch' in kwargs:
+        palette = kwargs['swatch']
+    else:
+        if palette is None:
+            palette = d_name_palette["div_ROMA_256"]
+
     n_palette = len(palette)
     n_bins = len(bins)
-    palette = palette[::n_palette//n_bins]
+    palette = palette[:: n_palette // n_bins]
     palette = [Color(*c) for c in palette]
     n = len(palette)
     for i, bin_ in enumerate(bins):
-        color = palette[i%n]
+        color = palette[i % n]
         for _, fragment_id in bin_:
             fragment = d_id_obj[fragment_id]
             self.draw(fragment, fill_color=color)
+
 
 def _handle_plait_innerlines(canvas, lace, **kwargs):
     """Handle INNERLINES plait style."""
@@ -797,8 +933,9 @@ def _handle_plait_innerlines(canvas, lace, **kwargs):
         lace._set_plait_inner_lines(offsets, widths)
 
         # Check if line widths match the number of lerp points
-        if ("line_widths" in kwargs and
-            len(kwargs["line_widths"]) == len(lace.plaits[0].lerp_points[0])):
+        if "line_widths" in kwargs and len(kwargs["line_widths"]) == len(
+            lace.plaits[0].lerp_points[0]
+        ):
             widths = kwargs["line_widths"]
         else:
             widths = False
@@ -888,7 +1025,9 @@ def draw_image(self, image, position=None, scale=None, **kwargs):
         return self
     if not image.active:
         return self
-    translation, rotation, decomposed_scale = decompose_transformations(image.xform_matrix)
+    translation, rotation, decomposed_scale = decompose_transformations(
+        image.xform_matrix
+    )
     if position is None:
         x, y = image.pos[:2]
     else:
@@ -924,7 +1063,7 @@ def draw_pdf(self, pdf, pos=None, size=None, scale=None, angle=0, **kwargs):
 
     Args:
         pdf: PDF object or file path.
-        position (Point): Upper-left position to draw the PDF at.
+        position (PointType): Upper-left position to draw the PDF at.
         size (tuple, optional): Size to draw the PDF at. Defaults to None.
         scale (float, optional): Scale factor for the PDF. Defaults to None.
         **kwargs: Additional keyword arguments.
@@ -937,7 +1076,9 @@ def draw_pdf(self, pdf, pos=None, size=None, scale=None, angle=0, **kwargs):
             return self
         if not pdf.active:
             return self
-        translation, rotation, decomposed_scale = decompose_transformations(pdf.xform_matrix)
+        translation, rotation, decomposed_scale = decompose_transformations(
+            pdf.xform_matrix
+        )
         if pos is None:
             x, y = pdf.pos[:2]
         else:
@@ -984,20 +1125,24 @@ def draw_dimension(self, item, **kwargs):
     """
     for shape in item.all_shapes:
         self._all_vertices.extend(shape.corners)
+    def _add_sketch(sketch):
+        if sketch is None:
+            return
+        if isinstance(sketch, list):
+            self.active_page.sketches.extend(sketch)
+        else:
+            self.active_page.sketches.append(sketch)
+
     for ext in [item.ext1, item.ext2, item.ext3]:
         if ext:
-            ext_sketch = create_sketch(ext, self, **kwargs)
-            self.active_page.sketches.append(ext_sketch)
+            _add_sketch(create_sketch(ext, self, **kwargs))
     if item.dim_line:
-        dim_sketch = create_sketch(item.dim_line, self, **kwargs)
-        self.active_page.sketches.extend(dim_sketch)
+        _add_sketch(create_sketch(item.dim_line, self, **kwargs))
     if item.arrow1:
-        arrow_sketch = create_sketch(item.arrow1, self, **kwargs)
-        self.active_page.sketches.extend(arrow_sketch)
-        self.active_page.sketches.append(create_sketch(item.mid_line, self))
+        _add_sketch(create_sketch(item.arrow1, self, **kwargs))
+        _add_sketch(create_sketch(item.mid_line, self))
     if item.arrow2:
-        arrow_sketch = create_sketch(item.arrow2, self, **kwargs)
-        self.active_page.sketches.extend(arrow_sketch)
+        _add_sketch(create_sketch(item.arrow2, self, **kwargs))
     x, y = item.text_pos[:2]
 
     tag = Tag(item.text, (x, y), font_size=item.font_size, **kwargs)
@@ -1070,6 +1215,7 @@ regular_sketch_types = [
     Types.ELLIPSE,
     Types.FRAGMENT,
     Types.HEX_GRID,
+    Types.LINE,
     Types.LINPATH,
     Types.MIXED_GRID,
     Types.OUTLINE,
@@ -1120,7 +1266,12 @@ def extend_vertices(canvas, item):
             all_vertices.extend(plait.corners)
         for fragment in item.fragments:
             all_vertices.extend(fragment.corners)
-    elif item.subtype in [Types.PATTERN, Types.LINPATH]:
+    elif item.subtype == Types.LINPATH:
+        vertices = [
+            x[:2] for x in homogenize(item.all_vertices) @ canvas._sketch_xform_matrix
+        ]
+        all_vertices.extend(vertices)
+    elif item.subtype == Types.PATTERN:
         all_vertices.extend(item.all_vertices)
     elif item.subtype == Types.BATCH:
         for element in item:
@@ -1149,6 +1300,26 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
     active_sketches = self.active_page.sketches
     subtype = item.subtype
     extend_vertices(self, item)
+    if subtype == Types.LINPATH and kwargs.get("handles", False):
+        handle_size = defaults["handle_marker_size"]
+        half_size = handle_size / 2
+        for handle in item.handles:
+            if not handle:
+                continue
+            # handle segment itself
+            self._all_vertices.extend(handle)
+
+            # square handle markers at segment endpoints (3x3)
+            for x, y in (handle[0], handle[-1]):
+                self._all_vertices.extend(
+                    [
+                        (x - half_size, y - half_size),
+                        (x + half_size, y - half_size),
+                        (x + half_size, y + half_size),
+                        (x - half_size, y + half_size),
+                    ]
+                )
+
     # Only apply TikZ/TeX clipping code when rendering to TeX format
     if "clip" in item.__dict__ and item.clip is True and self.render == "TEX":
         clip_code = get_clip_code(item)
@@ -1179,8 +1350,11 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
         active_sketches.append(TexSketch("\\end{scope}"))
     return self
 
-def draw_all_segments(self, item: Union[Shape, Batch], vert_indices=False, **kwargs) -> Self:
-    '''
+
+def draw_all_segments(
+    self, item: Union[Shape, Batch], vert_indices=False, **kwargs
+) -> Self:
+    """
     Using intersections, splits edges of the item into separate segments and
     draws them with their indices. This is usually used for the "get_loop"
     function.
@@ -1194,19 +1368,19 @@ def draw_all_segments(self, item: Union[Shape, Batch], vert_indices=False, **kwa
 
     Returns:
         The canvas object.
-    '''
+    """
     segments = all_segments(item)
     count = 0
     for i, edge in enumerate(segments):
         draw(self, Shape(edge), **kwargs)
         if vert_indices:
             p1, p2 = edge
-            text(self, f'{count}', p1, **kwargs)
+            text(self, f"{count}", p1, **kwargs)
             count += 1
-            text(self, f'{count}', p2, **kwargs)
+            text(self, f"{count}", p2, **kwargs)
             count += 1
         else:
-            text(self, f'{i}', midpoint(*edge), **kwargs)
+            text(self, f"{i}", midpoint(*edge), **kwargs)
 
     return self
 
@@ -1252,8 +1426,9 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
     else:
         style_map = shape_style_map
 
-    for attrib_name in style_map:
-        attrib_value = canvas.resolve_property(item, attrib_name)
+    resolved_style = canvas.resolve_style_properties(item, style_map, **kwargs)
+
+    for attrib_name, attrib_value in resolved_style.items():
         setattr(sketch, attrib_name, attrib_value)
 
     sketch.visible = item.visible
@@ -1262,28 +1437,74 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
     # fill and stroke are resolved through resolve_property in the loop above
 
     # Copy tile_svg (direct shape property, not style attribute)
-    if hasattr(item, 'tile_svg'):
+    if hasattr(item, "tile_svg"):
         sketch.tile_svg = item.tile_svg
 
-    # Copy gradient_style nested structure if it exists
-    if hasattr(item, 'style') and hasattr(item.style, 'fill_style'):
-        if hasattr(item.style.fill_style, 'gradient_style'):
-            # Copy the entire style object to preserve nested structures
-            if not hasattr(sketch, 'style'):
-                sketch.style = item.style
-            elif not hasattr(sketch.style, 'fill_style'):
-                sketch.style.fill_style = item.style.fill_style
-            elif not hasattr(sketch.style.fill_style, 'gradient_style'):
-                sketch.style.fill_style.gradient_style = item.style.fill_style.gradient_style
-
     # Copy clip and mask for clipping support
-    if hasattr(item, 'clip'):
+    if hasattr(item, "clip"):
         sketch.clip = item.clip
-    if hasattr(item, 'mask'):
+    if hasattr(item, "mask"):
         sketch.mask = item.mask
+    if "_mask_context_id" in item.__dict__:
+        sketch._mask_context_id = item._mask_context_id
+    if "_mask_opacity" in item.__dict__:
+        sketch._mask_opacity = item._mask_opacity
+    if "_mask_stops" in item.__dict__:
+        sketch._mask_stops = item._mask_stops
+    if "_mask_axis" in item.__dict__:
+        sketch._mask_axis = item._mask_axis
 
+    if "even_odd" in item.__dict__:
+        sketch.even_odd = item.even_odd
+
+    precedence_keys = {"color", "line_color", "fill_color", "alpha", "line_alpha", "fill_alpha"}
     for k, v in kwargs.items():
+        if k in precedence_keys:
+            continue
         setattr(sketch, k, v)
+
+    def _to_numeric_filter_value(value):
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            text = value.strip()
+            if text.endswith("%"):
+                return None
+            try:
+                return float(text)
+            except ValueError:
+                return None
+        return None
+
+    if "filter" in sketch.__dict__ and isinstance(sketch.filter, SVG_Filter):
+        filter_obj = sketch.filter
+
+        filter_units = filter_obj.filterUnits
+        if filter_units is not None and str(filter_units) != "userSpaceOnUse":
+            return
+
+        region_x = _to_numeric_filter_value(filter_obj.x)
+        region_y = _to_numeric_filter_value(filter_obj.y)
+        region_width = _to_numeric_filter_value(filter_obj.width)
+        region_height = _to_numeric_filter_value(filter_obj.height)
+
+        if (
+            region_x is not None
+            and region_y is not None
+            and region_width is not None
+            and region_height is not None
+        ):
+            region_corners = [
+                (region_x, region_y),
+                (region_x + region_width, region_y),
+                (region_x + region_width, region_y + region_height),
+                (region_x, region_y + region_height),
+            ]
+            transformed_corners = [
+                vertex[:2]
+                for vertex in homogenize(region_corners) @ canvas._sketch_xform_matrix
+            ]
+            canvas._all_vertices.extend(transformed_corners)
 
 
 def get_verts_in_new_pos(item, **kwargs):
@@ -1517,23 +1738,71 @@ def create_sketch(item, canvas, **kwargs):
             BatchSketch or list: Created BatchSketch or list of sketches.
         """
         swatch = kwargs.get("swatch", None)
+        batch_clip = kwargs.get("clip", None)
+
+        raw_mask = kwargs.get("mask", None)
+        if raw_mask is not None and hasattr(raw_mask, "shape"):
+            batch_mask = raw_mask.shape
+            mask_payload = {
+                "_mask_opacity": getattr(raw_mask, "opacity", 1.0),
+                "_mask_stops": getattr(raw_mask, "stops", None),
+                "_mask_axis": getattr(raw_mask, "axis", ((0.0, 0.0), (1.0, 0.0))),
+            }
+        else:
+            batch_mask = raw_mask
+            mask_payload = {
+                "_mask_opacity": kwargs.get("_mask_opacity", 1.0),
+                "_mask_stops": kwargs.get("_mask_stops", None),
+                "_mask_axis": kwargs.get("_mask_axis", ((0.0, 0.0), (1.0, 0.0))),
+            }
+
+        def _apply_mask_kwargs(target_kwargs):
+            if "mask" not in target_kwargs and batch_mask is not None:
+                target_kwargs["mask"] = batch_mask
+            if "clip" not in target_kwargs and batch_clip is not None:
+                target_kwargs["clip"] = batch_clip
+            if mask_payload["_mask_opacity"] != 1.0:
+                target_kwargs["_mask_opacity"] = mask_payload["_mask_opacity"]
+            if mask_payload["_mask_stops"] is not None:
+                target_kwargs["_mask_stops"] = mask_payload["_mask_stops"]
+                target_kwargs["_mask_axis"] = mask_payload["_mask_axis"]
+
+        batch_mask_context_id = None
+        batch_mask_context_bbox = None
+        if batch_mask is not None and not batch_clip:
+            batch_mask_context_id = f"mask_batch_{id(item)}"
+            try:
+                bbox = item.b_box
+                batch_mask_context_bbox = (
+                    bbox.southwest[0],
+                    bbox.southwest[1],
+                    bbox.width,
+                    bbox.height,
+                )
+            except Exception:
+                batch_mask_context_bbox = None
         if swatch:
             n_swatch = len(swatch)
-        # Only use TikZ scope code when rendering to TEX format
-        if canvas.render == "TEX" and scope_code_required(item):
+        # For TeX rendering, keep batch as BatchSketch and let backend decide scope usage.
+        if canvas.render == "TEX":
             sketches = []
             count = 0
             for element in item.elements:
                 if element.visible and element.active:
+                    element_kwargs = dict(kwargs)
                     if swatch:
-                        kwargs["fill_color"] = Color(*swatch[count % n_swatch])
-                    sketches.extend(get_sketches(element, canvas, style,
-                                                                    **kwargs))
+                        element_kwargs["fill_color"] = Color(*swatch[count % n_swatch])
+                    _apply_mask_kwargs(element_kwargs)
+                    if batch_mask_context_id is not None:
+                        element_kwargs["_mask_context_id"] = batch_mask_context_id
+                    if batch_mask_context_bbox is not None:
+                        element_kwargs["_mask_context_bbox"] = batch_mask_context_bbox
+                    sketches.extend(get_sketches(element, canvas, **element_kwargs))
                     count += 1
 
             sketch = BatchSketch(sketches=sketches)
             for arg in group_args:
-                setattr(sketch, arg, getattr(item, arg))
+                setattr(sketch, arg, getattr(item, arg, None))
 
             res = sketch
         else:
@@ -1542,9 +1811,15 @@ def create_sketch(item, canvas, **kwargs):
             for element in item.elements:
                 if hasattr(element, "visible") and hasattr(element, "active"):
                     if element.visible and element.active:
+                        element_kwargs = dict(kwargs)
                         if swatch:
-                            kwargs["fill_color"] = Color(*swatch[count % n_swatch])
-                        sketches.extend(get_sketches(element, canvas, **kwargs))
+                            element_kwargs["fill_color"] = Color(*swatch[count % n_swatch])
+                        _apply_mask_kwargs(element_kwargs)
+                        if batch_mask_context_id is not None:
+                            element_kwargs["_mask_context_id"] = batch_mask_context_id
+                        if batch_mask_context_bbox is not None:
+                            element_kwargs["_mask_context_bbox"] = batch_mask_context_bbox
+                        sketches.extend(get_sketches(element, canvas, **element_kwargs))
                         count += 1
 
             res = sketches
@@ -1580,13 +1855,15 @@ def create_sketch(item, canvas, **kwargs):
             path_op.BLEND_SINE,
             path_op.CUBIC_TO,
             path_op.FORWARD,
-            path_op.H_LINE,
+            path_op.H_LINE_TO,
+            path_op.R_H_LINE,
             path_op.HOBBY_TO,
             path_op.QUAD_TO,
             path_op.R_LINE,
             path_op.SEGMENTS,
             path_op.SINE,
-            path_op.V_LINE,
+            path_op.V_LINE_TO,
+            path_op.R_V_LINE,
             path_op.LINE_TO,
         ]
         sketches = []
@@ -1691,9 +1968,14 @@ def create_sketch(item, canvas, **kwargs):
         sketches.append(sketch)
         temp_item = Shape()
         temp_item.closed = True
-        handle1 = RectSketch(item.vertices[0], 3, 3, canvas._sketch_xform_matrix)
+        handle_size = defaults["handle_marker_size"]
+        handle1 = RectSketch(
+            item.vertices[0], handle_size, handle_size, canvas._sketch_xform_matrix
+        )
         set_shape_sketch_style(handle1, temp_item, canvas, **kwargs)
-        handle2 = RectSketch(item.vertices[-1], 3, 3, canvas._sketch_xform_matrix)
+        handle2 = RectSketch(
+            item.vertices[-1], handle_size, handle_size, canvas._sketch_xform_matrix
+        )
         set_shape_sketch_style(handle2, temp_item, canvas, **kwargs)
         sketches.extend([handle1, handle2])
 
@@ -1719,6 +2001,20 @@ def create_sketch(item, canvas, **kwargs):
 
         sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+        return sketch
+
+    def get_line_sketch(item, canvas, **kwargs):
+        """Create a line sketch from the given item."""
+        if not item.vertices:
+            return None
+
+        nround = defaults["tikz_nround"]
+        vertices = [(round(x[0], nround), round(x[1], nround)) for x in item.vertices]
+        sketch = LineSketch(vertices, canvas._sketch_xform_matrix)
+        set_shape_sketch_style(sketch, item, canvas, **kwargs)
+        sketch.alpha = canvas.resolve_property(item, "alpha")
+        sketch.extent = item.extent
 
         return sketch
 
@@ -1769,8 +2065,10 @@ def create_sketch(item, canvas, **kwargs):
         Types.HEX_GRID: get_batch_sketch,
         Types.IMAGE: get_image_sketch,
         Types.LACE: get_lace_sketch,
+        Types.LINE: get_line_sketch,
         Types.LINPATH: get_path_sketch,
         Types.MIXED_GRID: get_batch_sketch,
+        Types.MASK: get_sketch,
         Types.OVERLAP: get_batch_sketch,
         Types.PARALLEL_POLYLINE: get_batch_sketch,
         Types.PATTERN: get_pattern_sketch,

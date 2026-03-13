@@ -10,7 +10,7 @@ from ..graphics.shape import Shape, custom_attributes
 from ..graphics.batch import Batch
 from ..graphics.points import Points
 from ..graphics.affine import rotation_matrix
-from ..graphics.common import Point
+from ..graphics.common import PointType
 from ..graphics.all_enums import Types
 from ..geometry.geometry import (
     line_angle,
@@ -32,7 +32,7 @@ class Arc(Shape):
 
     def __init__(
         self,
-        center: Point,
+        center: PointType,
         radius_x: float,
         radius_y: float = None,
         start_angle: float = 0,
@@ -44,7 +44,7 @@ class Arc(Shape):
     ):
         """
         Args:
-            center (Point): The center of the arc.
+            center (PointType): The center of the arc.
             radius_x (float): The x radius of the arc.
             radius_y (float): The y radius for elliptical arcs.
             start_angle (float): The starting angle of the arc.
@@ -126,7 +126,7 @@ class Arc(Shape):
         """Return the center of the arc.
 
         Returns:
-            Point: The center of the arc.
+            PointType: The center of the arc.
         """
         return (self._c @ self.xform_matrix).tolist()[:2]
 
@@ -182,7 +182,7 @@ class Ellipse(Shape):
 
     def __init__(
         self,
-        center: Point,
+        center: PointType,
         width: float,
         height: float,
         angle: float = 0,
@@ -191,7 +191,7 @@ class Ellipse(Shape):
     ) -> None:
         """
         Args:
-            center (Point): The center of the ellipse.
+            center (PointType): The center of the ellipse.
             width (float): The width of the ellipse.
             height (float): The height of the ellipse.
             angle (float, optional): Rotation angle. Defaults to 0.
@@ -314,7 +314,7 @@ def ellipse_line_intersection(a, b, point):
     Args:
         a (float): Semi-major axis of the ellipse.
         b (float): Semi-minor axis of the ellipse.
-        point (tuple): Point coordinates (x, y).
+        point (tuple): PointType coordinates (x, y).
 
     Returns:
         list: Intersection points.
@@ -411,7 +411,7 @@ def elliptic_arc_points(
 
 
 def ellipse_points(
-    center: Point,
+    center: PointType,
     a: float,
     b: float,
     angle: float,

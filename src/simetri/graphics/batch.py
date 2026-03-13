@@ -1,4 +1,5 @@
 """Batch objects are used for grouping other Shape and Batch objects."""
+
 from typing import Any, Iterator, List, Sequence, Callable
 
 from numpy import around, array
@@ -7,11 +8,10 @@ import networkx as nx
 import json
 
 
-from .all_enums import Types, batch_types, get_enum_value
-from .common import common_properties, _set_Nones, Point, Line
-from .core import Base
+from .all_enums import InPlace, Types, TransformationType, batch_types, get_enum_value
+from .common import common_properties, _set_Nones, PointType, LineType
+from .core import Base, _update_inplace
 from .bbox import bounding_box
-from ..canvas.style_map import batch_args
 from ..helpers.validation import validate_args
 from ..helpers.utilities import flatten2
 from ..geometry.geometry import (
@@ -56,6 +56,7 @@ class Batch(Base):
             subtype (Types, optional): The subtype of the batch.
             kwargs (dict): Additional keyword arguments.
         """
+
         def flatten_elements(nested_list):
             """Flatten a nested list.
 
@@ -71,7 +72,9 @@ class Batch(Base):
                 else:
                     yield i
 
-        validate_args(kwargs, batch_args)
+        # validate_args(kwargs, batch_args)
+        # We need to handle this differently now!!!
+
         if elements is None:
             self.elements = []
         elif not isinstance(elements, (list, tuple)):
@@ -91,17 +94,9 @@ class Batch(Base):
 
         self.type = Types.BATCH
         self.subtype = get_enum_value(Types, subtype)
+        if modifiers is None:
+            modifiers = []
         self.modifiers = modifiers
-        self.blend_mode = None
-        self.alpha = None
-        self.line_alpha = None
-        self.fill_alpha = None
-        self.text_alpha = None
-        self.clip = False  # if clip is True, the batch.mask is used as a clip path
-        self.mask = None
-        self.even_odd_rule = False
-        self.blend_group = False
-        self.transparency_group = False
         common_properties(self)
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -271,6 +266,7 @@ class Batch(Base):
           - modifiers (stringified)
           - attributes (common batch attributes incl. mask if present)
         """
+
         def _to_jsonable(obj):
             # Enum-like with 'value'
             if hasattr(obj, "value"):
@@ -291,7 +287,7 @@ class Batch(Base):
 
         # Elements
         elems = []
-        for elem in (self.elements or []):
+        for elem in self.elements or []:
             if hasattr(elem, "to_json") and callable(elem.to_json):
                 try:
                     elems.append(json.loads(elem.to_json()))
@@ -300,7 +296,13 @@ class Batch(Base):
                     pass
             # Fallback summary for unknown elements
             summary = {
-                "type": _to_jsonable(getattr(getattr(elem, "type", None), "value", getattr(elem, "type", "UNKNOWN"))),
+                "type": _to_jsonable(
+                    getattr(
+                        getattr(elem, "type", None),
+                        "value",
+                        getattr(elem, "type", "UNKNOWN"),
+                    )
+                ),
                 "repr": str(elem),
             }
             elems.append(summary)
@@ -313,40 +315,17 @@ class Batch(Base):
                 name = getattr(m, "name", None)
                 mods.append(name if isinstance(name, str) else str(m))
 
-        # Mask (serialize if possible)
-        mask_payload = None
-        if getattr(self, "mask", None) is not None:
-            m = self.mask
-            if hasattr(m, "to_json") and callable(m.to_json):
-                try:
-                    mask_payload = json.loads(m.to_json())
-                except Exception:
-                    mask_payload = str(m)
-            else:
-                mask_payload = str(m)
-
         data = {
             "type": _to_jsonable(getattr(self.type, "value", self.type)),
             "subtype": _to_jsonable(self.subtype),
             "elements": elems,
             "modifiers": mods,
-            "attributes": {
-                "blend_mode": _to_jsonable(getattr(self, "blend_mode", None)),
-                "alpha": _to_jsonable(getattr(self, "alpha", None)),
-                "line_alpha": _to_jsonable(getattr(self, "line_alpha", None)),
-                "fill_alpha": _to_jsonable(getattr(self, "fill_alpha", None)),
-                "text_alpha": _to_jsonable(getattr(self, "text_alpha", None)),
-                "clip": _to_jsonable(getattr(self, "clip", None)),
-                "mask": mask_payload,
-                "even_odd_rule": _to_jsonable(getattr(self, "even_odd_rule", None)),
-                "blend_group": _to_jsonable(getattr(self, "blend_group", None)),
-                "transparency_group": _to_jsonable(getattr(self, "transparency_group", None)),
-            },
+            "attributes": {},
         }
 
         return json.dumps(data, ensure_ascii=False)
 
-    def proximity(self, dist_tol: float = None, n: int = 5) -> list[Point]:
+    def proximity(self, dist_tol: float = None, n: int = 5) -> list[PointType]:
         """
         Returns the n closest points in the batch.
 
@@ -355,7 +334,7 @@ class Batch(Base):
             n (int, optional): The number of closest points to return.
 
         Returns:
-            list[Point]: The n closest points in the batch.
+            list[PointType]: The n closest points in the batch.
         """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
@@ -506,12 +485,12 @@ class Batch(Base):
         return shapes
 
     @property
-    def all_vertices(self) -> list[Point]:
+    def all_vertices(self) -> list[PointType]:
         """Return a list of all points in the batch in their
         transformed positions.
 
         Returns:
-            list[Point]: A list of all points in the batch in their transformed positions.
+            list[PointType]: A list of all points in the batch in their transformed positions.
         """
         elements = self.all_elements
         vertices = []
@@ -523,11 +502,11 @@ class Batch(Base):
         return vertices
 
     @property
-    def all_segments(self) -> list[Line]:
+    def all_segments(self) -> list[LineType]:
         """Return a list of all segments in the batch.
 
         Returns:
-            list[Line]: A list of all segments in the batch.
+            list[LineType]: A list of all segments in the batch.
         """
         elements = self.all_elements
         segments = []
@@ -615,7 +594,9 @@ class Batch(Base):
         Returns:
             Graph: The batch as a Graph object.
         """
-        _set_Nones(self, ["dist_tol", "abs_tol", "n_round"], [dist_tol, abs_tol, n_round])
+        _set_Nones(
+            self, ["dist_tol", "abs_tol", "n_round"], [dist_tol, abs_tol, n_round]
+        )
         d_node_id_coords, edges = self._get_graph_nodes_and_edges(dist_tol, n_round)
         if directed:
             nx_graph = nx.DiGraph()
@@ -763,14 +744,14 @@ class Batch(Base):
         return edges, segments
 
     def _set_node_dictionaries(
-        self, coords: List[Point], n_round: int = 2
+        self, coords: List[PointType], n_round: int = 2
     ) -> List[Dict]:
         """Set dictionaries for nodes and coordinates.
         d_node_coord: Dictionary of node id to coordinates.
         d_coord_node: Dictionary of coordinates to node id.
 
         Args:
-            nodes (List[Point]): List of vertices.
+            nodes (List[PointType]): List of vertices.
             n_round (int, optional): Number of rounding digits. Defaults to 2.
         """
 
@@ -856,17 +837,8 @@ class Batch(Base):
         Returns:
             BoundingBox: The bounding box of the batch.
         """
-        xy_list = []
-        for elem in self.elements:
-            try:
-                if elem.type == Types.SHAPE:
-                    xy_list.extend(elem.vertices)
-                else:
-                    xy_list.extend(elem.all_vertices)
-            except AttributeError:
-                pass
         # To do: memoize the bounding box
-        return bounding_box(array(xy_list))
+        return bounding_box(array(self.all_vertices))
 
     def _modify(self, modifier):
         """Apply a modifier to the batch.
@@ -876,7 +848,18 @@ class Batch(Base):
         """
         modifier.apply()
 
-    def _update(self, xform_matrix, reps: int = 0, merge: bool = False) -> Self:
+    def _update(
+        self,
+        xform_matrix: "ndarray",
+        reps: int = 0,
+        take: slice = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any] = None,
+        merge: bool = False,
+        xform_type: TransformationType = None,
+    ) -> Self:
         """Updates the batch with the given transformation matrix.
         If reps is 0, the transformation is applied to all elements.
         If reps is greater than 0, the transformation creates
@@ -887,16 +870,21 @@ class Batch(Base):
             reps (int, optional): The number of repetitions. Defaults to 0.
             merge(bool, optional): If True, shapes are merged.
         """
+        if take is None:
+            elements = self.elements[:]
+        else:
+            elements = self.elements[take]
         if reps == 0:
-            for element in self.elements:
+            for element in elements:
                 element._update(xform_matrix, reps=0)
                 if self.modifiers:
                     for modifier in self.modifiers:
                         modifier.apply(element)
         else:
-            elements = self.elements[:]
             new = []
-            for _ in range(reps):
+            for i in range(reps):
+                if incr is not None and i > 0:
+                    xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
                 for element in elements:
                     new_element = element.copy()
                     new_element._update(xform_matrix)

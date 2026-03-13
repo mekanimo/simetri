@@ -55,16 +55,13 @@ class Anchor(StrEnum):
     EAST = "east"
     LEFT = "left"
     CENTER = "center"
-    MID = "mid"
-    MIDEAST = "mid east"
-    MIDWEST = "mid west"
     NORTH = "north"
-    NORTHEAST = "north east"
-    NORTHWEST = "north west"
+    NORTHEAST = "northeast"
+    NORTHWEST = "northwest"
     RIGHT = "right"
     SOUTH = "south"
-    SOUTHEAST = "south east"
-    SOUTHWEST = "south west"
+    SOUTHEAST = "southeast"
+    SOUTHWEST = "southwest"
     TEXT = "text"
     TOP = "top"
     WEST = "west"
@@ -158,6 +155,18 @@ class ColorSpace(StrEnum):
     LAB = "LAB"
     RGB = "RGB"
     YIQ = "YIQ"
+
+
+class ColorMatrix(StrEnum):
+    """ColorMatrix is used to set the type attribute of the SVG feColorMatrix primitive.
+
+    Valid values are: MATRIX, SATURATE, HUE_ROTATE, LUMINANCE_TO_ALPHA.
+    """
+
+    MATRIX = "matrix"
+    SATURATE = "saturate"
+    HUE_ROTATE = "hueRotate"
+    LUMINANCE_TO_ALPHA = "luminanceToAlpha"
 
 
 class Connection(StrEnum):
@@ -437,6 +446,16 @@ class Graph(StrEnum):
     UNDIRECTEDWEIGHTED = "UNDIRECTEDWEIGHTED"
 
 
+class GradientType(StrEnum):
+    """SVG gradient types.
+
+    Valid values are: LINEAR, RADIAL.
+    """
+
+    LINEAR = "linear"
+    RADIAL = "radial"
+
+
 class GridType(StrEnum):
     """GridType is used to set the type of grid.
     Grids are used for creating star patterns.
@@ -559,16 +578,47 @@ class LineWidth(StrEnum):
     VERY_THIN = "very thin"
 
 
-class MarkerPos(StrEnum):
-    """MarkerPos is used to set the position of the marker.
+class InPlace(StrEnum):
+    ADD = "ADD"
+    SUB = "SUB"
+    MUL = "MUL"
+    TRUE_DIV = "TRUE_DIV"
+    FLOOR_DIV = "FLOOR_DIV"
+    MOD = "MOD"
+    POW = "POW"
 
-    Valid values are: CONCAVEHULL, CONVEXHULL, MAINX, OFFSETX.
+
+class Extent(StrEnum):
+    """Extent controls how a Line is rendered.
+
+    Valid values are: SEGMENT, RAY, INFINITE.
     """
 
-    CONCAVEHULL = "CONCAVEHULL"
-    CONVEXHULL = "CONVEXHULL"
-    MAINX = "MAINX"
-    OFFSETX = "OFFSETX"
+    SEGMENT = "segment"
+    RAY = "ray"
+    INFINITE = "infinite"
+
+
+class FilterType(StrEnum):
+    """SVG filters."""
+
+    GAUSSIAN_BLUR = "feGaussianBlur"
+    BLEND = "feBlend"
+    COLOR_MATRIX = "feColorMatrix"
+    COMPONENT_TRANSFER = "feComponentTransfer"
+    COMPOSITE = "feComposite"
+    CONVOLVE_MATRIX = "feConvolveMatrix"
+    DIFFUSE_LIGHTING = "feDiffuseLighting"
+    DISPLACEMENT_MAP = "feDisplacementMap"
+    DROP_SHADOW = "feDropShadow"
+    FLOOD = "feFlood"
+    IMAGE = "feImage"
+    MERGE = "feMerge"
+    MORPHOLOGY = "feMorphology"
+    OFFSET = "feOffset"
+    SPECULAR_LIGHTING = "feSpecularLighting"
+    TILE = "feTile"
+    TURBULENCE = "feTurbulence"
 
 
 class MarkerType(StrEnum):
@@ -576,7 +626,7 @@ class MarkerType(StrEnum):
 
     Valid values are: ASTERISK, BAR, CIRCLE, CROSS, DIAMOND, DIAMOND_F, EMPTY, FCIRCLE, HALF_CIRCLE,
     HALF_CIRCLE_F, HALF_DIAMOND, HALF_DIAMOND_F, HALF_SQUARE, HALF_SQUARE_F, HEXAGON, HEXAGON_F, INDICES,
-    MINUS, OPLUS, OPLUS_F, O_TIMES, O_TIMES_F, PENTAGON, PENTAGON_F, PLUS, SQUARE, SQUARE_F, STAR, STAR2,
+    MINUS, OPLUS, OPLUS_F, O_TIMES, O_TIMES_F, PENTAGON, PENTAGON_F, PLUS, SHAPE, SQUARE, SQUARE_F, STAR, STAR2,
     STAR3, TEXT, TRIANGLE, TRIANGLE_F.
     """
 
@@ -605,6 +655,7 @@ class MarkerType(StrEnum):
     PENTAGON = "pentagon"
     PENTAGON_F = "pentagon*"
     PLUS = "+"
+    SHAPE = "shape"
     SQUARE = "square"
     SQUARE_F = "square*"
     STAR = "star"
@@ -743,7 +794,7 @@ class PathOperation(StrEnum):
     Used with LinPath objects.
 
     Valid values are: ARC, ARC_TO, BLEND_ARC, BLEND_CUBIC, BLEND_QUAD, BLEND_SINE, CLOSE, CUBIC_TO, FORWARD,
-    HOBBY_TO, H_LINE, LINE_TO, MOVE_TO, QUAD_TO, R_LINE, R_MOVE, SEGMENTS, SINE, V_LINE.
+    HOBBY_TO, H_LINE_TO, LINE_TO, MOVE_TO, QUAD_TO, R_LINE, R_H_LINE, R_V_LINE, R_MOVE, SEGMENTS, SINE, V_LINE_TO.
     """
 
     ARC = "ARC"
@@ -756,15 +807,24 @@ class PathOperation(StrEnum):
     CUBIC_TO = "CUBIC_TO"
     FORWARD = "FORWARD"
     HOBBY_TO = "HOBBY_TO"
-    H_LINE = "H_LINE"
+    H_LINE_TO = "H_LINE_TO"
     LINE_TO = "LINE_TO"
+    MIRROR_CUBIC_TO = "MIRROR_CUBIC_TO"
+    MIRROR_QUAD_TO = "MIRROR_QUAD_TO"
     MOVE_TO = "MOVE_TO"
     QUAD_TO = "QUAD_TO"
-    R_LINE = "RLINE"
-    R_MOVE = "RMOVE"
+    R_CUBIC = "R_CUBIC"
+    R_H_LINE = "R_H_LINE"
+    R_LINE = "R_LINE"
+    R_MIRROR_CUBIC_TO = "R_MIRROR_CUBIC_TO"
+    R_MIRROR_QUAD_TO = "R_MIRROR_QUAD_TO"
+    R_QUAD = "R_QUAD"
+    R_SEGMENTS = "R_SEGMENTS"
+    R_V_LINE = "R_V_LINE"
+    R_MOVE = "R_MOVE"
     SEGMENTS = "SEGMENTS"
     SINE = "SINE"
-    V_LINE = "V_LINE"
+    V_LINE_TO = "V_LINE_TO"
 
 
 class PatternType(StrEnum):
@@ -819,6 +879,42 @@ class PlaitStyle(StrEnum):
     DOUBLE_LINES = "DOUBLE_LINES"
 
 
+class Reference(StrEnum):
+    """References are used for applying transformations dynamically.
+    For example a rotation can be applied to a transformed shape's midpoint
+    that will be computed during successive transformations.
+    They are specified by bounding-box width, height, points, lines or their offsets.
+    """
+
+    # points
+    SOUTHEAST = "southeast"
+    SOUTHWEST = "southwest"
+    NORTHEAST = "northeast"
+    NORTHWEST = "northwest"
+    SOUTH = "south"
+    NORTH = "north"
+    EAST = "east"
+    WEST = "west"
+    CENTER = "center"
+    MIDPOINT = "midpoint"
+    # lines
+    LEFT = "left"
+    RIGHT = "right"
+    TOP = "top"
+    BOTTOM = "bottom"
+    HORIZ_CENTERLINE = "horiz_centerline"
+    VERT_CENTERLINE = "vert_centerline"
+    # lengths
+    WIDTH = "width"
+    HEIGHT = "height"
+
+
+class ReferenceTarget(StrEnum):
+    KERNEL = "kernel"
+    PATTERN = "pattern"
+    ACTIVE = "active"
+
+
 class Render(StrEnum):
     """Render is used to set the type of rendering.
 
@@ -827,6 +923,16 @@ class Render(StrEnum):
 
     EPS = "EPS"
     PDF = "PDF"
+    SVG = "SVG"
+    TEX = "TEX"
+
+
+class Renderer(StrEnum):
+    """Renderer is used to set the rendering engine.
+
+    Valid values are: SVG, TEX.
+    """
+
     SVG = "SVG"
     TEX = "TEX"
 
@@ -904,6 +1010,20 @@ class State(StrEnum):
     STOPPED = "STOPPED"
 
 
+class SvgMaskType(StrEnum):
+    """SVG mask type modes."""
+
+    ALPHA = "alpha"
+    LUMINANCE = "luminance"
+
+
+class SvgUnits(StrEnum):
+    """SVG coordinate unit modes."""
+
+    OBJECT_BOUNDING_BOX = "objectBoundingBox"
+    USER_SPACE_ON_USE = "userSpaceOnUse"
+
+
 class TexLoc(StrEnum):
     """TexLoc is used to set the location of the TeX related
     objects.
@@ -935,19 +1055,19 @@ class Topology(StrEnum):
     YJOINT = "YJOINT"
 
 
-class Transformation(StrEnum):
+class TransformationType(StrEnum):
     """Transformation is used to set the type of a transformation.
 
     Valid values are: GLIDE, MIRROR, ROTATE, SCALE, SHEAR, TRANSFORM, TRANSLATE.
     """
 
-    GLIDE = "GLIDE"
-    MIRROR = "MIRROR"
-    ROTATE = "ROTATE"
-    SCALE = "SCALE"
-    SHEAR = "SHEAR"
-    TRANSFORM = "TRANSFORM"
-    TRANSLATE = "TRANSLATE"
+    GLIDE = "glide"
+    MIRROR = "mirror"
+    ROTATE = "rotate"
+    SCALE = "scale"
+    SHEAR = "shear"
+    TRANSFORM = "transfom"
+    TRANSLATE = "translate"
 
 
 class Types(StrEnum):
@@ -974,6 +1094,7 @@ class Types(StrEnum):
     CIRCLE = "CIRCLE"
     CIRCLE_SKETCH = "CIRCLE_SKETCH"
     CIRCULAR_GRID = "CIRCULAR_GRID"
+    CLIP = "CLIP"
     CLIP_SKETCH = "CLIP_SKETCH"
     COLOR = "COLOR"
     CS = "CS"
@@ -1001,14 +1122,18 @@ class Types(StrEnum):
     GRID = "GRID"
     GRID_STYLE = "GRID_STYLE"
     GROUP = "GROUP"
+    GROUP_SKETCH = "GROUP_SKETCH"
     HANDLE = "HANDLE"
+    HELPLINES_SKETCH = "HELPLINES_SKETCH"
     HEXAGONAL = "HEXAGONAL"
     HEX_GRID = "HEX_GRID"
+    HOP_DEF = "HOP_DEF"
     ICANVAS = "ICANVAS"
     IMAGE = "IMAGE"
     IMAGE_SKETCH = "IMAGE_SKETCH"
     IMAGE_STYLE = "IMAGE_STYLE"
     INTERSECTION = "INTERSECTION"
+    JUMP_DEF = "JUMP_DEF"
     LABEL = "LABEL"
     LACE = "LACE"
     LACESKETCH = "LACE_SKETCH"
@@ -1018,12 +1143,15 @@ class Types(StrEnum):
     LINE_STYLE = "LINE_STYLE"
     LINPATH = "LINPATH"
     LOOM = "LOOM"
+    LUMINANCE = "LUMINANCE"
     MARKER = "MARKER"
     MARKER_STYLE = "MARKER_STYLE"
     MASK = "MASK"
+    MASK_SKETCH = "MASK_SKETCH"
     MIXED_GRID = "MIXED_GRID"
     NONE = "NONE"
     OBLIQUE = "OBLIQUE"
+    OPACITY = "OPACITY"
     OUTLINE = "OUTLINE"
     OVERLAP = "OVERLAP"
     PAGE = "PAGE"
@@ -1033,6 +1161,7 @@ class Types(StrEnum):
     PATH_OPERATION = "PATH_OPERATION"
     PATH_SKETCH = "PATH_SKETCH"
     PATTERN = "PATTERN"
+    PATTERN_DEF = "PATTERN_DEF"
     PATTERN_SKETCH = "PATTERN_SKETCH"
     PATTERN_STYLE = "PATTERN_STYLE"
     PDF_SKETCH = "PDF_SKETCH"
@@ -1041,12 +1170,13 @@ class Types(StrEnum):
     PLAIT_SKETCH = "PLAIT_SKETCH"
     POINT = "POINT"
     POINTS = "POINTS"
+    POLYGON = "POLYGON"
     POLYLINE = "POLYLINE"
     Q_BEZIER = "Q_BEZIER"
     RADIAL = "RADIAL"
     RADIAL_DIMENSION = "RADIAL_DIMENSION"
-    RECT_SKETCH = "RECT_SKETCH"
     RECTANGLE = "RECTANGLE"
+    RECTANGLE_SKETCH = "RECTANGLE_SKETCH"
     RECTANGULAR = "RECTANGULAR"
     REG_POLY = "REGPOLY"
     REG_POLY_SKETCH = "REGPOLY_SKETCH"
@@ -1059,12 +1189,18 @@ class Types(StrEnum):
     SHAPE = "SHAPE"
     SHAPE_SKETCH = "SHAPE_SKETCH"
     SHAPE_STYLE = "SHAPE_STYLE"
+    SIDLE_DEF = "SIDLE_DEF"
     SINE_WAVE = "SINE_WAVE"
     SKETCH = "SKETCH"
     SKETCH_STYLE = "SKETCH_STYLE"
+    SPINNING_HOP_DEF = "SPINNING_HOP_DEF"
+    SPINNING_JUMP_DEF = "SPINNING_JUMP_DEF"
+    SPINNING_SIDLE_DEF = "SPINNING_SIDLE_DEF"
     SQUARE = "SQUARE"
     SQUARE_GRID = "SQUARE_GRID"
     STAR = "STAR"
+    STEP_DEF = "STEP_DEF"
+    STOP = "STOP"
     STYLE = "STYLE"
     SVG_PATH = "SVG_PATH"
     SVG_PATH_SKETCH = "SVG_PATH_SKETCH"
@@ -1073,6 +1209,7 @@ class Types(StrEnum):
     TAG_STYLE = "TAG_STYLE"
     TEX = "TEX"  # USED FOR GENERATING OUTPUTFILE.TEX
     TEX_SKETCH = "TEX_SKETCH"
+    LATEX_SKETCH = "LATEX_SKETCH"
     TEXT = "TEXT"
     TEXTANCHOR = "TEXT_ANCHOR"
     TEXT_ANCHOR_LINE = "TEXT_ANCHORLINE"
@@ -1110,6 +1247,7 @@ drawable_types = [
     Types.IMAGE,
     Types.INTERSECTION,
     Types.LACE,
+    Types.LINE,
     Types.LINPATH,
     Types.MIXED_GRID,
     Types.OUTLINE,
@@ -1174,6 +1312,32 @@ batch_types = [
     Types.TURTLE,
 ]
 
+point_refs = [
+    Reference.WEST,
+    Reference.EAST,
+    Reference.SOUTH,
+    Reference.NORTH,
+    Reference.SOUTHWEST,
+    Reference.SOUTHEAST,
+    Reference.NORTHWEST,
+    Reference.NORTHEAST,
+    Reference.CENTER,
+    Reference.MIDPOINT,
+]
+
+line_refs = [
+    Reference.LEFT,
+    Reference.RIGHT,
+    Reference.TOP,
+    Reference.BOTTOM,
+    Reference.HORIZ_CENTERLINE,
+    Reference.VERT_CENTERLINE,
+]
+
+length_refs = [
+    Reference.WIDTH,
+    Reference.HEIGHT,
+]
 # Python Version 3.9 cannot handle Union[*drawable_types]
 Drawable: TypeAlias = Union[
     Types.ARC,
@@ -1258,4 +1422,67 @@ anchors = [
     "height",
     "width",
     "all_anchors",
+]
+
+
+svg_types = [
+    Types.RECTANGLE,
+    Types.CIRCLE,
+    Types.ELLIPSE,
+    Types.POLYGON,
+    Types.POLYLINE,
+    Types.SVG_PATH,
+]
+
+
+# Canonical shape attribute names used across style resolution, sketch creation,
+# and rendering (SVG/TikZ). Keep this list in sync with canvas.style_map shape
+# aliases and shape-level runtime attributes (markers/masks/clip/filter/tile).
+shape_attributes = [
+    "active",
+    "alpha",
+    "back_style",
+    "clip",
+    "closed",
+    "color",
+    "dist_tol",
+    "double_color",
+    "double_distance",
+    "draw_double",
+    "draw_fillets",
+    "draw_markers",
+    "even_odd",
+    "even_odd_rule",
+    "fill",
+    "fill_alpha",
+    "fill_color",
+    "fill_mode",
+    "fillet_radius",
+    "filter",
+    "gradient",
+    "id",
+    "line_alpha",
+    "line_cap",
+    "line_color",
+    "line_dash_array",
+    "line_dash_phase",
+    "line_join",
+    "line_miter_limit",
+    "line_width",
+    "marker_alpha",
+    "marker_color",
+    "marker_radius",
+    "marker_shape",
+    "marker_size",
+    "marker_type",
+    "markers_only",
+    "mask",
+    "mode",
+    "points",
+    "smooth",
+    "stroke",
+    "subtype",
+    "text_alpha",
+    "visible",
+    "xform_matrix",
 ]

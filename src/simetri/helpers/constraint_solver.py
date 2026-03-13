@@ -398,4 +398,4 @@ def update(x):
     item2[1] = y_
 
 
-print(solve([dist_const, paralell_const], update, [40, 5]))
+# print(solve([dist_const, paralell_const], update, [40, 5]))

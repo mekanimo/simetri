@@ -13,8 +13,8 @@ from ..graphics.affine import (
     scale_in_place_matrix,
 )
 from ..graphics.batch import Batch
-from ..graphics.common import Point
-from ..graphics.all_enums import Types, Anchor, ImageMode, Transformation
+from ..graphics.common import PointType
+from ..graphics.all_enums import Types, Anchor, ImageMode
 from ..helpers.utilities import decompose_transformations
 
 
@@ -24,14 +24,14 @@ class PDF(Rectangle):
     """
 
     def __init__(
-        self, pdf_path: str, pos: Point = (0, 0), size: Sequence[int] = None, **kwargs
+        self, pdf_path: str, pos: PointType = (0, 0), size: Sequence[int] = None, **kwargs
     ):
         """
         Initialize a PDF object.
 
         Args:
             pdf_path (str): The path to the PDF file.
-            pos (Point, optional): The position of the PDF on the canvas. Defaults to (0, 0).
+            pos (PointType, optional): The position of the PDF on the canvas. Defaults to (0, 0).
             size (Sequence[int], optional): The size of the PDF. If None, uses the original size. Defaults to None.
             **kwargs: Additional keyword arguments for the Rectangle base class.
         """
@@ -85,7 +85,7 @@ class Image(Rectangle):
     def __init__(
         self,
         img: str = None,
-        pos: Point = (0, 0),
+        pos: PointType = (0, 0),
         size: Sequence[int] = None,
         mode=ImageMode.RGB,
         **kwargs,
@@ -200,22 +200,22 @@ class Image(Rectangle):
         return res
 
     @property
-    def pos(self) -> Point:
+    def pos(self) -> PointType:
         """
         The position of the image.
 
         Returns:
-            Point: The position of the image.
+            PointType: The position of the image.
         """
         return self.midpoint
 
     @pos.setter
-    def pos(self, point: Point) -> None:
+    def pos(self, point: PointType) -> None:
         """
         Set the position of the image.
 
         Args:
-            point (Point): The new position of the image.
+            point (PointType): The new position of the image.
         """
         x, y = self.pos[:2]
         dx = point[0] - x
@@ -582,7 +582,7 @@ class Image(Rectangle):
     #     kwargs = {'transform': Transformation.TRANSLATE}
     #     return self._update(transform, reps=reps, merge=merge, kwargs=kwargs)
 
-    # def rotate(self, angle: float, about: Point=None, reps: int=0, merge: bool=False,
+    # def rotate(self, angle: float, about: PointType=None, reps: int=0, merge: bool=False,
     #            resample=0, expand=0, translate=None, fillcolor=None) -> Union[Batch, 'Image']:
     #     """
     #     Returns a rotated copy of this image or a batch of rotated Image objects.
@@ -620,14 +620,14 @@ class Image(Rectangle):
 
     #     return self._update(transform, reps=reps, merge=merge, **kwargs)
 
-    # def scale(self, scale_x: float=1, scale_y: float=None, about: Point=(0, 0),
+    # def scale(self, scale_x: float=1, scale_y: float=None, about: PointType=(0, 0),
     #                                 reps: int=0, merge: bool=False) -> Union[Batch, 'Image']:
     #     """
     #     Scales this image by the given scale factors about the given point.
     #         Args:
     #             scale_x (float): The x-coordinate scale factor.
     #             scale_y (float): The y-coordinate scale factor.
-    #             about (Point, optional): The point about which to scale. Default is the center of the image.
+    #             about (PointType, optional): The point about which to scale. Default is the center of the image.
     #             reps (int, optional): The number of repetitions.
     #             merge (bool, optional): Whether to merge the images.
 

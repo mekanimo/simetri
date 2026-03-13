@@ -2,6 +2,7 @@ from random import random, choice
 import inspect
 
 from ..graphics.all_enums import Control, State
+from ..graphics.common import common_properties
 
 
 class Modifier:
@@ -48,6 +49,7 @@ class Modifier:
         self.count = 0
         self.args = args
         self.kwargs = kwargs
+        common_properties(self, False)
 
     def __repr__(self):
         """Returns a string representation of the Modifier object.
@@ -107,7 +109,7 @@ class Modifier:
         Args:
             element (object): The element to apply the modifier to.
         """
-        if self.can_continue(element):
+        if self.active and self.can_continue(element):
             if self.n_func_args == 1:
                 res = self.function(element)
             else:

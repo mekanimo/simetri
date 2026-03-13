@@ -5,7 +5,7 @@
 # Testing is incomplete.
 # Everything is subject to change till we release a beta version.
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 __author__ = "Fahri Basegmez"
 
 from math import (
@@ -68,6 +68,9 @@ from ..colors.pastels import figma_palettes, pastels_2
 from ..colors.swatches import *
 import simetri.colors as colors
 from ..tikz.tikz import *
+from ..svg.svg import *
+from ..svg.mask import Mask, Stop, Axis, Gradient
+from ..svg.filters import *
 from ..helpers.validation import check_version
 from ..stars import stars
 from ..stars.stars import rosette, Star
@@ -76,12 +79,18 @@ from ..graphics.all_enums import *
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..extensions.l_system import l_system
 from ..extensions.easing import *
+from ..extensions.strip_patterns import *
+from ..frieze.frieze_patterns import *
 from ..extensions.tree import make_tree, TreeNode
-from .path import LinPath
+from .path import LinPath, Operation
 from .pattern import *
 from ..image.image import Image, open_img
 
+# Preserve geometric Line class on public namespace.
+from ..graphics.shapes import Line as Line
+
 set_tikz_defaults()
+set_svg_defaults()
 
 import simetri.canvas.style_map as style_map
 
@@ -96,10 +105,7 @@ def set_alias_maps():
     style_map._set_pattern_style_alias_map()
     style_map._set_frame_style_alias_map()
     style_map._set_shape_args()
-    style_map._set_batch_args()
 
 
 # if any of the styles is changed, this should be called again!!!
 # set_alias_maps()
-
-Group = Batch # This is temporary. Batch will be changed to Group soon.

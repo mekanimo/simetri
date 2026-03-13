@@ -10,7 +10,7 @@ from numpy import allclose, ndarray
 from typing_extensions import Self
 
 from ..geometry.geometry import homogenize
-from .common import Point, common_properties
+from .common import PointType, common_properties
 from .all_enums import Types
 from ..settings.settings import defaults
 
@@ -39,11 +39,11 @@ class Points:
     coordinates in nd_arrays. Used in Shape objects.
     """
 
-    def __init__(self, coords: Sequence[Point] = None) -> None:
+    def __init__(self, coords: Sequence[PointType] = None) -> None:
         """Initialize a Points object.
 
         Args:
-            coords (Sequence[Point], optional): The coordinates of the points. Defaults to None.
+            coords (Sequence[PointType], optional): The coordinates of the points. Defaults to None.
         """
         # coords are a list of (x, y) values
         if coords is None:
@@ -127,7 +127,7 @@ class Points:
             subscript (int or slice): The subscript to get the point(s) from.
 
         Returns:
-            Point or list[Point]: The point(s) at the given subscript.
+            PointType or list[PointType]: The point(s) at the given subscript.
 
         Raises:
             TypeError: If the subscript type is invalid.
@@ -149,7 +149,7 @@ class Points:
 
         Args:
             subscript (int or slice): The subscript to set the point(s) at.
-            value (Point or list[Point]): The value to set the point(s) to.
+            value (PointType or list[PointType]): The value to set the point(s) to.
 
         Raises:
             TypeError: If the subscript type is invalid.
@@ -183,11 +183,11 @@ class Points:
             )
         )
 
-    def append(self, item: Point) -> Self:
+    def append(self, item: PointType) -> Self:
         """Append a point to the points.
 
         Args:
-            item (Point): The point to append.
+            item (PointType): The point to append.
 
         Returns:
             Self: The updated Points object.
@@ -196,11 +196,11 @@ class Points:
         self._update_coords()
         return self
 
-    def extend(self, items: Sequence[Point]) -> Self:
+    def extend(self, items: Sequence[PointType]) -> Self:
         """Extend the points with a given sequence of points.
 
         Args:
-            items (Sequence[Point]): The sequence of points to add.
+            items (Sequence[PointType]): The sequence of points to add.
 
         Returns:
             Self: The updated Points object.
@@ -209,14 +209,14 @@ class Points:
         self._update_coords()
         return self
 
-    def pop(self, index: int = -1) -> Point:
+    def pop(self, index: int = -1) -> PointType:
         """Remove the point at the given index and return it.
 
         Args:
             index (int, optional): The index of the point to remove. Defaults to -1.
 
         Returns:
-            Point: The removed point.
+            PointType: The removed point.
         """
         value = self.coords.pop(index)
         self._update_coords()
@@ -244,7 +244,7 @@ class Points:
         """Remove the first occurrence of the given point.
 
         Args:
-            value (Point): The point value to remove.
+            value (PointType): The point value to remove.
         """
         self.coords.remove(value)
         self._update_coords()
@@ -254,7 +254,7 @@ class Points:
 
         Args:
             index (int): The index to insert the point at.
-            points (Point): The point to insert.
+            points (PointType): The point to insert.
         """
         self.coords.insert(index, points)
         self._update_coords()
@@ -273,7 +273,7 @@ class Points:
         """Return an iterator over the points.
 
         Returns:
-            Iterator[Point]: An iterator over the points.
+            Iterator[PointType]: An iterator over the points.
         """
         return iter(self.coords)
 
@@ -320,6 +320,6 @@ class Points:
         """Return a list of consecutive pairs of points.
 
         Returns:
-            list[tuple[Point, Point]]: A list where each element is a tuple containing two consecutive points.
+            list[tuple[PointType, PointType]]: A list where each element is a tuple containing two consecutive points.
         """
         return list(zip(self.coords[:-1], self.coords[1:]))

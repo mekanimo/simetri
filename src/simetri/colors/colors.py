@@ -20,7 +20,7 @@ from typing import Sequence
 
 import numpy as np
 
-from ..graphics.common import common_properties, Point
+from ..graphics.common import common_properties, PointType
 from ..graphics.all_enums import ColorSpace, Types
 
 
@@ -435,14 +435,14 @@ class LinearGradient:
         x2: The x-coordinate of the ending point.
         y2: The y-coordinate of the ending point.
         colors: A sequence of Color objects defining the gradient colors.
-        positions: A sequence of Point objects defining the gradient positions.
+        positions: A sequence of PointType objects defining the gradient positions.
         extend: Whether to extend the gradient beyond its endpoints.
 
     Examples:
-        >>> from simetri.graphics.common import Point
+        >>> from simetri.graphics.common import PointType
         >>> gradient = LinearGradient(0, 0, 100, 100,
         ...                          [Color(1, 0, 0), Color(0, 0, 1)],
-        ...                          [Point(0, 0), Point(100, 100)])
+        ...                          [PointType(0, 0), PointType(100, 100)])
     """
 
     x1: float = 0.0
@@ -450,7 +450,7 @@ class LinearGradient:
     x2: float = 0.0
     y2: float = 0.0
     colors: Sequence[Color] = None
-    positions: Sequence[Point] = None
+    positions: Sequence[PointType] = None
     extend: bool = False
 
     def __post_init__(self):
@@ -470,21 +470,21 @@ class RadialGradient:
         y: The y-coordinate of the center point.
         radius: The radius of the gradient.
         colors: A sequence of Color objects defining the gradient colors.
-        positions: A sequence of Point objects defining the gradient positions.
+        positions: A sequence of PointType objects defining the gradient positions.
         extend: Whether to extend the gradient beyond its defined radius.
 
     Examples:
-        >>> from simetri.graphics.common import Point
+        >>> from simetri.graphics.common import PointType
         >>> gradient = RadialGradient(50, 50, 30,
         ...                         [Color(1, 1, 1), Color(0, 0, 0)],
-        ...                         [Point(50, 50), Point(80, 50)])
+        ...                         [PointType(50, 50), PointType(80, 50)])
     """
 
     x: float = 0.0
     y: float = 0.0
     radius: float = 0.0
     colors: Sequence[Color] = None
-    positions: Sequence[Point] = None
+    positions: Sequence[PointType] = None
     extend: bool = False
 
     def __post_init__(self):

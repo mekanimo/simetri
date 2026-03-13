@@ -19,7 +19,7 @@ from ..graphics.batch import Batch
 from ..graphics.shape import Shape
 
 from ..graphics.shapes import reg_poly_points_side_length
-from ..graphics.common import get_defaults, common_properties, Point, _set_Nones
+from ..graphics.common import get_defaults, common_properties, PointType, _set_Nones
 from ..graphics.all_enums import (
     Types,
     LineJoin,
@@ -29,6 +29,7 @@ from ..graphics.all_enums import (
     ArrowLine,
     Placement,
     FontSize,
+    FontFamily,
 )
 from ..canvas.style_map import shape_style_map, tag_style_map, TagStyle
 from ..graphics.affine import identity_matrix
@@ -41,7 +42,7 @@ from ..geometry.geometry import (
     midpoint,
     polar_to_cartesian,
 )
-from .utilities import get_transform, detokenize
+from .utilities import get_transform
 from ..colors.swatches import swatches_255
 from ..settings.settings import defaults
 from ..colors import colors
@@ -374,7 +375,7 @@ class Tag(Base):
 
     Args:
         text (str): The text of the tag.
-        pos (Point): The position of the tag.
+        pos (PointType): The position of the tag.
         font_family (str, optional): The font family. Defaults to None.
         font_size (int, optional): The font size. Defaults to None.
         font_color (Color, optional): The font color. Defaults to None.
@@ -394,7 +395,7 @@ class Tag(Base):
     def __init__(
         self,
         text: str,
-        pos: Point,
+        pos: PointType,
         font_family: str = None,
         font_size: int = None,
         font_color: Color = None,
@@ -424,7 +425,7 @@ class Tag(Base):
         x, y = pos[:2]
         self._init_pos = array([x, y, 1.0])
 
-        self.text = detokenize(text)
+        self.text = text
         if frame is None:
             self.frame = TagFrame()
         self.type = Types.TAG
@@ -460,14 +461,14 @@ class Tag(Base):
         common_properties(self)
 
     def __setattr__(self, name, value):
-        obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
+        obj, attrib = self.__dict__["_aliases"].get(name, (None, None))
         if obj:
             setattr(obj, attrib, value)
         else:
             self.__dict__[name] = value
 
     def __getattr__(self, name):
-        obj, attrib = self.__dict__["_aliasses"].get(name, (None, None))
+        obj, attrib = self.__dict__["_aliases"].get(name, (None, None))
         if obj:
             res = getattr(obj, attrib)
         else:
@@ -479,7 +480,7 @@ class Tag(Base):
         return res
 
     def _set_aliases(self):
-        _aliasses = {}
+        _aliases = {}
 
         for alias, path_attrib in self._style_map.items():
             style_path, attrib = path_attrib
@@ -488,8 +489,8 @@ class Tag(Base):
                 obj = obj.__dict__[attrib_name]
 
             if obj is not self:
-                _aliasses[alias] = (obj, attrib)
-        self.__dict__["_aliasses"] = _aliasses
+                _aliases[alias] = (obj, attrib)
+        self.__dict__["_aliases"] = _aliases
 
     def _update(self, xform_matrix, reps: int = 0, merge: bool = False):
         if reps == 0:
@@ -510,11 +511,11 @@ class Tag(Base):
         return res
 
     @property
-    def pos(self) -> Point:
+    def pos(self) -> PointType:
         """Returns the position of the text.
 
         Returns:
-            Point: The position of the text.
+            PointType: The position of the text.
         """
         return (self._init_pos @ self.xform_matrix)[:2].tolist()
 
@@ -555,7 +556,6 @@ class Tag(Base):
             FontSize.HUGE: 20,
             FontSize.HUGE2: 25,
         }
-        mult = 1  # font size multiplier
         if self.font_size is None:
             font_size = defaults["font_size"]
         elif type(self.font_size) in [int, float]:
@@ -564,24 +564,37 @@ class Tag(Base):
             font_size = convert_latex_font_size(self.font_size)
         else:
             raise ValueError("Invalid font size.")
-        try:
-            font = ImageFont.truetype(f"{self.font_family}.ttf", font_size)
-        except OSError:
-            font = ImageFont.load_default()
-            if self.font_size in d_font_size:
-                font_size = d_font_size[self.font_size]
+        if isinstance(self.font_family, FontFamily):
+            if self.font_family == FontFamily.MONOSPACE:
+                font_name = defaults["mono_font"]
+            elif self.font_family == FontFamily.SANSSERIF:
+                font_name = defaults["sans_font"]
             else:
-                font_size = self.font_size
-            mult = font_size / 10
+                font_name = defaults["main_font"]
+        else:
+            font_name = self.font_family
+
+        if not isinstance(font_name, str) or not font_name:
+            raise ValueError(f"Invalid font family for Tag: {font_name!r}")
+
+        normalized_font_name = font_name.strip().lower()
+        font_resource_map = {
+            "courier new": "cour.ttf",
+            "times new roman": "times.ttf",
+            "arial": "arial.ttf",
+        }
+        if normalized_font_name in font_resource_map:
+            font_resource = font_resource_map[normalized_font_name]
+        elif normalized_font_name.endswith(".ttf"):
+            font_resource = font_name
+        else:
+            font_resource = f"{font_name}.ttf"
+
+        font = ImageFont.truetype(font_resource, int(font_size))
         xmin, ymin, xmax, ymax = font.getbbox(self.text)
         width = xmax - xmin
         height = ymax - ymin
-        dx = (width * mult) / 2
-        dy = (height * mult) / 2
-        xmin -= dx
-        xmax += dx
-        ymin -= dy
-        ymax += dy
+        xmin, ymin, xmax, ymax = 0, 0, width, height
 
         return xmin, ymin, xmax, ymax
 
@@ -602,12 +615,26 @@ class Tag(Base):
             tuple: The bounding box of the text.
         """
         xmin, ymin, xmax, ymax = self.text_bounds()
-        w2 = (xmax - xmin) / 2
-        h2 = (ymax - ymin) / 2
+        text_width = xmax - xmin
+        text_height = ymax - ymin
+        if self.text_width is not None:
+            text_width = max(text_width, self.text_width)
+
+        w2 = text_width / 2
+        h2 = text_height / 2
         x, y = self.pos[:2]
         inner_sep = self.frame.inner_sep
-        xmin = x - w2 - inner_sep
-        xmax = x + w2 + inner_sep
+
+        if self.anchor in [Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST]:
+            xmin = x - inner_sep
+            xmax = x + text_width + inner_sep
+        elif self.anchor in [Anchor.EAST, Anchor.SOUTHEAST, Anchor.NORTHEAST]:
+            xmin = x - text_width - inner_sep
+            xmax = x + inner_sep
+        else:
+            xmin = x - w2 - inner_sep
+            xmax = x + w2 + inner_sep
+
         ymin = y - h2 - inner_sep
         ymax = y + h2 + inner_sep
         points = [
@@ -757,7 +784,7 @@ class ArcArrow(Batch):
     """An ArcArrow object is an arrow with an arc.
 
     Args:
-        center (Point): The center of the arc.
+        center (PointType): The center of the arc.
         radius (float): The radius of the arc.
         start_angle (float): The starting angle of the arc.
         end_angle (float): The ending angle of the arc.
@@ -767,7 +794,7 @@ class ArcArrow(Batch):
 
     def __init__(
         self,
-        center: Point,
+        center: PointType,
         radius: float,
         start_angle: float,
         end_angle: float,
@@ -809,7 +836,7 @@ class RadialDimension(Batch):
     """A RadialDimension object is a dimension that represents a radius.
 
     Args:
-        center (Point): The center of the circle.
+        center (PointType): The center of the circle.
         radius (float): The radius of the circle.
         angle (float): The angle of the dimension line.
         text_offset (float, optional): The offset for the dimension text. Defaults to None.
@@ -819,7 +846,7 @@ class RadialDimension(Batch):
 
     def __init__(
         self,
-        center: Point,
+        center: PointType,
         radius: float = None,
         angle: float = 0,
         text: str = "",
@@ -865,8 +892,8 @@ class Arrow(Batch):
     """An Arrow object is a line with an arrow head.
 
     Args:
-        p1 (Point): The starting point of the arrow.
-        p2 (Point): The ending point of the arrow.
+        p1 (PointType): The starting point of the arrow.
+        p2 (PointType): The ending point of the arrow.
         head_pos (HeadPos, optional): The position of the arrow head. Defaults to HeadPos.END.
         head (Shape, optional): The shape of the arrow head. Defaults to None.
         **kwargs: Additional keyword arguments for arrow styling.
@@ -874,8 +901,8 @@ class Arrow(Batch):
 
     def __init__(
         self,
-        p1: Point,
-        p2: Point,
+        p1: PointType,
+        p2: PointType,
         head_pos: HeadPos = HeadPos.END,
         head: Shape = None,
         line_width: float = 1,
@@ -937,7 +964,7 @@ class AngularDimension(Batch):
     """An AngularDimension object is a dimension that represents an angle.
 
     Args:
-        center (Point): The center of the angle.
+        center (PointType): The center of the angle.
         radius (float): The radius of the angle.
         start_angle (float): The starting angle.
         end_angle (float): The ending angle.
@@ -950,7 +977,7 @@ class AngularDimension(Batch):
 
     def __init__(
         self,
-        center: Point,
+        center: PointType,
         radius: float,
         start_angle: float,
         end_angle: float,
@@ -977,8 +1004,8 @@ class Dimension(Batch):
 
     Args:
         text (str): The text of the dimension.
-        p1 (Point): The starting point of the dimension.
-        p2 (Point): The ending point of the dimension.
+        p1 (PointType): The starting point of the dimension.
+        p2 (PointType): The ending point of the dimension.
         ext_length (float): The length of the extension lines.
         ext_length2 (float, optional): The length of the second extension line. Defaults to None.
         orientation (Anchor, optional): The orientation of the dimension. Defaults to None.
@@ -988,8 +1015,8 @@ class Dimension(Batch):
         reverse_arrows (bool, optional): Whether to reverse the arrows. Defaults to False.
         reverse_arrow_length (float, optional): The length of the reversed arrows. Defaults to None.
         parallel (bool, optional): Whether the dimension is parallel. Defaults to False.
-        ext1pnt (Point, optional): The first extension point. Defaults to None.
-        ext2pnt (Point, optional): The second extension point. Defaults to None.
+        ext1pnt (PointType, optional): The first extension point. Defaults to None.
+        ext2pnt (PointType, optional): The second extension point. Defaults to None.
         scale (float, optional): The scale factor. Defaults to 1.
         font_size (int, optional): The font size. Defaults to 12.
         keep_centered (bool, optional): Whether to keep the dimension centered. Defaults to False.
@@ -999,8 +1026,8 @@ class Dimension(Batch):
     # To do: This is too long and convoluted. Refactor it.
     def __init__(
         self,
-        p1: Point,
-        p2: Point,
+        p1: PointType,
+        p2: PointType,
         ext_length: float,
         ext_length2: float = None,
         orientation: Anchor = None,
@@ -1011,8 +1038,8 @@ class Dimension(Batch):
         reverse_arrows: bool = False,
         reverse_arrow_length: float = None,
         parallel: bool = False,
-        ext1pnt: Point = None,
-        ext2pnt: Point = None,
+        ext1pnt: PointType = None,
+        ext2pnt: PointType = None,
         scale: float = 1,
         font_size: int = 12,
         keep_centered: bool = False,

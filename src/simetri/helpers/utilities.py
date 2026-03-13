@@ -9,7 +9,7 @@ import inspect
 import ast
 from functools import wraps, reduce, cmp_to_key
 from time import time, monotonic, perf_counter
-from math import factorial, cos, sin, pi, atan2, sqrt
+from math import factorial, cos, sin, pi, atan2, sqrt, ceil, floor
 from pathlib import Path
 from bisect import bisect_left
 
@@ -21,7 +21,7 @@ import numpy as np
 from numpy import isclose
 
 from ..settings.settings import defaults
-from ..graphics.common import get_defaults, Point, Line
+from ..graphics.common import get_defaults, PointType, LineType
 
 
 def time_it(func):
@@ -37,6 +37,18 @@ def time_it(func):
         return result
 
     return time_it_wrapper
+
+
+def round_symmetric(n, inc):
+    '''Rounds the given number to the given increment.
+    For positive numbers the number is rounded up and for negative
+    numbers the number is rounded down.'''
+    if n >= 0:
+        return ceil(n / inc) * inc
+    else:
+        return floor(n / inc) * inc
+
+
 
 
 def close_logger(logger):
@@ -105,11 +117,11 @@ def remove_file_handler(logger, handler):
     handler.close()
 
 
-def pretty_print_coords(coords: Sequence[Point]) -> str:
+def pretty_print_coords(coords: Sequence[PointType]) -> str:
     """Print the coordinates with a precision of 2.
 
     Args:
-        coords: A sequence of Point objects.
+        coords: A sequence of PointType objects.
 
     Returns:
         A string representation of the coordinates.
@@ -412,7 +424,7 @@ def is_sequence(value):
     return isinstance(value, (list, tuple, array))
 
 
-def rel_coord(dx: float, dy: float, center: Point) -> Point:
+def rel_coord(dx: float, dy: float, center: PointType) -> PointType:
     """Return the relative coordinates.
 
     Args:
@@ -426,7 +438,7 @@ def rel_coord(dx: float, dy: float, center: Point) -> Point:
     return dx + center[0], dy + center[1]
 
 
-def rel_polar(r: float, angle: float, center: Point) -> Point:
+def rel_polar(r: float, angle: float, center: PointType) -> PointType:
     """Return the coordinates.
 
     Args:
@@ -448,7 +460,7 @@ rc = rel_coord  # alias for rel_coord
 rp = rel_polar  # alias for rel_polar
 
 
-def axis(angle: float, length: float = 10) -> Line:
+def axis(angle: float, length: float = 10) -> LineType:
     """Return a line [(x1, y1), (x2, y2)] with the given angle
     and length.
     Args:
@@ -946,7 +958,7 @@ def catalan(n):
     return res
 
 
-def reg_poly_points(pos: Point, n: int, r: float) -> Sequence[Point]:
+def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
     """Return a regular polygon points list with n sides, r radius, and pos center.
 
     Args:

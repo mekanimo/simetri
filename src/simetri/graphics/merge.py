@@ -3,7 +3,7 @@ from typing import List
 
 import networkx as nx
 
-from .common import Line
+from .common import LineType
 from ..geometry.geometry import (
     right_handed,
     fix_degen_points,
@@ -129,18 +129,18 @@ def merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
 
 def _merge_collinears(
     self,
-    edges: List[Line],
+    edges: List[LineType],
     angle_bin_size: float = 0.1
-) -> List[Line]:
+) -> List[LineType]:
     """
     Merge collinear edges.
 
     Args:
-        edges (List[Line]): List of edges.
+        edges (List[LineType]): List of edges.
         angle_bin_size (float, optional): Bin size for grouping angles. Defaults to 0.1.
         n_round (int, optional): Number of rounding digits. Defaults to 2.
     Returns:
-        List[Line]: List of merged edges.
+        List[LineType]: List of merged edges.
     """
     d_node_coord = self.d_node_coord
     d_coord_node = self.d_coord_node

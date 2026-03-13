@@ -5,7 +5,7 @@ from typing import Sequence
 
 import networkx as nx
 
-from ..graphics.common import common_properties, Point
+from ..graphics.common import common_properties, PointType
 from ..graphics.all_enums import Types
 from ..settings.settings import defaults
 from ..geometry.geometry import distance, close_points2
@@ -15,8 +15,8 @@ from ..geometry.geometry import distance, close_points2
 class GraphEdge:
     """Edge in a graph. It has a start and end point as nodes."""
 
-    start: Point
-    end: Point
+    start: PointType
+    end: PointType
 
     def __post_init__(self):
         """Initialize the GraphEdge with start and end points."""

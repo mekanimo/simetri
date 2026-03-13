@@ -3,7 +3,7 @@
 from typing import Sequence, Union
 
 from ..geometry.geometry import vec_along_line, point_to_line_vec, pi
-from ..graphics.common import VecType, Line, Point
+from ..graphics.common import VecType, LineType, PointType
 from ..graphics.batch import Batch
 
 from ..graphics.shape import Shape
@@ -42,7 +42,7 @@ def p1(design: Union[Batch, Shape], vector: VecType = (1, 0), reps: int = 3) -> 
 
 def jump(
     design: Union[Batch, Shape],
-    mirror_line: Line,
+    mirror_line: LineType,
     dist: float,
     reps: int = 3,
 ) -> Batch:
@@ -67,8 +67,8 @@ def jump(
 
 def jump_along(
     design: Batch,
-    mirror_line: Line,
-    path: Sequence[Point],
+    mirror_line: LineType,
+    path: Sequence[PointType],
     reps: int = 3,
 ) -> Batch:
     """
@@ -77,7 +77,7 @@ def jump_along(
     Args:
         design (Batch): The design to be repeated.
         mirror_line (Line): The line to mirror the design.
-        path (Sequence[Point]): The path along which to translate the design.
+        path (Sequence[PointType]): The path along which to translate the design.
         reps (int, optional): The number of repetitions. Defaults to 3.
 
     Returns:
@@ -89,7 +89,7 @@ def jump_along(
     return design
 
 
-def sidle(design: Batch, mirror_line: Line, dist: float, reps: int = 3) -> Batch:
+def sidle(design: Batch, mirror_line: LineType, dist: float, reps: int = 3) -> Batch:
     """
     p1m1 symmetry group.
 
@@ -109,7 +109,7 @@ def sidle(design: Batch, mirror_line: Line, dist: float, reps: int = 3) -> Batch
 
 
 def sidle_along(
-    design: Batch, mirror_line: Line, path: Sequence[Point], reps: int = 3
+    design: Batch, mirror_line: LineType, path: Sequence[PointType], reps: int = 3
 ) -> Batch:
     """
     Sidle along the given path.
@@ -117,7 +117,7 @@ def sidle_along(
     Args:
         design (Batch): The design to be repeated.
         mirror_line (Line): The line to mirror the design.
-        path (Sequence[Point]): The path along which to translate the design.
+        path (Sequence[PointType]): The path along which to translate the design.
         reps (int, optional): The number of repetitions. Defaults to 3.
 
     Returns:
@@ -129,14 +129,14 @@ def sidle_along(
 
 
 def spinning_hop(
-    design: Batch, rotocenter: Point, dx: float, dy: float, reps: int = 3
+    design: Batch, rotocenter: PointType, dx: float, dy: float, reps: int = 3
 ) -> Batch:
     """
     p2 symmetry group.
 
     Args:
         design (Batch): The design to be repeated.
-        rotocenter (Point): The center of rotation.
+        rotocenter (PointType): The center of rotation.
         dx (float): The distance to translate in the x direction.
         dy (float): The distance to translate in the y direction.
         reps (int, optional): The number of repetitions. Defaults to 3.
@@ -151,7 +151,7 @@ def spinning_hop(
 
 
 def spinning_jump(
-    design: Batch, mirror1: Line, mirror2: Line, dist: float, reps: int = 3
+    design: Batch, mirror1: LineType, mirror2: LineType, dist: float, reps: int = 3
 ) -> Batch:
     """
     p2mm symmetry group.
@@ -175,8 +175,8 @@ def spinning_jump(
 
 def spinning_sidle(
     design: Batch,
-    mirror_line: Line = None,
-    glide_line: Line = None,
+    mirror_line: LineType = None,
+    glide_line: LineType = None,
     glide_dist: float = None,
     trans_dist: float = None,
     reps: int = 3,
@@ -204,7 +204,7 @@ def spinning_sidle(
 
 def step(
     design: Batch,
-    glide_line: Line = None,
+    glide_line: LineType = None,
     glide_dist: float = None,
     reps: int = 3,
 ) -> Batch:
@@ -229,9 +229,9 @@ def step(
 
 def step_along(
     design: Batch,
-    glide_line: Line = None,
+    glide_line: LineType = None,
     glide_dist: float = None,
-    path: Sequence[Point] = None,
+    path: Sequence[PointType] = None,
     reps: int = 3,
 ) -> Batch:
     """
@@ -241,7 +241,7 @@ def step_along(
         design (Batch): The design to be repeated.
         glide_line (Line, optional): The glide line. Defaults to None.
         glide_dist (float, optional): The distance of the glide. Defaults to None.
-        path (Sequence[Point], optional): The path along which to translate the design. Defaults to None.
+        path (Sequence[PointType], optional): The path along which to translate the design. Defaults to None.
         reps (int, optional): The number of repetitions. Defaults to 3.
 
     Returns:

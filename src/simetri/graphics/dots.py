@@ -9,11 +9,10 @@ from .batch import Batch
 from ..helpers.validation import validate_args
 from ..canvas.style_map import shape_args
 from ..settings.settings import defaults
-from .common import Point
+from .common import PointType
 from .all_enums import Types
 from ..colors.colors import Color
 from ..geometry.geometry import close_points2
-from ..canvas.style_map import batch_args
 
 
 class Dot(Shape):
@@ -21,12 +20,12 @@ class Dot(Shape):
     The radius is for drawing. The only style property is the color."""
 
     def __init__(
-        self, pos: Point = (0, 0), radius: float = 1, color: Color = None, **kwargs
+        self, pos: PointType = (0, 0), radius: float = 1, color: Color = None, **kwargs
     ) -> None:
         """Initialize a Dot object.
 
         Args:
-            pos (Point, optional): The position of the dot. Defaults to (0, 0).
+            pos (PointType, optional): The position of the dot. Defaults to (0, 0).
             radius (float, optional): The radius of the dot. Defaults to 1.
             color (Color, optional): The color of the dot. Defaults to None.
             **kwargs: Additional keyword arguments.
@@ -43,20 +42,20 @@ class Dot(Shape):
             self.color = defaults["dot_color"]
 
     @property
-    def pos(self) -> Point:
+    def pos(self) -> PointType:
         """Return the point of the dot.
 
         Returns:
-            Point: The point of the dot.
+            PointType: The point of the dot.
         """
         return self.vertices[0]
 
     @pos.setter
-    def pos(self, new_pos: Point):
+    def pos(self, new_pos: PointType):
         """Set the position of the dot.
 
         Args:
-            new_pos (Point): The new position of the dot.
+            new_pos (PointType): The new position of the dot.
 
         Raises:
             TypeError: If the new position is not a list, tuple, or ndarray.
@@ -108,16 +107,16 @@ class Dots(Batch):
     """For creating multiple dots. Initially there is only one dot."""
 
     def __init__(
-        self, pos: Point = (0, 0), radius: float = 1, color: Color = None, **kwargs
+        self, pos: PointType = (0, 0), radius: float = 1, color: Color = None, **kwargs
     ) -> None:
         """Initialize a Dots object.
 
         Args:
-            pos (Point, optional): The position of the dots. Defaults to (0, 0).
+            pos (PointType, optional): The position of the dots. Defaults to (0, 0).
             radius (float, optional): The radius of the dots. Defaults to 1.
             color (Color, optional): The color of the dots. Defaults to None.
             **kwargs: Additional keyword arguments.
         """
-        valid_args = batch_args + shape_args + ["radius", "color", "pos"]
+        valid_args = shape_args + ["radius", "color", "pos"]
         dot = Dot(pos=pos, radius=radius, color=color, **kwargs)
         super().__init__([dot], subtype=Types.DOTS, **kwargs)

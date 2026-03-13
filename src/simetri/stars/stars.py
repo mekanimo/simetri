@@ -6,7 +6,7 @@ from typing import Union
 from ..graphics.batch import Batch
 from ..graphics.shape import Shape
 
-from ..graphics.common import common_properties, axis_x, Line
+from ..graphics.common import common_properties, axis_x, LineType
 from ..graphics.all_enums import Types
 from ..geometry.geometry import intersect, distance
 
@@ -15,7 +15,7 @@ def rosette(
     n: int,
     kernel: Union[Shape, Batch],
     cyclic: bool = False,
-    axis: Line = axis_x,
+    axis: LineType = axis_x,
     merge: bool = True,
 ) -> Batch:
     """Returns a pattern with cyclic or dihedral symmetry with n petals.
@@ -24,7 +24,7 @@ def rosette(
         n (int): Number of petals.
         kernel (Union[Shape, Batch]): The base shape or batch to be used as a petal.
         cyclic (bool, optional): If True, creates a cyclic pattern. Defaults to False.
-        axis (Line, optional): The axis for mirroring. Defaults to axis_x.
+        axis (LineType, optional): The axis for mirroring. Defaults to axis_x.
         merge (bool, optional): If True, merges shapes. Defaults to True.
 
     Returns:

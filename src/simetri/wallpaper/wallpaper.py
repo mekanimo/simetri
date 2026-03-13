@@ -7,7 +7,7 @@ from math import sqrt, pi, cos
 from typing import Union
 
 from ..geometry.geometry import midpoint, line_through_point_and_angle
-from ..graphics.common import VecType, Point, Line
+from ..graphics.common import VecType, PointType, LineType
 from ..helpers.illustration import Tag
 from ..graphics.batch import Batch
 from ..graphics.shape import Shape
@@ -200,7 +200,7 @@ def wallpaper_p1(
     IUC: p1
     Conway: o
     Oblique lattice
-    Point group: C1
+    PointType group: C1
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
@@ -232,7 +232,7 @@ def wallpaper_p2(
     IUC: p2 (p211)
     Conway: 2222
     Oblique lattice
-    Point group: C2
+    PointType group: C2
 
     Args:
         generator (Union[Shape, Batch, Tag]): The repeating motif.
@@ -256,7 +256,7 @@ def wallpaper_p2(
 
 def wallpaper_p2_rect_lattice(
     generator: Union[Shape, Batch, Tag],
-    rotocenter: Point,
+    rotocenter: PointType,
     vector1: VecType,
     vector2: VecType,
     reps1: int = 4,
@@ -267,9 +267,9 @@ def wallpaper_p2_rect_lattice(
     # IUC: p2 (p211)
     # Conway: 2222
     # Oblique lattice
-    # Point group: C2
+    # PointType group: C2
 
-    # Point argument can be an Anchor object or a tuple, or two points can be given
+    # PointType argument can be an Anchor object or a tuple, or two points can be given
     # as a sequence.
 
     # Example:
@@ -301,7 +301,7 @@ def wallpaper_p2_rect_lattice(
 
 def wallpaper_p3(
     generator: Union[Shape, Batch, Tag],
-    rotocenter: Point,
+    rotocenter: PointType,
     distance: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -312,11 +312,11 @@ def wallpaper_p3(
     IUC: p3
     Conway: 333
     Hexagonal lattice.
-    Point group: C3
+    PointType group: C3
 
     Args:
         generator (Union[Shape, Batch, Tag]): The repeating motif.
-        rotocenter (Point): The center of rotation.
+        rotocenter (PointType): The center of rotation.
         distance (float): The distance between the centers of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -336,7 +336,7 @@ def wallpaper_p3(
 
 def wallpaper_p4(
     generator: Union[Batch, Shape, Tag],
-    rotocenter: Point,
+    rotocenter: PointType,
     distance: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -346,11 +346,11 @@ def wallpaper_p4(
     IUC: p4
     Conway: 442
     Square lattice
-    Point group: C4
+    PointType group: C4
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        rotocenter (Point): The center of rotation.
+        rotocenter (PointType): The center of rotation.
         distance (float): The distance between the centers of the squares.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -367,7 +367,7 @@ def wallpaper_p4(
 
 def wallpaper_p6(
     generator: Union[Batch, Shape, Tag],
-    rotocenter: Point,
+    rotocenter: PointType,
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -378,11 +378,11 @@ def wallpaper_p6(
     IUC: p6
     Conway : 632
     Hexagonal lattice
-    Point group: C6
+    PointType group: C6
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        rotocenter (Point): The center of rotation.
+        rotocenter (PointType): The center of rotation.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -402,7 +402,7 @@ def wallpaper_p6(
 
 def wallpaper_pm(
     generator: Union[Batch, Shape, Tag],
-    mirror_line: Line,
+    mirror_line: LineType,
     dx: float,
     dy: float,
     reps1: int = 4,
@@ -414,11 +414,11 @@ def wallpaper_pm(
     IUC: pm(p1m1)
     Conway : **
     Rectangular lattice
-    Point group: D1
+    PointType group: D1
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        mirror_line (Line): The line of symmetry.
+        mirror_line (LineType): The line of symmetry.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -436,7 +436,7 @@ def wallpaper_pm(
 
 def wallpaper_pg(
     generator: Union[Batch, Shape, Tag],
-    mirror_line: Line,
+    mirror_line: LineType,
     distance: float,
     dx: float,
     dy: float,
@@ -448,11 +448,11 @@ def wallpaper_pg(
     IUC: pg(p1g1)
     Conway : xx
     Rectangular lattice
-    Point group: D1
+    PointType group: D1
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        mirror_line (Line): The line of symmetry.
+        mirror_line (LineType): The line of symmetry.
         distance (float): The distance for the glide reflection.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -471,7 +471,7 @@ def wallpaper_pg(
 
 def wallpaper_cm(
     generator: Union[Batch, Shape, Tag],
-    mirror_point: Point,
+    mirror_point: PointType,
     rhomb_size: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -482,11 +482,11 @@ def wallpaper_cm(
     IUC: cm(c1m1)
     Conway : *x
     Rhombic lattice
-    Point group: D1
+    PointType group: D1
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        mirror_point (Point): The point of symmetry.
+        mirror_point (PointType): The point of symmetry.
         rhomb_size (float): The size of the rhombuses.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -513,7 +513,7 @@ def wallpaper_cm(
 
 def wallpaper_pmm(
     generator: Union[Batch, Shape, Tag],
-    mirror_cross: Point,
+    mirror_cross: PointType,
     dx: float,
     dy: float,
     reps1=4,
@@ -524,11 +524,11 @@ def wallpaper_pmm(
     IUC: pmm(p2mm)
     Conway : *2222
     Rectangular lattice
-    Point group: D2
+    PointType group: D2
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        mirror_cross (Point): The point where the mirror lines cross.
+        mirror_cross (PointType): The point where the mirror lines cross.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -550,7 +550,7 @@ def wallpaper_pmm(
 
 def wallpaper_pmg(
     generator: Union[Batch, Shape, Tag],
-    center_point: Point,
+    center_point: PointType,
     dx: float,
     dy: float,
     reps1=4,
@@ -562,11 +562,11 @@ def wallpaper_pmg(
     IUC: pmg(p2mg)
     Conway : 22*
     Rectangular lattice
-    Point group: D2
+    PointType group: D2
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        center_point (Point): The center point for the symmetry.
+        center_point (PointType): The center point for the symmetry.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -593,7 +593,7 @@ def wallpaper_pmg(
 
 def wallpaper_pgg(
     generator: Union[Batch, Shape, Tag],
-    rotocenter: Point,
+    rotocenter: PointType,
     dx: float,
     dy: float,
     reps1: int = 4,
@@ -605,11 +605,11 @@ def wallpaper_pgg(
     IUC: pgg(p2gg)
     Conway : 22x
     Rectangular lattice
-    Point group: D2
+    PointType group: D2
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        rotocenter (Point): The center of rotation.
+        rotocenter (PointType): The center of rotation.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -635,7 +635,7 @@ def wallpaper_pgg(
 
 def wallpaper_cmm(
     generator: Union[Batch, Shape, Tag],
-    mirror_cross: Point,
+    mirror_cross: PointType,
     rhomb_size: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -645,11 +645,11 @@ def wallpaper_cmm(
     IUC: cmm(c2mm)
     Conway : 2*22
     Rhombic lattice
-    Point group: D2
+    PointType group: D2
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        mirror_cross (Point): The point where the mirror lines cross.
+        mirror_cross (PointType): The point where the mirror lines cross.
         rhomb_size (float): The size of the rhombuses.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -669,7 +669,7 @@ def wallpaper_cmm(
 
 def wallpaper_p4m(
     generator: Union[Batch, Shape, Tag],
-    mirror_cross: Point,
+    mirror_cross: PointType,
     side_length: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -679,11 +679,11 @@ def wallpaper_p4m(
     IUC: p4m(p4mm)
     Conway : *442
     Square lattice
-    Point group: D4
+    PointType group: D4
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        mirror_cross (Point): The point where the mirror lines cross.
+        mirror_cross (PointType): The point where the mirror lines cross.
         side_length (float): The side length of the squares.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -710,7 +710,7 @@ def wallpaper_p4g(
     IUC: p4g(p4gm)
     Conway : 4*2
     Square lattice
-    Point group: D4
+    PointType group: D4
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
@@ -736,7 +736,7 @@ def wallpaper_p4g(
 
 def wallpaper_p3m1(
     generator: Union[Batch, Shape, Tag],
-    center_point: Point,
+    center_point: PointType,
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -746,11 +746,11 @@ def wallpaper_p3m1(
     IUC: p3m1
     Conway : *333
     Hexagonal lattice
-    Point group: D3
+    PointType group: D3
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        center_point (Point): The center point for the symmetry.
+        center_point (PointType): The center point for the symmetry.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -769,7 +769,7 @@ def wallpaper_p3m1(
 
 def wallpaper_p31m(
     generator: Union[Batch, Shape, Tag],
-    center_point: Point,
+    center_point: PointType,
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -779,11 +779,11 @@ def wallpaper_p31m(
     IUC: p31m
     Conway : 3*3
     Hexagonal lattice
-    Point group: D3
+    PointType group: D3
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        center_point (Point): The center point for the symmetry.
+        center_point (PointType): The center point for the symmetry.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -806,8 +806,8 @@ def wallpaper_p31m(
 
 def wallpaper_p6m(
     generator: Union[Batch, Shape, Tag],
-    rotocenter: Point,
-    mirror_cross: Point,
+    rotocenter: PointType,
+    mirror_cross: PointType,
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -818,12 +818,12 @@ def wallpaper_p6m(
     IUC: p6m(p6mm)
     Conway : *632
     Hexagonal lattice
-    Point group: D6
+    PointType group: D6
 
     Args:
         generator (Union[Batch, Shape, Tag]): The repeating motif.
-        rotocenter (Point): The center of rotation.
-        mirror_cross (Point): The point where the mirror lines cross.
+        rotocenter (PointType): The center of rotation.
+        mirror_cross (PointType): The point where the mirror lines cross.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
