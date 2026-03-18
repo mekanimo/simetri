@@ -24,8 +24,9 @@ def display(canvas):
         canvas.save(file_path, show=False, print_output=False)
         ipy_display(SVG(file_path))
     elif canvas.render == "TEX":
-        file_path = os.path.join(tmpdirname, file_name + ".png")
+        file_path = os.path.join(tmpdirname, file_name + ".svg")
         canvas.save(file_path, show=False, print_output=False)
-        ipy_display(Image(filename=file_path))
+        # ipy_display(Image(filename=file_path))
+        ipy_display(SVG(file_path))
     else:
         raise ValueError('Incorrect renderer. Only "SVG" and "TEX" renderers are supported!')

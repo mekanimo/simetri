@@ -64,7 +64,7 @@ from ..helpers.modifiers import *
 from ..lace import Lace
 from ..colors.colors import *
 from ..colors.palettes import *
-from ..colors.pastels import figma_palettes, pastels_2
+from ..colors.pastels import *
 from ..colors.swatches import *
 import simetri.colors as colors
 from ..tikz.tikz import *

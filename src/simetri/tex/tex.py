@@ -90,7 +90,7 @@ def run_job(parent_dir, file_name, extension, tex_path):
         None
     """
     output_path = os.path.join(parent_dir, file_name + extension)
-    cmd = "xelatex " + tex_path + " --output-directory " + parent_dir
+    cmd = "lualatex " + tex_path + " --output-directory " + parent_dir
     res = compile_tex(cmd, parent_dir, print_output=False)
     if "No pages of output" in res:
         raise RuntimeError("Failed to compile the tex file.")

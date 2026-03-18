@@ -700,6 +700,11 @@ class PatternDef:
             return reference_def
 
         def apply_offset(value, offset):
+            if isinstance(offset, ReferenceDef):
+                offset = self.resolve_reference(offset, kernel, pattern)
+            elif isinstance(offset, (tuple, List)):
+                offset = tuple(self.resolve_value(item, kernel, pattern) for item in offset)
+
             if isinstance(value, (float, int)):
                 # number
                 offset_val = value + offset

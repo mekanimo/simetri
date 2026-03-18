@@ -59,6 +59,22 @@ array = np.array
 enum_map = {}
 
 
+def anchor_to_tikz(anchor: Anchor | None) -> str | None:
+    """Convert Anchor enum values to TikZ-compatible anchor names."""
+    if anchor is None:
+        return None
+
+    anchor_map = {
+        Anchor.BASE_EAST: "base east",
+        Anchor.BASE_WEST: "base west",
+        Anchor.NORTHEAST: "north east",
+        Anchor.NORTHWEST: "north west",
+        Anchor.SOUTHEAST: "south east",
+        Anchor.SOUTHWEST: "south west",
+    }
+    return anchor_map.get(anchor, anchor.value)
+
+
 def _canvas_mask_scope_sketch(canvas):
     page = getattr(canvas, "active_page", None)
     sketches = getattr(page, "sketches", []) if page is not None else []
@@ -194,6 +210,8 @@ def get_tex_code(canvas: "Canvas") -> str:
                 code = sketch.code
             else:
                 code = ""
+        elif sketch.subtype == Types.LATEX_SKETCH:
+            code = draw_latex_sketch(sketch)
         elif sketch.subtype == Types.MASK_SKETCH:
             code = ""
         elif sketch.subtype == Types.BATCH_SKETCH:
@@ -516,12 +534,15 @@ def get_clip_code(sketch: "Sketch") -> str:
         res = f"\\clip({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
     elif mask.subtype == Types.SHAPE:
-        # vertices = item.mask.primary_points.homogen_coords
-        # coords = " ".join([f"({v[0]}, {v[1]})" for v in vertices])
-        # res = f"\\clip plot[] coordinates {{{coords}}};\n"
-        x, y = mask.midpoint[:2]
-        width, height = mask.width, mask.height
-        res = f"\\clip({x}, {y}) rectangle ({width}, {height});\n"
+        vertices = getattr(mask, "vertices", None)
+        if vertices:
+            coords = " -- ".join(f"({x}, {y})" for x, y in vertices)
+            if getattr(mask, "closed", False):
+                res = f"\\clip {coords} -- cycle;\n"
+            else:
+                res = f"\\clip {coords};\n"
+        else:
+            res = ""
     else:
         res = ""
 
@@ -994,7 +1015,7 @@ def draw_tag_sketch(sketch):
     if sketch.fill and sketch.back_color:
         options += f", fill={color2tikz(sketch.frame_back_color)}"
     if sketch.anchor:
-        options += f", anchor={sketch.anchor.value}"
+        options += f", anchor={anchor_to_tikz(sketch.anchor)}"
     if sketch.back_style == BackStyle.SHADING and sketch.fill:
         shading_options = get_shading_options(sketch)[0]
         options += ", " + shading_options
@@ -1062,6 +1083,26 @@ def draw_tag_sketch(sketch):
     res.append(f"\\node[{options}] at ({x}, {y}) {tex_text};\n")
 
     return "".join(res)
+
+
+def draw_latex_sketch(sketch):
+    """Convert a LatexSketch to TikZ code."""
+    x, y = sketch.pos[:2]
+    formula = sketch.formula
+    if sketch.bold:
+        formula = rf"\mathbf{{{formula}}}"
+
+    options = []
+    if sketch.anchor and sketch.anchor != Anchor.CENTER:
+        options.append(f"anchor={anchor_to_tikz(sketch.anchor)}")
+    if sketch.font_color is not None and sketch.font_color != defaults["font_color"]:
+        options.append(f"text={color2tikz(sketch.font_color)}")
+
+    font_size = sketch.font_size or defaults["font_size"]
+    baseline_skip = ceil(font_size * 1.2)
+    tex_formula = rf"{{\fontsize{{{font_size}}}{{{baseline_skip}}}\selectfont ${formula}$}}"
+    option_str = f"[{', '.join(options)}]" if options else ""
+    return f"\\node{option_str} at ({x}, {y}) {tex_formula};\n"
 
 
 def get_dash_pattern(line_dash_array):
@@ -1837,7 +1878,7 @@ def draw_image_sketch(sketch):
 
     # res += f"node[anchor={sketch.anchor.value}, rotate={angle}] {{\\includegraphics{{{sketch.file_path}}}}};\n"
     if sketch.anchor != Anchor.CENTER:
-        options.append(f"anchor = {sketch.anchor.value}")
+        options.append(f"anchor = {anchor_to_tikz(sketch.anchor)}")
 
     # res = f"\\node[draw, {', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
     res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
@@ -1868,7 +1909,7 @@ def draw_pdf_sketch(sketch):
         options.append(f"xscale = {scale}, yscale = {scale}")
 
     if sketch.anchor != Anchor.CENTER:
-        options.append(f"anchor = {sketch.anchor.value}")
+        options.append(f"anchor = {anchor_to_tikz(sketch.anchor)}")
 
     res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
     end_scope = get_end_scope()
