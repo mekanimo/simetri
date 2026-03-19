@@ -1124,29 +1124,6 @@ def snap(free_shape: Shape, ref1: Union[int, float], fixed_shape:Shape, ref2: Un
     based indexing) or the midpoint of the second edge.
     '''
 
-    def get_point_on_shape(shape: Shape, ref: Union[int, float]) -> PointType:
-        """Get a point on a shape given an index.
-
-        Args:
-            shape: The shape to get the point from
-            ref: Integer for vertex index, float for barycentric edge coordinate
-
-        Returns:
-            The point on the shape
-        """
-        if isinstance(ref, int):
-            # Vertex index
-            return shape[ref]
-        elif isinstance(ref, float):
-            # Barycentric coordinate on an edge
-            edge_index = int(ref)
-            t = ref - edge_index  # Fractional part
-            n_vertices = len(shape.vertices)
-            next_index = (edge_index + 1) % n_vertices
-            return lerp_point(shape[edge_index], shape[next_index], t)
-        else:
-            raise TypeError(f"Invalid reference type: {type(ref)}")
-
     def get_edge_indices(shape: Shape, ref: Union[int, float]) -> tuple[int, int]:
         """Get the edge indices for alignment.
 
@@ -1159,15 +1136,28 @@ def snap(free_shape: Shape, ref1: Union[int, float], fixed_shape:Shape, ref2: Un
 
         Returns:
             Tuple of (previous_index, current_index)
+
+        Raises:
+            ValueError: If ref is at a boundary of a non-closed shape
         """
         n_vertices = len(shape.vertices)
+        is_closed = shape.closed
+
         if isinstance(ref, int):
-            # For vertex: previous vertex to this vertex
-            return ((ref - 1) % n_vertices, ref)
+            # For vertex: need vertices at ref-1, ref, ref+1
+            if not is_closed:
+                if ref == 0:
+                    raise ValueError("Cannot snap at first vertex (index 0) of a non-closed shape")
+                if ref >= n_vertices - 1:
+                    raise ValueError(f"Cannot snap at last vertex (index {ref}) of a non-closed shape")
+            prev_idx = (ref - 1) % n_vertices if is_closed else ref - 1
+            return (prev_idx, ref)
         elif isinstance(ref, float):
-            # For edge point: the edge's two vertices
+            # For edge point: need vertices at edge_index, edge_index+1, edge_index+2
             edge_index = int(ref)
-            next_index = (edge_index + 1) % n_vertices
+            if not is_closed and edge_index >= n_vertices - 2:
+                raise ValueError(f"Cannot snap at edge {edge_index} of a non-closed shape with {n_vertices} vertices")
+            next_index = (edge_index + 1) % n_vertices if is_closed else edge_index + 1
             return (edge_index, next_index)
         else:
             raise TypeError(f"Invalid reference type: {type(ref)}")
@@ -1175,8 +1165,8 @@ def snap(free_shape: Shape, ref1: Union[int, float], fixed_shape:Shape, ref2: Un
     free = free_shape
     fixed = fixed_shape
     # Get the reference points on both shapes
-    ref1_point = get_point_on_shape(free, ref1)
-    ref2_point = get_point_on_shape(fixed, ref2)
+    ref1_point = free[ref1]
+    ref2_point = fixed[ref2]
 
     # Move the free object to make ref1 and ref2 coincident
     dx = ref2_point[0] - ref1_point[0]
@@ -1194,7 +1184,10 @@ def snap(free_shape: Shape, ref1: Union[int, float], fixed_shape:Shape, ref2: Un
     # Get the vertices needed for angle calculation
     # For free shape: get the next vertex after curr (the outgoing edge)
     n_free_vertices = len(free.vertices)
-    free_next_idx = (free_curr_idx + 1) % n_free_vertices
+    if free.closed:
+        free_next_idx = (free_curr_idx + 1) % n_free_vertices
+    else:
+        free_next_idx = free_curr_idx + 1
     free_next = free[free_next_idx]
     fixed_prev = fixed[fixed_prev_idx]
 
