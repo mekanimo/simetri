@@ -44,8 +44,13 @@ classifiers = [
 Homepage = "https://github.com/mekanimo/simetri.graphics"
 
 [tool.ruff]
-line-length = 88
+line-length = 80
+
+[tool.ruff.lint]
 ignore = ["F405", "F403", "F401", "F821"]
+
+[tool.ruff.format]
+line-ending = "auto"
 
 
 [dependency-groups]

@@ -1538,11 +1538,11 @@ def hello() -> None:
     Used for testing an installation of simetri.
     """
     canvas = Canvas()
-
-    canvas.text("Hello from simetri.graphics!", (0, -130), bold=True, font_size=20)
+    import simetri.graphics as sg
+    canvas.text(f"Hello from simetri.graphics version Alpha {sg.__version__}!", (0, -130), bold=True, font_size=20)
     canvas.draw(logo())
 
     d_path = os.path.dirname(os.path.abspath(__file__))
-    f_path = os.path.join(d_path, "hello.pdf")
+    f_path = os.path.join(d_path, "hello.svg")
 
     canvas.save(f_path, overwrite=True)
