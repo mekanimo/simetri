@@ -256,10 +256,10 @@ def line_segment_bbox_check(seg1: LineType, seg2: LineType) -> bool:
     Returns:
         bool: True if the bounding boxes overlap, False otherwise.
     """
-    x1, y1 = seg1[0]
-    x2, y2 = seg1[1]
-    x3, y3 = seg2[0]
-    x4, y4 = seg2[1]
+    x1, y1 = seg1[0][:2]
+    x2, y2 = seg1[1][:2]
+    x3, y3 = seg2[0][:2]
+    x4, y4 = seg2[1][:2]
     return bbox_overlap(
         *line_segment_bbox(x1, y1, x2, y2), *line_segment_bbox(x3, y3, x4, y4)
     )
@@ -705,8 +705,8 @@ def angled_line(line: LineType, theta: float) -> LineType:
         LineType: New line with the given angle.
     """
     # find the angle of the line
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     theta1 = atan2(y2 - y1, x2 - x1)
     theta2 = theta1 + theta
     # find the length of the line
@@ -853,8 +853,8 @@ def trim_right(line, x_value):
         LineType: The trimmed line.
     """
     reverse = False
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     if x1 > x2:
         x1, x2 = x2, x1
         y1, y2 = y2, y1
@@ -886,8 +886,8 @@ def trim_left(line, x_value):
         LineType: The trimmed line.
     """
     reverse = False
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     if x1 > x2:
         x1, x2 = x2, x1
         y1, y2 = y2, y1
@@ -920,8 +920,8 @@ def trim_top(line, y_value):
         LineType: The trimmed line.
     """
     reverse = False
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     if y1 > y2:
         y1, y2 = y2, y1
         x1, x2 = x2, x1
@@ -954,8 +954,8 @@ def trim_bottom(line, y_value):
         LineType: The trimmed line.
     """
     reverse = False
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     if y1 > y2:
         y1, y2 = y2, y1
         x1, x2 = x2, x1
@@ -1087,18 +1087,18 @@ def stitch(
     else:
         points = [lines[0][0]]
     for i, line in enumerate(lines[:-1]):
-        x1, y1 = line[0]
-        x2, y2 = line[1]
-        x3, y3 = lines[i + 1][0]
-        x4, y4 = lines[i + 1][1]
+        x1, y1 = line[0][:2]
+        x2, y2 = line[1][:2]
+        x3, y3 = lines[i + 1][0][:2]
+        x4, y4 = lines[i + 1][1][:2]
         x_point = intersect2(x1, y1, x2, y2, x3, y3, x4, y4)
         if x_point:
             points.append(x_point)
     if closed:
-        x1, y1 = lines[-1][0]
-        x2, y2 = lines[-1][1]
-        x3, y3 = lines[0][0]
-        x4, y4 = lines[0][1]
+        x1, y1 = lines[-1][0][:2]
+        x2, y2 = lines[-1][1][:2]
+        x3, y3 = lines[0][0][:2]
+        x4, y4 = lines[0][1][:2]
         final_x = intersect2(x1, y1, x2, y2, x3, y3, x4, y4)
         if final_x:
             points.insert(0, final_x)
@@ -1414,8 +1414,8 @@ def extended_line(dist: float, line: LineType, extend_both=False) -> LineType:
         line_length = length(line)
         t = (line_length + dist) / line_length
         p1, p2 = line
-        x1, y1 = p1[:2]
-        x2, y2 = p2[:2]
+        x1, y1 = p1[:2][:2]
+        x2, y2 = p2[:2][:2]
         c = 1 - t
 
         return [(x1, y1), (c * x1 + t * x2, c * y1 + t * y2)]
@@ -2160,10 +2160,10 @@ def intersection(line1: LineType, line2: LineType, rel_tol: float = None) -> int
     """
     if rel_tol is None:
         rel_tol = defaults["rel_tol"]
-    x1, y1 = line1[0]
-    x2, y2 = line1[1]
-    x3, y3 = line2[0]
-    x4, y4 = line2[1]
+    x1, y1 = line1[0][:2]
+    x2, y2 = line1[1][:2]
+    x3, y3 = line2[0][:2]
+    x4, y4 = line2[1][:2]
     return intersection2(x1, y1, x2, y2, x3, y3, x4, y4)
 
 
@@ -2301,8 +2301,8 @@ def lerp_point(p1: PointType, p2: PointType, t: float) -> PointType:
     Returns:
         PointType: Interpolated point.
     """
-    x1, y1 = p1[:]
-    x2, y2 = p2[:]
+    x1, y1 = p1[:2]
+    x2, y2 = p2[:2]
     return (lerp(x1, x2, t), lerp(y1, y2, t))
 
 
@@ -2341,8 +2341,8 @@ def segmentize_line(line: LineType, segment_length: float) -> list[LineType]:
         list[LineType]: List of segments.
     """
     length_ = distance(line[0], line[1])
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     increments = int(length_ / segment_length)
     x_segments = np.linspace(x1, x2, increments)
     y_segments = np.linspace(y1, y2, increments)
@@ -2400,8 +2400,8 @@ def line2vector(line: LineType) -> VecType:
     Returns:
         VecType: Vector representation of the line.
     """
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     dx = x2 - x1
     dy = y2 - y1
     return [dx, dy]
@@ -2435,8 +2435,8 @@ def line_vector(line: LineType) -> VecType:
     Returns:
         VecType: Vector representation of the line.
     """
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     return Vector2D(x2 - x1, y2 - y1)
 
 
@@ -2553,8 +2553,8 @@ def offset_point_on_line(point: PointType, line: LineType, offset: float) -> Poi
         PointType: Offset point on the line.
     """
     x, y = point[:2]
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     dx = x2 - x1
     dy = y2 - y1
     # normalize the vector
@@ -2589,8 +2589,8 @@ def parallel_line(line: LineType, point: PointType) -> LineType:
     Returns:
         LineType: Parallel line.
     """
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     x3, y3 = point
     dx = x2 - x1
     dy = y2 - y1
@@ -2641,8 +2641,8 @@ def perp_bisector(line: LineType) -> LineType:
     Returns:
         LineType: Perpendicular bisector of the line.
     """
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     mid = midpoint(line[0], line[1])
     dx = x2 - x1
     dy = y2 - y1
@@ -2747,8 +2747,8 @@ def point_to_line_distance(point: PointType, line: LineType) -> float:
         float: Distance from the point to the line.
     """
     x0, y0 = point
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     dx = x2 - x1
     dy = y2 - y1
     return abs((dx * (y1 - y0) - (x1 - x0) * dy)) / sqrt(dx**2 + dy**2)
@@ -2812,8 +2812,8 @@ def point_to_line_vec(point: PointType, line: LineType, unit: bool = False) -> V
         VecType: Perpendicular vector from the point to the line.
     """
     x0, y0 = point
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     dx = x2 - x1
     dy = y2 - y1
     norm_ = sqrt(dx**2 + dy**2)
@@ -2848,8 +2848,8 @@ def polygon_area(polygon: Sequence[PointType], dist_tol=None) -> float:
         polygon.append(polygon[0])
     area_ = 0
     for i, point in enumerate(polygon[:-1]):
-        x1, y1 = point
-        x2, y2 = polygon[i + 1]
+        x1, y1 = point[:2]
+        x2, y2 = polygon[i + 1][:2]
         area_ += x1 * y2 - x2 * y1
 
     return area_ / 2
@@ -3011,8 +3011,8 @@ def translate_line(dx: float, dy: float, line: LineType) -> LineType:
     Returns:
         LineType: Translated line.
     """
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     return [[x1 + dx, y1 + dy], [x2 + dx, y2 + dy]]
 
 
@@ -3042,8 +3042,8 @@ def unit_vector(line: LineType) -> VecType:
     """
     norm_ = length(line)
     p1, p2 = line
-    x1, y1 = p1
-    x2, y2 = p2
+    x1, y1 = p1[:2]
+    x2, y2 = p2[:2]
     return [(x2 - x1) / norm_, (y2 - y1) / norm_]
 
 
@@ -3057,8 +3057,8 @@ def unit_vector_(line: LineType) -> Sequence[VecType]:
     Returns:
         Sequence[VecType]: Cartesian unit vector of the line.
     """
-    x1, y1 = line[0]
-    x2, y2 = line[1]
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
     dx = x2 - x1
     dy = y2 - y1
     norm_ = sqrt(dx**2 + dy**2)
@@ -3288,10 +3288,10 @@ def point_in_quad(point: PointType, quad: list[PointType]) -> bool:
         bool: True if the point is inside the quad, False otherwise.
     """
     x, y = point[:2]
-    x1, y1 = quad[0]
-    x2, y2 = quad[1]
-    x3, y3 = quad[2]
-    x4, y4 = quad[3]
+    x1, y1 = quad[0][:2]
+    x2, y2 = quad[1][:2]
+    x3, y3 = quad[2][:2]
+    x4, y4 = quad[3][:2]
     xs = [x1, x2, x3, x4]
     ys = [y1, y2, y3, y4]
     min_x = min(xs)
@@ -3374,8 +3374,8 @@ def offset_point_from_start(p1, p2, offset):
     Returns:
         PointType: PointType on the line at the given offset.
     """
-    x1, y1 = p1
-    x2, y2 = p2
+    x1, y1 = p1[:2]
+    x2, y2 = p2[:2]
     dx, dy = x2 - x1, y2 - y1
     d = (dx**2 + dy**2) ** 0.5
     if d == 0:
@@ -3801,8 +3801,8 @@ def normal(point1, point2):
     Returns:
         VecType: Normal vector of the line.
     """
-    x1, y1 = point1
-    x2, y2 = point2
+    x1, y1 = point1[:2]
+    x2, y2 = point2[:2]
     dx = x2 - x1
     dy = y2 - y1
     norm = sqrt(dx**2 + dy**2)
@@ -3941,8 +3941,8 @@ def circle_circle_intersections(point1, radius1, point2, radius2):
     # circle 1: (x0, y0), radius r0
     # circle 2: (x1, y1), radius r1
 
-    x0, y0 = point1
-    x1, y1 = point2
+    x0, y0 = point1[:2]
+    x1, y1 = point2[:2]
     r0 = radius1
     r1 = radius2
 

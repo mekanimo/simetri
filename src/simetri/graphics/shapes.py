@@ -11,7 +11,7 @@ from ..graphics.batch import Batch
 from ..graphics.bbox import BoundingBox
 from ..graphics.shape import (Shape, custom_attributes, clip, trim_margins,
                               all_segments, get_loop, get_partition, union, diff, xor)
-from ..graphics.common import axis_x, get_defaults, Sequence, PointType
+from ..graphics.common import axis_x, get_defaults, Sequence, PointType, LineType
 from ..graphics.all_enums import Types, Extent
 from ..helpers.utilities import decompose_transformations
 from ..settings.settings import defaults
@@ -23,6 +23,8 @@ from ..geometry.geometry import (
     distance,
     midpoint,
     close_points2,
+    lerp_point,
+    angle_between_lines2,
 )
 from ..geometry.vectors import v_scale, v_diff, v_sum
 from ..canvas.style_map import (
@@ -149,22 +151,22 @@ class Line(Shape):
     @property
     def A(self) -> float:
         """Return A coefficient of Ax + By + C = 0."""
-        x1, y1 = self.start
-        x2, y2 = self.end
+        x1, y1 = self.start[:2]
+        x2, y2 = self.end[:2]
         return y1 - y2
 
     @property
     def B(self) -> float:
         """Return B coefficient of Ax + By + C = 0."""
-        x1, y1 = self.start
-        x2, y2 = self.end
+        x1, y1 = self.start[:2]
+        x2, y2 = self.end[:2]
         return x2 - x1
 
     @property
     def C(self) -> float:
         """Return C coefficient of Ax + By + C = 0."""
-        x1, y1 = self.start
-        x2, y2 = self.end
+        x1, y1 = self.start[:2]
+        x2, y2 = self.end[:2]
         return x1 * y2 - x2 * y1
 
     @property
@@ -179,8 +181,8 @@ class Line(Shape):
         Raises:
             ValueError: If the line is vertical.
         """
-        x1, y1 = self.start
-        x2, y2 = self.end
+        x1, y1 = self.start[:2]
+        x2, y2 = self.end[:2]
         dx = x2 - x1
         if abs(dx) <= defaults["dist_tol"]:
             raise ValueError("Line is vertical; slope is undefined.")
@@ -194,7 +196,7 @@ class Line(Shape):
             ValueError: If the line is vertical.
         """
         m = self.slope
-        x1, y1 = self.start
+        x1, y1 = self.start[:2]
         return y1 - (m * x1)
 
     @property
@@ -399,8 +401,8 @@ class Rectangle2(Rectangle):
             corner2 (PointType): The second corner of the rectangle.
             **kwargs: Additional keyword arguments.
         """
-        x1, y1 = corner1
-        x2, y2 = corner2
+        x1, y1 = corner1[:2]
+        x2, y2 = corner2[:2]
         x_min, x_max = min(x1, x2), max(x1, x2)
         y_min, y_max = min(y1, y2), max(y1, y2)
         center = ((x_min + x_max) / 2, (y_min + y_max) / 2)
@@ -1078,8 +1080,8 @@ def line_shape(p1, p2, line_width=1, line_color=colors.black, **kwargs):
     Returns:
         Shape: A Shape object with two points that form a line.
     """
-    x1, y1 = p1
-    x2, y2 = p2
+    x1, y1 = p1[:2]
+    x2, y2 = p2[:2]
     return Line(
         (x1, y1),
         (x2, y2),
@@ -1105,3 +1107,105 @@ def offset_polygon_shape(
     vertices = offset_polygon_points(polygon_shape.vertices, offset, dist_tol)
 
     return Shape(vertices)
+
+
+def snap(free_shape: Shape, ref1: Union[int, float], fixed_shape:Shape, ref2: Union[int, float], angle:float=0):
+    '''Snaps the given free Shape to the fixed Shape using integer indices (for vertices) or floating point numbers for Barycentric edge coordinates.
+    For closed shapes (polygons), indices need to be in counterclockwise order.
+    Both references need to be vertices or points on edges.
+    When the angle is zero then the objects are attached with edge to edge
+    condition.
+    Example:
+    sg.snap(free=triangle, 0, square, 1, angle=sg.pi/4)
+    angle is computed from the triangle[1], square[1], square[0]
+    A floating point number indicates a point on an edge in Barycentric
+    coordinates. For example,
+    1.5 indicates the midpoint between the second and third vertices (zero
+    based indexing) or the midpoint of the second edge.
+    '''
+
+    def get_point_on_shape(shape: Shape, ref: Union[int, float]) -> PointType:
+        """Get a point on a shape given an index.
+
+        Args:
+            shape: The shape to get the point from
+            ref: Integer for vertex index, float for barycentric edge coordinate
+
+        Returns:
+            The point on the shape
+        """
+        if isinstance(ref, int):
+            # Vertex index
+            return shape[ref]
+        elif isinstance(ref, float):
+            # Barycentric coordinate on an edge
+            edge_index = int(ref)
+            t = ref - edge_index  # Fractional part
+            n_vertices = len(shape.vertices)
+            next_index = (edge_index + 1) % n_vertices
+            return lerp_point(shape[edge_index], shape[next_index], t)
+        else:
+            raise TypeError(f"Invalid reference type: {type(ref)}")
+
+    def get_edge_indices(shape: Shape, ref: Union[int, float]) -> tuple[int, int]:
+        """Get the edge indices for alignment.
+
+        For a vertex index, returns (prev_vertex, vertex).
+        For a barycentric coordinate, returns the two vertices of the edge.
+
+        Args:
+            shape: The shape
+            ref: The reference (int or float)
+
+        Returns:
+            Tuple of (previous_index, current_index)
+        """
+        n_vertices = len(shape.vertices)
+        if isinstance(ref, int):
+            # For vertex: previous vertex to this vertex
+            return ((ref - 1) % n_vertices, ref)
+        elif isinstance(ref, float):
+            # For edge point: the edge's two vertices
+            edge_index = int(ref)
+            next_index = (edge_index + 1) % n_vertices
+            return (edge_index, next_index)
+        else:
+            raise TypeError(f"Invalid reference type: {type(ref)}")
+
+    free = free_shape
+    fixed = fixed_shape
+    # Get the reference points on both shapes
+    ref1_point = get_point_on_shape(free, ref1)
+    ref2_point = get_point_on_shape(fixed, ref2)
+
+    # Move the free object to make ref1 and ref2 coincident
+    dx = ref2_point[0] - ref1_point[0]
+    dy = ref2_point[1] - ref1_point[1]
+    free.translate(dx, dy)
+
+    # Update ref1_point after translation
+    ref1_point = ref2_point
+
+    # Get edge information for angle calculation and rotation
+    # Get edge indices for alignment
+    free_prev_idx, free_curr_idx = get_edge_indices(free, ref1)
+    fixed_prev_idx, fixed_curr_idx = get_edge_indices(fixed, ref2)
+
+    # Get the vertices needed for angle calculation
+    # For free shape: get the next vertex after curr (the outgoing edge)
+    n_free_vertices = len(free.vertices)
+    free_next_idx = (free_curr_idx + 1) % n_free_vertices
+    free_next = free[free_next_idx]
+    fixed_prev = fixed[fixed_prev_idx]
+
+    # Calculate the current angle between the edges
+    # The angle is measured from the fixed edge (incoming) to the free edge (outgoing) at ref1_point
+    current_angle = angle_between_lines2(fixed_prev, ref1_point, free_next)
+
+    # Calculate rotation needed to achieve the desired angle
+    rotation_needed = angle - current_angle
+
+    # Rotate the free object around ref1_point by the computed angle
+    free.rotate(rotation_needed, about=ref1_point)
+
+    return free

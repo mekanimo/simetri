@@ -314,8 +314,8 @@ def convert_svg_arc(
     returns ((cx, cy), start_angle, sweep_angle) in center parameterization.
     Assumes circular arcs (rx == ry).
     """
-    x1, y1 = start_point
-    x2, y2 = end_point
+    x1, y1 = start_point[:2]
+    x2, y2 = end_point[:2]
     r = rx  # Assume circular arc
 
     # If start and end points are the same, no arc

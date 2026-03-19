@@ -495,7 +495,7 @@ def wallpaper_cm(
     Returns:
         Batch: The resulting pattern as a Batch object.
     """
-    x1, y1 = mirror_point
+    x1, y1 = mirror_point[:2]
     if horizontal:
         x2, y2 = x1 + 1, y1
     else:

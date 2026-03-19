@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 from typing import Sequence, Union, List, Tuple, Any
-from math import pi, isclose
+from math import pi, isclose, floor
 import copy
 
 import json
@@ -63,6 +63,7 @@ from ..geometry.geometry import (
     midpoint,
     angle_between_lines2,
     positive_angle,
+    lerp_point,
 )
 from ..helpers.graph import Node, Graph, GraphEdge
 from .core import Base, StyleMixin, _update_inplace
@@ -220,11 +221,11 @@ class Shape(Base, StyleMixin):
         """
         return self.__str__()
 
-    def __getitem__(self, subscript: Union[int, slice]):
+    def __getitem__(self, subscript: Union[int, float, slice]):
         """Retrieve point(s) from the shape by index or slice.
 
         Args:
-            subscript (int or slice): The index or slice specifying the point(s) to retrieve.
+            subscript (int, float or slice): The index or slice specifying the point(s) to retrieve. If float then the point is compute by interpolation/extrapolation.
 
         Returns:
             PointType or list[PointType]: The requested point or list of points (after applying the transformation).
@@ -237,6 +238,25 @@ class Shape(Base, StyleMixin):
 
         if isinstance(subscript, slice):
             res = [tuple(coord[:2]) for coord in final_coords[subscript]]
+        elif isinstance(subscript, float):
+            if subscript.is_integer():
+                subscript = int(subscript)
+                coord = final_coords[subscript]
+                res = (coord[0], coord[1])
+            else:
+                n = len(final_coords)
+                index = int(floor(subscript))
+                if self.closed:
+                    next_index = (index+1) % n
+                else:
+                    if subscript >= n-1:
+                        raise ValueError("Invalid index!")
+                    else:
+                        next_index = index+1
+                vertex = final_coords[index]
+                next_vertex = final_coords[next_index]
+                t = subscript - index
+                res = lerp_point(vertex, next_vertex, t)
         else:
             coord = final_coords[subscript]
             res = (coord[0], coord[1])

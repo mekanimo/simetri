@@ -1369,8 +1369,8 @@ def svg_path_to_linpath(svg_path: str) -> LinPath:
 
 
 def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
-    x1, y1 = start
-    x2, y2 = end
+    x1, y1 = start[:2]
+    x2, y2 = end[:2]
 
     rx = abs(rx)
     ry = abs(ry)

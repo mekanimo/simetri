@@ -529,8 +529,8 @@ def get_clip_code(sketch: "Sketch") -> str:
         res = f"\\clip({x}, {y}) circle ({mask.radius});\n"
     elif mask.subtype == Types.RECTANGLE:
         corners = mask.b_box.corners
-        x1, y1 = corners[1]
-        x2, y2 = corners[3]
+        x1, y1 = corners[1][:2]
+        x2, y2 = corners[3][:2]
         res = f"\\clip({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
     elif mask.subtype == Types.SHAPE:
@@ -647,8 +647,8 @@ def draw_bbox_sketch(sketch):
     options = sg_to_tikz(sketch, attrib_list, attrib_map)
     options = ", ".join(options)
     res = f"\\draw[{options}]"
-    x1, y1 = sketch.vertices[1]
-    x2, y2 = sketch.vertices[3]
+    x1, y1 = sketch.vertices[1][:2]
+    x2, y2 = sketch.vertices[3][:2]
     res += f"({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
     return res

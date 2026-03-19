@@ -1848,8 +1848,8 @@ def generate_gradient_def(sketch, gradient_id):
     transform_attr = f' gradientTransform="{transform}"' if transform else ''
 
     if gradient_type.value == 'linear':
-        x1, y1 = gradient.axis.start
-        x2, y2 = gradient.axis.end
+        x1, y1 = gradient.axis.start[:2]
+        x2, y2 = gradient.axis.end[:2]
 
         if context_bbox is not None and units == 'objectBoundingBox':
             bx, by, bw, bh = context_bbox
