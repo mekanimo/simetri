@@ -130,13 +130,18 @@ class SidleDef:
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
-        if name in ["mirror_offset", "dx", "reps"] and "pattern_def" in self.__dict__:
+        if (
+            name in ["mirror_offset", "dx", "reps"]
+            and "pattern_def" in self.__dict__
+        ):
             self._build_pattern()
 
     def _build_pattern(self):
         mirror_def = TransformDef(
             TransformationType.MIRROR,
-            ReferenceDef(Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset),
+            ReferenceDef(
+                Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset
+            ),
             reps=1,
         )
         trans_def = TransformDef(
@@ -166,7 +171,10 @@ class SpinningHopDef:
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
-        if name in ["rotocenter", "dx", "dy", "reps"] and "pattern_def" in self.__dict__:
+        if (
+            name in ["rotocenter", "dx", "dy", "reps"]
+            and "pattern_def" in self.__dict__
+        ):
             self._build_pattern()
 
     def _build_pattern(self):
@@ -213,12 +221,16 @@ class SpinningJumpDef:
     def _build_pattern(self):
         mirror_def1 = TransformDef(
             TransformationType.MIRROR,
-            ReferenceDef(Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset1),
+            ReferenceDef(
+                Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset1
+            ),
             reps=1,
         )
         mirror_def2 = TransformDef(
             TransformationType.MIRROR,
-            ReferenceDef(Reference.BOTTOM, ReferenceTarget.PATTERN, self.mirror_offset2),
+            ReferenceDef(
+                Reference.BOTTOM, ReferenceTarget.PATTERN, self.mirror_offset2
+            ),
             reps=1,
         )
         trans_def = TransformDef(
@@ -258,7 +270,9 @@ class SpinningSidleDef:
     def _build_pattern(self):
         mirror_def = TransformDef(
             TransformationType.MIRROR,
-            ReferenceDef(Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset),
+            ReferenceDef(
+                Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset
+            ),
             reps=1,
         )
         glide_def = TransformDef(
@@ -327,5 +341,7 @@ def sidle_def(mirror_offset, dx, reps: int = 0):
         ReferenceDef(Reference.RIGHT, ReferenceTarget.KERNEL, mirror_offset),
         reps=1,
     )
-    trans_def = TransformDef(TransformationType.TRANSLATE, None, (dx, 0), reps=reps)
+    trans_def = TransformDef(
+        TransformationType.TRANSLATE, None, (dx, 0), reps=reps
+    )
     return PatternDef([mirror_def, trans_def])

@@ -289,7 +289,9 @@ class Transformation:
         Returns:
             Transform: A new Transform instance with the same components.
         """
-        return Transformation([component.copy() for component in self.components])
+        return Transformation(
+            [component.copy() for component in self.components]
+        )
 
 
 class Pattern(Batch, StyleMixin):
@@ -462,7 +464,9 @@ class Pattern(Batch, StyleMixin):
 
         return self
 
-    def rotate(self, angle: float, about: PointType = (0, 0), reps: int = 0) -> Self:
+    def rotate(
+        self, angle: float, about: PointType = (0, 0), reps: int = 0
+    ) -> Self:
         """
         Rotates the object by the given angle (in radians) about the given point.
 
@@ -495,7 +499,9 @@ class Pattern(Batch, StyleMixin):
 
         return self
 
-    def glide(self, glide_line: LineType, glide_dist: float, reps: int = 0) -> Self:
+    def glide(
+        self, glide_line: LineType, glide_dist: float, reps: int = 0
+    ) -> Self:
         """
         Glides (first mirror then translate) the object along the given line
         by the given glide_dist.
@@ -534,7 +540,9 @@ class Pattern(Batch, StyleMixin):
         """
         if scale_y is None:
             scale_y = scale_x
-        component = Transform(scale_in_place_matrix(scale_x, scale_y, about), reps)
+        component = Transform(
+            scale_in_place_matrix(scale_x, scale_y, about), reps
+        )
         self.transformation.components.append(component)
 
         return self
@@ -622,7 +630,9 @@ class Group(Pattern):
 class ReferenceDef:
     reference: Reference  # Bounding-box references
     target: Union[ReferenceTarget | None] = None  # kernel, pattern, or None
-    offset: Union[PointType | float] = None  # float for line, <dx, dy> for point offset
+    offset: Union[PointType | float] = (
+        None  # float for line, <dx, dy> for point offset
+    )
     multiplier: float = None
     modifier: Callable = None
     kwargs: Union[dict | None] = None
@@ -636,7 +646,6 @@ class ReferenceDef:
             modifier=self.modifier,
             kwargs=self.kwargs.copy() if self.kwargs is not None else None,
         )
-
 
 
 @dataclass
@@ -653,7 +662,9 @@ class TransformDef:
         return TransformDef(
             type=self.type,
             ref=self.ref.copy() if self.ref is not None else None,
-            args=self.args.copy() if isinstance(self.args, ReferenceDef) else self.args,
+            args=self.args.copy()
+            if isinstance(self.args, ReferenceDef)
+            else self.args,
             take=self.take,
             incr=self.incr,
             reps=self.reps,
@@ -689,7 +700,9 @@ class PatternDef:
             elif t_def.type == TransformationType.SCALE:
                 about = self.resolve_reference(t_def.ref, kernel, pattern)
                 sx, sy = self.resolve_tuple(t_def.args, kernel.pattern)
-                pattern.translate(sx, sy, about, take=take, reps=reps, incr=incr)
+                pattern.translate(
+                    sx, sy, about, take=take, reps=reps, incr=incr
+                )
             elif t_def.type == TransformationType.TRANSFORM:
                 pattern.transform()
 
@@ -703,7 +716,9 @@ class PatternDef:
             if isinstance(offset, ReferenceDef):
                 offset = self.resolve_reference(offset, kernel, pattern)
             elif isinstance(offset, (tuple, List)):
-                offset = tuple(self.resolve_value(item, kernel, pattern) for item in offset)
+                offset = tuple(
+                    self.resolve_value(item, kernel, pattern) for item in offset
+                )
 
             if isinstance(value, (float, int)):
                 # number

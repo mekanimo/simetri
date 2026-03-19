@@ -19,7 +19,12 @@ from ..graphics.batch import Batch
 from ..graphics.shape import Shape
 
 from ..graphics.shapes import reg_poly_points_side_length
-from ..graphics.common import get_defaults, common_properties, PointType, _set_Nones
+from ..graphics.common import (
+    get_defaults,
+    common_properties,
+    PointType,
+    _set_Nones,
+)
 from ..graphics.all_enums import (
     Types,
     LineJoin,
@@ -298,7 +303,13 @@ class Annotation(Batch):
     """
 
     def __init__(
-        self, text, pos, frame, root_pos, arrow_line=ArrowLine.STRAIGHT_END, **kwargs
+        self,
+        text,
+        pos,
+        frame,
+        root_pos,
+        arrow_line=ArrowLine.STRAIGHT_END,
+        **kwargs,
     ):
         self.text = text
         self.pos = pos
@@ -673,7 +684,11 @@ class ArrowHead(Shape):
     """
 
     def __init__(
-        self, length: float = None, width_: float = None, points: list = None, **kwargs
+        self,
+        length: float = None,
+        width_: float = None,
+        points: list = None,
+        **kwargs,
     ):
         length, width_ = get_defaults(
             ["arrow_head_length", "arrow_head_width"], [length, width_]
@@ -681,14 +696,18 @@ class ArrowHead(Shape):
         if points is None:
             w2 = width_ / 2
             points = [(0, 0), (0, -w2), (length, 0), (0, w2)]
-        super().__init__(points, closed=True, subtype=Types.ARROW_HEAD, **kwargs)
+        super().__init__(
+            points, closed=True, subtype=Types.ARROW_HEAD, **kwargs
+        )
         self.head_length = length
         self.head_width = width_
 
         self.kwargs = kwargs
 
 
-def draw_cs_tiny(canvas, pos=(0, 0), width=25, height=25, neg_width=5, neg_height=5):
+def draw_cs_tiny(
+    canvas, pos=(0, 0), width=25, height=25, neg_width=5, neg_height=5
+):
     """Draws a tiny coordinate system.
 
     Args:
@@ -701,11 +720,17 @@ def draw_cs_tiny(canvas, pos=(0, 0), width=25, height=25, neg_width=5, neg_heigh
     """
     x, y = pos[:2]
     canvas.circle(2, (x, y), fill=False, line_color=colors.gray)
-    canvas.draw(Shape([(x - neg_width, y), (x + width, y)]), line_color=colors.gray)
-    canvas.draw(Shape([(x, y - neg_height), (x, y + height)]), line_color=colors.gray)
+    canvas.draw(
+        Shape([(x - neg_width, y), (x + width, y)]), line_color=colors.gray
+    )
+    canvas.draw(
+        Shape([(x, y - neg_height), (x, y + height)]), line_color=colors.gray
+    )
 
 
-def draw_cs_small(canvas, pos=(0, 0), width=80, height=100, neg_width=5, neg_height=5):
+def draw_cs_small(
+    canvas, pos=(0, 0), width=80, height=100, neg_width=5, neg_height=5
+):
     """Draws a small coordinate system.
 
     Args:
@@ -806,7 +831,9 @@ class ArcArrow(Batch):
         self.start_angle = start_angle
         self.end_angle = end_angle
         # create the arc
-        self.arc = Arc(center, radius, start_angle=start_angle, end_angle=end_angle)
+        self.arc = Arc(
+            center, radius, start_angle=start_angle, end_angle=end_angle
+        )
         self.arc.fill = False
         # create arrow_head1
         self.arrow_head1 = ArrowHead()
@@ -857,7 +884,9 @@ class RadialDimension(Batch):
         gap: float = None,
         **kwargs,
     ):
-        text_offset, gap = get_defaults(["text_offset", "gap"], [text_offset, gap])
+        text_offset, gap = get_defaults(
+            ["text_offset", "gap"], [text_offset, gap]
+        )
         self.center = center
         self.radius = radius
         self.angle = angle
@@ -987,7 +1016,9 @@ class AngularDimension(Batch):
         gap: float = None,
         **kwargs,
     ):
-        text_offset, gap = get_defaults(["text_offset", "gap"], [text_offset, gap])
+        text_offset, gap = get_defaults(
+            ["text_offset", "gap"], [text_offset, gap]
+        )
         self.center = center
         self.radius = radius
         self.start_angle = start_angle
@@ -1115,12 +1146,16 @@ class Dimension(Batch):
                 px1_1 = line_by_point_angle_length(p1, angle, self.gap)[1]
             else:
                 px1_1 = self.ext1pnt
-            px1_2 = line_by_point_angle_length(p1, angle, self.gap + self.ext_length)[1]
+            px1_2 = line_by_point_angle_length(
+                p1, angle, self.gap + self.ext_length
+            )[1]
             if self.ext2pnt is None:
                 px2_1 = line_by_point_angle_length(p2, angle, self.gap)[1]
             else:
                 px2_1 = self.ext2pnt
-            px2_2 = line_by_point_angle_length(p2, angle, self.gap + self.ext_length)[1]
+            px2_2 = line_by_point_angle_length(
+                p2, angle, self.gap + self.ext_length
+            )[1]
 
             pa1 = line_by_point_angle_length(px1_2, angle, -space)[1]
             pa2 = line_by_point_angle_length(px2_2, angle, -space)[1]
@@ -1143,7 +1178,11 @@ class Dimension(Batch):
                 self.append(self.mid_line)
                 dist = self.text_offset[0] + self.reverse_arrow_length
                 if not self.keep_centered:
-                    if orientation in [Anchor.EAST, Anchor.NORTHEAST, Anchor.NORTH]:
+                    if orientation in [
+                        Anchor.EAST,
+                        Anchor.NORTHEAST,
+                        Anchor.NORTH,
+                    ]:
                         if self.text_side == Anchor.BOTTOM:
                             tx, ty = extended_line(dist, [pa2, pa1])[1]
                         else:
@@ -1174,7 +1213,11 @@ class Dimension(Batch):
                 if self.orientation is None:
                     orientation = Anchor.EAST
 
-                if orientation in [Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST]:
+                if orientation in [
+                    Anchor.WEST,
+                    Anchor.SOUTHWEST,
+                    Anchor.NORTHWEST,
+                ]:
                     x = x1 - self.gap
                     px1_1 = (x, y1)
                     px1_2 = (x - ext_length, y1)
@@ -1183,7 +1226,11 @@ class Dimension(Batch):
                     x = px1_2[0] + space
                     pa1 = (x, y1)
                     pa2 = (x, y2)
-                elif orientation in [Anchor.EAST, Anchor.SOUTHEAST, Anchor.NORTHEAST]:
+                elif orientation in [
+                    Anchor.EAST,
+                    Anchor.SOUTHEAST,
+                    Anchor.NORTHEAST,
+                ]:
                     x = x1 + self.gap
                     px1_1 = (x, y1)
                     px1_2 = (x + ext_length, y1)
@@ -1222,7 +1269,11 @@ class Dimension(Batch):
                     self.text_pos = (x + text_dx, y + text_dy)
                 else:
                     self.text_pos = (x + text_dx, y1 - (y1 - y2) / 2 + text_dy)
-                if orientation not in [Anchor.CENTER, Anchor.NORTH, Anchor.SOUTH]:
+                if orientation not in [
+                    Anchor.CENTER,
+                    Anchor.NORTH,
+                    Anchor.SOUTH,
+                ]:
                     if self.ext1pnt is None:
                         self.ext1 = Shape([px1_1, px1_2])
                     else:
@@ -1236,7 +1287,11 @@ class Dimension(Batch):
                 if self.orientation is None:
                     orientation = Anchor.SOUTH
 
-                if orientation in [Anchor.SOUTH, Anchor.SOUTHWEST, Anchor.SOUTHEAST]:
+                if orientation in [
+                    Anchor.SOUTH,
+                    Anchor.SOUTHWEST,
+                    Anchor.SOUTHEAST,
+                ]:
                     y = y1 - self.gap
                     px1_1 = (x1, y)
                     px1_2 = (x1, y - ext_length)
@@ -1245,7 +1300,11 @@ class Dimension(Batch):
                     y = px1_2[1] + space
                     pa1 = (x1, y)
                     pa2 = (x2, y)
-                elif orientation in [Anchor.NORTH, Anchor.NORTHWEST, Anchor.NORTHEAST]:
+                elif orientation in [
+                    Anchor.NORTH,
+                    Anchor.NORTHWEST,
+                    Anchor.NORTHEAST,
+                ]:
                     y = y1 + self.gap
                     px1_1 = (x1, y)
                     px1_2 = (x1, y + ext_length)
@@ -1367,7 +1426,11 @@ class Dimension(Batch):
                 self.append(self.mid_line)
                 dist = self.text_offset[0] + self.reverse_arrow_length
                 if not keep_centered:
-                    if orientation in [Anchor.EAST, Anchor.NORTHEAST, Anchor.NORTH]:
+                    if orientation in [
+                        Anchor.EAST,
+                        Anchor.NORTHEAST,
+                        Anchor.NORTH,
+                    ]:
                         if self.text_side == Anchor.BOTTOM:
                             tx, ty = extended_line(dist, [pa2, pa1])[1]
                             self

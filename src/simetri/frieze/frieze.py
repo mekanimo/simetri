@@ -9,7 +9,9 @@ from ..graphics.batch import Batch
 from ..graphics.shape import Shape
 
 
-def hop(design: Union[Batch, Shape], vector: VecType = (1, 0), reps: int = 3) -> Batch:
+def hop(
+    design: Union[Batch, Shape], vector: VecType = (1, 0), reps: int = 3
+) -> Batch:
     """
     p1 symmetry group.
 
@@ -25,7 +27,9 @@ def hop(design: Union[Batch, Shape], vector: VecType = (1, 0), reps: int = 3) ->
     return design.translate(dx, dy, reps)
 
 
-def p1(design: Union[Batch, Shape], vector: VecType = (1, 0), reps: int = 3) -> Batch:
+def p1(
+    design: Union[Batch, Shape], vector: VecType = (1, 0), reps: int = 3
+) -> Batch:
     """
     p1 symmetry group.
 
@@ -89,7 +93,9 @@ def jump_along(
     return design
 
 
-def sidle(design: Batch, mirror_line: LineType, dist: float, reps: int = 3) -> Batch:
+def sidle(
+    design: Batch, mirror_line: LineType, dist: float, reps: int = 3
+) -> Batch:
     """
     p1m1 symmetry group.
 
@@ -109,7 +115,10 @@ def sidle(design: Batch, mirror_line: LineType, dist: float, reps: int = 3) -> B
 
 
 def sidle_along(
-    design: Batch, mirror_line: LineType, path: Sequence[PointType], reps: int = 3
+    design: Batch,
+    mirror_line: LineType,
+    path: Sequence[PointType],
+    reps: int = 3,
 ) -> Batch:
     """
     Sidle along the given path.
@@ -151,7 +160,11 @@ def spinning_hop(
 
 
 def spinning_jump(
-    design: Batch, mirror1: LineType, mirror2: LineType, dist: float, reps: int = 3
+    design: Batch,
+    mirror1: LineType,
+    mirror2: LineType,
+    dist: float,
+    reps: int = 3,
 ) -> Batch:
     """
     p2mm symmetry group.

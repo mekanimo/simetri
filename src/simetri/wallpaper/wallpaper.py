@@ -85,7 +85,9 @@ def cover_rhombic(
     return item
 
 
-def hex_grid_pointy(x: float, y: float, size: float, n_rows: int, n_cols: int) -> Batch:
+def hex_grid_pointy(
+    x: float, y: float, size: float, n_rows: int, n_cols: int
+) -> Batch:
     """
     Creates a hexagonal grid with pointy tops.
 
@@ -621,7 +623,9 @@ def wallpaper_pgg(
     """
     if horizontal:
         dist = rotocenter[0] - generator.center[0]
-        wallpaper = generator.glide(generator.horiz_centerline, 2 * dist, reps=1)
+        wallpaper = generator.glide(
+            generator.horiz_centerline, 2 * dist, reps=1
+        )
         wallpaper.rotate(pi, rotocenter, reps=1)
     else:
         dist = rotocenter[1] - generator.center[1]
@@ -703,7 +707,10 @@ def wallpaper_p4m(
 
 
 def wallpaper_p4g(
-    generator: Union[Batch, Shape, Tag], dist: float, reps1: int = 4, reps2: int = 4
+    generator: Union[Batch, Shape, Tag],
+    dist: float,
+    reps1: int = 4,
+    reps2: int = 4,
 ) -> Batch:
     """
     Mirrored pinwheel symmetry.

@@ -31,7 +31,11 @@ from ..geometry.ellipse import (
     ellipse_tangent,
     elliptic_arc_points,
 )
-from ..geometry.geometry import extended_line, line_angle, line_by_point_angle_length
+from ..geometry.geometry import (
+    extended_line,
+    line_angle,
+    line_by_point_angle_length,
+)
 from .affine import translation_matrix, rotation_matrix
 from ..settings.settings import defaults
 
@@ -64,7 +68,9 @@ class LinPath(Batch, StyleMixin):
     Path objects can be transformed like other Shape and Batch objects.
     """
 
-    def __init__(self, start: PointType = (0, 0), angle: float = pi / 2, **kwargs):
+    def __init__(
+        self, start: PointType = (0, 0), angle: float = pi / 2, **kwargs
+    ):
         """Initialize a Path object.
 
         Args:
@@ -141,7 +147,13 @@ class LinPath(Batch, StyleMixin):
             self.cur_shape = Shape([data])
             self.append(self.cur_shape)
             self.objects.append(None)
-        elif op_type in [PO.LINE_TO, PO.R_LINE, PO.H_LINE_TO, PO.V_LINE_TO, PO.FORWARD]:
+        elif op_type in [
+            PO.LINE_TO,
+            PO.R_LINE,
+            PO.H_LINE_TO,
+            PO.V_LINE_TO,
+            PO.FORWARD,
+        ]:
             self.objects.append(Shape(data))
             self.cur_shape.append(data[1])
         elif op_type in [PO.SEGMENTS]:
@@ -212,7 +224,12 @@ class LinPath(Batch, StyleMixin):
             **kwargs: Additional keyword arguments.
         """
         self.operations.append(Operation(op, data))
-        if op in [PathOps.ARC, PathOps.BLEND_ARC, PathOps.SINE, PathOps.BLEND_SINE]:
+        if op in [
+            PathOps.ARC,
+            PathOps.BLEND_ARC,
+            PathOps.SINE,
+            PathOps.BLEND_SINE,
+        ]:
             self.angle = data[1]
         else:
             if pnt2 is not None:
@@ -474,12 +491,21 @@ class LinPath(Batch, StyleMixin):
         """
 
         self._add(
-            points[-1], PathOps.SEGMENTS, (self.pos, points), pnt2=points[-2], **kwargs
+            points[-1],
+            PathOps.SEGMENTS,
+            (self.pos, points),
+            pnt2=points[-2],
+            **kwargs,
         )
         return self
 
     def cubic_to(
-        self, control1: PointType, control2: PointType, end: PointType, *args, **kwargs
+        self,
+        control1: PointType,
+        control2: PointType,
+        end: PointType,
+        *args,
+        **kwargs,
     ) -> Self:
         """Add a Bézier curve with two control points to the path. Multiple blended curves can be added
         by providing additional arguments.
@@ -522,7 +548,11 @@ class LinPath(Batch, StyleMixin):
             points.append((current_x, current_y))
 
         self._add(
-            points[-1], PathOps.SEGMENTS, (self.pos, points), pnt2=points[-2], **kwargs
+            points[-1],
+            PathOps.SEGMENTS,
+            (self.pos, points),
+            pnt2=points[-2],
+            **kwargs,
         )
         return self
 
@@ -539,7 +569,9 @@ class LinPath(Batch, StyleMixin):
         self._add(points[-1], PathOps.HOBBY_TO, (self.pos, points))
         return self
 
-    def quad_to(self, control: PointType, end: PointType, *args, **kwargs) -> Self:
+    def quad_to(
+        self, control: PointType, end: PointType, *args, **kwargs
+    ) -> Self:
         """Add a quadratic Bézier curve to the path. Multiple blended curves can be added by providing
         additional arguments.
 
@@ -571,17 +603,23 @@ class LinPath(Batch, StyleMixin):
                 length = arg[0]
                 control = extended_line(length, control, pos)
                 end = arg[1]
-                self._add(end, PathOps.QUAD_TO, (pos, control, end), pnt2=control)
+                self._add(
+                    end, PathOps.QUAD_TO, (pos, control, end), pnt2=control
+                )
                 pos = end
             elif isinstance(arg[0], (list, tuple)):
                 # (control, end)
                 control = arg[0]
                 end = arg[1]
-                self._add(end, PathOps.QUAD_TO, (pos, control, end), pnt2=control)
+                self._add(
+                    end, PathOps.QUAD_TO, (pos, control, end), pnt2=control
+                )
                 pos = end
         return self
 
-    def mirror_cubic_to(self, control2: PointType, end: PointType, **kwargs) -> Self:
+    def mirror_cubic_to(
+        self, control2: PointType, end: PointType, **kwargs
+    ) -> Self:
         """Same as SVG S (smooth cubic Bezier).
 
         Mirrors the previous second control point across the current position
@@ -598,7 +636,10 @@ class LinPath(Batch, StyleMixin):
         # Get previous control point from last operation if it was a cubic
         prev_c2 = self.pos
         last_op = self.operations[-1] if self.operations else None
-        if last_op and last_op.subtype in [PathOps.CUBIC_TO, PathOps.BLEND_CUBIC]:
+        if last_op and last_op.subtype in [
+            PathOps.CUBIC_TO,
+            PathOps.BLEND_CUBIC,
+        ]:
             # data: (start, c1, c2, end)
             prev_c2 = last_op.data[2]
 
@@ -698,7 +739,9 @@ class LinPath(Batch, StyleMixin):
         Returns:
             Path: The path object.
         """
-        c1 = line_by_point_angle_length(self.pos, self.angle, control1_length)[1]
+        c1 = line_by_point_angle_length(self.pos, self.angle, control1_length)[
+            1
+        ]
         self._add(
             end,
             PathOps.CUBIC_TO,
@@ -755,7 +798,9 @@ class LinPath(Batch, StyleMixin):
         clockwise = span_angle < 0
         if n_points is None:
             n_points = defaults["n_arc_points"]
-        points = elliptic_arc_points((0, 0), rx, ry, start_angle, span_angle, n_points)
+        points = elliptic_arc_points(
+            (0, 0), rx, ry, start_angle, span_angle, n_points
+        )
         start = points[0]
         end = points[-1]
         # Translate the start to the current position and rotate by the rotation angle.
@@ -777,7 +822,16 @@ class LinPath(Batch, StyleMixin):
         self._add(
             pos,
             PathOps.ARC,
-            (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points),
+            (
+                pos,
+                tangent_angle,
+                rx,
+                ry,
+                start_angle,
+                span_angle,
+                rot_angle,
+                points,
+            ),
         )
         return self
 
@@ -852,7 +906,9 @@ class LinPath(Batch, StyleMixin):
         clockwise = span_angle < 0
         if n_points is None:
             n_points = defaults["n_arc_points"]
-        points = elliptic_arc_points((0, 0), rx, ry, start_angle, span_angle, n_points)
+        points = elliptic_arc_points(
+            (0, 0), rx, ry, start_angle, span_angle, n_points
+        )
         start = points[0]
         end = points[-1]
         # Translate the start to the current position and rotate by the computed rotation angle.
@@ -877,7 +933,16 @@ class LinPath(Batch, StyleMixin):
         self._add(
             pos,
             PathOps.ARC,
-            (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points),
+            (
+                pos,
+                tangent_angle,
+                rx,
+                ry,
+                start_angle,
+                span_angle,
+                rot_angle,
+                points,
+            ),
         )
         return self
 
@@ -1075,7 +1140,13 @@ def lin_path_svg(LinPath):
             # data is point (x,y)
             parts.append(f"M {fmt(data[0])},{fmt(data[1])}")
 
-        elif st in [PO.LINE_TO, PO.R_LINE, PO.H_LINE_TO, PO.V_LINE_TO, PO.FORWARD]:
+        elif st in [
+            PO.LINE_TO,
+            PO.R_LINE,
+            PO.H_LINE_TO,
+            PO.V_LINE_TO,
+            PO.FORWARD,
+        ]:
             # data is (start, end)
             end = data[1]
             parts.append(f"L {fmt(end[0])},{fmt(end[1])}")
@@ -1095,7 +1166,9 @@ def lin_path_svg(LinPath):
         elif st in [PO.QUAD_TO, PO.BLEND_QUAD]:
             # data: (start, c1, end)
             c1, end = data[1], data[2]
-            parts.append(f"Q {fmt(c1[0])},{fmt(c1[1])} {fmt(end[0])},{fmt(end[1])}")
+            parts.append(
+                f"Q {fmt(c1[0])},{fmt(c1[1])} {fmt(end[0])},{fmt(end[1])}"
+            )
 
         elif st in [PO.ARC, PO.BLEND_ARC]:
             # data: (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points)
@@ -1144,7 +1217,9 @@ def svg_path_to_linpath(svg_path: str) -> LinPath:
         return LinPath()
 
     # Tokenizer
-    tokens = re.findall(r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", svg_path)
+    tokens = re.findall(
+        r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", svg_path
+    )
 
     start_point = (0.0, 0.0)
     idx = 0
@@ -1322,7 +1397,10 @@ def svg_path_to_linpath(svg_path: str) -> LinPath:
 
                 prev_c1 = lp.pos
                 last_op = lp.operations[-1] if lp.operations else None
-                if last_op and last_op.subtype in [PathOps.QUAD_TO, PathOps.BLEND_QUAD]:
+                if last_op and last_op.subtype in [
+                    PathOps.QUAD_TO,
+                    PathOps.BLEND_QUAD,
+                ]:
                     # data: (start, c1, end) or similar?
                     # quad_to adds: PathOps.QUAD_TO, (pos, c1, end)
                     prev_c1 = last_op.data[1]
@@ -1421,10 +1499,10 @@ def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
     def vector_angle(ux, uy, vx, vy):
         sign = 1 if (ux * vy - uy * vx) >= 0 else -1
         dot = ux * vx + uy * vy
-        l = sqrt(ux**2 + uy**2) * sqrt(vx**2 + vy**2)
-        if l == 0:
+        mag = sqrt(ux**2 + uy**2) * sqrt(vx**2 + vy**2)
+        if mag == 0:
             return 0
-        val = max(-1, min(1, dot / l))
+        val = max(-1, min(1, dot / mag))
         return sign * acos(val)
 
     # start vector

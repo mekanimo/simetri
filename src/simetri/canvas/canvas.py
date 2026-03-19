@@ -26,7 +26,13 @@ from simetri.graphics.affine import (
     scale_in_place_matrix,
     identity_matrix,
 )
-from simetri.graphics.common import common_properties, _set_Nones, VOID, PointType, VecType
+from simetri.graphics.common import (
+    common_properties,
+    _set_Nones,
+    VOID,
+    PointType,
+    VecType,
+)
 from simetri.graphics.all_enums import (
     Types,
     Drawable,
@@ -43,7 +49,10 @@ from simetri.graphics.shape import Shape
 from simetri.graphics.sketch import TexSketch
 from simetri.colors.colors import Color, light_gray
 from simetri.canvas import draw
-from simetri.helpers.utilities import wait_for_file_availability, round_symmetric
+from simetri.helpers.utilities import (
+    wait_for_file_availability,
+    round_symmetric,
+)
 from simetri.helpers.illustration import logo
 from simetri.helpers.file_operations import validate_filepath
 from simetri.tikz.tikz import get_tex_code
@@ -338,7 +347,9 @@ class Canvas:
         draw.bezier(self, control_points, **kwargs)
         return self
 
-    def circle(self, radius: float, center: PointType = (0, 0), **kwargs) -> Self:
+    def circle(
+        self, radius: float, center: PointType = (0, 0), **kwargs
+    ) -> Self:
         """
         Draw a circle with the given center and radius.
 
@@ -354,7 +365,12 @@ class Canvas:
         return self
 
     def ellipse(
-        self, center: PointType, width: float, height: float, angle: float = 0, **kwargs
+        self,
+        center: PointType,
+        width: float,
+        height: float,
+        angle: float = 0,
+        **kwargs,
     ) -> Self:
         """
         Draw an ellipse with the given center and radius.
@@ -463,7 +479,12 @@ class Canvas:
         return self
 
     def grid(
-        self, pos: PointType, width: float, height: float, spacing: float, **kwargs
+        self,
+        pos: PointType,
+        width: float,
+        height: float,
+        spacing: float,
+        **kwargs,
     ) -> Self:
         """
         Draw a grid with the given size and spacing.
@@ -577,7 +598,11 @@ class Canvas:
         return self
 
     def square(
-        self, center: PointType = (0, 0), size: float = 100, angle: float = 0, **kwargs
+        self,
+        center: PointType = (0, 0),
+        size: float = 100,
+        angle: float = 0,
+        **kwargs,
     ) -> Self:
         """
         Draw a square with the given center and size.
@@ -838,9 +863,17 @@ class Canvas:
         draw.draw_image(self, image, pos, **kwargs)
         return self
 
-    def draw_latex(self, formula: str, pos: PointType, font_size: int = 14,
-                   font_family: str = None, font_color=None, bold: bool = False,
-                   anchor=None, **kwargs) -> Self:
+    def draw_latex(
+        self,
+        formula: str,
+        pos: PointType,
+        font_size: int = 14,
+        font_family: str = None,
+        font_color=None,
+        bold: bool = False,
+        anchor=None,
+        **kwargs,
+    ) -> Self:
         """Draw a LaTeX math formula on the canvas using matplotlib mathtext (no TeX compiler needed).
 
         Args:
@@ -865,11 +898,18 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        draw.draw_latex(self, formula, pos, font_size=font_size,
-                        font_family=font_family, font_color=font_color,
-                        bold=bold, anchor=anchor, **kwargs)
+        draw.draw_latex(
+            self,
+            formula,
+            pos,
+            font_size=font_size,
+            font_family=font_family,
+            font_color=font_color,
+            bold=bold,
+            anchor=anchor,
+            **kwargs,
+        )
         return self
-
 
     def draw_frame(
         self, margin: Union[float, Sequence] = None, width=None, **kwargs
@@ -895,7 +935,10 @@ class Canvas:
         shadow = Shape([box3.northwest, box3.southwest, box3.southeast])
         self.draw(shadow, line_color=light_gray, line_width=width, style=style)
         self.draw(
-            Shape(box2.corners, closed=True), fill=False, line_width=width, style=style
+            Shape(box2.corners, closed=True),
+            fill=False,
+            line_width=width,
+            style=style,
         )
 
         return self
@@ -997,7 +1040,10 @@ class Canvas:
 
     @scale.setter
     def scale(
-        self, scale_x: float = 1, scale_y: float = None, about: PointType = (0, 0)
+        self,
+        scale_x: float = 1,
+        scale_y: float = None,
+        about: PointType = (0, 0),
     ) -> None:
         """
         Set the scale of the canvas.
@@ -1335,7 +1381,12 @@ class Canvas:
                     user_fonts.add(name)
         return list(user_fonts.difference(latex_fonts))
 
-    def _apply_mask(self, target: Union[Shape, Batch, None] = None, mask: "Mask" = None, **kwargs) -> Self:
+    def _apply_mask(
+        self,
+        target: Union[Shape, Batch, None] = None,
+        mask: "Mask" = None,
+        **kwargs,
+    ) -> Self:
         if self.render == "TEX":
             clip_mask_fn = apply_tikz_mask
         else:
@@ -1421,8 +1472,10 @@ class Canvas:
 
         if inset is not None:
             self.inset = inset
-        parent_dir, file_name, extension = validate_filepath(filepath, overwrite)
-        if self.render == 'SVG':
+        parent_dir, file_name, extension = validate_filepath(
+            filepath, overwrite
+        )
+        if self.render == "SVG":
             from simetri.svg.svg import get_svg_code
 
             svg_code = get_svg_code(self)
@@ -1440,7 +1493,9 @@ class Canvas:
             if remove_aux:
                 remove_aux_files(filepath)
 
-        self._show_browser(filepath=filepath, show_browser=show, multi_page_svg=False)
+        self._show_browser(
+            filepath=filepath, show_browser=show, multi_page_svg=False
+        )
         return self
 
     def new_page(self, **kwargs) -> Self:
@@ -1539,7 +1594,13 @@ def hello() -> None:
     """
     canvas = Canvas()
     import simetri.graphics as sg
-    canvas.text(f"Hello from simetri.graphics version Alpha {sg.__version__}!", (0, -130), bold=True, font_size=20)
+
+    canvas.text(
+        f"Hello from simetri.graphics version Alpha {sg.__version__}!",
+        (0, -130),
+        bold=True,
+        font_size=20,
+    )
     canvas.draw(logo())
 
     d_path = os.path.dirname(os.path.abspath(__file__))

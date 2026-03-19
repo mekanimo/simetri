@@ -1,16 +1,15 @@
-'''Vector objects and vector operations.
+"""Vector objects and vector operations.
 Any array/list can be used as arguments to the vector operations. This is the
 most light-weight way to operate on high number of vectors.
 Vector object instances can be used in a similar fashion. Some of the Vector
 methods can be chained together.
 This module borrows ideas from both PiScript by Bill Casselman and
 VPython by Bruce Sherwood.
-'''
+"""
 
 from math import acos, atan2, cos, hypot, sin
 from typing import List, Optional, Sequence, Tuple, Union
 import warnings
-
 
 
 class Vector:
@@ -62,7 +61,7 @@ class Vector:
     def __iter__(self):
         return iter(self.data)
 
-    def __add__(self, other: Union['Vector', Sequence[float]]) -> 'Vector':
+    def __add__(self, other: Union["Vector", Sequence[float]]) -> "Vector":
         """Add two vectors."""
         if isinstance(other, Vector):
             return Vector(v_sum(self.data, other.data))
@@ -71,7 +70,7 @@ class Vector:
         )
         return Vector(v_sum(self.data, other))
 
-    def __sub__(self, other: Union['Vector', Sequence[float]]) -> 'Vector':
+    def __sub__(self, other: Union["Vector", Sequence[float]]) -> "Vector":
         """Subtract two vectors."""
         if isinstance(other, Vector):
             return Vector(v_diff(self.data, other.data))
@@ -81,8 +80,8 @@ class Vector:
         return Vector(v_diff(self.data, other))
 
     def __mul__(
-        self, other: Union['Vector', Sequence[float], float, int]
-    ) -> Union[float, 'Vector']:
+        self, other: Union["Vector", Sequence[float], float, int]
+    ) -> Union[float, "Vector"]:
         """Dot product if other is vector, scalar multiplication if scalar."""
         if isinstance(other, (int, float)):
             return Vector(v_mul(self.data, other))
@@ -93,19 +92,19 @@ class Vector:
         )
         return v_mul(self.data, other)
 
-    def __rmul__(self, other: Union[float, int]) -> 'Vector':
+    def __rmul__(self, other: Union[float, int]) -> "Vector":
         """Reverse scalar multiplication."""
         return self.__mul__(other)
 
-    def __truediv__(self, other: float) -> 'Vector':
+    def __truediv__(self, other: float) -> "Vector":
         """Divide by scalar."""
         return Vector(v_div(self.data, other))
 
-    def __neg__(self) -> 'Vector':
+    def __neg__(self) -> "Vector":
         """Negate vector."""
         return Vector(v_minus(self.data))
 
-    def __pos__(self) -> 'Vector':
+    def __pos__(self) -> "Vector":
         """Self vector."""
         return self
 
@@ -121,11 +120,11 @@ class Vector:
         """Check equality."""
         return self.__eq__(other)
 
-    def perp(self) -> 'Vector':
+    def perp(self) -> "Vector":
         """Return a perpendicular vector (2D only)."""
         return Vector(v_perp(self.data))
 
-    def distance_to(self, other: Union['Vector', Sequence[float]]) -> float:
+    def distance_to(self, other: Union["Vector", Sequence[float]]) -> float:
         """Distance to another point."""
         if isinstance(other, Vector):
             other_data = other.data
@@ -144,14 +143,14 @@ class Vector:
         """Squared magnitude."""
         return sum(x * x for x in self.data)
 
-    def normalize(self) -> 'Vector':
+    def normalize(self) -> "Vector":
         """Return a normalized copy of the vector."""
-        l = self.mag()
-        if l == 0:
+        mag = self.mag()
+        if mag == 0:
             return Vector(self.data)
-        return self / l
+        return self / mag
 
-    def dot(self, other: Union['Vector', Sequence[float]]) -> float:
+    def dot(self, other: Union["Vector", Sequence[float]]) -> float:
         """Dot product."""
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
@@ -161,8 +160,8 @@ class Vector:
         return v_mul(self.data, other)
 
     def cross(
-        self, other: Union['Vector', Sequence[float]]
-    ) -> Union[float, 'Vector']:
+        self, other: Union["Vector", Sequence[float]]
+    ) -> Union[float, "Vector"]:
         """Cross product."""
         if isinstance(other, Vector):
             other_data = other.data
@@ -180,7 +179,7 @@ class Vector:
         """Angle of 2D vector."""
         return v_arg(self.data)
 
-    def angle_between(self, other: Union['Vector', Sequence[float]]) -> float:
+    def angle_between(self, other: Union["Vector", Sequence[float]]) -> float:
         """Angle between two vectors."""
         if isinstance(other, Vector):
             other_data = other.data
@@ -194,8 +193,8 @@ class Vector:
     def rotate(
         self,
         angle: float,
-        axis: Optional[Union['Vector', Sequence[float]]] = None,
-    ) -> 'Vector':
+        axis: Optional[Union["Vector", Sequence[float]]] = None,
+    ) -> "Vector":
         """Rotate vector by angle (radians)."""
         if isinstance(axis, Vector):
             axis_data = axis.data
@@ -208,7 +207,7 @@ class Vector:
             axis_data = axis
         return Vector(v_rotated(self.data, angle, axis_data))
 
-    def project(self, other: Union['Vector', Sequence[float]]) -> 'Vector':
+    def project(self, other: Union["Vector", Sequence[float]]) -> "Vector":
         """Project this vector onto other."""
         if isinstance(other, Vector):
             other_vec = other
@@ -223,7 +222,7 @@ class Vector:
         scale = self.dot(other_vec) / b_mag_sq
         return other_vec * scale
 
-    def reflect(self, normal: Union['Vector', Sequence[float]]) -> 'Vector':
+    def reflect(self, normal: Union["Vector", Sequence[float]]) -> "Vector":
         """Reflect vector across a normal."""
         if isinstance(normal, Vector):
             n = normal
@@ -236,8 +235,8 @@ class Vector:
         return self - n * (2 * self.dot(n))
 
     def lerp(
-        self, other: Union['Vector', Sequence[float]], t: float
-    ) -> 'Vector':
+        self, other: Union["Vector", Sequence[float]], t: float
+    ) -> "Vector":
         """Linear interpolation."""
         if isinstance(other, Vector):
             other_data = other.data
@@ -392,7 +391,10 @@ def v_rotated(vec: Vec, angle: float, axis: Optional[Vec] = None) -> Vec:
     k_cross_v = v_cross(u, v)
     return _result_like(
         vec,
-        (v[i] * c + k_cross_v[i] * s + u[i] * k_dot_v * (1 - c) for i in range(3)),
+        (
+            v[i] * c + k_cross_v[i] * s + u[i] * k_dot_v * (1 - c)
+            for i in range(3)
+        ),
     )
 
 

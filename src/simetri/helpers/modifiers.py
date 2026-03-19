@@ -1,5 +1,6 @@
 from random import random, choice
 import inspect
+from typing import List
 
 from ..graphics.all_enums import Control, State
 from ..graphics.common import common_properties
@@ -21,7 +22,13 @@ class Modifier:
     """
 
     def __init__(
-        self, function, life_span=10000, randomness=1.0, condition=True, *args, **kwargs
+        self,
+        function,
+        life_span=10000,
+        randomness=1.0,
+        condition=True,
+        *args,
+        **kwargs,
     ):
         """
         Args:
@@ -130,9 +137,9 @@ class Modifier:
         """
         if callable(self.randomness):
             randomness = self.get_value(self.randomness, target)
-        elif type(self.randomness) == float:
+        elif isinstance(self.randomness, float):
             randomness = self.randomness >= random()
-        elif type(self.randomness) in [list, tuple]:
+        elif isinstance(self.randomness, (List, tuple)):
             randomness = choice(self.randomness)
 
         if callable(self.condition):

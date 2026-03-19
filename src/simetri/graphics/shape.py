@@ -19,7 +19,6 @@ __all__ = [
 
 from typing import Sequence, Union, List, Tuple, Any
 from math import pi, isclose, floor
-import copy
 
 import json
 import numpy as np
@@ -247,12 +246,12 @@ class Shape(Base, StyleMixin):
                 n = len(final_coords)
                 index = int(floor(subscript))
                 if self.closed:
-                    next_index = (index+1) % n
+                    next_index = (index + 1) % n
                 else:
-                    if subscript >= n-1:
+                    if subscript >= n - 1:
                         raise ValueError("Invalid index!")
                     else:
-                        next_index = index+1
+                        next_index = index + 1
                 vertex = final_coords[index]
                 next_vertex = final_coords[next_index]
                 t = subscript - index
@@ -277,9 +276,9 @@ class Shape(Base, StyleMixin):
                 value = homogenize(value) @ inv(self.xform_matrix)
             else:
                 value = homogenize([value]) @ inv(self.xform_matrix)
-            self.primary_points[subscript.start : subscript.stop : subscript.step] = [
-                tuple(x[:2]) for x in value
-            ]
+            self.primary_points[
+                subscript.start : subscript.stop : subscript.step
+            ] = [tuple(x[:2]) for x in value]
             self.primary_points.nd_array_changed = True
         elif isinstance(subscript, int):
             value = homogenize([value]) @ inv(self.xform_matrix)
@@ -310,9 +309,9 @@ class Shape(Base, StyleMixin):
 
         if abs_tol is None:
             abs_tol = defaults["abs_tol"]
-        ind = np.where((np.isclose(self.vertices, point, atol=abs_tol)).all(axis=1))[0][
-            0
-        ]
+        ind = np.where(
+            (np.isclose(self.vertices, point, atol=abs_tol)).all(axis=1)
+        )[0][0]
 
         return ind
 
@@ -387,10 +386,13 @@ class Shape(Base, StyleMixin):
         reps: int = 0,
         take: slice = None,
         incr: Union[
-            float | tuple[float, float] | tuple[callable, Any] | tuple[InPlace, Any]
+            float
+            | tuple[float, float]
+            | tuple[callable, Any]
+            | tuple[InPlace, Any]
         ] = None,
         merge: bool = False,
-        xform_type: TransformationType = None
+        xform_type: TransformationType = None,
     ) -> Union["Shape", Batch]:
         """Used internally. Update the shape with a transformation matrix.
 
@@ -419,8 +421,10 @@ class Shape(Base, StyleMixin):
             shape = self
             for i in range(reps):
                 shape = shape.copy()
-                if incr is not None and i>0:
-                    xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
+                if incr is not None and i > 0:
+                    xform_matrix = _update_inplace(
+                        xform_matrix, xform_type, incr
+                    )
 
                 shape._update(xform_matrix)
                 shapes.append(shape)
@@ -514,7 +518,9 @@ class Shape(Base, StyleMixin):
 
         # Original points (primary points before transform)
         try:
-            prim_points = list(self.primary_points) if self.primary_points else []
+            prim_points = (
+                list(self.primary_points) if self.primary_points else []
+            )
         except Exception:
             prim_points = []
 
@@ -587,7 +593,9 @@ class Shape(Base, StyleMixin):
             "CONGRUENT": Topology.CONGRUENT,
             "INTERSECT": Topology.INTERSECTING,
         }
-        intersections = all_intersections(self.vertex_pairs, use_intersection3=True)
+        intersections = all_intersections(
+            self.vertex_pairs, use_intersection3=True
+        )
         connections = []
         for val in intersections.values():
             connections.extend([x[0].value for x in val])
@@ -624,7 +632,9 @@ class Shape(Base, StyleMixin):
                 self.as_list(), other.as_list(), dist_tol=dist_tol
             )
             if vertices:
-                closed = close_points2(vertices[0], vertices[-1], dist2=self.dist_tol2)
+                closed = close_points2(
+                    vertices[0], vertices[-1], dist2=self.dist_tol2
+                )
                 res = Shape(vertices, closed=closed)
             else:
                 res = None
@@ -701,7 +711,9 @@ class Shape(Base, StyleMixin):
         Returns:
             bool: True if the vertices form a polygon, False otherwise.
         """
-        return close_points2(vertices[0][:2], vertices[-1][:2], dist2=self.dist_tol2)
+        return close_points2(
+            vertices[0][:2], vertices[-1][:2], dist2=self.dist_tol2
+        )
 
     def as_graph(
         self, directed=False, weighted=False, n_round=None, cycles=False
@@ -720,7 +732,9 @@ class Shape(Base, StyleMixin):
         """
         if n_round is None:
             n_round = defaults["n_round"]
-        vertices = [(round(v[0], n_round), round(v[1], n_round)) for v in self.vertices]
+        vertices = [
+            (round(v[0], n_round), round(v[1], n_round)) for v in self.vertices
+        ]
         points = [Node(*n) for n in vertices]
         pairs = connected_pairs(points)
         edges = [GraphEdge(p[0], p[1]) for p in pairs]
@@ -739,7 +753,9 @@ class Shape(Base, StyleMixin):
 
         if weighted:
             for edge in edges:
-                nx_graph.add_edge(edge.start.id, edge.end.id, weight=edge.length)
+                nx_graph.add_edge(
+                    edge.start.id, edge.end.id, weight=edge.length
+                )
             subtype = Types.WEIGHTED
         else:
             id_pairs = [(e.start.id, e.end.id) for e in edges]
@@ -822,7 +838,10 @@ class Shape(Base, StyleMixin):
 
         if self.primary_points:
             # Cache vertices computation and only recompute when data changes
-            if "_vertices" not in self.__dict__ or self.primary_points.nd_array_changed:
+            if (
+                "_vertices" not in self.__dict__
+                or self.primary_points.nd_array_changed
+            ):
                 res = tuple(((x[0], x[1]) for x in (self.final_coords[:, :2])))
                 self._vertices = res
                 self.primary_points.nd_array_changed = False
@@ -876,7 +895,9 @@ class Shape(Base, StyleMixin):
         """
         if self.closed:
             vertices = self.vertices[:]
-            if not close_points2(vertices[0], vertices[-1], dist2=self.dist_tol2):
+            if not close_points2(
+                vertices[0], vertices[-1], dist2=self.dist_tol2
+            ):
                 vertices = list(vertices) + [vertices[0]]
             res = polygon_area(vertices)
         else:
@@ -1093,7 +1114,9 @@ def trim_margins(
     Returns:
         Union[Shape, Batch]: The trimmed Shape or Batch.
     """
-    corners = item.b_box.get_inflated_b_box(-left, -bottom, -right, -top).corners
+    corners = item.b_box.get_inflated_b_box(
+        -left, -bottom, -right, -top
+    ).corners
     clipper = Shape(corners, closed=True)
 
     return clip(item, clipper, exclude_clipper=True)
@@ -1275,7 +1298,9 @@ def diff(
     for segs in all_segments_:
         for seg in segs:
             in1 = in_polygon(midpoint(*seg), shape_vertices)
-            in2 = in_polygon(midpoint(*seg), shape2_vertices, not exclude_clipper)
+            in2 = in_polygon(
+                midpoint(*seg), shape2_vertices, not exclude_clipper
+            )
             if in1 and not in2:
                 diff_.append(Shape(seg))
 

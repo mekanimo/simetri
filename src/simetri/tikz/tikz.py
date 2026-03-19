@@ -42,7 +42,7 @@ from ..geometry.geometry import (
     polar_to_cartesian,
     cartesian_to_polar,
     round_point,
-    close_points2
+    close_points2,
 )
 from ..graphics.sketch import TagSketch, ShapeSketch
 from ..helpers.utilities import detokenize
@@ -89,7 +89,6 @@ def scope_code_required(canvas: "Canvas") -> bool:
     return _canvas_mask_scope_sketch(canvas) is not None
 
 
-
 def get_back_grid_code(grid: Grid, canvas: "Canvas") -> str:
     """Return the TikZ background grid code.
 
@@ -112,11 +111,15 @@ def get_back_grid_code(grid: Grid, canvas: "Canvas") -> str:
     line_color = color2tikz(grid.line_color)
     step = grid.spacing
     lines = ["\\begin{scope}[on background layer]\n"]
-    lines.append(f"\\fill[color={back_color}] (current bounding box.south west) ")
+    lines.append(
+        f"\\fill[color={back_color}] (current bounding box.south west) "
+    )
     lines.append("rectangle (current bounding box.north east);\n")
     options = []
     if grid.line_dash_array is not None:
-        options.append(f"dashed, dash pattern={get_dash_pattern(grid.line_dash_array)}")
+        options.append(
+            f"dashed, dash pattern={get_dash_pattern(grid.line_dash_array)}"
+        )
     if grid.line_width is not None:
         options.append(f"line width={grid.line_width}")
     if options:
@@ -261,7 +264,9 @@ def get_tex_code(canvas: "Canvas") -> str:
                 code.append(defaults["begin_tikz"])
 
             # check for deferred helplines
-            helplines = [sk for sk in sketches if sk.subtype == Types.HELPLINES_SKETCH]
+            helplines = [
+                sk for sk in sketches if sk.subtype == Types.HELPLINES_SKETCH
+            ]
             for helpline in helplines:
                 helpline.populate(canvas)
 
@@ -297,10 +302,16 @@ def draw_helplines_sketch(sketch):
     # Match draw.grid defaults
     grid_line_width = kwargs.get("line_width", defaults["grid_line_width"])
     grid_line_color = kwargs.get("line_color", defaults["grid_line_color"])
-    grid_line_dash_array = kwargs.get("line_dash_array", defaults["grid_line_dash_array"])
-    line_alpha = kwargs.get("line_alpha", kwargs.get("alpha", defaults["line_alpha"]))
+    grid_line_dash_array = kwargs.get(
+        "line_dash_array", defaults["grid_line_dash_array"]
+    )
+    line_alpha = kwargs.get(
+        "line_alpha", kwargs.get("alpha", defaults["line_alpha"])
+    )
 
-    def _line_options(line_color, line_width, line_dash_array=None, draw_opacity=None):
+    def _line_options(
+        line_color, line_width, line_dash_array=None, draw_opacity=None
+    ):
         options = [
             f"color={color2tikz(line_color)}",
             f"line width={line_width}",
@@ -316,7 +327,9 @@ def draw_helplines_sketch(sketch):
     # Grid lines (horizontal + vertical)
     n_h = int(height / spacing)
     n_v = int(width / spacing)
-    grid_opts = _line_options(grid_line_color, grid_line_width, grid_line_dash_array, line_alpha)
+    grid_opts = _line_options(
+        grid_line_color, grid_line_width, grid_line_dash_array, line_alpha
+    )
 
     for i in range(n_h + 1):
         yi = y + i * spacing
@@ -324,7 +337,9 @@ def draw_helplines_sketch(sketch):
 
     for i in range(n_v + 1):
         xi = x + i * spacing
-        lines.append(f"\\draw[{grid_opts}] ({xi}, {y}) -- ({xi}, {y + height});")
+        lines.append(
+            f"\\draw[{grid_opts}] ({xi}, {y}) -- ({xi}, {y + height});"
+        )
 
     # Coordinate system axes + origin marker
     if cs_size and cs_size > 0:
@@ -336,7 +351,9 @@ def draw_helplines_sketch(sketch):
 
         cs_line_width = kwargs.get("line_width", defaults["CS_line_width"])
         cs_dash = kwargs.get("line_dash_array", None)
-        cs_alpha = kwargs.get("line_alpha", kwargs.get("alpha", defaults["line_alpha"]))
+        cs_alpha = kwargs.get(
+            "line_alpha", kwargs.get("alpha", defaults["line_alpha"])
+        )
 
         x_axis_opts = _line_options(x_color, cs_line_width, cs_dash, cs_alpha)
         y_axis_opts = _line_options(y_color, cs_line_width, cs_dash, cs_alpha)
@@ -381,7 +398,9 @@ class Grid(sg.Shape):
         self.fill = False
         self.stroke = True
         self._b_box = None
-        super().__init__([p1, p2], xform_matrix=None, subtype=sg.Types.GRID, **kwargs)
+        super().__init__(
+            [p1, p2], xform_matrix=None, subtype=sg.Types.GRID, **kwargs
+        )
 
 
 def get_min_size(sketch: ShapeSketch) -> str:
@@ -575,12 +594,14 @@ def get_canvas_scope(canvas):
         canvas_mask_fade_id = None
 
     if canvas_mask_stops is not None and canvas_mask_fade_id:
-        option_list.extend([
-            "transparency group",
-            "blend mode=normal",
-            f"scope fading={canvas_mask_fade_id}",
-            "fit fading=true",
-        ])
+        option_list.extend(
+            [
+                "transparency group",
+                "blend mode=normal",
+                f"scope fading={canvas_mask_fade_id}",
+                "fit fading=true",
+            ]
+        )
     elif canvas_mask_opacity not in [None, 1]:
         option_list.append(f"opacity={canvas_mask_opacity}")
 
@@ -610,7 +631,7 @@ def draw_batch_sketch(sketch, canvas):
         res = f"\\begin{{scope}}[{options}]\n"
     else:
         res = ""
-    if getattr(sketch, 'clip', None) and getattr(sketch, 'mask', None):
+    if getattr(sketch, "clip", None) and getattr(sketch, "mask", None):
         res += get_clip_code(sketch)
     for item in sketch.sketches:
         if item.subtype in d_sketch_draw:
@@ -618,7 +639,7 @@ def draw_batch_sketch(sketch, canvas):
         else:
             res += draw_shape_sketch(item, canvas=canvas)
 
-    if getattr(sketch, 'clip', None) and getattr(sketch, 'mask', None):
+    if getattr(sketch, "clip", None) and getattr(sketch, "mask", None):
         res += get_clip_code(sketch)
     if options:
         res += "\\end{scope}\n"
@@ -837,7 +858,11 @@ def _shape_bbox(sketch):
         r = sketch.radius
         return cx - r, cy - r, cx + r, cy + r
 
-    if hasattr(sketch, "center") and hasattr(sketch, "width") and hasattr(sketch, "height"):
+    if (
+        hasattr(sketch, "center")
+        and hasattr(sketch, "width")
+        and hasattr(sketch, "height")
+    ):
         cx, cy = sketch.center[:2]
         w = sketch.width
         h = sketch.height
@@ -860,7 +885,10 @@ def _user_space_t_span(sketch, x1, y1, x2, y2):
     if denom <= 1e-12:
         return None
 
-    t_values = [((px - float(x1)) * vx + (py - float(y1)) * vy) / denom for px, py in corners]
+    t_values = [
+        ((px - float(x1)) * vx + (py - float(y1)) * vy) / denom
+        for px, py in corners
+    ]
     return min(t_values), max(t_values)
 
 
@@ -873,8 +901,16 @@ def _get_svg_gradient_shading_options(sketch):
     last_color = _extract_gradient_stop_color(stops[-1])
 
     try:
-        left = color2tikz(first_color) if isinstance(first_color, Color) else str(first_color)
-        right = color2tikz(last_color) if isinstance(last_color, Color) else str(last_color)
+        left = (
+            color2tikz(first_color)
+            if isinstance(first_color, Color)
+            else str(first_color)
+        )
+        right = (
+            color2tikz(last_color)
+            if isinstance(last_color, Color)
+            else str(last_color)
+        )
     except Exception:
         left, right = "black", "white"
 
@@ -895,7 +931,9 @@ def _get_svg_gradient_shading_options(sketch):
                 right = color2tikz(c1)
 
     try:
-        angle = degrees(np.arctan2(float(y2) - float(y1), float(x2) - float(x1)))
+        angle = degrees(
+            np.arctan2(float(y2) - float(y1), float(x2) - float(x1))
+        )
     except Exception:
         angle = 0.0
 
@@ -972,7 +1010,9 @@ def draw_tag_sketch(sketch):
                 res = "new_family", sketch.font_family.replace(" ", "")
 
             else:
-                raise ValueError(f"Font family {sketch.font_family} not supported.")
+                raise ValueError(
+                    f"Font family {sketch.font_family} not supported."
+                )
         else:
             res = "no_family", None
 
@@ -1038,7 +1078,10 @@ def draw_tag_sketch(sketch):
 
     # no_family {\textsc{\textit{\textbf{\Huge{ABCDG Just a test -50}}}}};
 
-    if sketch.font_color is not None and sketch.font_color != defaults["font_color"]:
+    if (
+        sketch.font_color is not None
+        and sketch.font_color != defaults["font_color"]
+    ):
         options += f", text={color2tikz(sketch.font_color)}"
     family, font_family = get_font_family(sketch)
     size, font_size = get_font_size(sketch)
@@ -1068,7 +1111,7 @@ def draw_tag_sketch(sketch):
 
     elif family == "tex_family":
         if font_family:
-                tex_text += f"\\{font_family}{{ {text_value}}}}}"
+            tex_text += f"\\{font_family}{{ {text_value}}}}}"
         else:
             tex_text += f"{{ {text_value}}}"
     else:  # no_family
@@ -1095,7 +1138,10 @@ def draw_latex_sketch(sketch):
     options = []
     if sketch.anchor and sketch.anchor != Anchor.CENTER:
         options.append(f"anchor={anchor_to_tikz(sketch.anchor)}")
-    if sketch.font_color is not None and sketch.font_color != defaults["font_color"]:
+    if (
+        sketch.font_color is not None
+        and sketch.font_color != defaults["font_color"]
+    ):
         options.append(f"text={color2tikz(sketch.font_color)}")
 
     font_size = sketch.font_size or defaults["font_size"]
@@ -1124,7 +1170,9 @@ def get_dash_pattern(line_dash_array):
     return " ".join(dash_pattern)
 
 
-def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None):
+def sg_to_tikz(
+    sketch, attrib_list, attrib_map, conditions=None, exceptions=None
+):
     """Converts the attributes of a sketch to TikZ options.
 
     Args:
@@ -1186,6 +1234,7 @@ def sg_to_tikz(sketch, attrib_list, attrib_map, conditions=None, exceptions=None
 
 
 # Tex class went to tex.py
+
 
 def get_line_style_options(sketch, exceptions=None):
     """Returns the options for the line style.
@@ -1312,11 +1361,15 @@ def get_bilinear_shading_colors(sketch):
     if sketch.shade_upper_left_color:
         res.append(f"upper left = {color2tikz(sketch.shade_upper_left_color)}")
     if sketch.shade_upper_right_color:
-        res.append(f"upper right = {color2tikz(sketch.shade_upper_right_color)}")
+        res.append(
+            f"upper right = {color2tikz(sketch.shade_upper_right_color)}"
+        )
     if sketch.shade_lower_left_color:
         res.append(f"lower left = {color2tikz(sketch.shade_lower_left_color)}")
     if sketch.shade_lower_right_color:
-        res.append(f"lower right = {color2tikz(sketch.shade_lower_right_color)}")
+        res.append(
+            f"lower right = {color2tikz(sketch.shade_lower_right_color)}"
+        )
 
     return ", ".join(res)
 
@@ -1573,7 +1626,9 @@ def draw_shape_sketch_with_markers(sketch):
     else:
         marker_options = ""
 
-    if sketch.closed and not close_points2(sketch.vertices[0], sketch.vertices[-1]):
+    if sketch.closed and not close_points2(
+        sketch.vertices[0], sketch.vertices[-1]
+    ):
         vertices = [str(x) for x in sketch.vertices + [sketch.vertices[0]]]
     else:
         vertices = [str(x) for x in sketch.vertices]
@@ -1590,7 +1645,7 @@ def draw_shape_sketch_with_markers(sketch):
 
     # Handle custom shape markers
     if marker_type == MarkerType.SHAPE:
-        marker_shape = getattr(sketch, 'marker_shape', None)
+        marker_shape = getattr(sketch, "marker_shape", None)
         if marker_shape is not None:
             # For custom shapes in TikZ, we need to manually place the shape at each vertex
             # since plot[mark=...] only supports predefined marker types
@@ -1604,7 +1659,7 @@ def draw_shape_sketch_with_markers(sketch):
             # TODO: Add code to place custom marker_shape at each vertex
             # This requires defining a pic or using nodes
             # For now, we'll use a note comment
-            body += f"% Custom marker shape at vertices (not yet implemented in TikZ)\n"
+            body += "% Custom marker shape at vertices (not yet implemented in TikZ)\n"
             for vertex in sketch.vertices:
                 x, y = vertex[0], vertex[1]
                 body += f"% Marker at ({x}, {y})\n"
@@ -1627,9 +1682,7 @@ def draw_shape_sketch_with_markers(sketch):
             f"\ncoordinates {{{coordinates}}};\n"
         )
     elif sketch.draw_markers:
-        body += (
-            f" plot[mark = {marker}, {markers_only}] coordinates {{{coordinates}}};\n"
-        )
+        body += f" plot[mark = {marker}, {markers_only}] coordinates {{{coordinates}}};\n"
     else:
         body += f" plot[tension=.5] coordinates {{{coordinates}}};\n"
 
@@ -1732,7 +1785,9 @@ def draw_sketch(sketch):
         return ""
     options = []
     svg_gradient_options = _get_svg_gradient_shading_options(sketch)
-    has_svg_gradient = bool(svg_gradient_options) and sketch.fill and sketch.closed
+    has_svg_gradient = (
+        bool(svg_gradient_options) and sketch.fill and sketch.closed
+    )
 
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options += get_pattern_options(sketch)
@@ -1797,11 +1852,12 @@ def _format_translation(value: NumberOrTex, unit: str) -> str:
     # TikZ translation components are a TeX dimension; add an explicit unit.
     return f"{float(value):.12g}{unit}"
 
+
 def transform_image(
     transform_matrix,
     image_url: str,
     *,
-    translation_unit: str = "" # "bp",
+    translation_unit: str = "",  # "bp",
 ) -> str:
     """Return a TikZ node string for an \\includegraphics transformed by a 3x3 matrix.
 
@@ -1850,6 +1906,7 @@ def transform_image(
         f"cm={{{a},{b},{c},{d},({tx},{ty})}}] "
         f"{{\\includegraphics{{{image_url}}}}};"
     )
+
 
 def draw_image_sketch(sketch):
     """Draws an image sketch.
@@ -2054,7 +2111,9 @@ def draw_line_sketch(sketch, canvas=None):
 
     start = sketch.vertices[0]
     end = sketch.vertices[1]
-    extent = getattr(sketch, "extent", getattr(sketch, "draw_type", Extent.SEGMENT))
+    extent = getattr(
+        sketch, "extent", getattr(sketch, "draw_type", Extent.SEGMENT)
+    )
     if not isinstance(extent, Extent) and extent is not None:
         extent = Extent(extent)
     if extent in [Extent.RAY, Extent.INFINITE]:
@@ -2195,7 +2254,9 @@ def draw_arc_sketch(sketch):
     if sketch.stroke:
         options += get_line_style_options(sketch)
     svg_gradient_options = _get_svg_gradient_shading_options(sketch)
-    has_svg_gradient = bool(svg_gradient_options) and sketch.fill and sketch.closed
+    has_svg_gradient = (
+        bool(svg_gradient_options) and sketch.fill and sketch.closed
+    )
     if sketch.closed and sketch.fill and not has_svg_gradient:
         options += get_fill_style_options(sketch)
 
@@ -2292,7 +2353,9 @@ def is_stroked(shape: Shape) -> bool:
     Returns:
         bool: True if the shape is stroked, False otherwise.
     """
-    return shape.stroke and shape.line_color is not None and shape.line_width > 0
+    return (
+        shape.stroke and shape.line_color is not None and shape.line_width > 0
+    )
 
 
 d_sketch_draw = {

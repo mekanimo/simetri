@@ -7,7 +7,7 @@ are not used in the main codebase or tested."""
 
 from __future__ import annotations
 
-from math import hypot, atan2, floor, pi, sin, cos, sqrt, exp, sqrt, acos, isclose
+from math import hypot, atan2, floor, pi, sin, cos, sqrt, exp, acos, isclose
 from itertools import cycle
 from typing import Any, Union, Sequence, Callable
 import re
@@ -31,7 +31,6 @@ from ..graphics.common import (
     common_properties,
     PointType,
     LineType,
-    Sequence,
     i_vec,
     j_vec,
     VecType,
@@ -42,8 +41,6 @@ from ..graphics.all_enums import Connection, Types
 from ..settings.settings import defaults
 
 
-array = np.array
-around = np.around
 tau = 2 * pi  # 360 degrees
 
 
@@ -281,7 +278,9 @@ def all_close_points(
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
-    point_arr = np.array(points, dtype=np.float32)  # points array [[x1, y1, id1], ...]]
+    point_arr = np.array(
+        points, dtype=np.float32
+    )  # points array [[x1, y1, id1], ...]]
     n_rows = len(points)
     point_arr = point_arr[point_arr[:, 0].argsort()]  # sort by x values in the
     # first column
@@ -289,7 +288,9 @@ def all_close_points(
     xmin = xmin.reshape(n_rows, 1)
     xmax = point_arr[:, 0] + dist_tol * 2
     xmax = xmax.reshape(n_rows, 1)
-    point_arr = np.concatenate((point_arr, xmin, xmax), 1)  # [x, y, id, xmin, xmax]
+    point_arr = np.concatenate(
+        (point_arr, xmin, xmax), 1
+    )  # [x, y, id, xmin, xmax]
 
     i_id, i_xmin, i_xmax = 2, 3, 4  # column indices
     d_connections = {}
@@ -398,10 +399,8 @@ def is_simple(polygon):
                         return False
                 queue.append(edge)
             elif p == tuple(edge[1]):
-                try:
-                    queue.remove(edge)
-                except:
-                    pass  #!!!! we should not need this
+                queue.remove(edge)
+
     return True
 
 
@@ -477,7 +476,12 @@ def is_simple2(
                 length2 = distance((x3, y3), (x4, y4))
                 p1, p2 = res[1][0], res[1][2]
                 chain_length = distance(p1, p2)
-                if not isclose(length1 + length2, chain_length, rel_tol=rel_tol, abs_tol=abs_tol):
+                if not isclose(
+                    length1 + length2,
+                    chain_length,
+                    rel_tol=rel_tol,
+                    abs_tol=abs_tol,
+                ):
                     return False
                 else:
                     continue
@@ -566,7 +570,9 @@ def all_intersections(
                 # connection type, point/segment
                 (x1, y1, x2, y2) = segment
                 (x3, y3, x4, y4) = seg2
-                res = intersection3(x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol)
+                res = intersection3(
+                    x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol
+                )
                 conn_type, x_res = res  # x_res can be a segment or a point
             else:
                 # connection type, point
@@ -574,8 +580,12 @@ def all_intersections(
                 conn_type, x_point = res
             if use_intersection3:
                 if conn_type not in [Connection.DISJOINT, Connection.PARALLEL]:
-                    d_ind1_conn_type_x_res_ind2[id1].append((conn_type, x_res, id2))
-                    d_ind1_conn_type_x_res_ind2[id2].append((conn_type, x_res, id1))
+                    d_ind1_conn_type_x_res_ind2[id1].append(
+                        (conn_type, x_res, id2)
+                    )
+                    d_ind1_conn_type_x_res_ind2[id2].append(
+                        (conn_type, x_res, id1)
+                    )
             else:
                 if conn_type == Connection.INTERSECT:
                     d_ind1_x_point_ind2[id1].append((x_point, id2))
@@ -674,7 +684,9 @@ def triangle_angles_from_sides(
     return A, B, C
 
 
-def angle_between_lines2(point1: PointType, point2: PointType, point3: PointType) -> float:
+def angle_between_lines2(
+    point1: PointType, point2: PointType, point3: PointType
+) -> float:
     """
     Given line1 as point1 and point2, and line2 as point2 and point3
     return the angle between two lines
@@ -689,7 +701,8 @@ def angle_between_lines2(point1: PointType, point2: PointType, point3: PointType
         float: Angle between the two lines in radians.
     """
     return atan2(
-        cross_product2(point1, point2, point3), dot_product2(point1, point2, point3)
+        cross_product2(point1, point2, point3),
+        dot_product2(point1, point2, point3),
     )
 
 
@@ -814,7 +827,9 @@ def connect2(
     Returns:
         list[PointType]: Connected list of points.
     """
-    rel_tol, dist_tol = get_defaults(["rel_tol", "dist_tol"], [rel_tol, dist_tol])
+    rel_tol, dist_tol = get_defaults(
+        ["rel_tol", "dist_tol"], [rel_tol, dist_tol]
+    )
     dist_tol2 = dist_tol * dist_tol
     start1, end1 = poly_point1[0], poly_point1[-1]
     start2, end2 = poly_point2[0], poly_point2[-1]
@@ -1012,7 +1027,7 @@ def trim_shape(shape: "Shape", trim_func: Callable, value: float):
 
 
 def left(a: PointType, b: PointType, c: PointType) -> bool:
-    '''
+    """
     Check if point c is left of line ab.
     Args:
         a (PointType): The first point defining the line.
@@ -1020,11 +1035,16 @@ def left(a: PointType, b: PointType, c: PointType) -> bool:
         c (PointType): The point to test.
     Returns:
         bool: True if point c is left of line ab, False otherwise.
-    '''
+    """
 
     return area(a, b, c) > 0
 
-def in_polygon(point: PointType, polygon_vertices: Sequence[PointType], exclude_border: bool =False) -> bool:
+
+def in_polygon(
+    point: PointType,
+    polygon_vertices: Sequence[PointType],
+    exclude_border: bool = False,
+) -> bool:
     """
     Checks if a point is inside a polygon using the winding number algorithm.
 
@@ -1060,6 +1080,7 @@ def in_polygon(point: PointType, polygon_vertices: Sequence[PointType], exclude_
                     n_winding -= 1  # P right of edge
 
     return n_winding != 0
+
 
 def stitch(
     lines: list[LineType],
@@ -1114,7 +1135,10 @@ def stitch(
 
 
 def double_offset_polylines(
-    lines: list[PointType], offset: float = 1, rel_tol: float = None, abs_tol: float = None
+    lines: list[PointType],
+    offset: float = 1,
+    rel_tol: float = None,
+    abs_tol: float = None,
 ) -> list[PointType]:
     """
     Return a list of double offset lines from a list of lines.
@@ -1244,7 +1268,10 @@ def offset_polygon(
 
 
 def double_offset_polygons(
-    polygon: list[PointType], offset: float = 1, dist_tol: float = None, **kwargs
+    polygon: list[PointType],
+    offset: float = 1,
+    dist_tol: float = None,
+    **kwargs,
 ) -> list[PointType]:
     """
     Return a list of double offset lines from a list of lines.
@@ -1321,7 +1348,9 @@ def offset_polygon_points(
     return poly
 
 
-def double_offset_lines(line: LineType, offset: float = 1) -> tuple[LineType, LineType]:
+def double_offset_lines(
+    line: LineType, offset: float = 1
+) -> tuple[LineType, LineType]:
     """
     Return two offset lines to a given line segment with the given offset amount.
 
@@ -1338,7 +1367,9 @@ def double_offset_lines(line: LineType, offset: float = 1) -> tuple[LineType, Li
     return line1, line2
 
 
-def equal_lines(line1: LineType, line2: LineType, dist_tol: float = None) -> bool:
+def equal_lines(
+    line1: LineType, line2: LineType, dist_tol: float = None
+) -> bool:
     """
     Return True if two lines are close enough.
 
@@ -1365,7 +1396,9 @@ def equal_lines(line1: LineType, line2: LineType, dist_tol: float = None) -> boo
 
 
 def equal_polygons(
-    poly1: Sequence[PointType], poly2: Sequence[PointType], dist_tol: float = None
+    poly1: Sequence[PointType],
+    poly2: Sequence[PointType],
+    dist_tol: float = None,
 ) -> bool:
     """
     Return True if two polygons are close enough.
@@ -1458,11 +1491,11 @@ def line_through_point_angle(
 
 
 def split_segment(segment: LineType, point: PointType):
-    '''
-        Splits the segment into two pieces by using the given point.
-        Returns two segments.
-        If the point is not on the segment, returns None.
-    '''
+    """
+    Splits the segment into two pieces by using the given point.
+    Returns two segments.
+    If the point is not on the segment, returns None.
+    """
     p1, p2 = segment
     if close_points2(point, p1) or close_points2(point, p2):
         return None
@@ -1471,10 +1504,11 @@ def split_segment(segment: LineType, point: PointType):
 
     return [(p1, point), (point, p2)]
 
-def multi_split_segment(segment: LineType, points: Sequence, dist_tol=.1):
-    '''Splits the segment into multiple pieces by using the given points.
-        Returns multiple segments.
-    '''
+
+def multi_split_segment(segment: LineType, points: Sequence, dist_tol=0.1):
+    """Splits the segment into multiple pieces by using the given points.
+    Returns multiple segments.
+    """
     p1, p2 = segment
     distances = []
     for i, pnt in enumerate(points):
@@ -1493,7 +1527,7 @@ def multi_split_segment(segment: LineType, points: Sequence, dist_tol=.1):
         if close_points2(p1, pnt):
             continue
         if not point_on_line_segment(pnt, segment):
-            print('point not on line')
+            print("point not on line")
             return None
 
     segments = []
@@ -1507,7 +1541,10 @@ def multi_split_segment(segment: LineType, points: Sequence, dist_tol=.1):
 
     return segments
 
-def remove_duplicate_points(points: list[PointType], dist_tol=None) -> list[PointType]:
+
+def remove_duplicate_points(
+    points: list[PointType], dist_tol=None
+) -> list[PointType]:
     """
     Return a list of points with duplicate points removed.
 
@@ -1552,7 +1589,11 @@ def remove_collinear_points(
             new_points.append(point)
         else:
             if not collinear(
-                new_points[-1], point, points[(i + 1) % len(points)], rel_tol, abs_tol
+                new_points[-1],
+                point,
+                points[(i + 1) % len(points)],
+                rel_tol,
+                abs_tol,
             ):
                 new_points.append(point)
     return new_points
@@ -1720,9 +1761,9 @@ def collinear_segments(segment1, segment2, rel_tol=None, abs_tol=None):
     a1, b1 = segment1
     a2, b2 = segment2
 
-    return isclose(direction(a1, b1, a2), 0, rel_tol=rel_tol, abs_tol=abs_tol) and isclose(
-        direction(a1, b1, b2), 0, rel_tol=rel_tol, abs_tol=abs_tol
-    )
+    return isclose(
+        direction(a1, b1, a2), 0, rel_tol=rel_tol, abs_tol=abs_tol
+    ) and isclose(direction(a1, b1, b2), 0, rel_tol=rel_tol, abs_tol=abs_tol)
 
 
 def global_to_local(
@@ -1841,7 +1882,9 @@ def _homogenize(coordinates: Sequence[float]) -> "ndarray":
     Returns:
         np.ndarray: Homogeneous coordinates.
     """
-    xy_array = np.array(list(zip(coordinates[0::2], coordinates[1::2])), dtype=float)
+    xy_array = np.array(
+        list(zip(coordinates[0::2], coordinates[1::2])), dtype=float
+    )
     n_rows = xy_array.shape[0]
     ones = np.ones((n_rows, 1), dtype=float)
     homogeneous_array = np.append(xy_array, ones, axis=1)
@@ -1892,8 +1935,12 @@ def intersect2(
     if isclose(denom, 0, rel_tol=rel_tol, abs_tol=abs_tol):
         res = None  # parallel lines
     else:
-        x = ((x1 * y2 - y1 * x2) * (x3_x4) - (x1_x2) * (x3 * y4 - y3 * x4)) / denom
-        y = ((x1 * y2 - y1 * x2) * (y3_y4) - (y1_y2) * (x3 * y4 - y3 * x4)) / denom
+        x = (
+            (x1 * y2 - y1 * x2) * (x3_x4) - (x1_x2) * (x3 * y4 - y3 * x4)
+        ) / denom
+        y = (
+            (x1 * y2 - y1 * x2) * (y3_y4) - (y1_y2) * (x3 * y4 - y3 * x4)
+        ) / denom
         res = (x, y)
 
     return res
@@ -2004,7 +2051,8 @@ def intersection3(
     # e1s2: end1 and start2 is connected
     # e1e2: end1 and end2 is connected
     rel_tol, abs_tol, dist_tol, area_atol = get_defaults(
-        ["rel_tol", "abs_tol", "dist_tol", "area_atol"], [rel_tol, abs_tol, dist_tol, area_atol]
+        ["rel_tol", "abs_tol", "dist_tol", "area_atol"],
+        [rel_tol, abs_tol, dist_tol, area_atol],
     )
 
     s1 = (x1, y1)
@@ -2045,8 +2093,12 @@ def intersection3(
         max_y = max(y1, y2, y3, y4)
         total_length = distance((min_x, min_y), (max_x, max_y))
         l1_eq_l2 = isclose(length1, length2, rel_tol=rel_tol, abs_tol=abs_tol)
-        l1_eq_total = isclose(length1, total_length, rel_tol=rel_tol, abs_tol=abs_tol)
-        l2_eq_total = isclose(length2, total_length, rel_tol=rel_tol, abs_tol=abs_tol)
+        l1_eq_total = isclose(
+            length1, total_length, rel_tol=rel_tol, abs_tol=abs_tol
+        )
+        l2_eq_total = isclose(
+            length2, total_length, rel_tol=rel_tol, abs_tol=abs_tol
+        )
         if connected:
             if l1_eq_l2 and l1_eq_total:
                 return Connection.CONGRUENT, segment1
@@ -2055,7 +2107,12 @@ def intersection3(
                 return Connection.CONTAINS, segment1
             if l2_eq_total:
                 return Connection.WITHIN, segment2
-            if isclose(length1 + length2, total_length, rel_tol=rel_tol, abs_tol=abs_tol):
+            if isclose(
+                length1 + length2,
+                total_length,
+                rel_tol=rel_tol,
+                abs_tol=abs_tol,
+            ):
                 # chained and collienar
                 if s1s2:
                     return Connection.COLL_CHAIN, (e1, s1, e2)
@@ -2074,7 +2131,9 @@ def intersection3(
                 seg = [p1, p2]
                 return Connection.OVERLAPS, seg
 
-            return intersection2(x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol)
+            return intersection2(
+                x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol
+            )
     else:
         if connected:
             if s1s2:
@@ -2095,7 +2154,9 @@ def intersection3(
             if between(s2, e2, s1):
                 return Connection.YJOINT, s2
 
-            return intersection2(x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol)
+            return intersection2(
+                x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol
+            )
     return (Connection.DISJOINT, None)
 
 
@@ -2144,7 +2205,9 @@ def merge_consecutive_collinear_edges(
     return points
 
 
-def intersection(line1: LineType, line2: LineType, rel_tol: float = None) -> int:
+def intersection(
+    line1: LineType, line2: LineType, rel_tol: float = None
+) -> int:
     """return the intersection point of two line segments.
     segment1: ((x1, y1), (x2, y2))
     segment2: ((x3, y3), (x4, y4))
@@ -2167,7 +2230,9 @@ def intersection(line1: LineType, line2: LineType, rel_tol: float = None) -> int
     return intersection2(x1, y1, x2, y2, x3, y3, x4, y4)
 
 
-def merge_segments(seg1: Sequence[PointType], seg2: Sequence[PointType]) -> Sequence[PointType]:
+def merge_segments(
+    seg1: Sequence[PointType], seg2: Sequence[PointType]
+) -> Sequence[PointType]:
     """Merge two segments into one segment if they are connected.
     They need to be overlapping or simply connected to each other,
     otherwise they will not be merged. Order doesn't matter.
@@ -2306,7 +2371,9 @@ def lerp_point(p1: PointType, p2: PointType, t: float) -> PointType:
     return (lerp(x1, x2, t), lerp(y1, y2, t))
 
 
-def slope(start_point: PointType, end_point: PointType, rel_tol=None, abs_tol=None) -> float:
+def slope(
+    start_point: PointType, end_point: PointType, rel_tol=None, abs_tol=None
+) -> float:
     """Return the slope of a line given by two points.
     Order makes a difference.
 
@@ -2479,7 +2546,9 @@ def ndarray_to_xy_list(arr: "ndarray") -> Sequence[PointType]:
     return arr[:, :2].tolist()
 
 
-def offset_line(line: Sequence[PointType], offset: float) -> Sequence[PointType]:
+def offset_line(
+    line: Sequence[PointType], offset: float
+) -> Sequence[PointType]:
     """Return an offset line from a given line.
 
     Args:
@@ -2497,7 +2566,9 @@ def offset_line(line: Sequence[PointType], offset: float) -> Sequence[PointType]
     return [[x1 + dx, y1 + dy], [x2 + dx, y2 + dy]]
 
 
-def offset_lines(polylines: Sequence[LineType], offset: float = 1) -> list[LineType]:
+def offset_lines(
+    polylines: Sequence[LineType], offset: float = 1
+) -> list[LineType]:
     """Return a list of offset lines from a list of lines.
 
     Args:
@@ -2541,7 +2612,9 @@ def normalize(vec: VecType) -> VecType:
     return [vec[0] / norm_, vec[1] / norm_]
 
 
-def offset_point_on_line(point: PointType, line: LineType, offset: float) -> PointType:
+def offset_point_on_line(
+    point: PointType, line: LineType, offset: float
+) -> PointType:
     """Return a point on a line that is offset from the given point.
 
     Args:
@@ -2597,7 +2670,9 @@ def parallel_line(line: LineType, point: PointType) -> LineType:
     return [[x3, y3], [x3 + dx, y3 + dy]]
 
 
-def perp_offset_point(point: PointType, line: LineType, offset: float) -> PointType:
+def perp_offset_point(
+    point: PointType, line: LineType, offset: float
+) -> PointType:
     """Return a point that is offset from the given point in the perpendicular direction to the given line.
 
     Args:
@@ -2649,7 +2724,9 @@ def perp_bisector(line: LineType) -> LineType:
     return [mid, [mid[0] - dy, mid[1] + dx]]
 
 
-def tfl_by_sides(point1: PointType, point2: PointType, side1: float, side2: float):
+def tfl_by_sides(
+    point1: PointType, point2: PointType, side1: float, side2: float
+):
     """Triangle from line segment and two sides.
     Returns the points of the triangle given by the two points and the two sides.
 
@@ -2694,7 +2771,10 @@ def tfl_by_sides(point1: PointType, point2: PointType, side1: float, side2: floa
 
 
 def point_on_line(
-    point: PointType, line: LineType, rel_tol: float = None, abs_tol: float = None
+    point: PointType,
+    line: LineType,
+    rel_tol: float = None,
+    abs_tol: float = None,
 ) -> bool:
     """Return True if the given point is on the given line
 
@@ -2709,11 +2789,16 @@ def point_on_line(
     """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     p1, p2 = line
-    return isclose(slope(p1, point), slope(point, p2), rel_tol=rel_tol, abs_tol=abs_tol)
+    return isclose(
+        slope(p1, point), slope(point, p2), rel_tol=rel_tol, abs_tol=abs_tol
+    )
 
 
 def point_on_line_segment(
-    point: PointType, line: LineType, rel_tol: float = None, abs_tol: float = None
+    point: PointType,
+    line: LineType,
+    rel_tol: float = None,
+    abs_tol: float = None,
 ) -> bool:
     """Return True if the given point is on the given line segment
 
@@ -2775,7 +2860,9 @@ def point_to_line_seg_distance(p, lp1, lp2):
     x1, y1 = lp1[:2]
     x2, y2 = lp2[:2]
 
-    u = ((x3 - x1) * (x2 - x1) + (y3 - y1) * (y2 - y1)) / distance(lp1, lp2) ** 2
+    u = ((x3 - x1) * (x2 - x1) + (y3 - y1) * (y2 - y1)) / distance(
+        lp1, lp2
+    ) ** 2
     if 0 <= u <= 1:
         x = x1 + u * (x2 - x1)
         y = y1 + u * (y2 - y1)
@@ -2786,7 +2873,9 @@ def point_to_line_seg_distance(p, lp1, lp2):
     return res
 
 
-def rotate_point(point: PointType, angle: float, center: PointType = (0, 0)) -> PointType:
+def rotate_point(
+    point: PointType, angle: float, center: PointType = (0, 0)
+) -> PointType:
     x, y = point[:2]
     cx, cy = center[:2]
     x -= cx
@@ -2800,7 +2889,9 @@ def rotate_point(point: PointType, angle: float, center: PointType = (0, 0)) -> 
     return (x, y)
 
 
-def point_to_line_vec(point: PointType, line: LineType, unit: bool = False) -> VecType:
+def point_to_line_vec(
+    point: PointType, line: LineType, unit: bool = False
+) -> VecType:
     """Return the perpendicular vector from a point to a line
 
     Args:
@@ -2855,7 +2946,9 @@ def polygon_area(polygon: Sequence[PointType], dist_tol=None) -> float:
     return area_ / 2
 
 
-def polyline_length(polygon: Sequence[PointType], closed=False, dist_tol=None) -> float:
+def polyline_length(
+    polygon: Sequence[PointType], closed=False, dist_tol=None
+) -> float:
     """Calculate the perimeter of a polygon.
 
     Args:
@@ -3302,7 +3395,9 @@ def point_in_quad(point: PointType, quad: list[PointType]) -> bool:
 
 
 def get_polygons(
-    nested_points: Sequence[PointType], n_round_digits: int = 2, dist_tol: float = None
+    nested_points: Sequence[PointType],
+    n_round_digits: int = 2,
+    dist_tol: float = None,
 ) -> list:
     """Convert points to clean polygons. Points are vertices of polygons.
 
@@ -3399,26 +3494,6 @@ def angle_between_two_lines(line1, line2):
     alpha1 = line_angle(*line1)
     alpha2 = line_angle(*line2)
     return abs(alpha1 - alpha2)
-
-
-def rotate_point(point: PointType, angle: float, center: PointType = (0, 0)):
-    """Rotate a point around a center by an angle in radians.
-
-    Args:
-        point (PointType): PointType to rotate.
-        angle (float): Angle of rotation in radians.
-        center (PointType): Center of rotation.
-
-    Returns:
-        PointType: Rotated point.
-    """
-    x, y = point[:2]
-    cx, cy = center[:2]
-    dx = x - cx
-    dy = y - cy
-    x = cx + dx * cos(angle) - dy * sin(angle)
-    y = cy + dx * sin(angle) + dy * cos(angle)
-    return (x, y)
 
 
 def circle_tangent_to2lines(line1, line2, intersection_, radius):
@@ -3555,7 +3630,10 @@ def congruent_polygons(
     if len_poly1 != len_poly2:
         return False
     if not isclose(
-        abs(polygon_area(poly1)), abs(polygon_area(poly2)), rel_tol=area_tol, abs_tol=area_tol
+        abs(polygon_area(poly1)),
+        abs(polygon_area(poly2)),
+        rel_tol=area_tol,
+        abs_tol=area_tol,
     ):
         return False
 
@@ -3657,9 +3735,13 @@ def between(a, b, c):
     if not collinear(a, b, c):
         res = False
     elif a[0] != b[0]:
-        res = ((a[0] <= c[0]) and (c[0] <= b[0])) or ((a[0] >= c[0]) and (c[0] >= b[0]))
+        res = ((a[0] <= c[0]) and (c[0] <= b[0])) or (
+            (a[0] >= c[0]) and (c[0] >= b[0])
+        )
     else:
-        res = ((a[1] <= c[1]) and (c[1] <= b[1])) or ((a[1] >= c[1]) and (c[1] >= b[1]))
+        res = ((a[1] <= c[1]) and (c[1] <= b[1])) or (
+            (a[1] >= c[1]) and (c[1] >= b[1])
+        )
     return res
 
 
@@ -3714,7 +3796,9 @@ def cartesian_to_polar(x, y, center=(0, 0)):
     return r, theta
 
 
-def fillet(a: PointType, b: PointType, c: PointType, radius: float) -> tuple[LineType, LineType, PointType]:
+def fillet(
+    a: PointType, b: PointType, c: PointType, radius: float
+) -> tuple[LineType, LineType, PointType]:
     """
     Given three points that form two lines [a, b] and [b, c]
     return the clipped lines [a, d], [e, c], center point
@@ -3866,7 +3950,11 @@ def remove_bad_points(points):
     # check for three consecutive points on a line
     lin_points = []
     for i in range(2, n_points - 1):
-        if EPSILON > calc_area([points[i - 2], points[i - 1], points[i]])[0] > -EPSILON:
+        if (
+            EPSILON
+            > calc_area([points[i - 2], points[i - 1], points[i]])[0]
+            > -EPSILON
+        ):
             lin_points.append(points[i - 1])
 
     if EPSILON > calc_area([points[-2], points[-1], points[0]])[0] > -EPSILON:
@@ -3897,7 +3985,9 @@ def is_convex(points):
         if i == (n_checks - 1):
             senses.append(cross_product_sense(points[i], points[0], points[1]))
         else:
-            senses.append(cross_product_sense(points[i], points[i + 1], points[i + 2]))
+            senses.append(
+                cross_product_sense(points[i], points[i + 1], points[i + 2])
+            )
     s = set(senses)
     return len(s) == 1
 
@@ -4281,7 +4371,9 @@ def get_interior_points(start, end, n_points):
     points = []
     for i in range(n_points):
         points.append(
-            rotate_point([start[0] + seg_length * (i + 1), start[1]], start, rot_angle)
+            rotate_point(
+                [start[0] + seg_length * (i + 1), start[1]], start, rot_angle
+            )
         )
     return points
 
@@ -4353,7 +4445,9 @@ class Vertex(list):
         return f"Vertex({self.x}, {self.y}, {self.z})"
 
     def __eq__(self, other):
-        return self[0] == other[0] and self[1] == other[1] and self[2] == other[2]
+        return (
+            self[0] == other[0] and self[1] == other[1] and self[2] == other[2]
+        )
 
     def copy(self):
         return Vertex(self.x, self.y, self.z)
@@ -4418,21 +4512,27 @@ class Edge:
     """A 2D edge."""
 
     def __init__(
-        self, start_point: Union[PointType, Vertex], end_point: Union[PointType, Vertex]
+        self,
+        start_point: Union[PointType, Vertex],
+        end_point: Union[PointType, Vertex],
     ):
         if isinstance(start_point, PointType):
             start = Vertex(*start_point)
         elif isinstance(end_point, Vertex):
             start = start_point
         else:
-            raise ValueError("Start point should be a PointType or Vertex instance.")
+            raise ValueError(
+                "Start point should be a PointType or Vertex instance."
+            )
 
         if isinstance(end_point, PointType):
             end = Vertex(*end_point)
         elif isinstance(end_point, Vertex):
             end = end_point
         else:
-            raise ValueError("End point should be a PointType or Vertex instance.")
+            raise ValueError(
+                "End point should be a PointType or Vertex instance."
+            )
 
         self.start = start
         self.end = end
@@ -4451,15 +4551,29 @@ class Edge:
 
         return (
             isclose(
-                self.start.point, start, rel_tol=defaults["rel_tol"], abs_tol=defaults["abs_tol"]
+                self.start.point,
+                start,
+                rel_tol=defaults["rel_tol"],
+                abs_tol=defaults["abs_tol"],
             )
             and isclose(
-                self.end.point, end, rel_tol=defaults["rel_tol"], abs_tol=defaults["abs_tol"]
+                self.end.point,
+                end,
+                rel_tol=defaults["rel_tol"],
+                abs_tol=defaults["abs_tol"],
             )
         ) or (
-            isclose(self.start.point, end, rel_tol=defaults["rel_tol"], abs_tol=defaults["abs_tol"])
+            isclose(
+                self.start.point,
+                end,
+                rel_tol=defaults["rel_tol"],
+                abs_tol=defaults["abs_tol"],
+            )
             and isclose(
-                self.end.point, start, rel_tol=defaults["rel_tol"], abs_tol=defaults["abs_tol"]
+                self.end.point,
+                start,
+                rel_tol=defaults["rel_tol"],
+                abs_tol=defaults["abs_tol"],
             )
         )
 
@@ -4538,7 +4652,9 @@ class Edge:
         return array([self.start.array, self.end.array])
 
 
-def rotate_point_3D(point: PointType, line: LineType, angle: float) -> PointType:
+def rotate_point_3D(
+    point: PointType, line: LineType, angle: float
+) -> PointType:
     """Rotate a 2d point (out of paper) about a 2d line by the given angle.
     This is used for animating mirror reflections.
      Args:

@@ -206,7 +206,9 @@ def _points_to_svg(points: List[PointType], closed: bool) -> str:
     return " ".join(parts)
 
 
-def double_lines(svg_path: str, offset: float, offset_side: str = "outer") -> str:
+def double_lines(
+    svg_path: str, offset: float, offset_side: str = "outer"
+) -> str:
     """Given an svg path, creates an offset contour using the offset value.
     Offset can be applied inward, outward, or centered.
 
@@ -282,7 +284,9 @@ def set_style(svg_shape: str, d_style: dict) -> str:
     # Inject into the opening tag
     # Capture (start of tag)(end of tag which is either > or />)
     # The first group matches <tagname and attributes lazily until it sees the closing part
-    return re.sub(r"(<\w+[^>]*?)(\s*/?>)", f"\\1 {style_str}\\2", svg_shape, count=1)
+    return re.sub(
+        r"(<\w+[^>]*?)(\s*/?>)", f"\\1 {style_str}\\2", svg_shape, count=1
+    )
 
 
 def convert_arc(center, radius, start_angle, sweep_angle):
@@ -375,7 +379,9 @@ def svg_path_to_linpath(svg_path: str) -> "LinPath":
         return LinPath()
 
     # Tokenizer
-    tokens = re.findall(r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", svg_path)
+    tokens = re.findall(
+        r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", svg_path
+    )
 
     start_point = (0.0, 0.0)
     idx = 0
@@ -609,7 +615,9 @@ def linpath_to_svg_path(linpath: "LinPath") -> str:
         elif st in [PO.QUAD_TO, PO.BLEND_QUAD]:
             # data: (start, c1, end)
             c1, end = data[1], data[2]
-            parts.append(f"Q {fmt(c1[0])},{fmt(c1[1])} {fmt(end[0])},{fmt(end[1])}")
+            parts.append(
+                f"Q {fmt(c1[0])},{fmt(c1[1])} {fmt(end[0])},{fmt(end[1])}"
+            )
 
         elif st in [PO.ARC, PO.BLEND_ARC]:
             # data: (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points)
@@ -647,7 +655,9 @@ def linpath_to_svg_path(linpath: "LinPath") -> str:
     return " ".join(parts)
 
 
-def linpath_points(linpath: "LinPath", delta: float) -> List[Tuple[float, float]]:
+def linpath_points(
+    linpath: "LinPath", delta: float
+) -> List[Tuple[float, float]]:
     """Given a LinPath instance, returns a list of points separated by the given length.
     It is not possible to create the points with the exact delta. Delta will be
     adjusted for each part of the LinPath accordingly.

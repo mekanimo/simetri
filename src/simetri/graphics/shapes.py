@@ -9,9 +9,19 @@ import numpy as np
 
 from ..graphics.batch import Batch
 from ..graphics.bbox import BoundingBox
-from ..graphics.shape import (Shape, custom_attributes, clip, trim_margins,
-                              all_segments, get_loop, get_partition, union, diff, xor)
-from ..graphics.common import axis_x, get_defaults, Sequence, PointType, LineType
+from ..graphics.shape import (
+    Shape,
+    custom_attributes,
+    clip,
+    trim_margins,
+    all_segments,
+    get_loop,
+    get_partition,
+    union,
+    diff,
+    xor,
+)
+from ..graphics.common import axis_x, get_defaults, PointType, LineType
 from ..graphics.all_enums import Types, Extent
 from ..helpers.utilities import decompose_transformations
 from ..settings.settings import defaults
@@ -33,7 +43,7 @@ from ..canvas.style_map import (
     tag_style_map,
     image_style_map,
     group_args,
-    StyleObj
+    StyleObj,
 )
 
 import simetri.colors.colors as colors
@@ -225,7 +235,6 @@ class Line(Shape):
                 setattr(line, attrib, value)
         return line
 
-
     def t(self, t: float):
         """Return point at parameter t using start + t * (end - start)."""
         direction = v_diff(self.end, self.start)
@@ -236,7 +245,9 @@ class Line(Shape):
 class Rectangle(Shape):
     """A rectangle defined by width and height."""
 
-    def __init__(self, center: PointType, width: float, height: float, **kwargs) -> None:
+    def __init__(
+        self, center: PointType, width: float, height: float, **kwargs
+    ) -> None:
         """Initialize a Rectangle object.
 
         Args:
@@ -374,8 +385,6 @@ class Rectangle(Shape):
         rectangle = Rectangle(center, width, height)
         _, rotation, _ = decompose_transformations(self.xform_matrix)
         rectangle.rotate(rotation, about=center, reps=0)
-        style = copy.copy(self.style)
-        # rectangle.style = style
         rectangle._set_aliases()
         custom_attribs = custom_attributes(self)
         for attrib in custom_attribs:
@@ -393,7 +402,9 @@ class Rectangle(Shape):
 class Rectangle2(Rectangle):
     """A rectangle defined by two opposite corners."""
 
-    def __init__(self, corner1: PointType, corner2: PointType, **kwargs) -> None:
+    def __init__(
+        self, corner1: PointType, corner2: PointType, **kwargs
+    ) -> None:
         """Initialize a Rectangle2 object.
 
         Args:
@@ -505,7 +516,9 @@ class Circle(Shape):
         Returns:
             float: The radius of the circle.
         """
-        scale_x = np.linalg.norm(self.xform_matrix[0, :2])  # only x scale is used
+        scale_x = np.linalg.norm(
+            self.xform_matrix[0, :2]
+        )  # only x scale is used
         return self._radius * scale_x
 
     def copy(self):
@@ -650,13 +663,20 @@ class Mask(Shape):
             reverse (bool, optional): Whether to reverse the mask. Defaults to False.
             xform_matrix (np.array, optional): The transformation matrix. Defaults to None.
         """
-        super().__init__(points=points, closed=True, xform_matrix=xform_matrix, subtype=Types.MASK)
+        super().__init__(
+            points=points,
+            closed=True,
+            xform_matrix=xform_matrix,
+            subtype=Types.MASK,
+        )
         self.reverse: bool = reverse
         # mask should be between \begin{scope} and \end{scope}
         # canvas, batch, and shapes can have scope
 
 
-def circle_points(center: PointType, radius: float, n: int = 30) -> list[PointType]:
+def circle_points(
+    center: PointType, radius: float, n: int = 30
+) -> list[PointType]:
     """Return a list of points that form a circle with the given parameters.
 
     Args:
@@ -719,7 +739,10 @@ def hex_points(side_length: float) -> List[List[float]]:
 
 
 def rectangle_points(
-    pos: PointType = (0, 0), width: float = 100, height: float = 100, angle: float = 0
+    pos: PointType = (0, 0),
+    width: float = 100,
+    height: float = 100,
+    angle: float = 0,
 ) -> Sequence[PointType]:
     """Return a list of points that form a rectangle with the given parameters.
 
@@ -745,7 +768,9 @@ def rectangle_points(
     return points
 
 
-def reg_poly_points_side_length(pos: PointType, n: int, side_len: float) -> Sequence[PointType]:
+def reg_poly_points_side_length(
+    pos: PointType, n: int, side_len: float
+) -> Sequence[PointType]:
     """Return a regular polygon points list with n sides and side_len length.
 
     Args:
@@ -759,7 +784,9 @@ def reg_poly_points_side_length(pos: PointType, n: int, side_len: float) -> Sequ
     rad = side_len_to_radius(n, side_len)
     angle = 2 * pi / n
     x, y = pos[:2]
-    points = [[cos(angle * i) * rad + x, sin(angle * i) * rad + y] for i in range(n)]
+    points = [
+        [cos(angle * i) * rad + x, sin(angle * i) * rad + y] for i in range(n)
+    ]
     points.append(points[0])
     return points
 
@@ -777,7 +804,9 @@ def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
     """
     angle = 2 * pi / n
     x, y = pos[:2]
-    points = [[cos(angle * i) * r + x, sin(angle * i) * r + y] for i in range(n)]
+    points = [
+        [cos(angle * i) * r + x, sin(angle * i) * r + y] for i in range(n)
+    ]
     points.append(points[0])
     return points
 
@@ -818,11 +847,6 @@ def hex_grid_centers(x, y, side_length, n_rows, n_cols):
                 y_ += side_length
             centers.append((x_, y_))
 
-    centers = []
-    # first row
-    origin = PointType(x, y)
-    grid = Batch(PointType)
-    grid.transform()
     return centers
 
 
@@ -853,7 +877,10 @@ def rect_grid(x, y, cell_width, cell_height, n_rows, n_cols, pattern):
     for row in range(n_rows):
         for col in range(n_cols):
             if pattern[row][col]:
-                x_, y_ = (col * cell_width + x, (n_rows - row - 1) * cell_height + y)
+                x_, y_ = (
+                    col * cell_width + x,
+                    (n_rows - row - 1) * cell_height + y,
+                )
                 points = [
                     (x_, y_),
                     (x_ + cell_width, y_),
@@ -865,7 +892,7 @@ def rect_grid(x, y, cell_width, cell_height, n_rows, n_cols, pattern):
     return grid
 
 
-def reg_star_polygon(n, step, rad, **kwargs)-> Shape|Batch:
+def reg_star_polygon(n, step, rad, **kwargs) -> Shape | Batch:
     """
     Return a regular star polygon with the given parameters.
 
@@ -883,7 +910,9 @@ def reg_star_polygon(n, step, rad, **kwargs)-> Shape|Batch:
     if n % step:
         indices = [i % n for i in list(range(0, (n + 1) * step, step))]
     else:
-        indices = [i % n for i in list(range(0, ((n // step) + 1) * step, step))]
+        indices = [
+            i % n for i in list(range(0, ((n // step) + 1) * step, step))
+        ]
     vertices = [points[ind] for ind in indices]
     reps = gcd(n, step) - 1
     shape = Shape(vertices, **kwargs)
@@ -934,7 +963,8 @@ def dot_shape(
         Shape: A Shape object with a single point.
     """
     fill_color, line_color, line_width = get_defaults(
-        ["fill_color", "line_color", "line_width"], [fill_color, line_color, line_width]
+        ["fill_color", "line_color", "line_width"],
+        [fill_color, line_color, line_width],
     )
     dot_shape = Shape(
         [(x, y)],
@@ -1010,7 +1040,9 @@ def arc_shape(x, y, radius, start_angle, end_angle, clockwise=False, n=20):
     Returns:
         Shape: A Shape object with points that form a circular arc.
     """
-    points = arc_points((x, y), radius, start_angle, end_angle, clockwise=clockwise, n=n)
+    points = arc_points(
+        (x, y), radius, start_angle, end_angle, clockwise=clockwise, n=n
+    )
     return Shape(points, closed=False, subtype=Types.ARC)
 
 
@@ -1109,8 +1141,14 @@ def offset_polygon_shape(
     return Shape(vertices)
 
 
-def snap(free_shape: Shape, ref1: Union[int, float], fixed_shape:Shape, ref2: Union[int, float], angle:float=0):
-    '''Snaps the given free Shape to the fixed Shape using integer indices (for vertices) or floating point numbers for Barycentric edge coordinates.
+def snap(
+    free_shape: Shape,
+    ref1: Union[int, float],
+    fixed_shape: Shape,
+    ref2: Union[int, float],
+    angle: float = 0,
+):
+    """Snaps the given free Shape to the fixed Shape using integer indices (for vertices) or floating point numbers for Barycentric edge coordinates.
     For closed shapes (polygons), indices need to be in counterclockwise order.
     Both references need to be vertices or points on edges.
     When the angle is zero then the objects are attached with edge to edge
@@ -1122,9 +1160,11 @@ def snap(free_shape: Shape, ref1: Union[int, float], fixed_shape:Shape, ref2: Un
     coordinates. For example,
     1.5 indicates the midpoint between the second and third vertices (zero
     based indexing) or the midpoint of the second edge.
-    '''
+    """
 
-    def get_edge_indices(shape: Shape, ref: Union[int, float]) -> tuple[int, int]:
+    def get_edge_indices(
+        shape: Shape, ref: Union[int, float]
+    ) -> tuple[int, int]:
         """Get the edge indices for alignment.
 
         For a vertex index, returns (prev_vertex, vertex).
@@ -1147,17 +1187,25 @@ def snap(free_shape: Shape, ref1: Union[int, float], fixed_shape:Shape, ref2: Un
             # For vertex: need vertices at ref-1, ref, ref+1
             if not is_closed:
                 if ref == 0:
-                    raise ValueError("Cannot snap at first vertex (index 0) of a non-closed shape")
+                    raise ValueError(
+                        "Cannot snap at first vertex (index 0) of a non-closed shape"
+                    )
                 if ref >= n_vertices - 1:
-                    raise ValueError(f"Cannot snap at last vertex (index {ref}) of a non-closed shape")
+                    raise ValueError(
+                        f"Cannot snap at last vertex (index {ref}) of a non-closed shape"
+                    )
             prev_idx = (ref - 1) % n_vertices if is_closed else ref - 1
             return (prev_idx, ref)
         elif isinstance(ref, float):
             # For edge point: need vertices at edge_index, edge_index+1, edge_index+2
             edge_index = int(ref)
             if not is_closed and edge_index >= n_vertices - 2:
-                raise ValueError(f"Cannot snap at edge {edge_index} of a non-closed shape with {n_vertices} vertices")
-            next_index = (edge_index + 1) % n_vertices if is_closed else edge_index + 1
+                raise ValueError(
+                    f"Cannot snap at edge {edge_index} of a non-closed shape with {n_vertices} vertices"
+                )
+            next_index = (
+                (edge_index + 1) % n_vertices if is_closed else edge_index + 1
+            )
             return (edge_index, next_index)
         else:
             raise TypeError(f"Invalid reference type: {type(ref)}")
