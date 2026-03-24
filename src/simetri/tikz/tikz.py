@@ -39,10 +39,9 @@ from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..settings.settings import defaults, tikz_defaults
 from ..geometry.geometry import (
     homogenize,
-    polar_to_cartesian,
-    cartesian_to_polar,
     round_point,
     close_points2,
+    vert_label_positions
 )
 from ..graphics.sketch import TagSketch, ShapeSketch
 from ..helpers.utilities import detokenize
@@ -1549,23 +1548,16 @@ def draw_shape_sketch_with_indices(sketch, index=0):
     else:
         body = ""
     vertices = sketch.vertices
-    indices = None
+
+    # Determine offset for label positioning
     if hasattr(sketch, "ind_offset"):
         offset = sketch.ind_offset
-        if isinstance(offset[0], float):
-            dx, dy = offset[:2]
-            indices = [str((x + dx, y + dy)) for (x, y) in vertices]
-        else:
-            # offset is in polar coordinates
-            center, offset_val = offset
-            indices = []
-            for vert in vertices:
-                x, y = vert[:2]
-                r, theta = cartesian_to_polar(x, y, center)
-                new_x, new_y = polar_to_cartesian(r + offset_val, theta, center)
-                indices.append(f"({new_x}, {new_y})")
     else:
-        indices = [str(x) for x in vertices]
+        offset = defaults["ind_offset"]
+
+    # Compute label positions using vert_label_positions
+    label_positions = vert_label_positions(sketch, offset)
+    indices = [f"({lx}, {ly})" for lx, ly in label_positions]
     vertices = [str(x) for x in vertices]
     str_lines = [vertices[0]]
     n = len(vertices)
