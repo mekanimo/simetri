@@ -24,7 +24,7 @@ from simetri.helpers.utilities import (
     equal_cycles,
     reg_poly_points,
 )
-
+from .vectors import *
 from ..helpers.vector import Vector2D
 from ..graphics.common import (
     get_defaults,
@@ -4700,3 +4700,119 @@ def rotate_line_3D(line: LineType, about: LineType, angle: float) -> LineType:
     p2 = rotate_point_3D(line[1], about, angle)
 
     return [p1, p2]
+
+def vert_label_positions(shape, offset):
+    '''Returns the position of the vertex labels using the given
+    label offset.'''
+    vertices = list(shape.vertices)
+
+    vec1 = v_from_points(vertices[0], vertices[-1])
+    count = len(vertices)
+
+    positions = []
+    for i, vert in enumerate(vertices):
+        prev = vertices[i - 1][:2]
+        next = vertices[(i + 1) % count][:2]
+        point = vert
+
+        vec2 = v_from_points(point, next)
+        vert_vec = Vector(point)
+
+        bisector = vec1.bisector(vec2)
+        if bisector.norm() < 1e-9:
+            direction = perp_unit_vector((prev, next))
+        else:
+            direction = bisector.normalize()
+
+        test_point = vert_vec + direction
+        if in_polygon(test_point, vertices):
+            pos = vert_vec - direction * offset
+        else:
+            pos = vert_vec + direction * offset
+
+        positions.append(pos[:])
+        vec1 = -vec2
+
+    return positions
+
+def vert_label_pos(shape, index, offset=10):
+    '''Returns the position of the vertex label using the given
+    index and label offset.'''
+    vertices = shape.vertices
+    count = len(vertices)
+    prev_point = vertices[(index - 1) % count][:2]
+    point = vertices[index][:2]
+    next_point = vertices[(index + 1) % count][:2]
+
+    vec1 = v_from_points(point, prev_point)
+    vec2 = v_from_points(point, next_point)
+    vert_vec = Vector(point)
+
+    bisector = vec1.bisector(vec2)
+    if bisector.norm() < 1e-9:
+        direction = perp_unit_vector((prev_point, next_point))
+    else:
+        direction = bisector.normalize()
+
+    test_point = vert_vec + direction
+    if in_polygon(test_point, shape.vertices):
+        pos = vert_vec - direction * offset
+    else:
+        pos = vert_vec + direction * offset
+
+    return (pos.x, pos.y)
+
+def edge_label_positions(shape, offset):
+    '''Returns the position of the edge labels using the given
+    label offset.'''
+    vertices = list(shape.vertices)
+    count = len(vertices)
+    num_edges = count if shape.closed else count - 1
+
+    # Initialize with edge vector for edge 0
+    edge_vec = v_from_points(vertices[0][:2], vertices[1][:2])
+    positions = []
+    for i in range(num_edges):
+        prev_point = vertices[i][:2]
+        next_point = vertices[(i + 1) % count][:2]
+        point = midpoint(prev_point, next_point)
+
+        mid_vec = Vector(point)
+        direction = edge_vec.perp().normalize()
+
+        test_point = mid_vec + direction
+        if in_polygon(test_point, vertices):
+            pos = mid_vec - direction * offset
+        else:
+            pos = mid_vec + direction * offset
+
+        positions.append(pos[:])
+
+        # Compute edge vector for next iteration (if there is one)
+        if i < num_edges - 1:
+            edge_vec = v_from_points(next_point, vertices[(i + 2) % count][:2])
+
+    return positions
+
+
+def edge_label_pos(shape, index, offset=10):
+    '''Returns the position of the edge label using the given
+    edge index and label offset.'''
+    vertices = shape.vertices
+    count = len(vertices)
+    prev_point = vertices[index][:2]
+    next_point = vertices[(index + 1) % count][:2]
+    point = midpoint(prev_point, next_point)
+
+    vec1 = v_from_points(point, next_point)
+    edge_vec = Vector(point)
+
+    direction = vec1.perp().normalize()
+
+    test_point = edge_vec + direction
+    if in_polygon(test_point, shape.vertices):
+        pos = edge_vec - direction * offset
+    else:
+        pos = edge_vec + direction * offset
+
+    return (pos.x, pos.y)
