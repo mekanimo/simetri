@@ -11,6 +11,8 @@ from math import acos, atan2, cos, hypot, sin
 from typing import List, Optional, Sequence, Tuple, Union
 import warnings
 
+from ..graphics.common import PointType
+
 
 class Vector:
     """A 2D/3D vector class.
@@ -139,6 +141,10 @@ class Vector:
         """Magnitude (length) of the vector."""
         return v_length(self.data)
 
+    def magnitude(self) -> float:
+        """Magnitude (length) of the vector."""
+        return self.mag
+
     def mag_sq(self) -> float:
         """Squared magnitude."""
         return sum(x * x for x in self.data)
@@ -189,6 +195,15 @@ class Vector:
             )
             other_data = other
         return v_angle_between(self.data, other_data)
+
+    def bisector(self, other: Union["Vector", Sequence[float]]) -> "Vector":
+        """Returns the bisector of the self and the other vector.
+        Returns self.normalize() + other.normalize().
+        """
+        if not isinstance(other, Vector):
+            other = Vector(other)
+
+        return self.normalize() + other.normalize()
 
     def rotate(
         self,
@@ -265,6 +280,12 @@ def _result_like(vec: Vec, values: Sequence[float]) -> Vec:
     materialized = [x for x in values]
     return Vector(materialized) if isinstance(vec, Vector) else materialized
 
+
+def v_bisector(vec1: Vec, vec2: Vec)->Vec:
+    """Returns the bisector of the given vectors.
+    Vector sum of vec1 unit-vector and vec2 unit-vector.
+    """
+    return Vector(vec1).bisector(vec2)
 
 def v_copy(vec: Vec) -> Vec:
     """Return a shallow copy of the vector preserving output type."""
@@ -497,6 +518,12 @@ def v_interpolated(vec1: Vec, vec2: Vec, t: float) -> Vec:
     s = 1 - t
     return _result_like(vec1, (s * p1 + t * p2 for p1, p2 in zip(v1, v2)))
 
+def v_from_points(start: PointType, end: PointType)->Vec:
+    """Returns the vector defined by the start and end points."""
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+
+    return Vector(dx, dy)
 
 def isarray(a) -> bool:
     """Check if object is array-like (has __getitem__)."""
