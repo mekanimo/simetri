@@ -1371,16 +1371,17 @@ class Lace(Batch):
         for cycle in cycles:
             cycle.append(cycle[0])
             nodes = cycle
-            edges = connected_pairs(cycle)
+            points = [d_x[x_id].point for x_id in nodes]
+            if not right_handed(points):
+                nodes.reverse()
+                points = [d_x[x_id].point for x_id in nodes]
+            edges = connected_pairs(nodes)
             sections = [G.edges[edge]["section"] for edge in edges]
             s_intersections = set()
             for section in sections:
                 s_intersections.add(section.start.id)
                 s_intersections.add(section.end.id)
             intersections = [self.d_intersections[i] for i in s_intersections]
-            points = [d_x[x_id].point for x_id in nodes]
-            if not right_handed(points):
-                points.reverse()
             fragment = Fragment(points)
             fragment.sections = sections
             fragment.intersections = intersections
