@@ -608,7 +608,7 @@ def all_intersections(
 
 
 def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
-    """Dot product of two vectors. AB and BC
+    """Dot product of two vectors. BA and BC
     Args:
         a (PointType): First point, creating vector BA
         b (PointType): Second point, common point for both vectors
@@ -700,10 +700,13 @@ def angle_between_lines2(
     Returns:
         float: Angle between the two lines in radians.
     """
-    return atan2(
-        cross_product2(point1, point2, point3),
-        dot_product2(point1, point2, point3),
-    )
+    vec1 = v_from_points(point2, point1)
+    vec2 = v_from_points(point2, point3)
+    return v_angle_between(vec1, vec2)
+    # return atan2(
+    #     cross_product2(point1, point2, point3),
+    #     dot_product2(point1, point2, point3),
+    # )
 
 
 def angled_line(line: LineType, theta: float) -> LineType:
@@ -2428,7 +2431,7 @@ def line_angle(start_point: PointType, end_point: PointType) -> float:
     Returns:
         float: Orientation angle of the line in radians.
     """
-    return atan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
+    return positive_angle(atan2(end_point[1] - start_point[1], end_point[0] - start_point[0]))
 
 
 def angle(point: PointType) -> float:
@@ -3682,25 +3685,56 @@ def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
 
     return angle
 
+def polygon_internal_angles(vertices: List[PointType])->List[float]:
+    """
+    Computes internal angles for a polygon given as a list of (x, y) tuples.
+    Works for both convex and concave polygons.
 
-def polygon_internal_angles(polygon):
-    """Return the internal angles of a polygon.
+    Vertices are expected to be in counterclockwise positive order. If not
+    they are reversed and the result is for the reversed order.
 
     Args:
-        polygon (list[PointType]): List of points representing the polygon.
+        vertices (list[PointType]): List of points representing the polygon.
 
     Returns:
         list[float]: List of internal angles of the polygon.
     """
+    n = len(vertices)
+    if n < 3:
+        return []
+
+    # 1. Determine Winding Order (Signed Area)
+    # Positive = CCW, Negative = CW
+    area = polygon_area(vertices)
+    is_ccw = area > 0
+    if not is_ccw:
+        raise ValueError('''Vertices are not in counterclockwise positive order!
+                         Result is for the reversed list of the given vertices.''')
+        vertices = list(vertices)[:]
+        vertices.reverse()
     angles = []
-    len_polygon = len(polygon)
-    for i, pnt in enumerate(polygon):
-        p1 = polygon[i - 1]
-        p2 = pnt
-        p3 = polygon[(i + 1) % len_polygon]
-        angles.append(angle_between_lines2(p1, p2, p3))
+    for i in range(n):
+        # Define three consecutive points
+        p_prev = vertices[(i - 1) % n]
+        p_curr = vertices[i]
+        p_next = vertices[(i + 1) % n]
+
+        # Vector 1: Incoming (from previous to current)
+        v1 = v_from_points(p_prev, p_curr)
+        # Vector 2: Outgoing (from current to next)
+        v2 = v_from_points(p_curr, p_next)
+
+        cross_prod = v1.cross(v2)
+        dot_prod = v1.dot(v2)
+
+        turning_angle = atan2(cross_prod, dot_prod)
+        # Convert Turning Angle to Internal Angle
+        internal_angle = pi - turning_angle
+        angles.append(internal_angle)
 
     return angles
+
+
 
 
 def bisector_line(a: PointType, b: PointType, c: PointType) -> LineType:
