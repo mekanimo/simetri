@@ -40,15 +40,13 @@ def time_it(func):
 
 
 def round_symmetric(n, inc):
-    '''Rounds the given number to the given increment.
+    """Rounds the given number to the given increment.
     For positive numbers the number is rounded up and for negative
-    numbers the number is rounded down.'''
+    numbers the number is rounded down."""
     if n >= 0:
         return ceil(n / inc) * inc
     else:
         return floor(n / inc) * inc
-
-
 
 
 def close_logger(logger):
@@ -127,7 +125,9 @@ def pretty_print_coords(coords: Sequence[PointType]) -> str:
         A string representation of the coordinates.
     """
     return (
-        "(" + ", ".join([f"({coord[0]:.2f}, {coord[1]:.2f})" for coord in coords]) + ")"
+        "("
+        + ", ".join([f"({coord[0]:.2f}, {coord[1]:.2f})" for coord in coords])
+        + ")"
     )
 
 
@@ -494,7 +494,9 @@ def flatten(points):
         flat = list(points[:, :2].flatten())
     elif isinstance(points, collections.abc.Sequence):
         if isinstance(points[0], collections.abc.Sequence):
-            flat = list(reduce(lambda x, y: x + y, [list(pnt[:2]) for pnt in points]))
+            flat = list(
+                reduce(lambda x, y: x + y, [list(pnt[:2]) for pnt in points])
+            )
         else:
             flat = list(points)
     else:
@@ -599,7 +601,9 @@ def is_xform_matrix(matrix):
         True if the matrix is a 3x3 transformation matrix, False otherwise.
     """
     return (
-        is_numeric_numpy_array(matrix) and matrix.shape == (3, 3) and matrix.size == 9
+        is_numeric_numpy_array(matrix)
+        and matrix.shape == (3, 3)
+        and matrix.size == 9
     )
 
 
@@ -911,7 +915,7 @@ def map_ranges(
     return (value - range1_min) / delta1 * delta2 + range2_min
 
 
-def binomial(n: int, k:int) -> int:
+def binomial(n: int, k: int) -> int:
     """Calculate the binomial coefficient.
 
     Args:
@@ -929,7 +933,7 @@ def binomial(n: int, k:int) -> int:
     return int(res)
 
 
-def n_permutations(n:int, k:int) -> int:
+def n_permutations(n: int, k: int) -> int:
     """Calculate the binomial coefficient.
 
     Args:
@@ -940,7 +944,8 @@ def n_permutations(n:int, k:int) -> int:
         The number of nPk permutations.
     """
 
-    return int(factorial(n)/factorial(n-k))
+    return int(factorial(n) / factorial(n - k))
+
 
 def catalan(n):
     """Calculate the nth Catalan number.
@@ -971,7 +976,9 @@ def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
     """
     angle = 2 * pi / n
     x, y = pos[:2]
-    points = [[cos(angle * i) * r + x, sin(angle * i) * r + y] for i in range(n)]
+    points = [
+        [cos(angle * i) * r + x, sin(angle * i) * r + y] for i in range(n)
+    ]
     points.append(points[0])
     return points
 
@@ -996,7 +1003,9 @@ def solve_quadratic_eq(a, b, c, abs_tolerance=1e-5):
     return res
 
 
-def solve_quartic_eq(a: float, b: float, c: float, d: float, e: float) -> list[float]:
+def solve_quartic_eq(
+    a: float, b: float, c: float, d: float, e: float
+) -> list[float]:
     """
     Solves a quartic equation of the form ax^4 + bx^3 + cx^2 + dx + e = 0.
 
@@ -1157,7 +1166,9 @@ def get_local_variables_info(func, *args, **kwargs):
             return tracer
         elif event == "return":
             local_vars = frame.f_locals
-            return {name: type(value).__name__ for name, value in local_vars.items()}
+            return {
+                name: type(value).__name__ for name, value in local_vars.items()
+            }
         return None
 
     inspect.settrace(tracer)
