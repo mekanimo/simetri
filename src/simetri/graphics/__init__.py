@@ -51,6 +51,7 @@ from ..geometry.bezier import *
 from ..geometry.hobby import *
 from ..geometry.circle import *
 from ..geometry.sine import *
+from ..geometry.vectors import *
 from .affine import *
 from .dots import *
 from ..graphics.sketch import *
