@@ -173,7 +173,7 @@ class CircularGrid(Grid):
         points = reg_poly_points(center, n, radius)
         super().__init__(GridType.CIRCULAR, center, n, radius, points, n_circles)
 
-        self.append(Circle(center, radius, fill=False))
+        self.append(Circle(radius, center, fill=False))
 
 
 class HexGrid(Grid):
