@@ -992,7 +992,7 @@ class Shape(Base, StyleMixin):
 
     @property
     def edges(self) -> List[LineType]:
-        """Return a list of edges.
+        """Return a list of the edges of the shape.
 
         Edges are represented as tuples of points:
         edge: ((x1, y1), (x2, y2))
@@ -1006,6 +1006,11 @@ class Shape(Base, StyleMixin):
             vertices.append(vertices[0])
 
         return tuple(connected_pairs(vertices))
+
+    @property
+    def midpoints(self)-> List[PointType]:
+        """Returns a list of the midpoints of the edges."""
+        return [midpoint(*edge) for edge in self.edges]
 
     @property
     def segments(self) -> List[LineType]:
