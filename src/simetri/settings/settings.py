@@ -985,10 +985,10 @@ def set_defaults():
     default_types["image_blend_mode"] = BlendMode
     defaults_help["image_blend_mode"] = "Blend mode for image. BlendMode enum."
 
-    defaults["ind_offset"] = (5, 5)  # offset for indices
-    default_types["ind_offset"] = Sequence
+    defaults["ind_offset"] = 10  # offset for indices
+    default_types["ind_offset"] = (int, float)
     defaults_help["ind_offset"] = (
-        "Offset for shape indices. It can be a tuple of two floats or a center point and radial offset."
+        "Offset for shape indices. Scalar value for radial offset from vertices."
     )
 
     defaults["indices_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
