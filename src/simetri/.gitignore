@@ -1,1 +1,5 @@
 *.pyc
+*.qmd
+*.svg
+*.pdf
+uv.lock
