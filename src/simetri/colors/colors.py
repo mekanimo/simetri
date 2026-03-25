@@ -416,12 +416,13 @@ def show_expanded(rgb255_palette, n, name=""):
     return expanded_rgb
 
 
-def show_swatch(rgb255_palette, name=""):
+def show_swatch(rgb255_palette, name="", size=None):
     hex_colors = [rgb2hex(c) for c in rgb255_palette]
     hex_palette = palette(hex_colors, name=name)
-
-    hex_palette.swatchplot()
-
+    if size:
+        hex_palette.swatchplot(figsize=size)
+    else:
+        hex_palette.swatchplot()
 
 @dataclass
 class LinearGradient:

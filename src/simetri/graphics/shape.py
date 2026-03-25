@@ -990,6 +990,24 @@ class Shape(Base, StyleMixin):
 
         return shape
 
+    def clone_style(self, other:"Shape") -> None:
+        """Assigns style and custom attributes to the given shape using self.
+
+        Returns:
+            None
+        """
+        marker_type = getattr(self, "marker_type", defaults["marker_type"])
+        other.marker_type = marker_type
+        for attrib in shape_style_map:
+            value = getattr(self, attrib, defaults[attrib])
+            if value is not None:
+                setattr(other, attrib, value)
+
+        custom_attribs = custom_attributes(self)
+        for attrib in custom_attribs:
+            setattr(other, attrib, getattr(self, attrib))
+
+
     @property
     def edges(self) -> List[LineType]:
         """Return a list of the edges of the shape.

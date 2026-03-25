@@ -33,8 +33,8 @@ def _merge_shapes(self, n_round: int = None, **kwargs) -> "Batch":
     if len(self) < 2:
         return self
     # n_round = defaults["n_round"] if n_round is None else n_round
-    self._set_node_dictionaries(self.all_vertices, n_round=0)
-    edges, segments = self._get_edges_and_segments(n_round=0)
+    self._set_node_dictionaries(self.all_vertices, n_round=2)
+    edges, segments = self._get_edges_and_segments(n_round=2)
     segments = self.merge_collinears(edges)
     d_coord_node = self.d_coord_node
     d_node_coord = self.d_node_coord

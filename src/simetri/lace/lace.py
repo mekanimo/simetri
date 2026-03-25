@@ -215,7 +215,7 @@ class Intersection(Shape):
 
         common_properties(self, id_only=True)
 
-    def _update(self, xform_matrix: array, reps=0, merge: bool = False):
+    def _update(self, xform_matrix, reps=0, merge: bool = False):
         """Update the transformation matrix of the intersection.
 
         Args:
@@ -1401,17 +1401,17 @@ class Lace(Batch):
         for cycle in cycles:
             cycle.append(cycle[0])
             nodes = cycle
-            points = [d_x[x_id].point for x_id in nodes]
-            if not right_handed(points):
-                nodes.reverse()
-                points = [d_x[x_id].point for x_id in nodes]
-            edges = connected_pairs(nodes)
+            edges = connected_pairs(cycle)
             sections = [G.edges[edge]["section"] for edge in edges]
             s_intersections = set()
             for section in sections:
                 s_intersections.add(section.start.id)
                 s_intersections.add(section.end.id)
             intersections = [self.d_intersections[i] for i in s_intersections]
+            points = [d_x[x_id].point for x_id in nodes]
+            if not right_handed(points):
+                points.reverse()
+                sections.reverse()
             fragment = Fragment(points)
             fragment.sections = sections
             fragment.intersections = intersections
