@@ -386,10 +386,22 @@ class Canvas:
             Self: The canvas object.
         """
         draw.ellipse(self, center, width, height, angle, **kwargs)
+
         return self
 
-    def draw_fragments(self, lace, palette=None, **kwargs):
+    def draw_fragments(self, lace=None, palette=None, **kwargs):
         draw.draw_fragments(self, lace, palette, **kwargs)
+
+        return self
+
+    def draw_plaits(self, lace=None, **kwargs):
+        draw.draw_plaits(self, lace, **kwargs)
+
+        return self
+
+    def draw_lace_with_fillets(self, lace, **kwargs):
+        draw.draw_lace_with_fillets(self, lace, **kwargs)
+
         return self
 
     def text(

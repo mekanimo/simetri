@@ -31,9 +31,12 @@ from ..geometry.geometry import (
     polygon_center,
     equal_lines,
     lerp_point,
+    polygon_internal_angles,
+    pi,
 )
 from ..helpers.graph import get_cycles
 from ..graphics.common import get_defaults, common_properties, d_id_obj
+from ..graphics.shapes import fillet_shape_corners
 from ..graphics.all_enums import Types, Connection
 from ..canvas.style_map import shape_style_map, ShapeStyle
 from ..settings.settings import defaults
@@ -288,7 +291,9 @@ class Intersection(Shape):
         Returns:
             bool: True if equal, False otherwise.
         """
-        return close_points2(self.point, other.point, dist2=defaults["dist_tol"] ** 2)
+        return close_points2(
+            self.point, other.point, dist2=defaults["dist_tol"] ** 2
+        )
 
 
 class Partition(Shape):
@@ -404,10 +409,16 @@ class Fragment(Shape):
             start_point = round_point(division.section.start.point)
             end_point = round_point(division.section.end.point)
             if close_points2(start_point, (x1, y1), dist2=dist_tol2):
-                division.intersections = [division.section.start, division.section.end]
+                division.intersections = [
+                    division.section.start,
+                    division.section.end,
+                ]
                 division.section.start.division = division
             elif close_points2(end_point, (x1, y1), dist2=dist_tol2):
-                division.intersections = [division.section.end, division.section.start]
+                division.intersections = [
+                    division.section.end,
+                    division.section.start,
+                ]
                 division.section.end.division = division
             else:
                 raise ValueError("Division does not match section")
@@ -459,7 +470,9 @@ class Section(Shape):
         fragment: "Fragment" = None,
         **kwargs,
     ):
-        super().__init__([start.point, end.point], subtype=Types.SECTION, **kwargs)
+        super().__init__(
+            [start.point, end.point], subtype=Types.SECTION, **kwargs
+        )
         self.start = start
         self.end = end
         self.is_overlap = is_overlap
@@ -467,7 +480,9 @@ class Section(Shape):
         self.is_over = is_over
         self.twin = twin
         self.fragment = fragment
-        super().__init__([start.point, end.point], subtype=Types.SECTION, **kwargs)
+        super().__init__(
+            [start.point, end.point], subtype=Types.SECTION, **kwargs
+        )
         self.length = distance(self.start.point, self.end.point)
         self.midpoint = [
             (self.start.point[0] + self.end.point[0]) / 2,
@@ -597,7 +612,10 @@ class Division(Shape):
         self.prev = None  # used for fragment divisions only
         self.sections = []
         super().__init__(
-            [p1, p2], subtype=Types.DIVISION, xform_matrix=xform_matrix, **kwargs
+            [p1, p2],
+            subtype=Types.DIVISION,
+            xform_matrix=xform_matrix,
+            **kwargs,
         )
         common_properties(self)
 
@@ -758,7 +776,9 @@ class Polyline(Shape):
         self._set_aliases()
         self.closed = closed
         kwargs["subtype"] = Types.POLYLINE
-        super().__init__(points, closed=closed, xform_matrix=xform_matrix, **kwargs)
+        super().__init__(
+            points, closed=closed, xform_matrix=xform_matrix, **kwargs
+        )
         self._set_divisions()
         if not self.closed:
             self._set_intersections()
@@ -949,7 +969,9 @@ class ParallelPolyline(Batch):
                 vertices, self.offset, dist_tol=self.dist_tol
             )
         else:
-            offset_polylines = double_offset_polylines(polyline.vertices, self.offset)
+            offset_polylines = double_offset_polylines(
+                polyline.vertices, self.offset
+            )
         polylines = []
         if self.closed:
             for polygon in offset_polygons:
@@ -1090,7 +1112,9 @@ class Lace(Batch):
                 self.set_plaits()
 
             self._b_box = None
-        elements = [polyline for polyline in self.parallel_poly_list] + self.fragments
+        elements = [
+            polyline for polyline in self.parallel_poly_list
+        ] + self.fragments
 
         if "debug" in kwargs:
             kwargs.pop("debug")
@@ -1098,7 +1122,9 @@ class Lace(Batch):
         if kwargs and "_copy" not in kwargs:
             for k, v in kwargs.items():
                 if k in shape_style_map:
-                    setattr(self, k, v)  # todo: we should check for valid values here
+                    setattr(
+                        self, k, v
+                    )  # todo: we should check for valid values here
                 else:
                     raise AttributeError(f"{k}. Invalid attribute!")
         self.subtype = Types.LACE
@@ -1276,7 +1302,9 @@ class Lace(Batch):
         for fragment in self.fragments:
             self.partitions = []
             for fragment in self.fragments:
-                partition = Shape(offset_polygon(fragment.vertices, self.offset))
+                partition = Shape(
+                    offset_polygon(fragment.vertices, self.offset)
+                )
                 self.partitions.append(partition)
 
     # To do: This doesn't work if we have polyline shapes!
@@ -1289,7 +1317,9 @@ class Lace(Batch):
         self.outline = areas[0][1]
         self.fragments.remove(self.outline)
         # perimenter is the outline of the partitions
-        self.perimeter = Shape(offset_polygon(self.outline.vertices, -self.offset))
+        self.perimeter = Shape(
+            offset_polygon(self.outline.vertices, -self.offset)
+        )
         # skeleton is the input polylines that the lace is based on
         self.skeleton = Batch(self.polyline_list)
 
@@ -1469,6 +1499,84 @@ class Lace(Batch):
         sketch.draw_fragments = True
         return sketch
 
+    def _fillet_plaits(
+        self, inner_rad: float = 4, outer_rad: float = None
+    ) -> List[Shape]:
+        if outer_rad is None:
+            outer_rad = inner_rad + self.offset
+
+        r1 = inner_rad
+        r2 = outer_rad
+        res = []
+        for plait in self.plaits:
+            ends = plait.ends
+            edges = plait.edges
+            d_vert_radius = {}
+            for conn in plait.connections:
+                v1, v2 = conn
+                if v1 not in ends and v2 not in ends:
+                    if distance(*edges[v1]) > distance(*edges[v2 - 1]):
+                        d_vert_radius[v1] = r2
+                        d_vert_radius[v2] = r1
+
+                    else:
+                        d_vert_radius[v1] = r1
+                        d_vert_radius[v2] = r2
+
+            res.append(fillet_shape_corners(plait, d_vert_radius))
+
+        return res
+
+    def _fillet_fragments(
+        self, inner_rad: float = 4, outer_rad: float = None
+    ) -> List[Shape]:
+        if outer_rad is None:
+            outer_rad = inner_rad + self.offset
+
+        r1 = inner_rad
+        r2 = outer_rad
+        res = []
+        for frag in self.fragments:
+            vertices = frag.vertices
+            edges = frag.edges
+            angles = polygon_internal_angles(vertices)
+            d_vert_radius = {}
+            for j, angle in enumerate(angles):
+                if angle < pi:
+                    rad = r1
+                else:
+                    rad = r2
+                d_vert_radius[j] = rad
+            for i, sec in enumerate(frag.sections):
+                edge = edges[i]
+                start = sec.start.point
+                end = sec.end.point
+                if angles[i] < pi:
+                    # inside corner
+                    rad = r1
+                else:
+                    rad = r2
+
+                if sec.end.overlap is not None:
+                    if close_points2(edge[1], end):
+                        if i + 1 in d_vert_radius:
+                            del d_vert_radius[i + 1]
+                    else:
+                        if i in d_vert_radius:
+                            del d_vert_radius[i]
+
+                if sec.start.overlap is not None:
+                    if close_points2(edge[1], start):
+                        if i + 1 in d_vert_radius:
+                            del d_vert_radius[i + 1]
+                    else:
+                        if i in d_vert_radius:
+                            del d_vert_radius[i]
+
+            res.append(fillet_shape_corners(frag, d_vert_radius))
+
+        return res
+
     def group_fragments(self, rel_tol=None, abs_tol=None):
         """Group the fragments by the number of vertices and the area.
 
@@ -1523,7 +1631,9 @@ class Lace(Batch):
 
         return get_cycles(graph_edges)
 
-    def _set_inner_loops(self, item, n, offset, line_colors=None, line_widths=None):
+    def _set_inner_loops(
+        self, item, n, offset, line_colors=None, line_widths=None
+    ):
         for i in range(n):
             vertices = item.vertices
             dist_tol = defaults["dist_tol"]
@@ -1542,7 +1652,9 @@ class Lace(Batch):
                 shape.line_color = defaults["line_color"]
             item.inner_lines.append(shape)
 
-    def set_plait_inner_loops(self, n, offset, line_color=colors.blue, line_width=1):
+    def set_plait_inner_loops(
+        self, n, offset, line_color=colors.blue, line_width=1
+    ):
         """Create offset lines inside the plaits of the lace.
 
         Args:
@@ -1715,10 +1827,14 @@ class Lace(Batch):
         self.polyline_list = []
         if self.polygon_shapes:
             for polygon in self.polygon_shapes:
-                self.polyline_list.append(Polyline(polygon.vertices, closed=True))
+                self.polyline_list.append(
+                    Polyline(polygon.vertices, closed=True)
+                )
         if self.polyline_shapes:
             for polyline in self.polyline_shapes:
-                self.polyline_list.append(Polyline(polyline.vertices, closed=False))
+                self.polyline_list.append(
+                    Polyline(polyline.vertices, closed=False)
+                )
 
     def _set_parallel_poly_list(self):
         """
@@ -2160,7 +2276,9 @@ class Lace(Batch):
                     twin_id = division.next.twin.id
                     division = division.next.twin
                 else:
-                    if division.next.fragment.id not in [x.id for x in fragments]:
+                    if division.next.fragment.id not in [
+                        x.id for x in fragments
+                    ]:
                         fragments.append(division.next.fragment)
                     break
 
@@ -2227,7 +2345,10 @@ def all_intersections(
 
     # All objects are assigned an integer id attribute when they are created
     division_array = array(
-        [flatten(division.vertices) + [division.id] for division in division_list]
+        [
+            flatten(division.vertices) + [division.id]
+            for division in division_list
+        ]
     )
     n_divisions = division_array.shape[0]  # number of divisions
     # precompute the min and max x and y values for each division
@@ -2253,7 +2374,9 @@ def all_intersections(
     division_array = division_array[division_array[:, i_xmin].argsort()]
     intersections = []
     for i in range(n_divisions):
-        x1, y1, x2, y2, id1, sl_xmin, sl_ymin, sl_xmax, sl_ymax = division_array[i, :]
+        x1, y1, x2, y2, id1, sl_xmin, sl_ymin, sl_xmax, sl_ymax = (
+            division_array[i, :]
+        )
         division1_vertices = [x1, y1, x2, y2]
         start = i + 1  # search should start from the next division
         # filter the array by checking if the divisions' bounding-boxes are
@@ -2286,7 +2409,10 @@ def all_intersections(
                 Connection.NONE,
                 Connection.PARALLEL,
             ]:
-                division1, division2 = d_divisions[int(id1)], d_divisions[int(id2)]
+                division1, division2 = (
+                    d_divisions[int(id1)],
+                    d_divisions[int(id2)],
+                )
                 x_point__e1_2 = frozenset((division1.id, division2.id))
                 if x_point__e1_2 not in d_connections:
                     inters_obj = Intersection(x_point, division1, division2)
@@ -2344,7 +2470,10 @@ def merge_nodes(
 
     # All objects are assigned an integer id attribute when they are created
     division_array = array(
-        [flatten(division.vertices) + [division.id] for division in division_list]
+        [
+            flatten(division.vertices) + [division.id]
+            for division in division_list
+        ]
     )
     n_divisions = division_array.shape[0]  # number of divisions
     # precompute the min and max x and y values for each division
@@ -2370,7 +2499,9 @@ def merge_nodes(
     division_array = division_array[division_array[:, i_xmin].argsort()]
     intersections = []
     for i in range(n_divisions):
-        x1, y1, x2, y2, id1, sl_xmin, sl_ymin, sl_xmax, sl_ymax = division_array[i, :]
+        x1, y1, x2, y2, id1, sl_xmin, sl_ymin, sl_xmax, sl_ymax = (
+            division_array[i, :]
+        )
         division1_vertices = [x1, y1, x2, y2]
         start = i + 1  # search should start from the next division
         # filter the array by checking if the divisions' bounding-boxes are
@@ -2403,7 +2534,10 @@ def merge_nodes(
                 Connection.NONE,
                 Connection.PARALLEL,
             ]:
-                division1, division2 = d_divisions[int(id1)], d_divisions[int(id2)]
+                division1, division2 = (
+                    d_divisions[int(id1)],
+                    d_divisions[int(id2)],
+                )
                 x_point__e1_2 = frozenset((division1.id, division2.id))
                 if x_point__e1_2 not in d_connections:
                     inters_obj = Intersection(x_point, division1, division2)

@@ -12,14 +12,6 @@ from ..graphics.bbox import BoundingBox
 from ..graphics.shape import (
     Shape,
     custom_attributes,
-    clip,
-    trim_margins,
-    all_segments,
-    get_loop,
-    get_partition,
-    union,
-    diff,
-    xor,
 )
 from ..graphics.common import axis_x, get_defaults, PointType, LineType
 from ..graphics.all_enums import Types, Extent
@@ -33,8 +25,8 @@ from ..geometry.geometry import (
     distance,
     midpoint,
     close_points2,
-    lerp_point,
     angle_between_lines2,
+    fillet_corners,
 )
 from ..geometry.vectors import v_scale, v_diff, v_sum
 from ..canvas.style_map import (
@@ -1229,15 +1221,15 @@ def snap(
     free_prev_idx, free_curr_idx = get_edge_indices(free, ref1)
     fixed_prev_idx, fixed_curr_idx = get_edge_indices(fixed, ref2)
 
-    # Get the vertices needed for angle calculation
-    # For free shape: get the next vertex after curr (the outgoing edge)
-    n_free_vertices = len(free.vertices)
-    if free.closed:
-        free_next_idx = (free_curr_idx + 1) % n_free_vertices
-    else:
-        free_next_idx = free_curr_idx + 1
-    free_next = free[free_next_idx]
+    # Get the direction vectors for angle calculation
+    # For edge points (float): use the edge direction
+    # For vertices (int): use incoming and outgoing edges
+
+    # For the fixed shape (incoming direction to snap point)
     fixed_prev = fixed[fixed_prev_idx]
+
+    # For the free shape (outgoing direction from snap point)
+    free_next = free[free_curr_idx]
 
     # Calculate the current angle between the edges
     # The angle is measured from the fixed edge (incoming) to the free edge (outgoing) at ref1_point
@@ -1250,3 +1242,14 @@ def snap(
     free.rotate(rotation_needed, about=ref1_point)
 
     return free
+
+
+def fillet_shape_corners(shape:Shape, d_vert_radius:dict[int, float], n:int=12)->Shape:
+    '''Using the given shape, creates a new shape with rounded corners.'''
+    vertices = fillet_corners(shape.vertices, d_vert_radius, n)
+
+    new_shape = Shape(vertices, closed=shape.closed)
+    shape.clone_style(new_shape)
+    new_shape.subtype = shape.subtype
+
+    return new_shape

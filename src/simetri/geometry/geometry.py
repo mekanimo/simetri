@@ -7,7 +7,19 @@ are not used in the main codebase or tested."""
 
 from __future__ import annotations
 
-from math import hypot, atan2, floor, pi, sin, cos, sqrt, exp, acos, isclose
+from math import (
+    hypot,
+    atan2,
+    tan,
+    floor,
+    pi,
+    sin,
+    cos,
+    sqrt,
+    exp,
+    acos,
+    isclose,
+)
 from itertools import cycle
 from typing import Any, Union, Sequence, Callable
 import re
@@ -698,15 +710,13 @@ def angle_between_lines2(
         point3 (PointType): Second point of the second line.
 
     Returns:
-        float: Angle between the two lines in radians.
+        float: Signed angle between the two lines in radians (-π to π).
     """
     vec1 = v_from_points(point2, point1)
     vec2 = v_from_points(point2, point3)
-    return v_angle_between(vec1, vec2)
-    # return atan2(
-    #     cross_product2(point1, point2, point3),
-    #     dot_product2(point1, point2, point3),
-    # )
+    cross = v_cross(vec1, vec2)
+    dot = v_mul(vec1, vec2)
+    return atan2(cross, dot)
 
 
 def angled_line(line: LineType, theta: float) -> LineType:
@@ -2431,7 +2441,9 @@ def line_angle(start_point: PointType, end_point: PointType) -> float:
     Returns:
         float: Orientation angle of the line in radians.
     """
-    return positive_angle(atan2(end_point[1] - start_point[1], end_point[0] - start_point[0]))
+    return positive_angle(
+        atan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
+    )
 
 
 def angle(point: PointType) -> float:
@@ -3685,7 +3697,8 @@ def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
 
     return angle
 
-def polygon_internal_angles(vertices: List[PointType])->List[float]:
+
+def polygon_internal_angles(vertices: List[PointType]) -> List[float]:
     """
     Computes internal angles for a polygon given as a list of (x, y) tuples.
     Works for both convex and concave polygons.
@@ -3708,8 +3721,8 @@ def polygon_internal_angles(vertices: List[PointType])->List[float]:
     area = polygon_area(vertices)
     is_ccw = area > 0
     if not is_ccw:
-        raise ValueError('''Vertices are not in counterclockwise positive order!
-                         Result is for the reversed list of the given vertices.''')
+        raise ValueError("""Vertices are not in counterclockwise positive order!
+                         Result is for the reversed list of the given vertices.""")
         vertices = list(vertices)[:]
         vertices.reverse()
     angles = []
@@ -3733,8 +3746,6 @@ def polygon_internal_angles(vertices: List[PointType])->List[float]:
         angles.append(internal_angle)
 
     return angles
-
-
 
 
 def bisector_line(a: PointType, b: PointType, c: PointType) -> LineType:
@@ -3859,6 +3870,165 @@ def fillet(
     arc_angle = angle_between_lines2(e, center, d)
 
     return [a, d], [e, c], center, arc_angle
+
+
+def fillet_points(
+    p1: Sequence[float],
+    p2: Sequence[float],
+    p3: Sequence[float],
+    radius: float,
+    n: int,
+    *,
+    clamp_radius: bool = False,
+    eps: float = 1e-12,
+) -> List[PointType]:
+    """
+    Return n points along the circular fillet of given radius at vertex p2
+    between segments p1->p2 and p2->p3 (2D). Points include tangency endpoints
+    when n >= 2. If n == 1, returns the midpoint of the arc. If n <= 0, returns [].
+
+    Parameters:
+      p1, p2, p3: 2D points (x, y). p1-p2 and p2-p3 must not be collinear.
+      radius: desired fillet radius (> 0).
+      n: number of sample points along the arc (>= 1 recommended).
+      clamp_radius: if True, reduces radius to the maximal feasible value
+                    when the requested radius is too large for the given segments.
+      eps: small numeric tolerance.
+
+    Raises:
+      ValueError if geometry is degenerate or radius is infeasible (unless clamped).
+    """
+    if radius <= 0:
+        raise ValueError("radius must be > 0")
+
+    p1 = p1[:2]
+    p2 = p2[:2]
+    p3 = p3[:2]
+
+    # Convert to Vector objects
+    v1 = Vector(float(p1[0]), float(p1[1]))
+    v2 = Vector(float(p2[0]), float(p2[1]))
+    v3 = Vector(float(p3[0]), float(p3[1]))
+
+    # Direction vectors along the polyline
+    v_in = (v2 - v1).normalize()  # direction into p2
+    v_out = (v3 - v2).normalize()  # direction out of p2
+
+    # Rays from the corner along each segment
+    u1 = -v_in  # from p2 toward p1
+    u2 = v_out  # from p2 toward p3
+
+    # Interior angle between u1 and u2
+    c = max(-1.0, min(1.0, u1.dot(u2)))
+    theta = acos(c)
+    if theta < eps or abs(theta - pi) < eps:
+        raise ValueError(
+            "Points are collinear or angle too close to 0/180 degrees."
+        )
+
+    # Distances and feasibility of the radius
+    L1 = (v2 - v1).mag()
+    L2 = (v3 - v2).mag()
+    # Tangency distance along each leg
+    t = radius / tan(theta / 2.0)
+    # Max radius allowed by each leg: r_max_i = Li * tan(theta/2)
+    r_max = min(L1, L2) * tan(theta / 2.0)
+
+    if t > L1 + eps or t > L2 + eps:
+        if clamp_radius:
+            # Clamp radius to feasible value (slightly inside to avoid degeneracy)
+            radius = max(0.0, min(radius, r_max * (1.0 - 1e-9)))
+            t = radius / tan(theta / 2.0)
+        else:
+            raise ValueError(
+                f"Radius too large for given segments. Max feasible ~ {r_max:.6f}"
+            )
+
+    # Tangency points on each leg
+    A = v2 + u1 * t
+    B = v2 + u2 * t
+
+    # Bisector direction (inside the angle)
+    bis = u1 + u2
+    if bis.mag() < eps:
+        raise ValueError("Angle too close to 180°, bisector undefined.")
+    w_hat = bis.normalize()
+
+    # Center of the fillet circle
+    center_dist = radius / sin(theta / 2.0)
+    C = v2 + w_hat * center_dist
+
+    # Angles of tangency points around center
+    a1 = atan2(A.y - C.y, A.x - C.x)
+    a2 = atan2(B.y - C.y, B.x - C.x)
+
+    # Determine sweep direction based on the turn (left/CCW or right/CW)
+    turn = v_in.cross(v_out)  # >0 => left turn (CCW), <0 => right turn (CW)
+    delta = a2 - a1
+    # Normalize delta to follow the turn direction along the minor arc
+    if turn > 0:  # CCW
+        if delta < 0:
+            delta += 2.0 * pi
+    else:  # CW
+        if delta > 0:
+            delta -= 2.0 * pi
+
+    # Generate points on the arc
+    if n <= 0:
+        return []
+    if n == 1:
+        ang = a1 + 0.5 * delta
+        pt = C + Vector(radius * cos(ang), radius * sin(ang))
+        return [(pt.x, pt.y)]
+    # n >= 2: include both tangency endpoints
+    pts: List[PointType] = []
+    for i in range(n):
+        t_frac = i / (n - 1)
+        ang = a1 + t_frac * delta
+        pt = C + Vector(radius * cos(ang), radius * sin(ang))
+        pts.append((pt.x, pt.y))
+    return pts
+
+
+def fillet_corners(
+    vertices: Sequence[PointType],
+    d_vert_radius: dict[int, float],
+    n: int = 12
+) -> Sequence[PointType]:
+    """Create a new list of vertices with rounded corners (using the corresponding vertices in the indices list.)
+    d_vert_radius is a dictionary with index and radius values for keys and values respectively.
+    n is the number of points to use to define each fillet.
+    """
+    count = len(vertices)
+
+    # Build set of indices to fillet for quick lookup
+    indices = d_vert_radius.keys()
+    fillet_set = set(indices)
+
+    # Build new vertex list
+    new_vertices = []
+    fillet_count = 0
+    for i in range(count):
+        if i not in fillet_set:
+            # Keep original vertex
+            new_vertices.append(vertices[i][:2])
+        else:
+            # Replace with fillet arc
+            prev_idx = (i - 1) % count
+            next_idx = (i + 1) % count
+
+            p1 = vertices[prev_idx][:2]
+            p2 = vertices[i][:2]
+            p3 = vertices[next_idx][:2]
+
+            # Generate fillet points
+            radius = d_vert_radius[i]
+            arc_points = fillet_points(p1, p2, p3, radius, n, clamp_radius=True)
+            new_vertices.extend(arc_points)
+            fillet_count += 1
+
+    # Create new shape with same properties
+    return new_vertices
 
 
 def line_by_point_angle_length(point, angle, length_):
@@ -4735,9 +4905,10 @@ def rotate_line_3D(line: LineType, about: LineType, angle: float) -> LineType:
 
     return [p1, p2]
 
+
 def vert_label_positions(shape, offset):
-    '''Returns the position of the vertex labels using the given
-    label offset.'''
+    """Returns the position of the vertex labels using the given
+    label offset."""
     vertices = list(shape.vertices)
 
     vec1 = v_from_points(vertices[0], vertices[-1])
@@ -4769,9 +4940,10 @@ def vert_label_positions(shape, offset):
 
     return positions
 
+
 def vert_label_pos(shape, index, offset=10):
-    '''Returns the position of the vertex label using the given
-    index and label offset.'''
+    """Returns the position of the vertex label using the given
+    index and label offset."""
     vertices = shape.vertices
     count = len(vertices)
     prev_point = vertices[(index - 1) % count][:2]
@@ -4796,9 +4968,10 @@ def vert_label_pos(shape, index, offset=10):
 
     return (pos.x, pos.y)
 
+
 def edge_label_positions(shape, offset):
-    '''Returns the position of the edge labels using the given
-    label offset.'''
+    """Returns the position of the edge labels using the given
+    label offset."""
     vertices = list(shape.vertices)
     count = len(vertices)
     num_edges = count if shape.closed else count - 1
@@ -4830,8 +5003,8 @@ def edge_label_positions(shape, offset):
 
 
 def edge_label_pos(shape, index, offset=10):
-    '''Returns the position of the edge label using the given
-    edge index and label offset.'''
+    """Returns the position of the edge label using the given
+    edge index and label offset."""
     vertices = shape.vertices
     count = len(vertices)
     prev_point = vertices[index][:2]
