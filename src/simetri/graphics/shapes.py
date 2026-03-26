@@ -61,11 +61,15 @@ def offset_box(corners, offsets: List[float]=None, offset:float=None ) -> "Shape
 
     left, bottom, right, top = offsets
 
-    # Assuming corners are in order: bottom-left, bottom-right, top-right, top-left
-    x_min = corners[0][0]
-    y_min = corners[0][1]
-    x_max = corners[1][0]
-    y_max = corners[2][1]
+    if len(corners) != 4:
+        raise ValueError("corners must contain four points")
+
+    xs = [point[0] for point in corners]
+    ys = [point[1] for point in corners]
+    x_min = min(xs)
+    y_min = min(ys)
+    x_max = max(xs)
+    y_max = max(ys)
 
     # Apply offsets (positive = expansion, negative = deflation)
     new_x_min = x_min - left
@@ -74,10 +78,10 @@ def offset_box(corners, offsets: List[float]=None, offset:float=None ) -> "Shape
     new_y_max = y_max + top
 
     new_corners = [
+        (new_x_min, new_y_max),
         (new_x_min, new_y_min),
         (new_x_max, new_y_min),
         (new_x_max, new_y_max),
-        (new_x_min, new_y_max)
     ]
 
     return Shape(new_corners, closed=True)
