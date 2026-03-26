@@ -43,6 +43,45 @@ import simetri.colors.colors as colors
 Color = colors.Color
 
 
+def offset_box(corners, offsets: List[float]=None, offset:float=None ) -> "Shape":
+    '''Given four corners and offsets(left, bottom, right, and top or a
+    single offset value) returns a rectangle shape. Negative offsets mean
+    deflation.
+    '''
+
+    # Handle the single offset case
+    if offset is not None:
+        offsets = [offset, offset, offset, offset]
+
+    if offsets is None:
+        raise ValueError("Either offsets or offset must be provided")
+
+    if len(offsets) != 4:
+        raise ValueError("offsets must have 4 values: [left, bottom, right, top]")
+
+    left, bottom, right, top = offsets
+
+    # Assuming corners are in order: bottom-left, bottom-right, top-right, top-left
+    x_min = corners[0][0]
+    y_min = corners[0][1]
+    x_max = corners[1][0]
+    y_max = corners[2][1]
+
+    # Apply offsets (positive = expansion, negative = deflation)
+    new_x_min = x_min - left
+    new_y_min = y_min - bottom
+    new_x_max = x_max + right
+    new_y_max = y_max + top
+
+    new_corners = [
+        (new_x_min, new_y_min),
+        (new_x_max, new_y_min),
+        (new_x_max, new_y_max),
+        (new_x_min, new_y_max)
+    ]
+
+    return Shape(new_corners, closed=True)
+
 def square(
     center: PointType = (0, 0), size: float = 100, angle: float = 0, **kwargs
 ) -> Shape:
