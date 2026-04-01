@@ -657,6 +657,12 @@ def draw_tag_sketch(sketch):
         text_decoration = 'font-variant="small-caps" '
 
     align = sketch_attrib(sketch, "align")
+    if align in (Align.LEFT, Align.FLUSH_LEFT):
+        text_anchor = "start"
+    elif align in (Align.RIGHT, Align.FLUSH_RIGHT):
+        text_anchor = "end"
+    elif align in (Align.CENTER, Align.FLUSH_CENTER):
+        text_anchor = "middle"
     text_width = sketch_attrib(sketch, "text_width")
     text_width_attr = ""
     if text_width:

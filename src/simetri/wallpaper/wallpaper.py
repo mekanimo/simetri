@@ -361,8 +361,8 @@ def wallpaper_p4(
         Batch: The resulting wallpaper pattern as a Batch object.
     """
     wallpaper = generator.rotate(pi / 2, rotocenter, reps=3)
-    wallpaper.translate(distance, 0, reps1)
-    wallpaper.translate(0, distance, reps2)
+    wallpaper.translate(distance, 0, reps=reps1)
+    wallpaper.translate(0, distance, reps=reps2)
 
     return wallpaper
 
@@ -631,8 +631,8 @@ def wallpaper_pgg(
         dist = rotocenter[1] - generator.center[1]
         wallpaper = generator.glide(generator.vert_centerline, 2 * dist, reps=1)
         wallpaper.rotate(pi, rotocenter, reps=1)
-    wallpaper.translate(dx, 0, reps1)
-    wallpaper.translate(0, dy, reps2)
+    wallpaper.translate(dx, 0, reps=reps1)
+    wallpaper.translate(0, dy, reps=reps2)
 
     return wallpaper
 

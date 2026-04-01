@@ -216,6 +216,13 @@ def set_defaults():
         "Example: shape.active = False"
     )
 
+
+    defaults['align'] = Align.LEFT
+    default_types["align"] = Align
+    defaults_help["align"] = (
+        "Alignment property for text objects. "
+    )
+
     defaults["all_caps"] = False  # use all caps for text
     default_types["all_caps"] = bool
     defaults_help["all_caps"] = (

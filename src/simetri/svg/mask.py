@@ -344,6 +344,18 @@ def clip_mask(self: "Canvas", target: Union[Shape, Batch, None]=None, mask: Mask
         mask_content_units = mask.mask_content_units
     elif isinstance(mask, Shape):
         mask_shape = mask
+        if "_mask_opacity" in kwargs:
+            mask_opacity = kwargs["_mask_opacity"]
+        if "_mask_stops" in kwargs:
+            mask_stops = kwargs["_mask_stops"]
+        if "_mask_axis" in kwargs:
+            mask_axis = kwargs["_mask_axis"]
+        if "_mask_units" in kwargs:
+            mask_units = _normalize_units(kwargs["_mask_units"], "mask_units")
+        if "_mask_content_units" in kwargs:
+            mask_content_units = _normalize_units(
+                kwargs["_mask_content_units"], "mask_content_units"
+            )
     else:
         raise TypeError("mask must be a Mask instance or a Shape.")
 

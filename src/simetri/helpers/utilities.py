@@ -176,6 +176,7 @@ def wait_for_file_availability(file_path, timeout=None, check_interval=1):
 
 def detokenize(text: str) -> str:
     """Replace the special Latex characters with their Latex commands.
+    Inline math segments delimited by $ are preserved as-is.
 
     Args:
         text: The text to detokenize.
@@ -183,26 +184,35 @@ def detokenize(text: str) -> str:
     Returns:
         The detokenized text.
     """
-    if text.startswith("$") and text.endswith("$"):
-        res = text
-    else:
-        replacements = {
-            "\\": r"\textbackslash ",
-            "{": r"\{",
-            "}": r"\}",
-            "$": r"\$",
-            "&": r"\&",
-            "%": r"\%",
-            "#": r"\#",
-            "_": r"\_",
-            "^": r"\^{}",
-            "~": r"\textasciitilde{}",
-        }
-        for char, replacement in replacements.items():
-            text = text.replace(char, replacement)
-            res = text
+    replacements = {
+        "\\": r"\textbackslash ",
+        "{": r"\{",
+        "}": r"\}",
+        "$": r"\$",
+        "&": r"\&",
+        "%": r"\%",
+        "#": r"\#",
+        "_": r"\_",
+        "^": r"\^{}",
+        "~": r"\textasciitilde{}",
+    }
 
-    return res
+    def escape_plain_text(plain_text):
+        for char, replacement in replacements.items():
+            plain_text = plain_text.replace(char, replacement)
+        return plain_text
+
+    parts = text.split("$")
+    if len(parts) == 1:
+        return escape_plain_text(text)
+
+    result_parts = []
+    for index, part in enumerate(parts):
+        if index % 2 == 0:
+            result_parts.append(escape_plain_text(part))
+        else:
+            result_parts.append(f"${part}$")
+    return "".join(result_parts)
 
 
 def get_text_dimensions(text, font_path, font_size):
@@ -608,22 +618,20 @@ def is_xform_matrix(matrix):
 
 
 def prime_factors(n):
-    """Prime factorization.
-
-    Args:
-        n: The number to factorize.
-
-    Returns:
-        A list of prime factors.
-    """
+    '''Prime factorization.'''
+    factors= []
     p = 2
-    factors = []
-    while n > 1:
-        if n % p:
+    while p * p <= n:
+        while n % p == 0:
+            factors.append(p)
+            n = n // p
+        if p == 2:
             p += 1
         else:
-            factors.append(p)
-            n = n / p
+            p += 2
+    if n > 1:
+        factors.append(n)
+
     return factors
 
 

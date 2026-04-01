@@ -1,6 +1,7 @@
 """Batch objects are used for grouping other Shape and Batch objects."""
 
 from typing import Any, Iterator, List, Sequence, Callable
+import warnings
 
 from numpy import around, array
 from typing_extensions import Self, Dict
@@ -353,8 +354,13 @@ class Batch(Base):
         Returns:
             Self: The batch object.
         """
-        if element not in self.elements:
-            self.elements.append(element)
+        if element in self.elements:
+            warnings.warn(
+                f"Duplicate element added to Batch: {element}",
+                UserWarning,
+                stacklevel=2,
+            )
+        self.elements.append(element)
         return self
 
     def reverse(self) -> Self:

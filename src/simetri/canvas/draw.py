@@ -301,6 +301,7 @@ def text(
         font_size=font_size,
         font_color=font_color,
         anchor=anchor,
+        align=align,
         **kwargs,
     )
     tag_obj.draw_frame = False
@@ -774,11 +775,11 @@ def plait_emboss1(self, lace, **kwargs):
                 color2 = change_lightness(color, shade_factor * -shade_step)
             else:
                 color1 = color2 = color
-            self.draw(quad1, fill_color=color1, **kwargs)
-            self.draw(quad2, fill_color=color2, **kwargs)
+            draw(self, quad1, fill_color=color1, **kwargs)
+            draw(self, quad2, fill_color=color2, **kwargs)
     else:
         for quad in all_quads:
-            self.draw(quad, **kwargs)
+            draw(self, quad, **kwargs)
 
 
 def plait_emboss2(self, lace, **kwargs):
@@ -875,11 +876,11 @@ def plait_emboss2(self, lace, **kwargs):
                 color2 = change_lightness(color, shade_factor * -shade_step)
             else:
                 color1 = color2 = color
-            self.draw(quad1, fill_color=color1, **kwargs)
-            self.draw(quad2, fill_color=color2, **kwargs)
+            draw(self, quad1, fill_color=color1, **kwargs)
+            draw(self, quad2, fill_color=color2, **kwargs)
     else:
         for quad in quads:
-            self.draw(quad, **kwargs)
+            draw(self, quad, **kwargs)
 
 
 def plait_diamond(self, lace, **kwargs):
@@ -923,8 +924,8 @@ def plait_diamond(self, lace, **kwargs):
             quads.append(shp)
         n2 = int(len(quads) / 2) - 1
         for i in range(n2):
-            self.draw(quads[i], **kwargs)
-            self.draw(quads[-(i + 2)], **kwargs)
+            draw(self, quads[i], **kwargs)
+            draw(self, quads[-(i + 2)], **kwargs)
             quad_pairs.append((quads[i], quads[-(i + 2)]))
         end_quads.extend([quads[-1], quads[n2]])
 
@@ -957,23 +958,23 @@ def plait_diamond(self, lace, **kwargs):
         else:
             color1 = color2 = color
 
-        self.draw(quad1, fill_color=color1, **kwargs)
-        self.draw(quad2, fill_color=color2, **kwargs)
+        draw(self, quad1, fill_color=color1, **kwargs)
+        draw(self, quad2, fill_color=color2, **kwargs)
 
     color = change_lightness(lace.plait_color, -0.1)
     for quad in end_quads:
-        self.draw(quad, fill_color=color, **kwargs)
+        draw(self, quad, fill_color=color, **kwargs)
 
     color = change_lightness(lace.plait_color, 0.1)
     for loop in inner_loops:
-        self.draw(loop, fill_color=color, **kwargs)
+        draw(self, loop, fill_color=color, **kwargs)
 
 
 def draw_lace_with_fillets(self, lace, **kwargs):
     r1, r2 = kwargs["fillet_radii"]
     rounded_fragments = lace._fillet_fragments(r1, r2)
     palette = kwargs.get('palette')
-    self.draw_fragments(palette=palette, fragments=rounded_fragments)
+    self.draw_fragments(palette=palette, fragments=rounded_fragments, **kwargs)
 
     rounded_plaits = lace._fillet_plaits(r1, r2)
     # We do not handle other plait options for rounded plaits yet!
@@ -982,7 +983,7 @@ def draw_lace_with_fillets(self, lace, **kwargs):
     else:
         fill_color = kwargs['plait_fill_color']
     for plait in rounded_plaits:
-        self.draw(plait, fill_color=fill_color)
+        draw(self, plait, fill_color=fill_color, **kwargs)
 
 
 def draw_plaits(self, lace=None, **kwargs):
@@ -1031,7 +1032,9 @@ def draw_fragments(self, lace=None, palette=None, **kwargs):
         color = palette[i % n]
         for _, fragment_id in bin_:
             fragment = d_id_obj[fragment_id]
-            self.draw(fragment, fill_color=color)
+            draw_kwargs = dict(kwargs)
+            draw_kwargs["fill_color"] = color
+            draw(self, fragment, **draw_kwargs)
 
 
 def _handle_plait_innerlines(canvas, lace, **kwargs):

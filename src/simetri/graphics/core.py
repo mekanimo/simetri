@@ -713,12 +713,17 @@ class StyleMixin:
         Raises:
             AttributeError: If the attribute cannot be found.
         """
-        obj, attrib = self.__dict__["_aliases"].get(name, (None, None))
-        if obj:
-            res = getattr(obj, attrib)
-        else:
-            res = self.__dict__[name]
-        return res
+        aliases = self.__dict__.get("_aliases", {})
+        obj, attrib = aliases.get(name, (None, None))
+        if obj is not None:
+            return getattr(obj, attrib)
+
+        try:
+            return self.__dict__[name]
+        except KeyError:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
 
     def _set_aliases(self):
         """Set aliases for style attributes based on the style map."""

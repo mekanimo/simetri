@@ -149,22 +149,17 @@ class Shape(Base, StyleMixin):
         Raises:
             AttributeError: If the attribute cannot be found.
         """
-        # Check if it's a style attribute alias first (StyleMixin behavior)
-        if hasattr(self, "_aliases") and name in self._aliases:
-            obj, attrib = self._aliases[name]
+        aliases = self.__dict__.get("_aliases", {})
+        if name in aliases:
+            obj, attrib = aliases[name]
             return getattr(obj, attrib)
 
-        # Try the normal attribute resolution chain
         try:
-            res = super().__getattr__(name)
-        except AttributeError:
-            try:
-                res = self.__dict__[name]
-            except KeyError as exc:
-                raise AttributeError(
-                    f"'Shape' object has no attribute '{name}'"
-                ) from exc
-        return res
+            return super().__getattr__(name)
+        except AttributeError as exc:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            ) from exc
 
     def _get_closed(self, points: Sequence[PointType], closed: bool):
         """Determine whether the shape should be considered closed.
@@ -434,6 +429,9 @@ class Shape(Base, StyleMixin):
             return res.merge_shapes()
 
         return res
+
+    def __hash__(self):
+        return hash(self.id)
 
     def __eq__(self, other):
         """Check if the shape is equal to another shape.

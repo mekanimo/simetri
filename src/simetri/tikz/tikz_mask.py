@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 	from ..canvas.canvas import Canvas
 
 
-def _normalize_mask_inputs(mask):
+def _normalize_mask_inputs(mask, **kwargs):
 	mask_opacity = 1.0
 	mask_stops = None
 	mask_axis = ((0.0, 0.0), (1.0, 0.0))
@@ -37,6 +37,12 @@ def _normalize_mask_inputs(mask):
 		mask_axis = (mask.axis.start, mask.axis.end)
 	elif isinstance(mask, Shape):
 		mask_shape = mask
+		if "_mask_opacity" in kwargs:
+			mask_opacity = kwargs["_mask_opacity"]
+		if "_mask_stops" in kwargs:
+			mask_stops = kwargs["_mask_stops"]
+		if "_mask_axis" in kwargs:
+			mask_axis = kwargs["_mask_axis"]
 	else:
 		raise TypeError("mask must be a Mask instance or a Shape.")
 
@@ -151,7 +157,9 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
 	angle = degrees(atan2(y2 - y1, x2 - x1))
 	return (
 		f"\\pgfdeclarehorizontalshading{{{shade_id}}}{{100bp}}{{{shading_decl}}}\n"
-		f"\\tikzfading[name={{{fade_id}}}, shading={{{shade_id}}}, shading angle={angle:.2f}]\n"
+		f"\\tikzfadingfrompicture[name={fade_id}]\n"
+		f"  \\shade[shading={shade_id}, shading angle={angle:.2f}] (0, 0) rectangle (100bp, 100bp);\n"
+		f"\\endtikzfadingfrompicture\n"
 	)
 
 
@@ -160,9 +168,16 @@ def _get_clip_from_mask(mask_shape):
 	return get_clip_code(proxy)
 
 
+def _get_scope_fading_path(mask_shape, fade_id):
+	bbox = mask_shape.b_box
+	x1, y1 = bbox.southwest
+	x2, y2 = bbox.northeast
+	return f"\\path [scope fading={fade_id}] ({x1}, {y1}) rectangle ({x2}, {y2});\n"
+
+
 def clip_mask(self: "Canvas", target: Union[Shape, Batch, None] = None, mask: Mask = None, **kwargs):
 	"""Apply a mask for TeX rendering using additive scope/TexSketch logic."""
-	mask_shape, mask_opacity, mask_stops, mask_axis = _normalize_mask_inputs(mask)
+	mask_shape, mask_opacity, mask_stops, mask_axis = _normalize_mask_inputs(mask, **kwargs)
 	mask_x1, mask_y1 = mask_axis[0]
 	mask_x2, mask_y2 = mask_axis[1]
 
@@ -204,7 +219,8 @@ def clip_mask(self: "Canvas", target: Union[Shape, Batch, None] = None, mask: Ma
 		fade_sketch.library = "fadings"
 		fade_sketch.location = TexLoc.PREAMBLE
 		self.active_page.sketches.append(fade_sketch)
-		start_scope = f"\\begin{{scope}}[transparency group, blend mode=normal, scope fading={fade_id}, fit fading=true]\n{clip_code}"
+		fading_path = _get_scope_fading_path(mask_shape, fade_id)
+		start_scope = f"\\begin{{scope}}\n{fading_path}{clip_code}"
 	elif mask_opacity < 1.0:
 		start_scope = f"\\begin{{scope}}[opacity={mask_opacity}]\n{clip_code}"
 	else:
@@ -212,8 +228,7 @@ def clip_mask(self: "Canvas", target: Union[Shape, Batch, None] = None, mask: Ma
 
 	self.active_page.sketches.append(TexSketch(start_scope))
 	vertices_len = len(self._all_vertices)
-	draw_kwargs = {"mask": mask_shape}
-	draw_kwargs.update(kwargs)
+	draw_kwargs = dict(kwargs)
 	canvas_draw.draw(self, target, **draw_kwargs)
 	del self._all_vertices[vertices_len:]
 	self._all_vertices.extend(mask_shape.b_box.corners)

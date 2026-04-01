@@ -3,6 +3,7 @@
 from math import pi, gcd, sin, cos, comb
 from typing import List, Sequence, Union
 import copy
+import warnings
 
 from numpy import ndarray
 import numpy as np
@@ -556,6 +557,19 @@ class Circle(Shape):
         )  # only x scale is used
         return self._radius * scale_x
 
+    def __eq__(self, other):
+        """Check if the circle is equal to another circle.
+
+        Args:
+            other (Circle): The other circle to compare to.
+
+        Returns:
+            bool: True if the circles are equal, False otherwise.
+        """
+        if not isinstance(other, Circle):
+            return False
+        return self.id == other.id
+
     def copy(self):
         """Return a copy of the circle.
 
@@ -1001,6 +1015,7 @@ def dot_shape(
         ["fill_color", "line_color", "line_width"],
         [fill_color, line_color, line_width],
     )
+    x, y = pos[:2]
     dot_shape = Shape(
         [(x, y)],
         closed=True,
