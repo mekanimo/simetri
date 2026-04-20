@@ -6,9 +6,10 @@ Sketch objects are converted to TikZ code."""
 
 from __future__ import annotations
 
-from math import degrees, cos, sin, ceil
+from math import degrees, cos, sin, ceil, atan2
 from typing import List, Union
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 import warnings
 
 import numpy as np
@@ -217,11 +218,7 @@ def get_tex_code(canvas: "Canvas") -> str:
         elif sketch.subtype == Types.MASK_SKETCH:
             code = ""
         elif sketch.subtype == Types.BATCH_SKETCH:
-            parts = []
-            for sub_sketch in sketch.sketches:
-                sub_code, ind = get_sketch_code(sub_sketch, canvas, ind)
-                parts.append(sub_code)
-            code = "".join(parts)
+            code = draw_batch_sketch(sketch, canvas)
         else:
             if (
                 hasattr(sketch, "draw_markers")
@@ -567,6 +564,170 @@ def get_clip_code(sketch: "Sketch") -> str:
     return res
 
 
+def _parse_mask_offset(offset):
+    if isinstance(offset, (int, float)):
+        return float(offset)
+    if isinstance(offset, str) and offset.endswith("%"):
+        return float(offset[:-1]) / 100.0
+    return float(offset)
+
+
+def _luminance_from_stop_color(stop_color):
+    if isinstance(stop_color, Color):
+        red, green, blue = stop_color.rgb255
+    elif isinstance(stop_color, str):
+        color_text = stop_color.strip().lower()
+        if color_text == "white":
+            return 1.0
+        if color_text == "black":
+            return 0.0
+        if color_text.startswith("#") and len(color_text) == 7:
+            red = int(color_text[1:3], 16)
+            green = int(color_text[3:5], 16)
+            blue = int(color_text[5:7], 16)
+        else:
+            return 1.0
+    else:
+        return 1.0
+
+    return (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255.0
+
+
+def _effective_alpha_from_stop(stop):
+    if isinstance(stop, dict):
+        offset = _parse_mask_offset(stop["offset"])
+        stop_color = stop.get(
+            "stop-color", stop.get("stop_color", "white")
+        )
+        stop_opacity = stop.get(
+            "stop-opacity",
+            stop.get("stop_opacity", stop.get("opacity", 1.0)),
+        )
+    elif hasattr(stop, "offset") and hasattr(stop, "color"):
+        offset = _parse_mask_offset(stop.offset)
+        stop_color = stop.color if stop.color is not None else "white"
+        stop_opacity = stop.opacity if stop.opacity is not None else 1.0
+    else:
+        offset = _parse_mask_offset(stop[0])
+        second_value = stop[1]
+        if len(stop) >= 3:
+            stop_color = second_value
+            stop_opacity = stop[2]
+        elif isinstance(second_value, (int, float)):
+            stop_color = "white"
+            stop_opacity = second_value
+        else:
+            stop_color = second_value
+            stop_opacity = 1.0
+
+    luminance = _luminance_from_stop_color(stop_color)
+    alpha = max(0.0, min(1.0, float(stop_opacity) * luminance))
+    return offset, alpha
+
+
+def _pgf_gray(transparency: int) -> str:
+    if transparency <= 0:
+        return "white"
+    if transparency >= 100:
+        return "black"
+    return f"black!{transparency}"
+
+
+def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
+    parsed_stops = [_effective_alpha_from_stop(stop) for stop in stops]
+    parsed_stops.sort(key=lambda item: item[0])
+    if not parsed_stops:
+        parsed_stops = [(0.0, 1.0), (1.0, 1.0)]
+
+    shade_id = f"{fade_id}Shade"
+    color_stops = []
+    for offset, alpha in parsed_stops:
+        offset = max(0.0, min(1.0, float(offset)))
+        position = int(round(offset * 100))
+        transparency = int(round((1.0 - float(alpha)) * 100))
+        color_stops.append(
+            f"color({position}bp)=({_pgf_gray(transparency)})"
+        )
+
+    if parsed_stops[0][0] > 0.0:
+        first_transparency = int(
+            round((1.0 - float(parsed_stops[0][1])) * 100)
+        )
+        color_stops.insert(
+            0, f"color(0bp)=({_pgf_gray(first_transparency)})"
+        )
+    if parsed_stops[-1][0] < 1.0:
+        last_transparency = int(
+            round((1.0 - float(parsed_stops[-1][1])) * 100)
+        )
+        color_stops.append(
+            f"color(100bp)=({_pgf_gray(last_transparency)})"
+        )
+
+    shading_decl = "; ".join(color_stops)
+    angle = degrees(atan2(y2 - y1, x2 - x1))
+    return (
+        f"\\pgfdeclarehorizontalshading{{{shade_id}}}{{100bp}}{{{shading_decl}}}\n"
+        f"\\tikzfadingfrompicture[name={fade_id}]\n"
+        f"  \\shade[shading={shade_id}, shading angle={angle:.2f}] (0, 0) rectangle (100bp, 100bp);\n"
+        f"\\endtikzfadingfrompicture\n"
+    )
+
+
+def _mask_axis_points(mask_axis):
+    if hasattr(mask_axis, "start") and hasattr(mask_axis, "end"):
+        return mask_axis.start, mask_axis.end
+    return mask_axis
+
+
+def _get_scope_fading_path(mask_shape, fade_id):
+    bbox = mask_shape.b_box
+    x1, y1 = bbox.southwest[:2]
+    x2, y2 = bbox.northeast[:2]
+    return f"\\path [scope fading={fade_id}] ({x1}, {y1}) rectangle ({x2}, {y2});\n"
+
+
+def _mask_scope_parts(sketch, fade_id=None):
+    mask = getattr(sketch, "mask", None)
+    if mask is None:
+        return "", ""
+
+    clip = bool(getattr(sketch, "clip", False))
+    mask_opacity = getattr(sketch, "_mask_opacity", 1.0)
+    mask_stops = getattr(sketch, "_mask_stops", None)
+    mask_axis = getattr(sketch, "_mask_axis", ((0.0, 0.0), (1.0, 0.0)))
+    clip_code = get_clip_code(SimpleNamespace(mask=mask))
+
+    if mask_stops is not None:
+        axis_start, axis_end = _mask_axis_points(mask_axis)
+        mask_bbox = mask.b_box
+        bbox_x = mask_bbox.southwest[0]
+        bbox_y = mask_bbox.southwest[1]
+        bbox_width = mask_bbox.width
+        bbox_height = mask_bbox.height
+        x1 = bbox_x + float(axis_start[0]) * bbox_width
+        y1 = bbox_y + float(axis_start[1]) * bbox_height
+        x2 = bbox_x + float(axis_end[0]) * bbox_width
+        y2 = bbox_y + float(axis_end[1]) * bbox_height
+        fade_name = fade_id or f"simetriMaskFade{id(sketch)}"
+        start_code = _build_fading_code(fade_name, mask_stops, x1, y1, x2, y2)
+        start_code += "\\begin{scope}[transparency group,blend mode=normal]\n"
+        start_code += _get_scope_fading_path(mask, fade_name)
+        start_code += clip_code
+        return start_code, "\\end{scope}\n"
+
+    if mask_opacity not in [None, 1]:
+        return (
+            f"\\begin{{scope}}[opacity={mask_opacity}]\n{clip_code}",
+            "\\end{scope}\n",
+        )
+
+    if clip:
+        return f"\\begin{{scope}}\n{clip_code}", "\\end{scope}\n"
+
+    return "", ""
+
+
 def get_canvas_scope(canvas):
     """Returns the TikZ code for the canvas scope.
 
@@ -592,27 +753,22 @@ def get_canvas_scope(canvas):
         canvas_mask_stops = None
         canvas_mask_fade_id = None
 
-    if canvas_mask_stops is not None and canvas_mask_fade_id:
-        option_list.extend(
-            [
-                "transparency group",
-                "blend mode=normal",
-                f"scope fading={canvas_mask_fade_id}",
-                "fit fading=true",
-            ]
-        )
-    elif canvas_mask_opacity not in [None, 1]:
-        option_list.append(f"opacity={canvas_mask_opacity}")
+    if canvas_mask_stops is not None and canvas_mask is not None:
+        fade_name = canvas_mask_fade_id or f"simetriCanvasMaskFade{id(canvas_mask_scope)}"
+        start_code, _ = _mask_scope_parts(canvas_mask_scope, fade_name)
+        return start_code
 
-    if option_list:
-        res = f"\\begin{{scope}}[{','.join(option_list)}]\n"
-    else:
-        res = "\\begin{scope}\n"
+    if canvas_mask_opacity not in [None, 1] and canvas_mask is not None:
+        start_code, _ = _mask_scope_parts(canvas_mask_scope)
+        return start_code
 
     if canvas_clip and canvas_mask:
-        res += get_clip_code(canvas_mask_scope)
+        start_code, _ = _mask_scope_parts(canvas_mask_scope)
+        return start_code
 
-    return res
+    if option_list:
+        return f"\\begin{{scope}}[{','.join(option_list)}]\n"
+    return "\\begin{scope}\n"
 
 
 def draw_batch_sketch(sketch, canvas):
@@ -626,22 +782,22 @@ def draw_batch_sketch(sketch, canvas):
         str: The TikZ code for the BatchSketch.
     """
     options = get_scope_options(sketch)
+    mask_start, mask_end = _mask_scope_parts(sketch)
     if options:
         res = f"\\begin{{scope}}[{options}]\n"
+        scope_end = "\\end{scope}\n"
     else:
         res = ""
-    if getattr(sketch, "clip", None) and getattr(sketch, "mask", None):
-        res += get_clip_code(sketch)
+        scope_end = ""
+    res += mask_start
     for item in sketch.sketches:
         if item.subtype in d_sketch_draw:
             res += d_sketch_draw[item.subtype](item, canvas)
         else:
             res += draw_shape_sketch(item, canvas=canvas)
 
-    if getattr(sketch, "clip", None) and getattr(sketch, "mask", None):
-        res += get_clip_code(sketch)
-    if options:
-        res += "\\end{scope}\n"
+    res += mask_end
+    res += scope_end
 
     return res
 
@@ -2000,6 +2156,10 @@ def draw_shape_sketch(sketch, ind=None, canvas=None):
         res = draw_shape_sketch_with_markers(sketch)
     else:
         res = draw_sketch(sketch)
+
+    mask_start, mask_end = _mask_scope_parts(sketch)
+    if mask_start or mask_end:
+        res = mask_start + res + mask_end
 
     return res
 

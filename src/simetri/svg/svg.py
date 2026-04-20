@@ -1401,6 +1401,38 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         Returns:
             tuple: The SVG code and the updated index.
         """
+
+        def wrap_batch_code(batch_code, batch_sketch):
+            if not batch_code:
+                return batch_code
+
+            clip_attr, mask_attr = get_clip_mask_attrs(batch_sketch)
+            alpha = sketch_attrib(batch_sketch, "alpha")
+            blend_mode = sketch_attrib(batch_sketch, "blend_mode")
+            transparency_group = sketch_attrib(
+                batch_sketch, "transparency_group"
+            )
+
+            group_attrs = []
+            if alpha not in [None, defaults["alpha"]]:
+                group_attrs.append(f' opacity="{alpha}"')
+
+            style_parts = []
+            if blend_mode is not None:
+                style_parts.append(
+                    f"mix-blend-mode:{get_enum_value(blend_mode)}"
+                )
+            if transparency_group:
+                style_parts.append("isolation:isolate")
+            if style_parts:
+                group_attrs.append(f' style="{"; ".join(style_parts)}"')
+
+            attrs = "".join([clip_attr, mask_attr, *group_attrs])
+            if not attrs:
+                return batch_code
+
+            return f"<g{attrs}>\n{batch_code}\n</g>"
+
         subtype = sketch_attrib(sketch, "subtype")
         draw_markers = sketch_attrib(sketch, "draw_markers")
         indices = sketch_attrib(sketch, "indices")
@@ -1420,6 +1452,11 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             code = draw_helplines_sketch(sketch)
         elif subtype == Types.LINE_SKETCH:
             code = draw_line_sketch(sketch, canvas)
+        elif subtype == Types.BATCH_SKETCH:
+            parts = []
+            for sub_sketch in sketch.sketches:
+                parts.append(get_sketch_code(sub_sketch, canvas, ind))
+            code = wrap_batch_code("".join(parts), sketch)
         # elif sketch_attrib(sketch, 'subtype') == Types.PDF_SKETCH:
         #     code = draw_pdf_sketch(sketch)
         # elif sketch_attrib(sketch, 'subtype') == Types.BBOX_SKETCH:

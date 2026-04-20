@@ -280,6 +280,9 @@ class Tex:
                     if sketch.library == "fadings":
                         if "fadings" not in tikz_libraries:
                             tikz_libraries.append("fadings")
+                if hasattr(sketch, "_mask_stops") and sketch._mask_stops is not None:
+                    if "fadings" not in tikz_libraries:
+                        tikz_libraries.append("fadings")
                 if hasattr(sketch, "draw_frame") and sketch.draw_frame:
                     if (
                         hasattr(sketch, "frame_shape")

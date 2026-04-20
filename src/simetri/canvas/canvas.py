@@ -15,6 +15,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from math import pi
 
+import fitz
 from typing_extensions import Self, Union
 import numpy as np
 import networkx as nx
@@ -38,6 +39,7 @@ from simetri.graphics.all_enums import (
     Drawable,
     Result,
     Anchor,
+    Renderer,
     TexLoc,
     Align,
     Axis,
@@ -63,7 +65,22 @@ from simetri.image.image import Image, create_image_from_data
 from simetri.tex.tex import remove_aux_files, run_job, Tex
 from simetri.svg.filters import SVG_Filter
 from simetri.svg.mask import Mask, clip_mask as apply_svg_mask
-from simetri.tikz.tikz_mask import clip_mask as apply_tikz_mask
+
+
+def save_renderer(extension: str) -> Renderer:
+    """Return the renderer family for the output extension."""
+    if extension in [".svg", ".png"]:
+        return Renderer.SVG
+    return Renderer.TEX
+
+
+def save_svg_png(svg_code: str, filepath: Path) -> None:
+    """Rasterize SVG code to a PNG file."""
+    document = fitz.open(stream=svg_code.encode("utf-8"), filetype="svg")
+    page = document[0]
+    pixmap = page.get_pixmap()
+    pixmap.save(filepath)
+    document.close()
 
 
 class Canvas:
@@ -1399,12 +1416,7 @@ class Canvas:
         mask: "Mask" = None,
         **kwargs,
     ) -> Self:
-        if self.render == "TEX":
-            clip_mask_fn = apply_tikz_mask
-        else:
-            clip_mask_fn = apply_svg_mask
-
-        return clip_mask_fn(self, target, mask, **kwargs)
+        return apply_svg_mask(self, target, mask, **kwargs)
 
     def set_page_size(self, width, height):
         self.page_size = (width, height)
@@ -1487,12 +1499,16 @@ class Canvas:
         parent_dir, file_name, extension = validate_filepath(
             filepath, overwrite
         )
-        if self.render == "SVG":
+        renderer = save_renderer(extension)
+        if renderer == Renderer.SVG:
             from simetri.svg.svg import get_svg_code
 
             svg_code = get_svg_code(self)
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(svg_code)
+            if extension == ".png":
+                save_svg_png(svg_code, filepath)
+            else:
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write(svg_code)
         else:
             tex_code = get_tex_code(self)
             tex_path = os.path.join(parent_dir, file_name + ".tex")

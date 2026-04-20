@@ -28,7 +28,6 @@ from ..graphics.all_enums import (
 from ..colors import colors
 from ..colors.palettes import d_n_palette, d_name_palette
 from ..colors.colors import Color, change_lightness, get_lightest
-from ..tikz.tikz import scope_code_required, get_clip_code
 from ..graphics.sketch import (
     ArcSketch,
     BatchSketch,
@@ -1444,11 +1443,6 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
                     ]
                 )
 
-    # Only apply TikZ/TeX clipping code when rendering to TeX format
-    if "clip" in item.__dict__ and item.clip is True and self.render == "TEX":
-        clip_code = get_clip_code(item)
-        code = "\\begin{scope}" + clip_code
-        active_sketches.append(TexSketch(code))
     if subtype in regular_sketch_types:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
@@ -1469,9 +1463,6 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
         self.draw_lace(item, **kwargs)
     elif subtype == Types.BOUNDING_BOX:
         draw_bbox(self, item, **kwargs)
-    # Only close TikZ/TeX clipping scope when rendering to TeX format
-    if "clip" in item.__dict__ and item.clip is True and self.render == "TEX":
-        active_sketches.append(TexSketch("\\end{scope}"))
     return self
 
 
@@ -1879,7 +1870,7 @@ def create_sketch(item, canvas, **kwargs):
             **kwargs: Additional keyword arguments.
 
         Returns:
-            BatchSketch or list: Created BatchSketch or list of sketches.
+            BatchSketch: Created BatchSketch.
         """
         swatch = kwargs.get("swatch", None)
         batch_clip = kwargs.get("clip", None)
@@ -1931,64 +1922,45 @@ def create_sketch(item, canvas, **kwargs):
                 batch_mask_context_bbox = None
         if swatch:
             n_swatch = len(swatch)
-        # For TeX rendering, keep batch as BatchSketch and let backend decide scope usage.
-        if canvas.render == "TEX":
-            sketches = []
-            count = 0
-            for element in item.elements:
-                if element.visible and element.active:
-                    element_kwargs = dict(kwargs)
-                    if swatch:
-                        element_kwargs["fill_color"] = Color(
-                            *swatch[count % n_swatch]
-                        )
-                    _apply_mask_kwargs(element_kwargs)
-                    if batch_mask_context_id is not None:
-                        element_kwargs["_mask_context_id"] = (
-                            batch_mask_context_id
-                        )
-                    if batch_mask_context_bbox is not None:
-                        element_kwargs["_mask_context_bbox"] = (
-                            batch_mask_context_bbox
-                        )
-                    sketches.extend(
-                        get_sketches(element, canvas, **element_kwargs)
+        sketches = []
+        count = 0
+        for element in item.elements:
+            if element.visible and element.active:
+                element_kwargs = dict(kwargs)
+                if swatch:
+                    element_kwargs["fill_color"] = Color(
+                        *swatch[count % n_swatch]
                     )
-                    count += 1
+                _apply_mask_kwargs(element_kwargs)
+                if batch_mask_context_id is not None:
+                    element_kwargs["_mask_context_id"] = (
+                        batch_mask_context_id
+                    )
+                if batch_mask_context_bbox is not None:
+                    element_kwargs["_mask_context_bbox"] = (
+                        batch_mask_context_bbox
+                    )
+                sketches.extend(get_sketches(element, canvas, **element_kwargs))
+                count += 1
 
-            sketch = BatchSketch(sketches=sketches)
-            for arg in group_args:
-                setattr(sketch, arg, getattr(item, arg, None))
+        sketch = BatchSketch(sketches=sketches)
+        for arg in group_args:
+            setattr(sketch, arg, getattr(item, arg, None))
+        if batch_clip is not None:
+            sketch.clip = batch_clip
+        if batch_mask is not None:
+            sketch.mask = batch_mask
+        if batch_mask_context_id is not None:
+            sketch._mask_context_id = batch_mask_context_id
+        if batch_mask_context_bbox is not None:
+            sketch._mask_context_bbox = batch_mask_context_bbox
+        if mask_payload["_mask_opacity"] != 1.0:
+            sketch._mask_opacity = mask_payload["_mask_opacity"]
+        if mask_payload["_mask_stops"] is not None:
+            sketch._mask_stops = mask_payload["_mask_stops"]
+            sketch._mask_axis = mask_payload["_mask_axis"]
 
-            res = sketch
-        else:
-            sketches = []
-            count = 0
-            for element in item.elements:
-                if hasattr(element, "visible") and hasattr(element, "active"):
-                    if element.visible and element.active:
-                        element_kwargs = dict(kwargs)
-                        if swatch:
-                            element_kwargs["fill_color"] = Color(
-                                *swatch[count % n_swatch]
-                            )
-                        _apply_mask_kwargs(element_kwargs)
-                        if batch_mask_context_id is not None:
-                            element_kwargs["_mask_context_id"] = (
-                                batch_mask_context_id
-                            )
-                        if batch_mask_context_bbox is not None:
-                            element_kwargs["_mask_context_bbox"] = (
-                                batch_mask_context_bbox
-                            )
-                        sketches.extend(
-                            get_sketches(element, canvas, **element_kwargs)
-                        )
-                        count += 1
-
-            res = sketches
-
-        return res
+        return sketch
 
     def get_path_sketch(item, canvas, **kwargs):
         """Create sketches for a path from the given item.
