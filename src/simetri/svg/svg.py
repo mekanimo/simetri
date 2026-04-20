@@ -1618,57 +1618,58 @@ def get_styles_dict(canvas):
     line_counter = 1
     fill_counter = 1
 
+    def collect_sketch_styles(sketch):
+        nonlocal line_counter, fill_counter
+        subtype = sketch_attrib(sketch, "subtype")
+
+        if subtype == Types.BATCH_SKETCH:
+            for sub_sketch in sketch.sketches:
+                collect_sketch_styles(sub_sketch)
+            return
+
+        # Skip non-shape sketches (like TexSketch)
+        if subtype not in d_shape_types:
+            return
+
+        # Get line style
+        line_style_str = get_line_style_options(sketch)
+        if line_style_str:
+            line_style_dict = parse_style_string(line_style_str)
+            # Check if this style already exists (compare as frozenset of items)
+            style_exists = any(
+                set(existing.items()) == set(line_style_dict.items())
+                for existing in line_styles.values()
+            )
+            if not style_exists:
+                line_styles[f"line_style_{line_counter}"] = line_style_dict
+                line_counter += 1
+
+        # Get fill style for sketches with a mapped SVG shape type
+        shape_type = get_shape_type(sketch)
+        if shape_type in [
+            "circle",
+            "ellipse",
+            "polygon",
+            "polyline",
+            "rect",
+        ]:
+            fill_style_str = get_fill_style_options(sketch, shape_type)
+            if fill_style_str:
+                fill_style_dict = parse_style_string(fill_style_str)
+                # Check if this style already exists
+                style_exists = any(
+                    set(existing.items()) == set(fill_style_dict.items())
+                    for existing in fill_styles.values()
+                )
+                if not style_exists:
+                    fill_styles[f"fill_style_{fill_counter}"] = fill_style_dict
+                    fill_counter += 1
+
     pages = canvas.pages
     if pages:
         for page in pages:
-            sketches = page.sketches
-            for sketch in sketches:
-                subtype = sketch_attrib(sketch, "subtype")
-                # Skip non-shape sketches (like TexSketch)
-                if subtype not in d_shape_types:
-                    continue
-
-                # Get line style
-                line_style_str = get_line_style_options(sketch)
-                if line_style_str:
-                    line_style_dict = parse_style_string(line_style_str)
-                    # Check if this style already exists (compare as frozenset of items)
-                    style_exists = any(
-                        set(existing.items()) == set(line_style_dict.items())
-                        for existing in line_styles.values()
-                    )
-                    if not style_exists:
-                        line_styles[f"line_style_{line_counter}"] = (
-                            line_style_dict
-                        )
-                        line_counter += 1
-
-                # Get fill style for sketches with a mapped SVG shape type
-                if subtype not in d_shape_types:
-                    continue
-
-                shape_type = get_shape_type(sketch)
-                if shape_type in [
-                    "circle",
-                    "ellipse",
-                    "polygon",
-                    "polyline",
-                    "rect",
-                ]:
-                    fill_style_str = get_fill_style_options(sketch, shape_type)
-                    if fill_style_str:
-                        fill_style_dict = parse_style_string(fill_style_str)
-                        # Check if this style already exists
-                        style_exists = any(
-                            set(existing.items())
-                            == set(fill_style_dict.items())
-                            for existing in fill_styles.values()
-                        )
-                        if not style_exists:
-                            fill_styles[f"fill_style_{fill_counter}"] = (
-                                fill_style_dict
-                            )
-                            fill_counter += 1
+            for sketch in page.sketches:
+                collect_sketch_styles(sketch)
 
     # Combine all styles
     all_styles = {**line_styles, **fill_styles}
