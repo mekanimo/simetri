@@ -1,5 +1,21 @@
+from ..settings.settings import defaults
+from ..colors.colors import check_color
 
-def color_to_svg(color):
+
+def color_to_matplotlib(color):
+    """Converts a Color object to a matplotlib-compatible hex color string.
+
+    Args:
+        color (Color): The color object.
+
+    Returns:
+        str: A hex color string such as '#rrggbb'.
+    """
+    red, green, blue = color.rgb255
+    return f"#{red:02x}{green:02x}{blue:02x}"
+
+
+def color_to_svg(color, property_name=None):
     """Converts a Color object to a SVG color string.
 
     Args:
@@ -8,7 +24,10 @@ def color_to_svg(color):
     Returns:
         str: The SVG color string.
     """
-
+    if color is None:
+        color = defaults[property_name]
+    if isinstance(color, str):
+        color = check_color(color)
     r, g, b = color.rgb255
     alpha = color.alpha
 
@@ -18,6 +37,7 @@ def color_to_svg(color):
         res = f"rgb({r}, {g}, {b})"
 
     return res
+
 
 d_svg_colors = {
     "aliceblue": (240, 248, 255),

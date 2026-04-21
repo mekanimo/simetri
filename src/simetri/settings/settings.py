@@ -417,6 +417,10 @@ def set_defaults():
         "Frame width for the canvas. Positive float. Length in <points>."
     )
 
+    defaults["canvas_mask_scope"] = False  # True only on MaskSketch objects
+    default_types["canvas_mask_scope"] = bool
+    defaults_help["canvas_mask_scope"] = "Canvas mask scope flag. Boolean."
+
     defaults["canvas_size"] = None  # (width, height) canvas size in points
     default_types["canvas_size"] = Sequence
     defaults_help["canvas_size"] = (
@@ -518,7 +522,7 @@ def set_defaults():
     default_types["dot_color"] = colors.Color
     defaults_help["dot_color"] = "Color for Dot objects. Color object."
 
-    defaults["double_color"] = None
+    defaults["double_color"] = colors.white
     default_types["double_color"] = colors.Color
     defaults_help["double_color"] = "Color between double lines. Color object."
 
@@ -1177,11 +1181,19 @@ def set_defaults():
     default_types["mask"] = object  # Assuming mask is a custom object
     defaults_help["mask"] = "Mask. Mask object."
 
+    defaults["mask_axis"] = ((0.0, 0.0), (1.0, 0.0))  # default linear gradient axis
+    default_types["mask_axis"] = tuple
+    defaults_help["mask_axis"] = "Default mask gradient axis. Tuple ((x1,y1),(x2,y2))."
+
     defaults["mask_content_units"] = "userSpaceOnUse"
     default_types["mask_content_units"] = str
     defaults_help["mask_content_units"] = (
         "Mask content units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
     )
+
+    defaults["mask_opacity"] = 1.0  # fully opaque
+    default_types["mask_opacity"] = float
+    defaults_help["mask_opacity"] = "Default mask opacity. Float between 0 and 1."
 
     defaults["mask_spread_method"] = "pad"
     default_types["mask_spread_method"] = str
@@ -1204,6 +1216,10 @@ def set_defaults():
     defaults_help["mask_units"] = (
         "Mask units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
     )
+
+    defaults["stop_color"] = colors.white  # default gradient stop color
+    default_types["stop_color"] = colors.Color
+    defaults_help["stop_color"] = "Default gradient stop color. Color object."
 
     defaults["merge"] = True  # merge transformations with reps > 0
     default_types["merge"] = bool

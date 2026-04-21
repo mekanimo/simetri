@@ -11,7 +11,7 @@ from simetri.helpers.utilities import wait_for_file_availability
 from simetri.helpers.file_operations import remove_aux_files
 from simetri.graphics.common import common_properties
 from simetri.tikz.tikz import (
-    color2tikz,
+    color_to_tikz,
     get_limits_code,
     get_canvas_scope,
     scope_code_required)
@@ -190,7 +190,7 @@ class Tex:
         if canvas.back_color is None:
             back_color = ""
         else:
-            back_color = f"\\pagecolor{color2tikz(canvas.back_color)}"
+            back_color = f"\\pagecolor{color_to_tikz(canvas.back_color)}"
         self.begin_document = self.begin_document + back_color + "\n"
         if canvas.overlay:
             begin_t = self.begin_tikz

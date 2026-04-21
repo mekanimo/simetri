@@ -12,7 +12,7 @@ from ..geometry.geometry import (
     round_point,
     pi,
 )
-from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges2nodes
+from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges_to_nodes
 from ..settings.settings import defaults
 
 
@@ -66,7 +66,7 @@ def _merge_shapes(self, n_round: int = None, **kwargs) -> "Batch":
                     for edge in list(nx_graph.edges)
                     if edge[0] in island and edge[1] in island
                 ]
-                nodes = edges2nodes(edges)
+                nodes = edges_to_nodes(edges)
                 vertices = [d_node_coord[node] for node in nodes]
                 if not right_handed(vertices):
                     vertices.reverse()

@@ -29,7 +29,7 @@ class GraphEdge:
         return (self.start, self.end)
 
 
-def edges2nodes(edges: Sequence[Sequence]) -> Sequence:
+def edges_to_nodes(edges: Sequence[Sequence]) -> Sequence:
     """
     Given a list of edges, return a connected list of nodes.
 

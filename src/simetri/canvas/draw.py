@@ -41,11 +41,11 @@ from ..graphics.sketch import (
     RectSketch,
     ShapeSketch,
     TagSketch,
-    TexSketch,
     ImageSketch,
     PDFSketch,
     LatexSketch,
 )
+from ..tikz.tikz_sketch import TexSketch
 from ..graphics.bbox import bounding_box
 from ..settings.settings import defaults
 from ..canvas.style_map import (
@@ -70,7 +70,6 @@ from ..graphics.common import PointType, d_id_obj
 from ..geometry.bezier import bezier_points
 from ..geometry.ellipse import elliptic_arc_points
 from ..graphics.affine import rotation_matrix, translation_matrix
-from ..svg.filters import SVG_Filter
 
 
 def help_lines(
@@ -1586,50 +1585,6 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
         if k in precedence_keys:
             continue
         setattr(sketch, k, v)
-
-    def _to_numeric_filter_value(value):
-        if isinstance(value, (int, float)):
-            return float(value)
-        if isinstance(value, str):
-            text = value.strip()
-            if text.endswith("%"):
-                return None
-            try:
-                return float(text)
-            except ValueError:
-                return None
-        return None
-
-    if "filter" in sketch.__dict__ and isinstance(sketch.filter, SVG_Filter):
-        filter_obj = sketch.filter
-
-        filter_units = filter_obj.filterUnits
-        if filter_units is not None and str(filter_units) != "userSpaceOnUse":
-            return
-
-        region_x = _to_numeric_filter_value(filter_obj.x)
-        region_y = _to_numeric_filter_value(filter_obj.y)
-        region_width = _to_numeric_filter_value(filter_obj.width)
-        region_height = _to_numeric_filter_value(filter_obj.height)
-
-        if (
-            region_x is not None
-            and region_y is not None
-            and region_width is not None
-            and region_height is not None
-        ):
-            region_corners = [
-                (region_x, region_y),
-                (region_x + region_width, region_y),
-                (region_x + region_width, region_y + region_height),
-                (region_x, region_y + region_height),
-            ]
-            transformed_corners = [
-                vertex[:2]
-                for vertex in homogenize(region_corners)
-                @ canvas._sketch_xform_matrix
-            ]
-            canvas._all_vertices.extend(transformed_corners)
 
 
 def get_verts_in_new_pos(item, **kwargs):

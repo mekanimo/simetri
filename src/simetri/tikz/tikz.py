@@ -6,16 +6,14 @@ Sketch objects are converted to TikZ code."""
 
 from __future__ import annotations
 
-from math import degrees, cos, sin, ceil, atan2
+from math import degrees, ceil, atan2
 from typing import List, Union
-from dataclasses import dataclass, field
 from types import SimpleNamespace
 import warnings
 
 import numpy as np
 
 import simetri.graphics as sg
-from ..graphics.common import common_properties
 from ..graphics.bbox import bounding_box
 from ..graphics.all_enums import (
     BackStyle,
@@ -26,11 +24,8 @@ from ..graphics.all_enums import (
     Types,
     TexLoc,
     FrameShape,
-    DocumentClass,
     Align,
     Anchor,
-    ArrowLine,
-    BlendMode,
     get_enum_value,
     LineWidth,
     LineDashArray,
@@ -42,12 +37,12 @@ from ..geometry.geometry import (
     homogenize,
     round_point,
     close_points2,
-    vert_label_positions
+    vert_label_positions,
 )
 from ..graphics.sketch import TagSketch, ShapeSketch
 from ..helpers.utilities import detokenize
 
-from ..colors.colors import Color
+from ..colors.colors import Color, check_color
 
 
 NumberOrTex = Union[int, float, str]
@@ -107,8 +102,8 @@ def get_back_grid_code(grid: Grid, canvas: "Canvas") -> str:
     # (current bounding box.north east);
     # \end{scope}
     grid = canvas.active_page.grid
-    back_color = color2tikz(grid.back_color)
-    line_color = color2tikz(grid.line_color)
+    back_color = color_to_tikz(grid.back_color, "grid_back_color")
+    line_color = color_to_tikz(grid.line_color, "grid_line_color")
     step = grid.spacing
     lines = ["\\begin{scope}[on background layer]\n"]
     lines.append(
@@ -171,7 +166,7 @@ def get_back_code(canvas: "Canvas") -> str:
     Returns:
         str: The background code.
     """
-    back_color = color2tikz(canvas.back_color)
+    back_color = color_to_tikz(canvas.back_color, "back_color")
     return f"\\pagecolor{back_color}\n"
 
 
@@ -248,7 +243,7 @@ def get_tex_code(canvas: "Canvas") -> str:
         for i, page in enumerate(pages):
             canvas.active_page = page
             sketches = page.sketches
-            back_color = f"\\pagecolor{color2tikz(page.back_color)}"
+            back_color = f"\\pagecolor{color_to_tikz(page.back_color, 'back_color')}"
             if i == 0:
                 if page.back_color:
                     code = [back_color]
@@ -309,7 +304,7 @@ def draw_helplines_sketch(sketch):
         line_color, line_width, line_dash_array=None, draw_opacity=None
     ):
         options = [
-            f"color={color2tikz(line_color)}",
+            f"color={color_to_tikz(line_color)}",
             f"line width={line_width}",
         ]
         if line_dash_array is not None:
@@ -360,7 +355,7 @@ def draw_helplines_sketch(sketch):
         origin_color = kwargs.get("line_color", defaults["CS_origin_color"])
         origin_size = defaults["CS_origin_size"]
         lines.append(
-            f"\\filldraw[draw={color2tikz(origin_color)}, fill={color2tikz(origin_color)}] "
+            f"\\filldraw[draw={color_to_tikz(origin_color)}, fill={color_to_tikz(origin_color)}] "
             f"(0, 0) circle ({origin_size});"
         )
 
@@ -456,7 +451,7 @@ def frame_options(sketch: TagSketch) -> List[str]:
     return options
 
 
-def color2tikz(color):
+def color_to_tikz(color, property_name=None):
     """Converts a Color object to a TikZ color string.
 
     Args:
@@ -475,8 +470,9 @@ def color2tikz(color):
     # \definecolor{mypink3}{cmyk}{0, 0.7808, 0.4429, 0.1412}
     # \definecolor{mygray}{gray}{0.6}
     if color is None:
-        r, g, b, _ = 255, 255, 255, 255
-        return f"{{rgb,255:red,{r}; green,{g}; blue,{b}}}"
+        color = defaults[property_name]
+    if isinstance(color, str):
+        color = check_color(color)
     r, g, b = color.rgb255
     alpha = color.alpha
     if alpha is not None and alpha < 1:
@@ -596,9 +592,7 @@ def _luminance_from_stop_color(stop_color):
 def _effective_alpha_from_stop(stop):
     if isinstance(stop, dict):
         offset = _parse_mask_offset(stop["offset"])
-        stop_color = stop.get(
-            "stop-color", stop.get("stop_color", "white")
-        )
+        stop_color = stop.get("stop-color", stop.get("stop_color", "white"))
         stop_opacity = stop.get(
             "stop-opacity",
             stop.get("stop_opacity", stop.get("opacity", 1.0)),
@@ -645,24 +639,14 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
         offset = max(0.0, min(1.0, float(offset)))
         position = int(round(offset * 100))
         transparency = int(round((1.0 - float(alpha)) * 100))
-        color_stops.append(
-            f"color({position}bp)=({_pgf_gray(transparency)})"
-        )
+        color_stops.append(f"color({position}bp)=({_pgf_gray(transparency)})")
 
     if parsed_stops[0][0] > 0.0:
-        first_transparency = int(
-            round((1.0 - float(parsed_stops[0][1])) * 100)
-        )
-        color_stops.insert(
-            0, f"color(0bp)=({_pgf_gray(first_transparency)})"
-        )
+        first_transparency = int(round((1.0 - float(parsed_stops[0][1])) * 100))
+        color_stops.insert(0, f"color(0bp)=({_pgf_gray(first_transparency)})")
     if parsed_stops[-1][0] < 1.0:
-        last_transparency = int(
-            round((1.0 - float(parsed_stops[-1][1])) * 100)
-        )
-        color_stops.append(
-            f"color(100bp)=({_pgf_gray(last_transparency)})"
-        )
+        last_transparency = int(round((1.0 - float(parsed_stops[-1][1])) * 100))
+        color_stops.append(f"color(100bp)=({_pgf_gray(last_transparency)})")
 
     shading_decl = "; ".join(color_stops)
     angle = degrees(atan2(y2 - y1, x2 - x1))
@@ -754,7 +738,10 @@ def get_canvas_scope(canvas):
         canvas_mask_fade_id = None
 
     if canvas_mask_stops is not None and canvas_mask is not None:
-        fade_name = canvas_mask_fade_id or f"simetriCanvasMaskFade{id(canvas_mask_scope)}"
+        fade_name = (
+            canvas_mask_fade_id
+            or f"simetriCanvasMaskFade{id(canvas_mask_scope)}"
+        )
         start_code, _ = _mask_scope_parts(canvas_mask_scope, fade_name)
         return start_code
 
@@ -1057,12 +1044,12 @@ def _get_svg_gradient_shading_options(sketch):
 
     try:
         left = (
-            color2tikz(first_color)
+            color_to_tikz(first_color)
             if isinstance(first_color, Color)
             else str(first_color)
         )
         right = (
-            color2tikz(last_color)
+            color_to_tikz(last_color)
             if isinstance(last_color, Color)
             else str(last_color)
         )
@@ -1082,8 +1069,8 @@ def _get_svg_gradient_shading_options(sketch):
             c0 = _color_at_offset(stops, t0)
             c1 = _color_at_offset(stops, t1)
             if c0 is not None and c1 is not None:
-                left = color2tikz(c0)
-                right = color2tikz(c1)
+                left = color_to_tikz(c0)
+                right = color_to_tikz(c1)
 
     try:
         angle = degrees(
@@ -1208,8 +1195,21 @@ def draw_tag_sketch(sketch):
                 options += ", smooth"
 
     if sketch.fill and sketch.back_color:
-        options += f", fill={color2tikz(sketch.frame_back_color)}"
-    if sketch.anchor:
+        options += f", fill={color_to_tikz(sketch.frame_back_color, 'frame_back_color')}"
+    effective_anchor = (
+        sketch.anchor if sketch.anchor is not None else defaults["anchor"]
+    )
+    if (
+        sketch.align in (Align.LEFT, Align.FLUSH_LEFT)
+        and effective_anchor == defaults["anchor"]
+    ):
+        options += f", anchor={anchor_to_tikz(Anchor.WEST)}"
+    elif (
+        sketch.align in (Align.RIGHT, Align.FLUSH_RIGHT)
+        and effective_anchor == defaults["anchor"]
+    ):
+        options += f", anchor={anchor_to_tikz(Anchor.EAST)}"
+    elif sketch.anchor:
         options += f", anchor={anchor_to_tikz(sketch.anchor)}"
     if sketch.back_style == BackStyle.SHADING and sketch.fill:
         shading_options = get_shading_options(sketch)[0]
@@ -1217,7 +1217,7 @@ def draw_tag_sketch(sketch):
     if sketch.back_style == BackStyle.PATTERN and sketch.fill:
         pattern_options = get_pattern_options(sketch)[0]
         options += ", " + pattern_options
-    if sketch.align != defaults["tag_align"]:
+    if sketch.align.value:
         options += f", align={sketch.align.value}"
     if sketch.text_width:
         options += f", text width={sketch.text_width}"
@@ -1237,7 +1237,7 @@ def draw_tag_sketch(sketch):
         sketch.font_color is not None
         and sketch.font_color != defaults["font_color"]
     ):
-        options += f", text={color2tikz(sketch.font_color)}"
+        options += f", text={color_to_tikz(sketch.font_color)}"
     family, font_family = get_font_family(sketch)
     size, font_size = get_font_size(sketch)
     tex_text = ""
@@ -1297,7 +1297,7 @@ def draw_latex_sketch(sketch):
         sketch.font_color is not None
         and sketch.font_color != defaults["font_color"]
     ):
-        options.append(f"text={color2tikz(sketch.font_color)}")
+        options.append(f"text={color_to_tikz(sketch.font_color)}")
 
     font_size = sketch.font_size or defaults["font_size"]
     baseline_skip = ceil(font_size * 1.2)
@@ -1345,10 +1345,10 @@ def sg_to_tikz(
     if exceptions:
         skip += exceptions
     d_converters = {
-        "line_color": color2tikz,
-        "fill_color": color2tikz,
-        "double_color": color2tikz,
-        "draw": color2tikz,
+        "line_color": color_to_tikz,
+        "fill_color": color_to_tikz,
+        "double_color": color_to_tikz,
+        "draw": color_to_tikz,
         "line_dash_array": get_dash_pattern,
     }
     options = []
@@ -1377,7 +1377,7 @@ def sg_to_tikz(
                         options.append(attrib)
 
                 elif attrib in skip:
-                    value = color2tikz(getattr(sketch, attrib))
+                    value = color_to_tikz(getattr(sketch, attrib))
                     options.append(f"{tikz_attrib}={value}")
 
                 elif value != tikz_defaults[tikz_attrib]:
@@ -1459,7 +1459,9 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
     if sketch.fill and not sketch.back_style == BackStyle.PATTERN:
         res = sg_to_tikz(sketch, attribs, attrib_map, exceptions=exceptions)
         if frame:
-            res = [f"fill = {color2tikz(getattr(sketch, 'back_color'))}"] + res
+            res = [
+                f"fill = {color_to_tikz(getattr(sketch, 'back_color'), 'back_color')}"
+            ] + res
     else:
         res = []
 
@@ -1478,7 +1480,7 @@ def get_axis_shading_colors(sketch):
 
     def get_color(color, color_key):
         if isinstance(color, Color):
-            res = color2tikz(color)
+            res = color_to_tikz(color)
         else:
             res = defaults[color_key]
 
@@ -1514,16 +1516,20 @@ def get_bilinear_shading_colors(sketch):
     """
     res = []
     if sketch.shade_upper_left_color:
-        res.append(f"upper left = {color2tikz(sketch.shade_upper_left_color)}")
+        res.append(
+            f"upper left = {color_to_tikz(sketch.shade_upper_left_color)}"
+        )
     if sketch.shade_upper_right_color:
         res.append(
-            f"upper right = {color2tikz(sketch.shade_upper_right_color)}"
+            f"upper right = {color_to_tikz(sketch.shade_upper_right_color)}"
         )
     if sketch.shade_lower_left_color:
-        res.append(f"lower left = {color2tikz(sketch.shade_lower_left_color)}")
+        res.append(
+            f"lower left = {color_to_tikz(sketch.shade_lower_left_color)}"
+        )
     if sketch.shade_lower_right_color:
         res.append(
-            f"lower right = {color2tikz(sketch.shade_lower_right_color)}"
+            f"lower right = {color_to_tikz(sketch.shade_lower_right_color)}"
         )
 
     return ", ".join(res)
@@ -1540,12 +1546,12 @@ def get_radial_shading_colors(sketch):
     """
     res = []
     if sketch.shade_type == ShadeType.RADIAL_INNER:
-        res.append(f"inner color = {color2tikz(sketch.shade_inner_color)}")
+        res.append(f"inner color = {color_to_tikz(sketch.shade_inner_color)}")
     elif sketch.shade_type == ShadeType.RADIAL_OUTER:
-        res.append(f"outer color = {color2tikz(sketch.shade_outer_color)}")
+        res.append(f"outer color = {color_to_tikz(sketch.shade_outer_color)}")
     elif sketch.shade_type == ShadeType.RADIAL_INNER_OUTER:
-        res.append(f"inner color = {color2tikz(sketch.shade_inner_color)}")
-        res.append(f"outer color = {color2tikz(sketch.shade_outer_color)}")
+        res.append(f"inner color = {color_to_tikz(sketch.shade_inner_color)}")
+        res.append(f"outer color = {color_to_tikz(sketch.shade_outer_color)}")
 
     return ", ".join(res)
 
@@ -1585,7 +1591,7 @@ def get_shading_options(sketch):
     elif shade_type in radial_shading_types:
         res = get_radial_shading_colors(sketch)
     elif shade_type == ShadeType.BALL:
-        res = f"ball color = {color2tikz(sketch.shade_ball_color)}"
+        res = f"ball color = {color_to_tikz(sketch.shade_ball_color)}"
     elif shade_type == ShadeType.COLORWHEEL:
         res = "shading=color wheel"
     elif shade_type == ShadeType.COLORWHEEL_BLACK:
@@ -1635,7 +1641,7 @@ def get_pattern_options(sketch):
         options += "]"
         color = sketch.pattern_color
         if color and color != sg.black:
-            options += f", pattern color={color2tikz(color)}, "
+            options += f", pattern color={color_to_tikz(color)}, "
 
         options += "}"
         res = [options]
@@ -2483,7 +2489,7 @@ def draw_line(line):
     if line.line_width is not None:
         options.append(line.line_width)
     if line.color is not None:
-        color = color2tikz(line.color)
+        color = color_to_tikz(line.color)
         options.append(color)
     if line.dash_array is not None:
         options.append(line.dash_array)

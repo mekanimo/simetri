@@ -14,7 +14,8 @@ from ..colors.colors import Color
 from ..graphics.all_enums import TexLoc
 from ..graphics.batch import Batch
 from ..graphics.shape import Shape
-from ..graphics.sketch import TexSketch, MaskSketch
+from ..graphics.sketch import MaskSketch
+from .tikz_sketch import TexSketch
 from ..canvas import draw as canvas_draw
 from ..tikz.tikz import get_clip_code
 from ..svg.mask import Mask, Stop

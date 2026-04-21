@@ -269,7 +269,13 @@ def get_color(value):
 def check_color(color):
     if isinstance(color, Color):
         return color
-    elif isinstance(color, (str, tuple, list)):
+    elif isinstance(color, str):
+        if color.startswith("#"):
+            return hex_color(color)
+        if color in _named_colors:
+            return _named_colors[color]
+        raise ValueError(f"Unknown named color: {color!r}")
+    elif isinstance(color, (tuple, list)):
         return Color(*color)
     else:
         raise ValueError(
@@ -1367,6 +1373,8 @@ sickly_yellow = Color(0.816, 0.894, 0.161)
 sienna = Color(0.663, 0.337, 0.118)
 silver = Color(0.773, 0.788, 0.78)
 sky = Color(0.51, 0.792, 0.988)
+
+_named_colors = {k: v for k, v in globals().items() if isinstance(v, Color) and not k.startswith("_")}
 sky_blue = Color(0.459, 0.733, 0.992)
 slate = Color(0.318, 0.396, 0.447)
 slate_blue = Color(0.357, 0.486, 0.6)

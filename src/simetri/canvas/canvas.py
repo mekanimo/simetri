@@ -48,7 +48,7 @@ from simetri.settings.settings import defaults
 from simetri.graphics.bbox import bounding_box
 from simetri.graphics.batch import Batch
 from simetri.graphics.shape import Shape
-from simetri.graphics.sketch import TexSketch
+from simetri.tikz.tikz_sketch import TexSketch
 from simetri.colors.colors import Color, light_gray
 from simetri.canvas import draw
 from simetri.helpers.utilities import (

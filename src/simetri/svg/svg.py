@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+import re
 from math import degrees, cos, sin, ceil
 from typing import List, Union
 from dataclasses import dataclass, field
@@ -7,6 +9,8 @@ from types import SimpleNamespace
 import warnings
 import html
 
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 
 from ..graphics.common import common_properties
@@ -45,10 +49,11 @@ from ..settings.settings import defaults, svg_defaults
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..graphics.sketch import TagSketch, ShapeSketch, MaskSketch
 from .filters import SVG_Filter
+from .svg_sketch import SVG_Mask
 from .svg_utils import round_corners
 
-from ..colors.colors import Color
-from .svg_colors import color_to_svg
+from ..colors.colors import Color, check_color
+from .svg_colors import color_to_matplotlib, color_to_svg
 
 
 from PIL import ImageFont
@@ -235,7 +240,7 @@ def get_line_style_options(sketch, exceptions=None):
     options = []
     stroke = sketch_attrib(sketch, "stroke")
     if stroke:
-        line_color = color_to_svg(get_color(sketch, "line_color"))
+        line_color = color_to_svg(get_color(sketch, "line_color"), "line_color")
     else:
         line_color = "none"
     options.append(f"stroke: {line_color};")
@@ -279,7 +284,7 @@ def get_fill_style_options(sketch, shape_type, exceptions=None, frame=False):
     options = []
     fill = sketch_attrib(sketch, "fill")
     if fill and shape_type != "polyline":
-        fill_color = color_to_svg(get_color(sketch, "fill_color"))
+        fill_color = color_to_svg(get_color(sketch, "fill_color"), "fill_color")
     else:
         fill_color = "none"
 
@@ -655,14 +660,6 @@ def draw_tag_sketch(sketch):
     text_decoration = ""
     if sketch_attrib(sketch, "small_caps"):
         text_decoration = 'font-variant="small-caps" '
-
-    align = sketch_attrib(sketch, "align")
-    if align in (Align.LEFT, Align.FLUSH_LEFT):
-        text_anchor = "start"
-    elif align in (Align.RIGHT, Align.FLUSH_RIGHT):
-        text_anchor = "end"
-    elif align in (Align.CENTER, Align.FLUSH_CENTER):
-        text_anchor = "middle"
     text_width = sketch_attrib(sketch, "text_width")
     text_width_attr = ""
     if text_width:
@@ -882,11 +879,6 @@ def draw_latex_sketch(sketch):
     Returns:
         str: SVG code for the formula positioned at the canvas anchor point.
     """
-    import io
-    import re
-    import matplotlib
-    import matplotlib.pyplot as plt
-
     # Friendly name → matplotlib mathtext.fontset mapping
     _FONTSET_MAP = {
         "computer modern": "cm",
@@ -903,11 +895,20 @@ def draw_latex_sketch(sketch):
 
     formula = sketch_attrib(sketch, "formula")
     x, y = sketch_attrib(sketch, "pos")[:2]
-    font_size = sketch_attrib(sketch, "font_size") or 14
+    font_size = sketch_attrib(sketch, "font_size")
+    if font_size is None:
+        font_size = defaults["font_size"]
     font_family = sketch_attrib(sketch, "font_family")
     font_color = sketch_attrib(sketch, "font_color")
-    bold = sketch_attrib(sketch, "bold") or False
-    anchor = sketch_attrib(sketch, "anchor") or Anchor.SOUTHWEST
+    if font_color is None:
+        font_color = defaults["font_color"]
+    font_color = check_color(font_color)
+    bold = sketch_attrib(sketch, "bold")
+    if bold is None:
+        bold = defaults["bold"]
+    anchor = sketch_attrib(sketch, "anchor")
+    if anchor is None:
+        anchor = defaults["anchor"]
 
     # Optionally auto-wrap the entire formula in \boldsymbol{} for convenience.
     # \boldsymbol preserves the italic math style (bold italic), unlike \mathbf
@@ -936,16 +937,7 @@ def draw_latex_sketch(sketch):
     fontset = _FONTSET_MAP.get((font_family or "").strip().lower())
     rc_overrides = {"mathtext.fontset": fontset} if fontset else {}
 
-    # Resolve color: accept simetri Color objects, (r,g,b) tuples, or SVG strings
-    if font_color is None:
-        color_arg = "black"
-    elif hasattr(font_color, "rgb255"):
-        r, g, b = font_color.rgb255
-        color_arg = f"#{r:02x}{g:02x}{b:02x}"
-    elif isinstance(font_color, (list, tuple)) and len(font_color) >= 3:
-        color_arg = tuple(font_color[:3])
-    else:
-        color_arg = font_color  # assume a valid matplotlib color string
+    color_arg = color_to_matplotlib(font_color)
 
     # Render with matplotlib mathtext (no LaTeX compiler required)
     with matplotlib.rc_context(rc_overrides):
@@ -1178,8 +1170,7 @@ def generate_marker_def(
     # Handle custom shape markers
     if marker_type == MarkerType.SHAPE:
         marker_shape = sketch_attrib(sketch, "marker_shape")
-        from ..canvas.draw import create_sketch
-
+        from ..canvas.draw import create_sketch  # noqa: PLC0415 — circular import
         marker_sketch = create_sketch(marker_shape, canvas)
 
         if marker_sketch is None:
@@ -1217,8 +1208,6 @@ def generate_marker_def(
             )
         else:
             shape_svg = svg_shape(marker_sketch, styles_dict)
-
-        from ..graphics.bbox import bounding_box
 
         bbox = bounding_box(marker_sketch.vertices)
         vb_width = bbox.width
@@ -1802,6 +1791,40 @@ def svg_shape(sketch, styles_dict):
     ):
         fill_rule_attr = ' fill-rule="evenodd"'
 
+    draw_double = sketch_attrib(sketch, "draw_double")
+    if draw_double:
+        line_width = sketch_attrib(sketch, "line_width")
+        if line_width is None:
+            line_width = defaults["line_width"]
+        double_distance = sketch_attrib(sketch, "double_distance")
+        if double_distance is None:
+            double_distance = defaults["double_distance"]
+        outer_stroke_width = 2 * line_width + double_distance
+        line_color = get_color(sketch, "line_color")
+        if line_color is None:
+            line_color = defaults["line_color"]
+        outer_stroke = color_to_svg(check_color(line_color))
+        fill_style = get_fill_style_options(sketch, style_shape_type)
+        outer_style = f"stroke: {outer_stroke}; stroke-width: {outer_stroke_width}; {fill_style}"
+        outer_element = (
+            f'<{shape_type}\n'
+            f'style="{outer_style}"{fill_rule_attr}{clip_attr}{mask_attr}\n'
+            f'{coordinates}\n'
+            f'/>'
+        )
+        double_color = sketch_attrib(sketch, "double_color")
+        if double_color is None:
+            double_color = defaults["double_color"]
+        gap_stroke = color_to_svg(check_color(double_color))
+        gap_style = f"stroke: {gap_stroke}; stroke-width: {double_distance}; fill: none;"
+        gap_element = (
+            f'<{shape_type}\n'
+            f'style="{gap_style}"\n'
+            f'{coordinates}\n'
+            f'/>'
+        )
+        return f'{outer_element}\n{gap_element}'
+
     return f'''<{shape_type}
 class= "{style_class}"{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}
 {coordinates}
@@ -2014,10 +2037,8 @@ def generate_pattern_def(sketch, pattern_id, canvas, styles_dict):
     )
 
     # Convert tile shape to sketch using canvas
-    from ..graphics.all_enums import Types as GTypes
-    from ..canvas.draw import create_sketch
-
-    if tile.type == GTypes.BATCH:
+    from ..canvas.draw import create_sketch  # noqa: PLC0415 — circular import
+    if tile.type == Types.BATCH:
         # Handle batch - multiple shapes in pattern
         tile_contents = []
         for shape in tile.shapes:
@@ -2132,11 +2153,9 @@ def generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict):
     Returns:
         str: SVG <clipPath> element
     """
-    from ..graphics.all_enums import Types as GTypes
-    from ..canvas.draw import create_sketch
-
+    from ..canvas.draw import create_sketch  # noqa: PLC0415 — circular import
     # Convert clip shape to sketch
-    if clip_shape.type == GTypes.BATCH:
+    if clip_shape.type == Types.BATCH:
         # Handle batch - multiple shapes in clipPath
         clip_contents = []
         for shape in clip_shape.shapes:
@@ -2168,19 +2187,17 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
     Returns:
         str: SVG <mask> element
     """
-    from ..graphics.all_enums import Types as GTypes
-    from ..canvas.draw import create_sketch
-
+    from ..canvas.draw import create_sketch  # noqa: PLC0415 — circular import
     def _normalize_mask_stop(stop):
         if hasattr(stop, "offset") and hasattr(stop, "color"):
             offset = stop.offset
-            stop_color = stop.color if stop.color is not None else "white"
-            stop_opacity = getattr(stop, "opacity", None)
+            stop_color = stop.color if stop.color is not None else defaults["stop_color"]
+            stop_opacity = stop.opacity
         elif isinstance(stop, dict):
             if "offset" not in stop:
                 return None
             offset = stop["offset"]
-            stop_color = stop.get("stop-color", stop.get("stop_color", "white"))
+            stop_color = stop.get("stop-color", stop.get("stop_color", defaults["stop_color"]))
             stop_opacity = stop.get(
                 "stop-opacity",
                 stop.get("stop_opacity", stop.get("opacity", None)),
@@ -2194,7 +2211,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
                 stop_color = second
                 stop_opacity = stop[2]
             elif isinstance(second, (int, float)):
-                stop_color = "white"
+                stop_color = defaults["stop_color"]
                 stop_opacity = second
             else:
                 stop_color = second
@@ -2208,7 +2225,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
         if isinstance(stop_color, Color):
             stop_color = color_to_svg(stop_color)
         elif stop_color is None:
-            stop_color = "white"
+            stop_color = color_to_svg(defaults["stop_color"])
 
         return offset, stop_color, stop_opacity
 
@@ -2220,7 +2237,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             if normalized is None:
                 continue
             offset, stop_color, stop_opacity = normalized
-            if str(stop_color).lower() != "white":
+            if stop_color != color_to_svg(defaults["stop_color"]):
                 has_color = True
             stop_opacity_attr = (
                 f' stop-opacity="{stop_opacity}"'
@@ -2401,7 +2418,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
         y2 = bbox_y + float(axis_end[1]) * bbox_height
         mask_x, mask_y, mask_width, mask_height = _mask_bounds_in_user_space()
         gradient_id = f"{mask_id}_opacity_gradient"
-        if mask_shape.type == GTypes.BATCH:
+        if mask_shape.type == Types.BATCH:
             gradient_contents = []
             for shape in mask_shape.shapes:
                 mask_sketch = create_sketch(shape, canvas)
@@ -2439,7 +2456,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             f"  </mask>"
         )
 
-    if mask_shape.type == GTypes.BATCH:
+    if mask_shape.type == Types.BATCH:
         mask_contents = []
         for shape in mask_shape.shapes:
             mask_sketch = create_sketch(shape, canvas)
@@ -2481,7 +2498,7 @@ def generate_defs(canvas, styles_dict):
 
     def _canvas_mask_scope_sketch(canvas):
         for sketch in reversed(canvas.active_page.sketches):
-            if getattr(sketch, "_canvas_mask_scope", False):
+            if getattr(sketch, "_canvas_mask_scope", defaults["canvas_mask_scope"]):
                 return sketch
         return None
 
@@ -2493,21 +2510,17 @@ def generate_defs(canvas, styles_dict):
     limits_clippath_id, limits_clippath_def = get_limits_clippath(canvas)
     canvas_mask_scope = _canvas_mask_scope_sketch(canvas)
     if canvas_mask_scope is not None:
-        canvas_mask = getattr(canvas_mask_scope, "mask", None)
-        canvas_clip = bool(getattr(canvas_mask_scope, "clip", False))
-        canvas_mask_opacity = getattr(canvas_mask_scope, "_mask_opacity", 1.0)
-        canvas_mask_stops = getattr(canvas_mask_scope, "_mask_stops", None)
-        canvas_mask_axis = getattr(
-            canvas_mask_scope, "_mask_axis", ((0.0, 0.0), (1.0, 0.0))
-        )
+        canvas_mask = canvas_mask_scope.mask
+        canvas_clip = bool(canvas_mask_scope.clip)
+        canvas_mask_opacity = canvas_mask_scope._mask_opacity
+        canvas_mask_stops = canvas_mask_scope._mask_stops
+        canvas_mask_axis = canvas_mask_scope._mask_axis
     else:
-        canvas_mask = getattr(canvas, "_mask", None)
-        canvas_clip = bool(getattr(canvas, "clip", False))
-        canvas_mask_opacity = getattr(canvas, "_mask_opacity", 1.0)
-        canvas_mask_stops = getattr(canvas, "_mask_stops", None)
-        canvas_mask_axis = getattr(
-            canvas, "_mask_axis", ((0.0, 0.0), (1.0, 0.0))
-        )
+        canvas_mask = getattr(canvas, "_mask", defaults["mask"])
+        canvas_clip = bool(getattr(canvas, "clip", defaults["clip"]))
+        canvas_mask_opacity = getattr(canvas, "_mask_opacity", defaults["mask_opacity"])
+        canvas_mask_stops = getattr(canvas, "_mask_stops", defaults["msk_stops"])
+        canvas_mask_axis = getattr(canvas, "_mask_axis", defaults["mask_axis"])
     canvas_gradient_opacity = canvas_mask_stops is not None
     canvas_mask_clippath_id = None
     canvas_mask_mask_id = None
@@ -2638,8 +2651,59 @@ def collect_filters(canvas):
                     if sketch_filter.id is None:
                         sketch_filter.id = f"filter_{id(sketch)}"
                     filters[id(sketch)] = sketch_filter
+                    _expand_vertices_for_filter(sketch, sketch_filter, canvas)
 
     return filters
+
+
+def _expand_vertices_for_filter(sketch, filter_obj, canvas):
+    """Expand canvas._all_vertices to include SVG filter region corners.
+
+    Called at SVG render time so that the filter region is included in
+    the viewBox bounding-box calculation.
+    """
+    filter_units = filter_obj.filterUnits
+    if filter_units is not None and str(filter_units) != "userSpaceOnUse":
+        return
+
+    def _to_numeric(value):
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            text = value.strip()
+            if text.endswith("%"):
+                return None
+            try:
+                return float(text)
+            except ValueError:
+                return None
+        return None
+
+    region_x = _to_numeric(filter_obj.x)
+    region_y = _to_numeric(filter_obj.y)
+    region_width = _to_numeric(filter_obj.width)
+    region_height = _to_numeric(filter_obj.height)
+
+    if (
+        region_x is not None
+        and region_y is not None
+        and region_width is not None
+        and region_height is not None
+    ):
+        region_corners = [
+            (region_x, region_y),
+            (region_x + region_width, region_y),
+            (region_x + region_width, region_y + region_height),
+            (region_x, region_y + region_height),
+        ]
+        xform_matrix = sketch_attrib(sketch, "xform_matrix")
+        if xform_matrix is None:
+            return
+        transformed_corners = [
+            vertex[:2]
+            for vertex in homogenize(region_corners) @ xform_matrix
+        ]
+        canvas._all_vertices.extend(transformed_corners)
 
 
 def generate_filter_def(sketch_id, svg_filter):
@@ -2755,20 +2819,20 @@ def get_svg_code(canvas):
     limits_clippath_id, _ = get_limits_clippath(canvas)
     canvas_mask_scope = None
     for sketch in reversed(canvas.active_page.sketches):
-        if getattr(sketch, "_canvas_mask_scope", False):
+        if getattr(sketch, "_canvas_mask_scope", defaults["canvas_mask_scope"]):
             canvas_mask_scope = sketch
             break
 
     if canvas_mask_scope is not None:
-        canvas_mask = getattr(canvas_mask_scope, "mask", None)
-        canvas_clip = bool(getattr(canvas_mask_scope, "clip", False))
-        canvas_mask_opacity = getattr(canvas_mask_scope, "_mask_opacity", 1.0)
-        canvas_mask_stops = getattr(canvas_mask_scope, "_mask_stops", None)
+        canvas_mask = canvas_mask_scope.mask
+        canvas_clip = bool(canvas_mask_scope.clip)
+        canvas_mask_opacity = canvas_mask_scope._mask_opacity
+        canvas_mask_stops = canvas_mask_scope._mask_stops
     else:
-        canvas_mask = getattr(canvas, "_mask", None)
-        canvas_clip = bool(getattr(canvas, "clip", False))
-        canvas_mask_opacity = getattr(canvas, "_mask_opacity", 1.0)
-        canvas_mask_stops = getattr(canvas, "_mask_stops", None)
+        canvas_mask = getattr(canvas, "_mask", defaults["mask"])
+        canvas_clip = bool(getattr(canvas, "clip", defaults["clip"]))
+        canvas_mask_opacity = getattr(canvas, "_mask_opacity", defaults["mask_opacity"])
+        canvas_mask_stops = getattr(canvas, "_mask_stops", defaults["msk_stops"])
 
     canvas_gradient_opacity = canvas_mask_stops is not None
     canvas_mask_clippath_id = None
@@ -2802,40 +2866,3 @@ def get_svg_code(canvas):
     code.append(footer())
 
     return "\n".join(code)
-
-
-@dataclass
-class SVG_Mask:
-    """SVG_Mask is used to configure SVG opacity mask attributes.
-
-    Attributes mirror SVG gradient-style masks for alpha/luminance masking.
-    """
-
-    mask_type: str = None  # 'linear' or 'radial'
-    x1: float = None
-    y1: float = None
-    x2: float = None
-    y2: float = None
-    cx: float = None
-    cy: float = None
-    r: float = None
-    fx: float = None
-    fy: float = None
-    units: str = None  # gradient units
-    spread_method: str = None
-    transform: str = None
-    stops: object = (
-        None  # mask stops: [(offset, opacity)] or [(offset, color, opacity)]
-    )
-    mask_units: str = None  # maskUnits
-    mask_content_units: str = None  # maskContentUnits
-
-    def __post_init__(self):
-        """Initialize the SVG_Mask object."""
-        common_properties(self, id_only=True)
-
-    def __str__(self):
-        return f"SVG_Mask: {self.id}"
-
-    def __repr__(self):
-        return f"SVG_Mask: {self.id}"
