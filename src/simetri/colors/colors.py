@@ -112,11 +112,11 @@ def change_blue(color, delta):
     return Color(r, g, b + delta, a)
 
 
-def rgb255to1(rgb):
+def rgb255_to_1(rgb):
     return [x / 255 for x in rgb]
 
 
-def rgb1to255(rgb):
+def rgb1_to_255(rgb):
     return [int(x * 255) for x in rgb]
 
 

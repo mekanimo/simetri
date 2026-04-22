@@ -2473,7 +2473,7 @@ def inclination_angle(start_point: PointType, end_point: PointType) -> float:
     return line_angle(start_point, end_point) % pi
 
 
-def line2vector(line: LineType) -> VecType:
+def line_to_vector(line: LineType) -> VecType:
     """Return the vector representation of a line
 
     Args:
@@ -3014,7 +3014,7 @@ def right_handed(polygon: Sequence[PointType], dist_tol=None) -> float:
     return area_ > 0
 
 
-def radius2side_len(n: int, radius: float) -> float:
+def radius_to_side_len(n: int, radius: float) -> float:
     """Given a radius and the number of sides, return the side length
     of an n-sided regular polygon with the given radius
 

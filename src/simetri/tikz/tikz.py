@@ -71,10 +71,10 @@ def anchor_to_tikz(anchor: Anchor | None) -> str | None:
 
 
 def _canvas_mask_scope_sketch(canvas):
-    page = getattr(canvas, "active_page", None)
-    sketches = getattr(page, "sketches", []) if page is not None else []
+    page = canvas.active_page
+    sketches = page.sketches
     for sketch in reversed(sketches):
-        if getattr(sketch, "_canvas_mask_scope", False):
+        if "_canvas_mask_scope" in sketch.__dict__ and sketch._canvas_mask_scope:
             return sketch
     return None
 
@@ -285,7 +285,7 @@ def draw_helplines_sketch(sketch):
     height = sketch.height
     spacing = sketch.spacing
     cs_size = sketch.cs_size
-    kwargs = dict(getattr(sketch, "kwargs", {}) or {})
+    kwargs = dict(sketch.kwargs)
 
     if spacing in [None, 0]:
         spacing = defaults["help_lines_spacing"]
@@ -492,14 +492,14 @@ def get_scope_options(sketch: "Sketch") -> str:
     """
     options = []
 
-    blend_group = getattr(sketch, "blend_group", False)
-    blend_mode = getattr(sketch, "blend_mode", None)
-    fill_alpha = getattr(sketch, "fill_alpha", None)
-    line_alpha = getattr(sketch, "line_alpha", None)
-    text_alpha = getattr(sketch, "text_alpha", None)
-    alpha = getattr(sketch, "alpha", None)
-    even_odd_rule = getattr(sketch, "even_odd_rule", False)
-    transparency_group = getattr(sketch, "transparency_group", False)
+    blend_group = sketch.blend_group
+    blend_mode = sketch.blend_mode
+    fill_alpha = sketch.fill_alpha
+    line_alpha = sketch.line_alpha
+    text_alpha = sketch.text_alpha
+    alpha = sketch.alpha
+    even_odd_rule = sketch.even_odd_rule
+    transparency_group = sketch.transparency_group
 
     if blend_group:
         options.append(f"blend group={blend_mode}")
@@ -530,7 +530,7 @@ def get_clip_code(sketch: "Sketch") -> str:
     Returns:
         str: The clip code as a string.
     """
-    mask = getattr(sketch, "mask", None)
+    mask = sketch.mask
 
     if mask is None:
         return ""
@@ -545,10 +545,10 @@ def get_clip_code(sketch: "Sketch") -> str:
         res = f"\\clip({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
     elif mask.subtype == Types.SHAPE:
-        vertices = getattr(mask, "vertices", None)
+        vertices = mask.vertices
         if vertices:
             coords = " -- ".join(f"({x}, {y})" for x, y in vertices)
-            if getattr(mask, "closed", False):
+            if mask.closed:
                 res = f"\\clip {coords} -- cycle;\n"
             else:
                 res = f"\\clip {coords};\n"
@@ -672,14 +672,16 @@ def _get_scope_fading_path(mask_shape, fade_id):
 
 
 def _mask_scope_parts(sketch, fade_id=None):
-    mask = getattr(sketch, "mask", None)
+    if "mask" not in sketch.__dict__:
+        return "", ""
+    mask = sketch.mask
     if mask is None:
         return "", ""
 
-    clip = bool(getattr(sketch, "clip", False))
-    mask_opacity = getattr(sketch, "_mask_opacity", 1.0)
-    mask_stops = getattr(sketch, "_mask_stops", None)
-    mask_axis = getattr(sketch, "_mask_axis", ((0.0, 0.0), (1.0, 0.0)))
+    clip = sketch.clip
+    mask_opacity = sketch._mask_opacity
+    mask_stops = sketch._mask_stops
+    mask_axis = sketch._mask_axis
     clip_code = get_clip_code(SimpleNamespace(mask=mask))
 
     if mask_stops is not None:
@@ -725,11 +727,11 @@ def get_canvas_scope(canvas):
     canvas_mask_scope = _canvas_mask_scope_sketch(canvas)
 
     if canvas_mask_scope is not None:
-        canvas_mask = getattr(canvas_mask_scope, "mask", None)
-        canvas_clip = bool(getattr(canvas_mask_scope, "clip", False))
-        canvas_mask_opacity = getattr(canvas_mask_scope, "_mask_opacity", 1.0)
-        canvas_mask_stops = getattr(canvas_mask_scope, "_mask_stops", None)
-        canvas_mask_fade_id = getattr(canvas_mask_scope, "_mask_fade_id", None)
+        canvas_mask = canvas_mask_scope.mask
+        canvas_clip = canvas_mask_scope.clip
+        canvas_mask_opacity = canvas_mask_scope._mask_opacity
+        canvas_mask_stops = canvas_mask_scope._mask_stops
+        canvas_mask_fade_id = canvas_mask_scope._mask_fade_id
     else:
         canvas_mask = None
         canvas_clip = False
@@ -866,7 +868,7 @@ def get_draw(sketch):
     if hasattr(sketch, "markers_only") and sketch.markers_only:
         res = "\\draw"
     else:
-        has_svg_gradient = bool(getattr(sketch, "gr_stops", None))
+        has_svg_gradient = "gr_stops" in sketch.__dict__ and bool(sketch.gr_stops)
         if hasattr(sketch, "back_style"):
             shading = sketch.back_style == BackStyle.SHADING or has_svg_gradient
         else:
@@ -1035,7 +1037,9 @@ def _user_space_t_span(sketch, x1, y1, x2, y2):
 
 
 def _get_svg_gradient_shading_options(sketch):
-    stops = getattr(sketch, "gr_stops", None)
+    if "gr_stops" not in sketch.__dict__:
+        return None
+    stops = sketch.gr_stops
     if not isinstance(stops, (list, tuple)) or len(stops) < 2:
         return None
 
@@ -1056,11 +1060,11 @@ def _get_svg_gradient_shading_options(sketch):
     except Exception:
         left, right = "black", "white"
 
-    x1 = getattr(sketch, "gr_x1", 0.0)
-    y1 = getattr(sketch, "gr_y1", 0.0)
-    x2 = getattr(sketch, "gr_x2", 1.0)
-    y2 = getattr(sketch, "gr_y2", 0.0)
-    units = getattr(sketch, "gr_units", None)
+    x1 = sketch.gr_x1
+    y1 = sketch.gr_y1
+    x2 = sketch.gr_x2
+    y2 = sketch.gr_y2
+    units = sketch.gr_units
 
     if units == "userSpaceOnUse":
         t_span = _user_space_t_span(sketch, x1, y1, x2, y2)
@@ -1186,6 +1190,8 @@ def draw_tag_sketch(sketch):
                 options += ", " + ", ".join(line_style_options)
             if sketch.frame_inner_sep:
                 options += f", inner sep={sketch.frame_inner_sep}"
+            else:
+                options += ", inner sep=0pt"
             if sketch.minimum_width:
                 options += f", minimum width={sketch.minimum_width}"
             if sketch.smooth and sketch.frame_shape not in [
@@ -1193,6 +1199,8 @@ def draw_tag_sketch(sketch):
                 FrameShape.ELLIPSE,
             ]:
                 options += ", smooth"
+    else:
+        options = "inner sep=0pt"
 
     if sketch.fill and sketch.back_color:
         options += f", fill={color_to_tikz(sketch.frame_back_color, 'frame_back_color')}"
@@ -1799,7 +1807,7 @@ def draw_shape_sketch_with_markers(sketch):
 
     # Handle custom shape markers
     if marker_type == MarkerType.SHAPE:
-        marker_shape = getattr(sketch, "marker_shape", None)
+        marker_shape = sketch.marker_shape
         if marker_shape is not None:
             # For custom shapes in TikZ, we need to manually place the shape at each vertex
             # since plot[mark=...] only supports predefined marker types
@@ -2180,11 +2188,11 @@ def _line_limits(canvas):
         bbox = bounding_box(canvas._all_vertices)
         limits = (*bbox.southwest, *bbox.northeast)
 
-    page = getattr(canvas, "active_page", None)
-    sketches = getattr(page, "sketches", []) if page is not None else []
+    page = canvas.active_page
+    sketches = page.sketches
     for sketch in sketches:
         if (
-            getattr(sketch, "subtype", None) == Types.HELPLINES_SKETCH
+            sketch.subtype == Types.HELPLINES_SKETCH
             and hasattr(sketch, "pos")
             and hasattr(sketch, "width")
             and hasattr(sketch, "height")
@@ -2269,9 +2277,7 @@ def draw_line_sketch(sketch, canvas=None):
 
     start = sketch.vertices[0]
     end = sketch.vertices[1]
-    extent = getattr(
-        sketch, "extent", getattr(sketch, "draw_type", Extent.SEGMENT)
-    )
+    extent = sketch.extent
     if not isinstance(extent, Extent) and extent is not None:
         extent = Extent(extent)
     if extent in [Extent.RAY, Extent.INFINITE]:

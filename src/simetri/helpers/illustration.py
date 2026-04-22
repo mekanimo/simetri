@@ -26,6 +26,7 @@ from ..graphics.common import (
     _set_Nones,
 )
 from ..graphics.all_enums import (
+    Align,
     Types,
     LineJoin,
     Anchor,
@@ -635,11 +636,18 @@ class Tag(Base):
         h2 = text_height / 2
         x, y = self.pos[:2]
         inner_sep = self.frame.inner_sep
+        effective_align = self.align if self.align is not None else defaults["tag_align"]
 
         if self.anchor in [Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST]:
             xmin = x - inner_sep
             xmax = x + text_width + inner_sep
         elif self.anchor in [Anchor.EAST, Anchor.SOUTHEAST, Anchor.NORTHEAST]:
+            xmin = x - text_width - inner_sep
+            xmax = x + inner_sep
+        elif self.anchor in (None, defaults["anchor"]) and effective_align in (Align.LEFT, Align.FLUSH_LEFT):
+            xmin = x - inner_sep
+            xmax = x + text_width + inner_sep
+        elif self.anchor in (None, defaults["anchor"]) and effective_align in (Align.RIGHT, Align.FLUSH_RIGHT):
             xmin = x - text_width - inner_sep
             xmax = x + inner_sep
         else:

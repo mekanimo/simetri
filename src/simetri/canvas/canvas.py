@@ -5,6 +5,7 @@ drawing basic shapes like lines, circles, and polygons.
 """
 
 import os
+import sys
 import time
 import tempfile
 import shutil
@@ -1496,9 +1497,20 @@ class Canvas:
 
         if inset is not None:
             self.inset = inset
-        parent_dir, file_name, extension = validate_filepath(
-            filepath, overwrite
-        )
+
+        try:
+            parent_dir, file_name, extension = validate_filepath(
+                filepath, overwrite
+            )
+        except NotADirectoryError:
+            parent_dir = Path(sys.path[0])
+            filepath = str(parent_dir / filepath)
+            parent_dir, file_name, extension = validate_filepath(
+                filepath, overwrite
+            )
+
+            warnings.warn(f"Unspecified filepath, using {filepath}.")
+
         renderer = save_renderer(extension)
         if renderer == Renderer.SVG:
             from simetri.svg.svg import get_svg_code

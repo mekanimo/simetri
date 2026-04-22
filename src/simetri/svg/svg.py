@@ -660,6 +660,15 @@ def draw_tag_sketch(sketch):
     text_decoration = ""
     if sketch_attrib(sketch, "small_caps"):
         text_decoration = 'font-variant="small-caps" '
+
+    align = sketch_attrib(sketch, "align")
+    if align in (Align.LEFT, Align.FLUSH_LEFT):
+        text_anchor = "start"
+    elif align in (Align.RIGHT, Align.FLUSH_RIGHT):
+        text_anchor = "end"
+    elif align in (Align.CENTER, Align.FLUSH_CENTER):
+        text_anchor = "middle"
+
     text_width = sketch_attrib(sketch, "text_width")
     text_width_attr = ""
     if text_width:
@@ -2498,7 +2507,7 @@ def generate_defs(canvas, styles_dict):
 
     def _canvas_mask_scope_sketch(canvas):
         for sketch in reversed(canvas.active_page.sketches):
-            if getattr(sketch, "_canvas_mask_scope", defaults["canvas_mask_scope"]):
+            if "_canvas_mask_scope" in sketch.__dict__ and sketch._canvas_mask_scope:
                 return sketch
         return None
 
@@ -2516,11 +2525,11 @@ def generate_defs(canvas, styles_dict):
         canvas_mask_stops = canvas_mask_scope._mask_stops
         canvas_mask_axis = canvas_mask_scope._mask_axis
     else:
-        canvas_mask = getattr(canvas, "_mask", defaults["mask"])
-        canvas_clip = bool(getattr(canvas, "clip", defaults["clip"]))
-        canvas_mask_opacity = getattr(canvas, "_mask_opacity", defaults["mask_opacity"])
-        canvas_mask_stops = getattr(canvas, "_mask_stops", defaults["msk_stops"])
-        canvas_mask_axis = getattr(canvas, "_mask_axis", defaults["mask_axis"])
+        canvas_mask = None
+        canvas_clip = False
+        canvas_mask_opacity = 1.0
+        canvas_mask_stops = None
+        canvas_mask_axis = None
     canvas_gradient_opacity = canvas_mask_stops is not None
     canvas_mask_clippath_id = None
     canvas_mask_mask_id = None
@@ -2819,20 +2828,20 @@ def get_svg_code(canvas):
     limits_clippath_id, _ = get_limits_clippath(canvas)
     canvas_mask_scope = None
     for sketch in reversed(canvas.active_page.sketches):
-        if getattr(sketch, "_canvas_mask_scope", defaults["canvas_mask_scope"]):
+        if "_canvas_mask_scope" in sketch.__dict__ and sketch._canvas_mask_scope:
             canvas_mask_scope = sketch
             break
 
     if canvas_mask_scope is not None:
         canvas_mask = canvas_mask_scope.mask
-        canvas_clip = bool(canvas_mask_scope.clip)
+        canvas_clip = canvas_mask_scope.clip
         canvas_mask_opacity = canvas_mask_scope._mask_opacity
         canvas_mask_stops = canvas_mask_scope._mask_stops
     else:
-        canvas_mask = getattr(canvas, "_mask", defaults["mask"])
-        canvas_clip = bool(getattr(canvas, "clip", defaults["clip"]))
-        canvas_mask_opacity = getattr(canvas, "_mask_opacity", defaults["mask_opacity"])
-        canvas_mask_stops = getattr(canvas, "_mask_stops", defaults["msk_stops"])
+        canvas_mask = None
+        canvas_clip = False
+        canvas_mask_opacity = 1.0
+        canvas_mask_stops = None
 
     canvas_gradient_opacity = canvas_mask_stops is not None
     canvas_mask_clippath_id = None

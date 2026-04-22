@@ -304,7 +304,9 @@ def text(
     )
     tag_obj.draw_frame = False
     # extend vertices with the Tag's bounding box
+    self._sketch_xform_matrix = self.xform_matrix
     extend_vertices(self, tag_obj)
+    self._sketch_xform_matrix = identity_matrix()
     # then call get_tag_sketch to create a TagSketch object
     sketch = create_sketch(tag_obj, self, **kwargs)
     self.active_page.sketches.append(sketch)
