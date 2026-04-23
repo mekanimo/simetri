@@ -1294,7 +1294,7 @@ class Canvas:
         if value is None:
             value = defaults.get(property_name, VOID)
             if value == VOID:
-                print(f"Property {property_name} is not in defaults.")
+                warnings.warn(f"Property {property_name} is not in defaults.")
                 value = None
         return value
 

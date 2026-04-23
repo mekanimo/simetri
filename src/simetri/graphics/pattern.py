@@ -3,6 +3,7 @@ from itertools import product
 from dataclasses import dataclass
 from hashlib import md5
 from typing import Any, List
+from types import FunctionType
 from collections.abc import Callable, Sequence
 
 import numpy as np
@@ -774,6 +775,8 @@ class PatternDef:
     def resolve_value(self, value, kernel, pattern):
         if isinstance(value, ReferenceDef):
             res = self.resolve_reference(value, kernel, pattern)
+        elif isinstance(value, FunctionType):
+            value(kernel, pattern)
         else:
             res = value
 
