@@ -1329,6 +1329,7 @@ class Canvas:
             resolved["line_color"] = draw_color
             resolved["fill_color"] = draw_color
             resolved["color"] = draw_color
+            resolved["marker_color"] = draw_color
         else:
             if draw_line_color is not None:
                 resolved["line_color"] = draw_line_color
@@ -1346,6 +1347,7 @@ class Canvas:
                 resolved["line_color"] = item_color
                 resolved["fill_color"] = item_color
                 resolved["color"] = item_color
+                resolved["marker_color"] = item_color
 
         if draw_alpha is not None:
             resolved["alpha"] = draw_alpha

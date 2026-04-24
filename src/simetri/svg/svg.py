@@ -1271,11 +1271,8 @@ def generate_marker_def(
     # Get marker path
     elem_type, path_data = get_marker_path(marker_type, marker_size)
 
-    # Calculate viewBox size (marker_size * 2.5 gives good spacing)
-    vb_size = marker_size * 2.5
-
-    return f'''  <marker id="{marker_id}" markerWidth="{vb_size}" markerHeight="{vb_size}"
-      refX="0" refY="0" viewBox="{-vb_size} {-vb_size} {vb_size * 2} {vb_size * 2}" orient="auto">
+    return f'''  <marker id="{marker_id}" markerWidth="{marker_size * 2}" markerHeight="{marker_size * 2}"
+      refX="0" refY="0" viewBox="{-marker_size} {-marker_size} {marker_size * 2} {marker_size * 2}" markerUnits="userSpaceOnUse" orient="auto">
     <g {fill_attr} {stroke_attr}>
       {path_data}
     </g>
@@ -1900,16 +1897,20 @@ def collect_markers(canvas):
     """
     markers = {}
 
+    def _collect_from_sketch(sketch):
+        if sketch_attrib(sketch, "subtype") == Types.BATCH_SKETCH:
+            for sub_sketch in sketch_attrib(sketch, "sketches"):
+                _collect_from_sketch(sub_sketch)
+        elif (
+            sketch_attrib(sketch, "draw_markers")
+            and sketch_attrib(sketch, "marker_type") != MarkerType.INDICES
+        ):
+            markers[id(sketch)] = sketch
+
     if canvas.pages:
         for page in canvas.pages:
             for sketch in page.sketches:
-                # Check for draw_markers and not INDICES type (INDICES are handled separately)
-                if (
-                    sketch_attrib(sketch, "draw_markers")
-                    and sketch_attrib(sketch, "marker_type")
-                    != MarkerType.INDICES
-                ):
-                    markers[id(sketch)] = sketch
+                _collect_from_sketch(sketch)
 
     return markers
 
