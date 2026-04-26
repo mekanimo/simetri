@@ -1621,6 +1621,7 @@ class Page:
     def __post_init__(self):
         self.type = Types.PAGE
         self.sketches = []
+        self.scope_groups = []
         if self.grid is None:
             self.grid = PageGrid()
         if self.kwargs:

@@ -30,7 +30,6 @@ from ..colors.palettes import d_n_palette, d_name_palette
 from ..colors.colors import Color, change_lightness, get_lightest
 from ..graphics.sketch import (
     ArcSketch,
-    BatchSketch,
     BezierSketch,
     CircleSketch,
     EllipseSketch,
@@ -40,6 +39,7 @@ from ..graphics.sketch import (
     PatternSketch,
     RectSketch,
     ShapeSketch,
+    ScopeGroup,
     TagSketch,
     ImageSketch,
     PDFSketch,
@@ -1818,8 +1818,8 @@ def create_sketch(item, canvas, **kwargs):
         )
         return sketches
 
-    def get_batch_sketch(item, canvas, **kwargs):
-        """Create a BatchSketch from the given item.
+    def get_scope_group_sketches(item, canvas, **kwargs):
+        """Collect flat sketches for item, creating a ScopeGroup if scope is needed.
 
         Args:
             item: Item to be sketched.
@@ -1827,97 +1827,88 @@ def create_sketch(item, canvas, **kwargs):
             **kwargs: Additional keyword arguments.
 
         Returns:
-            BatchSketch: Created BatchSketch.
+            list: Flat list of sketch objects.
         """
-        swatch = kwargs.get("swatch", None)
-        batch_clip = kwargs.get("clip", None)
+        swatch = kwargs["swatch"] if "swatch" in kwargs else None
+        batch_clip = kwargs["clip"] if "clip" in kwargs else None
+        raw_mask = kwargs["mask"] if "mask" in kwargs else None
 
-        raw_mask = kwargs.get("mask", None)
-        if raw_mask is not None and hasattr(raw_mask, "shape"):
-            batch_mask = raw_mask.shape
-            mask_payload = {
-                "_mask_opacity": getattr(raw_mask, "opacity", 1.0),
-                "_mask_stops": getattr(raw_mask, "stops", None),
-                "_mask_axis": getattr(
-                    raw_mask, "axis", ((0.0, 0.0), (1.0, 0.0))
-                ),
-            }
+        if raw_mask is not None:
+            if raw_mask.type == Types.MASK:
+                batch_mask = raw_mask.shape
+                mask_opacity = raw_mask.opacity
+                mask_stops = raw_mask.stops
+                mask_axis = raw_mask.axis
+            else:
+                batch_mask = raw_mask
+                mask_opacity = kwargs["_mask_opacity"] if "_mask_opacity" in kwargs else None
+                mask_stops = kwargs["_mask_stops"] if "_mask_stops" in kwargs else None
+                mask_axis = kwargs["_mask_axis"] if "_mask_axis" in kwargs else None
         else:
-            batch_mask = raw_mask
-            mask_payload = {
-                "_mask_opacity": kwargs.get("_mask_opacity", 1.0),
-                "_mask_stops": kwargs.get("_mask_stops", None),
-                "_mask_axis": kwargs.get(
-                    "_mask_axis", ((0.0, 0.0), (1.0, 0.0))
-                ),
-            }
+            batch_mask = None
+            mask_opacity = None
+            mask_stops = None
+            mask_axis = None
 
-        def _apply_mask_kwargs(target_kwargs):
-            if "mask" not in target_kwargs and batch_mask is not None:
-                target_kwargs["mask"] = batch_mask
-            if "clip" not in target_kwargs and batch_clip is not None:
-                target_kwargs["clip"] = batch_clip
-            if mask_payload["_mask_opacity"] != 1.0:
-                target_kwargs["_mask_opacity"] = mask_payload["_mask_opacity"]
-            if mask_payload["_mask_stops"] is not None:
-                target_kwargs["_mask_stops"] = mask_payload["_mask_stops"]
-                target_kwargs["_mask_axis"] = mask_payload["_mask_axis"]
+        scope_kwargs = {"clip", "mask", "_mask_opacity", "_mask_stops",
+                        "_mask_axis", "_mask_context_id", "_mask_context_bbox"}
+        element_kwargs_base = {key: value for key, value in kwargs.items()
+                               if key not in scope_kwargs}
 
-        batch_mask_context_id = None
-        batch_mask_context_bbox = None
-        if batch_mask is not None and not batch_clip:
-            batch_mask_context_id = f"mask_batch_{id(item)}"
-            try:
-                bbox = item.b_box
-                batch_mask_context_bbox = (
-                    bbox.southwest[0],
-                    bbox.southwest[1],
-                    bbox.width,
-                    bbox.height,
-                )
-            except Exception:
-                batch_mask_context_bbox = None
-        if swatch:
+        if swatch is not None:
             n_swatch = len(swatch)
+
         sketches = []
-        count = 0
+        sketch_count = 0
         for element in item.elements:
             if element.visible and element.active:
-                element_kwargs = dict(kwargs)
-                if swatch:
+                element_kwargs = dict(element_kwargs_base)
+                if swatch is not None:
                     element_kwargs["fill_color"] = Color(
-                        *swatch[count % n_swatch]
-                    )
-                _apply_mask_kwargs(element_kwargs)
-                if batch_mask_context_id is not None:
-                    element_kwargs["_mask_context_id"] = (
-                        batch_mask_context_id
-                    )
-                if batch_mask_context_bbox is not None:
-                    element_kwargs["_mask_context_bbox"] = (
-                        batch_mask_context_bbox
+                        *swatch[sketch_count % n_swatch]
                     )
                 sketches.extend(get_sketches(element, canvas, **element_kwargs))
-                count += 1
+                sketch_count += 1
 
-        sketch = BatchSketch(sketches=sketches)
-        for arg in group_args:
-            setattr(sketch, arg, getattr(item, arg, None))
-        if batch_clip is not None:
-            sketch.clip = batch_clip
+        if not sketches:
+            return sketches
+
+        if batch_clip is True and batch_mask is not None:
+            scope_group = ScopeGroup(
+                subtype=Types.CLIP_GROUP,
+                sketch_list=sketches,
+                clip=batch_clip,
+                mask=batch_mask,
+            )
+            canvas.active_page.scope_groups.append(scope_group)
+            return sketches
+
         if batch_mask is not None:
-            sketch.mask = batch_mask
-        if batch_mask_context_id is not None:
-            sketch._mask_context_id = batch_mask_context_id
-        if batch_mask_context_bbox is not None:
-            sketch._mask_context_bbox = batch_mask_context_bbox
-        if mask_payload["_mask_opacity"] != 1.0:
-            sketch._mask_opacity = mask_payload["_mask_opacity"]
-        if mask_payload["_mask_stops"] is not None:
-            sketch._mask_stops = mask_payload["_mask_stops"]
-            sketch._mask_axis = mask_payload["_mask_axis"]
+            mask_context_id = (
+                kwargs["_mask_context_id"]
+                if "_mask_context_id" in kwargs
+                else f"mask_group_{id(item)}"
+            )
+            mask_context_bbox = (
+                kwargs["_mask_context_bbox"]
+                if "_mask_context_bbox" in kwargs
+                else None
+            )
+            scope_group = ScopeGroup(
+                subtype=Types.MASK_GROUP,
+                sketch_list=sketches,
+                clip=batch_clip,
+                mask=batch_mask,
+                _mask_opacity=mask_opacity,
+                _mask_stops=mask_stops,
+                _mask_axis=mask_axis,
+                _mask_context_id=mask_context_id,
+                _mask_context_bbox=mask_context_bbox,
+            )
+            canvas.active_page.scope_groups.append(scope_group)
+            return sketches
 
-        return sketch
+        return sketches
 
     def get_path_sketch(item, canvas, **kwargs):
         """Create sketches for a path from the given item.
@@ -2154,14 +2145,14 @@ def create_sketch(item, canvas, **kwargs):
 
     d_subtype_sketch = {
         Types.ARC: get_arc_sketch,
-        Types.ARC_ARROW: get_batch_sketch,
-        Types.ARROW: get_batch_sketch,
+        Types.ARC_ARROW: get_scope_group_sketches,
+        Types.ARROW: get_scope_group_sketches,
         Types.ARROW_HEAD: get_sketch,
-        Types.BATCH: get_batch_sketch,
+        Types.BATCH: get_scope_group_sketches,
         Types.BEZIER: get_sketch,
         Types.BOUNDING_BOX: get_bbox_sketch,
         Types.CIRCLE: get_circle_sketch,
-        Types.CIRCULAR_GRID: get_batch_sketch,
+        Types.CIRCULAR_GRID: get_scope_group_sketches,
         Types.DIVISION: get_sketch,
         Types.DOT: get_circle_sketch,
         Types.DOTS: get_dots_sketch,
@@ -2169,27 +2160,27 @@ def create_sketch(item, canvas, **kwargs):
         Types.FRAGMENT: get_sketch,
         Types.GROUP: get_group_sketch,
         Types.HANDLE: get_handle_sketch,
-        Types.HEX_GRID: get_batch_sketch,
+        Types.HEX_GRID: get_scope_group_sketches,
         Types.IMAGE: get_image_sketch,
         Types.LACE: get_lace_sketch,
         Types.LINE: get_line_sketch,
         Types.LINPATH: get_path_sketch,
-        Types.MIXED_GRID: get_batch_sketch,
+        Types.MIXED_GRID: get_scope_group_sketches,
         Types.MASK: get_sketch,
-        Types.OVERLAP: get_batch_sketch,
-        Types.PARALLEL_POLYLINE: get_batch_sketch,
+        Types.OVERLAP: get_scope_group_sketches,
+        Types.PARALLEL_POLYLINE: get_scope_group_sketches,
         Types.PATTERN: get_pattern_sketch,
         Types.PLAIT: get_sketch,
         Types.POLYLINE: get_sketch,
-        Types.RADIAL_DIMENSION: get_batch_sketch,
+        Types.RADIAL_DIMENSION: get_scope_group_sketches,
         Types.Q_BEZIER: get_sketch,
         Types.RECTANGLE: get_sketch,
         Types.SECTION: get_sketch,
         Types.SEGMENT: get_sketch,
         Types.SHAPE: get_sketch,
         Types.SINE_WAVE: get_sketch,
-        Types.SQUARE_GRID: get_batch_sketch,
-        Types.STAR: get_batch_sketch,
+        Types.SQUARE_GRID: get_scope_group_sketches,
+        Types.STAR: get_scope_group_sketches,
         Types.TAG: get_tag_sketch,
     }
 

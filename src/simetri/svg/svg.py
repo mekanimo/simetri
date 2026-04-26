@@ -47,7 +47,7 @@ from ..geometry.geometry import (
 from ..colors.colors import black, white
 from ..settings.settings import defaults, svg_defaults
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
-from ..graphics.sketch import TagSketch, ShapeSketch, MaskSketch
+from ..graphics.sketch import TagSketch, ShapeSketch, MaskSketch, ScopeGroup
 from .filters import SVG_Filter
 from .svg_sketch import SVG_Mask
 from .svg_utils import round_corners
@@ -1397,37 +1397,6 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             tuple: The SVG code and the updated index.
         """
 
-        def wrap_batch_code(batch_code, batch_sketch):
-            if not batch_code:
-                return batch_code
-
-            clip_attr, mask_attr = get_clip_mask_attrs(batch_sketch)
-            alpha = sketch_attrib(batch_sketch, "alpha")
-            blend_mode = sketch_attrib(batch_sketch, "blend_mode")
-            transparency_group = sketch_attrib(
-                batch_sketch, "transparency_group"
-            )
-
-            group_attrs = []
-            if alpha not in [None, defaults["alpha"]]:
-                group_attrs.append(f' opacity="{alpha}"')
-
-            style_parts = []
-            if blend_mode is not None:
-                style_parts.append(
-                    f"mix-blend-mode:{get_enum_value(blend_mode)}"
-                )
-            if transparency_group:
-                style_parts.append("isolation:isolate")
-            if style_parts:
-                group_attrs.append(f' style="{"; ".join(style_parts)}"')
-
-            attrs = "".join([clip_attr, mask_attr, *group_attrs])
-            if not attrs:
-                return batch_code
-
-            return f"<g{attrs}>\n{batch_code}\n</g>"
-
         subtype = sketch_attrib(sketch, "subtype")
         draw_markers = sketch_attrib(sketch, "draw_markers")
         indices = sketch_attrib(sketch, "indices")
@@ -1447,17 +1416,6 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             code = draw_helplines_sketch(sketch)
         elif subtype == Types.LINE_SKETCH:
             code = draw_line_sketch(sketch, canvas)
-        elif subtype == Types.BATCH_SKETCH:
-            parts = []
-            for sub_sketch in sketch.sketches:
-                parts.append(get_sketch_code(sub_sketch, canvas, ind))
-            code = wrap_batch_code("".join(parts), sketch)
-        # elif sketch_attrib(sketch, 'subtype') == Types.PDF_SKETCH:
-        #     code = draw_pdf_sketch(sketch)
-        # elif sketch_attrib(sketch, 'subtype') == Types.BBOX_SKETCH:
-        #     code = draw_bbox_sketch(sketch)
-        # elif sketch_attrib(sketch, 'subtype') == Types.PATTERN_SKETCH:
-        #     code = draw_pattern_sketch(sketch)
         elif (
             draw_markers
             and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
@@ -1502,9 +1460,31 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             for line in lines:
                 line.populate(canvas)
             ind = 0
+            scope_opens = {}
+            scope_closes = {}
+            for scope_group in page.scope_groups:
+                if scope_group.sketch_list:
+                    first_sketch_id = id(scope_group.sketch_list[0])
+                    last_sketch_id = id(scope_group.sketch_list[-1])
+                    if first_sketch_id not in scope_opens:
+                        scope_opens[first_sketch_id] = []
+                    scope_opens[first_sketch_id].append(scope_group)
+                    if last_sketch_id not in scope_closes:
+                        scope_closes[last_sketch_id] = []
+                    scope_closes[last_sketch_id].append(scope_group)
             for sketch in sketches:
+                sketch_id = id(sketch)
+                if sketch_id in scope_opens:
+                    for scope_group in scope_opens[sketch_id]:
+                        if scope_group.subtype == Types.CLIP_GROUP:
+                            code.append(f'<g clip-path="url(#clippath_{scope_group.id})">')
+                        elif scope_group.subtype == Types.MASK_GROUP:
+                            code.append(f'<g mask="url(#{scope_group._mask_context_id})">')
                 sketch_code = get_sketch_code(sketch, canvas, ind)
                 code.append(sketch_code)
+                if sketch_id in scope_closes:
+                    for scope_group in scope_closes[sketch_id]:
+                        code.append('</g>')
 
         code = "\n".join(code)
     else:
@@ -1616,11 +1596,6 @@ def get_styles_dict(canvas):
     def collect_sketch_styles(sketch):
         nonlocal line_counter, fill_counter
         subtype = sketch_attrib(sketch, "subtype")
-
-        if subtype == Types.BATCH_SKETCH:
-            for sub_sketch in sketch.sketches:
-                collect_sketch_styles(sub_sketch)
-            return
 
         # Skip non-shape sketches (like TexSketch)
         if subtype not in d_shape_types:
@@ -1898,10 +1873,7 @@ def collect_markers(canvas):
     markers = {}
 
     def _collect_from_sketch(sketch):
-        if sketch_attrib(sketch, "subtype") == Types.BATCH_SKETCH:
-            for sub_sketch in sketch_attrib(sketch, "sketches"):
-                _collect_from_sketch(sub_sketch)
-        elif (
+        if (
             sketch_attrib(sketch, "draw_markers")
             and sketch_attrib(sketch, "marker_type") != MarkerType.INDICES
         ):
@@ -2581,6 +2553,31 @@ def generate_defs(canvas, styles_dict):
                 styles_dict,
             )
         )
+
+    # Generate clipPath definitions from scope_groups (CLIP_GROUP)
+    for page in canvas.pages:
+        for scope_group in page.scope_groups:
+            if scope_group.subtype == Types.CLIP_GROUP and scope_group.mask is not None:
+                clippath_id = f"clippath_{scope_group.id}"
+                defs_content.append(
+                    generate_clippath_def(
+                        None, scope_group.mask, clippath_id, canvas, styles_dict
+                    )
+                )
+
+    # Generate mask definitions from scope_groups (MASK_GROUP)
+    for page in canvas.pages:
+        for scope_group in page.scope_groups:
+            if scope_group.subtype == Types.MASK_GROUP and scope_group.mask is not None:
+                defs_content.append(
+                    generate_mask_def(
+                        scope_group,
+                        scope_group.mask,
+                        scope_group._mask_context_id,
+                        canvas,
+                        styles_dict,
+                    )
+                )
 
     # Generate clipPath definitions (must come before shapes that use them)
     for sketch_id, (sketch, clip_shape) in clip_paths.items():

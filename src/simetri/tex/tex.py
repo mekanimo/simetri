@@ -276,10 +276,6 @@ class Tex:
         tikz_packages = ["tikz", "pgf"]
 
         def _inspect_sketch(sketch):
-            if sketch.subtype == Types.BATCH_SKETCH:
-                for sub_sketch in sketch.sketches:
-                    _inspect_sketch(sub_sketch)
-                return
             if hasattr(sketch, "library"):
                 if sketch.library == "fadings":
                     if "fadings" not in tikz_libraries:

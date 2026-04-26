@@ -491,22 +491,36 @@ class ArcSketch:
 
 
 @dataclass
-class BatchSketch:
-    """BatchSketch is a dataclass for creating a batch sketch object.
+class ScopeGroup:
+    """ScopeGroup holds scope metadata for a group of sketches.
+
+    Sketches are drawn from page.sketches; ScopeGroup provides the scope
+    wrapping (clip, mask, alpha, blend) without drawing anything itself.
 
     Attributes:
-        sketches (List[Types.SKETCH]): The list of sketches.
-        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+        subtype (Types): CLIP_GROUP, MASK_GROUP, ALPHA_GROUP, or BLEND_GROUP.
+        sketch_list (list): Sketch objects in this scope (references to page.sketches entries).
+        clip (Any): Clipping value (True for hard clip using mask shape).
+        mask (Any): Shape used for clipping or masking.
+        alpha (float): Group opacity.
+        blend_mode (str): CSS blend mode string.
     """
 
-    sketches: List[Types.SKETCH]
-    xform_matrix: ndarray = None
+    subtype: Types
+    sketch_list: list
+    clip: Any = None
+    mask: Any = None
+    alpha: float = None
+    blend_mode: str = None
+    _mask_opacity: float = None
+    _mask_stops: Any = None
+    _mask_axis: Any = None
+    _mask_context_id: str = None
+    _mask_context_bbox: Any = None
 
     def __post_init__(self):
-        """Initialize the BatchSketch object."""
-        self.type = Types.SKETCH
-        self.subtype = Types.BATCH_SKETCH
-        self.sketches = self.sketches
+        self.type = Types.SCOPE_GROUP
+        common_properties(self)
 
 
 @dataclass

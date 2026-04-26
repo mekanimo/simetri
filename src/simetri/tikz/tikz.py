@@ -39,7 +39,7 @@ from ..geometry.geometry import (
     close_points2,
     vert_label_positions,
 )
-from ..graphics.sketch import TagSketch, ShapeSketch
+from ..graphics.sketch import TagSketch, ShapeSketch, ScopeGroup
 from ..helpers.utilities import detokenize
 
 from ..colors.colors import Color, check_color
@@ -212,8 +212,6 @@ def get_tex_code(canvas: "Canvas") -> str:
             code = draw_latex_sketch(sketch)
         elif sketch.subtype == Types.MASK_SKETCH:
             code = ""
-        elif sketch.subtype == Types.BATCH_SKETCH:
-            code = draw_batch_sketch(sketch, canvas)
         else:
             if (
                 hasattr(sketch, "draw_markers")
@@ -268,9 +266,41 @@ def get_tex_code(canvas: "Canvas") -> str:
                     line.populate(canvas)
 
             ind = 0
+            scope_opens = {}
+            scope_closes = {}
+            for scope_group in page.scope_groups:
+                if scope_group.sketch_list:
+                    first_sketch_id = id(scope_group.sketch_list[0])
+                    last_sketch_id = id(scope_group.sketch_list[-1])
+                    if first_sketch_id not in scope_opens:
+                        scope_opens[first_sketch_id] = []
+                    scope_opens[first_sketch_id].append(scope_group)
+                    if last_sketch_id not in scope_closes:
+                        scope_closes[last_sketch_id] = []
+                    scope_closes[last_sketch_id].append(scope_group)
             for sketch in sketches:
+                sketch_id = id(sketch)
+                if sketch_id in scope_opens:
+                    for scope_group in scope_opens[sketch_id]:
+                        if scope_group.subtype == Types.CLIP_GROUP:
+                            clip_code = get_clip_code(SimpleNamespace(mask=scope_group.mask))
+                            code.append(f"\\begin{{scope}}\n{clip_code}")
+                        elif scope_group.subtype == Types.MASK_GROUP:
+                            mask_ns = SimpleNamespace(
+                                mask=scope_group.mask,
+                                clip=scope_group.clip,
+                                _mask_opacity=scope_group._mask_opacity,
+                                _mask_stops=scope_group._mask_stops,
+                                _mask_axis=scope_group._mask_axis,
+                            )
+                            mask_start, _ = _mask_scope_parts(mask_ns)
+                            if mask_start:
+                                code.append(mask_start)
                 sketch_code, ind = get_sketch_code(sketch, canvas, ind)
                 code.append(sketch_code)
+                if sketch_id in scope_closes:
+                    for scope_group in scope_closes[sketch_id]:
+                        code.append("\\end{scope}")
 
         code = "\n".join(code)
     else:
@@ -679,10 +709,14 @@ def _mask_scope_parts(sketch, fade_id=None):
         return "", ""
 
     clip = sketch.clip
+    clip_code = get_clip_code(SimpleNamespace(mask=mask))
+
+    if clip:
+        return f"\\begin{{scope}}\n{clip_code}", "\\end{scope}\n"
+
     mask_opacity = sketch._mask_opacity
     mask_stops = sketch._mask_stops
     mask_axis = sketch._mask_axis
-    clip_code = get_clip_code(SimpleNamespace(mask=mask))
 
     if mask_stops is not None:
         axis_start, axis_end = _mask_axis_points(mask_axis)
@@ -707,9 +741,6 @@ def _mask_scope_parts(sketch, fade_id=None):
             f"\\begin{{scope}}[opacity={mask_opacity}]\n{clip_code}",
             "\\end{scope}\n",
         )
-
-    if clip:
-        return f"\\begin{{scope}}\n{clip_code}", "\\end{scope}\n"
 
     return "", ""
 
@@ -758,37 +789,6 @@ def get_canvas_scope(canvas):
     if option_list:
         return f"\\begin{{scope}}[{','.join(option_list)}]\n"
     return "\\begin{scope}\n"
-
-
-def draw_batch_sketch(sketch, canvas):
-    """Converts a BatchSketch to TikZ code.
-
-    Args:
-        sketch: The BatchSketch object.
-        canvas: The canvas object.
-
-    Returns:
-        str: The TikZ code for the BatchSketch.
-    """
-    options = get_scope_options(sketch)
-    mask_start, mask_end = _mask_scope_parts(sketch)
-    if options:
-        res = f"\\begin{{scope}}[{options}]\n"
-        scope_end = "\\end{scope}\n"
-    else:
-        res = ""
-        scope_end = ""
-    res += mask_start
-    for item in sketch.sketches:
-        if item.subtype in d_sketch_draw:
-            res += d_sketch_draw[item.subtype](item, canvas)
-        else:
-            res += draw_shape_sketch(item, canvas=canvas)
-
-    res += mask_end
-    res += scope_end
-
-    return res
 
 
 def draw_bbox_sketch(sketch):
@@ -2520,16 +2520,3 @@ def is_stroked(shape: Shape) -> bool:
     return (
         shape.stroke and shape.line_color is not None and shape.line_width > 0
     )
-
-
-d_sketch_draw = {
-    sg.Types.ARC: draw_arc_sketch,
-    sg.Types.BATCH: draw_batch_sketch,
-    sg.Types.CIRCLE: draw_circle_sketch,
-    sg.Types.ELLIPSE: draw_shape_sketch,
-    sg.Types.IMAGE_SKETCH: draw_image_sketch,
-    sg.Types.LACESKETCH: draw_lace_sketch,
-    sg.Types.LINE: draw_line_sketch,
-    sg.Types.SHAPE: draw_shape_sketch,
-    sg.Types.TAG_SKETCH: draw_tag_sketch,
-}
