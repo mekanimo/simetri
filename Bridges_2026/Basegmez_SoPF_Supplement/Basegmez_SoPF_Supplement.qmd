@@ -1,0 +1,438 @@
+---
+title: "Supplement to Fahreddin Başeğmez’s 2026 Bridges Paper: Symmetries of Prime Factors"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+    code-line-numbers: true
+jupyter: simetri
+---
+
+# Main Scripts
+
+These scripts require Python version 3.10 or higher and simetri.graphics version 0.0.8 Alpha or higher. If you need to run simetri.graphics version 0.0.6 Alpha, you can download the [Basegmez_SoPF_Supplement_ver_0_0_6_alpha.qmd](https://github.com/mekanimo/simetri/blob/master/images/logo.svg) and run it (this requires Python 3.10 or higher too). To render this file, run `quarto render Basegmez_SoPF_Supplement_ver_0_0_6_alpha.qmd` from a terminal.
+
+## Prime Factorization Algorithm
+
+```{python}
+from typing import List
+
+def prime_factors(n: int) -> List[int]:
+    '''Given an integer n > 1, returns a list of the prime factors of n.'''
+
+    factors = []
+    p = 2
+    while p**2 <= n:
+        while n % p == 0:
+            factors.append(p)
+            n = n // p # integer division
+        if p == 2:
+            p += 1
+        else:
+            p += 2
+    if n > 1:
+        factors.append(n)
+
+    return factors
+
+```
+
+## Pictograph Algorithm
+
+```{python}
+import simetri.graphics as sg
+
+Color = sg.Color
+pi = sg.pi
+sin = sg.sin
+
+def pictograph(
+    factors: List[int],
+    radius: float,
+    bounds: bool = True,
+    fill_color: Color = sg.burnt_orange,
+) -> sg.Batch:
+    """Creates a pictograph of the given sequence of integers."""
+    r = radius
+    x = y = 0
+    dots = sg.Batch(sg.Circle(radius=radius, fill_color=fill_color))
+    for n in factors:
+        theta = 2 * pi / n
+        R = r / sin(theta / 2)
+        y = y - R
+        dots.rotate(theta, (x, y), reps=n - 1)
+        outer_radius = R + r
+        if bounds:
+            inner_radius = R - r
+            dots.append(sg.Circle(inner_radius, (x, y), fill=False))
+            dots.append(sg.Circle(outer_radius, (x, y), fill=False))
+        r = outer_radius
+
+    return dots, outer_radius
+```
+
+## Prime Factor Visualization Atlas
+
+```{python}
+Canvas = sg.Canvas
+canvas = sg.Canvas()
+
+def grid(
+    canvas: Canvas,
+    radius: float = 5,
+    width: float = 160,
+    height: float = 160,
+    columns: int = 6,
+    rows: int = 10,
+    margin: float = 80,
+    fill_color: Color = sg.burnt_orange,
+):
+    for i in range(2, columns * rows + 2):
+        row, col = (i - 2) // columns, (i - 2) % columns
+        circles, outer_radius = pictograph(prime_factors(i), radius)
+        center = circles.midpoint
+        scale_factor = ((width / 2) - 10) / outer_radius
+        circles.scale(scale_factor, about=center)
+
+        dx = (col * width) - center[0]
+        dy = (row * height) - center[1]
+        circles.translate(dx, dy)
+        canvas.draw(circles)
+
+grid(canvas)
+
+canvas.display()
+```
+
+
+## Other Representations
+
+### Rosettes with Cyclic Symmetry
+
+```{python}
+canvas = sg.Canvas()
+
+def cyclic_grid(
+    canvas: Canvas,
+    radius: float = 5,
+    width: float = 160,
+    height: float = 160,
+    columns: int = 6,
+    rows: int = 10,
+    margin: float = 80,
+    fill_color: Color = sg.burnt_orange,
+):
+    for i in range(2, columns * rows + 2):
+        row, col = (i - 2) // columns, (i - 2) % columns
+        factors = prime_factors(i)
+        circles, outer_radius = pictograph(factors, radius, bounds=False)
+        center = circles.midpoint
+        scale_factor = ((width / 2) - 10) / outer_radius
+        circles.scale(scale_factor, about=center)
+
+        dx = (col * width) - center[0]
+        dy = (row * height) - center[1]
+        circles.translate(dx, dy)
+        shape = sg.Shape([c.center for c in circles], closed=True)
+        shape.even_odd = True
+        canvas.draw(shape, fill_color=sg.gold)
+
+cyclic_grid(canvas)
+
+canvas.display()
+```
+
+### Using Other Shapes
+
+```{python}
+Shape = sg.Shape
+canvas = sg.Canvas()
+
+def pictograph2(factors: List[int], shape:Shape, size:float) -> sg.Batch:
+    '''Creates a pictograph of the given sequence of integers.'''
+    x = y = 0
+    shapes = sg.Batch(shape)
+    r = size
+    for n in factors:
+        theta = 2 * pi / n
+        R = r / sin(theta / 2)
+        y = y - R
+        shapes.rotate(theta, (x, y), reps=n - 1)
+        outer_radius = R + r
+        r = outer_radius
+    return shapes
+
+size = 5
+pentagon = sg.reg_poly_shape(5, size).rotate(pi/10)
+factors = prime_factors(50)
+factors.append(4)
+pic = pictograph2(factors, shape=pentagon, size=size)
+canvas.circle(radius=pic.width/2 + 15, center=pic.midpoint,
+                                    fill_color=sg.navy, stroke=False)
+canvas.draw(pic, fill_color=sg.yellow, stroke=False)
+canvas.display()
+
+```
+
+```{python}
+Shape = sg.Shape
+canvas = sg.Canvas()
+
+size = 5
+triangle = sg.reg_poly_shape(3, size).rotate(sg.pi/6)
+
+factors = prime_factors(45)
+factors.append(6)
+pic = pictograph2(factors, shape=triangle, size=size)
+hex = sg.reg_poly_shape(6, pic.height/2 + 15, pos=pic.midpoint)
+
+canvas.draw(hex.rotate(pi/6, about=hex.midpoint), fill_color=sg.gold,
+                                                            stroke=False)
+canvas.draw(pic, fill_color=sg.navy, stroke=False)
+canvas.draw(pic.scale(.4, about=pic.midpoint))
+canvas.display()
+
+```
+
+
+### Using Polygons with Different Sizes
+
+```{python}
+canvas = sg.Canvas()
+
+def pictograph3(factors: List[int], shape:Shape, size:float) -> sg.Batch:
+    '''Creates a pictograph of the given sequence of integers.'''
+    x = y = 0
+    shapes = sg.Batch(shape)
+    r = size
+    for i, n in enumerate(factors):
+        theta = 2 * pi / n
+        R = r / sin(theta / 2)
+        y -= R
+        shapes.rotate(theta, (x, y), reps=n - 1)
+        outer_radius = R + r
+        r = outer_radius
+    return shapes
+
+factors = prime_factors(50)
+size = 10
+for i in range(8):
+    pentagon = sg.reg_poly_shape(5, size * (.5 + i*.25)).rotate(pi/10)
+    pic = pictograph3(factors, shape=pentagon, size=size)
+    canvas.draw(pic, line_width=2, fill=False)
+    canvas.draw(pic.translate(pic.width*1.1, 0), fill_color=sg.navy,stroke=False)
+    canvas.translate(0, -350)
+
+canvas.display()
+```
+
+```{python}
+canvas = sg.Canvas()
+
+factors = prime_factors(30)
+size = 10
+for i in range(8):
+    pentagon = sg.reg_poly_shape(5, size * (.5 + i*.25)).rotate(pi/10)
+    pic = pictograph3(factors, shape=pentagon, size=size)
+    canvas.draw(pic, line_width=2, fill=False)
+    canvas.draw(pic.translate(pic.width*1.1, 0), fill_color=sg.burgundy,
+                                                                stroke=False)
+    canvas.translate(0, -350)
+
+canvas.display()
+```
+
+## Circle Puzzles
+
+See [Two-Disk Compound Symmetry Groups](https://archive.bridgesmathart.org/2023/bridges2023-29.pdf) and the references therein.
+
+```{python}
+canvas = sg.Canvas()
+
+pic1 = pictograph([6, 6], radius=10)[0].rotate(sg.pi/6)
+
+def puzzle(pic, dx):
+    p1 = pic.copy().translate(dx, 0).rotate(2*pi/3, about=pic.midpoint, reps=2)
+    p2 = [p for p in pic if p.fill == False]
+    p3 = [p for p in p1 if p.fill == False]
+    p4 = [p for p in pic if p.fill == True]
+    p5 = [p for p in p1 if p.fill == True]
+    return [[pic, p1], [p2, p3], [p4, p5]]
+
+def draw_puzzle(canvas, pic, dx, gap):
+    pics = puzzle(pic, dx)
+    for pic in pics:
+        canvas.draw(pic[0])
+        canvas.draw(pic[1])
+        canvas.translate(gap, 0)
+
+gap = 400
+canvas.draw(pic1)
+canvas.translate(0, -gap*.75)
+
+for i, dx in enumerate([60, 120, 51.96*2]):
+    if i == 2:
+        pic1.rotate(sg.pi/6, about=pic1.midpoint)
+    draw_puzzle(canvas, pic1, dx, gap)
+    canvas.translate(-3*gap, -gap)
+
+canvas.display()
+```
+
+## Hexagons
+
+```{python}
+canvas = sg.Canvas()
+
+size = 20
+columns = 2
+width = 420
+
+c = .75
+for i in range(8):
+    hex = sg.reg_poly_shape(6, size * c).rotate(pi/6)
+    pic1 = pictograph3([6, 6], shape=hex, size=size).rotate(sg.pi/6)
+    pic1.move_to((width * (i%columns), -(width * (i//columns))))
+    canvas.draw(pic1, fill=False)
+    c += .25
+
+canvas.display()
+```
+
+```{python}
+canvas = sg.Canvas()
+
+size = 20
+hex = sg.reg_poly_shape(6, size*2).rotate(pi/6)
+pic1 = pictograph3([6, 6], shape=hex, size=size+10).rotate(sg.pi/6)
+
+lace = sg.Lace(pic1, offset=4)
+canvas.draw(lace)
+
+canvas.display()
+```
+
+
+## A Similar Algorithm
+
+This algorithm uses translations, rotations, and scaling to create pictographs similar to Algorithm 1. Changing the parameters yield different patterns.
+
+```{python}
+canvas = sg.Canvas()
+
+ROWS, COLS = 7, 5
+WIDTH, HEIGHT = 150, 150
+MARGIN = 50
+DX = DY = 50
+RADIUS = 5
+canvas=sg.Canvas()
+for i in range(2, ROWS * COLS + 2):
+    row, col = (i- 2) // COLS, (i- 2) % COLS
+    x, y = (col * WIDTH) + MARGIN, (row * HEIGHT) + MARGIN
+    dots=sg.Batch(sg.Circle(radius=RADIUS, center=(x + DX, y + DY)))
+    for n in prime_factors(i):
+        dots.rotate(sg.two_pi/n, (x,y), reps = n - 1)
+        dots.scale(.5, about = dots.center)
+        dots.translate(DX, DY)
+    for dot in dots:
+        canvas.circle(RADIUS, dot.center)
+
+canvas.display()
+```
+
+```{python}
+import random
+
+canvas = sg.Canvas()
+
+ROWS, COLS = 10, 4
+WIDTH, HEIGHT = 150, 150
+MARGIN = 50
+DX = DY = 50
+RADIUS = 5
+canvas=sg.Canvas()
+ns = [2, 3, 4, 5, 6]
+set1 = set(sg.product(ns, ns, ns, ns))
+n_pics = ROWS * COLS
+pictographs = random.sample(list(set1), n_pics)
+for i in range(2, ROWS * COLS + 2):
+    row, col = (i- 2) // COLS, (i- 2) % COLS
+    x, y = (col * WIDTH) + MARGIN, (row * HEIGHT) + MARGIN
+    dots=sg.Batch(sg.Circle(radius=RADIUS, center=(x + DX, y + DY)))
+    for n in pictographs[i-2]:
+        dots.rotate(sg.two_pi/n, (x,y), reps = n - 1)
+        dots.scale(.5, about = dots.center)
+        dots.translate(DX, DY)
+    for dot in dots:
+        canvas.circle(2, dot.center)
+
+canvas.display()
+```
+
+```{python}
+canvas = sg.Canvas()
+
+def rosette(factors, x=0, y=0, dx=60, dy=60, sf=.5):
+    dots = sg.Batch(sg.Circle(radius=25))
+    dots.translate(x + dx, y + dy)
+    for n in factors:
+        dots.rotate(sg.two_pi / n, (x, y), reps=n - 1)
+        dots.scale(sf, about=dots.center)
+        dots.translate(dx, dy)
+
+    return dots
+
+
+ns = [2, 2, 3, 3, 4, 5, 6]
+set1 = set(sg.product(ns, ns, ns, ns))
+
+def grid(canvas,combinations, sf=.5, width=200, height=200, columns=4, margin=80):
+    for i, combination in enumerate(combinations):
+        row, col = i // columns, i % columns
+        x, y = (col * width) + margin, (row * height) + margin
+        pic = rosette(combination, x, y, sf=sf)
+        center = pic.midpoint
+        rad = sg.distance(pic.northwest, center) + 10
+        canvas.circle(rad, center, fill_color=sg.yellow, stroke=False)
+        canvas.draw(pic, fill_color=sg.dark_green, stroke=False)
+
+n_pics = 60
+pictographs = random.sample(list(set1), n_pics)
+grid(canvas, pictographs)
+canvas.display()
+
+```
+
+```{python}
+canvas = sg.Canvas()
+
+def rosette(factors, x=0, y=0, dx=60, dy=60, sf=.5):
+    dots = sg.Batch(sg.Circle(radius=25))
+    dots.translate(x + dx, y + dy)
+    for n in factors:
+        dots.rotate(sg.two_pi / n, (x, y), reps=n - 1)
+        dots.scale(sf, about=dots.center)
+        dots.translate(dx, dy)
+
+    return dots
+
+
+ns = [2, 4, 5, 6]
+set1 = set(sg.product(ns, ns, ns, ns))
+
+def grid(canvas,combinations, sf=.5, width=200, height=200, columns=4, margin=80, dx=60, dy=60):
+    for i, combination in enumerate(combinations):
+        row, col = i // columns, i % columns
+        x, y = (col * width) + margin, (row * height) + margin
+        pic = rosette(combination, x, y, dx, dy, sf=sf)
+        shp = sg.Shape([c.center for c in pic], closed=True)
+        shp.even_odd=True
+        canvas.draw(shp, fill_color=sg.gold, line_width=2)
+        canvas.text(str(combination), (x-50, y))
+
+n_pics = 40
+pictographs = random.sample(list(set1), n_pics)
+grid(canvas, pictographs)
+
+canvas.display()
+```

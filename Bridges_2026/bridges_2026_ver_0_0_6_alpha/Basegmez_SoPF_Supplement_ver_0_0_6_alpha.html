@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Supplement to Fahreddin Başeğmez’s 2026 Bridges Paper: Symmetries of Prime Factors</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/quarto-html/popper.min.js"></script>
+<script src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/libs/bootstrap/bootstrap-9e3ffae467580fdb927a41352e75a2e0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Supplement to Fahreddin Başeğmez’s 2026 Bridges Paper: Symmetries of Prime Factors</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="main-scripts" class="level1">
+<h1>Main Scripts</h1>
+<p>These scripts require Python version 3.10 or higher and simetri.graphics version 0.0.6 Alpha. Any other version will be incompatible. To modify this notebook, edit the .qmd file and run <code>quarto render Basegmez_SoPF_Supplement_ver_0_0_6_alpha.qmd</code> from a terminal.</p>
+<section id="prime-factorization-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="prime-factorization-algorithm">Prime Factorization Algorithm</h2>
+<div id="565c133a" class="cell" data-execution_count="1">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">from</span> typing <span class="im">import</span> List</span>
+<span id="cb1-2"><a href="#cb1-2"></a></span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="kw">def</span> prime_factors(n: <span class="bu">int</span>) <span class="op">-&gt;</span> List[<span class="bu">int</span>]:</span>
+<span id="cb1-4"><a href="#cb1-4"></a>    <span class="co">'''Given an integer n &gt; 1, returns a list of the prime factors of n.'''</span></span>
+<span id="cb1-5"><a href="#cb1-5"></a></span>
+<span id="cb1-6"><a href="#cb1-6"></a>    factors <span class="op">=</span> []</span>
+<span id="cb1-7"><a href="#cb1-7"></a>    p <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb1-8"><a href="#cb1-8"></a>    <span class="cf">while</span> p<span class="op">**</span><span class="dv">2</span> <span class="op">&lt;=</span> n:</span>
+<span id="cb1-9"><a href="#cb1-9"></a>        <span class="cf">while</span> n <span class="op">%</span> p <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb1-10"><a href="#cb1-10"></a>            factors.append(p)</span>
+<span id="cb1-11"><a href="#cb1-11"></a>            n <span class="op">=</span> n <span class="op">//</span> p <span class="co"># integer division</span></span>
+<span id="cb1-12"><a href="#cb1-12"></a>        <span class="cf">if</span> p <span class="op">==</span> <span class="dv">2</span>:</span>
+<span id="cb1-13"><a href="#cb1-13"></a>            p <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb1-14"><a href="#cb1-14"></a>        <span class="cf">else</span>:</span>
+<span id="cb1-15"><a href="#cb1-15"></a>            p <span class="op">+=</span> <span class="dv">2</span></span>
+<span id="cb1-16"><a href="#cb1-16"></a>    <span class="cf">if</span> n <span class="op">&gt;</span> <span class="dv">1</span>:</span>
+<span id="cb1-17"><a href="#cb1-17"></a>        factors.append(n)</span>
+<span id="cb1-18"><a href="#cb1-18"></a></span>
+<span id="cb1-19"><a href="#cb1-19"></a>    <span class="cf">return</span> factors</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="pictograph-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="pictograph-algorithm">Pictograph Algorithm</h2>
+<div id="ed003e77" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="im">import</span> simetri.graphics <span class="im">as</span> sg</span>
+<span id="cb2-2"><a href="#cb2-2"></a></span>
+<span id="cb2-3"><a href="#cb2-3"></a>Color <span class="op">=</span> sg.Color</span>
+<span id="cb2-4"><a href="#cb2-4"></a>pi <span class="op">=</span> sg.pi</span>
+<span id="cb2-5"><a href="#cb2-5"></a>sin <span class="op">=</span> sg.sin</span>
+<span id="cb2-6"><a href="#cb2-6"></a></span>
+<span id="cb2-7"><a href="#cb2-7"></a><span class="kw">def</span> pictograph(</span>
+<span id="cb2-8"><a href="#cb2-8"></a>    factors: List[<span class="bu">int</span>],</span>
+<span id="cb2-9"><a href="#cb2-9"></a>    radius: <span class="bu">float</span>,</span>
+<span id="cb2-10"><a href="#cb2-10"></a>    bounds: <span class="bu">bool</span> <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb2-11"><a href="#cb2-11"></a>    fill_color: Color <span class="op">=</span> sg.burnt_orange,</span>
+<span id="cb2-12"><a href="#cb2-12"></a>) <span class="op">-&gt;</span> sg.Batch:</span>
+<span id="cb2-13"><a href="#cb2-13"></a>    <span class="co">"""Creates a pictograph of the given sequence of integers."""</span></span>
+<span id="cb2-14"><a href="#cb2-14"></a>    r <span class="op">=</span> radius</span>
+<span id="cb2-15"><a href="#cb2-15"></a>    x <span class="op">=</span> y <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb2-16"><a href="#cb2-16"></a>    dots <span class="op">=</span> sg.Batch(sg.Circle(radius<span class="op">=</span>radius, fill_color<span class="op">=</span>fill_color))</span>
+<span id="cb2-17"><a href="#cb2-17"></a>    <span class="cf">for</span> n <span class="kw">in</span> factors:</span>
+<span id="cb2-18"><a href="#cb2-18"></a>        theta <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> pi <span class="op">/</span> n</span>
+<span id="cb2-19"><a href="#cb2-19"></a>        R <span class="op">=</span> r <span class="op">/</span> sin(theta <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb2-20"><a href="#cb2-20"></a>        y <span class="op">=</span> y <span class="op">-</span> R</span>
+<span id="cb2-21"><a href="#cb2-21"></a>        dots.rotate(theta, (x, y), reps<span class="op">=</span>n <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb2-22"><a href="#cb2-22"></a>        outer_radius <span class="op">=</span> R <span class="op">+</span> r</span>
+<span id="cb2-23"><a href="#cb2-23"></a>        <span class="cf">if</span> bounds:</span>
+<span id="cb2-24"><a href="#cb2-24"></a>            inner_radius <span class="op">=</span> R <span class="op">-</span> r</span>
+<span id="cb2-25"><a href="#cb2-25"></a>            dots.elements.append(sg.Circle(radius<span class="op">=</span>inner_radius, center<span class="op">=</span>(x, y), fill<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb2-26"><a href="#cb2-26"></a>            dots.elements.append(sg.Circle(radius<span class="op">=</span>outer_radius, center<span class="op">=</span>(x, y), fill<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb2-27"><a href="#cb2-27"></a>        r <span class="op">=</span> outer_radius</span>
+<span id="cb2-28"><a href="#cb2-28"></a></span>
+<span id="cb2-29"><a href="#cb2-29"></a>    <span class="cf">return</span> dots, outer_radius</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="prime-factor-visualization-atlas" class="level2">
+<h2 class="anchored" data-anchor-id="prime-factor-visualization-atlas">Prime Factor Visualization Atlas</h2>
+<div id="646c9787" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a>Canvas <span class="op">=</span> sg.Canvas</span>
+<span id="cb3-2"><a href="#cb3-2"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb3-3"><a href="#cb3-3"></a></span>
+<span id="cb3-4"><a href="#cb3-4"></a><span class="kw">def</span> grid(</span>
+<span id="cb3-5"><a href="#cb3-5"></a>    canvas: Canvas,</span>
+<span id="cb3-6"><a href="#cb3-6"></a>    radius: <span class="bu">float</span> <span class="op">=</span> <span class="dv">5</span>,</span>
+<span id="cb3-7"><a href="#cb3-7"></a>    width: <span class="bu">float</span> <span class="op">=</span> <span class="dv">160</span>,</span>
+<span id="cb3-8"><a href="#cb3-8"></a>    height: <span class="bu">float</span> <span class="op">=</span> <span class="dv">160</span>,</span>
+<span id="cb3-9"><a href="#cb3-9"></a>    columns: <span class="bu">int</span> <span class="op">=</span> <span class="dv">6</span>,</span>
+<span id="cb3-10"><a href="#cb3-10"></a>    rows: <span class="bu">int</span> <span class="op">=</span> <span class="dv">10</span>,</span>
+<span id="cb3-11"><a href="#cb3-11"></a>    margin: <span class="bu">float</span> <span class="op">=</span> <span class="dv">80</span>,</span>
+<span id="cb3-12"><a href="#cb3-12"></a>    fill_color: Color <span class="op">=</span> sg.burnt_orange,</span>
+<span id="cb3-13"><a href="#cb3-13"></a>):</span>
+<span id="cb3-14"><a href="#cb3-14"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>, columns <span class="op">*</span> rows <span class="op">+</span> <span class="dv">2</span>):</span>
+<span id="cb3-15"><a href="#cb3-15"></a>        row, col <span class="op">=</span> (i <span class="op">-</span> <span class="dv">2</span>) <span class="op">//</span> columns, (i <span class="op">-</span> <span class="dv">2</span>) <span class="op">%</span> columns</span>
+<span id="cb3-16"><a href="#cb3-16"></a>        circles, outer_radius <span class="op">=</span> pictograph(factors<span class="op">=</span>prime_factors(i), radius<span class="op">=</span>radius)</span>
+<span id="cb3-17"><a href="#cb3-17"></a>        center <span class="op">=</span> circles.center</span>
+<span id="cb3-18"><a href="#cb3-18"></a>        scale_factor <span class="op">=</span> ((width <span class="op">/</span> <span class="dv">2</span>) <span class="op">-</span> <span class="dv">10</span>) <span class="op">/</span> outer_radius</span>
+<span id="cb3-19"><a href="#cb3-19"></a>        circles.scale(scale_factor, about<span class="op">=</span>center)</span>
+<span id="cb3-20"><a href="#cb3-20"></a></span>
+<span id="cb3-21"><a href="#cb3-21"></a>        dx <span class="op">=</span> (col <span class="op">*</span> width) <span class="op">-</span> center[<span class="dv">0</span>]</span>
+<span id="cb3-22"><a href="#cb3-22"></a>        dy <span class="op">=</span> (row <span class="op">*</span> height) <span class="op">-</span> center[<span class="dv">1</span>]</span>
+<span id="cb3-23"><a href="#cb3-23"></a>        circles.translate(dx, dy)</span>
+<span id="cb3-24"><a href="#cb3-24"></a>        canvas.draw(circles)</span>
+<span id="cb3-25"><a href="#cb3-25"></a></span>
+<span id="cb3-26"><a href="#cb3-26"></a>grid(canvas)</span>
+<span id="cb3-27"><a href="#cb3-27"></a></span>
+<span id="cb3-28"><a href="#cb3-28"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-4-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="other-representations" class="level2">
+<h2 class="anchored" data-anchor-id="other-representations">Other Representations</h2>
+<section id="rosettes-with-cyclic-symmetry" class="level3">
+<h3 class="anchored" data-anchor-id="rosettes-with-cyclic-symmetry">Rosettes with Cyclic Symmetry</h3>
+<div id="89a84eaf" class="cell" data-execution_count="4">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb4-2"><a href="#cb4-2"></a></span>
+<span id="cb4-3"><a href="#cb4-3"></a><span class="kw">def</span> cyclic_grid(</span>
+<span id="cb4-4"><a href="#cb4-4"></a>    canvas: Canvas,</span>
+<span id="cb4-5"><a href="#cb4-5"></a>    radius: <span class="bu">float</span> <span class="op">=</span> <span class="dv">5</span>,</span>
+<span id="cb4-6"><a href="#cb4-6"></a>    width: <span class="bu">float</span> <span class="op">=</span> <span class="dv">160</span>,</span>
+<span id="cb4-7"><a href="#cb4-7"></a>    height: <span class="bu">float</span> <span class="op">=</span> <span class="dv">160</span>,</span>
+<span id="cb4-8"><a href="#cb4-8"></a>    columns: <span class="bu">int</span> <span class="op">=</span> <span class="dv">6</span>,</span>
+<span id="cb4-9"><a href="#cb4-9"></a>    rows: <span class="bu">int</span> <span class="op">=</span> <span class="dv">10</span>,</span>
+<span id="cb4-10"><a href="#cb4-10"></a>    margin: <span class="bu">float</span> <span class="op">=</span> <span class="dv">80</span>,</span>
+<span id="cb4-11"><a href="#cb4-11"></a>    fill_color: Color <span class="op">=</span> sg.burnt_orange,</span>
+<span id="cb4-12"><a href="#cb4-12"></a>):</span>
+<span id="cb4-13"><a href="#cb4-13"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>, columns <span class="op">*</span> rows <span class="op">+</span> <span class="dv">2</span>):</span>
+<span id="cb4-14"><a href="#cb4-14"></a>        row, col <span class="op">=</span> (i <span class="op">-</span> <span class="dv">2</span>) <span class="op">//</span> columns, (i <span class="op">-</span> <span class="dv">2</span>) <span class="op">%</span> columns</span>
+<span id="cb4-15"><a href="#cb4-15"></a>        factors <span class="op">=</span> prime_factors(i)</span>
+<span id="cb4-16"><a href="#cb4-16"></a>        circles, outer_radius <span class="op">=</span> pictograph(factors, radius, bounds<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb4-17"><a href="#cb4-17"></a>        center <span class="op">=</span> circles.center</span>
+<span id="cb4-18"><a href="#cb4-18"></a>        scale_factor <span class="op">=</span> ((width <span class="op">/</span> <span class="dv">2</span>) <span class="op">-</span> <span class="dv">10</span>) <span class="op">/</span> outer_radius</span>
+<span id="cb4-19"><a href="#cb4-19"></a>        circles.scale(scale_factor, about<span class="op">=</span>center)</span>
+<span id="cb4-20"><a href="#cb4-20"></a></span>
+<span id="cb4-21"><a href="#cb4-21"></a>        dx <span class="op">=</span> (col <span class="op">*</span> width) <span class="op">-</span> center[<span class="dv">0</span>]</span>
+<span id="cb4-22"><a href="#cb4-22"></a>        dy <span class="op">=</span> (row <span class="op">*</span> height) <span class="op">-</span> center[<span class="dv">1</span>]</span>
+<span id="cb4-23"><a href="#cb4-23"></a>        circles.translate(dx, dy)</span>
+<span id="cb4-24"><a href="#cb4-24"></a>        shape <span class="op">=</span> sg.Shape([c.center <span class="cf">for</span> c <span class="kw">in</span> circles], closed<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-25"><a href="#cb4-25"></a>        shape.even_odd <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb4-26"><a href="#cb4-26"></a>        canvas.draw(shape, fill_color<span class="op">=</span>sg.gold)</span>
+<span id="cb4-27"><a href="#cb4-27"></a></span>
+<span id="cb4-28"><a href="#cb4-28"></a>cyclic_grid(canvas)</span>
+<span id="cb4-29"><a href="#cb4-29"></a></span>
+<span id="cb4-30"><a href="#cb4-30"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="using-other-shapes" class="level3">
+<h3 class="anchored" data-anchor-id="using-other-shapes">Using Other Shapes</h3>
+<div id="7e41a12f" class="cell" data-execution_count="5">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a>Shape <span class="op">=</span> sg.Shape</span>
+<span id="cb5-2"><a href="#cb5-2"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb5-3"><a href="#cb5-3"></a></span>
+<span id="cb5-4"><a href="#cb5-4"></a><span class="kw">def</span> pictograph2(factors: List[<span class="bu">int</span>], shape:Shape, size:<span class="bu">float</span>) <span class="op">-&gt;</span> sg.Batch:</span>
+<span id="cb5-5"><a href="#cb5-5"></a>    <span class="co">'''Creates a pictograph of the given sequence of integers.'''</span></span>
+<span id="cb5-6"><a href="#cb5-6"></a>    x <span class="op">=</span> y <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb5-7"><a href="#cb5-7"></a>    shapes <span class="op">=</span> sg.Batch(shape)</span>
+<span id="cb5-8"><a href="#cb5-8"></a>    r <span class="op">=</span> size</span>
+<span id="cb5-9"><a href="#cb5-9"></a>    <span class="cf">for</span> n <span class="kw">in</span> factors:</span>
+<span id="cb5-10"><a href="#cb5-10"></a>        theta <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> pi <span class="op">/</span> n</span>
+<span id="cb5-11"><a href="#cb5-11"></a>        R <span class="op">=</span> r <span class="op">/</span> sin(theta <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb5-12"><a href="#cb5-12"></a>        y <span class="op">=</span> y <span class="op">-</span> R</span>
+<span id="cb5-13"><a href="#cb5-13"></a>        shapes.rotate(theta, (x, y), reps<span class="op">=</span>n <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb5-14"><a href="#cb5-14"></a>        outer_radius <span class="op">=</span> R <span class="op">+</span> r</span>
+<span id="cb5-15"><a href="#cb5-15"></a>        r <span class="op">=</span> outer_radius</span>
+<span id="cb5-16"><a href="#cb5-16"></a>    <span class="cf">return</span> shapes</span>
+<span id="cb5-17"><a href="#cb5-17"></a></span>
+<span id="cb5-18"><a href="#cb5-18"></a>size <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb5-19"><a href="#cb5-19"></a>pentagon <span class="op">=</span> sg.reg_poly_shape(n<span class="op">=</span><span class="dv">5</span>, r<span class="op">=</span>size, pos<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">0</span>)).rotate(pi<span class="op">/</span><span class="dv">10</span>)</span>
+<span id="cb5-20"><a href="#cb5-20"></a>factors <span class="op">=</span> prime_factors(<span class="dv">50</span>)</span>
+<span id="cb5-21"><a href="#cb5-21"></a>factors.append(<span class="dv">4</span>)</span>
+<span id="cb5-22"><a href="#cb5-22"></a>pic <span class="op">=</span> pictograph2(factors, shape<span class="op">=</span>pentagon, size<span class="op">=</span>size)</span>
+<span id="cb5-23"><a href="#cb5-23"></a>canvas.circle(radius<span class="op">=</span>pic.width<span class="op">/</span><span class="dv">2</span> <span class="op">+</span> <span class="dv">15</span>, center<span class="op">=</span>pic.center,</span>
+<span id="cb5-24"><a href="#cb5-24"></a>                                    fill_color<span class="op">=</span>sg.navy, stroke<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-25"><a href="#cb5-25"></a>canvas.draw(pic, fill_color<span class="op">=</span>sg.yellow, stroke<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-26"><a href="#cb5-26"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-6-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="53b7a5af" class="cell" data-execution_count="6">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a>Shape <span class="op">=</span> sg.Shape</span>
+<span id="cb6-2"><a href="#cb6-2"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb6-3"><a href="#cb6-3"></a></span>
+<span id="cb6-4"><a href="#cb6-4"></a>size <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a>triangle <span class="op">=</span> sg.reg_poly_shape(n<span class="op">=</span><span class="dv">3</span>, r<span class="op">=</span>size, pos<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">0</span>)).rotate(sg.pi<span class="op">/</span><span class="dv">6</span>)</span>
+<span id="cb6-6"><a href="#cb6-6"></a></span>
+<span id="cb6-7"><a href="#cb6-7"></a>factors <span class="op">=</span> prime_factors(<span class="dv">45</span>)</span>
+<span id="cb6-8"><a href="#cb6-8"></a>factors.append(<span class="dv">6</span>)</span>
+<span id="cb6-9"><a href="#cb6-9"></a>pic <span class="op">=</span> pictograph2(factors, shape<span class="op">=</span>triangle, size<span class="op">=</span>size)</span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="bu">hex</span> <span class="op">=</span> sg.reg_poly_shape(n<span class="op">=</span><span class="dv">6</span>, r<span class="op">=</span>pic.height<span class="op">/</span><span class="dv">2</span> <span class="op">+</span> <span class="dv">15</span>, pos<span class="op">=</span>pic.center)</span>
+<span id="cb6-11"><a href="#cb6-11"></a></span>
+<span id="cb6-12"><a href="#cb6-12"></a>canvas.draw(<span class="bu">hex</span>.rotate(pi<span class="op">/</span><span class="dv">6</span>, about<span class="op">=</span><span class="bu">hex</span>.center), fill_color<span class="op">=</span>sg.gold,</span>
+<span id="cb6-13"><a href="#cb6-13"></a>                                                            stroke<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb6-14"><a href="#cb6-14"></a>canvas.draw(pic, fill_color<span class="op">=</span>sg.navy, stroke<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb6-15"><a href="#cb6-15"></a>canvas.draw(pic.scale(<span class="fl">.4</span>, about<span class="op">=</span>pic.center))</span>
+<span id="cb6-16"><a href="#cb6-16"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="using-polygons-with-different-sizes" class="level3">
+<h3 class="anchored" data-anchor-id="using-polygons-with-different-sizes">Using Polygons with Different Sizes</h3>
+<div id="96b5b55d" class="cell" data-execution_count="7">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb7-2"><a href="#cb7-2"></a></span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="kw">def</span> pictograph3(factors: List[<span class="bu">int</span>], shape:Shape, size:<span class="bu">float</span>) <span class="op">-&gt;</span> sg.Batch:</span>
+<span id="cb7-4"><a href="#cb7-4"></a>    <span class="co">'''Creates a pictograph of the given sequence of integers.'''</span></span>
+<span id="cb7-5"><a href="#cb7-5"></a>    x <span class="op">=</span> y <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb7-6"><a href="#cb7-6"></a>    shapes <span class="op">=</span> sg.Batch(shape)</span>
+<span id="cb7-7"><a href="#cb7-7"></a>    r <span class="op">=</span> size</span>
+<span id="cb7-8"><a href="#cb7-8"></a>    <span class="cf">for</span> i, n <span class="kw">in</span> <span class="bu">enumerate</span>(factors):</span>
+<span id="cb7-9"><a href="#cb7-9"></a>        theta <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> pi <span class="op">/</span> n</span>
+<span id="cb7-10"><a href="#cb7-10"></a>        R <span class="op">=</span> r <span class="op">/</span> sin(theta <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb7-11"><a href="#cb7-11"></a>        y <span class="op">-=</span> R</span>
+<span id="cb7-12"><a href="#cb7-12"></a>        shapes.rotate(theta, (x, y), reps<span class="op">=</span>n <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb7-13"><a href="#cb7-13"></a>        outer_radius <span class="op">=</span> R <span class="op">+</span> r</span>
+<span id="cb7-14"><a href="#cb7-14"></a>        r <span class="op">=</span> outer_radius</span>
+<span id="cb7-15"><a href="#cb7-15"></a>    <span class="cf">return</span> shapes</span>
+<span id="cb7-16"><a href="#cb7-16"></a></span>
+<span id="cb7-17"><a href="#cb7-17"></a>factors <span class="op">=</span> prime_factors(<span class="dv">50</span>)</span>
+<span id="cb7-18"><a href="#cb7-18"></a>size <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb7-19"><a href="#cb7-19"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">8</span>):</span>
+<span id="cb7-20"><a href="#cb7-20"></a>    rad <span class="op">=</span> size <span class="op">*</span> (<span class="fl">.5</span> <span class="op">+</span> i<span class="op">*</span><span class="fl">.25</span>)</span>
+<span id="cb7-21"><a href="#cb7-21"></a>    pentagon <span class="op">=</span> sg.reg_poly_shape(n<span class="op">=</span><span class="dv">5</span>, r<span class="op">=</span>rad, pos<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">0</span>)).rotate(pi<span class="op">/</span><span class="dv">10</span>)</span>
+<span id="cb7-22"><a href="#cb7-22"></a>    pic <span class="op">=</span> pictograph3(factors, shape<span class="op">=</span>pentagon, size<span class="op">=</span>size)</span>
+<span id="cb7-23"><a href="#cb7-23"></a>    canvas.draw(pic, line_width<span class="op">=</span><span class="dv">2</span>, fill<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-24"><a href="#cb7-24"></a>    canvas.draw(pic.translate(pic.width<span class="op">*</span><span class="fl">1.1</span>, <span class="dv">0</span>), fill_color<span class="op">=</span>sg.navy,stroke<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-25"><a href="#cb7-25"></a>    canvas.translate(<span class="dv">0</span>, <span class="op">-</span><span class="dv">350</span>)</span>
+<span id="cb7-26"><a href="#cb7-26"></a></span>
+<span id="cb7-27"><a href="#cb7-27"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="8a92e2d1" class="cell" data-execution_count="8">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb8-2"><a href="#cb8-2"></a></span>
+<span id="cb8-3"><a href="#cb8-3"></a>factors <span class="op">=</span> prime_factors(<span class="dv">30</span>)</span>
+<span id="cb8-4"><a href="#cb8-4"></a>size <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb8-5"><a href="#cb8-5"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">8</span>):</span>
+<span id="cb8-6"><a href="#cb8-6"></a>    rad <span class="op">=</span> size <span class="op">*</span> (<span class="fl">.5</span> <span class="op">+</span> i<span class="op">*</span><span class="fl">.25</span>)</span>
+<span id="cb8-7"><a href="#cb8-7"></a>    pentagon <span class="op">=</span> sg.reg_poly_shape(n<span class="op">=</span><span class="dv">5</span>, r<span class="op">=</span>rad, pos<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">0</span>)).rotate(pi<span class="op">/</span><span class="dv">10</span>)</span>
+<span id="cb8-8"><a href="#cb8-8"></a>    pic <span class="op">=</span> pictograph3(factors, shape<span class="op">=</span>pentagon, size<span class="op">=</span>size)</span>
+<span id="cb8-9"><a href="#cb8-9"></a>    canvas.draw(pic, line_width<span class="op">=</span><span class="dv">2</span>, fill<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb8-10"><a href="#cb8-10"></a>    canvas.draw(pic.translate(pic.width<span class="op">*</span><span class="fl">1.1</span>, <span class="dv">0</span>), fill_color<span class="op">=</span>sg.burgundy,</span>
+<span id="cb8-11"><a href="#cb8-11"></a>                                                                stroke<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb8-12"><a href="#cb8-12"></a>    canvas.translate(<span class="dv">0</span>, <span class="op">-</span><span class="dv">350</span>)</span>
+<span id="cb8-13"><a href="#cb8-13"></a></span>
+<span id="cb8-14"><a href="#cb8-14"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-9-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="circle-puzzles" class="level2">
+<h2 class="anchored" data-anchor-id="circle-puzzles">Circle Puzzles</h2>
+<p>See <a href="https://archive.bridgesmathart.org/2023/bridges2023-29.pdf">Two-Disk Compound Symmetry Groups</a> and the references therein.</p>
+<div id="46fa1ce2" class="cell" data-execution_count="9">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb9-2"><a href="#cb9-2"></a></span>
+<span id="cb9-3"><a href="#cb9-3"></a>pic1 <span class="op">=</span> pictograph([<span class="dv">6</span>, <span class="dv">6</span>], radius<span class="op">=</span><span class="dv">10</span>)[<span class="dv">0</span>].rotate(sg.pi<span class="op">/</span><span class="dv">6</span>)</span>
+<span id="cb9-4"><a href="#cb9-4"></a></span>
+<span id="cb9-5"><a href="#cb9-5"></a><span class="kw">def</span> puzzle(pic, dx):</span>
+<span id="cb9-6"><a href="#cb9-6"></a>    p1 <span class="op">=</span> pic.copy().translate(dx, <span class="dv">0</span>).rotate(<span class="dv">2</span><span class="op">*</span>pi<span class="op">/</span><span class="dv">3</span>, about<span class="op">=</span>pic.center, reps<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb9-7"><a href="#cb9-7"></a>    p2 <span class="op">=</span> [p <span class="cf">for</span> p <span class="kw">in</span> pic <span class="cf">if</span> p.fill <span class="op">==</span> <span class="va">False</span>]</span>
+<span id="cb9-8"><a href="#cb9-8"></a>    p3 <span class="op">=</span> [p <span class="cf">for</span> p <span class="kw">in</span> p1 <span class="cf">if</span> p.fill <span class="op">==</span> <span class="va">False</span>]</span>
+<span id="cb9-9"><a href="#cb9-9"></a>    p4 <span class="op">=</span> [p <span class="cf">for</span> p <span class="kw">in</span> pic <span class="cf">if</span> p.fill <span class="op">==</span> <span class="va">True</span>]</span>
+<span id="cb9-10"><a href="#cb9-10"></a>    p5 <span class="op">=</span> [p <span class="cf">for</span> p <span class="kw">in</span> p1 <span class="cf">if</span> p.fill <span class="op">==</span> <span class="va">True</span>]</span>
+<span id="cb9-11"><a href="#cb9-11"></a>    <span class="cf">return</span> [[pic, p1], [p2, p3], [p4, p5]]</span>
+<span id="cb9-12"><a href="#cb9-12"></a></span>
+<span id="cb9-13"><a href="#cb9-13"></a><span class="kw">def</span> draw_puzzle(canvas, pic, dx, gap):</span>
+<span id="cb9-14"><a href="#cb9-14"></a>    pics <span class="op">=</span> puzzle(pic, dx)</span>
+<span id="cb9-15"><a href="#cb9-15"></a>    <span class="cf">for</span> pic <span class="kw">in</span> pics:</span>
+<span id="cb9-16"><a href="#cb9-16"></a>        canvas.draw(pic[<span class="dv">0</span>])</span>
+<span id="cb9-17"><a href="#cb9-17"></a>        canvas.draw(pic[<span class="dv">1</span>])</span>
+<span id="cb9-18"><a href="#cb9-18"></a>        canvas.translate(gap, <span class="dv">0</span>)</span>
+<span id="cb9-19"><a href="#cb9-19"></a></span>
+<span id="cb9-20"><a href="#cb9-20"></a>gap <span class="op">=</span> <span class="dv">400</span></span>
+<span id="cb9-21"><a href="#cb9-21"></a>canvas.draw(pic1)</span>
+<span id="cb9-22"><a href="#cb9-22"></a>canvas.translate(<span class="dv">0</span>, <span class="op">-</span>gap<span class="op">*</span><span class="fl">.75</span>)</span>
+<span id="cb9-23"><a href="#cb9-23"></a></span>
+<span id="cb9-24"><a href="#cb9-24"></a><span class="cf">for</span> i, dx <span class="kw">in</span> <span class="bu">enumerate</span>([<span class="dv">60</span>, <span class="dv">120</span>, <span class="fl">51.96</span><span class="op">*</span><span class="dv">2</span>]):</span>
+<span id="cb9-25"><a href="#cb9-25"></a>    <span class="cf">if</span> i <span class="op">==</span> <span class="dv">2</span>:</span>
+<span id="cb9-26"><a href="#cb9-26"></a>        pic1.rotate(sg.pi<span class="op">/</span><span class="dv">6</span>, about<span class="op">=</span>pic1.center)</span>
+<span id="cb9-27"><a href="#cb9-27"></a>    draw_puzzle(canvas, pic1, dx, gap)</span>
+<span id="cb9-28"><a href="#cb9-28"></a>    canvas.translate(<span class="op">-</span><span class="dv">3</span><span class="op">*</span>gap, <span class="op">-</span>gap)</span>
+<span id="cb9-29"><a href="#cb9-29"></a></span>
+<span id="cb9-30"><a href="#cb9-30"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-10-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="hexagons" class="level2">
+<h2 class="anchored" data-anchor-id="hexagons">Hexagons</h2>
+<div id="c403008e" class="cell" data-execution_count="10">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb10-2"><a href="#cb10-2"></a></span>
+<span id="cb10-3"><a href="#cb10-3"></a>size <span class="op">=</span> <span class="dv">20</span></span>
+<span id="cb10-4"><a href="#cb10-4"></a>columns <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb10-5"><a href="#cb10-5"></a>width <span class="op">=</span> <span class="dv">420</span></span>
+<span id="cb10-6"><a href="#cb10-6"></a></span>
+<span id="cb10-7"><a href="#cb10-7"></a>c <span class="op">=</span> <span class="fl">.75</span></span>
+<span id="cb10-8"><a href="#cb10-8"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">8</span>):</span>
+<span id="cb10-9"><a href="#cb10-9"></a>    <span class="bu">hex</span> <span class="op">=</span> sg.reg_poly_shape(n<span class="op">=</span><span class="dv">6</span>, r<span class="op">=</span>size <span class="op">*</span> c, pos<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">0</span>)).rotate(pi<span class="op">/</span><span class="dv">6</span>)</span>
+<span id="cb10-10"><a href="#cb10-10"></a>    pic1 <span class="op">=</span> pictograph3([<span class="dv">6</span>, <span class="dv">6</span>], shape<span class="op">=</span><span class="bu">hex</span>, size<span class="op">=</span>size).rotate(sg.pi<span class="op">/</span><span class="dv">6</span>)</span>
+<span id="cb10-11"><a href="#cb10-11"></a>    pic1.move_to((width <span class="op">*</span> (i<span class="op">%</span>columns), <span class="op">-</span>(width <span class="op">*</span> (i<span class="op">//</span>columns))))</span>
+<span id="cb10-12"><a href="#cb10-12"></a>    canvas.draw(pic1, fill<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-13"><a href="#cb10-13"></a>    c <span class="op">+=</span> <span class="fl">.25</span></span>
+<span id="cb10-14"><a href="#cb10-14"></a></span>
+<span id="cb10-15"><a href="#cb10-15"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-11-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="34c0b892" class="cell" data-execution_count="11">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb11-2"><a href="#cb11-2"></a></span>
+<span id="cb11-3"><a href="#cb11-3"></a>size <span class="op">=</span> <span class="dv">20</span></span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="bu">hex</span> <span class="op">=</span> sg.reg_poly_shape(n<span class="op">=</span><span class="dv">6</span>, r<span class="op">=</span>size<span class="op">*</span><span class="dv">2</span>, pos<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">0</span>)).rotate(pi<span class="op">/</span><span class="dv">6</span>)</span>
+<span id="cb11-5"><a href="#cb11-5"></a>pic1 <span class="op">=</span> pictograph3([<span class="dv">6</span>, <span class="dv">6</span>], shape<span class="op">=</span><span class="bu">hex</span>, size<span class="op">=</span>size<span class="op">+</span><span class="dv">10</span>).rotate(sg.pi<span class="op">/</span><span class="dv">6</span>)</span>
+<span id="cb11-6"><a href="#cb11-6"></a></span>
+<span id="cb11-7"><a href="#cb11-7"></a>lace <span class="op">=</span> sg.Lace(pic1, offset<span class="op">=</span><span class="dv">4</span>, swatch<span class="op">=</span>sg.random_swatch())</span>
+<span id="cb11-8"><a href="#cb11-8"></a>canvas.draw(lace)</span>
+<span id="cb11-9"><a href="#cb11-9"></a></span>
+<span id="cb11-10"><a href="#cb11-10"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-12-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="a-similar-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="a-similar-algorithm">A Similar Algorithm</h2>
+<p>This algorithm uses translations, rotations, and scaling to create pictographs similar to Algorithm 1. Changing the parameters yield different patterns.</p>
+<div id="3647f29f" class="cell" data-execution_count="12">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb12-2"><a href="#cb12-2"></a></span>
+<span id="cb12-3"><a href="#cb12-3"></a>ROWS, COLS <span class="op">=</span> <span class="dv">7</span>, <span class="dv">5</span></span>
+<span id="cb12-4"><a href="#cb12-4"></a>WIDTH, HEIGHT <span class="op">=</span> <span class="dv">150</span>, <span class="dv">150</span></span>
+<span id="cb12-5"><a href="#cb12-5"></a>MARGIN <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb12-6"><a href="#cb12-6"></a>DX <span class="op">=</span> DY <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb12-7"><a href="#cb12-7"></a>RADIUS <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb12-8"><a href="#cb12-8"></a>canvas<span class="op">=</span>sg.Canvas()</span>
+<span id="cb12-9"><a href="#cb12-9"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>, ROWS <span class="op">*</span> COLS <span class="op">+</span> <span class="dv">2</span>):</span>
+<span id="cb12-10"><a href="#cb12-10"></a>    row, col <span class="op">=</span> (i<span class="op">-</span> <span class="dv">2</span>) <span class="op">//</span> COLS, (i<span class="op">-</span> <span class="dv">2</span>) <span class="op">%</span> COLS</span>
+<span id="cb12-11"><a href="#cb12-11"></a>    x, y <span class="op">=</span> (col <span class="op">*</span> WIDTH) <span class="op">+</span> MARGIN, (row <span class="op">*</span> HEIGHT) <span class="op">+</span> MARGIN</span>
+<span id="cb12-12"><a href="#cb12-12"></a>    dots<span class="op">=</span>sg.Batch(sg.Circle(radius<span class="op">=</span>RADIUS, center<span class="op">=</span>(x <span class="op">+</span> DX, y <span class="op">+</span> DY)))</span>
+<span id="cb12-13"><a href="#cb12-13"></a>    <span class="cf">for</span> n <span class="kw">in</span> prime_factors(i):</span>
+<span id="cb12-14"><a href="#cb12-14"></a>        dots.rotate(sg.two_pi<span class="op">/</span>n, (x,y), reps <span class="op">=</span> n <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb12-15"><a href="#cb12-15"></a>        dots.scale(<span class="fl">.5</span>, about <span class="op">=</span> dots.center)</span>
+<span id="cb12-16"><a href="#cb12-16"></a>        dots.translate(DX, DY)</span>
+<span id="cb12-17"><a href="#cb12-17"></a>    <span class="cf">for</span> dot <span class="kw">in</span> dots:</span>
+<span id="cb12-18"><a href="#cb12-18"></a>        canvas.circle(radius<span class="op">=</span>RADIUS, center<span class="op">=</span>dot.center)</span>
+<span id="cb12-19"><a href="#cb12-19"></a></span>
+<span id="cb12-20"><a href="#cb12-20"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-13-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="a05f285c" class="cell" data-execution_count="13">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1"></a><span class="im">import</span> random</span>
+<span id="cb13-2"><a href="#cb13-2"></a></span>
+<span id="cb13-3"><a href="#cb13-3"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb13-4"><a href="#cb13-4"></a></span>
+<span id="cb13-5"><a href="#cb13-5"></a>ROWS, COLS <span class="op">=</span> <span class="dv">10</span>, <span class="dv">4</span></span>
+<span id="cb13-6"><a href="#cb13-6"></a>WIDTH, HEIGHT <span class="op">=</span> <span class="dv">150</span>, <span class="dv">150</span></span>
+<span id="cb13-7"><a href="#cb13-7"></a>MARGIN <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb13-8"><a href="#cb13-8"></a>DX <span class="op">=</span> DY <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb13-9"><a href="#cb13-9"></a>RADIUS <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb13-10"><a href="#cb13-10"></a>canvas<span class="op">=</span>sg.Canvas()</span>
+<span id="cb13-11"><a href="#cb13-11"></a>ns <span class="op">=</span> [<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>]</span>
+<span id="cb13-12"><a href="#cb13-12"></a>set1 <span class="op">=</span> <span class="bu">set</span>(sg.product(ns, ns, ns, ns))</span>
+<span id="cb13-13"><a href="#cb13-13"></a>n_pics <span class="op">=</span> ROWS <span class="op">*</span> COLS</span>
+<span id="cb13-14"><a href="#cb13-14"></a>pictographs <span class="op">=</span> random.sample(<span class="bu">list</span>(set1), n_pics)</span>
+<span id="cb13-15"><a href="#cb13-15"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>, ROWS <span class="op">*</span> COLS <span class="op">+</span> <span class="dv">2</span>):</span>
+<span id="cb13-16"><a href="#cb13-16"></a>    row, col <span class="op">=</span> (i<span class="op">-</span> <span class="dv">2</span>) <span class="op">//</span> COLS, (i<span class="op">-</span> <span class="dv">2</span>) <span class="op">%</span> COLS</span>
+<span id="cb13-17"><a href="#cb13-17"></a>    x, y <span class="op">=</span> (col <span class="op">*</span> WIDTH) <span class="op">+</span> MARGIN, (row <span class="op">*</span> HEIGHT) <span class="op">+</span> MARGIN</span>
+<span id="cb13-18"><a href="#cb13-18"></a>    dots<span class="op">=</span>sg.Batch(sg.Circle(radius<span class="op">=</span>RADIUS, center<span class="op">=</span>(x <span class="op">+</span> DX, y <span class="op">+</span> DY)))</span>
+<span id="cb13-19"><a href="#cb13-19"></a>    <span class="cf">for</span> n <span class="kw">in</span> pictographs[i<span class="op">-</span><span class="dv">2</span>]:</span>
+<span id="cb13-20"><a href="#cb13-20"></a>        dots.rotate(sg.two_pi<span class="op">/</span>n, (x,y), reps <span class="op">=</span> n <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb13-21"><a href="#cb13-21"></a>        dots.scale(<span class="fl">.5</span>, about <span class="op">=</span> dots.center)</span>
+<span id="cb13-22"><a href="#cb13-22"></a>        dots.translate(DX, DY)</span>
+<span id="cb13-23"><a href="#cb13-23"></a>    <span class="cf">for</span> dot <span class="kw">in</span> dots:</span>
+<span id="cb13-24"><a href="#cb13-24"></a>        canvas.circle(radius<span class="op">=</span><span class="dv">2</span>, center<span class="op">=</span>dot.center)</span>
+<span id="cb13-25"><a href="#cb13-25"></a></span>
+<span id="cb13-26"><a href="#cb13-26"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-14-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="44e8aace" class="cell" data-execution_count="14">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a>canvas <span class="op">=</span> sg.Canvas()</span>
+<span id="cb14-2"><a href="#cb14-2"></a></span>
+<span id="cb14-3"><a href="#cb14-3"></a><span class="kw">def</span> rosette(factors, x<span class="op">=</span><span class="dv">0</span>, y<span class="op">=</span><span class="dv">0</span>, dx<span class="op">=</span><span class="dv">60</span>, dy<span class="op">=</span><span class="dv">60</span>, sf<span class="op">=</span><span class="fl">.5</span>):</span>
+<span id="cb14-4"><a href="#cb14-4"></a>    dots <span class="op">=</span> sg.Batch(sg.Circle(radius<span class="op">=</span><span class="dv">25</span>))</span>
+<span id="cb14-5"><a href="#cb14-5"></a>    dots.translate(x <span class="op">+</span> dx, y <span class="op">+</span> dy)</span>
+<span id="cb14-6"><a href="#cb14-6"></a>    <span class="cf">for</span> n <span class="kw">in</span> factors:</span>
+<span id="cb14-7"><a href="#cb14-7"></a>        dots.rotate(sg.two_pi <span class="op">/</span> n, (x, y), reps<span class="op">=</span>n <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb14-8"><a href="#cb14-8"></a>        dots.scale(sf, about<span class="op">=</span>dots.center)</span>
+<span id="cb14-9"><a href="#cb14-9"></a>        dots.translate(dx, dy)</span>
+<span id="cb14-10"><a href="#cb14-10"></a></span>
+<span id="cb14-11"><a href="#cb14-11"></a>    <span class="cf">return</span> dots</span>
+<span id="cb14-12"><a href="#cb14-12"></a></span>
+<span id="cb14-13"><a href="#cb14-13"></a></span>
+<span id="cb14-14"><a href="#cb14-14"></a>ns <span class="op">=</span> [<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>]</span>
+<span id="cb14-15"><a href="#cb14-15"></a>set1 <span class="op">=</span> <span class="bu">set</span>(sg.product(ns, ns, ns, ns))</span>
+<span id="cb14-16"><a href="#cb14-16"></a></span>
+<span id="cb14-17"><a href="#cb14-17"></a><span class="kw">def</span> grid(canvas,combinations, sf<span class="op">=</span><span class="fl">.5</span>, width<span class="op">=</span><span class="dv">200</span>, height<span class="op">=</span><span class="dv">200</span>, columns<span class="op">=</span><span class="dv">4</span>, margin<span class="op">=</span><span class="dv">80</span>):</span>
+<span id="cb14-18"><a href="#cb14-18"></a>    <span class="cf">for</span> i, combination <span class="kw">in</span> <span class="bu">enumerate</span>(combinations):</span>
+<span id="cb14-19"><a href="#cb14-19"></a>        row, col <span class="op">=</span> i <span class="op">//</span> columns, i <span class="op">%</span> columns</span>
+<span id="cb14-20"><a href="#cb14-20"></a>        x, y <span class="op">=</span> (col <span class="op">*</span> width) <span class="op">+</span> margin, (row <span class="op">*</span> height) <span class="op">+</span> margin</span>
+<span id="cb14-21"><a href="#cb14-21"></a>        pic <span class="op">=</span> rosette(combination, x, y, sf<span class="op">=</span>sf)</span>
+<span id="cb14-22"><a href="#cb14-22"></a>        center <span class="op">=</span> pic.center</span>
+<span id="cb14-23"><a href="#cb14-23"></a>        rad <span class="op">=</span> sg.distance(pic.northwest, center) <span class="op">+</span> <span class="dv">10</span></span>
+<span id="cb14-24"><a href="#cb14-24"></a>        canvas.circle(radius<span class="op">=</span>rad, center<span class="op">=</span>center, fill_color<span class="op">=</span>sg.yellow, stroke<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-25"><a href="#cb14-25"></a>        canvas.draw(pic, fill_color<span class="op">=</span>sg.dark_green, stroke<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-26"><a href="#cb14-26"></a></span>
+<span id="cb14-27"><a href="#cb14-27"></a>n_pics <span class="op">=</span> <span class="dv">60</span></span>
+<span id="cb14-28"><a href="#cb14-28"></a>pictographs <span class="op">=</span> random.sample(<span class="bu">list</span>(set1), n_pics)</span>
+<span id="cb14-29"><a href="#cb14-29"></a>grid(canvas, pictographs)</span>
+<span id="cb14-30"><a href="#cb14-30"></a><span class="bu">print</span>(<span class="st">'version:'</span>, sg.__version__)</span>
+<span id="cb14-31"><a href="#cb14-31"></a>canvas.display()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>version: 0.0.6</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Basegmez_SoPF_Supplement_ver_0_0_6_alpha_files/figure-html/cell-15-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
