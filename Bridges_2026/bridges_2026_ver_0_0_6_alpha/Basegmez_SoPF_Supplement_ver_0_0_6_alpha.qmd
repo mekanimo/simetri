@@ -8,9 +8,9 @@ format:
 jupyter: sopf
 ---
 
-# Main Scripts
+# Main Scripts (For simetri.graphics version 0.0.6 Alpha only!)
 
-These scripts require Python version 3.10 or higher and simetri.graphics version 0.0.6 Alpha. Any other version will be incompatible. To modify this notebook, edit the .qmd file and run `quarto render Basegmez_SoPF_Supplement_ver_0_0_6_alpha.qmd` from a terminal.
+These scripts require Python version 3.10 or higher and simetri.graphics version 0.0.6 Alpha. Any other version will be incompatible. You can see the latest version [here](https://htmlpreview.github.io/?https://github.com/mekanimo/simetri/blob/master/Bridges_2026/Basegmez_SoPF_Supplement/Basegmez_SoPF_supplement.html).
 
 ## Prime Factorization Algorithm
 

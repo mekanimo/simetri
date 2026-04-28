@@ -10,7 +10,7 @@ jupyter: simetri
 
 # Main Scripts
 
-These scripts require Python version 3.10 or higher and simetri.graphics version 0.0.8 Alpha or higher. If you need to run simetri.graphics version 0.0.6 Alpha, you can download the [Basegmez_SoPF_Supplement_ver_0_0_6_alpha.qmd](https://github.com/mekanimo/simetri/blob/master/images/logo.svg) and run it (this requires Python 3.10 or higher too). To render this file, run `quarto render Basegmez_SoPF_Supplement_ver_0_0_6_alpha.qmd` from a terminal.
+These scripts require Python version 3.10 or higher and simetri.graphics version 0.0.8 Alpha or higher. If you need to run simetri.graphics version 0.0.6 Alpha, please see [Basegmez_SoPF_Supplement_ver_0_0_6_alpha.html](https://htmlpreview.github.io/?https://github.com/mekanimo/simetri/blob/master/Bridges_2026/bridges_2026_ver_0_0_6_alpha/Basegmez_SoPF_Supplement_ver_0_0_6_alpha.html).
 
 ## Prime Factorization Algorithm
 
