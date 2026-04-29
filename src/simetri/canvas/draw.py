@@ -1810,7 +1810,7 @@ def create_sketch(item, canvas, **kwargs):
         parallel_polylines, dimensions, etc.'''
         sketches = []
         for item in items:
-            sketch = create_sketch(item)
+            sketch = create_sketch(item, canvas, **kwargs)
             sketches.append(sketch)
 
 
