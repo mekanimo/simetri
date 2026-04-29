@@ -1436,7 +1436,10 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
                     ]
                 )
 
-    if subtype in regular_sketch_types:
+    if subtype == Types.BATCH:
+        for batch_item in item:
+            draw(self, batch_item, **kwargs)
+    elif subtype in regular_sketch_types:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
             active_sketches.extend(sketches)
