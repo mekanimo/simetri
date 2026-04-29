@@ -22,7 +22,6 @@ from ..graphics.all_enums import (
     drawable_types,
     TexLoc,
     PlaitStyle,
-    FragmentStyle,
     Connection,
 )
 from ..colors import colors
@@ -33,38 +32,30 @@ from ..graphics.sketch import (
     BezierSketch,
     CircleSketch,
     EllipseSketch,
-    GroupSketch,
     HelpLinesSketch,
     LineSketch,
     PatternSketch,
     RectSketch,
     ShapeSketch,
-    ScopeGroup,
     TagSketch,
     ImageSketch,
     PDFSketch,
     LatexSketch,
 )
 from ..tikz.tikz_sketch import TexSketch
-from ..graphics.bbox import bounding_box
 from ..settings.settings import defaults
 from ..canvas.style_map import (
     line_style_map,
     shape_style_map,
-    tag_style_map,
-    image_style_map,
-    group_args,
-    StyleObj,
+
 )
 from ..helpers.illustration import Tag
 from ..helpers.utilities import (
     decompose_transformations,
     group_into_bins,
-    round_symmetric,
 )
 from ..graphics.affine import identity_matrix
 from ..graphics.shape import Shape, all_segments
-from ..graphics.shapes import fillet_shape_corners
 from ..graphics.batch import Batch
 from ..graphics.common import PointType, d_id_obj
 from ..geometry.bezier import bezier_points
@@ -1712,21 +1703,6 @@ def create_sketch(item, canvas, **kwargs):
 
         return sketch
 
-    def get_group_sketch(item, canvas, **kwargs):
-        """Create a GroupSketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            GroupSketch: Created GroupSketch.
-        """
-        sketch = GroupSketch(item, xform_matrix=canvas.xform_matrix)
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-
-        return sketch
 
     def get_circle_sketch(item, canvas, **kwargs):
         """Create a CircleSketch from the given item.
@@ -1818,97 +1794,16 @@ def create_sketch(item, canvas, **kwargs):
         )
         return sketches
 
-    def get_scope_group_sketches(item, canvas, **kwargs):
-        """Collect flat sketches for item, creating a ScopeGroup if scope is needed.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            list: Flat list of sketch objects.
-        """
-        swatch = kwargs["swatch"] if "swatch" in kwargs else None
-        batch_clip = kwargs["clip"] if "clip" in kwargs else None
-        raw_mask = kwargs["mask"] if "mask" in kwargs else None
-
-        if raw_mask is not None:
-            if raw_mask.type == Types.MASK:
-                batch_mask = raw_mask.shape
-                mask_opacity = raw_mask.opacity
-                mask_stops = raw_mask.stops
-                mask_axis = raw_mask.axis
-            else:
-                batch_mask = raw_mask
-                mask_opacity = kwargs["_mask_opacity"] if "_mask_opacity" in kwargs else None
-                mask_stops = kwargs["_mask_stops"] if "_mask_stops" in kwargs else None
-                mask_axis = kwargs["_mask_axis"] if "_mask_axis" in kwargs else None
-        else:
-            batch_mask = None
-            mask_opacity = None
-            mask_stops = None
-            mask_axis = None
-
-        scope_kwargs = {"clip", "mask", "_mask_opacity", "_mask_stops",
-                        "_mask_axis", "_mask_context_id", "_mask_context_bbox"}
-        element_kwargs_base = {key: value for key, value in kwargs.items()
-                               if key not in scope_kwargs}
-
-        if swatch is not None:
-            n_swatch = len(swatch)
-
+    def get_composite_sketch(items, canvas, **kwargs):
+        '''Create a sketch for composite items like arrows, grids,
+        parallel_polylines, dimensions, etc.'''
         sketches = []
-        sketch_count = 0
-        for element in item.elements:
-            if element.visible and element.active:
-                element_kwargs = dict(element_kwargs_base)
-                if swatch is not None:
-                    element_kwargs["fill_color"] = Color(
-                        *swatch[sketch_count % n_swatch]
-                    )
-                sketches.extend(get_sketches(element, canvas, **element_kwargs))
-                sketch_count += 1
+        for item in items:
+            sketch = create_sketch(item)
+            sketches.append(sketch)
 
-        if not sketches:
-            return sketches
 
-        if batch_clip is True and batch_mask is not None:
-            scope_group = ScopeGroup(
-                subtype=Types.CLIP_GROUP,
-                sketch_list=sketches,
-                clip=batch_clip,
-                mask=batch_mask,
-            )
-            canvas.active_page.scope_groups.append(scope_group)
-            return sketches
 
-        if batch_mask is not None:
-            mask_context_id = (
-                kwargs["_mask_context_id"]
-                if "_mask_context_id" in kwargs
-                else f"mask_group_{id(item)}"
-            )
-            mask_context_bbox = (
-                kwargs["_mask_context_bbox"]
-                if "_mask_context_bbox" in kwargs
-                else None
-            )
-            scope_group = ScopeGroup(
-                subtype=Types.MASK_GROUP,
-                sketch_list=sketches,
-                clip=batch_clip,
-                mask=batch_mask,
-                _mask_opacity=mask_opacity,
-                _mask_stops=mask_stops,
-                _mask_axis=mask_axis,
-                _mask_context_id=mask_context_id,
-                _mask_context_bbox=mask_context_bbox,
-            )
-            canvas.active_page.scope_groups.append(scope_group)
-            return sketches
-
-        return sketches
 
     def get_path_sketch(item, canvas, **kwargs):
         """Create sketches for a path from the given item.
@@ -2145,42 +2040,41 @@ def create_sketch(item, canvas, **kwargs):
 
     d_subtype_sketch = {
         Types.ARC: get_arc_sketch,
-        Types.ARC_ARROW: get_scope_group_sketches,
-        Types.ARROW: get_scope_group_sketches,
+        Types.ARC_ARROW: get_composite_sketch,
+        Types.ARROW: get_composite_sketch,
         Types.ARROW_HEAD: get_sketch,
-        Types.BATCH: get_scope_group_sketches,
+        Types.BATCH: get_composite_sketch,
         Types.BEZIER: get_sketch,
         Types.BOUNDING_BOX: get_bbox_sketch,
         Types.CIRCLE: get_circle_sketch,
-        Types.CIRCULAR_GRID: get_scope_group_sketches,
+        Types.CIRCULAR_GRID: get_composite_sketch,
         Types.DIVISION: get_sketch,
         Types.DOT: get_circle_sketch,
         Types.DOTS: get_dots_sketch,
         Types.ELLIPSE: get_sketch,
         Types.FRAGMENT: get_sketch,
-        Types.GROUP: get_group_sketch,
         Types.HANDLE: get_handle_sketch,
-        Types.HEX_GRID: get_scope_group_sketches,
+        Types.HEX_GRID: get_composite_sketch,
         Types.IMAGE: get_image_sketch,
         Types.LACE: get_lace_sketch,
         Types.LINE: get_line_sketch,
         Types.LINPATH: get_path_sketch,
-        Types.MIXED_GRID: get_scope_group_sketches,
+        Types.MIXED_GRID: get_composite_sketch,
         Types.MASK: get_sketch,
-        Types.OVERLAP: get_scope_group_sketches,
-        Types.PARALLEL_POLYLINE: get_scope_group_sketches,
+        Types.OVERLAP: get_composite_sketch,
+        Types.PARALLEL_POLYLINE: get_composite_sketch,
         Types.PATTERN: get_pattern_sketch,
         Types.PLAIT: get_sketch,
         Types.POLYLINE: get_sketch,
-        Types.RADIAL_DIMENSION: get_scope_group_sketches,
+        Types.RADIAL_DIMENSION: get_composite_sketch,
         Types.Q_BEZIER: get_sketch,
         Types.RECTANGLE: get_sketch,
         Types.SECTION: get_sketch,
         Types.SEGMENT: get_sketch,
         Types.SHAPE: get_sketch,
         Types.SINE_WAVE: get_sketch,
-        Types.SQUARE_GRID: get_scope_group_sketches,
-        Types.STAR: get_scope_group_sketches,
+        Types.SQUARE_GRID: get_composite_sketch,
+        Types.STAR: get_composite_sketch,
         Types.TAG: get_tag_sketch,
     }
 

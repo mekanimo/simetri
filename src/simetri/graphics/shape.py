@@ -34,7 +34,6 @@ from .all_enums import (
     shape_types,
     InPlace,
     TransformationType,
-    Reference,
     shape_attributes,
 )
 from .bbox import BoundingBox

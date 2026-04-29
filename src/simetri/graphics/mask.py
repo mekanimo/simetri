@@ -1,4 +1,4 @@
-"""SVG mask API."""
+"""Gradient and Mask objects for both SVG and TikZ"""
 
 from __future__ import annotations
 
@@ -9,16 +9,13 @@ import numpy as np
 
 from ..graphics.common import common_properties
 from ..graphics.all_enums import Types, SvgUnits, GradientType
-from ..graphics.affine import identity_matrix
-from ..graphics.batch import Batch
-from ..graphics.shape import Shape
-from ..graphics.sketch import MaskSketch
-from ..canvas import draw as canvas_draw
+
 from ..colors.colors import Color
 from ..settings.settings import defaults
+from ..helpers.validation import check_percent, check_color
 
 if TYPE_CHECKING:
-    from ..canvas.canvas import Canvas
+    from ..graphics.shape import Shape
 
 
 @dataclass
@@ -26,14 +23,13 @@ class Mask:
     """Mask object used by clipping/masking APIs.
 
     A mask always has a shape payload plus optional opacity/gradient data.
+    mask.subtype can be Types.CLIP, Types.LUMINANCE, Types.OPACITY
     """
 
     shape: Shape
     opacity: float = None
     stops: list[Stop] = None
     axis: Optional["Axis"] = None
-    mask_units: SvgUnits = None
-    mask_content_units: SvgUnits = None
     subtype: Types = None
 
     def __post_init__(self):
@@ -49,47 +45,65 @@ class Mask:
         if not (0.0 <= self.opacity <= 1.0):
             raise ValueError("mask opacity must be between 0 and 1.")
 
-        self.axis = normalize_axis(self.axis)
-        self.stops = normalize_stops(self.stops)
-        self.mask_units = _normalize_units(self.mask_units, "mask_units")
-        self.mask_content_units = _normalize_units(self.mask_content_units, "mask_content_units")
-
-        self.subtype = _normalize_mask_subtype(self.subtype, self.stops, self.opacity)
 
 
 @dataclass
 class Axis:
-    """Mask direction axis represented by normalized start/end points."""
+    """Mask direction axis represented by normalized start/end points.
+    start end end must be between [0, 0], and [1.0, 1.0]
+    """
 
     start: tuple[float, float]
     end: tuple[float, float]
 
+    def __init__(self, start: tuple[float, float], end: tuple[float, float]):
+        self,
+        start: tuple[float, float] = start,
+        end: tuple[float, float] = end
+
+
     def __post_init__(self):
+        if not (check_percent(self.start[0]) and
+                check_percent(self.start[1]) and
+                check_percent(self.end[0]) and
+                check_percent(self.end[0])
+        ):
+            raise ValueError("start and end points must be between (0, 0) and (1.0, 1.0) ")
         common_properties(self, graphics_object=False)
-        self.start = _normalize_axis_point(self.start, "start")
-        self.end = _normalize_axis_point(self.end, "end")
+
 
 
 @dataclass(init=False)
 class Stop:
-    """A gradient stop used by mask gradients."""
+    """A gradient stop used by mask gradients.
+    offset: 0 <= offset <= 1.0
+    opacity: 0 <= opacity <= 1.0
+    color: Color
+    """
 
     offset: float
-    color: Optional[Union[Color, str]] = None
+    color: Optional[Color] = None
     opacity: Optional[float] = None
-    style: Optional[dict[str, Any]] = None
 
     def __init__(
         self,
         offset: float,
-        color: Optional[Union[Color, str]] = None,
+        color: Optional[Color] = None,
         opacity: Optional[float] = None,
-        style: Optional[dict[str, Any]] = None,
     ):
+        if not check_percent(offset):
+            raise ValueError("Stop offset must be between 0 and 1.0")
+        if color is None and opacity is None:
+            raise ValueError("Specify a color, opacity, or both.")
+        if color is not None:
+            if not check_color(color):
+                raise ValueError("Incorrect color value.")
+        if opacity is not None:
+            if not check_percent(opacity):
+                raise ValueError("Stop opacity must be between 0 and 1.0")
         self.offset = offset
         self.color = color
         self.opacity = opacity
-        self.style = style
         self.__post_init__()
 
     def __post_init__(self):
@@ -97,22 +111,48 @@ class Stop:
         self.type = Types.STOP
         self.subtype = Types.STOP
 
-        self.offset = _normalize_offset(self.offset)
+def _resolve_stops(stops):
+    if len(stops) < 2:
+        raise ValueError("Invalid stop values.")
+    if isinstance(stops[0], Stop):
+        for stop in stops[1:]:
+            if not isinstance(stop, Stop):
+                raise ValueError("All stops must have the same type.")
+        return stops
+    else:
+        stops_list = []
+        for stop in stops:
+            offset = stop[0]
+            if not check_percent(offset):
+                raise ValueError("Offset must be between 0 and 1")
+            color = None
+            opacity = None
+            if isinstance(stop[1], float):
+                opacity = stop[1]
+                if not check_percent(opacity):
+                    raise ValueError("Offset must be between 0 and 1")
+            elif isinstance(stop[1], Color):
+                color = stop[1]
+            if len(stop) > 2:
+                color = stop[2]
+                if not check_color(color):
+                    raise ValueError("Invalid color.")
+            stops_list.append(Stop(offset, color, opacity))
 
-        if self.opacity is not None:
-            self.opacity = float(self.opacity)
-            if not (0.0 <= self.opacity <= 1.0):
-                raise ValueError("mask stop opacity must be between 0 and 1.")
-
-        self.style = dict(self.style or {})
+        return stops_list
 
 
 @dataclass
 class Gradient:
-    """Gradient object for shape fills in SVG/TikZ backends."""
+    """Gradient object for shape fills in SVG/TikZ backends.
+    stops can be a list of Stop objects or
+    [(offset1, opacity1, color1), (offset2, opacity2, color2), ...] or
+    [(offset1, color1), (offset2, color2), ...] or
+    [(offset1, opacity1), (offset2, opacity2), ...]
 
+    """
     gradient_type: GradientType = None
-    stops: list[Stop] = None
+    stops: Union[list[Stop], list[tuple]] = None
     axis: Optional[Axis] = None
     center: Optional[tuple[float, float]] = None
     focal: Optional[tuple[float, float]] = None
@@ -126,97 +166,26 @@ class Gradient:
         common_properties(self, graphics_object=False)
         self.type = Types.GRADIENT
 
-        self.gradient_type = _normalize_gradient_type(self.gradient_type)
-        self.stops = normalize_stops(self.stops)
-        self.units = _normalize_units(self.units, "gr_units")
-
         if self.spread_method is None:
             self.spread_method = defaults["gradient_spread_method"]
-
+        self.stops = _resolve_stops(self.stops)
         if self.gradient_type == GradientType.LINEAR:
-            self.axis = normalize_axis(self.axis)
             self.center = None
             self.focal = None
             self.radius = None
             self.subtype = Types.LINEAR
         else:
             self.axis = None
-            self.center = _normalize_axis_point(
-                self.center if self.center is not None else (defaults["gr_cx"], defaults["gr_cy"]),
-                "center",
-            )
-            default_focal_x = defaults["gr_fx"] if defaults["gr_fx"] is not None else self.center[0]
-            default_focal_y = defaults["gr_fy"] if defaults["gr_fy"] is not None else self.center[1]
-            self.focal = _normalize_axis_point(
-                self.focal if self.focal is not None else (default_focal_x, default_focal_y),
-                "focal",
-            )
-            self.radius = float(self.radius if self.radius is not None else defaults["gr_r"])
+            if self.center is None:
+                self.center = defaults["gradient_center"]
+            if self.focal is None:
+                self.focal = defaults["gradient_focal"]
+            if self.radius is None:
+                self.radius = defaults["gradient_radius"]
             if self.radius <= 0.0:
                 raise ValueError("gradient radius must be positive.")
             self.subtype = Types.RADIAL
 
-
-def _normalize_gradient_type(value: Optional[Union[GradientType, Types]]) -> GradientType:
-    if value is None:
-        value = defaults["gradient_type"]
-
-    if isinstance(value, GradientType):
-        return value
-
-    if value == Types.LINEAR:
-        return GradientType.LINEAR
-    if value == Types.RADIAL:
-        return GradientType.RADIAL
-
-    value_text = str(value).strip()
-    if value_text in GradientType.__members__:
-        return GradientType[value_text]
-    lowered_value = value_text.lower()
-    if lowered_value == GradientType.LINEAR.value:
-        return GradientType.LINEAR
-    if lowered_value == GradientType.RADIAL.value:
-        return GradientType.RADIAL
-
-    raise ValueError("gradient_type must be GradientType.LINEAR or GradientType.RADIAL.")
-
-
-def _normalize_offset(offset: Union[float, str]) -> float:
-    if isinstance(offset, str) and offset.endswith("%"):
-        offset = float(offset[:-1]) / 100.0
-    value = float(offset)
-    if not (0.0 <= value <= 1.0):
-        raise ValueError("mask stop offset must be between 0 and 1.")
-    return value
-
-
-def _normalize_axis_point(point: Union[tuple[float, float], list[float]], name: str) -> tuple[float, float]:
-    if not isinstance(point, (tuple, list)) or len(point) != 2:
-        raise TypeError(f"mask axis {name} must be a pair (x, y).")
-    x = float(point[0])
-    y = float(point[1])
-    if not (0.0 <= x <= 1.0):
-        raise ValueError(f"mask axis {name}.x must be between 0 and 1.")
-    if not (0.0 <= y <= 1.0):
-        raise ValueError(f"mask axis {name}.y must be between 0 and 1.")
-    return (x, y)
-
-
-def normalize_axis(axis: Optional[Union[Axis, dict, tuple, list]]) -> Axis:
-    if axis is None:
-        return Axis(
-            start=(defaults.get("msk_x1", 0.0), defaults.get("msk_y1", 0.0)),
-            end=(defaults.get("msk_x2", 1.0), defaults.get("msk_y2", 0.0)),
-        )
-    if isinstance(axis, Axis):
-        return axis
-    if isinstance(axis, dict):
-        if "start" not in axis or "end" not in axis:
-            raise ValueError("mask axis dict must include 'start' and 'end'.")
-        return Axis(start=axis["start"], end=axis["end"])
-    if isinstance(axis, (tuple, list)) and len(axis) == 2:
-        return Axis(start=axis[0], end=axis[1])
-    raise TypeError("mask axis must be an Axis, {'start','end'} dict, or ((x1,y1),(x2,y2)) pair.")
 
 
 def _normalize_units(value: Optional[Union[str, SvgUnits]], field_name: str) -> SvgUnits:
@@ -257,77 +226,9 @@ def _normalize_units(value: Optional[Union[str, SvgUnits]], field_name: str) -> 
     return normalized
 
 
-def stop_from_input(stop: Union[Stop, dict, tuple, list]) -> Stop:
-    if isinstance(stop, Stop):
-        return stop
-
-    if isinstance(stop, dict):
-        if "offset" not in stop:
-            raise ValueError("each mask stop dict must include 'offset'.")
-
-        allowed_keys = {"offset", "color", "opacity", "style"}
-        unknown_keys = set(stop.keys()) - allowed_keys
-        if unknown_keys:
-            unknown_keys_text = ", ".join(sorted(unknown_keys))
-            raise ValueError(f"unsupported mask stop dict keys: {unknown_keys_text}")
-
-        stop_offset = stop["offset"]
-        if "color" in stop:
-            color = stop["color"]
-        else:
-            color = None
-        if "opacity" in stop:
-            opacity = stop["opacity"]
-        else:
-            opacity = None
-        if "style" in stop:
-            style = stop["style"]
-        else:
-            style = None
-
-        return Stop(stop_offset, color=color, opacity=opacity, style=style)
-
-    raise ValueError("each mask stop must be a Stop or a dict with keys: offset, color, opacity, style.")
-
-
-def normalize_stops(stops: Optional[list]) -> Optional[list[Stop]]:
-    if stops is None:
-        return None
-    if not isinstance(stops, (list, tuple)):
-        raise ValueError("mask stops must be a list with at least two stop entries.")
-    normalized = [stop_from_input(stop) for stop in stops]
-    if len(normalized) < 2:
-        raise ValueError("mask stops must contain at least two stops.")
-    return normalized
-
-
-def _normalize_mask_subtype(subtype, stops: Optional[list[Stop]], opacity: float) -> Types:
-    allowed = {Types.CLIP, Types.LUMINANCE, Types.OPACITY}
-
-    if subtype is not None:
-        if not isinstance(subtype, Types):
-            subtype_str = str(subtype).strip()
-            if subtype_str.startswith("Types."):
-                subtype_str = subtype_str.split(".", 1)[1]
-            subtype_str = subtype_str.upper()
-            if subtype_str in Types.__members__:
-                subtype = Types[subtype_str]
-            else:
-                subtype = Types(subtype_str)
-        if subtype not in allowed:
-            raise ValueError("mask subtype must be Types.CLIP, Types.LUMINANCE, or Types.OPACITY.")
-        return subtype
-
-    if stops:
-        has_color = any(stop.color is not None for stop in stops)
-        return Types.LUMINANCE if has_color else Types.OPACITY
-
-    if opacity < 1.0:
-        return Types.OPACITY
-
-    return Types.CLIP
-
-def clip_mask(self: "Canvas", target: Union[Shape, Batch, None]=None, mask: Mask=None, **kwargs):
+# This is no longer used! Will be deleted soon.
+# We will use canvas.clip(target, mask), canvas.mask(target, mask)
+def clip_mask_(self: "Canvas", target: Union[Shape, Batch, None]=None, mask: Mask=None, **kwargs):
     """Apply a `Mask` to a target and draw it.
     """
     mask_opacity = defaults.get("alpha", 1.0)

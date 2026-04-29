@@ -699,28 +699,6 @@ class Segment(Shape):
         )
 
 
-class Mask(Shape):
-    """A mask is a closed shape that is used to clip other shapes.
-    All it has is points and a transformation matrix.
-    """
-
-    def __init__(self, points, reverse=False, xform_matrix=None):
-        """Initialize a Mask object.
-
-        Args:
-            points (Sequence[PointType]): The points that make up the mask.
-            reverse (bool, optional): Whether to reverse the mask. Defaults to False.
-            xform_matrix (np.array, optional): The transformation matrix. Defaults to None.
-        """
-        super().__init__(
-            points=points,
-            closed=True,
-            xform_matrix=xform_matrix,
-            subtype=Types.MASK,
-        )
-        self.reverse: bool = reverse
-        # mask should be between \begin{scope} and \end{scope}
-        # canvas, batch, and shapes can have scope
 
 
 def circle_points(

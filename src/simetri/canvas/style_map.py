@@ -14,6 +14,7 @@ import enum
 
 from ..settings.settings import defaults, default_types
 from ..graphics.common import get_unique_id, VOID, common_properties
+from ..graphics.mask import Gradient
 from ..graphics.all_enums import (
     Align,
     Anchor,
@@ -589,6 +590,7 @@ class ShapeStyle:
     fill_style: FillStyle = None
     alpha: float = None
     color: Color = None
+    gradient: Gradient = None
 
     def __post_init__(self):
         """Initialize the ShapeStyle object."""

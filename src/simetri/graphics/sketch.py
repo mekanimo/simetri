@@ -30,6 +30,7 @@ Color = colors.Color
 np.set_printoptions(legacy="1.21")
 
 
+
 @dataclass
 class CircleSketch:
     """CircleSketch is a dataclass for creating a circle sketch object.
@@ -268,27 +269,6 @@ class PatternSketch:
         self.closed = self.pattern.closed
 
 
-@dataclass
-class GroupSketch:
-    """GroupSketch is a dataclass for creating a group sketch object.
-    Group sketches do not freeze anything. sketch.group is used during
-    canvas.save or canvas.display.
-
-    Attributes:
-        group Group: The group object.
-
-    """
-
-    group: Group = None
-    xform_matrix: ndarray = None
-
-    def __post_init__(self):
-        """Initialize the PatternSketch object."""
-        self.type = Types.SKETCH
-        self.subtype = Types.GROUP_SKETCH
-        if self.xform_matrix is None:
-            self.xform_matrix = identity_matrix()
-
 
 @dataclass
 class ImageSketch:
@@ -494,34 +474,64 @@ class ArcSketch:
 class ScopeGroup:
     """ScopeGroup holds scope metadata for a group of sketches.
 
-    Sketches are drawn from page.sketches; ScopeGroup provides the scope
-    wrapping (clip, mask, alpha, blend) without drawing anything itself.
-
-    Attributes:
-        subtype (Types): CLIP_GROUP, MASK_GROUP, ALPHA_GROUP, or BLEND_GROUP.
-        sketch_list (list): Sketch objects in this scope (references to page.sketches entries).
-        clip (Any): Clipping value (True for hard clip using mask shape).
-        mask (Any): Shape used for clipping or masking.
-        alpha (float): Group opacity.
-        blend_mode (str): CSS blend mode string.
+    This is used for defining a style and referencing it from many
+    shapes. This makes the source code more readable and shorter.
     """
-
-    subtype: Types
+    label: str
+    subtype: Types.SCOPE_GROUP
     sketch_list: list
-    clip: Any = None
-    mask: Any = None
-    alpha: float = None
-    blend_mode: str = None
-    _mask_opacity: float = None
-    _mask_stops: Any = None
-    _mask_axis: Any = None
-    _mask_context_id: str = None
-    _mask_context_bbox: Any = None
+    style_data: dict
 
     def __post_init__(self):
         self.type = Types.SCOPE_GROUP
         common_properties(self)
 
+@dataclass
+class ClippedSketch:
+    '''canvas.clip creates a ClippedSketch'''
+    sketches: List[Types.SKETCH]
+    clipper: ShapeSketch
+
+    def __post_init__(self):
+        """Initialize the Clippedketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.CLIPPED_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+
+
+
+@dataclass
+class MaskedSketch:
+    '''canvas.mask creates a MaskedSketch'''
+    sketches: List[Types.SKETCH]
+    mask: 'Mask'
+
+    def __post_init__(self):
+        """Initialize the Clippedketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.MASKED_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+
+class FilteredSketch:
+    '''canvas.filter creates a FilteredSketch'''
+    sketches: List[Types.SKETCH]
+    filter_s: List # list of filters or a filter
+
+    def __post_init__(self):
+        """Initialize the FilteredSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.FILTERED_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+
+    def __post_init__(self):
+        """Initialize the Clippedketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.PATH_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
 
 @dataclass
 class PathSketch:
@@ -760,3 +770,15 @@ class HelpLinesSketch:
         self.pos = (x1, y1)
         self.width = w
         self.height = h
+
+@dataclass
+class CompositeSketch:
+    sketches: List[Types.Sketch]
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        """Initialize the Clippedketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.COMPOSITE_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()

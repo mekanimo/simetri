@@ -829,77 +829,50 @@ def set_defaults():
         "Dimension extension gap. Positive float. Length in <points>."
     )
 
-    # SVG Gradient defaults (gradients for SVG output)
-    defaults["gr_cx"] = 0.5  # radial gradient center x
-    default_types["gr_cx"] = float
-    defaults_help["gr_cx"] = (
-        "Gradient cx. Float. Center x-coordinate for radial gradient."
+    # Gradient defaults
+    defaults["gradient_center"] = (0.5, 0.5)  # radial gradient center
+    default_types["gradient_center"] = tuple[float, float]
+    defaults_help["gradient_center"] = (
+        """Gradient center, tuple[float, float]. Center of the gradient.
+        Must be between (0, 0) and (1.0, 1.0)"""
     )
 
-    defaults["gr_cy"] = 0.5  # radial gradient center y
-    default_types["gr_cy"] = float
-    defaults_help["gr_cy"] = (
-        "Gradient cy. Float. Center y-coordinate for radial gradient."
+    defaults["gradient_focal"] = (0.5, 0.5)  # radial gradient focal pooint
+    default_types["gradient_focal"] = tuple[float, float]
+    defaults_help["gradient_focal"] = (
+        """Gradient focal, tuple[float, float]. Center of the gradient.
+        Must be between (0, 0) and (1.0, 1.0)"""
     )
 
-    defaults["gr_fx"] = None  # radial gradient focal point x
-    default_types["gr_fx"] = float
-    defaults_help["gr_fx"] = (
-        "Gradient fx. Float or None. Focal point x-coordinate for radial gradient. "
-        "If None, defaults to cx."
+
+    defaults["gradent_radius"] = 0.5  # radial gradient radius
+    default_types["gradient_radius"] = float
+    defaults_help["gradient_radius"] = (
+        "Gradient radius. Positive float. Radius for radial gradient."
     )
 
-    defaults["gr_fy"] = None  # radial gradient focal point y
-    default_types["gr_fy"] = float
-    defaults_help["gr_fy"] = (
-        "Gradient fy. Float or None. Focal point y-coordinate for radial gradient. "
-        "If None, defaults to cy."
-    )
 
-    defaults["gr_r"] = 0.5  # radial gradient radius
-    default_types["gr_r"] = float
-    defaults_help["gr_r"] = (
-        "Gradient r. Positive float. Radius for radial gradient."
-    )
-
-    defaults["gr_stops"] = None  # gradient color stops
-    default_types["gr_stops"] = object
-    defaults_help["gr_stops"] = (
-        "Gradient stops. List of tuples or None. "
-        "Color stops for the gradient. Format: [(offset, color), ...] "
-        "where offset is 0-1."
-    )
-
-    defaults["gr_units"] = "objectBoundingBox"  # gradient units
-    default_types["gr_units"] = str
-    defaults_help["gr_units"] = (
+# Fix this!!! Should not be SVG only!!!
+    defaults["gradient_units"] = "objectBoundingBox"  # gradient units
+    default_types["gradient_units"] = str
+    defaults_help["gradient_units"] = (
         "Gradient units. String. 'userSpaceOnUse' or 'objectBoundingBox'. "
         "SVG gradient units coordinate system."
     )
 
-    defaults["gr_x1"] = 0  # linear gradient start x
-    default_types["gr_x1"] = float
-    defaults_help["gr_x1"] = (
-        "Gradient x1. Float. Start x-coordinate for linear gradient."
+    defaults["gradient_start"] = (0, 0)  # linear gradient start
+    default_types["gradient_start"] = tuple[float, float]
+    defaults_help["ggradient_start"] = (
+        "Gradient start. tuple[float, float]. Start for linear gradient."
     )
 
-    defaults["gr_x2"] = 1  # linear gradient end x
-    default_types["gr_x2"] = float
-    defaults_help["gr_x2"] = (
-        "Gradient x2. Float. End x-coordinate for linear gradient."
+    defaults["gradient_end"] = (0, 0)  # linear gradient end
+    default_types["gradient_end"] = tuple[float, float]
+    defaults_help["ggradient_end"] = (
+        "Gradient end. tuple[float, float]. End for linear gradient."
     )
 
-    defaults["gr_y1"] = 0  # linear gradient start y
-    default_types["gr_y1"] = float
-    defaults_help["gr_y1"] = (
-        "Gradient y1. Float. Start y-coordinate for linear gradient."
-    )
 
-    defaults["gr_y2"] = 0  # linear gradient end y
-    default_types["gr_y2"] = float
-    defaults_help["gr_y2"] = (
-        "Gradient y2. Float. End y-coordinate for linear gradient."
-    )
 
     defaults["gradient"] = None
     default_types["gradient"] = object

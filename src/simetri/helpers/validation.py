@@ -307,6 +307,13 @@ def is_positive(value):
 def is_numeric(value):
     return isinstance(value, numbers.Number)
 
+def check_percent(value):
+    """Checks if a value is a floating point between 0 and 1.0"""
+    return is_numeric(value) and value >= 0 and value <= 1.0
+
+
+
+
 
 d_validators = {
     "alpha": check_number,
@@ -352,6 +359,7 @@ d_validators = {
     "marker_size": check_number,
     "markers_only": check_bool,
     "mask": check_mask,
+    "opacity": check_percent,
     "pattern_angle": check_number,
     "pattern_color": check_color,
     "pattern_distance": check_number,
@@ -379,6 +387,7 @@ d_validators = {
     "shade_upper_left_color": check_color,
     "shade_upper_right_color": check_color,
     "smooth": check_bool,
+    "stop_offset": check_percent,
     "stroke": check_bool,
     "xform_matrix": check_xform_matrix,
     "subtype": check_subtype,

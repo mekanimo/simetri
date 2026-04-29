@@ -65,7 +65,7 @@ from simetri.notebook import display
 from simetri.image.image import Image, create_image_from_data
 from simetri.tex.tex import remove_aux_files, run_job, Tex
 from simetri.svg.filters import SVG_Filter
-from simetri.svg.mask import Mask, clip_mask as apply_svg_mask
+from simetri.graphics.mask import Mask
 
 
 def save_renderer(extension: str) -> Renderer:
@@ -187,6 +187,21 @@ class Canvas:
 
         else:
             self.__dict__[name] = value
+
+    def apply_mask(self, target, mask):
+        # create a MaskedSketcch
+
+        return self
+
+    def clip(self, target, clipper):
+        # create a ClippedSketch
+
+        return self
+
+    def apply_filter(self, target, filters):
+        # createa FilteredSketch
+
+        return self
 
     def display(self) -> Self:
         """Show the canvas in a notebook cell."""
@@ -787,8 +802,6 @@ class Canvas:
         scale=(1, 1),
         about=(0, 0),
         show: bool = False,
-        mask: Mask = None,
-        filter: SVG_Filter = None,
         **kwargs,
     ) -> Self:
         """
@@ -810,12 +823,6 @@ class Canvas:
         """
         sketch_xform = self._sketch_xform_matrix
 
-        swatch = kwargs.get("swatch", None)
-        if swatch:
-            n_swatch = len(swatch)
-
-        if filter is not None:
-            kwargs["filter"] = filter
 
         if pos is not None:
             sketch_xform = translation_matrix(*pos[:2]) @ sketch_xform
@@ -827,18 +834,9 @@ class Canvas:
             sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
         self._sketch_xform_matrix = sketch_xform @ self._xform_matrix
 
-        if mask is not None:
-            if isinstance(item_s, (list, tuple)):
-                for i, item in enumerate(item_s):
-                    if swatch:
-                        kwargs["fill_color"] = Color(*swatch[i % n_swatch])
-                    self._apply_mask(target=item, mask=mask, **kwargs)
-            else:
-                self._apply_mask(target=item_s, mask=mask, **kwargs)
-        elif isinstance(item_s, (list, tuple)):
-            for i, item in enumerate(item_s):
-                if swatch:
-                    kwargs["fill_color"] = Color(*swatch[i % n_swatch])
+
+        if isinstance(item_s, (list, tuple)):
+            for item in item_s:
                 draw.draw(self, item, **kwargs)
         else:
             draw.draw(self, item_s, **kwargs)
@@ -1413,13 +1411,7 @@ class Canvas:
                     user_fonts.add(name)
         return list(user_fonts.difference(latex_fonts))
 
-    def _apply_mask(
-        self,
-        target: Union[Shape, Batch, None] = None,
-        mask: "Mask" = None,
-        **kwargs,
-    ) -> Self:
-        return apply_svg_mask(self, target, mask, **kwargs)
+
 
     def set_page_size(self, width, height):
         self.page_size = (width, height)
