@@ -845,7 +845,7 @@ def set_defaults():
     )
 
 
-    defaults["gradent_radius"] = 0.5  # radial gradient radius
+    defaults["gradient_radius"] = 0.5  # radial gradient radius
     default_types["gradient_radius"] = float
     defaults_help["gradient_radius"] = (
         "Gradient radius. Positive float. Radius for radial gradient."
@@ -866,9 +866,9 @@ def set_defaults():
         "Gradient start. tuple[float, float]. Start for linear gradient."
     )
 
-    defaults["gradient_end"] = (0, 0)  # linear gradient end
+    defaults["gradient_end"] = (1, 0)  # linear gradient end
     default_types["gradient_end"] = tuple[float, float]
-    defaults_help["ggradient_end"] = (
+    defaults_help["gradient_end"] = (
         "Gradient end. tuple[float, float]. End for linear gradient."
     )
 

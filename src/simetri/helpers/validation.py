@@ -10,6 +10,7 @@ from ..graphics import all_enums, __version__
 from ..graphics.all_enums import *
 from ..colors.colors import Color
 
+
 # Validation functions. They return True if the value is valid, False otherwise.
 
 
@@ -311,7 +312,10 @@ def check_percent(value):
     """Checks if a value is a floating point between 0 and 1.0"""
     return is_numeric(value) and value >= 0 and value <= 1.0
 
-
+def is_gradient(value):
+    # Fix this import!!!!
+    from ..graphics.mask import Gradient
+    return isinstance(value, Gradient)
 
 
 
@@ -340,6 +344,7 @@ d_validators = {
     "frame_inner_ysep": is_positive,
     "frame_min_height": is_greater_than_zero,
     "frame_min_width": is_greater_than_zero,
+    "gradient": is_gradient,
     "grid_alpha": is_positive,
     "grid_back_color": check_color,
     "grid_line_color": check_color,

@@ -41,6 +41,7 @@ from ..graphics.sketch import (
     ImageSketch,
     PDFSketch,
     LatexSketch,
+    ClippedSketch,
 )
 from ..tikz.tikz_sketch import TexSketch
 from ..settings.settings import defaults
@@ -1491,6 +1492,16 @@ def draw_all_segments(
 
     return self
 
+
+def get_clipped_sketch(target, clipper, canvas):
+    sketches = []
+    if target.type == Types.BATCH:
+        for item in target:
+            sketches.append(get_sketches(item, canvas))
+    else:
+        sketches.append(get_sketches(target, canvas))
+    clipper = get_sketches(clipper, canvas)
+    return ClippedSketch(sketches=sketches, clipper=clipper)
 
 def get_sketches(
     item: Drawable, canvas: "Canvas" = None, **kwargs

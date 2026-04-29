@@ -96,7 +96,7 @@ class RectangleSketch:
     """RectangleSketch is a dataclass for creating an rectangle sketch object.
 
     Attributes:
-        lower_left (PointType): The center of the ellipse.
+        lower_left (PointType): The center of the rectangle.
         width (PointType); Width of the rectangle
         height (PointType); Height of the rectangle
         angle (float, optional): The orientation angle. Defaults to 0.
@@ -491,6 +491,7 @@ class ClippedSketch:
     '''canvas.clip creates a ClippedSketch'''
     sketches: List[Types.SKETCH]
     clipper: ShapeSketch
+    xform_matrix: ndarray = None
 
     def __post_init__(self):
         """Initialize the Clippedketch object."""
@@ -505,7 +506,8 @@ class ClippedSketch:
 class MaskedSketch:
     '''canvas.mask creates a MaskedSketch'''
     sketches: List[Types.SKETCH]
-    mask: 'Mask'
+    mask: Any
+    xform_matrix: ndarray = None
 
     def __post_init__(self):
         """Initialize the Clippedketch object."""
@@ -773,7 +775,7 @@ class HelpLinesSketch:
 
 @dataclass
 class CompositeSketch:
-    sketches: List[Types.Sketch]
+    sketches: List[Types.SKETCH]
     xform_matrix: ndarray = None
 
     def __post_init__(self):

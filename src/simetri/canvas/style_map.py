@@ -1556,6 +1556,7 @@ shape_args = [
     "fill_color",
     "fill_mode",
     "fillet_radius",
+    "gradient",
     "line_alpha",
     "line_cap",
     "line_color",

@@ -3,19 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union, List
 
 import numpy as np
 
 from ..graphics.common import common_properties
 from ..graphics.all_enums import Types, SvgUnits, GradientType
 
-from ..colors.colors import Color
+from ..colors.colors import Color, gray, white
 from ..settings.settings import defaults
 from ..helpers.validation import check_percent, check_color
-
-if TYPE_CHECKING:
-    from ..graphics.shape import Shape
 
 
 @dataclass
@@ -31,9 +28,11 @@ class Mask:
     stops: list[Stop] = None
     axis: Optional["Axis"] = None
     subtype: Types = None
+    center: tuple[float, float] = (0, 0)
+    focal: tuple[float, float] = (0, 0)
 
     def __post_init__(self):
-        if not isinstance(self.shape, Shape):
+        if self.shape.type != Types.SHAPE:
             raise TypeError("mask.shape must be a Shape.")
 
         common_properties(self, graphics_object=False)
@@ -44,32 +43,6 @@ class Mask:
         self.opacity = float(self.opacity)
         if not (0.0 <= self.opacity <= 1.0):
             raise ValueError("mask opacity must be between 0 and 1.")
-
-
-
-@dataclass
-class Axis:
-    """Mask direction axis represented by normalized start/end points.
-    start end end must be between [0, 0], and [1.0, 1.0]
-    """
-
-    start: tuple[float, float]
-    end: tuple[float, float]
-
-    def __init__(self, start: tuple[float, float], end: tuple[float, float]):
-        self,
-        start: tuple[float, float] = start,
-        end: tuple[float, float] = end
-
-
-    def __post_init__(self):
-        if not (check_percent(self.start[0]) and
-                check_percent(self.start[1]) and
-                check_percent(self.end[0]) and
-                check_percent(self.end[0])
-        ):
-            raise ValueError("start and end points must be between (0, 0) and (1.0, 1.0) ")
-        common_properties(self, graphics_object=False)
 
 
 
@@ -111,8 +84,10 @@ class Stop:
         self.type = Types.STOP
         self.subtype = Types.STOP
 
+
+
 def _resolve_stops(stops):
-    if len(stops) < 2:
+    if not isinstance(stops, (list, tuple)) or len(stops) < 2:
         raise ValueError("Invalid stop values.")
     if isinstance(stops[0], Stop):
         for stop in stops[1:]:
@@ -151,9 +126,9 @@ class Gradient:
     [(offset1, opacity1), (offset2, opacity2), ...]
 
     """
-    gradient_type: GradientType = None
-    stops: Union[list[Stop], list[tuple]] = None
-    axis: Optional[Axis] = None
+    gradient_type: GradientType = GradientType.LINEAR
+    stops: tuple = ((0, gray), (1, white))
+    axis: Optional[tuple] = ((0, 0), (1, 0))
     center: Optional[tuple[float, float]] = None
     focal: Optional[tuple[float, float]] = None
     radius: Optional[float] = None
@@ -194,8 +169,8 @@ def _normalize_units(value: Optional[Union[str, SvgUnits]], field_name: str) -> 
             default_value = defaults["mask_units"]
         elif field_name == "mask_content_units":
             default_value = defaults["mask_content_units"]
-        elif field_name == "gr_units":
-            default_value = defaults["gr_units"]
+        elif field_name == "gradient_units":
+            default_value = defaults["gradient_units"]
         else:
             raise ValueError(f"unsupported units field: {field_name}")
         value = default_value

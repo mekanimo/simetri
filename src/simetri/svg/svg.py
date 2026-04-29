@@ -1192,9 +1192,6 @@ def generate_marker_def(
 
         shape_type = get_shape_type(marker_sketch)
         if shape_type == "polygon" or shape_type == "polyline":
-            vertices = marker_sketch.vertices
-            points = " ".join([f"{x},{y}" for x, y in vertices])
-
             marker_shape_fill = sketch_attrib(marker_sketch, "fill")
             marker_shape_fill_enabled = (
                 defaults["fill"]
@@ -1403,6 +1400,22 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
 
         if subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
+        elif subtype == Types.CLIPPED_SKETCH:
+            clippath_id = f"clippath_{id(sketch)}"
+            child_codes = []
+            for sketch_list in sketch.sketches:
+                for clipped_sketch in sketch_list:
+                    child_codes.append(get_sketch_code(clipped_sketch, canvas, ind))
+            content = "\n".join(child_codes)
+            code = f'<g clip-path="url(#{clippath_id})">\n{content}\n</g>'
+        elif subtype == Types.MASKED_SKETCH:
+            mask_id = f"mask_{id(sketch)}"
+            child_codes = []
+            for sketch_list in sketch.sketches:
+                for masked_sketch in sketch_list:
+                    child_codes.append(get_sketch_code(masked_sketch, canvas, ind))
+            content = "\n".join(child_codes)
+            code = f'<g mask="url(#{mask_id})">\n{content}\n</g>'
         elif subtype == Types.TEX_SKETCH:
             # TexSketch is for TikZ/LaTeX output, skip in SVG
             code = ""
@@ -1449,16 +1462,17 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
                 code.append(defaults["end_SVG"])
                 code.append("\\newpage")
                 code.append(defaults["begin_SVG"])
-            # check for deferred helplines
-            helplines = [
-                sk for sk in sketches if sk.subtype == Types.HELPLINES_SKETCH
-            ]
-            if helplines:
-                helplines[0].populate(canvas)
-            # check for deferred line clipping (RAY / INFINITE)
-            lines = [sk for sk in sketches if sk.subtype == Types.LINE_SKETCH]
-            for line in lines:
-                line.populate(canvas)
+            sketches_to_populate = list(sketches)
+            while sketches_to_populate:
+                sketch = sketches_to_populate.pop()
+                subtype = sketch_attrib(sketch, "subtype")
+                if subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+                    for sketch_list in sketch.sketches:
+                        sketches_to_populate.extend(sketch_list)
+                elif subtype == Types.HELPLINES_SKETCH:
+                    sketch.populate(canvas)
+                elif subtype == Types.LINE_SKETCH:
+                    sketch.populate(canvas)
             ind = 0
             scope_opens = {}
             scope_closes = {}
@@ -1596,6 +1610,12 @@ def get_styles_dict(canvas):
     def collect_sketch_styles(sketch):
         nonlocal line_counter, fill_counter
         subtype = sketch_attrib(sketch, "subtype")
+
+        if subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+            for sketch_list in sketch.sketches:
+                for child_sketch in sketch_list:
+                    collect_sketch_styles(child_sketch)
+            return
 
         # Skip non-shape sketches (like TexSketch)
         if subtype not in d_shape_types:
@@ -1849,11 +1869,15 @@ def collect_patterns_and_gradients(canvas):
 
     if canvas.pages:
         for page in canvas.pages:
-            for sketch in page.sketches:
-                # Check for tile_svg pattern
+            sketches = list(page.sketches)
+            while sketches:
+                sketch = sketches.pop()
+                if sketch_attrib(sketch, "subtype") in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+                    for sketch_list in sketch.sketches:
+                        sketches.extend(sketch_list)
+                    continue
                 if sketch_attrib(sketch, "tile_svg"):
                     patterns[id(sketch)] = sketch
-                # Check for gradient
                 if has_gradient(sketch):
                     gradient_key = sketch_attrib(sketch, "_gradient_context_id")
                     if gradient_key is None:
@@ -1873,6 +1897,11 @@ def collect_markers(canvas):
     markers = {}
 
     def _collect_from_sketch(sketch):
+        if sketch_attrib(sketch, "subtype") in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+            for sketch_list in sketch.sketches:
+                for child_sketch in sketch_list:
+                    _collect_from_sketch(child_sketch)
+            return
         if (
             sketch_attrib(sketch, "draw_markers")
             and sketch_attrib(sketch, "marker_type") != MarkerType.INDICES
@@ -1897,8 +1926,19 @@ def collect_clip_paths(canvas):
 
     if canvas.pages:
         for page in canvas.pages:
-            for sketch in page.sketches:
-                # Check for clip=True with mask holding the clipping shape
+            sketches = list(page.sketches)
+            while sketches:
+                sketch = sketches.pop()
+                subtype = sketch_attrib(sketch, "subtype")
+                if subtype == Types.CLIPPED_SKETCH:
+                    clip_paths[id(sketch)] = (sketch, sketch.clipper)
+                    for sketch_list in sketch.sketches:
+                        sketches.extend(sketch_list)
+                    continue
+                if subtype == Types.MASKED_SKETCH:
+                    for sketch_list in sketch.sketches:
+                        sketches.extend(sketch_list)
+                    continue
                 mask = sketch_attrib(sketch, "mask")
                 if sketch_attrib(sketch, "clip") is True and mask is not None:
                     clip_paths[id(sketch)] = (sketch, mask)
@@ -1916,7 +1956,19 @@ def collect_masks(canvas):
 
     if canvas.pages:
         for page in canvas.pages:
-            for sketch in page.sketches:
+            sketches = list(page.sketches)
+            while sketches:
+                sketch = sketches.pop()
+                subtype = sketch_attrib(sketch, "subtype")
+                if subtype == Types.CLIPPED_SKETCH:
+                    for sketch_list in sketch.sketches:
+                        sketches.extend(sketch_list)
+                    continue
+                if subtype == Types.MASKED_SKETCH:
+                    masks[id(sketch)] = (sketch, sketch.mask)
+                    for sketch_list in sketch.sketches:
+                        sketches.extend(sketch_list)
+                    continue
                 mask = sketch_attrib(sketch, "mask")
                 clip = sketch_attrib(sketch, "clip")
                 if mask is not None and (clip is not True):
@@ -2053,7 +2105,10 @@ def generate_gradient_def(sketch, gradient_id):
     """
     gradient = sketch_attrib(sketch, "gradient")
     gradient_type = gradient.gradient_type
-    units = gradient.units.value
+    if gradient.units:
+        units = gradient.units.value
+    else:
+        units = defaults["gradient_units"]
     spread_method = gradient.spread_method
     transform = gradient.transform
     stops = gradient.stops
@@ -2063,8 +2118,8 @@ def generate_gradient_def(sketch, gradient_id):
     transform_attr = f' gradientTransform="{transform}"' if transform else ""
 
     if gradient_type.value == "linear":
-        x1, y1 = gradient.axis.start[:2]
-        x2, y2 = gradient.axis.end[:2]
+        x1, y1 = gradient.axis[0]
+        x2, y2 = gradient.axis[1]
 
         if context_bbox is not None and units == "objectBoundingBox":
             bx, by, bw, bh = context_bbox
@@ -2136,8 +2191,12 @@ def generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict):
         str: SVG <clipPath> element
     """
     from ..canvas.draw import create_sketch  # noqa: PLC0415 — circular import
-    # Convert clip shape to sketch
-    if clip_shape.type == Types.BATCH:
+    if isinstance(clip_shape, list):
+        clip_contents = []
+        for clip_sketch in clip_shape:
+            clip_contents.append(svg_shape(clip_sketch, styles_dict))
+        clip_content = "\n    ".join(clip_contents)
+    elif clip_shape.type == Types.BATCH:
         # Handle batch - multiple shapes in clipPath
         clip_contents = []
         for shape in clip_shape.shapes:
@@ -2170,55 +2229,21 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
         str: SVG <mask> element
     """
     from ..canvas.draw import create_sketch  # noqa: PLC0415 — circular import
-    def _normalize_mask_stop(stop):
-        if hasattr(stop, "offset") and hasattr(stop, "color"):
-            offset = stop.offset
-            stop_color = stop.color if stop.color is not None else defaults["stop_color"]
-            stop_opacity = stop.opacity
-        elif isinstance(stop, dict):
-            if "offset" not in stop:
-                return None
-            offset = stop["offset"]
-            stop_color = stop.get("stop-color", stop.get("stop_color", defaults["stop_color"]))
-            stop_opacity = stop.get(
-                "stop-opacity",
-                stop.get("stop_opacity", stop.get("opacity", None)),
-            )
-        elif isinstance(stop, (list, tuple)):
-            if len(stop) < 2:
-                return None
-            offset = stop[0]
-            second = stop[1]
-            if len(stop) >= 3:
-                stop_color = second
-                stop_opacity = stop[2]
-            elif isinstance(second, (int, float)):
-                stop_color = defaults["stop_color"]
-                stop_opacity = second
-            else:
-                stop_color = second
-                stop_opacity = None
-        else:
-            return None
 
-        if isinstance(offset, (int, float)):
-            offset = f"{float(offset) * 100}%"
+    def get_mask_stop(stop):
+        stop_offset = f"{float(stop.offset) * 100}%"
 
         if isinstance(stop_color, Color):
             stop_color = color_to_svg(stop_color)
-        elif stop_color is None:
-            stop_color = color_to_svg(defaults["stop_color"])
 
-        return offset, stop_color, stop_opacity
+        return stop_offset, stop_color, stop.opacity
 
     def _stops_to_svg(stops, indent="      "):
         stop_lines = []
         has_color = False
         for stop in stops or []:
-            normalized = _normalize_mask_stop(stop)
-            if normalized is None:
-                continue
-            offset, stop_color, stop_opacity = normalized
+            offset, stop_color, stop_opacity = get_mask_stop(stop)
+            has_color = stop_color is not None
             if stop_color != color_to_svg(defaults["stop_color"]):
                 has_color = True
             stop_opacity_attr = (
@@ -2288,19 +2313,8 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
         )
 
         if mask_type == "linear":
-            if hasattr(msk, "axis") and msk.axis is not None:
-                if hasattr(msk.axis, "start") and hasattr(msk.axis, "end"):
-                    axis_start = msk.axis.start
-                    axis_end = msk.axis.end
-                else:
-                    axis_start, axis_end = msk.axis
-                x1, y1 = axis_start
-                x2, y2 = axis_end
-            else:
-                x1 = msk.x1
-                y1 = msk.y1
-                x2 = msk.x2
-                y2 = msk.y2
+            x1, y1 = msk.axis[0][:2]
+            x2, y2 = msk.axis[1][:2]
             gradient_start = (
                 f'    <linearGradient id="{mask_id}_gradient" x1="{x1}" y1="{y1}" '
                 f'x2="{x2}" y2="{y2}" gradientUnits="{units}" '
@@ -2308,11 +2322,9 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             )
             gradient_end = "    </linearGradient>"
         else:
-            cx = msk.cx
-            cy = msk.cy
-            r = msk.r
-            fx = msk.fx
-            fy = msk.fy
+            cx, cy = msk.center[:2]
+            r = msk.radius
+            fx, fy = msk.focal[:2]
             gradient_start = (
                 f'    <radialGradient id="{mask_id}_gradient" cx="{cx}" cy="{cy}" '
                 f'r="{r}" fx="{fx}" fy="{fy}" gradientUnits="{units}" '
@@ -2372,15 +2384,27 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             f'stroke="none"{fill_rule_attr} {coordinates} />'
         )
 
-    mask_opacity = sketch_attrib(sketch, "_mask_opacity")
-    if mask_opacity is None:
-        mask_opacity = 1.0
-    mask_stops = sketch_attrib(sketch, "_mask_stops")
-    mask_axis = sketch_attrib(sketch, "_mask_axis")
-    mask_units = _normalize_svg_units(sketch_attrib(sketch, "_mask_units"))
-    mask_content_units = _normalize_svg_units(
-        sketch_attrib(sketch, "_mask_content_units")
-    )
+    if mask_shape.type == Types.MASK:
+        mask_data = mask_shape
+        mask_shape = mask_data.shape
+        mask_opacity = mask_data.opacity
+        mask_stops = mask_data.stops
+        mask_axis = mask_data.axis
+        if mask_stops is not None and mask_axis is None:
+            mask_axis = defaults["mask_axis"]
+        mask_units = _normalize_svg_units(None)
+        mask_content_units = _normalize_svg_units(None)
+    else:
+        mask_opacity = sketch_attrib(sketch, "_mask_opacity")
+        if mask_opacity is None:
+            mask_opacity = 1.0
+        mask_stops = sketch_attrib(sketch, "_mask_stops")
+        mask_axis = sketch_attrib(sketch, "_mask_axis")
+        mask_units = _normalize_svg_units(sketch_attrib(sketch, "_mask_units"))
+        mask_content_units = _normalize_svg_units(
+            sketch_attrib(sketch, "_mask_content_units")
+        )
+
     gradient_opacity = mask_stops is not None
 
     if gradient_opacity:
@@ -2647,7 +2671,13 @@ def collect_filters(canvas):
 
     if canvas.pages:
         for page in canvas.pages:
-            for sketch in page.sketches:
+            sketches = list(page.sketches)
+            while sketches:
+                sketch = sketches.pop()
+                if sketch_attrib(sketch, "subtype") in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+                    for sketch_list in sketch.sketches:
+                        sketches.extend(sketch_list)
+                    continue
                 sketch_dict = sketch_attrib(sketch, "__dict__")
                 sketch_filter = sketch_attrib(sketch, "filter")
                 if "filter" in sketch_dict and sketch_filter is not None:

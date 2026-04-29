@@ -70,7 +70,7 @@ from ..colors.swatches import *
 import simetri.colors as colors
 from ..tikz.tikz import *
 from ..svg.svg import *
-from .mask import Mask, Stop, Axis, Gradient
+from .mask import Mask, Stop, Gradient
 from ..svg.filters import *
 from ..helpers.validation import check_version
 from ..stars import stars

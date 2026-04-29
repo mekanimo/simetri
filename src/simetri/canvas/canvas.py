@@ -1,3 +1,4 @@
+
 """Canvas class for drawing shapes and text on a page. All drawing
 operations are handled by the Canvas class. Canvas class can draw all
 graphics objects and text objects. It also provides methods for
@@ -38,7 +39,6 @@ from simetri.graphics.common import (
 from simetri.graphics.all_enums import (
     Types,
     Drawable,
-    Result,
     Anchor,
     Renderer,
     TexLoc,
@@ -66,9 +66,10 @@ from simetri.image.image import Image, create_image_from_data
 from simetri.tex.tex import remove_aux_files, run_job, Tex
 from simetri.svg.filters import SVG_Filter
 from simetri.graphics.mask import Mask
+from simetri.graphics.sketch import MaskedSketch
 
 
-def save_renderer(extension: str) -> Renderer:
+def _save_renderer(extension: str) -> Renderer:
     """Return the renderer family for the output extension."""
     if extension in [".svg", ".png"]:
         return Renderer.SVG
@@ -189,12 +190,27 @@ class Canvas:
             self.__dict__[name] = value
 
     def apply_mask(self, target, mask):
-        # create a MaskedSketcch
+        sketches = []
+        if target.type == Types.BATCH:
+            for item in target:
+                sketches.append(draw.get_sketches(item, self))
+        else:
+            sketches.append(draw.get_sketches(target, self))
+
+        self.active_page.sketches.append(
+            MaskedSketch(sketches=sketches, mask=mask)
+        )
+        self._all_vertices.extend(mask.shape.b_box.corners)
 
         return self
 
     def clip(self, target, clipper):
         # create a ClippedSketch
+        # this replaces begin_clip and end_clip
+        self.active_page.sketches.append(
+            draw.get_clipped_sketch(target, clipper, self)
+        )
+        self._all_vertices.extend(clipper.corners)
 
         return self
 
@@ -706,71 +722,6 @@ class Canvas:
         draw.draw_dimension(self, dim, **kwargs)
         return self
 
-    def begin_clip(
-        self,
-        item: Union[Shape, Batch] = None,
-        corners: Sequence[PointType] = None,
-        margins: Sequence[float] = None,
-        fade: Anchor = None,
-        fade_margins: Sequence[float] = None,
-        fillet_radius: float = None,
-    ) -> Self:
-        """Insert a TeX code into the canvas.
-
-        Args:
-            item (Shape or Batch): The item to clip.
-            margins: [left, bottom, right, top] margins to apply to the clipping area.
-            fade (Anchor, optional): The direction of the fade effect. Defaults to None.
-            fade_margins (Sequence[float], optional): Margins for the fade effect.
-            fade_margins are applied after the clipping margins.
-
-        Returns:
-            Self: The canvas object.
-        """
-        d_directions = {
-            Anchor.NORTH: "north",
-            Anchor.SOUTH: "south",
-            Anchor.EAST: "east",
-            Anchor.WEST: "west",
-            Anchor.SOUTHWEST: "south west",
-            Anchor.SOUTHEAST: "south east",
-            Anchor.NORTHEAST: "north east",
-            Anchor.NORTHWEST: "north west",
-        }
-
-        active_sketches = self.active_page.sketches
-        if item is not None:
-            corners = item.corners
-            x1, y1 = corners[1]
-            x2, y2 = corners[3]
-            left, bottom, right, top = margins
-            x1 += left
-            y1 += bottom
-            x2 -= right
-            y2 -= top
-        else:
-            x1, y1, x2, y2 = corners
-        clip_code = ""
-        if fillet_radius is not None:
-            if fillet_radius < 0:
-                raise ValueError("Fillet radius must be a positive number.")
-            clip_code = f"[rounded corners={fillet_radius}]"
-        code = f"""\\begin{{scope}}
-\\clip{clip_code}({x1}, {y1}) rectangle ({x2}, {y2});\n"""
-        if fade is not None:
-            if fade_margins is not None:
-                left, bottom, right, top = fade_margins
-                x1 += left
-                y1 += bottom
-                x2 -= right
-                y2 -= top
-            code += f"\\path [scope fading={d_directions[fade]}] ({x1}, {y1}) rectangle ({x2}, {y2});\n"
-
-        sketch = TexSketch(code)
-        if fade is not None:
-            sketch.library = "fadings"
-        active_sketches.append(sketch)
-        return self
 
     def begin_style(self, style: str):
         # code = rf'\begin{{scope}}[every path/.append style={{dashed, draw=green}}]'
@@ -781,8 +732,6 @@ class Canvas:
 
         return self
 
-    def end_clip(self):
-        return self._end_scope()
 
     def end_style(self):
         return self._end_scope()
@@ -1505,7 +1454,7 @@ class Canvas:
 
             warnings.warn(f"Unspecified filepath, using {filepath}.")
 
-        renderer = save_renderer(extension)
+        renderer = _save_renderer(extension)
         if renderer == Renderer.SVG:
             from simetri.svg.svg import get_svg_code
 

@@ -212,6 +212,24 @@ def get_tex_code(canvas: "Canvas") -> str:
             code = draw_latex_sketch(sketch)
         elif sketch.subtype == Types.MASK_SKETCH:
             code = ""
+        elif sketch.subtype == Types.CLIPPED_SKETCH:
+            clip_code = get_clip_code(sketch.clipper)
+            clipped_code = ["\\begin{scope}\n", clip_code]
+            for sketch_list in sketch.sketches:
+                for clipped_sketch in sketch_list:
+                    child_code, ind = get_sketch_code(clipped_sketch, canvas, ind)
+                    clipped_code.append(child_code)
+            clipped_code.append("\\end{scope}\n")
+            code = "".join(clipped_code)
+        elif sketch.subtype == Types.MASKED_SKETCH:
+            mask_start, mask_end = _mask_scope_parts(sketch)
+            masked_code = [mask_start]
+            for sketch_list in sketch.sketches:
+                for masked_sketch in sketch_list:
+                    child_code, ind = get_sketch_code(masked_sketch, canvas, ind)
+                    masked_code.append(child_code)
+            masked_code.append(mask_end)
+            code = "".join(masked_code)
         else:
             if (
                 hasattr(sketch, "draw_markers")
@@ -252,18 +270,17 @@ def get_tex_code(canvas: "Canvas") -> str:
                 code.append("\\newpage")
                 code.append(defaults["begin_tikz"])
 
-            # check for deferred helplines
-            helplines = [
-                sk for sk in sketches if sk.subtype == Types.HELPLINES_SKETCH
-            ]
-            for helpline in helplines:
-                helpline.populate(canvas)
-
-            # check for deferred line clipping (RAY / INFINITE)
-            lines = [sk for sk in sketches if sk.subtype == Types.LINE_SKETCH]
-            for line in lines:
-                if hasattr(line, "populate"):
-                    line.populate(canvas)
+            sketches_to_populate = list(sketches)
+            while sketches_to_populate:
+                sketch = sketches_to_populate.pop()
+                if sketch.subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+                    for sketch_list in sketch.sketches:
+                        sketches_to_populate.extend(sketch_list)
+                elif sketch.subtype == Types.HELPLINES_SKETCH:
+                    sketch.populate(canvas)
+                elif sketch.subtype == Types.LINE_SKETCH:
+                    if hasattr(sketch, "populate"):
+                        sketch.populate(canvas)
 
             ind = 0
             scope_opens = {}
@@ -560,24 +577,47 @@ def get_clip_code(sketch: "Sketch") -> str:
     Returns:
         str: The clip code as a string.
     """
-    mask = sketch.mask
+    try:
+        mask = sketch.mask
+    except AttributeError:
+        mask = sketch
 
     if mask is None:
         return ""
 
-    if mask.subtype == Types.CIRCLE:
+    if isinstance(mask, list):
+        res = []
+        for clip_sketch in mask:
+            res.append(get_clip_code(clip_sketch))
+        return "".join(res)
+
+    if mask.subtype in [Types.CIRCLE, Types.CIRCLE_SKETCH]:
         x, y = mask.center[:2]
         res = f"\\clip({x}, {y}) circle ({mask.radius});\n"
-    elif mask.subtype == Types.RECTANGLE:
-        corners = mask.b_box.corners
-        x1, y1 = corners[1][:2]
-        x2, y2 = corners[3][:2]
+    elif mask.subtype in [Types.ELLIPSE, Types.ELLIPSE_SKETCH]:
+        x, y = mask.center[:2]
+        res = f"\\clip({x}, {y}) ellipse ({mask.x_radius} and {mask.y_radius});\n"
+    elif mask.subtype in [Types.RECTANGLE, Types.RECTANGLE_SKETCH]:
+        try:
+            vertices = mask.vertices
+            xs = [vertex[:2][0] for vertex in vertices]
+            ys = [vertex[:2][1] for vertex in vertices]
+            x1 = min(xs)
+            y1 = min(ys)
+            x2 = max(xs)
+            y2 = max(ys)
+        except AttributeError:
+            corners = mask.b_box.corners
+            x1, y1 = corners[1][:2]
+            x2, y2 = corners[3][:2]
         res = f"\\clip({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
-    elif mask.subtype == Types.SHAPE:
+    elif mask.subtype in [Types.SHAPE, Types.SHAPE_SKETCH, Types.BBOX_SKETCH]:
         vertices = mask.vertices
         if vertices:
-            coords = " -- ".join(f"({x}, {y})" for x, y in vertices)
+            coords = " -- ".join(
+                f"({vertex[:2][0]}, {vertex[:2][1]})" for vertex in vertices
+            )
             if mask.closed:
                 res = f"\\clip {coords} -- cycle;\n"
             else:
@@ -688,11 +728,6 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
     )
 
 
-def _mask_axis_points(mask_axis):
-    if hasattr(mask_axis, "start") and hasattr(mask_axis, "end"):
-        return mask_axis.start, mask_axis.end
-    return mask_axis
-
 
 def _get_scope_fading_path(mask_shape, fade_id):
     bbox = mask_shape.b_box
@@ -702,24 +737,36 @@ def _get_scope_fading_path(mask_shape, fade_id):
 
 
 def _mask_scope_parts(sketch, fade_id=None):
-    if "mask" not in sketch.__dict__:
-        return "", ""
-    mask = sketch.mask
+    if sketch.subtype == Types.MASKED_SKETCH:
+        mask_data = sketch.mask
+        mask = mask_data.shape
+        clip = mask_data.opacity >= 1.0 and mask_data.stops is None
+        mask_opacity = mask_data.opacity
+        mask_stops = mask_data.stops
+        mask_axis = mask_data.axis
+        if mask_stops is not None and mask_axis is None:
+            mask_axis = defaults["mask_axis"]
+    else:
+        if "mask" not in sketch.__dict__:
+            return "", ""
+        mask = sketch.mask
+        if mask is None:
+            return "", ""
+
+        clip = sketch.clip
+        mask_opacity = sketch._mask_opacity
+        mask_stops = sketch._mask_stops
+        mask_axis = sketch._mask_axis
+
     if mask is None:
         return "", ""
-
-    clip = sketch.clip
     clip_code = get_clip_code(SimpleNamespace(mask=mask))
 
     if clip:
         return f"\\begin{{scope}}\n{clip_code}", "\\end{scope}\n"
 
-    mask_opacity = sketch._mask_opacity
-    mask_stops = sketch._mask_stops
-    mask_axis = sketch._mask_axis
-
     if mask_stops is not None:
-        axis_start, axis_end = _mask_axis_points(mask_axis)
+        axis_start, axis_end = mask_axis
         mask_bbox = mask.b_box
         bbox_x = mask_bbox.southwest[0]
         bbox_y = mask_bbox.southwest[1]
@@ -868,11 +915,12 @@ def get_draw(sketch):
     if hasattr(sketch, "markers_only") and sketch.markers_only:
         res = "\\draw"
     else:
-        has_svg_gradient = "gr_stops" in sketch.__dict__ and bool(sketch.gr_stops)
+        gradient_options = _get_gradient_shading_options(sketch)
+        has_gradient = bool(gradient_options)
         if hasattr(sketch, "back_style"):
-            shading = sketch.back_style == BackStyle.SHADING or has_svg_gradient
+            shading = sketch.back_style == BackStyle.SHADING or has_gradient
         else:
-            shading = has_svg_gradient
+            shading = has_gradient
         if not hasattr(sketch, "closed"):
             closed = False
         else:
@@ -898,6 +946,9 @@ def get_draw(sketch):
 
 
 def _extract_gradient_stop_color(stop):
+    if isinstance(stop, sg.Stop):
+        return stop.color
+
     if isinstance(stop, dict):
         return stop.get("stop-color", stop.get("stop_color", "black"))
 
@@ -913,6 +964,9 @@ def _extract_gradient_stop_color(stop):
 
 
 def _extract_gradient_stop_offset(stop):
+    if isinstance(stop, sg.Stop):
+        return stop.offset
+
     if isinstance(stop, dict):
         offset = stop.get("offset", 0.0)
     elif isinstance(stop, (list, tuple)) and len(stop) >= 1:
@@ -1036,10 +1090,14 @@ def _user_space_t_span(sketch, x1, y1, x2, y2):
     return min(t_values), max(t_values)
 
 
-def _get_svg_gradient_shading_options(sketch):
-    if "gr_stops" not in sketch.__dict__:
+def _get_gradient_shading_options(sketch):
+    if "gradient" not in sketch.__dict__:
         return None
-    stops = sketch.gr_stops
+    gradient = sketch.gradient
+    if gradient is None or gradient.gradient_type != sg.GradientType.LINEAR:
+        return None
+
+    stops = gradient.stops
     if not isinstance(stops, (list, tuple)) or len(stops) < 2:
         return None
 
@@ -1060,21 +1118,11 @@ def _get_svg_gradient_shading_options(sketch):
     except Exception:
         left, right = "black", "white"
 
-    x1 = sketch.gr_x1
-    y1 = sketch.gr_y1
-    x2 = sketch.gr_x2
-    y2 = sketch.gr_y2
-    units = sketch.gr_units
+    axis = gradient.axis
+    x1, y1 = axis[0]
+    x2, y2 = axis[1]
 
-    if units == "userSpaceOnUse":
-        t_span = _user_space_t_span(sketch, x1, y1, x2, y2)
-        if t_span is not None:
-            t0, t1 = t_span
-            c0 = _color_at_offset(stops, t0)
-            c1 = _color_at_offset(stops, t1)
-            if c0 is not None and c1 is not None:
-                left = color_to_tikz(c0)
-                right = color_to_tikz(c1)
+
 
     try:
         angle = degrees(
@@ -1946,23 +1994,23 @@ def draw_sketch(sketch):
     if not res:
         return ""
     options = []
-    svg_gradient_options = _get_svg_gradient_shading_options(sketch)
-    has_svg_gradient = (
-        bool(svg_gradient_options) and sketch.fill and sketch.closed
+    gradient_options = _get_gradient_shading_options(sketch)
+    has_gradient = (
+        bool(gradient_options) and sketch.fill and sketch.closed
     )
 
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options += get_pattern_options(sketch)
     if sketch.stroke:
         options += get_line_style_options(sketch)
-    if sketch.closed and sketch.fill and not has_svg_gradient:
+    if sketch.closed and sketch.fill and not has_gradient:
         options += get_fill_style_options(sketch)
     if sketch.smooth:
         options += ["smooth"]
     if sketch.back_style == BackStyle.SHADING and sketch.fill and sketch.closed:
         options += get_shading_options(sketch)
-    elif has_svg_gradient:
-        options += svg_gradient_options
+    elif has_gradient:
+        options += gradient_options
     options = ", ".join(options)
     if options:
         res += f"[{options}]"
@@ -2306,13 +2354,13 @@ def draw_circle_sketch(sketch):
     if not res:
         return ""
     options = get_line_style_options(sketch)
-    svg_gradient_options = _get_svg_gradient_shading_options(sketch)
-    has_svg_gradient = bool(svg_gradient_options) and sketch.fill
-    if not has_svg_gradient:
+    gradient_options = _get_gradient_shading_options(sketch)
+    has_gradient = bool(gradient_options) and sketch.fill
+    if not has_gradient:
         fill_options = get_fill_style_options(sketch)
         options += fill_options
     else:
-        options += svg_gradient_options
+        options += gradient_options
     if sketch.smooth:
         options += ["smooth"]
     options = ", ".join(options)
@@ -2339,13 +2387,13 @@ def draw_rect_sketch(sketch):
     if not res:
         return ""
     options = get_line_style_options(sketch)
-    svg_gradient_options = _get_svg_gradient_shading_options(sketch)
-    has_svg_gradient = bool(svg_gradient_options) and sketch.fill
-    if not has_svg_gradient:
+    gradient_options = _get_gradient_shading_options(sketch)
+    has_gradient = bool(gradient_options) and sketch.fill
+    if not has_gradient:
         fill_options = get_fill_style_options(sketch)
         options += fill_options
     else:
-        options += svg_gradient_options
+        options += gradient_options
     if sketch.smooth:
         options += ["smooth"]
     options = ", ".join(options)
@@ -2372,13 +2420,13 @@ def draw_ellipse_sketch(sketch):
     if not res:
         return ""
     options = get_line_style_options(sketch)
-    svg_gradient_options = _get_svg_gradient_shading_options(sketch)
-    has_svg_gradient = bool(svg_gradient_options) and sketch.fill
-    if not has_svg_gradient:
+    gradient_options = _get_gradient_shading_options(sketch)
+    has_gradient = bool(gradient_options) and sketch.fill
+    if not has_gradient:
         fill_options = get_fill_style_options(sketch)
         options += fill_options
     else:
-        options += svg_gradient_options
+        options += gradient_options
     if sketch.smooth:
         options += ["smooth"]
     angle = degrees(sketch.angle)
@@ -2417,17 +2465,17 @@ def draw_arc_sketch(sketch):
         options += get_pattern_options(sketch)
     if sketch.stroke:
         options += get_line_style_options(sketch)
-    svg_gradient_options = _get_svg_gradient_shading_options(sketch)
-    has_svg_gradient = (
-        bool(svg_gradient_options) and sketch.fill and sketch.closed
+    gradient_options = _get_gradient_shading_options(sketch)
+    has_gradient = (
+        bool(gradient_options) and sketch.fill and sketch.closed
     )
-    if sketch.closed and sketch.fill and not has_svg_gradient:
+    if sketch.closed and sketch.fill and not has_gradient:
         options += get_fill_style_options(sketch)
 
     if sketch.back_style == BackStyle.SHADING and sketch.fill and sketch.closed:
         options += get_shading_options(sketch)
-    elif has_svg_gradient:
-        options += svg_gradient_options
+    elif has_gradient:
+        options += gradient_options
     options = ", ".join(options)
     if options:
         res += f"[{options}] plot[tension=.8] coordinates" + "{"
