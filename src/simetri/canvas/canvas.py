@@ -59,7 +59,7 @@ from simetri.helpers.utilities import (
 from simetri.helpers.illustration import logo
 from simetri.helpers.file_operations import validate_filepath
 from simetri.tikz.tikz import get_tex_code
-from simetri.helpers.validation import validate_args
+from simetri.helpers.validation import validate_args, check_color, check_alpha
 from simetri.canvas.style_map import canvas_args
 from simetri.notebook import display
 from simetri.image.image import Image, create_image_from_data
@@ -1250,71 +1250,67 @@ class Canvas:
     ) -> dict[str, Any]:
         """Resolve style values for sketch creation in one place.
 
-        Resolution order:
-        1) item attribute
-        2) defaults
-        3) color/alpha precedence overrides from draw kwargs and item fallbacks
+        1. Handle color and alpha
+        2. Handle kwargs
+        4. Handle others
         """
-        resolved = {
-            attrib_name: self.resolve_property(item, attrib_name)
-            for attrib_name in style_map
-        }
-
-        draw_color = draw_kwargs.get("color", None)
-        draw_line_color = draw_kwargs.get("line_color", None)
-        draw_fill_color = draw_kwargs.get("fill_color", None)
-        item_color = getattr(item, "color", None)
-        item_line_color = getattr(item, "line_color", None)
-        item_fill_color = getattr(item, "fill_color", None)
-
-        draw_alpha = draw_kwargs.get("alpha", None)
-        draw_line_alpha = draw_kwargs.get("line_alpha", None)
-        draw_fill_alpha = draw_kwargs.get("fill_alpha", None)
-        item_alpha = getattr(item, "alpha", None)
-
-        if draw_color is not None:
-            resolved["line_color"] = draw_color
-            resolved["fill_color"] = draw_color
-            resolved["color"] = draw_color
-            resolved["marker_color"] = draw_color
+        d_resolved = {}
+        resolved = []
+        # handle color
+        color = None
+        if "color" in draw_kwargs:
+            draw_color = draw_kwargs["color"]
+            if check_color(draw_color):
+                color = draw_color
+            else:
+                raise ValueError(f"Invalid color value: {draw_color}")
         else:
-            if draw_line_color is not None:
-                resolved["line_color"] = draw_line_color
-            if draw_fill_color is not None:
-                resolved["fill_color"] = draw_fill_color
-            line_is_default = item_line_color in (None, defaults["line_color"])
-            fill_is_default = item_fill_color in (None, defaults["fill_color"])
-            if (
-                draw_line_color is None
-                and draw_fill_color is None
-                and item_color is not None
-                and line_is_default
-                and fill_is_default
-            ):
-                resolved["line_color"] = item_color
-                resolved["fill_color"] = item_color
-                resolved["color"] = item_color
-                resolved["marker_color"] = item_color
+            item_color = getattr(item, "color", None)
+            if item_color is not None:
+                if check_color(item_color):
+                    color = item_color
+                else:
+                    raise ValueError(f"Invalid color value: {draw_color}")
 
-        if draw_alpha is not None:
-            resolved["alpha"] = draw_alpha
-            resolved["line_alpha"] = draw_alpha
-            resolved["fill_alpha"] = draw_alpha
+
+
+        if color is not None:
+            d_resolved['line_color'] = color
+            d_resolved['fill_color'] = color
+            resolved.extend(['color', 'line_color', 'fill_color'])
+
+        # handle alpha
+        alpha = None
+        if "alpha" in draw_kwargs:
+            draw_alpha = draw_kwargs["alpha"]
+            if check_alpha(draw_alpha):
+                alpha = draw_alpha
+            else:
+                raise ValueError(f"Invalid alpha value: {draw_alpha}")
         else:
-            if draw_line_alpha is not None:
-                resolved["line_alpha"] = draw_line_alpha
-            if draw_fill_alpha is not None:
-                resolved["fill_alpha"] = draw_fill_alpha
-            if (
-                draw_line_alpha is None
-                and draw_fill_alpha is None
-                and item_alpha is not None
-            ):
-                resolved["alpha"] = item_alpha
-                resolved["line_alpha"] = item_alpha
-                resolved["fill_alpha"] = item_alpha
+            item_alpha = getattr(item, "alpha", None)
+            if item_alpha is not None:
+                if check_alpha(item_alpha):
+                    alpha = item_alpha
+                else:
+                    raise ValueError(f"Invalid alpha value: {draw_alpha}")
 
-        return resolved
+        if alpha is not None:
+            d_resolved['line_alpha'] = alpha
+            d_resolved['fill_alpha'] = alpha
+            resolved.extend(['alpha', 'line_alpha', 'fill_alpha'])
+
+        for attrib_name in style_map:
+            if attrib_name in resolved:
+                continue
+            # we need to validate input here!!!!
+            if attrib_name in draw_kwargs:
+                d_resolved[attrib_name] = draw_kwargs[attrib_name]
+            else:
+                d_resolved[attrib_name] = self.resolve_property(item , attrib_name)
+            resolved.append(attrib_name)
+
+        return d_resolved
 
     def draw_all_segments(
         self, item: Union[Shape, Batch], vert_indices=False, **kwargs

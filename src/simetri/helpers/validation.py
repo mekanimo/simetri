@@ -86,6 +86,9 @@ def check_number(number: Any) -> bool:
     return isinstance(number, (int, float))
 
 
+def check_alpha(alpha: Any) -> bool:
+    return is_numeric(alpha) and alpha >= 0 and alpha <=1.
+
 def check_color(color: Any) -> bool:
     """
     Check if the color is a valid color.

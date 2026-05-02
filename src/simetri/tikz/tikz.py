@@ -1417,6 +1417,67 @@ def get_dash_pattern(line_dash_array):
 def sg_to_tikz(
     sketch, attrib_list, attrib_map, conditions=None, exceptions=None
 ):
+    """Convert resolved sketch attributes to TikZ options."""
+    boolean_attribs = ["smooth"]
+    tikz_enum_attribs = {
+        "line_width": LineWidth,
+        "line_dash_array": LineDashArray,
+    }
+    converters = {
+        "line_color": color_to_tikz,
+        "fill_color": color_to_tikz,
+        "double_color": color_to_tikz,
+        "draw": color_to_tikz,
+        "marker_color": color_to_tikz,
+        "line_dash_array": get_dash_pattern,
+    }
+
+    options = []
+    for attrib_name in attrib_list:
+        if exceptions is not None and attrib_name in exceptions:
+            continue
+
+        if (
+            conditions is not None
+            and attrib_name in conditions
+            and not conditions[attrib_name]
+        ):
+            continue
+        if attrib_name not in attrib_map:
+            continue
+        tikz_attrib = attrib_map[attrib_name]
+        value = sketch.__dict__[attrib_name]
+
+        if value is None:
+            continue
+
+        if attrib_name in tikz_enum_attribs:
+            enum_type = tikz_enum_attribs[attrib_name]
+            if isinstance(value, enum_type):
+                options.append(value.value)
+                continue
+            if isinstance(value, str) and value in enum_type:
+                options.append(value)
+                continue
+
+        if attrib_name in boolean_attribs:
+            if value:
+                options.append(tikz_attrib)
+            continue
+
+        if tikz_attrib in tikz_defaults and value == tikz_defaults[tikz_attrib]:
+            continue
+
+        if attrib_name in converters and value is not None:
+            value = converters[attrib_name](value)
+
+        options.append(f"{tikz_attrib}={value}")
+
+    return options
+
+def sg_to_tikz_new(
+    sketch, attrib_list, attrib_map, conditions=None, exceptions=None
+):
     """Converts the attributes of a sketch to TikZ options.
 
     Args:
@@ -1646,6 +1707,7 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
         "frame_back_color": "fill",
     }
     attribs = list(shape_style_map.keys())
+
     if "_scope_style_keys" in sketch.__dict__:
         for style_key in sketch._scope_style_keys:
             if style_key in attribs:

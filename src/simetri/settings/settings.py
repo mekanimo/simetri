@@ -236,7 +236,7 @@ def set_defaults():
         "Do not change this unless you absolutely have to. Likely to cause problems."
     )
 
-    defaults["alpha"] = 1.0  # used for transparency
+    defaults["alpha"] = VOID  # used for transparency
     default_types["alpha"] = float
     defaults_help["alpha"] = (
         "Alpha value for transparency. "
@@ -443,7 +443,7 @@ def set_defaults():
         "or Batch elemetns."
     )
 
-    defaults["color"] = colors.black
+    defaults["color"] = VOID
     default_types["color"] = colors.Color
     defaults_help["color"] = "Color. Color object."
 

@@ -597,8 +597,7 @@ class ShapeStyle:
         self.line_style = LineStyle()
         self.fill_style = FillStyle()
         self.marker_style = MarkerStyle()
-        self.alpha = defaults["alpha"]
-        exact = ["alpha"]
+        exact = []
         exclude = ["line_style", "fill_style"]
         _style_init(
             self,
