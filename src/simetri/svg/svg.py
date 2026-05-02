@@ -1477,7 +1477,10 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             scope_opens = {}
             scope_closes = {}
             for scope_group in page.scope_groups:
-                if scope_group.sketch_list:
+                if (
+                    scope_group.sketch_list
+                    and scope_group.subtype in [Types.CLIP_GROUP, Types.MASK_GROUP]
+                ):
                     first_sketch_id = id(scope_group.sketch_list[0])
                     last_sketch_id = id(scope_group.sketch_list[-1])
                     if first_sketch_id not in scope_opens:

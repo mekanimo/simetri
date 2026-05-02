@@ -313,6 +313,39 @@ def get_tex_code(canvas: "Canvas") -> str:
                             mask_start, _ = _mask_scope_parts(mask_ns)
                             if mask_start:
                                 code.append(mask_start)
+                        elif scope_group.subtype == Types.SCOPE_GROUP:
+                            scope_keys = list(scope_group.style_data.keys())
+                            scope_sketch_dict = dict(
+                                scope_group.sketch_list[0].__dict__
+                            )
+                            if "_scope_style_keys" in scope_sketch_dict:
+                                del scope_sketch_dict["_scope_style_keys"]
+                            scope_sketch = SimpleNamespace(**scope_sketch_dict)
+                            line_exceptions = []
+                            for style_key in line_style_map.keys():
+                                if style_key not in scope_keys:
+                                    line_exceptions.append(style_key)
+                            fill_exceptions = []
+                            for style_key in shape_style_map.keys():
+                                if style_key not in scope_keys:
+                                    fill_exceptions.append(style_key)
+                            scope_options = []
+                            if "stroke" in scope_keys and not scope_sketch.stroke:
+                                scope_options.append("draw=none")
+                            else:
+                                scope_options += get_line_style_options(
+                                    scope_sketch, exceptions=line_exceptions
+                                )
+                            if scope_sketch.closed and scope_sketch.fill:
+                                scope_options += get_fill_style_options(
+                                    scope_sketch, exceptions=fill_exceptions
+                                )
+                            if scope_options:
+                                code.append(
+                                    f"\\begin{{scope}}[{', '.join(scope_options)}]\n"
+                                )
+                            else:
+                                code.append("\\begin{scope}\n")
                 sketch_code, ind = get_sketch_code(sketch, canvas, ind)
                 code.append(sketch_code)
                 if sketch_id in scope_closes:
@@ -1396,6 +1429,87 @@ def sg_to_tikz(
     Returns:
         list: The TikZ options as a list.
     """
+    boolean_attribs = ["smooth", "draw_double"]
+    forced_color_attribs = ["fill_color", "marker_color"]
+    tikz_way = {"line_width": LineWidth, "line_dash_array": LineDashArray}
+    converters = {
+        "line_color": color_to_tikz,
+        "fill_color": color_to_tikz,
+        "double_color": color_to_tikz,
+        "draw": color_to_tikz,
+        "marker_color": color_to_tikz,
+        "line_dash_array": get_dash_pattern,
+    }
+
+    if exceptions is None:
+        exception_names = []
+    else:
+        exception_names = list(exceptions)
+
+    options = []
+    for attrib in attrib_list:
+        if attrib in exception_names:
+            continue
+
+        if attrib not in attrib_map:
+            continue
+
+        if conditions is not None and attrib in conditions and not conditions[attrib]:
+            continue
+
+        if attrib not in sketch.__dict__:
+            continue
+
+        value = sketch.__dict__[attrib]
+        if value is None:
+            continue
+
+        tikz_attrib = attrib_map[attrib]
+
+        if attrib in tikz_way:
+            enum_type = tikz_way[attrib]
+            if isinstance(value, enum_type):
+                options.append(value.value)
+                continue
+            if isinstance(value, str) and value in enum_type:
+                options.append(value)
+                continue
+
+        if attrib in boolean_attribs:
+            if value:
+                options.append(attrib)
+            continue
+
+        if attrib in forced_color_attribs:
+            value = color_to_tikz(value)
+            options.append(f"{tikz_attrib}={value}")
+            continue
+
+        if tikz_attrib in tikz_defaults and value == tikz_defaults[tikz_attrib]:
+            continue
+
+        if attrib in converters:
+            value = converters[attrib](value)
+
+        options.append(f"{tikz_attrib}={value}")
+
+    return options
+
+def sg_to_tikz_old(
+    sketch, attrib_list, attrib_map, conditions=None, exceptions=None
+):
+    """Converts the attributes of a sketch to TikZ options.
+
+    Args:
+        sketch: The sketch object.
+        attrib_list: The list of attributes to convert.
+        attrib_map: The map of attributes to TikZ options.
+        conditions: Optional conditions for the attributes.
+        exceptions: Optional exceptions for the attributes.
+
+    Returns:
+        list: The TikZ options as a list.
+    """
     skip = ["marker_color", "fill_color"]
     tikz_way = {"line_width": LineWidth, "line_dash_array": LineDashArray}
     if exceptions:
@@ -1457,6 +1571,15 @@ def get_line_style_options(sketch, exceptions=None):
     Returns:
         list: The line style options as a list.
     """
+    if "_scope_style_keys" in sketch.__dict__:
+        if exceptions is None:
+            exceptions = []
+        else:
+            exceptions = list(exceptions)
+        for style_key in sketch._scope_style_keys:
+            if style_key not in exceptions:
+                exceptions.append(style_key)
+
     attrib_map = {
         "double_color": "double",
         "double_distance": "double distance",
@@ -1472,6 +1595,10 @@ def get_line_style_options(sketch, exceptions=None):
         "fillet_radius": "rounded corners",
     }
     attribs = list(line_style_map.keys())
+    if "_scope_style_keys" in sketch.__dict__:
+        for style_key in sketch._scope_style_keys:
+            if style_key in attribs:
+                attribs.remove(style_key)
     if hasattr(sketch, "stroke") and sketch.stroke:
         if exceptions and "draw_fillets" not in exceptions:
             conditions = {"fillet_radius": sketch.draw_fillets}
@@ -1502,6 +1629,15 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
     Returns:
         list: The fill style options as a list.
     """
+    if "_scope_style_keys" in sketch.__dict__:
+        if exceptions is None:
+            exceptions = []
+        else:
+            exceptions = list(exceptions)
+        for style_key in sketch._scope_style_keys:
+            if style_key not in exceptions:
+                exceptions.append(style_key)
+
     attrib_map = {
         "fill_color": "fill",
         "fill_alpha": "fill opacity",
@@ -1510,6 +1646,10 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
         "frame_back_color": "fill",
     }
     attribs = list(shape_style_map.keys())
+    if "_scope_style_keys" in sketch.__dict__:
+        for style_key in sketch._scope_style_keys:
+            if style_key in attribs:
+                attribs.remove(style_key)
     if sketch.fill_alpha in [None, 1]:
         attribs.remove("fill_alpha")
     if sketch.fill and not sketch.back_style == BackStyle.PATTERN:

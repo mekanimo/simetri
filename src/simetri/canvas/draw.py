@@ -37,6 +37,7 @@ from ..graphics.sketch import (
     PatternSketch,
     RectSketch,
     ShapeSketch,
+    ScopeGroup,
     TagSketch,
     ImageSketch,
     PDFSketch,
@@ -1437,8 +1438,30 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
                 )
 
     if subtype == Types.BATCH:
+        style_group_keys = set(line_style_map.keys())
+        style_group_keys.update(shape_style_map.keys())
+        style_group_keys.update(["stroke", "fill"])
+        scope_style_data = {}
+        for key, value in kwargs.items():
+            if key in style_group_keys:
+                scope_style_data[key] = value
+
+        first_sketch_index = len(active_sketches)
         for batch_item in item:
             draw(self, batch_item, **kwargs)
+        batch_sketches = active_sketches[first_sketch_index:]
+        if batch_sketches and scope_style_data:
+            scope_style_keys = list(scope_style_data.keys())
+            for batch_sketch in batch_sketches:
+                batch_sketch._scope_style_keys = scope_style_keys
+            self.active_page.scope_groups.append(
+                ScopeGroup(
+                    label="",
+                    subtype=Types.SCOPE_GROUP,
+                    sketch_list=batch_sketches,
+                    style_data=scope_style_data,
+                )
+            )
     elif subtype in regular_sketch_types:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
