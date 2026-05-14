@@ -207,10 +207,14 @@ class Canvas:
     def clip(self, target, clipper):
         # create a ClippedSketch
         # this replaces begin_clip and end_clip
+        self._sketch_xform_matrix = (
+            self._sketch_xform_matrix @ self._xform_matrix
+        )
         self.active_page.sketches.append(
             draw.get_clipped_sketch(target, clipper, self)
         )
-        self._all_vertices.extend(clipper.corners)
+        draw.extend_vertices(self, clipper)
+        self._sketch_xform_matrix = identity_matrix()
 
         return self
 
@@ -1240,7 +1244,7 @@ class Canvas:
         value = getattr(item, property_name, None)
         if value is None:
             value = defaults.get(property_name, VOID)
-            if value == VOID:
+            if value == VOID and property_name not in ['color', 'alpha']:
                 warnings.warn(f"Property {property_name} is not in defaults.")
                 value = None
         return value

@@ -418,6 +418,52 @@ def draw_line_sketch(sketch, canvas):
     )
 
 
+def draw_arc_sketch(sketch):
+    """Draw an arc sketch as an SVG path."""
+    vertices = sketch_attrib(sketch, "vertices")
+    closed = sketch_attrib(sketch, "closed")
+    if closed and not close_points2(vertices[0], vertices[-1]):
+        vertices = list(vertices) + [vertices[0]]
+
+    path_parts = [f"M {vertices[0][0]},{vertices[0][1]}"]
+    for vertex in vertices[1:]:
+        path_parts.append(f"L {vertex[0]},{vertex[1]}")
+    if closed:
+        path_parts.append("Z")
+    path_data = " ".join(path_parts)
+
+    style_shape_type = "path" if closed else "polyline"
+    line_style = get_line_style_options(sketch)
+
+    fill_attr = ""
+    skip_fill_style = False
+    if sketch_attrib(sketch, "tile_svg") is not None:
+        pattern_id = f"pattern_{id(sketch)}"
+        fill_attr = f' fill="url(#{pattern_id})"'
+        skip_fill_style = True
+    elif has_gradient(sketch):
+        gradient_id = sketch_attrib(sketch, "_gradient_context_id")
+        if gradient_id is None:
+            gradient_id = f"gradient_{id(sketch)}"
+        fill_attr = f' fill="url(#{gradient_id})"'
+        skip_fill_style = True
+
+    style = line_style
+    if not skip_fill_style:
+        fill_style = get_fill_style_options(sketch, style_shape_type)
+        style = f"{line_style} {fill_style}".strip()
+
+    fill_rule_attr = ""
+    if skip_fill_style and sketch_attrib(sketch, "even_odd"):
+        fill_rule_attr = ' fill-rule="evenodd"'
+
+    clip_attr, mask_attr = get_clip_mask_attrs(sketch)
+    return (
+        f'<path d="{path_data}" style="{style}"'
+        f'{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr} />'
+    )
+
+
 def get_clip_mask_attrs(sketch):
     clip_attr = ""
     clip = sketch_attrib(sketch, "clip")
@@ -1429,6 +1475,8 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             code = draw_helplines_sketch(sketch)
         elif subtype == Types.LINE_SKETCH:
             code = draw_line_sketch(sketch, canvas)
+        elif subtype == Types.ARC_SKETCH:
+            code = draw_arc_sketch(sketch)
         elif (
             draw_markers
             and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
@@ -1934,10 +1982,10 @@ def collect_clip_paths(canvas):
                 sketch = sketches.pop()
                 subtype = sketch_attrib(sketch, "subtype")
                 if subtype == Types.CLIPPED_SKETCH:
-                    clip_paths[id(sketch)] = (sketch, sketch.clipper)
-                    for sketch_list in sketch.sketches:
-                        sketches.extend(sketch_list)
-                    continue
+                        clip_paths[id(sketch)] = (sketch, sketch.clipper)
+                        for sketch_list in sketch.sketches:
+                            sketches.extend(sketch_list)
+                        continue
                 if subtype == Types.MASKED_SKETCH:
                     for sketch_list in sketch.sketches:
                         sketches.extend(sketch_list)

@@ -343,16 +343,20 @@ def rectangle(
     Returns:
         Self: The canvas object.
     """
+    x, y = center[:2]
     w2 = width / 2
     h2 = height / 2
-    p1 = center[0] - w2, center[1] + h2
-    p2 = center[0] - w2, center[1] - h2
-    p3 = center[0] + w2, center[1] - h2
-    p4 = center[0] + w2, center[1] + h2
+    p1 = x - w2, y + h2
+    p2 = x - w2, y - h2
+    p3 = x + w2, y - h2
+    p4 = x + w2, y + h2
     points = homogenize([p1, p2, p3, p4]) @ rotation_matrix(angle, center)
     rect_shape = Shape(points.tolist(), closed=True, **kwargs)
+    self._sketch_xform_matrix = self.xform_matrix
+    extend_vertices(self, rect_shape)
     rect_sketch = create_sketch(rect_shape, self, **kwargs)
     self.active_page.sketches.append(rect_sketch)
+    self._sketch_xform_matrix = identity_matrix()
 
     return self
 

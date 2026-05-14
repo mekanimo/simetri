@@ -575,6 +575,12 @@ class Shape(Base, StyleMixin):
 
         return res
 
+    def lerp(self, edge: int, t: float)->PointType:
+        '''Given an edge index and t value (between 0 and 1)
+        returns the corresponding interpolated point.
+        '''
+        return lerp_point(*self.edges[edge], t)
+
     def topology(self) -> Topology:
         """Return info about the topology of the shape.
 
@@ -987,7 +993,7 @@ class Shape(Base, StyleMixin):
 
         return shape
 
-    def clone_style(self, other:"Shape") -> None:
+    def clone_style(self, other: "Shape") -> None:
         """Assigns style and custom attributes to the given shape using self.
 
         Returns:
@@ -1004,6 +1010,34 @@ class Shape(Base, StyleMixin):
         for attrib in custom_attribs:
             setattr(other, attrib, getattr(self, attrib))
 
+    def segment(
+        self, i: int, j: int, midpoints: bool = False
+    ) -> tuple[PointType]:
+        """Returns a line segment with shape[i] and shape[j] endpoints.
+        If midpoints is True then returns a line segment between midpoints
+        of the shape.edges[i] and shape.edges[j]
+        """
+        if midpoints:
+            res = (self.edge_midpoint(i), self.edge_midpoint(j))
+        else:
+            res = (self[i], self[j])
+
+        return res
+
+    def edge_midpoint(self, i: int) -> PointType:
+        """Return the midpoint of shape.edges[i]."""
+
+        n = len(self)
+        edge = (self[i], self[(i + 1) % n])
+
+        return midpoint(*edge)
+
+    @property
+    def edge_midpoints(self) -> List[PointType]:
+        """Return a list of the edge midpoints."""
+        edges = self.edges
+
+        return [midpoint(*edge) for edge in edges]
 
     @property
     def edges(self) -> List[LineType]:
@@ -1023,7 +1057,7 @@ class Shape(Base, StyleMixin):
         return tuple(connected_pairs(vertices))
 
     @property
-    def midpoints(self)-> List[PointType]:
+    def midpoints(self) -> List[PointType]:
         """Returns a list of the midpoints of the edges."""
         return [midpoint(*edge) for edge in self.edges]
 

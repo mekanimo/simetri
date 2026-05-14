@@ -28,6 +28,7 @@ from ..geometry.geometry import (
     close_points2,
     angle_between_lines2,
     fillet_corners,
+    homogenize,
 )
 from ..geometry.vectors import v_scale, v_diff, v_sum
 from ..canvas.style_map import (
@@ -818,7 +819,7 @@ def reg_poly_points_side_length(
     return points
 
 
-def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
+def reg_poly_points(pos: PointType, n: int, r: float, angle: float=0) -> Sequence[PointType]:
     """Return a regular polygon points list with n sides and radius r.
 
     Args:
@@ -829,12 +830,17 @@ def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
     Returns:
         Sequence[PointType]: A list of points that form the polygon.
     """
-    angle = 2 * pi / n
+    theta = 2 * pi / n
     x, y = pos[:2]
     points = [
-        [cos(angle * i) * r + x, sin(angle * i) * r + y] for i in range(n)
+        [cos(theta * i) * r + x, sin(theta * i) * r + y] for i in range(n)
     ]
     points.append(points[0])
+
+    if angle != 0:
+        points = homogenize(points) @ rotation_matrix(angle)
+        points = [(x, y) for (x, y, _) in points]
+
     return points
 
 
@@ -1090,7 +1096,7 @@ def circle_shape(radius, pos=(0, 0), n=30, **kwargs):
     return Shape(points, closed=True, **kwargs)
 
 
-def reg_poly_shape(n, r=100, pos=(0, 0), **kwargs):
+def reg_poly_shape(n, r=100, pos=(0, 0), angle=0, **kwargs):
     """Return a regular polygon.
 
     Args:
@@ -1103,7 +1109,8 @@ def reg_poly_shape(n, r=100, pos=(0, 0), **kwargs):
         Shape: A Shape object with points that form a regular polygon.
     """
     x, y = pos[:2]
-    points = reg_poly_points((x, y), n=n, r=r)
+    points = reg_poly_points((x, y), n=n, r=r, angle=angle)
+
     return Shape(points, closed=True, **kwargs)
 
 

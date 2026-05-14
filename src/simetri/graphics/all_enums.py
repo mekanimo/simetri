@@ -508,6 +508,14 @@ class ImageMode(StrEnum):
     I_16N = "I;16N"  # 16 bits per pixel (16-bit unsigned integer pixels)
 
 
+class IsometryType(StrEnum):
+    IDENTITY = "IDENTITY"
+    TRANSLATION = "TRANSLATION"
+    ROTATION = "ROTATION"
+    MIRROR = "MIRROR"
+    GLIDE_REFLECTION = "GLIDE_REFLECTION"
+
+
 class IUC(StrEnum):
     """IUC notation for frieze groups.
 
@@ -521,6 +529,25 @@ class IUC(StrEnum):
     P2 = "P2"
     P2MG = "P2MG"
     P2MM = "P2MM"
+
+
+class LatRef(StrEnum):
+    '''Lattice references'''
+    COORD = 'COORD'
+    LERP = 'LERP'
+    AXIS = 'AXIS'
+    POINT = 'POINT'
+    VERTEX = 'VERTEX'
+    EDGE = 'EDGE'
+    DISTANCE = 'DISTANCE'
+
+
+class LatType(StrEnum):
+    HEX = 'HEX' # Hexagon
+    SQR = 'SQR' # Square
+    RECT = 'RECT' # Rectangle
+    RHOMB = 'RHOMB' # Rhombus
+    PAR = 'PAR' # Parallelogram
 
 
 class LineCap(StrEnum):
@@ -1136,10 +1163,12 @@ class Types(StrEnum):
     IMAGE_SKETCH = "IMAGE_SKETCH"
     IMAGE_STYLE = "IMAGE_STYLE"
     INTERSECTION = "INTERSECTION"
+    ISOMETRY = "ISOMETRY"
     JUMP_DEF = "JUMP_DEF"
     LABEL = "LABEL"
     LACE = "LACE"
     LACESKETCH = "LACE_SKETCH"
+    LATTICE = "LATTICE"
     LINE = "LINE"
     LINEAR = "LINEAR"
     LINE_SKETCH = "LINE_SKETCH"

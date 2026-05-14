@@ -55,6 +55,7 @@ from ..geometry.vectors import *
 from .affine import *
 from .dots import *
 from ..graphics.sketch import *
+from ..geometry.lattice import *
 from ..canvas.canvas import *
 from ..canvas.style_map import *
 from ..canvas.grids import *
