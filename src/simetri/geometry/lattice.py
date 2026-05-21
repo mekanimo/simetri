@@ -695,8 +695,8 @@ def draw_unit(canvas, lat, group, **kwargs):
         canvas.draw(square, pos=pos)
 
 
-def lat_p6(size: float) -> Lattice:
-    lat = Lattice(LatType.HEX, a=size)
+def lat_p6(a: float) -> Lattice:
+    lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
         IsometryType.ROTATION,
@@ -712,8 +712,8 @@ def lat_p6(size: float) -> Lattice:
     return lat
 
 
-def lat_p6m(size: float = 40) -> Lattice:
-    lat = Lattice(LatType.HEX, a=size)
+def lat_p6m(a: float = 40) -> Lattice:
+    lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
         IsometryType.MIRROR,
@@ -735,8 +735,8 @@ def lat_p6m(size: float = 40) -> Lattice:
     return lat
 
 
-def lat_p31m(size: float = 40) -> Lattice:
-    lat = Lattice(LatType.HEX, a=size)
+def lat_p31m(a: float = 40) -> Lattice:
+    lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
         IsometryType.ROTATION,
@@ -757,8 +757,8 @@ def lat_p31m(size: float = 40) -> Lattice:
     return lat
 
 
-def lat_p3m1(size: float = 40) -> Lattice:
-    lat = Lattice(LatType.HEX, a=size)
+def lat_p3m1(a: float = 40) -> Lattice:
+    lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
         IsometryType.MIRROR,
@@ -783,8 +783,8 @@ def lat_p3m1(size: float = 40) -> Lattice:
     return lat
 
 
-def lat_p3(size: float = 40) -> Lattice:
-    lat = Lattice(LatType.HEX, a=size)
+def lat_p3(a: float = 40) -> Lattice:
+    lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
         IsometryType.ROTATION,
@@ -803,8 +803,8 @@ def lat_p3(size: float = 40) -> Lattice:
     return lat
 
 
-def lat_p4(size: float = 40) -> Lattice:
-    lat = Lattice(LatType.SQR, a=size)
+def lat_p4(a: float = 40) -> Lattice:
+    lat = Lattice(LatType.SQR, a=a)
 
     isom1 = Isometry(
         IsometryType.ROTATION, (LatRef.COORD, (0.5, 0.5)), pi / 2, reps=3
@@ -815,8 +815,8 @@ def lat_p4(size: float = 40) -> Lattice:
     return lat
 
 
-def lat_p4m(size: float = 40) -> Lattice:
-    lat = Lattice(LatType.SQR, a=size)
+def lat_p4m(a: float = 40) -> Lattice:
+    lat = Lattice(LatType.SQR, a=a)
 
     isom1 = Isometry(
         IsometryType.MIRROR,
@@ -833,8 +833,8 @@ def lat_p4m(size: float = 40) -> Lattice:
     return lat
 
 
-def lat_p4g(size: float = 40) -> Lattice:
-    lat = Lattice(LatType.SQR, a=size)
+def lat_p4g(a: float = 40) -> Lattice:
+    lat = Lattice(LatType.SQR, a=a)
 
     isom1 = Isometry(
         IsometryType.MIRROR,
@@ -867,8 +867,8 @@ def lat_p1(
     return lat
 
 
-def lat_pm(size: float = 40, lat_type=LatType.SQR) -> Lattice:
-    lat = Lattice(lat_type, a=size)
+def lat_pm(a: float = 40, lat_type=LatType.SQR) -> Lattice:
+    lat = Lattice(lat_type, a=a)
 
     if lat_type in [LatType.SQR, LatType.RECT, LatType.PAR]:
         axis = (LatRef.AXIS, ((LatRef.LERP, (1, 0.5)), (LatRef.LERP, (3, 0.5))))
@@ -880,8 +880,8 @@ def lat_pm(size: float = 40, lat_type=LatType.SQR) -> Lattice:
     return lat
 
 
-def lat_pmm(size: float = 40, lat_type=LatType.SQR) -> Lattice:
-    lat = Lattice(lat_type, a=size)
+def lat_pmm(a: float = 40, lat_type=LatType.SQR) -> Lattice:
+    lat = Lattice(lat_type, a=a)
 
     axis1 = (LatRef.AXIS, ((LatRef.COORD, (0.5, 0)), (LatRef.COORD, (0.5, 1))))
     isom1 = Isometry(IsometryType.MIRROR, axis1, reps=1)
@@ -963,15 +963,15 @@ def lat_pgg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
 
 
 def lat_cm(
-    size: float = 100, theta: float = 2 * pi / 5, glide_dist: float = None
+    a: float = 100, theta: float = 2 * pi / 5, glide_dist: float = None
 ) -> Lattice:
     """Rhombic lattice with a glide_reflection and a mirror.
     theta cannot be 60 degrees or 90 degrees.
     """
     lat_type = LatType.RHOMB
-    lat = Lattice(lat_type, a=size, b=size, theta=theta)
+    lat = Lattice(lat_type, a=a, b=a, theta=theta)
     if glide_dist is None:
-        glide_dist = size
+        glide_dist = a
 
     axis1 = (LatRef.AXIS, ((LatRef.COORD, (0, 0.5)), (LatRef.COORD, (0.5, 1))))
     isom1 = Isometry(
@@ -987,11 +987,11 @@ def lat_cm(
     return lat
 
 
-def lat_cmm(size: float = 100, theta: float = 2 * pi / 5) -> Lattice:
+def lat_cmm(a: float = 100, theta: float = 2 * pi / 5) -> Lattice:
     """Rhombic lattice with cross-mirrors. If theta is 90 degrees then it is a
     square lattice. Theta cannot be 60 degrees."""
     lat_type = LatType.RHOMB
-    lat = Lattice(lat_type, a=size, b=size, theta=theta)
+    lat = Lattice(lat_type, a=a, b=a, theta=theta)
 
     axis1 = (LatRef.AXIS, ((LatRef.VERTEX, 0), (LatRef.VERTEX, 2)))
     isom1 = Isometry(IsometryType.MIRROR, axis1, reps=1)
