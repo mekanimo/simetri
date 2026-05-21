@@ -69,6 +69,38 @@ def is_number(x: Any) -> bool:
     return isinstance(x, (int, float, complex)) and not isinstance(x, bool)
 
 
+def clip_line_to_rect(point, direction, lower_left, upper_right):
+    """
+    Clips a line defined by point p and direction vector d against a rectangle.
+    rect: (x_min, y_min, x_max, y_max)
+    Returns: ((x1, y1), (x2, y2)) or None
+    """
+    x_min, y_min = lower_left[:2]
+    x_max, y_max = upper_right[:2]
+    rectangle = (x_min, y_min, x_max, y_max)
+    t_min, t_max = -float("inf"), float("inf")
+
+    # Iterate over x and y dimensions
+    for i in range(2):
+        if direction[i] == 0:
+            if point[i] < rectangle[i] or point[i] > rectangle[i + 2]:
+                return None
+        else:
+            t1 = (rectangle[i] - point[i]) / direction[i]
+            t2 = (rectangle[i + 2] - point[i]) / direction[i]
+            t_min = max(t_min, min(t1, t2))
+            t_max = min(t_max, max(t1, t2))
+
+    if t_min <= t_max:
+        start = (
+            point[0] + t_min * direction[0],
+            point[1] + t_min * direction[1],
+        )
+        end = (point[0] + t_max * direction[0], point[1] + t_max * direction[1])
+        return (start, end)
+    return None
+
+
 def bbox_overlap(
     min_x1: float,
     min_y1: float,
@@ -378,6 +410,47 @@ def sorted_edges(polygon):
     oriented_edges.sort(key=cmp_to_key(compare_edges))
 
     return oriented_edges
+
+
+def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
+    """Return the positive angle in radians or degrees.
+
+    Args:
+        angle (float): Input angle.
+        radians (bool, optional): Whether the angle is in radians. Defaults to True.
+        rel_tol (float, optional): Relative tolerance. Defaults to None.
+        abs_tol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        float: Positive angle.
+    """
+    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
+    if radians:
+        if angle < 0:
+            angle += 2 * pi
+    else:
+        if angle < 0:
+            angle += 360
+
+    return angle
+
+
+def equal_angles(
+    angle1: float, angle2: float, rel_tol: float = None, abs_tol: float = None
+) -> bool:
+    """Checks if the given angles are close enough.
+    Negative angles will be converted to positive values for comparison.
+    """
+    if rel_tol is None:
+        rel_tol = defaults["rel_tol"]
+
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
+
+    angle1 = positive_angle(angle1)
+    angle2 = positive_angle(angle2)
+
+    return isclose(angle1, angle2, rel_tol=rel_tol, abs_tol=abs_tol)
 
 
 def is_simple(polygon):
@@ -3675,29 +3748,6 @@ def congruent_polygons(
     return True
 
 
-def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
-    """Return the positive angle in radians or degrees.
-
-    Args:
-        angle (float): Input angle.
-        radians (bool, optional): Whether the angle is in radians. Defaults to True.
-        rel_tol (float, optional): Relative tolerance. Defaults to None.
-        abs_tol (float, optional): Absolute tolerance. Defaults to None.
-
-    Returns:
-        float: Positive angle.
-    """
-    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
-    if radians:
-        if angle < 0:
-            angle += 2 * pi
-    else:
-        if angle < 0:
-            angle += 360
-
-    return angle
-
-
 def polygon_internal_angles(vertices: List[PointType]) -> List[float]:
     """
     Computes internal angles for a polygon given as a list of (x, y) tuples.
@@ -3991,9 +4041,7 @@ def fillet_points(
 
 
 def fillet_corners(
-    vertices: Sequence[PointType],
-    d_vert_radius: dict[int, float],
-    n: int = 12
+    vertices: Sequence[PointType], d_vert_radius: dict[int, float], n: int = 12
 ) -> Sequence[PointType]:
     """Create a new list of vertices with rounded corners (using the corresponding vertices in the indices list.)
     d_vert_radius is a dictionary with index and radius values for keys and values respectively.

@@ -12,6 +12,7 @@ from time import time, monotonic, perf_counter
 from math import factorial, cos, sin, pi, atan2, sqrt, ceil, floor
 from pathlib import Path
 from bisect import bisect_left
+from collections.abc import Generator
 
 from typing import Sequence
 
@@ -254,6 +255,21 @@ def timing(func):
         return result
 
     return wrap
+
+
+def grid_positions(
+    rows: int, cols: int, width: float, height: float, pos: PointType
+) -> Generator[PointType]:
+    """Given number of rows and columns and row height and
+    column width and an origin point, returns a generator of grid positions."""
+    x, y = pos[:2]
+    grid = []
+    for row in range(rows):
+        y_row = row * height
+        for col in range(cols):
+            x_col = col * width
+            grid.append((x + x_col, y + y_row))
+    return (p for p in grid)
 
 
 def find_nearest_value(values: array, value: float) -> float:
@@ -618,8 +634,8 @@ def is_xform_matrix(matrix):
 
 
 def prime_factors(n):
-    '''Prime factorization.'''
-    factors= []
+    """Prime factorization."""
+    factors = []
     p = 2
     while p * p <= n:
         while n % p == 0:
@@ -878,9 +894,13 @@ def equal_cycles(
     Returns:
         True if the cycles are circularly equal, False otherwise.
     """
-    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
+    if rel_tol is None:
+        rel_tol = defaults["rel_tol"]
 
-    def check_cycles(cyc1, cyc2, rel_tol=defaults["rel_tol"]):
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
+
+    def check_cycles(cyc1, cyc2, rel_tol):
         for i, val in enumerate(cyc1):
             if not isclose(val, cyc2[i], rel_tol=rel_tol, abs_tol=abs_tol):
                 return False

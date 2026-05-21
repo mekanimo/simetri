@@ -396,7 +396,7 @@ class Image(Rectangle):
         """
         return self.pil_img.convert(mode, matrix, dither, palette, colors)
 
-    def copy(self):
+    def copy(self, **kwargs):
         """
         Copies this image. Use this method if you wish to paste things into an image, but still retain the original.
 
@@ -408,6 +408,9 @@ class Image(Rectangle):
         img.xform_matrix = self.xform_matrix
         img.file_path = self.file_path
         img.anchor = self.anchor
+
+        for k, v in kwargs.items():
+            setattr(img, k, v)
 
         return img
 

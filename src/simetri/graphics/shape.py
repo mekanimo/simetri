@@ -832,6 +832,12 @@ class Shape(Base, StyleMixin):
         return res
 
     @property
+    def angle(self):
+        """Orientation angle of the shape."""
+        res = decompose_transformations(self.xform_matrix)[1]
+        return positive_angle(res)
+
+    @property
     def vertices(self) -> Tuple[PointType]:
         """The final coordinates of the shape.
 
@@ -965,7 +971,7 @@ class Shape(Base, StyleMixin):
 
         return np.count_nonzero(distances <= self.dist_tol2)
 
-    def copy(self) -> "Shape":
+    def copy(self, **kwargs) -> "Shape":
         """Return a copy of the shape.
 
         Returns:
@@ -990,6 +996,9 @@ class Shape(Base, StyleMixin):
         custom_attribs = custom_attributes(self)
         for attrib in custom_attribs:
             setattr(shape, attrib, getattr(self, attrib))
+
+        for k, v in kwargs.items():
+            setattr(shape, k, v)
 
         return shape
 

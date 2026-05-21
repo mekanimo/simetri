@@ -2,11 +2,10 @@
 Bounding box is axis-aligned. Provides reference edges and points.
 """
 
-import warnings
-
 import numpy as np
 from .common import PointType, common_properties, defaults
 from .all_enums import Side, Types, Anchor
+from ..settings.settings import issue_warning
 from ..geometry.geometry import (
     distance,
     midpoint,
@@ -72,8 +71,9 @@ class BoundingBox:
         """
         if name in self._aliases:
             if name == "center":
-                warnings.warn(
-                    '"center" is deprecated use "midpoint" instead.', DeprecationWarning
+                issue_warning(
+                    '"center" is deprecated use "midpoint" instead.',
+                    category=DeprecationWarning,
                 )
             res = getattr(self, self._aliases[name])
         else:

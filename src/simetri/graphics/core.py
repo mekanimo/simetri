@@ -621,9 +621,22 @@ class Base:
 
         return res
 
-    def move_to(self, pos: PointType, anchor: Anchor = Anchor.CENTER) -> Self:
+    def move(self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs) -> Self:
         """
-        Moves the object to the given position by using its center point.
+        Moves the object to the given position by using its midpoint.
+
+        Args:
+            pos (PointType): The position to move to.
+            anchor (Anchor, optional): The anchor point. Defaults to Anchor.CENTER.
+
+        Returns:
+            Self: The moved object.
+        """
+        return self.move_to(pos, anchor, **kwargs)
+
+    def move_to(self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs) -> Self:
+        """
+        Moves the object to the given position by using its midpoint.
 
         Args:
             pos (PointType): The position to move to.
@@ -637,9 +650,11 @@ class Base:
             anchor = get_enum_value(Anchor, anchor)
             x1, y1 = getattr(self.b_box, anchor)
             transform = translation_matrix(x - x1, y - y1)
+            for k, v in kwargs.items():
+                setattr(self, k, v)
             res = self._update(transform, reps=0)
         else:
-            res = self.copy()
+            res = self.copy(**kwargs)
 
         return res
 

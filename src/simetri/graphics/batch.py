@@ -1,7 +1,6 @@
 """Batch objects are used for grouping other Shape and Batch objects."""
 
 from typing import Any, Iterator, List, Sequence, Callable
-import warnings
 
 from numpy import around, array
 from typing_extensions import Self, Dict
@@ -26,7 +25,7 @@ from ..geometry.geometry import (
     round_point,
 )
 from ..helpers.graph import is_cycle, is_open_walk, Graph
-from ..settings.settings import defaults
+from ..settings.settings import defaults, issue_warning
 
 from .merge import _merge_shapes, _merge_collinears
 
@@ -355,9 +354,8 @@ class Batch(Base):
             Self: The batch object.
         """
         if element in self.elements:
-            warnings.warn(
+            issue_warning(
                 f"Duplicate element added to Batch: {element}",
-                UserWarning,
                 stacklevel=2,
             )
         self.elements.append(element)
@@ -820,7 +818,7 @@ class Batch(Base):
             res = exclude
         return res
 
-    def copy(self) -> "Batch":
+    def copy(self, **kwargs) -> "Batch":
         """Returns a copy of the batch.
 
         Returns:
@@ -828,7 +826,7 @@ class Batch(Base):
         """
         b = Batch(modifiers=self.modifiers)
         if self.elements:
-            b.elements = [elem.copy() for elem in self.elements]
+            b.elements = [elem.copy(**kwargs) for elem in self.elements]
         else:
             b.elements = []
         custom_attribs = custom_batch_attributes(self)

@@ -1,4 +1,3 @@
-
 """Canvas class for drawing shapes and text on a page. All drawing
 operations are handled by the Canvas class. Canvas class can draw all
 graphics objects and text objects. It also provides methods for
@@ -11,7 +10,6 @@ import time
 import tempfile
 import shutil
 import webbrowser
-import warnings
 from typing import Optional, Any, Tuple, Sequence
 from pathlib import Path
 from dataclasses import dataclass
@@ -45,7 +43,8 @@ from simetri.graphics.all_enums import (
     Align,
     Axis,
 )
-from simetri.settings.settings import defaults
+from simetri.graphics.shape import Shape, clip as clip_shape
+from simetri.settings.settings import defaults, issue_warning
 from simetri.graphics.bbox import bounding_box
 from simetri.graphics.batch import Batch
 from simetri.graphics.shape import Shape
@@ -67,6 +66,7 @@ from simetri.tex.tex import remove_aux_files, run_job, Tex
 from simetri.svg.filters import SVG_Filter
 from simetri.graphics.mask import Mask
 from simetri.graphics.sketch import MaskedSketch
+from simetri.geometry.geometry import homogenize
 
 
 def _save_renderer(extension: str) -> Renderer:
@@ -95,8 +95,9 @@ class Canvas:
     def __init__(
         self,
         back_color: Optional["Color"] = None,
-        border: Optional[float] = None,
-        size: Optional[VecType] = None,
+        border: Optional[float] = 20,
+        page_size: Optional[VecType] = None,
+        page_origin: Optional[PointType] = (0, 0),
         **kwargs,
     ):
         """
@@ -105,16 +106,20 @@ class Canvas:
         Args:
             back_color (Optional[Color]): The background color of the canvas.
             border (Optional[float]): The border width of the canvas.
-            size (VecType, optional): The size of the canvas with canvas.origin at (0, 0).
+            page_size (VecType, optional): The size of the page with canvas.page_origin at (0, 0).
             kwargs (dict): Additional keyword arguments. Rarely used.
 
-            You should not need to specify "size" since it is calculated.
+            You should not need to specify "page_size" since it is calculated.
         """
         validate_args(kwargs, canvas_args)
         _set_Nones(self, ["back_color", "border"], [back_color, border])
-        self._size = size
+        self._size = page_size
+        self._origin = [0, 0]
         self.border = border
+        self.__dict__["margins"] = None
+        self.__dict__["book_margins"] = None
         """This value is added to the bounding box of the canvas to expand the output size."""
+        self.page_origin = page_origin
         self.type = Types.CANVAS
         """Used internally to identify the type of object. Do not change it!.
         Most objects in simetri has a type and subtype attribute. See ... for
@@ -131,7 +136,15 @@ class Canvas:
         """Used for generating TikZ code."""
         self.back_color = back_color
         """Background color of the canvas."""
-        self.pages = [Page(self.size, self.back_color, self.border)]
+        self.pages = [
+            Page(
+                size=self.page_size,
+                back_color=self.back_color,
+                border=self.border,
+                margins=self.margins,
+                book_margins=self.book_margins,
+            )
+        ]
         """Each page of the canvas is a Page object.
         The canvas can have multiple pages that result in multi-page PDF output,
         or multiple images with image_name_1.svg, image_name_2.svg, etc."""
@@ -139,10 +152,9 @@ class Canvas:
         """canvas.draw() draws on the active page. If there are multiple pages,
         the active page is the last page created."""
         self._all_vertices = []
+        self.drawn_entities = []
         self.draw_grid = False
-        self._origin = [0, 0]
         self.inset = 0
-        self.page_size = None
         common_properties(self)
 
         for k, v in kwargs.items():
@@ -153,23 +165,133 @@ class Canvas:
         self.tex: Tex = Tex()
         self.render = defaults["render"]
         if self._size is not None:
-            x, y = self.origin[:2]
-            self._limits = [x, y, x + self.size[0], y + self.size[1]]
+            x, y = self.page_origin[:2]
+            self._limits = [
+                x,
+                y,
+                x + self.page_size[0],
+                y + self.page_size[1],
+            ]
         else:
             self._limits = None
         self.overlay = False  # used for inserting pdf pictures
+        self.stack = []
 
     def __setattr__(self, name, value):
-        if hasattr(self, "active_page") and name in ["back_color", "border"]:
-            self.active_page.__setattr__(name, value)
+        if name == "back_color":
+            if hasattr(self, "active_page"):
+                self.active_page.__setattr__(name, value)
             self.__dict__[name] = value
-        elif name in ["size", "origin", "limits"]:
-            if name == "size":
-                type(self).size.fset(self, value)
-            elif name == "origin":
-                type(self).origin.fset(self, value)
+        elif name == "border":
+            if value is None:
+                border = None
+            elif isinstance(value, (int, float)):
+                if value < 0:
+                    raise ValueError("Canvas.border must be a positive numeric value.")
+                border = value
+            elif isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4:
+                border = tuple(value)
+                if not all(isinstance(item, (int, float)) for item in border):
+                    raise ValueError(
+                        "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                    )
+                if any(item < 0 for item in border):
+                    raise ValueError(
+                        "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                    )
+            else:
+                raise ValueError(
+                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                )
+
+            if hasattr(self, "active_page"):
+                self.active_page.__dict__["border"] = border
+            self.__dict__["border"] = border
+        elif name == "margins":
+            if value is None:
+                margins = (
+                    defaults["margin_left"],
+                    defaults["margin_bottom"],
+                    defaults["margin_right"],
+                    defaults["margin_top"],
+                )
+            elif isinstance(value, (int, float)):
+                if value < 0:
+                    raise ValueError(
+                        "Canvas.margins must be a positive numeric value or a tuple of 4 positive numeric values."
+                    )
+                margins = (value, value, value, value)
+            elif isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4:
+                margins = tuple(value)
+                if not all(isinstance(item, (int, float)) for item in margins):
+                    raise ValueError(
+                        "Canvas.margins must be a positive numeric value or a tuple of 4 positive numeric values."
+                    )
+                if any(item < 0 for item in margins):
+                    raise ValueError(
+                        "Canvas.margins must be a positive numeric value or a tuple of 4 positive numeric values."
+                    )
+            else:
+                raise ValueError(
+                    "Canvas.margins must be a positive numeric value or a tuple of 4 positive numeric values."
+                )
+
+            if hasattr(self, "active_page"):
+                self.active_page.margins = margins
+                self.active_page.book_margins = None
+            self.__dict__["margins"] = margins
+            self.__dict__["book_margins"] = None
+        elif name == "book_margins":
+            if value is None:
+                book_margins = (
+                    defaults["margin_gutter"],
+                    defaults["margin_footer"],
+                    defaults["margin"],
+                    defaults["margin_header"],
+                )
+            elif isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4:
+                book_margins = tuple(value)
+                if not all(isinstance(item, (int, float)) for item in book_margins):
+                    raise ValueError(
+                        "Canvas.book_margins must be a tuple of 4 positive numeric values."
+                    )
+                if any(item < 0 for item in book_margins):
+                    raise ValueError(
+                        "Canvas.book_margins must be a tuple of 4 positive numeric values."
+                    )
+            else:
+                raise ValueError(
+                    "Canvas.book_margins must be a tuple of 4 positive numeric values."
+                )
+
+            recto = True
+            if hasattr(self, "active_page"):
+                recto = self.active_page.recto
+
+            gutter, footer, margin, header = book_margins
+            if recto:
+                margins = (gutter, footer, margin, header)
+            else:
+                margins = (margin, footer, gutter, header)
+
+            if hasattr(self, "active_page"):
+                self.active_page.book_margins = book_margins
+                self.active_page.margins = margins
+            self.__dict__["book_margins"] = book_margins
+            self.__dict__["margins"] = margins
+        elif name in ["page_size", "page_origin", "limits"]:
+            if name == "page_size":
+                type(self).page_size.fset(self, value)
+            elif name == "page_origin":
+                type(self).page_origin.fset(self, value)
             elif name == "limits":
                 type(self).limits.fset(self, value)
+        elif name == "size":
+            raise AttributeError(
+                "Canvas.size was renamed to Canvas.page_size."
+            )
+        elif name == "origin":
+            raise AttributeError("Canvas.origin was renamed to Canvas.page_origin.")
         elif name == "scale":
             if isinstance(value, (list, tuple)):
                 type(self).scale.fset(self, value[0], value[1])
@@ -188,6 +310,15 @@ class Canvas:
 
         else:
             self.__dict__[name] = value
+
+    def push_matrix(self):
+        self.stack.append(self._xform_matrix)
+
+    def pop_matrix(self):
+        if self.stack:
+            self._xform_matrix = self.stack.pop()
+        else:
+            issue_warning("Trying to pop from an empty stack!")
 
     def apply_mask(self, target, mask):
         sketches = []
@@ -213,7 +344,8 @@ class Canvas:
         self.active_page.sketches.append(
             draw.get_clipped_sketch(target, clipper, self)
         )
-        draw.extend_vertices(self, clipper)
+        clipped = clip_shape(target, clipper, exclude_clipper=True)
+        draw.extend_vertices(self, clipped)
         self._sketch_xform_matrix = identity_matrix()
 
         return self
@@ -228,53 +360,53 @@ class Canvas:
         display(self)
 
     @property
-    def size(self) -> VecType:
+    def page_size(self) -> VecType:
         """
-        The size of the canvas.
+        The size of the page rectangle.
 
         Returns:
-            VecType: The size of the canvas.
+            VecType: The size of the page rectangle.
         """
         return self._size
 
-    @size.setter
-    def size(self, value: VecType) -> None:
+    @page_size.setter
+    def page_size(self, value: VecType) -> None:
         """
-        Set the size of the canvas.
+        Set the size of the page rectangle.
 
         Args:
-            value (VecType): The size of the canvas.
+            value (VecType): The size of the page rectangle.
         """
         if len(value) == 2:
             self._size = value
-            x, y = self.origin[:2]
+            x, y = self.page_origin[:2]
             w, h = value
             self._limits = (x, y, x + w, y + h)
         else:
-            raise ValueError("Size must be a tuple of 2 values.")
+            raise ValueError("page_size must be a tuple of 2 values.")
 
     @property
-    def origin(self) -> VecType:
+    def page_origin(self) -> VecType:
         """
-        The origin of the canvas.
+        The lower-left corner of the page rectangle.
 
         Returns:
-            VecType: The origin of the canvas.
+            VecType: The lower-left corner of the page rectangle.
         """
         return self._origin[:2]
 
-    @origin.setter
-    def origin(self, value: VecType) -> None:
+    @page_origin.setter
+    def page_origin(self, value: VecType) -> None:
         """
-        Set the origin of the canvas.
+        Set the lower-left corner of the page rectangle.
 
         Args:
-            value (VecType): The origin of the canvas.
+            value (VecType): The lower-left corner of the page rectangle.
         """
         if len(value) == 2:
             self._origin = value
         else:
-            raise ValueError("Origin must be a tuple of 2 values.")
+            raise ValueError("page_origin must be a tuple of 2 values.")
 
     @property
     def limits(self) -> VecType:
@@ -285,11 +417,11 @@ class Canvas:
         Returns:
             VecType: The limits of the canvas.
         """
-        if self.size is None:
+        if self.page_size is None:
             res = None
         else:
-            x, y = self.origin[:2]
-            w, h = self.size
+            x, y = self.page_origin[:2]
+            w, h = self.page_size
             res = (x, y, x + w, y + h)
 
         return res
@@ -311,7 +443,8 @@ class Canvas:
             raise ValueError("Limits must be a tuple of 4 values.")
 
     def b_box(self):
-        return bounding_box(self._all_vertices)
+        xform = np.linalg.inv(self._xform_matrix)
+        return bounding_box(homogenize(self._all_vertices) @ xform)
 
     def capture(self, **kwargs) -> Image:
         """
@@ -508,7 +641,7 @@ class Canvas:
         height: float = None,
         spacing=None,
         cs_size: float = None,
-        deferred: bool = False,
+        deferred: bool = True,
         **kwargs,
     ) -> Self:
         """
@@ -726,7 +859,6 @@ class Canvas:
         draw.draw_dimension(self, dim, **kwargs)
         return self
 
-
     def begin_style(self, style: str):
         # code = rf'\begin{{scope}}[every path/.append style={{dashed, draw=green}}]'
         code = rf"\begin{{scope}}[every path/.append style={{ {style} }}]"
@@ -735,7 +867,6 @@ class Canvas:
         self.active_page.sketches.append(sketch)
 
         return self
-
 
     def end_style(self):
         return self._end_scope()
@@ -776,17 +907,18 @@ class Canvas:
         """
         sketch_xform = self._sketch_xform_matrix
 
-
         if pos is not None:
             sketch_xform = translation_matrix(*pos[:2]) @ sketch_xform
         if scale[0] != 1 or scale[1] != 1:
             if pos is None:
                 pos = (0, 0)
-            sketch_xform = scale_in_place_matrix(*pos[:2], about) @ sketch_xform
+            sketch_xform = (
+                scale_in_place_matrix(*scale[:2], about) @ sketch_xform
+            )
         if angle != 0:
             sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
-        self._sketch_xform_matrix = sketch_xform @ self._xform_matrix
-
+        # self._sketch_xform_matrix = sketch_xform @ self._xform_matrix
+        self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
 
         if isinstance(item_s, (list, tuple)):
             for item in item_s:
@@ -799,6 +931,14 @@ class Canvas:
             self.display()
         else:
             return self
+
+    def draw_lines(
+        self, lines: Sequence[tuple[float, float]], **kwargs
+    ) -> Self:
+        """These lines are drawn with the same style."""
+        draw.draw_lines(self, lines, **kwargs)
+
+        return self
 
     def draw_CS(self, size: float = None, **kwargs) -> Self:
         """
@@ -933,7 +1073,19 @@ class Canvas:
         """
         self._code = []
         self.preamble = defaults["preamble"]
-        self.pages = [Page(self.size, self.back_color, self.border)]
+        page_margins = self.margins
+        if self.book_margins is not None:
+            gutter, footer, margin, header = self.book_margins
+            page_margins = (gutter, footer, margin, header)
+        self.pages = [
+            Page(
+                size=self.page_size,
+                back_color=self.back_color,
+                border=self.border,
+                margins=page_margins,
+                book_margins=self.book_margins,
+            )
+        ]
         self.active_page = self.pages[0]
         self._all_vertices = []
         self.tex: Tex = Tex()
@@ -1008,7 +1160,7 @@ class Canvas:
         self._xform_matrix = rotation_matrix(angle) @ self._xform_matrix
 
     @property
-    def scale(self) -> VecType:
+    def scale_xy(self) -> VecType:
         """
         The scale of the canvas.
 
@@ -1019,8 +1171,8 @@ class Canvas:
 
         return np.linalg.norm(xform[:2, 0]), np.linalg.norm(xform[:2, 1])
 
-    @scale.setter
-    def scale(
+    @scale_xy.setter
+    def scale_xy(
         self,
         scale_x: float = 1,
         scale_y: float = None,
@@ -1110,6 +1262,24 @@ class Canvas:
 
         return self
 
+    def scale(
+        self, scale_x: float, scale_y: float = None, about: PointType = (0, 0)
+    ) -> Self:
+        """
+        Scale the canvas by scale_x and scale_y about the given point.
+        If scale_y is not given then scale_y = scale_x.
+
+        Args:
+            scale_x (float): The scale factor in x direction.
+            scale_y (float): The scale factor in y direction.
+
+        Returns:
+            Self: The canvas object.
+        """
+        self._xform_matrix = (
+            scale_matrix(scale_x, scale_y, about) @ self._xform_matrix
+        )
+
     def _flip(self, axis: Axis) -> Self:
         """
         Flip the canvas along the specified axis.
@@ -1138,7 +1308,7 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        warnings.warn(
+        issue_warning(
             "Flipping the x-axis will change the positive rotation direction."
         )
         return self._flip(Axis.X)
@@ -1150,7 +1320,7 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        warnings.warn(
+        issue_warning(
             "Flipping the y-axis will reverse the positive rotation direction."
         )
 
@@ -1244,8 +1414,8 @@ class Canvas:
         value = getattr(item, property_name, None)
         if value is None:
             value = defaults.get(property_name, VOID)
-            if value == VOID and property_name not in ['color', 'alpha']:
-                warnings.warn(f"Property {property_name} is not in defaults.")
+            if value == VOID and property_name not in ["color", "alpha"]:
+                issue_warning(f"Property {property_name} is not in defaults.")
                 value = None
         return value
 
@@ -1276,12 +1446,10 @@ class Canvas:
                 else:
                     raise ValueError(f"Invalid color value: {draw_color}")
 
-
-
         if color is not None:
-            d_resolved['line_color'] = color
-            d_resolved['fill_color'] = color
-            resolved.extend(['color', 'line_color', 'fill_color'])
+            d_resolved["line_color"] = color
+            d_resolved["fill_color"] = color
+            resolved.extend(["color", "line_color", "fill_color"])
 
         # handle alpha
         alpha = None
@@ -1300,9 +1468,9 @@ class Canvas:
                     raise ValueError(f"Invalid alpha value: {draw_alpha}")
 
         if alpha is not None:
-            d_resolved['line_alpha'] = alpha
-            d_resolved['fill_alpha'] = alpha
-            resolved.extend(['alpha', 'line_alpha', 'fill_alpha'])
+            d_resolved["line_alpha"] = alpha
+            d_resolved["fill_alpha"] = alpha
+            resolved.extend(["alpha", "line_alpha", "fill_alpha"])
 
         for attrib_name in style_map:
             if attrib_name in resolved:
@@ -1311,7 +1479,9 @@ class Canvas:
             if attrib_name in draw_kwargs:
                 d_resolved[attrib_name] = draw_kwargs[attrib_name]
             else:
-                d_resolved[attrib_name] = self.resolve_property(item , attrib_name)
+                d_resolved[attrib_name] = self.resolve_property(
+                    item, attrib_name
+                )
             resolved.append(attrib_name)
 
         return d_resolved
@@ -1360,8 +1530,6 @@ class Canvas:
                     user_fonts.add(name)
         return list(user_fonts.difference(latex_fonts))
 
-
-
     def set_page_size(self, width, height):
         self.page_size = (width, height)
 
@@ -1386,10 +1554,21 @@ class Canvas:
                     border = defaults["border"]
                 else:
                     border = self.border
-            w = b_box.width + 2 * border
-            h = b_box.height + 2 * border
+            if isinstance(border, (int, float)):
+                border_left = border
+                border_bottom = border
+                border_right = border
+                border_top = border
+            elif isinstance(border, (list, tuple, np.ndarray)) and len(border) == 4:
+                border_left, border_bottom, border_right, border_top = border
+            else:
+                raise ValueError(
+                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                )
+            w = b_box.width + border_left + border_right
+            h = b_box.height + border_bottom + border_top
             offset_x, offset_y = b_box.southwest
-            res = w, h, offset_x - border, offset_y - border
+            res = w, h, offset_x - border_left, offset_y - border_bottom
         else:
             res = None
         return res
@@ -1452,7 +1631,7 @@ class Canvas:
                 filepath, overwrite
             )
 
-            warnings.warn(f"Unspecified filepath, using {filepath}.")
+            issue_warning(f"Unspecified filepath, using {filepath}.")
 
         renderer = _save_renderer(extension)
         if renderer == Renderer.SVG:
@@ -1491,11 +1670,35 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        page = Page()
+        recto = not self.active_page.recto
+        page_margins = self.margins
+        if self.book_margins is not None:
+            gutter, footer, margin, header = self.book_margins
+            if recto:
+                page_margins = (gutter, footer, margin, header)
+            else:
+                page_margins = (margin, footer, gutter, header)
+
+        page = Page(
+            size=self.page_size,
+            back_color=self.back_color,
+            border=self.border,
+            margins=page_margins,
+            book_margins=self.book_margins,
+            recto=recto,
+        )
         self.pages.append(page)
         self.active_page = page
         for k, v in kwargs.items():
             setattr(page, k, v)
+        if page.book_margins is not None:
+            gutter, footer, margin, header = page.book_margins
+            if page.recto:
+                page.margins = (gutter, footer, margin, header)
+            else:
+                page.margins = (margin, footer, gutter, header)
+        self.__dict__["margins"] = page.margins
+        self.__dict__["book_margins"] = page.book_margins
         return self
 
 
@@ -1553,8 +1756,10 @@ class Page:
 
     size: VecType = None
     back_color: "Color" = None
-    mask = None
-    margins = None  # left, bottom, right, top
+    border: Any = None
+    mask: Any = None
+    margins: Any = None  # left, bottom, right, top
+    book_margins: Any = None  # gutter, footer, margin, header
     recto: bool = True  # True if page is recto, False if verso
     grid: PageGrid = None
     kwargs: dict = None

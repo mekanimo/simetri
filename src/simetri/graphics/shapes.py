@@ -259,7 +259,7 @@ class Line(Shape):
         """
         return lambda t: self.t(t)
 
-    def copy(self):
+    def copy(self, **kwargs):
         """Return a copy of the line."""
         line = Line(self.start, self.end, extent=self.extent)
         for attrib in custom_attributes(self):
@@ -270,6 +270,10 @@ class Line(Shape):
             value = getattr(self, attrib, defaults[attrib])
             if value is not None:
                 setattr(line, attrib, value)
+
+        for k, v in kwargs.items():
+            setattr(line, k, v)
+
         return line
 
     def t(self, t: float):
@@ -410,7 +414,7 @@ class Rectangle(Shape):
             x, y = self.vertices[i][:2]
             self[i] = (x + x_diff, y + y_diff)
 
-    def copy(self):
+    def copy(self, **kwargs):
         """Return a copy of the rectangle.
 
         Returns:
@@ -433,6 +437,10 @@ class Rectangle(Shape):
             value = getattr(self, attrib, defaults[attrib])
             if value is not None:
                 setattr(rectangle, attrib, value)
+
+        for k, v in kwargs.items():
+            setattr(rectangle, k, v)
+
         return rectangle
 
 
@@ -571,7 +579,7 @@ class Circle(Shape):
             return False
         return self.id == other.id
 
-    def copy(self):
+    def copy(self, **kwargs):
         """Return a copy of the circle.
 
         Returns:
@@ -595,6 +603,9 @@ class Circle(Shape):
             value = getattr(self, attrib, defaults[attrib])
             if value is not None:
                 setattr(circle, attrib, value)
+
+        for k, v in kwargs.items():
+            setattr(circle, k, v)
 
         return circle
 
@@ -649,7 +660,7 @@ class Segment(Shape):
         """
         return distance(self.start, self.end)
 
-    def copy(self) -> Shape:
+    def copy(self, **kwargs) -> Shape:
         """Return a copy of the segment.
 
         Returns:
@@ -666,6 +677,10 @@ class Segment(Shape):
             value = getattr(self, attrib, defaults[attrib])
             if value is not None:
                 setattr(segment, attrib, value)
+
+        for k, v in kwargs.items():
+            setattr(segment, k, v)
+
         return segment
 
     def __str__(self):

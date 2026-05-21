@@ -64,14 +64,19 @@ class Dot(Shape):
             raise TypeError("Name must be a string")
         self.move_to(new_pos)
 
-    def copy(self) -> Shape:
+    def copy(self, **kwargs) -> Shape:
         """Return a copy of the dot.
 
         Returns:
             Shape: A copy of the dot.
         """
         color = self.color.copy()
-        return Dot(self.pos, self.radius, color)
+        dot = Dot(self.pos, self.radius, color)
+
+        for k, v in kwargs.items():
+            setattr(dot, k, v)
+
+        return dot
 
     def __str__(self):
         """Return a string representation of the dot.

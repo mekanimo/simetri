@@ -1434,7 +1434,7 @@ class Lace(Batch):
     def _set_convex_hull(self):
         self.convex_hull = convex_hull(self.outline.vertices)
 
-    def copy(self):
+    def copy(self, **kwargs):
         # class Dummy(Lace):
         #     pass
 

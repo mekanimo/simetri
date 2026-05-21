@@ -120,9 +120,9 @@ def rgb1_to_255(rgb):
     return [int(x * 255) for x in rgb]
 
 
-def hex_to_rgb(hexa):
+def hex_to_rgb(hex_val: str):
     """Convert hex to RGB."""
-    return tuple([int(hexa[i : i + 2], 16) for i in [0, 2, 4]])
+    return hex2rgb(hex_val)
 
 
 def rgb_to_hex(r, g, b):
@@ -155,15 +155,22 @@ class Color:
     green: int = 0
     blue: int = 0
     alpha: int = 1
+    hex_val: str = ''
     space: ColorSpace = "rgb"  # for future use
 
     def __post_init__(self):
         """Post-initialization to ensure color values are in the correct range."""
-        r, g, b = self.red, self.green, self.blue
-        if r < 0 or r > 1 or g < 0 or g > 1 or b < 0 or b > 1:
-            self.red = r / 255
-            self.green = g / 255
-            self.blue = b / 255
+        if self.hex_val != '':
+            r, g, b = hex_to_rgb(self.hex_val)
+            self.red = r
+            self.green = g
+            self.blue = b
+        else:
+            r, g, b = self.red, self.green, self.blue
+            if r < 0 or r > 1 or g < 0 or g > 1 or b < 0 or b > 1:
+                self.red = r / 255
+                self.green = g / 255
+                self.blue = b / 255
         if self.alpha < 0 or self.alpha > 1:
             self.alpha = self.alpha / 255
         common_properties(self)
@@ -313,7 +320,7 @@ def rgb2hex(rgb):
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
-def hex2rgb(hex_val):
+def hex2rgb(hex_val: str):
     """Convert a hex color value to an RGB tuple."""
     hex_val = hex_val.strip("#")
     return tuple(round(int(hex_val[i : i + 2], 16) / 255, 3) for i in (0, 2, 4))

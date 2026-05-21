@@ -1,25 +1,34 @@
 """2D Lattice"""
 
-from math import pi, cos, sin
+from math import pi, cos, sin, ceil, floor
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, List
+
+import numpy as np
 
 from ..graphics.all_enums import IsometryType, LatType, Types, LatRef
 from ..graphics.shape import Shape
 from ..graphics.batch import Batch
 from ..graphics.shapes import reg_poly_shape
-from ..geometry.geometry import intersect, lerp_point, is_number, distance
+from ..graphics.common import PointType
+from ..geometry.geometry import (
+    intersect,
+    lerp_point,
+    is_number,
+    distance,
+    clip_line_to_rect,
+)
 from ..geometry.vectors import Vector
 from ..colors.colors import gray, green, red, navy, blue, yellow
 
 r = 8
-triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy)
-hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue)
-diamond = Shape([(-5, 0), (0, 9), (5, 0), (0, -9)], closed=True, fill_color=red)
-square = reg_poly_shape(4, r, angle=-pi / 4, fill_color=green)
+triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(.6)
+hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(.6)
+diamond = Shape([(-5, 0), (0, 9), (5, 0), (0, -9)], closed=True, fill_color=red).scale(.6)
+square = reg_poly_shape(4, r, angle=-pi / 4, fill_color=green).scale(.6)
 
 
-def basis_to_cartesian(a_, b_, u, v):
+def basis_to_cart(a_, b_, u, v):
     ux, uy = u
     vx, vy = v
     x = a_ * ux + b_ * vx
@@ -27,7 +36,7 @@ def basis_to_cartesian(a_, b_, u, v):
     return x, y
 
 
-def cartesian_to_basis(x, y, u, v):
+def cart_to_basis(x, y, u, v):
     ux, uy = u
     vx, vy = v
     det = ux * vy - uy * vx
@@ -92,7 +101,7 @@ class Lattice:
     """
 
     def __init__(
-        self, subtype: LatType = LatType.HEX, a=40, b=None, theta=None
+        self, subtype: LatType = LatType.HEX, a=40, b=None, theta=None, origin=(0, 0)
     ):
         angles = {
             LatType.HEX: pi / 3,
@@ -126,6 +135,14 @@ class Lattice:
         self.by = self.b * sin(angle2)
         self.u = Vector(self.ax, self.ay)
         self.v = Vector(self.bx, self.by)
+        self.origin = origin[:2]
+
+        det = self.ax * self.by - self.ay * self.bx
+
+        if abs(det) < 1e-6:
+            raise ValueError(
+                "Lattice vectors are linearly dependent (not a 2D lattice)."
+            )
 
         # unit cell
         p1 = (0, 0)
@@ -148,8 +165,8 @@ class Lattice:
         if is_number(ref):
             res = ref
         elif ref == LatRef.COORD:
-            t1, t2 = quantifier
-            res = basis_to_cartesian(t1, t2, self.u, self.v)
+            # t1, t2 = quantifier
+            res = self.basis_to_cartesian(quantifier)
         elif ref == LatRef.LERP:
             i, t = quantifier
             res = lerp_point(*self.unit.edges[i], t)
@@ -257,13 +274,120 @@ class Lattice:
         """Returns the cell structure of the lattice."""
         pass
 
+    def cartesian_to_basis(self, point: PointType) -> PointType:
+        x, y = point
+        return cart_to_basis(x, y, self.u, self.v)
 
-def _draw_unit(canvas, lat, group):
-    triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy)
-    hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue)
+    def basis_to_cartesian(self, point: PointType) -> PointType:
+        a, b = point
+        return basis_to_cart(a, b, self.u, self.v)
+
+    def clipped_points(
+        self, lower_left: PointType, upper_right: PointType
+    ) -> List:
+        """Returns the lattice points within the given rectangle by two points."""
+        # Define the 4 corners of the rectangle
+        x_min, y_min = lower_left[:2]
+        x_max, y_max = upper_right[:2]
+        ox, oy = self.origin[:2]
+
+        corners = [
+            (x_min, y_min),
+            (x_max, y_min),
+            (x_min, y_max),
+            (x_max, y_max),
+        ]
+
+        # Transform corners to (i, j) space
+        # Formula: [i, j]^T = M^-1 * ([x, y]^T - [ox, oy]^T)
+        i_vals = []
+        j_vals = []
+        ux, uy = self.u
+        vx, vy = self.v
+        det = ux * vy - uy * vx
+        for px, py in corners:
+            dx, dy = px - ox, py - oy
+            # Inverse matrix multiplication
+            i = (dx * vy - dy * vx) / det
+            j = (-dx * uy + dy * ux) / det
+            i_vals.append(i)
+            j_vals.append(j)
+
+        # Determine integer bounds for i and j
+        i_start = floor(min(i_vals))
+        i_end = ceil(max(i_vals))
+        j_start = floor(min(j_vals))
+        j_end = ceil(max(j_vals))
+
+        # 5. Collect points and perform a final check
+        # (The i,j range covers the parallelogram bounding the rectangle)
+        points_inside = []
+        for i in range(i_start, i_end + 1):
+            for j in range(j_start, j_end + 1):
+                px = ox + i * ux + j * vx
+                py = oy + i * uy + j * vy
+
+                # Final check against the axis-aligned rectangle
+                if x_min <= px <= x_max and y_min <= py <= y_max:
+                    points_inside.append((px, py))
+
+        return points_inside
+
+    def clipped_lines(
+        self, lower_left: PointType, upper_right: PointType
+    ) -> List:
+        """Returns the lattice lines within the given rectangle by two points."""
+        # Define the 4 corners of the rectangle
+        x_min, y_min = lower_left[:2]
+        x_max, y_max = upper_right[:2]
+        origin = self.origin
+        ux, uy = self.u
+        vx, vy = self.v
+        corners = np.array(
+            [[x_min, y_min], [x_max, y_min], [x_min, y_max], [x_max, y_max]]
+        )
+
+        # Solve for lattice coordinates (c_u, c_v) for each corner
+        # Corner = Origin + c_u*u + c_v*v
+        # [ux vx] [c_u] = [Corner_x - Origin_x]
+        # [uy vy] [c_v]   [Corner_y - Origin_y]
+        matrix = np.array([[ux, vx], [uy, vy]])
+        inv_matrix = np.linalg.inv(matrix)
+
+        diffs = corners - np.array(origin)
+        coords = diffs @ inv_matrix.T
+
+        # Get range of indices
+        min_u, max_u = np.floor(coords[:, 0].min()), np.ceil(coords[:, 0].max())
+        min_v, max_v = np.floor(coords[:, 1].min()), np.ceil(coords[:, 1].max())
+
+        clipped_lines = []
+
+        # Lines in direction v (indexed by u)
+        u = self.u
+        v = self.v
+        for i in range(int(min_u), int(max_u) + 1):
+            point = np.array(origin) + i * np.array(u)
+            line = clip_line_to_rect(point, v, lower_left, upper_right)
+            if line:
+                clipped_lines.append(line)
+
+        # Lines in direction u (indexed by v)
+        for j in range(int(min_v), int(max_v) + 1):
+            point = np.array(origin) + j * np.array(v)
+            line = clip_line_to_rect(point, u, lower_left, upper_right)
+            if line:
+                clipped_lines.append(line)
+
+        return clipped_lines
+
+
+def draw_unit(canvas, lat, group, **kwargs):
+    triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(.6)
+    hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(.6)
     diamond = Shape(
         [(-5, 0), (0, 9), (5, 0), (0, -9)], closed=True, fill_color=red
-    )
+    ).scale(.6)
     points = []
     for x in (0, 0.25, 0.5, 0.75, 1):
         points.append((x, 0))
@@ -311,7 +435,6 @@ def _draw_unit(canvas, lat, group):
             [p[2], p[15]],
             [p[3], p[11]],
             [p[5], p[13]],
-            [p[6], p[2]],
             [p[6], p[14]],
             [p[6], p[10]],
             [p[6], p[9]],
@@ -394,7 +517,6 @@ def _draw_unit(canvas, lat, group):
             [p[2], p[15]],
             [p[3], p[11]],
             [p[5], p[13]],
-            [p[6], p[2]],
             [p[6], p[14]],
             [p[6], p[9]],
             [p[7], p[10]],
@@ -520,7 +642,7 @@ def _draw_unit(canvas, lat, group):
 
         diamonds = [p[0], p[4], p[8], p[12], center, p[2], p[6], p[10], p[14]]
 
-    canvas.draw(lat.unit)
+    canvas.draw(lat.unit, **kwargs)
 
     for line in hairlines:
         p1, p2 = line
@@ -549,7 +671,11 @@ def _draw_unit(canvas, lat, group):
         p2 = lat._resolve((LatRef.COORD, p2))
 
         canvas.line(
-            p1, p2, line_dash_array=[6, 4], line_width=2, line_color=blue
+            p1,
+            p2,
+            line_dash_array=[8, 3, 3, 3],
+            line_width=2.5,
+            line_color=blue,
         )
 
     for hex in hexes:
@@ -787,7 +913,7 @@ def lat_pg(
 ) -> Lattice:
     lat = Lattice(lat_type, a=a, b=b)
 
-    axis = (LatRef.AXIS, ((LatRef.LERP, (1, 0.5)), (LatRef.LERP, (3, 0.5))))
+    axis = (LatRef.AXIS, ((LatRef.LERP, (3, 0.5)), (LatRef.LERP, (1, 0.5))))
 
     isom1 = Isometry(
         IsometryType.GLIDE_REFLECTION,

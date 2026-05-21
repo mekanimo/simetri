@@ -124,7 +124,7 @@ class Bezier(Shape):
         else:
             raise ValueError("Invalid number of control points.")
 
-    def copy(self) -> Shape:
+    def copy(self, **kwargs) -> Shape:
         """Return a copy of the Bezier curve.
 
         Returns:
@@ -136,6 +136,8 @@ class Bezier(Shape):
             xform_matrix=self.xform_matrix,
             n_points=len(self.vertices),
         )
+        for k, v in kwargs.items():
+            setattr(copy_, k, v)
 
         return copy_
 

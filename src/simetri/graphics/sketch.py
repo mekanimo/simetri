@@ -9,7 +9,7 @@ They are snapshots of the state of the objects and the Canvas at the time of dra
 """
 
 from dataclasses import dataclass
-from typing import List, Any, Union
+from typing import List, Any, Union, Sequence
 
 import numpy as np
 from numpy import ndarray
@@ -117,6 +117,19 @@ class RectangleSketch:
             self.xform_matrix = identity_matrix()
 
         self.closed = True
+
+@dataclass
+class LinesSketch:
+    '''LinesSketch is a dataclass for creating multiple line with the same style.'''
+    lines: Sequence[tuple[float, float]]
+    xform_matrix: ndarray = None
+
+    def __post_init__(self):
+        """Initialize the LinesSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.LINES_SKETCH
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
 
 @dataclass
 class LineSketch:

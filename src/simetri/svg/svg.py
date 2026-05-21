@@ -6,7 +6,6 @@ from math import degrees, cos, sin, ceil
 from typing import List, Union
 from dataclasses import dataclass, field
 from types import SimpleNamespace
-import warnings
 import html
 
 import matplotlib
@@ -45,7 +44,7 @@ from ..geometry.geometry import (
     vert_label_positions,
 )
 from ..colors.colors import black, white
-from ..settings.settings import defaults, svg_defaults
+from ..settings.settings import defaults, issue_warning, svg_defaults
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..graphics.sketch import TagSketch, ShapeSketch, MaskSketch, ScopeGroup
 from .filters import SVG_Filter
@@ -98,7 +97,7 @@ def get_text_size(text, font_name, font_size):
             font = ImageFont.truetype(f"{font_name}.ttf", size=font_size)
         except OSError as e:
             # If specific font not found, use default font with scaling
-            warnings.warn(
+            issue_warning(
                 f"Could not load font '{font_name}.ttf': {e}. Using default font with scaling."
             )
             font = ImageFont.load_default()
@@ -548,6 +547,10 @@ def draw_shape_sketch_with_indices(sketch, index=0):
 
     # Compute label positions using vert_label_positions
     label_positions = vert_label_positions(sketch, offset)
+    if isinstance(sketch.indices, bool):
+        labels = range(len(vertices))
+    else:
+        labels = sketch.indices
 
     font_size = defaults["font_size"]
     elements = [shape_svg]
@@ -555,7 +558,7 @@ def draw_shape_sketch_with_indices(sketch, index=0):
         elements.append(
             f'<g transform="translate({lx} {ly}) scale(1,-1)">'
             f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
-            f' font-size="{font_size}">{i}</text>'
+            f' font-size="{font_size}">{labels[i]}</text>'
             f"</g>"
         )
 
@@ -2327,15 +2330,32 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
         return SvgUnits.USER_SPACE_ON_USE
 
     def _mask_bounds_in_user_space():
+        if canvas.page_size is not None:
+            x_min, y_min, x_max, y_max = canvas.limits
+            return x_min, y_min, x_max - x_min, y_max - y_min
+
         if canvas._all_vertices:
             canvas_bbox = bounding_box(canvas._all_vertices)
-            border = (
-                defaults["border"] if canvas.border is None else canvas.border
-            )
-            x = canvas_bbox.southwest[0] - border
-            y = canvas_bbox.southwest[1] - border
-            width = canvas_bbox.width + 2 * border
-            height = canvas_bbox.height + 2 * border
+            if canvas.border is None:
+                border_left = defaults["border"]
+                border_bottom = defaults["border"]
+                border_right = defaults["border"]
+                border_top = defaults["border"]
+            elif isinstance(canvas.border, (int, float)):
+                border_left = canvas.border
+                border_bottom = canvas.border
+                border_right = canvas.border
+                border_top = canvas.border
+            elif isinstance(canvas.border, (list, tuple)) and len(canvas.border) == 4:
+                border_left, border_bottom, border_right, border_top = canvas.border
+            else:
+                raise ValueError(
+                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                )
+            x = canvas_bbox.southwest[0] - border_left
+            y = canvas_bbox.southwest[1] - border_bottom
+            width = canvas_bbox.width + border_left + border_right
+            height = canvas_bbox.height + border_bottom + border_top
             return x, y, width, height
 
         mask_bbox = mask_shape.b_box
@@ -2853,10 +2873,28 @@ def get_styles(canvas, styles_dict):
 
 def get_svg_code(canvas):
     vertices = canvas._all_vertices
-    if canvas.border is None:
-        border = defaults["border"]
+    if canvas.page_size is None:
+        if canvas.border is None:
+            border_left = defaults["border"]
+            border_bottom = defaults["border"]
+            border_right = defaults["border"]
+            border_top = defaults["border"]
+        elif isinstance(canvas.border, (int, float)):
+            border_left = canvas.border
+            border_bottom = canvas.border
+            border_right = canvas.border
+            border_top = canvas.border
+        elif isinstance(canvas.border, (list, tuple)) and len(canvas.border) == 4:
+            border_left, border_bottom, border_right, border_top = canvas.border
+        else:
+            raise ValueError(
+                "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+            )
     else:
-        border = canvas.border
+        border_left = 0
+        border_bottom = 0
+        border_right = 0
+        border_top = 0
     color = canvas.back_color
     if color is None:
         color = white
@@ -2865,17 +2903,17 @@ def get_svg_code(canvas):
     defs = generate_defs(canvas, styles_dict)
 
     if not canvas.active_page.sketches or not vertices:
-        warnings.warn(
+        issue_warning(
             "Canvas has no drawings/sketches. Writing empty SVG output."
         )
-        if canvas.size is not None:
-            width, height = canvas.size
-            minx, miny = canvas.origin
+        if canvas.page_size is not None:
+            width, height = canvas.page_size
+            minx, miny = canvas.page_origin
         else:
-            width = 2 * border
-            height = 2 * border
-            minx = -border
-            miny = -border
+            width = border_left + border_right
+            height = border_bottom + border_top
+            minx = -border_left
+            miny = -border_bottom
         dy = 2 * miny + height
         code = [
             header(
@@ -2895,12 +2933,23 @@ def get_svg_code(canvas):
         code.append(footer())
         return "\n".join(code)
 
-    bbox = bounding_box(vertices)
-    width = bbox.width + 2 * border
-    height = bbox.height + 2 * border
+    if canvas.page_size is not None:
+        minx, miny, maxx, maxy = canvas.limits
+        width = maxx - minx
+        height = maxy - miny
+    else:
+        bbox = bounding_box(vertices)
+        width = bbox.width + border_left + border_right
+        height = bbox.height + border_bottom + border_top
+        x_coords = []
+        y_coords = []
+        for vertex in vertices:
+            x_coord, y_coord = vertex[:2]
+            x_coords.append(x_coord)
+            y_coords.append(y_coord)
+        minx = min(x_coords) - border_left
+        miny = min(y_coords) - border_bottom
 
-    minx = min([v[0] for v in vertices]) - border
-    miny = min([v[1] for v in vertices]) - border
     dy = 2 * miny + height
 
     # Check if canvas has limits that require clipping

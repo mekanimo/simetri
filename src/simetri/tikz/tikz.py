@@ -9,7 +9,6 @@ from __future__ import annotations
 from math import degrees, ceil, atan2
 from typing import List, Union
 from types import SimpleNamespace
-import warnings
 
 import numpy as np
 
@@ -32,7 +31,7 @@ from ..graphics.all_enums import (
     Extent,
 )
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
-from ..settings.settings import defaults, tikz_defaults
+from ..settings.settings import defaults, issue_warning, tikz_defaults
 from ..geometry.geometry import (
     homogenize,
     round_point,
@@ -247,7 +246,7 @@ def get_tex_code(canvas: "Canvas") -> str:
     has_sketches = any(page.sketches for page in pages)
 
     if not has_sketches:
-        warnings.warn(
+        issue_warning(
             "Canvas has no drawings/sketches. Writing empty TeX output."
         )
         return canvas.tex.tex_code(
@@ -1834,7 +1833,7 @@ def draw_shape_sketch_with_indices(sketch, index=0):
 
     # Compute label positions using vert_label_positions
     label_positions = vert_label_positions(sketch, offset)
-    indices = [f"({lx}, {ly})" for lx, ly in label_positions]
+    positions = [f"({lx}, {ly})" for lx, ly in label_positions]
     vertices = [str(x) for x in vertices]
     str_lines = [vertices[0]]
     n = len(vertices)
@@ -1851,10 +1850,14 @@ def draw_shape_sketch_with_indices(sketch, index=0):
         if sketch.closed:
             str_lines.append(" -- cycle;\n")
         str_lines.append(";\n")
-    if indices:
-        str_lines.append(f"\\node at {indices[0]} {{{0}}};\n")
-        for i, pos in enumerate(indices[1:]):
-            str_lines.append(f"\\node at {pos} {{{i + 1}}};\n")
+    if positions:
+        if isinstance(sketch.indices, bool):
+            labels = range(len(vertices))
+        else:
+            labels = sketch.indices
+        str_lines.append(f"\\node at {positions[0]} {{{labels[0]}}};\n")
+        for i, pos in enumerate(positions[1:]):
+            str_lines.append(f"\\node at {pos} {{{labels[i + 1]}}};\n")
 
     end_scope = get_end_scope()
     if begin_scope == "\\begin{scope}[]\n":

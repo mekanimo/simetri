@@ -1599,7 +1599,7 @@ group_args = [
 ]
 
 
-canvas_args = ["size", "back_color", "border", "inset"]
+canvas_args = ["page_size", "back_color", "book_margins", "border", "inset", "margins"]
 
 shape_aliases_dict = {}
 

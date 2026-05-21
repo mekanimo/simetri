@@ -107,6 +107,8 @@ def set_alias_maps():
     style_map._set_frame_style_alias_map()
     style_map._set_shape_args()
 
+# aliases
+is_close = isclose
 
 # if any of the styles is changed, this should be called again!!!
 # set_alias_maps()

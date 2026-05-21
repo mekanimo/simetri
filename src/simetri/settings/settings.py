@@ -5,7 +5,9 @@ If you are going to share your code with others, you should set these values in 
 
 __all__ = [
     "defaults",
+    "issue_warning",
     "set_defaults",
+    "SimetriWarning",
     "tikz_defaults",
     "set_tikz_defaults",
     "svg_defaults",
@@ -13,6 +15,7 @@ __all__ = [
 ]
 
 import sys
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -25,6 +28,20 @@ VOID = "VOID"
 
 # This is the alpha testing stage for the Simetri library.
 # These default values may change in the future.
+
+
+class SimetriWarning(UserWarning):
+    """Project warning category for warning messages emitted by simetri."""
+
+
+def issue_warning(
+    message: str,
+    category: type[Warning] = SimetriWarning,
+    stacklevel: int = 2,
+) -> None:
+    """Emit a warning when the global warning toggle is enabled."""
+    if defaults["show_warnings"]:
+        warnings.warn(message, category, stacklevel=stacklevel)
 
 
 @dataclass
@@ -1077,25 +1094,37 @@ def set_defaults():
     default_types["main_font"] = str
     defaults_help["main_font"] = "Main font. String."
 
-    defaults["margin"] = 1
+    defaults["margin"] = 54
     default_types["margin"] = float
-    defaults_help["margin"] = "Margin. Positive float. Length in <points>."
+    defaults_help["margin"] = "Right margin in recto pages, left margin in verso pages. Positive float. Length in <points>."
 
-    defaults["margin_bottom"] = 1
+    defaults["margin_bottom"] = 18
     default_types["margin_bottom"] = float
     defaults_help["margin_bottom"] = (
         "Bottom margin. Positive float. Length in <points>."
     )
 
-    defaults["margin_left"] = 1
+    defaults["margin_footer"] = 54
+    default_types["margin_footer"] = float
+    defaults_help["margin_footer"] = "Footer margin. Positive float. Length in <points>."
+
+    defaults["margin_gutter"] = 40
+    default_types["margin_gutter"] = float
+    defaults_help["margin_gutter"] = "Gutter margin. Inner margin in recto and verso pages. Positive float. Length in <points>."
+
+    defaults["margin_header"] = 54
+    default_types["margin_header"] = float
+    defaults_help["margin_header"] = "Header margin. Positive float. Length in <points>."
+
+    defaults["margin_left"] = 18
     default_types["margin_left"] = float
     defaults_help["margin_left"] = "Left margin. Positive float. Length in <points>."
 
-    defaults["margin_right"] = 1
+    defaults["margin_right"] = 18
     default_types["margin_right"] = float
     defaults_help["margin_right"] = "Right margin. Positive float. Length in <points>."
 
-    defaults["margin_top"] = 1  # to do! change these to point units
+    defaults["margin_top"] = 18
     default_types["margin_top"] = float
     defaults_help["margin_top"] = "Top margin. Positive float. Length in <points>."
 
@@ -1630,6 +1659,13 @@ def set_defaults():
     defaults_help["show_log_on_console"] = (
         "Boolean property for showing LateX log messages on console. "
         "If True, log messages are shown on console."
+    )
+
+    defaults["show_warnings"] = True
+    default_types["show_warnings"] = bool
+    defaults_help["show_warnings"] = (
+        "Boolean property for showing simetri warning messages. "
+        "If True, warnings are emitted."
     )
 
     defaults["slanted"] = False

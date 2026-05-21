@@ -15,7 +15,7 @@ from .bbox import bounding_box
 from .common import PointType, common_properties
 from ..helpers.validation import validate_args
 from .all_enums import PathOperation as PathOps
-from .all_enums import Types, TransformationType
+from .all_enums import Types, TransformationType, Anchor, get_enum_value
 from ..canvas.style_map import shape_style_map, ShapeStyle, shape_args
 from ..geometry.bezier import Bezier
 from ..geometry.hobby import hobby_shape
@@ -187,7 +187,7 @@ class LinPath(Batch, StyleMixin):
         else:
             raise ValueError(f"Invalid operation type: {op_type}")
 
-    def copy(self) -> "LinPath":
+    def copy(self, **kwargs) -> "LinPath":
         """Return a copy of the path.
 
         Returns:
@@ -201,15 +201,18 @@ class LinPath(Batch, StyleMixin):
         new_path.objects = []
         for obj in self.objects:
             if obj is not None:
-                new_path.objects.append(obj.copy())
+                new_path.objects.append(obj.copy(**kwargs))
             else:
                 new_path.objects.append(None)
         new_path.even_odd = self.even_odd
-        new_path.cur_shape = self.cur_shape.copy()
-        new_path.handles = self.handles.copy()
+        new_path.cur_shape = self.cur_shape.copy(**kwargs)
+        new_path.handles = self.handles.copy(**kwargs)
         new_path.stack = deque(self.stack)
         for attrib in shape_style_map:
             setattr(new_path, attrib, getattr(self, attrib))
+
+        for k, v in kwargs.items():
+            setattr(new_path, k, v)
 
         return new_path
 
@@ -376,6 +379,20 @@ class LinPath(Batch, StyleMixin):
             self.forward(distance)
 
         return self
+
+    def move(self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs) -> Self:
+        if self.active:
+            x, y = pos[:2]
+            anchor = get_enum_value(Anchor, anchor)
+            x1, y1 = getattr(self.b_box, anchor)
+            transform = translation_matrix(x - x1, y - y1)
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+            res = self._update(transform, reps=0)
+        else:
+            res = self.copy(**kwargs)
+
+        return res
 
     def move_to(self, point: PointType, **kwargs) -> Self:
         """Move the path to a new point.

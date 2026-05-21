@@ -9,9 +9,10 @@ import subprocess
 import sys
 import time
 from typing import List, Optional, Union
-import warnings
 
 import fitz
+
+from ..settings.settings import issue_warning
 
 def validate_filepath(filepath: Path, overwrite: bool):
     """
@@ -62,7 +63,7 @@ def inject_snippet(code: str, snippet: List[str], mark: str, before=True) -> str
     res_lines = lines[:count] + snippet + lines[count:]
 
     if flag:
-        warnings.warn(f"Could not find '{mark}'")
+        issue_warning(f"Could not find '{mark}'")
     else:
         return "\n".join(res_lines)
 
@@ -84,7 +85,7 @@ def replace_token(code: str, token: str, replace: str) -> str:
             res_lines.append(line)
 
     if flag:
-        warnings.warn("Could not find 'token'")
+        issue_warning("Could not find 'token'")
     else:
         return "\n".join(res_lines)
 
@@ -108,7 +109,7 @@ def inject_filepath(code: str, pic_path: str) -> str:
             res_lines.append(line)
 
     if flag:
-        warnings.warn("Could not find 'canvas.display()'")
+        issue_warning("Could not find 'canvas.display()'")
     else:
         return "\n".join(res_lines)
 

@@ -324,6 +324,11 @@ def is_gradient(value):
 
 d_validators = {
     "alpha": check_number,
+    "book_margins": lambda value: value is None or (
+        isinstance(value, (list, tuple, ndarray))
+        and len(value) == 4
+        and all(isinstance(item, numbers.Number) and item >= 0 for item in value)
+    ),
     "clip": check_bool,
     "color": check_color,
     "dist_tol": is_positive,
@@ -366,6 +371,13 @@ d_validators = {
     "marker_shape": lambda x: x is None or hasattr(x, 'subtype'),
     "marker_size": check_number,
     "markers_only": check_bool,
+    "margins": lambda value: value is None or (
+        isinstance(value, numbers.Number) and value >= 0
+    ) or (
+        isinstance(value, (list, tuple, ndarray))
+        and len(value) == 4
+        and all(isinstance(item, numbers.Number) and item >= 0 for item in value)
+    ),
     "mask": check_mask,
     "opacity": check_percent,
     "pattern_angle": check_number,

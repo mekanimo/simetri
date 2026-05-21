@@ -240,7 +240,11 @@ class Tex:
         Returns:
             str: The document class string.
         """
-        return f"\\documentclass[{font_size}pt,tikz,border={border}pt]{{standalone}}\n"
+        if isinstance(border, str):
+            border_value = border
+        else:
+            border_value = f"{border}pt"
+        return f"\\documentclass[{font_size}pt,tikz,border={border_value}]{{standalone}}\n"
 
     def get_tikz_code(self) -> str:
         """Returns the TikZ code.
@@ -348,15 +352,28 @@ class Tex:
 
         if libraries:
             libraries = f"\\usetikzlibrary{{{','.join(libraries)}}}\n"
-
-        if canvas.border is None:
-            border = defaults["border"]
-        elif isinstance(canvas.border, (int, float)):
-            border = canvas.border
+        if canvas.page_size is not None:
+            border = 0
         else:
-            raise ValueError("Canvas.border must be a positive numeric value.")
-        if border < 0:
-            raise ValueError("Canvas.border must be a positive numeric value.")
+            if canvas.border is None:
+                border = defaults["border"]
+            elif isinstance(canvas.border, (int, float)):
+                border = canvas.border
+            elif isinstance(canvas.border, (list, tuple)) and len(canvas.border) == 4:
+                if any(item < 0 for item in canvas.border):
+                    raise ValueError(
+                        "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                    )
+                left, bottom, right, top = canvas.border
+                border = f"{{{left}pt {bottom}pt {right}pt {top}pt}}"
+            else:
+                raise ValueError(
+                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                )
+            if isinstance(border, (int, float)) and border < 0:
+                raise ValueError(
+                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                )
         doc_class = self.get_doc_class(border, defaults["font_size"])
         # Check if different fonts are used
         fonts_section = ""

@@ -531,7 +531,7 @@ class Tag(Base):
         """
         return (self._init_pos @ self.xform_matrix)[:2].tolist()
 
-    def copy(self) -> "Tag":
+    def copy(self, **kwargs) -> "Tag":
         """Returns a copy of the Tag object.
 
         Returns:
@@ -549,6 +549,9 @@ class Tag(Base):
         tag.placement = self.placement
         tag.minimum_size = self.minimum_size
         tag.minimum_width = self.minimum_width
+
+        for k, v in kwargs.items():
+            setattr(tag, k, v)
 
         return tag
 

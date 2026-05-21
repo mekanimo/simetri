@@ -15,9 +15,9 @@ from ..graphics.all_enums import Types
 from ..geometry.geometry import (
     line_angle,
     distance,
-    positive_angle,
     rotate_point,
     homogenize,
+     positive_angle
 )
 from ..canvas.style_map import shape_style_map
 from ..settings.settings import defaults
@@ -150,7 +150,7 @@ class Arc(Shape):
         c, _, b = self._orig_triangle @ self.xform_matrix
         return distance(b, c)
 
-    def copy(self):
+    def copy(self, **kwargs):
         """Return a copy of the arc."""
         center = self.center
         start_angle = self.start_angle
@@ -173,6 +173,9 @@ class Arc(Shape):
         for attrib in custom_attribs:
             if attrib not in arc_attribs:
                 setattr(arc, attrib, getattr(self, attrib))
+
+        for k, v in kwargs.items():
+            setattr(arc, k, v)
 
         return arc
 
@@ -254,7 +257,7 @@ class Ellipse(Shape):
 
         return super()._update(xform_matrix, reps, merge)
 
-    def copy(self):
+    def copy(self, **kwargs):
         """Return a copy of the ellipse.
 
         Returns:
@@ -267,6 +270,9 @@ class Ellipse(Shape):
         custom_attribs = custom_attributes(self)
         for attrib in custom_attribs:
             setattr(ellipse, attrib, getattr(self, attrib))
+
+        for k, v in kwargs.items():
+            setattr(ellipse, k, v)
 
         return ellipse
 

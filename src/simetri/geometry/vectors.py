@@ -9,9 +9,9 @@ VPython by Bruce Sherwood.
 
 from math import acos, atan2, cos, hypot, sin
 from typing import List, Optional, Sequence, Tuple, Union
-import warnings
 
 from ..graphics.common import PointType
+from ..settings.settings import issue_warning
 
 
 class Vector:
@@ -67,18 +67,14 @@ class Vector:
         """Add two vectors."""
         if isinstance(other, Vector):
             return Vector(v_sum(self.data, other.data))
-        warnings.warn(
-            "Vector objects are being used with lists/tuples!", UserWarning
-        )
+        issue_warning("Vector objects are being used with lists/tuples!")
         return Vector(v_sum(self.data, other))
 
     def __sub__(self, other: Union["Vector", Sequence[float]]) -> "Vector":
         """Subtract two vectors."""
         if isinstance(other, Vector):
             return Vector(v_diff(self.data, other.data))
-        warnings.warn(
-            "Vector objects are being used with lists/tuples!", UserWarning
-        )
+        issue_warning("Vector objects are being used with lists/tuples!")
         return Vector(v_diff(self.data, other))
 
     def __mul__(
@@ -89,9 +85,7 @@ class Vector:
             return Vector(v_mul(self.data, other))
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
-        warnings.warn(
-            "Vector objects are being used with lists/tuples!", UserWarning
-        )
+        issue_warning("Vector objects are being used with lists/tuples!")
         return v_mul(self.data, other)
 
     def __rmul__(self, other: Union[float, int]) -> "Vector":
@@ -131,9 +125,7 @@ class Vector:
         if isinstance(other, Vector):
             other_data = other.data
         else:
-            warnings.warn(
-                "Vector objects are being used with lists/tuples!", UserWarning
-            )
+            issue_warning("Vector objects are being used with lists/tuples!")
             other_data = other
         return distance(self.data, other_data)
 
@@ -160,9 +152,7 @@ class Vector:
         """Dot product."""
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
-        warnings.warn(
-            "Vector objects are being used with lists/tuples!", UserWarning
-        )
+        issue_warning("Vector objects are being used with lists/tuples!")
         return v_mul(self.data, other)
 
     def cross(
@@ -172,9 +162,7 @@ class Vector:
         if isinstance(other, Vector):
             other_data = other.data
         else:
-            warnings.warn(
-                "Vector objects are being used with lists/tuples!", UserWarning
-            )
+            issue_warning("Vector objects are being used with lists/tuples!")
             other_data = other
         res = v_cross(self.data, other_data)
         if isinstance(res, list):
@@ -190,9 +178,7 @@ class Vector:
         if isinstance(other, Vector):
             other_data = other.data
         else:
-            warnings.warn(
-                "Vector objects are being used with lists/tuples!", UserWarning
-            )
+            issue_warning("Vector objects are being used with lists/tuples!")
             other_data = other
         return v_angle_between(self.data, other_data)
 
@@ -215,10 +201,7 @@ class Vector:
             axis_data = axis.data
         else:
             if axis is not None:
-                warnings.warn(
-                    "Vector objects are being used with lists/tuples!",
-                    UserWarning,
-                )
+                issue_warning("Vector objects are being used with lists/tuples!")
             axis_data = axis
         return Vector(v_rotated(self.data, angle, axis_data))
 
@@ -227,9 +210,7 @@ class Vector:
         if isinstance(other, Vector):
             other_vec = other
         else:
-            warnings.warn(
-                "Vector objects are being used with lists/tuples!", UserWarning
-            )
+            issue_warning("Vector objects are being used with lists/tuples!")
             other_vec = Vector(other)
         b_mag_sq = other_vec.mag_sq()
         if b_mag_sq == 0:
@@ -242,9 +223,7 @@ class Vector:
         if isinstance(normal, Vector):
             n = normal
         else:
-            warnings.warn(
-                "Vector objects are being used with lists/tuples!", UserWarning
-            )
+            issue_warning("Vector objects are being used with lists/tuples!")
             n = Vector(normal)
         n = n.normalize()
         return self - n * (2 * self.dot(n))
@@ -256,9 +235,7 @@ class Vector:
         if isinstance(other, Vector):
             other_data = other.data
         else:
-            warnings.warn(
-                "Vector objects are being used with lists/tuples!", UserWarning
-            )
+            issue_warning("Vector objects are being used with lists/tuples!")
             other_data = other
         return Vector(v_interpolated(self.data, other_data, t))
 

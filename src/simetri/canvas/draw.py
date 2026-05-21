@@ -1122,6 +1122,14 @@ def draw_lace(self, lace, **kwargs):
     return self
 
 
+def draw_lines(self, lines, **kwargs):
+    self._sketch_xform_matrix = self.xform_matrix
+    extend_vertices([p[0] for p in lines])
+    extend_vertices([p[1] for p in lines])
+    sketch = LinesSketch(lines, **kwargs)
+    self.active_page.sketches.append(sketch)
+    self._sketch_xform_matrix = identity_matrix()
+
 def draw_image(self, image, position=None, scale=None, **kwargs):
     """Draw the image object.
 
@@ -1947,7 +1955,6 @@ def create_sketch(item, canvas, **kwargs):
         ]
         if not vertices:
             return None
-
         sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
         sketch.subtype = Types.BBOX_SKETCH
         sketch.visible = True
@@ -2025,7 +2032,6 @@ def create_sketch(item, canvas, **kwargs):
         if not item.vertices:
             return None
 
-        # vertices = get_verts_in_new_pos(item, **kwargs)
         nround = defaults["tikz_nround"]
         vertices = [
             (round(x[0], nround), round(x[1], nround)) for x in item.vertices
