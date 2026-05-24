@@ -126,8 +126,7 @@ def check_bool(value: Any) -> bool:
     """
     Check if the value is a boolean.
 
-    Boolean values need to be explicitly set to True or False.
-    None is not a valid boolean value.
+    Reject None as a boolean. Accept all other truthy/falsy values.
 
     Args:
         value (Any): The value to check.
@@ -135,7 +134,11 @@ def check_bool(value: Any) -> bool:
     Returns:
         bool: True if the value is a boolean, False otherwise.
     """
-    return isinstance(value, bool)
+
+    if value is None:
+        return False
+
+    return isinstance(bool(value), bool)
 
 
 def check_enum(value: Any, enum: Any) -> bool:

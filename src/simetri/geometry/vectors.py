@@ -8,9 +8,11 @@ VPython by Bruce Sherwood.
 """
 
 from math import acos, atan2, cos, hypot, sin
+from numbers import Real
 from typing import List, Optional, Sequence, Tuple, Union
 
 from ..graphics.common import PointType
+from ..helpers.validation import check_position
 from ..settings.settings import issue_warning
 
 
@@ -26,15 +28,42 @@ class Vector:
         Can be initialized with:
         - Separate components: Vector(1, 2) or Vector(1, 2, 3)
         - A sequence: Vector([1, 2]) or Vector((1, 2, 3))
+        - Two points: Vector(p1, p2)
 
         Example:
             >>> v1 = Vector(1, 2)
             >>> v2 = Vector([3, 4, 5])
+            >>> v3 = Vector((20, -5), (40, 0))
         """
-        if len(args) == 1 and isarray(args[0]):
-            self.data = list(args[0])
-        else:
-            self.data = list(args)
+        if not args:
+            raise ValueError("Vector requires 1, 2, or 3 numeric components, or two points.")
+
+        if len(args) == 1:
+            if not isarray(args[0]):
+                raise ValueError("Vector requires a sequence of 2 or 3 numeric components.")
+            data = list(args[0])
+            if len(data) not in [2, 3]:
+                raise ValueError("Vector sequence input must have 2 or 3 components.")
+            if not all(isinstance(component, Real) for component in data):
+                raise ValueError("Vector components must be numeric.")
+            self.data = data
+            return
+
+        if len(args) == 2 and check_position(args[0]) and check_position(args[1]):
+            point_1 = args[0]
+            point_2 = args[1]
+            if len(point_1) != len(point_2):
+                raise ValueError("Vector point inputs must have the same dimension.")
+            self.data = [coord_2 - coord_1 for coord_1, coord_2 in zip(point_1, point_2)]
+            return
+
+        if len(args) not in [2, 3]:
+            raise ValueError("Vector requires 2 or 3 numeric components, or two points.")
+
+        if not all(isinstance(component, Real) for component in args):
+            raise ValueError("Vector components must be numeric.")
+
+        self.data = list(args)
 
     @property
     def x(self) -> float:
@@ -52,7 +81,10 @@ class Vector:
         return self.data[2] if len(self.data) > 2 else 0.0
 
     def __repr__(self) -> str:
-        return f"Vector({', '.join(f'{x:.2f}' for x in self.data)})"
+        return f"Vector({', '.join(str(component) for component in self.data)})"
+
+    def __str__(self) -> str:
+        return f"<{', '.join(str(component) for component in self.data)}>"
 
     def __len__(self) -> int:
         return len(self.data)

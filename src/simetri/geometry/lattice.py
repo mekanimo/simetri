@@ -19,13 +19,15 @@ from ..geometry.geometry import (
     clip_line_to_rect,
 )
 from ..geometry.vectors import Vector
-from ..colors.colors import gray, green, red, navy, blue, yellow
+from ..colors.colors import gray, green, red, navy, blue, purple, light_gold
 
 r = 8
-triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(.6)
-hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(.6)
-diamond = Shape([(-5, 0), (0, 9), (5, 0), (0, -9)], closed=True, fill_color=red).scale(.6)
-square = reg_poly_shape(4, r, angle=-pi / 4, fill_color=green).scale(.6)
+triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)
+hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(0.6)
+diamond = Shape(
+    [(-5, 0), (0, 9), (5, 0), (0, -9)], closed=True, fill_color=purple
+).scale(0.75)
+square = reg_poly_shape(4, r, angle=-pi / 4, fill_color=green).scale(0.6)
 
 
 def basis_to_cart(a_, b_, u, v):
@@ -101,7 +103,12 @@ class Lattice:
     """
 
     def __init__(
-        self, subtype: LatType = LatType.HEX, a=40, b=None, theta=None, origin=(0, 0)
+        self,
+        subtype: LatType = LatType.HEX,
+        a=40,
+        b=None,
+        theta=None,
+        origin=(0, 0),
     ):
         angles = {
             LatType.HEX: pi / 3,
@@ -231,10 +238,13 @@ class Lattice:
             return self.pattern
 
     def populate_unit(self, kernel):
-        if kernel.type == "SHAPE":
+        if kernel.subtype == "LINPATH":
+            self.pattern = Batch(kernel)
+        elif kernel.type == "SHAPE":
             self.pattern = Batch(kernel)
         elif kernel.type == "BATCH":
             self.pattern = kernel
+
         else:
             raise ValueError("kernel needs to be a Shape or Batch object!")
 
@@ -242,6 +252,16 @@ class Lattice:
             self.apply(isom)
 
         return self
+
+    def span(self, kernel, horizontal=True, reps: int = 1) -> Batch:
+        self.populate_unit(kernel)
+        pattern = self.pattern
+        if horizontal:
+            dx = self.a
+            self.pattern = pattern.translate(dx, 0, reps=reps)
+        else:
+            dy = self.b
+            self.pattern = pattern.translate(0, dy, reps=reps)
 
     def expand(self, kernel, reps: int = 1) -> Batch:
         self.populate_unit(kernel)
@@ -383,11 +403,11 @@ class Lattice:
 
 
 def draw_unit(canvas, lat, group, **kwargs):
-    triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(.6)
-    hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(.6)
+    triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)
+    hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(0.6)
     diamond = Shape(
-        [(-5, 0), (0, 9), (5, 0), (0, -9)], closed=True, fill_color=red
-    ).scale(.6)
+        [(-5, 0), (0, 9), (5, 0), (0, -9)], closed=True, fill_color=purple
+    ).scale(0.75)
     points = []
     for x in (0, 0.25, 0.5, 0.75, 1):
         points.append((x, 0))
@@ -442,6 +462,8 @@ def draw_unit(canvas, lat, group, **kwargs):
             [p[10], p[14]],
         ]
 
+        fund_domain = [p[0], p[2], piv1]
+
     elif group == "p6":
         hairlines = [
             (p[0], piv1),
@@ -452,6 +474,8 @@ def draw_unit(canvas, lat, group, **kwargs):
             (p[12], piv2),
             (p[4], p[12]),
         ]
+
+        fund_domain = [p[0], p[4], piv1]
 
     elif group == "pmm":
         mirrors = [
@@ -465,6 +489,8 @@ def draw_unit(canvas, lat, group, **kwargs):
 
         diamonds = [p[0], p[4], p[8], p[12], center]
 
+        fund_domain = [p[0], p[2], center, p[14]]
+
     elif group == "pm":
         mirrors = [
             (p[0], p[4]),
@@ -472,8 +498,10 @@ def draw_unit(canvas, lat, group, **kwargs):
             (p[6], p[14]),
         ]
 
+        fund_domain = [p[0], p[4], p[6], p[14]]
+
     elif group == "p1":
-        pass
+        fund_domain = [p[0], p[4], p[8], p[12]]
 
     elif group == "p31m":
         mirrors = [
@@ -499,6 +527,7 @@ def draw_unit(canvas, lat, group, **kwargs):
             (p[8], piv2),
             (p[12], piv2),
         ]
+        fund_domain = [p[0], p[4], piv1]
 
         triangles = [p[0], p[4], p[8], p[12], piv1, piv2]
 
@@ -522,6 +551,8 @@ def draw_unit(canvas, lat, group, **kwargs):
             [p[7], p[10]],
             [p[10], p[14]],
         ]
+        fund_domain = [piv1, piv2, p[12]]
+
         triangles = [p[0], p[4], p[8], p[12], piv1, piv2]
 
     elif group == "p3":
@@ -534,6 +565,7 @@ def draw_unit(canvas, lat, group, **kwargs):
             (p[8], piv2),
             (p[12], piv2),
         ]
+        fund_domain = [piv1, p[4], piv2, p[12]]
 
     elif group == "p4g":
         mirrors = [
@@ -559,6 +591,8 @@ def draw_unit(canvas, lat, group, **kwargs):
         diamonds = [p[2], p[6], p[10], p[14]]
         squares = [p[0], p[4], p[8], p[12], center]
 
+        fund_domain = [p[0], p[2], p[14]]
+
     elif group == "p4m":
         mirrors = [
             [p[0], p[4]],
@@ -575,6 +609,8 @@ def draw_unit(canvas, lat, group, **kwargs):
             [p[14], p[2]],
         ]
 
+        fund_domain = [p[0], p[2], center]
+
         diamonds = [p[2], p[6], p[10], p[14]]
         squares = [p[0], p[4], p[8], p[12], center]
 
@@ -583,6 +619,8 @@ def draw_unit(canvas, lat, group, **kwargs):
             (p[2], p[10]),
             (p[6], p[14]),
         ]
+
+        fund_domain = [p[0], p[2], center, p[14]]
 
         diamonds = [p[2], p[6], p[10], p[14]]
         squares = [p[0], p[4], p[8], p[12], center]
@@ -598,6 +636,7 @@ def draw_unit(canvas, lat, group, **kwargs):
             [p[10], p[14]],
             [p[14], p[2]],
         ]
+        fund_domain = [p[0], p[4], center]
 
         diamonds = [p[2], p[6], p[10], p[14]]
         squares = [p[0], p[4], p[8], p[12], center]
@@ -611,8 +650,12 @@ def draw_unit(canvas, lat, group, **kwargs):
             [p[10], p[14]],
         ]
 
+        fund_domain = [p[0], p[4], p[8]]
+
     elif group == "p2":
         diamonds = [p[0], p[4], p[8], p[12], center, p[2], p[6], p[10], p[14]]
+
+        fund_domain = [p[0], p[4], p[6], p[14]]
 
     elif group == "pg":
         glides = [
@@ -620,6 +663,8 @@ def draw_unit(canvas, lat, group, **kwargs):
             [p[6], p[14]],
             [p[8], p[12]],
         ]
+
+        fund_domain = [p[0], p[2], p[10], p[12]]
 
     elif group == "pmg":
         glides = [
@@ -630,6 +675,8 @@ def draw_unit(canvas, lat, group, **kwargs):
             [p[6], p[14]],
             [p[8], p[12]],
         ]
+        fund_domain = [p[0], p[2], center, p[14]]
+
         diamonds = [p[15], (0.5, 0.25), p[5], p[13], (0.5, 0.75), p[7]]
 
     elif group == "pgg":
@@ -639,8 +686,13 @@ def draw_unit(canvas, lat, group, **kwargs):
             [p[5], p[15]],
             [p[7], p[13]],
         ]
+        fund_domain = [p[2], p[6], p[14]]
 
         diamonds = [p[0], p[4], p[8], p[12], center, p[2], p[6], p[10], p[14]]
+
+    points = [lat._resolve((LatRef.COORD, p)) for p in fund_domain]
+    canvas.draw(Shape(points, closed=True), color=light_gold,
+                fill=True)
 
     canvas.draw(lat.unit, **kwargs)
 
@@ -660,9 +712,8 @@ def draw_unit(canvas, lat, group, **kwargs):
             p1,
             p2,
             draw_double=True,
-            double_distance=3,
-            double_color=yellow,
-            line_color=red,
+            double_distance=2.5,
+            double_color=red,
         )
 
     for line in glides:

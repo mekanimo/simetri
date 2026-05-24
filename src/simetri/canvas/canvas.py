@@ -335,14 +335,14 @@ class Canvas:
 
         return self
 
-    def clip(self, target, clipper):
+    def clip(self, target, clipper, **kwargs):
         # create a ClippedSketch
         # this replaces begin_clip and end_clip
         self._sketch_xform_matrix = (
             self._sketch_xform_matrix @ self._xform_matrix
         )
         self.active_page.sketches.append(
-            draw.get_clipped_sketch(target, clipper, self)
+            draw.get_clipped_sketch(target, clipper, self, **kwargs)
         )
         clipped = clip_shape(target, clipper, exclude_clipper=True)
         draw.extend_vertices(self, clipped)
@@ -1276,8 +1276,10 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
+        if scale_y is None:
+            scale_y = scale_x
         self._xform_matrix = (
-            scale_matrix(scale_x, scale_y, about) @ self._xform_matrix
+            scale_in_place_matrix(scale_x, scale_y, about) @ self._xform_matrix
         )
 
     def _flip(self, axis: Axis) -> Self:
@@ -1589,8 +1591,9 @@ class Canvas:
         if show_browser:
             filepath = "file:///" + filepath
             if multi_page_svg:
+                root, extension = os.path.splitext(filepath)
                 for i, _ in enumerate(self.pages):
-                    f_path = filepath.replace(".svg", f"_page{i + 1}.svg")
+                    f_path = f"{root}_{i + 1}{extension}"
                     webbrowser.open(f_path)
             else:
                 webbrowser.open(filepath)
@@ -1634,15 +1637,31 @@ class Canvas:
             issue_warning(f"Unspecified filepath, using {filepath}.")
 
         renderer = _save_renderer(extension)
+        multi_page_svg = False
         if renderer == Renderer.SVG:
             from simetri.svg.svg import get_svg_code
 
-            svg_code = get_svg_code(self)
             if extension == ".png":
+                svg_code = get_svg_code(self)
                 save_svg_png(svg_code, filepath)
             else:
-                with open(filepath, "w", encoding="utf-8") as f:
-                    f.write(svg_code)
+                if len(self.pages) > 1:
+                    multi_page_svg = True
+                    active_page = self.active_page
+                    for i, page in enumerate(self.pages):
+                        self.active_page = page
+                        page_filepath = os.path.join(
+                            parent_dir, f"{file_name}_{i + 1}{extension}"
+                        )
+                        validate_filepath(page_filepath, overwrite)
+                        svg_code = get_svg_code(self)
+                        with open(page_filepath, "w", encoding="utf-8") as f:
+                            f.write(svg_code)
+                    self.active_page = active_page
+                else:
+                    svg_code = get_svg_code(self)
+                    with open(filepath, "w", encoding="utf-8") as f:
+                        f.write(svg_code)
         else:
             tex_code = get_tex_code(self)
             tex_path = os.path.join(parent_dir, file_name + ".tex")
@@ -1656,7 +1675,7 @@ class Canvas:
                 remove_aux_files(filepath)
 
         self._show_browser(
-            filepath=filepath, show_browser=show, multi_page_svg=False
+            filepath=filepath, show_browser=show, multi_page_svg=multi_page_svg
         )
         return self
 

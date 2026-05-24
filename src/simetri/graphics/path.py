@@ -195,9 +195,16 @@ class LinPath(Batch, StyleMixin):
         """
 
         new_path = LinPath(start=self.start)
+        cur_shape_index = None
+        for index, element in enumerate(self.elements):
+            if element is self.cur_shape:
+                cur_shape_index = index
+                break
+
         new_path.pos = self.pos
         new_path.angle = self.angle
         new_path.operations = self.operations.copy()
+        new_path.elements = [element.copy(**kwargs) for element in self.elements]
         new_path.objects = []
         for obj in self.objects:
             if obj is not None:
@@ -205,7 +212,10 @@ class LinPath(Batch, StyleMixin):
             else:
                 new_path.objects.append(None)
         new_path.even_odd = self.even_odd
-        new_path.cur_shape = self.cur_shape.copy(**kwargs)
+        if cur_shape_index is not None:
+            new_path.cur_shape = new_path.elements[cur_shape_index]
+        else:
+            new_path.cur_shape = self.cur_shape.copy(**kwargs)
         new_path.handles = self.handles.copy(**kwargs)
         new_path.stack = deque(self.stack)
         for attrib in shape_style_map:
@@ -1084,7 +1094,7 @@ class LinPath(Batch, StyleMixin):
 
     def _update(
         self,
-        xform_matrix: array,
+        xform_matrix: np.ndarray,
         reps: int = 0,
         take: slice = None,
         incr: float = None,
@@ -1101,6 +1111,25 @@ class LinPath(Batch, StyleMixin):
             Batch: The updated shape or a batch of shapes.
         """
         if reps == 0:
+            original_pos = self.pos
+            direction_point = (
+                original_pos[0] + cos(self.angle),
+                original_pos[1] + sin(self.angle),
+            )
+            self.start = _transform_path_point(self.start, xform_matrix)
+            self.pos = _transform_path_point(self.pos, xform_matrix)
+            self.angle = line_angle(
+                _transform_path_point(original_pos, xform_matrix),
+                _transform_path_point(direction_point, xform_matrix),
+            )
+            self.operations = [
+                _transform_path_operation(operation, xform_matrix)
+                for operation in self.operations
+            ]
+            self.handles = [
+                _transform_path_points(handle, xform_matrix)
+                for handle in self.handles
+            ]
             for obj in self.objects:
                 if obj is not None:
                     obj._update(xform_matrix)
@@ -1118,14 +1147,116 @@ class LinPath(Batch, StyleMixin):
         return res
 
 
-def lin_path_svg(LinPath):
+def _transform_path_point(point, xform_matrix: np.ndarray) -> PointType:
+    transformed_point = homogenize([point]) @ xform_matrix
+    return tuple(transformed_point[0][:2])
+
+
+def _transform_path_points(points, xform_matrix: np.ndarray):
+    transformed_points = homogenize(points) @ xform_matrix
+    return [tuple(point[:2]) for point in transformed_points.tolist()]
+
+
+def _transform_arc_data(data, xform_matrix: np.ndarray) -> tuple:
+    pos, _, rx, ry, start_angle, span_angle, rot_angle, points = data
+    transformed_points = _transform_path_points(points, xform_matrix)
+    end_point = tuple(transformed_points[-1])
+
+    linear_part = np.array(
+        [
+            [xform_matrix[0, 0], xform_matrix[1, 0]],
+            [xform_matrix[0, 1], xform_matrix[1, 1]],
+        ],
+        dtype=float,
+    )
+    rotation = np.array(
+        [
+            [cos(rot_angle), -sin(rot_angle)],
+            [sin(rot_angle), cos(rot_angle)],
+        ],
+        dtype=float,
+    )
+    ellipse_matrix = linear_part @ rotation @ np.diag([rx, ry])
+    vectors, singular_values, _ = np.linalg.svd(ellipse_matrix)
+    if np.linalg.det(vectors) < 0:
+        vectors[:, -1] *= -1
+
+    new_rot_angle = atan2(vectors[1, 0], vectors[0, 0])
+    new_rx, new_ry = singular_values[:2]
+    new_span_angle = span_angle
+    if np.linalg.det(linear_part) < 0:
+        new_span_angle = -new_span_angle
+    tangent_angle = line_angle(transformed_points[-2], transformed_points[-1])
+
+    return (
+        end_point,
+        tangent_angle,
+        new_rx,
+        new_ry,
+        start_angle,
+        new_span_angle,
+        new_rot_angle,
+        transformed_points,
+    )
+
+
+def _transform_path_operation(
+    operation: Operation | tuple, xform_matrix: np.ndarray
+):
+    if isinstance(operation, tuple):
+        return operation
+
+    subtype = operation.subtype
+    data = operation.data
+    transformed_data = data
+
+    if subtype in [PathOps.MOVE_TO, PathOps.R_MOVE]:
+        transformed_data = _transform_path_point(data, xform_matrix)
+    elif subtype in [
+        PathOps.LINE_TO,
+        PathOps.R_LINE,
+        PathOps.H_LINE_TO,
+        PathOps.R_H_LINE,
+        PathOps.V_LINE_TO,
+        PathOps.R_V_LINE,
+        PathOps.FORWARD,
+    ]:
+        transformed_data = tuple(
+            _transform_path_point(point, xform_matrix) for point in data
+        )
+    elif subtype in [PathOps.SEGMENTS, PathOps.HOBBY_TO]:
+        transformed_data = (
+            _transform_path_point(data[0], xform_matrix),
+            _transform_path_points(data[1], xform_matrix),
+        )
+    elif subtype in [PathOps.CUBIC_TO, PathOps.BLEND_CUBIC]:
+        transformed_data = tuple(
+            _transform_path_point(point, xform_matrix) for point in data
+        )
+    elif subtype in [PathOps.QUAD_TO, PathOps.BLEND_QUAD]:
+        transformed_data = tuple(
+            _transform_path_point(point, xform_matrix) for point in data
+        )
+    elif subtype in [PathOps.ARC, PathOps.BLEND_ARC]:
+        transformed_data = _transform_arc_data(data, xform_matrix)
+    elif subtype in [PathOps.SINE, PathOps.BLEND_SINE]:
+        transformed_points = _transform_path_points(data[0], xform_matrix)
+        transformed_data = (
+            transformed_points,
+            line_angle(transformed_points[-2], transformed_points[-1]),
+        )
+
+    return Operation(subtype, transformed_data, operation.name)
+
+
+def lin_path_svg(lin_path):
     """Given a LinPath object returns the equivalent svg path."""
 
     def fmt(val):
         """Format a float to a string with 3 decimal places."""
         return f"{val:.3f}".rstrip("0").rstrip(".")
 
-    parts = [f"M {fmt(linpath.start[0])},{fmt(linpath.start[1])}"]
+    parts = [f"M {fmt(lin_path.start[0])},{fmt(lin_path.start[1])}"]
 
     # We iterate operations. We align with objects by filtering out Style ops
     # which don't produce objects?
@@ -1138,7 +1269,7 @@ def lin_path_svg(LinPath):
     obj_idx = 0
     PO = PathOps
 
-    for op in linpath.operations:
+    for op in lin_path.operations:
         if isinstance(op, tuple):
             # Style operation
             continue
@@ -1150,7 +1281,7 @@ def lin_path_svg(LinPath):
         # Some ops like MOVE_TO append None to objects.
         # CLOSE appends None.
         current_obj = (
-            linpath.objects[obj_idx] if obj_idx < len(linpath.objects) else None
+            lin_path.objects[obj_idx] if obj_idx < len(lin_path.objects) else None
         )
 
         if st in [PO.MOVE_TO, PO.R_MOVE]:

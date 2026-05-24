@@ -10,6 +10,7 @@ from simetri.graphics.all_enums import Types, TexLoc, FrameShape, BackStyle
 from simetri.helpers.utilities import wait_for_file_availability
 from simetri.helpers.file_operations import remove_aux_files
 from simetri.graphics.common import common_properties
+from simetri.canvas.pre_render import collect_tikz_preamble_requirements
 from simetri.tikz.tikz import (
     color_to_tikz,
     get_limits_code,
@@ -276,61 +277,10 @@ class Tex:
         Returns:
             str: The required TeX packages.
         """
-        tikz_libraries = []
-        tikz_packages = ["tikz", "pgf"]
+        if self.tikz_libraries is not None and self.packages is not None:
+            return self.tikz_libraries, self.packages
 
-        def _inspect_sketch(sketch):
-            if hasattr(sketch, "library"):
-                if sketch.library == "fadings":
-                    if "fadings" not in tikz_libraries:
-                        tikz_libraries.append("fadings")
-            if hasattr(sketch, "_mask_stops") and sketch._mask_stops is not None:
-                if "fadings" not in tikz_libraries:
-                    tikz_libraries.append("fadings")
-            if hasattr(sketch, "draw_frame") and sketch.draw_frame:
-                if (
-                    hasattr(sketch, "frame_shape")
-                    and sketch.frame_shape != FrameShape.RECTANGLE
-                ):
-                    if "shapes.geometric" not in tikz_libraries:
-                        tikz_libraries.append("shapes.geometric")
-            if hasattr(sketch, "draw_markers") and sketch.draw_markers:
-                if "patterns" not in tikz_libraries:
-                    tikz_libraries.append("patterns")
-                    tikz_libraries.append("patterns.meta")
-                    tikz_libraries.append("backgrounds")
-                    tikz_libraries.append("shadings")
-                    tikz_libraries.append("plotmarks")
-            if hasattr(sketch, "line_dash_array") and sketch.line_dash_array:
-                if "patterns" not in tikz_libraries:
-                    tikz_libraries.append("patterns")
-            if sketch.subtype == Types.TAG_SKETCH:
-                if "fontspec" not in tikz_packages:
-                    tikz_packages.append("fontspec")
-            else:
-                if (
-                    hasattr(sketch, "marker_type")
-                    and sketch.marker_type == "indices"
-                ):
-                    if "fontspec" not in tikz_packages:
-                        tikz_packages.append("fontspec")
-            if hasattr(sketch, "back_style"):
-                if sketch.back_style == BackStyle.COLOR:
-                    if "xcolor" not in tikz_packages:
-                        tikz_packages.append("xcolor")
-                if sketch.back_style == BackStyle.SHADING:
-                    if "shadings" not in tikz_libraries:
-                        tikz_libraries.append("shadings")
-                if sketch.back_style == BackStyle.PATTERN:
-                    if "patterns" not in tikz_libraries:
-                        tikz_libraries.append("patterns")
-                        tikz_libraries.append("patterns.meta")
-
-        for page in canvas.pages:
-            for sketch in page.sketches:
-                _inspect_sketch(sketch)
-
-        return tikz_libraries, tikz_packages
+        return collect_tikz_preamble_requirements(canvas)
 
     def get_preamble(self, canvas) -> str:
         """Returns the TeX preamble.

@@ -32,13 +32,19 @@ from ..graphics.all_enums import (
 )
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
 from ..settings.settings import defaults, issue_warning, tikz_defaults
+from ..canvas.pre_render import (
+    build_scope_group_maps,
+    collect_tikz_preamble_requirements_for_sketch,
+    prepare_auto_scope_groups,
+    restore_scope_keys,
+)
 from ..geometry.geometry import (
     homogenize,
     round_point,
     close_points2,
     vert_label_positions,
 )
-from ..graphics.sketch import TagSketch, ShapeSketch, ScopeGroup
+from ..graphics.sketch import TagSketch, ShapeSketch
 from ..helpers.utilities import detokenize
 
 from ..colors.colors import Color, check_color
@@ -179,6 +185,184 @@ def get_tex_code(canvas: "Canvas") -> str:
         str: The TikZ code.
     """
 
+    scope_style_keys = [
+        "back_style",
+        "blend_mode",
+        "double_color",
+        "double_distance",
+        "draw_double",
+        "fill",
+        "fill_alpha",
+        "fill_color",
+        "fillet_radius",
+        "line_alpha",
+        "line_cap",
+        "line_color",
+        "line_dash_array",
+        "line_join",
+        "line_miter_limit",
+        "line_width",
+        "smooth",
+        "stroke",
+    ]
+    excluded_subtypes = [
+        Types.CLIPPED_SKETCH,
+        Types.HELPLINES_SKETCH,
+        Types.IMAGE_SKETCH,
+        Types.LATEX_SKETCH,
+        Types.MASKED_SKETCH,
+        Types.TAG_SKETCH,
+        Types.TEX_SKETCH,
+    ]
+    tikz_libraries = []
+    tikz_packages = ["tikz", "pgf"]
+
+    def render_sketches(sketches, ind, scope_groups=None):
+        if scope_groups is None:
+            scope_groups = []
+
+        code = []
+        def inspect_preamble_requirements(sketch):
+            collect_tikz_preamble_requirements_for_sketch(
+                sketch, tikz_libraries, tikz_packages
+            )
+
+        auto_scope_group_by_sketch_id, modified_scope_sketches = (
+            prepare_auto_scope_groups(
+                sketches,
+                scope_style_keys,
+                excluded_subtypes,
+                collect_requirements=inspect_preamble_requirements,
+            )
+        )
+
+        try:
+            scope_opens, scope_closes = build_scope_group_maps(sketches, scope_groups)
+            for sketch_index, sketch in enumerate(sketches):
+                sketch_id = id(sketch)
+                if sketch_id in scope_opens:
+                    for scope_group in scope_opens[sketch_id]:
+                        if scope_group.subtype == Types.CLIP_GROUP:
+                            clip_code = get_clip_code(SimpleNamespace(mask=scope_group.mask))
+                            code.append(f"\\begin{{scope}}\n{clip_code}")
+                        elif scope_group.subtype == Types.MASK_GROUP:
+                            mask_ns = SimpleNamespace(
+                                mask=scope_group.mask,
+                                clip=scope_group.clip,
+                                _mask_opacity=scope_group._mask_opacity,
+                                _mask_stops=scope_group._mask_stops,
+                                _mask_axis=scope_group._mask_axis,
+                            )
+                            mask_start, _ = _mask_scope_parts(mask_ns)
+                            if mask_start:
+                                code.append(mask_start)
+                        elif scope_group.subtype == Types.SCOPE_GROUP:
+                            scope_keys = list(scope_group.style_data.keys())
+                            scope_sketch_dict = dict(
+                                scope_group.sketch_list[0].__dict__
+                            )
+                            if "_scope_style_keys" in scope_sketch_dict:
+                                del scope_sketch_dict["_scope_style_keys"]
+                            scope_sketch = SimpleNamespace(**scope_sketch_dict)
+                            line_exceptions = []
+                            for style_key in line_style_map.keys():
+                                if style_key not in scope_keys:
+                                    line_exceptions.append(style_key)
+                            fill_exceptions = []
+                            for style_key in shape_style_map.keys():
+                                if style_key not in scope_keys:
+                                    fill_exceptions.append(style_key)
+                            scope_options = []
+                            if "stroke" in scope_keys and not scope_sketch.stroke:
+                                scope_options.append("draw=none")
+                            else:
+                                scope_options += get_line_style_options(
+                                    scope_sketch, exceptions=line_exceptions
+                                )
+                            if scope_sketch.fill and (
+                                scope_sketch.closed
+                                or scope_sketch.subtype == Types.PATH_SKETCH
+                            ):
+                                scope_options += get_fill_style_options(
+                                    scope_sketch, exceptions=fill_exceptions
+                                )
+                            if scope_options:
+                                code.append(
+                                    f"\\begin{{scope}}[{', '.join(scope_options)}]\n"
+                                )
+                            else:
+                                code.append("\\begin{scope}\n")
+                current_auto_scope_group = None
+                if sketch_id in auto_scope_group_by_sketch_id:
+                    current_auto_scope_group = auto_scope_group_by_sketch_id[
+                        sketch_id
+                    ]
+                previous_auto_scope_group = None
+                if sketch_index > 0:
+                    previous_sketch_id = id(sketches[sketch_index - 1])
+                    if previous_sketch_id in auto_scope_group_by_sketch_id:
+                        previous_auto_scope_group = auto_scope_group_by_sketch_id[
+                            previous_sketch_id
+                        ]
+                if (
+                    current_auto_scope_group is not None
+                    and current_auto_scope_group is not previous_auto_scope_group
+                ):
+                    scope_keys = list(current_auto_scope_group.style_data.keys())
+                    scope_sketch_dict = dict(sketch.__dict__)
+                    if "_scope_style_keys" in scope_sketch_dict:
+                        del scope_sketch_dict["_scope_style_keys"]
+                    scope_sketch = SimpleNamespace(**scope_sketch_dict)
+                    line_exceptions = []
+                    for style_key in line_style_map.keys():
+                        if style_key not in scope_keys:
+                            line_exceptions.append(style_key)
+                    fill_exceptions = []
+                    for style_key in shape_style_map.keys():
+                        if style_key not in scope_keys:
+                            fill_exceptions.append(style_key)
+                    scope_options = []
+                    if "stroke" in scope_keys and not scope_sketch.stroke:
+                        scope_options.append("draw=none")
+                    else:
+                        scope_options += get_line_style_options(
+                            scope_sketch, exceptions=line_exceptions
+                        )
+                    if scope_sketch.fill and (
+                        scope_sketch.closed
+                        or scope_sketch.subtype == Types.PATH_SKETCH
+                    ):
+                        scope_options += get_fill_style_options(
+                            scope_sketch, exceptions=fill_exceptions
+                        )
+                    if scope_options:
+                        code.append(
+                            f"\\begin{{scope}}[{', '.join(scope_options)}]\n"
+                        )
+                    else:
+                        code.append("\\begin{scope}\n")
+                sketch_code, ind = get_sketch_code(sketch, canvas, ind)
+                code.append(sketch_code)
+                next_auto_scope_group = None
+                if sketch_index + 1 < len(sketches):
+                    next_sketch_id = id(sketches[sketch_index + 1])
+                    if next_sketch_id in auto_scope_group_by_sketch_id:
+                        next_auto_scope_group = auto_scope_group_by_sketch_id[
+                            next_sketch_id
+                        ]
+                if (
+                    current_auto_scope_group is not None
+                    and current_auto_scope_group is not next_auto_scope_group
+                ):
+                    code.append("\\end{scope}")
+                if sketch_id in scope_closes:
+                    for scope_group in scope_closes[sketch_id]:
+                        code.append("\\end{scope}")
+        finally:
+            restore_scope_keys(modified_scope_sketches)
+
+        return "".join(code), ind
+
     def get_sketch_code(sketch, canvas, ind):
         """Get the TikZ code for a sketch.
 
@@ -214,19 +398,21 @@ def get_tex_code(canvas: "Canvas") -> str:
         elif sketch.subtype == Types.CLIPPED_SKETCH:
             clip_code = get_clip_code(sketch.clipper)
             clipped_code = ["\\begin{scope}\n", clip_code]
+            child_sketches = []
             for sketch_list in sketch.sketches:
-                for clipped_sketch in sketch_list:
-                    child_code, ind = get_sketch_code(clipped_sketch, canvas, ind)
-                    clipped_code.append(child_code)
+                child_sketches.extend(sketch_list)
+            child_code, ind = render_sketches(child_sketches, ind)
+            clipped_code.append(child_code)
             clipped_code.append("\\end{scope}\n")
             code = "".join(clipped_code)
         elif sketch.subtype == Types.MASKED_SKETCH:
             mask_start, mask_end = _mask_scope_parts(sketch)
             masked_code = [mask_start]
+            child_sketches = []
             for sketch_list in sketch.sketches:
-                for masked_sketch in sketch_list:
-                    child_code, ind = get_sketch_code(masked_sketch, canvas, ind)
-                    masked_code.append(child_code)
+                child_sketches.extend(sketch_list)
+            child_code, ind = render_sketches(child_sketches, ind)
+            masked_code.append(child_code)
             masked_code.append(mask_end)
             code = "".join(masked_code)
         else:
@@ -268,6 +454,8 @@ def get_tex_code(canvas: "Canvas") -> str:
                 code.append(defaults["end_tikz"])
                 code.append("\\newpage")
                 code.append(defaults["begin_tikz"])
+                if canvas.limits is not None or canvas.inset != 0:
+                    code.append(get_limits_code(canvas))
 
             sketches_to_populate = list(sketches)
             while sketches_to_populate:
@@ -282,78 +470,14 @@ def get_tex_code(canvas: "Canvas") -> str:
                         sketch.populate(canvas)
 
             ind = 0
-            scope_opens = {}
-            scope_closes = {}
-            for scope_group in page.scope_groups:
-                if scope_group.sketch_list:
-                    first_sketch_id = id(scope_group.sketch_list[0])
-                    last_sketch_id = id(scope_group.sketch_list[-1])
-                    if first_sketch_id not in scope_opens:
-                        scope_opens[first_sketch_id] = []
-                    scope_opens[first_sketch_id].append(scope_group)
-                    if last_sketch_id not in scope_closes:
-                        scope_closes[last_sketch_id] = []
-                    scope_closes[last_sketch_id].append(scope_group)
-            for sketch in sketches:
-                sketch_id = id(sketch)
-                if sketch_id in scope_opens:
-                    for scope_group in scope_opens[sketch_id]:
-                        if scope_group.subtype == Types.CLIP_GROUP:
-                            clip_code = get_clip_code(SimpleNamespace(mask=scope_group.mask))
-                            code.append(f"\\begin{{scope}}\n{clip_code}")
-                        elif scope_group.subtype == Types.MASK_GROUP:
-                            mask_ns = SimpleNamespace(
-                                mask=scope_group.mask,
-                                clip=scope_group.clip,
-                                _mask_opacity=scope_group._mask_opacity,
-                                _mask_stops=scope_group._mask_stops,
-                                _mask_axis=scope_group._mask_axis,
-                            )
-                            mask_start, _ = _mask_scope_parts(mask_ns)
-                            if mask_start:
-                                code.append(mask_start)
-                        elif scope_group.subtype == Types.SCOPE_GROUP:
-                            scope_keys = list(scope_group.style_data.keys())
-                            scope_sketch_dict = dict(
-                                scope_group.sketch_list[0].__dict__
-                            )
-                            if "_scope_style_keys" in scope_sketch_dict:
-                                del scope_sketch_dict["_scope_style_keys"]
-                            scope_sketch = SimpleNamespace(**scope_sketch_dict)
-                            line_exceptions = []
-                            for style_key in line_style_map.keys():
-                                if style_key not in scope_keys:
-                                    line_exceptions.append(style_key)
-                            fill_exceptions = []
-                            for style_key in shape_style_map.keys():
-                                if style_key not in scope_keys:
-                                    fill_exceptions.append(style_key)
-                            scope_options = []
-                            if "stroke" in scope_keys and not scope_sketch.stroke:
-                                scope_options.append("draw=none")
-                            else:
-                                scope_options += get_line_style_options(
-                                    scope_sketch, exceptions=line_exceptions
-                                )
-                            if scope_sketch.closed and scope_sketch.fill:
-                                scope_options += get_fill_style_options(
-                                    scope_sketch, exceptions=fill_exceptions
-                                )
-                            if scope_options:
-                                code.append(
-                                    f"\\begin{{scope}}[{', '.join(scope_options)}]\n"
-                                )
-                            else:
-                                code.append("\\begin{scope}\n")
-                sketch_code, ind = get_sketch_code(sketch, canvas, ind)
-                code.append(sketch_code)
-                if sketch_id in scope_closes:
-                    for scope_group in scope_closes[sketch_id]:
-                        code.append("\\end{scope}")
+            page_code, ind = render_sketches(sketches, ind, page.scope_groups)
+            code.append(page_code)
 
         code = "\n".join(code)
     else:
         raise ValueError("No pages found in the canvas.")
+    canvas.tex.tikz_libraries = tikz_libraries
+    canvas.tex.packages = tikz_packages
     return canvas.tex.tex_code(canvas, code)
 
 
@@ -1521,12 +1645,115 @@ def get_line_style_options(sketch, exceptions=None):
             conditions = {"fillet_radius": sketch.draw_fillets}
         else:
             conditions = None
-        if sketch.line_alpha in [None, 1]:
+        if sketch.line_alpha in [None, 1] and "line_alpha" in attribs:
             attribs.remove("line_alpha")
-        if not sketch.draw_double:
-            attribs.remove("double_color")
-            attribs.remove("double_distance")
-        if not sketch.smooth:
+        if sketch.draw_double:
+            required_double_attribs = [
+                "double_color",
+                "double_distance",
+                "line_color",
+                "line_width",
+            ]
+            can_emit_double = True
+            for attrib_name in required_double_attribs:
+                if attrib_name not in attribs:
+                    can_emit_double = False
+                    break
+            if can_emit_double:
+                line_width = sketch.line_width
+                if line_width is None:
+                    line_width = defaults["line_width"]
+                double_distance = sketch.double_distance
+                if double_distance is None:
+                    double_distance = defaults["double_distance"]
+                outer_sketch_dict = dict(sketch.__dict__)
+                outer_sketch_dict["draw_double"] = False
+                outer_sketch_dict["line_width"] = 2 * line_width + double_distance
+                if sketch.line_color is None:
+                    outer_sketch_dict["line_color"] = defaults["line_color"]
+                outer_sketch = SimpleNamespace(**outer_sketch_dict)
+                outer_attribs = list(attribs)
+                outer_attribs.remove("double_color")
+                outer_attribs.remove("double_distance")
+                if "fillet_radius" in outer_attribs:
+                    outer_attribs.remove("fillet_radius")
+                if "smooth" in outer_attribs:
+                    outer_attribs.remove("smooth")
+
+                gap_sketch_dict = dict(sketch.__dict__)
+                gap_sketch_dict["draw_double"] = False
+                gap_sketch_dict["line_width"] = double_distance
+                if sketch.double_color is None:
+                    gap_sketch_dict["line_color"] = defaults["double_color"]
+                else:
+                    gap_sketch_dict["line_color"] = sketch.double_color
+                gap_sketch = SimpleNamespace(**gap_sketch_dict)
+                gap_attribs = list(attribs)
+                gap_attribs.remove("double_color")
+                gap_attribs.remove("double_distance")
+
+                outer_options = sg_to_tikz(
+                    outer_sketch, outer_attribs, attrib_map, conditions, exceptions
+                )
+                gap_options = sg_to_tikz(
+                    gap_sketch, gap_attribs, attrib_map, conditions, exceptions
+                )
+
+                outer_draw = color_to_tikz(outer_sketch.line_color, "line_color")
+                gap_draw = color_to_tikz(gap_sketch.line_color, "double_color")
+
+                normalized_outer_options = []
+                for option in outer_options:
+                    if option.startswith("color="):
+                        normalized_outer_options.append(
+                            option.replace("color=", "draw=", 1)
+                        )
+                    elif option.startswith("color ="):
+                        normalized_outer_options.append(
+                            option.replace("color =", "draw =", 1)
+                        )
+                    else:
+                        normalized_outer_options.append(option)
+                has_outer_draw_option = False
+                for option in normalized_outer_options:
+                    if option.startswith("draw=") or option.startswith("draw ="):
+                        has_outer_draw_option = True
+                        break
+                if not has_outer_draw_option:
+                    normalized_outer_options.insert(0, f"draw={outer_draw}")
+
+                normalized_gap_options = []
+                for option in gap_options:
+                    if option.startswith("color="):
+                        normalized_gap_options.append(
+                            option.replace("color=", "draw=", 1)
+                        )
+                    elif option.startswith("color ="):
+                        normalized_gap_options.append(
+                            option.replace("color =", "draw =", 1)
+                        )
+                    else:
+                        normalized_gap_options.append(option)
+                has_gap_draw_option = False
+                for option in normalized_gap_options:
+                    if option.startswith("draw=") or option.startswith("draw ="):
+                        has_gap_draw_option = True
+                        break
+                if not has_gap_draw_option:
+                    normalized_gap_options.insert(0, f"draw={gap_draw}")
+
+                res = []
+                res.append(
+                    f"preaction={{{', '.join(['draw'] + normalized_outer_options)}}}"
+                )
+                res.extend(normalized_gap_options)
+                return res
+        else:
+            if "double_color" in attribs:
+                attribs.remove("double_color")
+            if "double_distance" in attribs:
+                attribs.remove("double_distance")
+        if not sketch.smooth and "smooth" in attribs:
             attribs.remove("smooth")
         res = sg_to_tikz(sketch, attribs, attrib_map, conditions, exceptions)
     else:
@@ -1568,7 +1795,7 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
         for style_key in sketch._scope_style_keys:
             if style_key in attribs:
                 attribs.remove(style_key)
-    if sketch.fill_alpha in [None, 1]:
+    if sketch.fill_alpha in [None, 1] and "fill_alpha" in attribs:
         attribs.remove("fill_alpha")
     if sketch.fill and not sketch.back_style == BackStyle.PATTERN:
         res = sg_to_tikz(sketch, attribs, attrib_map, exceptions=exceptions)
@@ -2261,6 +2488,7 @@ def draw_shape_sketch(sketch, ind=None, canvas=None):
         sg.Types.BEZIER_SKETCH: draw_bezier_sketch,
         sg.Types.CIRCLE_SKETCH: draw_circle_sketch,
         sg.Types.ELLIPSE_SKETCH: draw_ellipse_sketch,
+        sg.Types.PATH_SKETCH: draw_path_sketch,
     }
     if sketch.subtype == sg.Types.LINE_SKETCH:
         res = draw_line_sketch(sketch, canvas)
@@ -2286,6 +2514,40 @@ def draw_shape_sketch(sketch, ind=None, canvas=None):
         res = mask_start + res + mask_end
 
     return res
+
+
+def draw_path_sketch(sketch):
+    """Draw a path sketch using PGF's SVG path parser."""
+    options = []
+    if sketch.stroke:
+        options.extend(get_line_style_options(sketch))
+    if sketch.fill:
+        options.extend(get_fill_style_options(sketch))
+    if sketch.back_style == BackStyle.SHADING and sketch.fill and sketch.closed:
+        options.extend(get_shading_options(sketch))
+    if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
+        options.extend(get_pattern_options(sketch))
+
+    actions = []
+    if sketch.fill:
+        actions.append("fill")
+    if sketch.stroke:
+        actions.append("stroke")
+    if not actions:
+        return ""
+
+    options_code = ""
+    if options:
+        options_code = f"[{', '.join(options)}]"
+
+    lines = []
+    if options_code:
+        lines.append(f"\\begin{{scope}}{options_code}\n")
+    lines.append(f"\\pgfpathsvg{{{sketch.path_data}}}\n")
+    lines.append(f"\\pgfusepath{{{','.join(actions)}}}\n")
+    if options_code:
+        lines.append("\\end{scope}\n")
+    return "".join(lines)
 
 
 def _line_limits(canvas):

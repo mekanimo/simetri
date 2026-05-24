@@ -221,7 +221,7 @@ def inv_scale_matrix(scale_x: float, scale_y: float = None) -> "ndarray":
     return np.array([[1 / scale_x, 0, 0], [0, 1 / scale_y, 0], [0, 0, 1.0]])
 
 
-def scale_in_place_matrix(scale_x: float, scale_y: float, about: PointType) -> "ndarray":
+def scale_in_place_matrix(scale_x: float, scale_y: float, about: PointType=(0, 0)) -> "ndarray":
     """
     Return a scale matrix in row form that scales about a point.
 

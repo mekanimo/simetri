@@ -43,6 +43,7 @@ from ..graphics.sketch import (
     PDFSketch,
     LatexSketch,
     ClippedSketch,
+    PathSketch,
 )
 from ..tikz.tikz_sketch import TexSketch
 from ..settings.settings import defaults
@@ -60,6 +61,7 @@ from ..graphics.affine import identity_matrix
 from ..graphics.shape import Shape, all_segments
 from ..graphics.batch import Batch
 from ..graphics.common import PointType, d_id_obj
+from ..graphics.path import lin_path_svg
 from ..geometry.bezier import bezier_points
 from ..geometry.ellipse import elliptic_arc_points
 from ..graphics.affine import rotation_matrix, translation_matrix
@@ -1450,18 +1452,35 @@ def draw(self, item: Union[Shape, Batch], **kwargs) -> Self:
                 )
 
     if subtype == Types.BATCH:
-        style_group_keys = set(line_style_map.keys())
-        style_group_keys.update(shape_style_map.keys())
-        style_group_keys.update(["stroke", "fill"])
-        scope_style_data = {}
-        for key, value in kwargs.items():
-            if key in style_group_keys:
-                scope_style_data[key] = value
+        style_group_keys = list(line_style_map.keys())
+        for style_key in shape_style_map.keys():
+            if style_key not in style_group_keys:
+                style_group_keys.append(style_key)
+        for style_key in ["stroke", "fill"]:
+            if style_key not in style_group_keys:
+                style_group_keys.append(style_key)
 
         first_sketch_index = len(active_sketches)
         for batch_item in item:
             draw(self, batch_item, **kwargs)
         batch_sketches = active_sketches[first_sketch_index:]
+        scope_style_data = {}
+        if batch_sketches:
+            first_sketch_dict = batch_sketches[0].__dict__
+            for style_key in style_group_keys:
+                if style_key in first_sketch_dict:
+                    style_value = first_sketch_dict[style_key]
+                    same_style_value = True
+                    for batch_sketch in batch_sketches[1:]:
+                        batch_sketch_dict = batch_sketch.__dict__
+                        if (
+                            style_key not in batch_sketch_dict
+                            or batch_sketch_dict[style_key] != style_value
+                        ):
+                            same_style_value = False
+                            break
+                    if same_style_value:
+                        scope_style_data[style_key] = style_value
         if batch_sketches and scope_style_data:
             scope_style_keys = list(scope_style_data.keys())
             for batch_sketch in batch_sketches:
@@ -1531,13 +1550,13 @@ def draw_all_segments(
     return self
 
 
-def get_clipped_sketch(target, clipper, canvas):
+def get_clipped_sketch(target, clipper, canvas, **kwargs):
     sketches = []
     if target.type == Types.BATCH:
         for item in target:
-            sketches.append(get_sketches(item, canvas))
+            sketches.append(get_sketches(item, canvas, **kwargs))
     else:
-        sketches.append(get_sketches(target, canvas))
+        sketches.append(get_sketches(target, canvas, **kwargs))
     clipper = get_sketches(clipper, canvas)
     return ClippedSketch(sketches=sketches, clipper=clipper)
 
@@ -1691,6 +1710,8 @@ def create_sketch(item, canvas, **kwargs):
             xform_matrix=canvas.xform_matrix,
         )
         for attrib_name in item._style_map:
+            if attrib_name in ["color", "alpha"]:
+                continue
             if attrib_name == "fill_color":
                 if item.fill_color in [None, colors.black]:
                     setattr(
@@ -1704,7 +1725,17 @@ def create_sketch(item, canvas, **kwargs):
         sketch.text_width = item.text_width
         sketch.visible = item.visible
         sketch.active = item.active
+        precedence_keys = {
+            "color",
+            "line_color",
+            "fill_color",
+            "alpha",
+            "line_alpha",
+            "fill_alpha",
+        }
         for k, v in kwargs.items():
+            if k in precedence_keys:
+                continue
             setattr(sketch, k, v)
         return sketch
 
@@ -1865,78 +1896,29 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             list: List of created sketches.
         """
+        transformed_path = item.copy()
+        transformed_path._update(canvas._sketch_xform_matrix)
 
-        def extend_verts(obj, vertices):
-            obj_vertices = obj.vertices
-            if obj_vertices:
-                if vertices and close_points2(vertices[-1], obj_vertices[0]):
-                    obj_vertices = obj_vertices[1:]
-                vertices.extend(obj_vertices)
+        path_sketch = PathSketch([], canvas._sketch_xform_matrix)
+        path_sketch.path_data = lin_path_svg(transformed_path)
+        path_sketch.visible = item.visible
+        path_sketch.active = item.active
+        path_sketch.closed = item.closed
+        set_shape_sketch_style(path_sketch, item, canvas, **kwargs)
 
-        path_op = PathOperation
-        linears = [
-            path_op.ARC,
-            path_op.ARC_TO,
-            path_op.BLEND_ARC,
-            path_op.BLEND_CUBIC,
-            path_op.BLEND_QUAD,
-            path_op.BLEND_SINE,
-            path_op.CUBIC_TO,
-            path_op.FORWARD,
-            path_op.H_LINE_TO,
-            path_op.R_H_LINE,
-            path_op.HOBBY_TO,
-            path_op.QUAD_TO,
-            path_op.R_LINE,
-            path_op.SEGMENTS,
-            path_op.SINE,
-            path_op.V_LINE_TO,
-            path_op.R_V_LINE,
-            path_op.LINE_TO,
-        ]
-        sketches = []
-        vertices = []
-        for i, op in enumerate(item.operations):
-            if op.subtype in linears:
-                obj = item.objects[i]
-                extend_verts(obj, vertices)
-            elif op.subtype in [path_op.MOVE_TO, path_op.R_MOVE]:
-                if i == 0:
-                    continue
-                shape = Shape(vertices)
-                sketch = create_sketch(shape, canvas, **kwargs)
-                if sketch:
-                    sketch.visible = item.visible
-                    sketch.active = item.active
-                    sketches.append(sketch)
-                vertices = []
-            elif op.subtype == path_op.CLOSE:
-                shape = Shape(vertices, closed=True)
-                sketch = create_sketch(shape, canvas, **kwargs)
-                if sketch:
-                    sketch.visible = item.visible
-                    sketch.active = item.active
-                    sketches.append(sketch)
-                vertices = []
-        if vertices:
-            shape = Shape(vertices)
-            sketch = create_sketch(shape, canvas, **kwargs)
-            sketches.append(sketch)
-
+        handle_sketches = []
         if "handles" in kwargs and kwargs["handles"]:
-            handles = kwargs["handles"]
             del kwargs["handles"]
             for handle in item.handles:
                 shape = Shape(handle)
                 shape.subtype = Types.HANDLE
-                handle_sketches = create_sketch(shape, canvas, **kwargs)
-                sketches.extend(handle_sketches)
+                sketches = create_sketch(shape, canvas, **kwargs)
+                handle_sketches.extend(sketches)
 
-        for sketch in sketches:
-            item.closed = sketch.closed
-            set_shape_sketch_style(sketch, item, canvas, **kwargs)
+        if handle_sketches:
+            return [path_sketch, *handle_sketches]
 
-        return sketches
+        return path_sketch
 
     def get_bbox_sketch(item, canvas, **kwargs):
         """Create a bounding box sketch from the given item.
@@ -2053,7 +2035,6 @@ def create_sketch(item, canvas, **kwargs):
         ]
         sketch = LineSketch(vertices, canvas._sketch_xform_matrix)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
-        sketch.alpha = canvas.resolve_property(item, "alpha")
         sketch.extent = item.extent
 
         return sketch

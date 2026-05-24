@@ -46,7 +46,12 @@ from ..geometry.geometry import (
 from ..colors.colors import black, white
 from ..settings.settings import defaults, issue_warning, svg_defaults
 from ..canvas.style_map import shape_style_map, line_style_map, marker_style_map
-from ..graphics.sketch import TagSketch, ShapeSketch, MaskSketch, ScopeGroup
+from ..canvas.pre_render import (
+    build_scope_group_maps,
+    prepare_auto_scope_groups,
+    restore_scope_keys,
+)
+from ..graphics.sketch import TagSketch, ShapeSketch, MaskSketch
 from .filters import SVG_Filter
 from .svg_sketch import SVG_Mask
 from .svg_utils import round_corners
@@ -63,14 +68,6 @@ def sketch_attrib(sketch, attrib):
         return object.__getattribute__(sketch, attrib)
     except AttributeError:
         return defaults.get(attrib)
-
-
-def get_alpha(sketch, alpha_attrib):
-    return sketch_attrib(sketch, alpha_attrib)
-
-
-def get_color(sketch, color_attrib):
-    return sketch_attrib(sketch, color_attrib)
 
 
 def get_text_size(text, font_name, font_size):
@@ -236,34 +233,52 @@ def get_line_style_options(sketch, exceptions=None):
         list: The line style options as a list.
     """
 
+    merged_exceptions = []
+    if exceptions is not None:
+        for exception in exceptions:
+            merged_exceptions.append(exception)
+    sketch_dict = sketch_attrib(sketch, "__dict__")
+    if "_scope_style_keys" in sketch_dict:
+        for style_key in sketch._scope_style_keys:
+            if style_key not in merged_exceptions:
+                merged_exceptions.append(style_key)
+
     options = []
-    stroke = sketch_attrib(sketch, "stroke")
-    if stroke:
-        line_color = color_to_svg(get_color(sketch, "line_color"), "line_color")
-    else:
-        line_color = "none"
-    options.append(f"stroke: {line_color};")
+    if "stroke" not in merged_exceptions:
+        stroke = sketch_attrib(sketch, "stroke")
+        if stroke:
+            line_color = color_to_svg(sketch_attrib(sketch, "line_color"), "line_color")
+        else:
+            line_color = "none"
+        options.append(f"stroke: {line_color};")
 
-    line_alpha = get_alpha(sketch, "line_alpha")
-    if line_alpha is not None and line_alpha != defaults["line_alpha"]:
-        options.append(f"stroke-opacity: {line_alpha};")
+    if "line_alpha" not in merged_exceptions:
+        line_alpha = sketch_attrib(sketch, "line_alpha")
+        if line_alpha is not None and line_alpha != defaults["line_alpha"]:
+            options.append(f"stroke-opacity: {line_alpha};")
 
-    style_map = {
-        "line_width": ("stroke-width", "line_width"),
-        "line_cap": ("stroke-linecap", "line_cap"),
-        "line_join": ("stroke-linejoin", "line_join"),
-    }
-    append_non_default_style_options(options, sketch, style_map)
+    if "line_width" not in merged_exceptions and "line_width" in sketch_dict:
+        line_width = sketch.line_width
+        if line_width != defaults["line_width"]:
+            options.append(f"stroke-width: {line_width};")
+    if "line_cap" not in merged_exceptions and "line_cap" in sketch_dict:
+        line_cap = sketch.line_cap
+        if line_cap != defaults["line_cap"]:
+            options.append(f"stroke-linecap: {line_cap};")
+    if "line_join" not in merged_exceptions and "line_join" in sketch_dict:
+        line_join = sketch.line_join
+        if line_join != defaults["line_join"]:
+            options.append(f"stroke-linejoin: {line_join};")
 
-    # miter limit
-    miter_limit = sketch_attrib(sketch, "miter_limit")
-    if miter_limit:
-        options.append(f"stroke-miterlimit: {miter_limit}")
+    if "line_miter_limit" not in merged_exceptions:
+        miter_limit = sketch_attrib(sketch, "miter_limit")
+        if miter_limit:
+            options.append(f"stroke-miterlimit: {miter_limit}")
 
-    # dash pattern
-    line_dash_array = sketch_attrib(sketch, "line_dash_array")
-    if line_dash_array:
-        options.append(f"stroke-dasharray: {get_dash_pattern(line_dash_array)}")
+    if "line_dash_array" not in merged_exceptions:
+        line_dash_array = sketch_attrib(sketch, "line_dash_array")
+        if line_dash_array:
+            options.append(f"stroke-dasharray: {get_dash_pattern(line_dash_array)}")
 
     return " ".join(options)
 
@@ -280,20 +295,31 @@ def get_fill_style_options(sketch, shape_type, exceptions=None, frame=False):
         list: The fill style options as a list.
     """
 
+    merged_exceptions = []
+    if exceptions is not None:
+        for exception in exceptions:
+            merged_exceptions.append(exception)
+    sketch_dict = sketch_attrib(sketch, "__dict__")
+    if "_scope_style_keys" in sketch_dict:
+        for style_key in sketch._scope_style_keys:
+            if style_key not in merged_exceptions:
+                merged_exceptions.append(style_key)
+
     options = []
-    fill = sketch_attrib(sketch, "fill")
-    if fill and shape_type != "polyline":
-        fill_color = color_to_svg(get_color(sketch, "fill_color"), "fill_color")
-    else:
-        fill_color = "none"
+    if "fill" not in merged_exceptions:
+        fill = sketch_attrib(sketch, "fill")
+        if fill and shape_type != "polyline":
+            fill_color = color_to_svg(sketch_attrib(sketch, "fill_color"), "fill_color")
+        else:
+            fill_color = "none"
+        options.append(f"fill: {fill_color};")
 
-    options.append(f"fill: {fill_color};")
+    if "fill_alpha" not in merged_exceptions:
+        fill_alpha = sketch_attrib(sketch, "fill_alpha")
+        if fill_alpha != defaults["fill_alpha"]:
+            options.append(f"fill-opacity: {fill_alpha};")
 
-    fill_alpha = get_alpha(sketch, "fill_alpha")
-    if fill_alpha != defaults["fill_alpha"]:
-        options.append(f"fill-opacity: {fill_alpha};")
-
-    if sketch_attrib(sketch, "even_odd"):
+    if "even_odd" not in merged_exceptions and sketch_attrib(sketch, "even_odd"):
         options.append("fill-rule: evenodd;")
 
     return " ".join(options)
@@ -411,9 +437,13 @@ def draw_line_sketch(sketch, canvas):
     style = get_line_style_options(sketch)
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)
 
+    style_attr = ""
+    if style:
+        style_attr = f' style="{style}"'
+
     return (
         f'<line x1="{start[0]}" y1="{start[1]}" '
-        f'x2="{end[0]}" y2="{end[1]}" style="{style}"{clip_attr}{mask_attr} />'
+        f'x2="{end[0]}" y2="{end[1]}"{style_attr}{clip_attr}{mask_attr} />'
     )
 
 
@@ -457,8 +487,50 @@ def draw_arc_sketch(sketch):
         fill_rule_attr = ' fill-rule="evenodd"'
 
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)
+    style_attr = ""
+    if style:
+        style_attr = f' style="{style}"'
+
     return (
-        f'<path d="{path_data}" style="{style}"'
+        f'<path d="{path_data}"{style_attr}'
+        f'{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr} />'
+    )
+
+
+def draw_path_sketch(sketch):
+    """Draw a LinPath sketch as an SVG path without geometry conversion."""
+    path_data = sketch_attrib(sketch, "path_data")
+    line_style = get_line_style_options(sketch)
+
+    fill_attr = ""
+    skip_fill_style = False
+    if sketch_attrib(sketch, "tile_svg") is not None:
+        pattern_id = f"pattern_{id(sketch)}"
+        fill_attr = f' fill="url(#{pattern_id})"'
+        skip_fill_style = True
+    elif has_gradient(sketch):
+        gradient_id = sketch_attrib(sketch, "_gradient_context_id")
+        if gradient_id is None:
+            gradient_id = f"gradient_{id(sketch)}"
+        fill_attr = f' fill="url(#{gradient_id})"'
+        skip_fill_style = True
+
+    style = line_style
+    if not skip_fill_style:
+        fill_style = get_fill_style_options(sketch, "path")
+        style = f"{line_style} {fill_style}".strip()
+
+    fill_rule_attr = ""
+    if skip_fill_style and sketch_attrib(sketch, "even_odd"):
+        fill_rule_attr = ' fill-rule="evenodd"'
+
+    clip_attr, mask_attr = get_clip_mask_attrs(sketch)
+    style_attr = ""
+    if style:
+        style_attr = f' style="{style}"'
+
+    return (
+        f'<path d="{path_data}"{style_attr}'
         f'{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr} />'
     )
 
@@ -1369,20 +1441,20 @@ def draw_shape_sketch_with_markers(sketch):
             path_data += f" L {v[0]},{v[1]}"
 
         # Get line styling
-        line_color = get_color(sketch, "line_color")
+        line_color = sketch_attrib(sketch, "line_color")
         if isinstance(line_color, Color):
             line_color = color_to_svg(line_color)
 
         line_width = sketch_attrib(sketch, "line_width")
-        line_alpha = get_alpha(sketch, "line_alpha")
+        line_alpha = sketch_attrib(sketch, "line_alpha")
 
         # Get fill styling if closed
         fill_str = '"none"'
         if sketch_attrib(sketch, "fill") and closed:
-            fill_color = get_color(sketch, "fill_color")
+            fill_color = sketch_attrib(sketch, "fill_color")
             if isinstance(fill_color, Color):
                 fill_color = color_to_svg(fill_color)
-            fill_alpha = get_alpha(sketch, "fill_alpha")
+            fill_alpha = sketch_attrib(sketch, "fill_alpha")
             fill_str = f'"{fill_color}" fill-opacity="{fill_alpha}"'
 
         fill_rule_attr = ""
@@ -1431,6 +1503,168 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         str: The SVG code.
     """
 
+    line_scope_style_keys = [
+        "stroke",
+        "draw_double",
+        "double_color",
+        "double_distance",
+        "line_color",
+        "line_alpha",
+        "line_width",
+        "line_cap",
+        "line_join",
+        "line_miter_limit",
+        "line_dash_array",
+    ]
+    fill_scope_style_keys = [
+        "fill",
+        "fill_color",
+        "fill_alpha",
+        "even_odd",
+    ]
+    scope_style_keys = line_scope_style_keys + fill_scope_style_keys
+    excluded_subtypes = [
+        Types.CLIPPED_SKETCH,
+        Types.HELPLINES_SKETCH,
+        Types.IMAGE_SKETCH,
+        Types.LATEX_SKETCH,
+        Types.MASKED_SKETCH,
+        Types.TAG_SKETCH,
+        Types.TEX_SKETCH,
+    ]
+
+    def render_sketches(sketches, ind, scope_groups=None):
+        if scope_groups is None:
+            scope_groups = []
+
+        code = []
+        def is_svg_scope_eligible(sketch):
+            if sketch_attrib(sketch, "tile_svg") is not None:
+                return False
+            if has_gradient(sketch):
+                return False
+            return True
+
+        auto_scope_group_by_sketch_id, modified_scope_sketches = (
+            prepare_auto_scope_groups(
+                sketches,
+                scope_style_keys,
+                excluded_subtypes,
+                is_eligible=is_svg_scope_eligible,
+            )
+        )
+
+        try:
+            scope_opens, scope_closes = build_scope_group_maps(sketches, scope_groups)
+            for sketch_index, sketch in enumerate(sketches):
+                sketch_id = id(sketch)
+                if sketch_id in scope_opens:
+                    for scope_group in scope_opens[sketch_id]:
+                        if scope_group.subtype == Types.CLIP_GROUP:
+                            code.append(f'<g clip-path="url(#clippath_{scope_group.id})">')
+                        elif scope_group.subtype == Types.MASK_GROUP:
+                            code.append(f'<g mask="url(#{scope_group._mask_context_id})">')
+                        elif scope_group.subtype == Types.SCOPE_GROUP:
+                            scope_keys = list(scope_group.style_data.keys())
+                            scope_sketch_dict = dict(scope_group.sketch_list[0].__dict__)
+                            if "_scope_style_keys" in scope_sketch_dict:
+                                del scope_sketch_dict["_scope_style_keys"]
+                            scope_sketch = SimpleNamespace(**scope_sketch_dict)
+                            line_exceptions = []
+                            for style_key in line_scope_style_keys:
+                                if style_key not in scope_keys:
+                                    line_exceptions.append(style_key)
+                            fill_exceptions = []
+                            for style_key in fill_scope_style_keys:
+                                if style_key not in scope_keys:
+                                    fill_exceptions.append(style_key)
+                            scope_line_style = get_line_style_options(
+                                scope_sketch, exceptions=line_exceptions
+                            )
+                            scope_fill_style = ""
+                            if scope_sketch.subtype in d_shape_types:
+                                scope_fill_style = get_fill_style_options(
+                                    scope_sketch,
+                                    get_shape_type(scope_sketch),
+                                    exceptions=fill_exceptions,
+                                )
+                            elif scope_sketch.subtype in [Types.ARC_SKETCH, Types.PATH_SKETCH]:
+                                scope_fill_style = get_fill_style_options(
+                                    scope_sketch, "path", exceptions=fill_exceptions
+                                )
+                            scope_style = f"{scope_line_style} {scope_fill_style}".strip()
+                            if scope_style:
+                                code.append(f'<g style="{scope_style}">')
+                            else:
+                                code.append("<g>")
+                current_auto_scope_group = None
+                if sketch_id in auto_scope_group_by_sketch_id:
+                    current_auto_scope_group = auto_scope_group_by_sketch_id[sketch_id]
+                previous_auto_scope_group = None
+                if sketch_index > 0:
+                    previous_sketch_id = id(sketches[sketch_index - 1])
+                    if previous_sketch_id in auto_scope_group_by_sketch_id:
+                        previous_auto_scope_group = auto_scope_group_by_sketch_id[
+                            previous_sketch_id
+                        ]
+                if (
+                    current_auto_scope_group is not None
+                    and current_auto_scope_group is not previous_auto_scope_group
+                ):
+                    scope_keys = list(current_auto_scope_group.style_data.keys())
+                    scope_sketch_dict = dict(sketch.__dict__)
+                    if "_scope_style_keys" in scope_sketch_dict:
+                        del scope_sketch_dict["_scope_style_keys"]
+                    scope_sketch = SimpleNamespace(**scope_sketch_dict)
+                    line_exceptions = []
+                    for style_key in line_scope_style_keys:
+                        if style_key not in scope_keys:
+                            line_exceptions.append(style_key)
+                    fill_exceptions = []
+                    for style_key in fill_scope_style_keys:
+                        if style_key not in scope_keys:
+                            fill_exceptions.append(style_key)
+                    scope_line_style = get_line_style_options(
+                        scope_sketch, exceptions=line_exceptions
+                    )
+                    scope_fill_style = ""
+                    if scope_sketch.subtype in d_shape_types:
+                        scope_fill_style = get_fill_style_options(
+                            scope_sketch,
+                            get_shape_type(scope_sketch),
+                            exceptions=fill_exceptions,
+                        )
+                    elif scope_sketch.subtype in [Types.ARC_SKETCH, Types.PATH_SKETCH]:
+                        scope_fill_style = get_fill_style_options(
+                            scope_sketch, "path", exceptions=fill_exceptions
+                        )
+                    scope_style = f"{scope_line_style} {scope_fill_style}".strip()
+                    if scope_style:
+                        code.append(f'<g style="{scope_style}">')
+                    else:
+                        code.append("<g>")
+                sketch_code = get_sketch_code(sketch, canvas, ind)
+                code.append(sketch_code)
+                next_auto_scope_group = None
+                if sketch_index + 1 < len(sketches):
+                    next_sketch_id = id(sketches[sketch_index + 1])
+                    if next_sketch_id in auto_scope_group_by_sketch_id:
+                        next_auto_scope_group = auto_scope_group_by_sketch_id[
+                            next_sketch_id
+                        ]
+                if (
+                    current_auto_scope_group is not None
+                    and current_auto_scope_group is not next_auto_scope_group
+                ):
+                    code.append('</g>')
+                if sketch_id in scope_closes:
+                    for scope_group in scope_closes[sketch_id]:
+                        code.append('</g>')
+        finally:
+            restore_scope_keys(modified_scope_sketches)
+
+        return "\n".join(code)
+
     def get_sketch_code(sketch, canvas, ind):
         """Get the SVG code for a sketch.
 
@@ -1451,19 +1685,17 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             code = draw_tag_sketch(sketch)
         elif subtype == Types.CLIPPED_SKETCH:
             clippath_id = f"clippath_{id(sketch)}"
-            child_codes = []
+            child_sketches = []
             for sketch_list in sketch.sketches:
-                for clipped_sketch in sketch_list:
-                    child_codes.append(get_sketch_code(clipped_sketch, canvas, ind))
-            content = "\n".join(child_codes)
+                child_sketches.extend(sketch_list)
+            content = render_sketches(child_sketches, ind)
             code = f'<g clip-path="url(#{clippath_id})">\n{content}\n</g>'
         elif subtype == Types.MASKED_SKETCH:
             mask_id = f"mask_{id(sketch)}"
-            child_codes = []
+            child_sketches = []
             for sketch_list in sketch.sketches:
-                for masked_sketch in sketch_list:
-                    child_codes.append(get_sketch_code(masked_sketch, canvas, ind))
-            content = "\n".join(child_codes)
+                child_sketches.extend(sketch_list)
+            content = render_sketches(child_sketches, ind)
             code = f'<g mask="url(#{mask_id})">\n{content}\n</g>'
         elif subtype == Types.TEX_SKETCH:
             # TexSketch is for TikZ/LaTeX output, skip in SVG
@@ -1480,6 +1712,8 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             code = draw_line_sketch(sketch, canvas)
         elif subtype == Types.ARC_SKETCH:
             code = draw_arc_sketch(sketch)
+        elif subtype == Types.PATH_SKETCH:
+            code = draw_path_sketch(sketch)
         elif (
             draw_markers
             and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
@@ -1498,65 +1732,31 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             code = f'<g filter="url(#{filter_id})">\n{code}\n</g>'
         return code
 
-    pages = canvas.pages
+    page = canvas.active_page
 
-    if pages:
-        for i, page in enumerate(pages):
-            canvas.active_page = page
-            sketches = page.sketches
-            if i == 0:
-                if page.back_color:
-                    code = [color_to_svg(page.back_color)]
-                else:
-                    code = []
-            else:
-                code.append(defaults["end_SVG"])
-                code.append("\\newpage")
-                code.append(defaults["begin_SVG"])
-            sketches_to_populate = list(sketches)
-            while sketches_to_populate:
-                sketch = sketches_to_populate.pop()
-                subtype = sketch_attrib(sketch, "subtype")
-                if subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
-                    for sketch_list in sketch.sketches:
-                        sketches_to_populate.extend(sketch_list)
-                elif subtype == Types.HELPLINES_SKETCH:
-                    sketch.populate(canvas)
-                elif subtype == Types.LINE_SKETCH:
-                    sketch.populate(canvas)
-            ind = 0
-            scope_opens = {}
-            scope_closes = {}
-            for scope_group in page.scope_groups:
-                if (
-                    scope_group.sketch_list
-                    and scope_group.subtype in [Types.CLIP_GROUP, Types.MASK_GROUP]
-                ):
-                    first_sketch_id = id(scope_group.sketch_list[0])
-                    last_sketch_id = id(scope_group.sketch_list[-1])
-                    if first_sketch_id not in scope_opens:
-                        scope_opens[first_sketch_id] = []
-                    scope_opens[first_sketch_id].append(scope_group)
-                    if last_sketch_id not in scope_closes:
-                        scope_closes[last_sketch_id] = []
-                    scope_closes[last_sketch_id].append(scope_group)
-            for sketch in sketches:
-                sketch_id = id(sketch)
-                if sketch_id in scope_opens:
-                    for scope_group in scope_opens[sketch_id]:
-                        if scope_group.subtype == Types.CLIP_GROUP:
-                            code.append(f'<g clip-path="url(#clippath_{scope_group.id})">')
-                        elif scope_group.subtype == Types.MASK_GROUP:
-                            code.append(f'<g mask="url(#{scope_group._mask_context_id})">')
-                sketch_code = get_sketch_code(sketch, canvas, ind)
-                code.append(sketch_code)
-                if sketch_id in scope_closes:
-                    for scope_group in scope_closes[sketch_id]:
-                        code.append('</g>')
+    if page is None:
+        raise ValueError("No active page found in the canvas.")
 
-        code = "\n".join(code)
+    sketches = page.sketches
+    if page.back_color:
+        code = [color_to_svg(page.back_color)]
     else:
-        raise ValueError("No pages found in the canvas.")
+        code = []
+    sketches_to_populate = list(sketches)
+    while sketches_to_populate:
+        sketch = sketches_to_populate.pop()
+        subtype = sketch_attrib(sketch, "subtype")
+        if subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+            for sketch_list in sketch.sketches:
+                sketches_to_populate.extend(sketch_list)
+        elif subtype == Types.HELPLINES_SKETCH:
+            sketch.populate(canvas)
+        elif subtype == Types.LINE_SKETCH:
+            sketch.populate(canvas)
+    rendered_code = render_sketches(sketches, 0, page.scope_groups)
+    code.append(rendered_code)
+
+    code = "\n".join(code)
     return code
 
 
@@ -1855,7 +2055,7 @@ def svg_shape(sketch, styles_dict):
         if double_distance is None:
             double_distance = defaults["double_distance"]
         outer_stroke_width = 2 * line_width + double_distance
-        line_color = get_color(sketch, "line_color")
+        line_color = sketch_attrib(sketch, "line_color")
         if line_color is None:
             line_color = defaults["line_color"]
         outer_stroke = color_to_svg(check_color(line_color))
@@ -1880,8 +2080,12 @@ def svg_shape(sketch, styles_dict):
         )
         return f'{outer_element}\n{gap_element}'
 
+    class_attr = ""
+    if style_class:
+        class_attr = f' class= "{style_class}"'
+
     return f'''<{shape_type}
-class= "{style_class}"{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}
+{class_attr}{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}
 {coordinates}
 />'''
 

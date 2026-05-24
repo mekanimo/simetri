@@ -1661,7 +1661,7 @@ def set_defaults():
         "If True, log messages are shown on console."
     )
 
-    defaults["show_warnings"] = True
+    defaults["show_warnings"] = False
     default_types["show_warnings"] = bool
     defaults_help["show_warnings"] = (
         "Boolean property for showing simetri warning messages. "
