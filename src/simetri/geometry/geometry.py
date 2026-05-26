@@ -30,7 +30,6 @@ import numpy as np
 from numpy import array, around
 
 from simetri.helpers.utilities import (
-    flatten,
     lerp,
     sanitize_graph_edges,
     equal_cycles,
@@ -40,7 +39,6 @@ from .vectors import *
 from ..helpers.vector import Vector2D
 from ..graphics.common import (
     get_defaults,
-    common_properties,
     PointType,
     LineType,
     i_vec,
@@ -4691,7 +4689,6 @@ class Vertex(list):
         self.y = y
         self.z = z
         self.type = Types.VERTEX
-        common_properties(self, graphics_object=False)
 
     def __repr__(self):
         return f"Vertex({self.x}, {self.y}, {self.z})"
@@ -4789,7 +4786,6 @@ class Edge:
         self.start = start
         self.end = end
         self.type = Types.EDGE
-        common_properties(self, graphics_object=False)
 
     def __repr__(self):
         return str(f"Edge({self.start}, {self.end})")

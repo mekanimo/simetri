@@ -5,7 +5,7 @@ from typing import Sequence
 
 import networkx as nx
 
-from ..graphics.common import common_properties, PointType
+from ..graphics.common import  PointType
 from ..graphics.all_enums import Types
 from ..settings.settings import defaults
 from ..geometry.geometry import distance, close_points2
@@ -21,7 +21,6 @@ class GraphEdge:
     def __post_init__(self):
         """Initialize the GraphEdge with start and end points."""
         self.length = distance(self.start.pos, self.end.pos)
-        common_properties(self)
 
     @property
     def nodes(self):
@@ -225,7 +224,7 @@ def graph_summary(graph: nx.Graph) -> str:
 class Node:
     """
     A Node object is a 2D point with x and y coordinates.
-    Used in graphs corresponding to shapes and batches.
+    Used in graphs corresponding to shapes and groups.
 
     Attributes:
         x (float): X coordinate.
@@ -234,10 +233,6 @@ class Node:
 
     x: float
     y: float
-
-    def __post_init__(self):
-        """Initialize the Node with x and y coordinates."""
-        common_properties(self)
 
     @property
     def pos(self):
@@ -272,9 +267,6 @@ class Graph:
     subtype: Types = "none"  # this can be Types.WEIGHTED
     nx_graph: "nx.Graph" = None
 
-    def __post_init__(self):
-        """Initialize the Graph with type and subtype."""
-        common_properties(self)
 
     @property
     def islands(self):

@@ -4,15 +4,15 @@ from dataclasses import dataclass
 from hashlib import md5
 from typing import Any, List
 from types import FunctionType
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 import numpy as np
 from typing_extensions import Union, Self
 
 from .shape import Shape
-from .batch import Batch
+from .batch import Group
 from .affine import *
-from .common import PointType, LineType, common_properties
+from .common import PointType, LineType
 from .all_enums import (
     Types,
     get_enum_value,
@@ -54,7 +54,6 @@ class Transform:
     def __post_init__(self):
         self.type = Types.TRANSFORM
         self.subtype = Types.TRANSFORM
-        common_properties(self, graphics_object=False, id_only=True)
         self.__dict__["_xform_matrix"] = self.xform_matrix
         self.__dict__["_reps"] = self.reps
         self._update()
@@ -199,7 +198,6 @@ class Transformation:
         self.subtype = Types.TRANSFORMATION
         if self.components is None:
             self.components = []
-        common_properties(self, graphics_object=False, id_only=True)
 
     def __repr__(self):
         return f"Transformation(components={self.components})"
@@ -210,7 +208,7 @@ class Transformation:
     def apply(self, kernel: Shape) -> List[Shape]:
         all_vertices = kernel.final_coords @ self.composite
         vertices_list = np.hsplit(all_vertices, self.count)
-        res = Batch()
+        res = Group()
         style = kernel.style
         for vertices in vertices_list:
             shape = Shape(vertices)
@@ -295,18 +293,18 @@ class Transformation:
         )
 
 
-class Pattern(Batch, StyleMixin):
+class Pattern(Group, StyleMixin):
     """
-    A class representing a pattern of a shape or batch object.
+    A class representing a pattern of a shape or group object.
 
     Attributes:
-        kernel (Shape/Batch): The repeated form.
+        kernel (Shape/Group): The repeated form.
         transformation: A Transformation object.
     """
 
     def __init__(
         self,
-        kernel: Union[Shape, Batch] = None,
+        kernel: Union[Shape, Group] = None,
         transformation: Transformation = None,
         **kwargs,
     ):
@@ -314,7 +312,7 @@ class Pattern(Batch, StyleMixin):
         Initializes the Pattern instance with a pattern and its count.
 
         Args:
-            kernel (Shape/Batch): The repeated form of the pattern.
+            kernel (Shape/Group): The repeated form of the pattern.
             transformation (Transformation): The transformation applied to the pattern.
             **kwargs: Additional keyword arguments.
         """
@@ -328,7 +326,6 @@ class Pattern(Batch, StyleMixin):
         self.transformation = transformation
         super().__init__(**kwargs)
         self.subtype = Types.PATTERN
-        common_properties(self)
 
         valid_args = shape_args
         validate_args(kwargs, valid_args)
@@ -398,15 +395,15 @@ class Pattern(Batch, StyleMixin):
         raw = self.kernel.final_coords @ self.composite
         return np.hsplit(raw, self.count)
 
-    def get_shapes(self) -> Batch:
+    def get_shapes(self) -> Group:
         """
-        Expands the pattern into a batch of shapes.
+        Expands the pattern into a group of shapes.
 
         Returns:
-            Batch: A new Batch instance with the expanded shapes.
+            Group: A new Group instance with the expanded shapes.
         """
         vertices_list = self.get_vertices_list()
-        res = Batch()
+        res = Group()
         kernel = self.kernel
         style = kernel.style
         for vertices in vertices_list:
@@ -603,28 +600,27 @@ class Pattern(Batch, StyleMixin):
 # Groups behave like SVG groups and TikZ \pic
 
 
-class Group(Pattern):
-    """A class representing a group of objects.
-    Groups are optimized for repeating geometry to reduce file size and allow
-    for automatic simultaneous updates for all instances.
+# class Group(Pattern):
+#     """A class representing a group of objects.
+#     Groups are optimized for repeating geometry to reduce file size and allow
+#     for automatic simultaneous updates for all instances.
 
-    Attributes:
-        kernel (Shape/Batch): The repeated form.
-        transformation: A Transformation object.
-    """
+#     Attributes:
+#         kernel (Shape/Group): The repeated form.
+#         transformation: A Transformation object.
+#     """
 
-    def __init__(
-        self,
-        kernel: Union[Shape, Batch] = None,
-        transformation: Transformation = None,
-        **kwargs,
-    ):
-        super().__init__(kernel, transformation, **kwargs)
-        self.subtype = Types.GROUP
-        common_properties(self)
+#     def __init__(
+#         self,
+#         kernel: Union[Shape, Group] = None,
+#         transformation: Transformation = None,
+#         **kwargs,
+#     ):
+#         super().__init__(kernel, transformation, **kwargs)
+#         self.subtype = Types.GROUP
 
-        valid_args = shape_args
-        validate_args(kwargs, valid_args)
+#         valid_args = shape_args
+#         validate_args(kwargs, valid_args)
 
 
 @dataclass
@@ -678,8 +674,8 @@ class PatternDef:
     transform_defs: List[TransformDef]
     modifier: Callable = None
 
-    def apply(self, kernel) -> Batch:
-        pattern = Batch(kernel)
+    def apply(self, kernel) -> Group:
+        pattern = Group(kernel)
         for t_def in self.transform_defs:
             take = t_def.take
             reps = t_def.reps

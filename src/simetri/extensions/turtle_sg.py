@@ -1,11 +1,10 @@
 """Turtle graphics variant, with a twist."""
 
 from math import pi, radians
-from typing import Sequence, List, Tuple, Optional, Any
+from typing import Sequence, Any
 from dataclasses import dataclass
 
-from ..graphics.batch import Batch
-from ..graphics.shape import Shape
+from ..graphics.batch import Group
 
 from ..geometry.geometry import line_by_point_angle_length as get_pos
 
@@ -25,7 +24,7 @@ class State:
     pen_is_down: bool
 
 
-class Turtle(Batch):
+class Turtle(Group):
     """A Turtle graphics variant, with a twist.
 
     This class implements a turtle graphics system that can be used to draw
@@ -44,7 +43,7 @@ class Turtle(Batch):
         self.current_list = [self.pos]
         super().__init__([], *args, **kwargs)
         self.pen_is_down = True
-        self._set_aliasess()
+        self._set_aliases()
         self.in_degrees = in_degrees
         if in_degrees:
             self.def_angle = 90
@@ -233,7 +232,7 @@ class Turtle(Batch):
         self.pen_is_down = True
 
     # aliases
-    def _set_aliasess(self) -> None:
+    def _set_aliases(self) -> None:
         """Set up aliases for turtle methods.
 
         Creates shorthand method names commonly used in turtle graphics.

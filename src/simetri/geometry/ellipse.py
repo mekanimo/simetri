@@ -2,12 +2,12 @@
 
 import cmath
 from copy import deepcopy
-from math import cos, sin, pi, atan2, sqrt, degrees, ceil, isclose
+from math import cos, sin, pi, atan2, sqrt, ceil, isclose
 
 import numpy as np
 
 from ..graphics.shape import Shape, custom_attributes
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 from ..graphics.points import Points
 from ..graphics.affine import rotation_matrix
 from ..graphics.common import PointType
@@ -234,7 +234,7 @@ class Ellipse(Shape):
 
     def _update(
         self, xform_matrix: np.array, reps: int = 0, merge: bool = False
-    ) -> Batch:
+    ) -> Group:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -242,7 +242,7 @@ class Ellipse(Shape):
             reps (int, optional): The number of repetitions, defaults to 0.
 
         Returns:
-            Batch: The updated shape or a batch of shapes.
+            Group: The updated shape or a group of shapes.
         """
         if reps == 0:
             center = list(self.center[:2]) + [1]

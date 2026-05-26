@@ -9,7 +9,6 @@ from simetri.helpers.utilities import *
 from simetri.graphics.all_enums import Types, TexLoc, FrameShape, BackStyle
 from simetri.helpers.utilities import wait_for_file_availability
 from simetri.helpers.file_operations import remove_aux_files
-from simetri.graphics.common import common_properties
 from simetri.canvas.pre_render import collect_tikz_preamble_requirements
 from simetri.tikz.tikz import (
     color_to_tikz,
@@ -172,7 +171,6 @@ class Tex:
     def __post_init__(self):
         """Post-initialization method."""
         self.type = Types.TEX
-        common_properties(self)
 
     def tex_code(self, canvas: "Canvas", aux_code: str) -> str:
         """Generate the final TeX code.

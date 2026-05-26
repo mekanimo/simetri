@@ -1,8 +1,15 @@
 """All enumerations."""
 
-from typing import Union
+from typing import TYPE_CHECKING, Union
 from typing_extensions import TypeAlias
 from strenum import StrEnum
+
+if TYPE_CHECKING:
+    from simetri.geometry.geometry import Edge
+    from simetri.graphics.batch import Group
+    from simetri.graphics.core import Base
+    from simetri.graphics.shape import Shape
+    from simetri.helpers.illustration import Tag
 
 
 def get_enum_value(enum_class: StrEnum, value: str) -> str:
@@ -40,7 +47,7 @@ class Align(StrEnum):
 # Used for TikZ. VaLUeS are case sensitive.
 class Anchor(StrEnum):
     """Anchor is used to set the anchor point of the shapes
-    relative to the boundary box of shapes/batches or
+    relative to the boundary box of shapes/groups or
     frames of tag objects.
 
     Valid values are: BASE, BASE_EAST, BASE_WEST, BOTTOM, CENTER, EAST, LEFT, MID, MIDEAST, MIDWEST, NORTH,
@@ -653,8 +660,8 @@ class MarkerType(StrEnum):
 
     Valid values are: ASTERISK, BAR, CIRCLE, CROSS, DIAMOND, DIAMOND_F, EMPTY, FCIRCLE, HALF_CIRCLE,
     HALF_CIRCLE_F, HALF_DIAMOND, HALF_DIAMOND_F, HALF_SQUARE, HALF_SQUARE_F, HEXAGON, HEXAGON_F, INDICES,
-    MINUS, OPLUS, OPLUS_F, O_TIMES, O_TIMES_F, PENTAGON, PENTAGON_F, PLUS, SHAPE, SQUARE, SQUARE_F, STAR, STAR2,
-    STAR3, TEXT, TRIANGLE, TRIANGLE_F.
+    MINUS, OPLUS, OPLUS_F, O_TIMES, O_TIMES_F, PENTAGON, PENTAGON_F, PLUS, SHAPE, SQUARE, SQUARE_F, STAR,
+    TRIANGLE, TRIANGLE_F.
     """
 
     ASTERISK = "asterisk"
@@ -686,9 +693,6 @@ class MarkerType(StrEnum):
     SQUARE = "square"
     SQUARE_F = "square*"
     STAR = "star"
-    STAR2 = "star2"
-    STAR3 = "star3"
-    TEXT = "text"
     TRIANGLE = "triangle"
     TRIANGLE_F = "triangle*"
 
@@ -1099,7 +1103,7 @@ class TransformationType(StrEnum):
 
 class Types(StrEnum):
     """All objects in simetri.graphics has type and subtype properties.
-    Types are mostly Batch and Shape,  and subtypes are listed here.
+    Types are mostly Group and Shape,  and subtypes are listed here.
     """
 
     ALPHA_GROUP = "ALPHA_GROUP"
@@ -1263,6 +1267,19 @@ class Types(StrEnum):
     WEFT = "WEFT"
     WEIGHTED = "WEIGHTED_GRAPH"
 
+    def __eq__(self, other):
+        if isinstance(other, str):
+            if self.value == "GROUP" and other == "BATCH":
+                return True
+            elif self.value == "BATCH" and other == "GROUP":
+                return True
+            return self.value == other
+
+        # 2. Handle standard Enum comparison
+        return super().__eq__(other)
+
+    __hash__ = str.__hash__
+
 
 drawable_types = [
     Types.ARC,
@@ -1281,6 +1298,7 @@ drawable_types = [
     Types.EDGE,
     Types.ELLIPSE,
     Types.FRAGMENT,
+    Types.GROUP,
     Types.HEX_GRID,
     Types.IMAGE,
     Types.INTERSECTION,
@@ -1327,7 +1345,7 @@ shape_types = [
     Types.SINE_WAVE,
 ]
 
-batch_types = [
+group_types = [
     Types.ANGULAR_DIMENSION,
     Types.ANNOTATION,
     Types.ARC_ARROW,
@@ -1336,6 +1354,7 @@ batch_types = [
     Types.CIRCULAR_GRID,
     Types.DIMENSION,
     Types.DOTS,
+    Types.GROUP,
     Types.HEX_GRID,
     Types.LACE,
     Types.LINPATH,
@@ -1376,44 +1395,9 @@ length_refs = [
     Reference.WIDTH,
     Reference.HEIGHT,
 ]
-# Python Version 3.9 cannot handle Union[*drawable_types]
-Drawable: TypeAlias = Union[
-    Types.ARC,
-    Types.ARC_ARROW,
-    Types.ARROW,
-    Types.ARROW_HEAD,
-    Types.BATCH,
-    Types.CIRCLE,
-    Types.CIRCULAR_GRID,
-    Types.DIMENSION,
-    Types.DOT,
-    Types.DOTS,
-    Types.EDGE,
-    Types.ELLIPSE,
-    Types.FRAGMENT,
-    Types.HEX_GRID,
-    Types.IMAGE,
-    Types.INTERSECTION,
-    Types.LACE,
-    Types.LINPATH,
-    Types.MIXED_GRID,
-    Types.OUTLINE,
-    Types.OVERLAP,
-    Types.PARALLEL_POLYLINE,
-    Types.PATTERN,
-    Types.PLAIT,
-    Types.POLYLINE,
-    Types.RECTANGLE,
-    Types.SECTION,
-    Types.SEGMENT,
-    Types.SHAPE,
-    Types.SINE_WAVE,
-    Types.SQUARE_GRID,
-    Types.STAR,
-    Types.SVG_PATH,
-    Types.TAG,
-    Types.TURTLE,
-]
+# Drawable is used in runtime-imported annotations, so it must reference
+# Python types rather than enum values.
+Drawable: TypeAlias = Union["Base", "Group", "Shape", "Tag", "Edge"]
 
 
 anchors = [
@@ -1477,7 +1461,6 @@ svg_types = [
 # and rendering (SVG/TikZ). Keep this list in sync with canvas.style_map shape
 # aliases and shape-level runtime attributes (markers/masks/clip/filter/tile).
 shape_attributes = [
-    "active",
     "alpha",
     "back_style",
     "clip",
@@ -1498,7 +1481,6 @@ shape_attributes = [
     "fillet_radius",
     "filter",
     "gradient",
-    "id",
     "line_alpha",
     "line_cap",
     "line_color",

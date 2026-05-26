@@ -28,7 +28,6 @@ from simetri.graphics.affine import (
     identity_matrix,
 )
 from simetri.graphics.common import (
-    common_properties,
     _set_Nones,
     VOID,
     PointType,
@@ -46,7 +45,7 @@ from simetri.graphics.all_enums import (
 from simetri.graphics.shape import Shape, clip as clip_shape
 from simetri.settings.settings import defaults, issue_warning
 from simetri.graphics.bbox import bounding_box
-from simetri.graphics.batch import Batch
+from simetri.graphics.batch import Group
 from simetri.graphics.shape import Shape
 from simetri.tikz.tikz_sketch import TexSketch
 from simetri.colors.colors import Color, light_gray
@@ -155,7 +154,6 @@ class Canvas:
         self.drawn_entities = []
         self.draw_grid = False
         self.inset = 0
-        common_properties(self)
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -187,9 +185,13 @@ class Canvas:
                 border = None
             elif isinstance(value, (int, float)):
                 if value < 0:
-                    raise ValueError("Canvas.border must be a positive numeric value.")
+                    raise ValueError(
+                        "Canvas.border must be a positive numeric value."
+                    )
                 border = value
-            elif isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4:
+            elif (
+                isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4
+            ):
                 border = tuple(value)
                 if not all(isinstance(item, (int, float)) for item in border):
                     raise ValueError(
@@ -221,7 +223,9 @@ class Canvas:
                         "Canvas.margins must be a positive numeric value or a tuple of 4 positive numeric values."
                     )
                 margins = (value, value, value, value)
-            elif isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4:
+            elif (
+                isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4
+            ):
                 margins = tuple(value)
                 if not all(isinstance(item, (int, float)) for item in margins):
                     raise ValueError(
@@ -249,9 +253,13 @@ class Canvas:
                     defaults["margin"],
                     defaults["margin_header"],
                 )
-            elif isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4:
+            elif (
+                isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4
+            ):
                 book_margins = tuple(value)
-                if not all(isinstance(item, (int, float)) for item in book_margins):
+                if not all(
+                    isinstance(item, (int, float)) for item in book_margins
+                ):
                     raise ValueError(
                         "Canvas.book_margins must be a tuple of 4 positive numeric values."
                     )
@@ -287,11 +295,11 @@ class Canvas:
             elif name == "limits":
                 type(self).limits.fset(self, value)
         elif name == "size":
-            raise AttributeError(
-                "Canvas.size was renamed to Canvas.page_size."
-            )
+            raise AttributeError("Canvas.size was renamed to Canvas.page_size.")
         elif name == "origin":
-            raise AttributeError("Canvas.origin was renamed to Canvas.page_origin.")
+            raise AttributeError(
+                "Canvas.origin was renamed to Canvas.page_origin."
+            )
         elif name == "scale":
             if isinstance(value, (list, tuple)):
                 type(self).scale.fset(self, value[0], value[1])
@@ -322,7 +330,7 @@ class Canvas:
 
     def apply_mask(self, target, mask):
         sketches = []
-        if target.type == Types.BATCH:
+        if target.type == Types.GROUP:
             for item in target:
                 sketches.append(draw.get_sketches(item, self))
         else:
@@ -344,8 +352,7 @@ class Canvas:
         self.active_page.sketches.append(
             draw.get_clipped_sketch(target, clipper, self, **kwargs)
         )
-        clipped = clip_shape(target, clipper, exclude_clipper=True)
-        draw.extend_vertices(self, clipped)
+        draw.extend_vertices(self, clipper)
         self._sketch_xform_matrix = identity_matrix()
 
         return self
@@ -831,12 +838,12 @@ class Canvas:
         draw.lines(self, points, **kwargs)
         return self
 
-    def draw_lace(self, lace: Batch, **kwargs) -> Self:
+    def draw_lace(self, lace: Group, **kwargs) -> Self:
         """
         Draw the lace.
 
         Args:
-            lace (Batch): The lace to draw.
+            lace (Group): The lace to draw.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
@@ -879,7 +886,7 @@ class Canvas:
 
     def draw(
         self,
-        item_s: Union[Shape, Batch, Sequence],
+        item_s: Union[Shape, Group, Sequence],
         pos: PointType = None,
         angle: float = 0,
         rotocenter: PointType = (0, 0),
@@ -892,7 +899,7 @@ class Canvas:
         Draw the item_s. item_s can be a single item or a list of items.
 
         Args:
-            item_s (Union[Batch, Shape, Sequence]): The item(s) to draw.
+            item_s (Union[Group, Shape, Sequence]): The item(s) to draw.
             pos (PointType, optional): The position to draw the item(s), defaults to None.
             angle (float, optional): The angle to rotate the item(s), defaults to 0.
             rotocenter (PointType, optional): The point about which to rotate, defaults to (0, 0).
@@ -1368,35 +1375,35 @@ class Canvas:
         """
         self.pos = [self.pos[0], value]
 
-    def batch_graph(self, batch: "Batch") -> nx.DiGraph:
+    def group_graph(self, group: "Group") -> nx.DiGraph:
         """
-        Return a directed graph of the batch and its elements.
+        Return a directed graph of the group and its elements.
         Canvas is the root of the graph.
         Graph nodes are the ids of the elements.
 
         Args:
-            batch (Batch): The batch to create the graph from.
+            group (Group): The group to create the graph from.
 
         Returns:
-            nx.DiGraph: The directed graph of the batch and its elements.
+            nx.DiGraph: The directed graph of the group and its elements.
         """
 
-        def add_batch(batch, graph):
-            graph.add_node(batch.id)
-            for item in batch.elements:
-                graph.add_edge(batch.id, item.id)
-                if item.subtype == Types.BATCH:
-                    add_batch(item, graph)
+        def add_group(group, graph):
+            graph.add_node(group.id)
+            for item in group.elements:
+                graph.add_edge(group.id, item.id)
+                if item.subtype == Types.GROUP:
+                    add_group(item, graph)
             return graph
 
         di_graph = nx.DiGraph()
-        di_graph.add_edge(self.id, batch.id)
-        for item in batch.elements:
-            if item.subtype == Types.BATCH:
-                di_graph.add_edge(batch.id, item.id)
-                add_batch(item, di_graph)
+        di_graph.add_edge(self.id, group.id)
+        for item in group.elements:
+            if item.subtype == Types.GROUP:
+                di_graph.add_edge(group.id, item.id)
+                add_group(item, di_graph)
             else:
-                di_graph.add_edge(batch.id, item.id)
+                di_graph.add_edge(group.id, item.id)
 
         return di_graph
 
@@ -1428,7 +1435,6 @@ class Canvas:
 
         1. Handle color and alpha
         2. Handle kwargs
-        4. Handle others
         """
         d_resolved = {}
         resolved = []
@@ -1489,7 +1495,7 @@ class Canvas:
         return d_resolved
 
     def draw_all_segments(
-        self, item: Union[Shape, Batch], vert_indices=False, **kwargs
+        self, item: Union[Shape, Group], vert_indices=False, **kwargs
     ) -> Self:
         """
         Using intersections, splits edges of the item into separate segments and
@@ -1497,7 +1503,7 @@ class Canvas:
         function.
 
         Args:
-            item: A shape or a batch.
+            item: A shape or a group.
             vert_indices: If True, vertex indices are shown.
                           Default is False, edge indices are shown.
         Returns:
@@ -1561,7 +1567,10 @@ class Canvas:
                 border_bottom = border
                 border_right = border
                 border_top = border
-            elif isinstance(border, (list, tuple, np.ndarray)) and len(border) == 4:
+            elif (
+                isinstance(border, (list, tuple, np.ndarray))
+                and len(border) == 4
+            ):
                 border_left, border_bottom, border_right, border_top = border
             else:
                 raise ValueError(
@@ -1754,7 +1763,6 @@ class PageGrid:
         self.line_dash_array = defaults["page_grid_line_dash_array"]
         self.x_shift = defaults["page_grid_x_shift"]
         self.y_shift = defaults["page_grid_y_shift"]
-        common_properties(self)
 
 
 @dataclass
@@ -1792,7 +1800,6 @@ class Page:
         if self.kwargs:
             for k, v in self.kwargs.items():
                 setattr(self, k, v)
-        common_properties(self)
 
 
 def hello() -> None:

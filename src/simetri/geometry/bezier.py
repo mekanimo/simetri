@@ -112,7 +112,7 @@ class Bezier(Shape):
         Raises:
             ValueError: If the number of control points is not 3 or 4.
         """
-        self.control_points = new_control_points
+        self.__dict__["control_points"] = new_control_points
         if len(new_control_points) == 3:
             vertices = q_bezier_points(*new_control_points)
             self[:] = vertices

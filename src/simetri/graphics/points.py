@@ -10,12 +10,12 @@ from numpy import allclose, ndarray
 from typing_extensions import Self, Union
 
 from ..geometry.geometry import homogenize
-from .common import PointType, common_properties
+from .common import PointType
 from .all_enums import Types
 from ..settings.settings import defaults
 
 
-class _BatchUpdateContext:
+class _GroupUpdateContext:
     """Context manager for batch operations on Points to avoid redundant cache invalidations."""
 
     def __init__(self, points_obj):
@@ -23,7 +23,7 @@ class _BatchUpdateContext:
         self.original_invalidate = None
 
     def __enter__(self):
-        # Replace the invalidate method with a no-op during batch operations
+        # Replace the invalidate method with a no-op during group operations
         self.original_invalidate = self.points_obj._invalidate_cache
         self.points_obj._invalidate_cache = lambda: None
         return self
@@ -58,9 +58,6 @@ class Points:
 
         self.type = Types.POINTS
         self.subtype = Types.POINTS
-        self.dist_tol = defaults["dist_tol"]
-        self.dist_tol2 = self.dist_tol**2
-        common_properties(self, False)
         self.nd_array_changed = False
 
     def __str__(self):
@@ -101,16 +98,16 @@ class Points:
         self._coords_dirty = True
         self.nd_array_changed = True
 
-    def batch_update(self):
-        """Context manager for batch operations to avoid redundant cache invalidations.
+    def group_update(self):
+        """Context manager for group operations to avoid redundant cache invalidations.
 
         Usage:
-            with points.batch_update():
+            with points.group_update():
                 points.append(point1)
                 points.append(point2)
                 # Cache invalidation happens only once when exiting the context
         """
-        return _BatchUpdateContext(self)
+        return _GroupUpdateContext(self)
 
     def __repr__(self):
         """Return a string representation of the points.
@@ -365,9 +362,6 @@ class Lines:
 
         self.type = Types.LINE
         self.subtype = Types.LINE
-        self.dist_tol = defaults["dist_tol"]
-        self.dist_tol2 = self.dist_tol**2
-        common_properties(self, False)
 
     def __str__(self):
         """Return a string representation of the lines."""

@@ -1,4 +1,5 @@
 from typing import List, Tuple, Dict
+import math
 import re
 from math import sqrt, cos, sin, acos, radians, pi, degrees
 
@@ -11,6 +12,7 @@ from ..geometry.geometry import (
     double_offset_polylines,
 )
 from ..graphics.all_enums import PathOperation as PathOps
+from ..graphics.path import LinPath
 
 
 # Helper to format floats to avoid excessive precision in SVG

@@ -1,7 +1,7 @@
 """Simetri library's constants and common data."""
 
 from math import pi, cos, sin
-from typing import Sequence, Tuple, Any, Iterator
+from typing import Sequence, Tuple, Iterator
 from ..settings.settings import defaults
 from ..helpers.vector import Vector2D
 
@@ -27,26 +27,6 @@ two_pi = 2 * pi  # 360 degrees
 tau = 2 * pi  # 360 degrees
 phi = (1 + 5**0.5) / 2  # golden ratio
 
-d_id_obj = {}  # dictionary of obj.id: obj, use get_item_by_id(id)
-
-
-def common_properties(obj, graphics_object=True, id_only=False):
-    """
-    Set common properties for an object. All objects in Simetri have these properties.
-
-    Args:
-        obj (Any): The object to set properties for.
-        graphics_object (bool, optional): Whether the object is a graphics object. Defaults to True.
-        id_only (bool, optional): Whether to set only the id. Defaults to False.
-    """
-    obj.id = get_unique_id(obj)
-    d_id_obj[obj.id] = obj
-    if id_only:
-        return
-    obj.active = True
-    if graphics_object:
-        obj.visible = True
-
 
 def gen_unique_ids() -> Iterator[int]:
     """
@@ -62,26 +42,16 @@ def gen_unique_ids() -> Iterator[int]:
         id_ += 1
 
 
-def get_item_by_id(id_: int) -> Any:
-    """
-    Return an object by its id.
-
-    Args:
-        id_ (int): The id of the object.
-
-    Returns:
-        Any: The object with the given id.
-    """
-    return d_id_obj[id_]
-
 
 unique_id = gen_unique_ids()
+
+d_id_obj = {} # for Shape objects
 
 
 def get_unique_id(item) -> int:
     """
     Return a unique id.
-    Every object in Simetri has a unique id.
+    Every Shape object in Simetri has a unique id.
     Register the object in d_id_obj.
 
     Args:

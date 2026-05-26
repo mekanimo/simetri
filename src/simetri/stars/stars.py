@@ -3,32 +3,32 @@
 from math import pi, sin, cos, tan, sqrt, asin, acos, atan
 from typing import Union
 
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 from ..graphics.shape import Shape
 
-from ..graphics.common import common_properties, axis_x, LineType
+from ..graphics.common import axis_x, LineType
 from ..graphics.all_enums import Types
 from ..geometry.geometry import intersect, distance
 
 
 def rosette(
     n: int,
-    kernel: Union[Shape, Batch],
+    kernel: Union[Shape, Group],
     cyclic: bool = False,
     axis: LineType = axis_x,
     merge: bool = True,
-) -> Batch:
+) -> Group:
     """Returns a pattern with cyclic or dihedral symmetry with n petals.
 
     Args:
         n (int): Number of petals.
-        kernel (Union[Shape, Batch]): The base shape or batch to be used as a petal.
+        kernel (Union[Shape, Group]): The base shape or group to be used as a petal.
         cyclic (bool, optional): If True, creates a cyclic pattern. Defaults to False.
         axis (LineType, optional): The axis for mirroring. Defaults to axis_x.
         merge (bool, optional): If True, merges shapes. Defaults to True.
 
     Returns:
-        Batch: The resulting pattern with n petals.
+        Group: The resulting pattern with n petals.
     """
     if cyclic:
         petal = kernel
@@ -45,7 +45,7 @@ def rosette(
     return star
 
 
-class Star(Batch):
+class Star(Group):
     """Represents a star shape with n points.
 
     Args:
@@ -71,7 +71,6 @@ class Star(Batch):
 
         self.center = (0, 0)
         self.subtype = Types.STAR
-        common_properties(self)
         self._initialize(n)
         super().__init__(**kwargs)
 
@@ -263,14 +262,14 @@ class Star(Batch):
 
         return res
 
-    def level(self, n: int) -> Batch:
+    def level(self, n: int) -> Group:
         """Returns the star at the specified level.
 
         Args:
             n (int): The level of the star.
 
         Returns:
-            Batch: The star shape at the specified level.
+            Group: The star shape at the specified level.
 
         Raises:
             ValueError: If level is not a positive integer or zero.

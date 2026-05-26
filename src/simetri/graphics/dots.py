@@ -5,7 +5,7 @@ __all__ = ["Dot", "Dots"]
 import numpy as np
 
 from .shapes import Shape
-from .batch import Batch
+from .batch import Group
 from ..helpers.validation import validate_args
 from ..canvas.style_map import shape_args
 from ..settings.settings import defaults
@@ -108,7 +108,7 @@ class Dot(Shape):
         )
 
 
-class Dots(Batch):
+class Dots(Group):
     """For creating multiple dots. Initially there is only one dot."""
 
     def __init__(

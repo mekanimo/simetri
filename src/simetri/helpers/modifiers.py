@@ -3,11 +3,10 @@ import inspect
 from typing import List
 
 from ..graphics.all_enums import Control, State
-from ..graphics.common import common_properties
 
 
 class Modifier:
-    """Used to modify the properties of a Batch object.
+    """Used to modify the properties of a Group object.
 
     Attributes:
         function (callable): The function to modify the property.
@@ -53,10 +52,10 @@ class Modifier:
             Control.RESUME: State.RUNNING,
             Control.RESTART: State.RESTARTING,
         }
+        self.active = True
         self.count = 0
         self.args = args
         self.kwargs = kwargs
-        common_properties(self, False)
 
     def __repr__(self):
         """Returns a string representation of the Modifier object.

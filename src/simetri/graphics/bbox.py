@@ -1,9 +1,9 @@
-"""Bounding box class. Shape and Batch objects have a bounding box.
+"""Bounding box class. Shape and Group objects have a bounding box.
 Bounding box is axis-aligned. Provides reference edges and points.
 """
 
 import numpy as np
-from .common import PointType, common_properties, defaults
+from .common import PointType, defaults
 from .all_enums import Side, Types, Anchor
 from ..settings.settings import issue_warning
 from ..geometry.geometry import (
@@ -20,7 +20,7 @@ from ..geometry.geometry import (
 class BoundingBox:
     """Rectangular bounding box.
     If the object is a Shape, it contains all points.
-    If the object is a Batch, it contains all points of all Shapes.
+    If the object is a Group, it contains all points of all Shapes.
 
     Provides reference edges and points as shown in the Book page ???.
     """
@@ -55,9 +55,9 @@ class BoundingBox:
             "center": "midpoint",
         }
 
-        common_properties(self)
         self.type = Types.BOUNDING_BOX
         self.subtype = Types.BOUNDING_BOX
+        self.visible = True
 
     def __getattr__(self, name):
         """
@@ -75,10 +75,10 @@ class BoundingBox:
                     '"center" is deprecated use "midpoint" instead.',
                     category=DeprecationWarning,
                 )
-            res = getattr(self, self._aliases[name])
-        else:
-            res = self.__dict__[name]
-        return res
+            return getattr(self, self._aliases[name])
+        if name in self.__dict__:
+            return self.__dict__[name]
+        raise AttributeError(name)
 
     def angle_point(self, angle: float) -> float:
         """
@@ -471,13 +471,13 @@ class BoundingBox:
         return [x + dx, y + dy]
 
     def centered(
-        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the center of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -491,13 +491,13 @@ class BoundingBox:
         return x, y
 
     def left_of(
-        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.west of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -511,13 +511,13 @@ class BoundingBox:
         return x, y
 
     def right_of(
-        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.east of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -530,12 +530,12 @@ class BoundingBox:
         y += dy
         return x, y
 
-    def above(self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0) -> PointType:
+    def above(self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0) -> PointType:
         """
         Get the item.north of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -548,12 +548,12 @@ class BoundingBox:
         y += dy + h2
         return x, y
 
-    def below(self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0) -> PointType:
+    def below(self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0) -> PointType:
         """
         Get the item.south of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -567,13 +567,13 @@ class BoundingBox:
         return x, y
 
     def above_left(
-        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northwest of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -589,13 +589,13 @@ class BoundingBox:
         return x, y
 
     def above_right(
-        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northeast of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -611,13 +611,13 @@ class BoundingBox:
         return x, y
 
     def below_left(
-        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southwest of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -633,13 +633,13 @@ class BoundingBox:
         return x, y
 
     def below_right(
-        self, item: "Union[Shape, Batch]", dx: float = 0, dy: float = 0
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southeast of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             dx (float): The x offset.
             dy (float): The y offset.
 
@@ -655,13 +655,13 @@ class BoundingBox:
         return x, y
 
     def polar_pos(
-        self, item: "Union[Shape, Batch]", angle: float, radius: float
+        self, item: "Union[Shape, Group]", angle: float, radius: float
     ) -> PointType:
         """
         Get the polar position of the reference item.
 
         Args:
-            item (object): The reference item. Shape or Batch.
+            item (object): The reference item. Shape or Group.
             theta (float): The angle in radians.
             radius (float): The radius.
 

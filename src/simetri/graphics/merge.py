@@ -6,19 +6,15 @@ import networkx as nx
 from .common import LineType
 from ..geometry.geometry import (
     right_handed,
-    fix_degen_points,
     inclination_angle,
-    round_segment,
-    round_point,
     pi,
 )
 from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges_to_nodes
-from ..settings.settings import defaults
 
 
-def _merge_shapes(self, n_round: int = None, **kwargs) -> "Batch":
+def _merge_shapes(self, n_round: int = None, **kwargs) -> "Group":
     """
-    Tries to merge the shapes in the batch. Returns a new batch
+    Tries to merge the shapes in the group. Returns a new group
     with the merged shapes as well as the shapes that could not be merged.
 
     Args:
@@ -26,9 +22,9 @@ def _merge_shapes(self, n_round: int = None, **kwargs) -> "Batch":
         **kwargs: Additional keyword arguments.
 
     Returns:
-        Batch: A new batch with the merged shapes.
+        Group: A new group with the merged shapes.
     """
-    from .batch import Batch
+    from .batch import Group
     from .shape import Shape
     if len(self) < 2:
         return self
@@ -74,11 +70,11 @@ def _merge_shapes(self, n_round: int = None, **kwargs) -> "Batch":
                 shape = Shape(vertices)
                 new_shapes.append(shape)
 
-    batch = Batch(new_shapes)
+    group = Group(new_shapes)
     for k, v in kwargs.items():
-        batch.set_attribs(k, v)
+        group.set_attribs(k, v)
 
-    return batch
+    return group
 
 def merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
     """Merge collinear edges in a bin.

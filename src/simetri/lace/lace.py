@@ -10,7 +10,7 @@ import numpy as np
 from numpy import isclose
 
 from ..graphics.shape import Shape, custom_attributes
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 
 from ..colors import colors
 from ..geometry.geometry import (
@@ -35,7 +35,7 @@ from ..geometry.geometry import (
     pi,
 )
 from ..helpers.graph import get_cycles
-from ..graphics.common import get_defaults, common_properties, d_id_obj
+from ..graphics.common import get_defaults
 from ..graphics.shapes import fillet_shape_corners
 from ..graphics.all_enums import Types, Connection
 from ..canvas.style_map import shape_style_map, ShapeStyle
@@ -52,9 +52,9 @@ def _set_style(obj: Any, attribs):
 array = np.array
 
 
-# Lace (Batch)
+# Lace (Group)
 #     parallel_polyline_list (list)
-#         parallel_polyline1 (ParallelPolyline-Batch-PARALLELPOLYLINE)
+#         parallel_polyline1 (ParallelPolyline-Group-PARALLELPOLYLINE)
 #             polyline_list (list)
 #             |    polyline1 (Polyline-Shape)
 #             |        divisions (list)
@@ -66,9 +66,9 @@ array = np.array
 #             |                        p1 (tuple)
 #             |                        p2
 #             |                        is_overlap (bool)
-#             |                        overlap (Overlap-Batch)
+#             |                        overlap (Overlap-Group)
 #             |overlaps (list)
-#             |   overlap1(Overlap-Batch)
+#             |   overlap1(Overlap-Group)
 #             |       divisions (list)
 #             |           division1(Division-Shape)
 #             |               p1 (tuple)
@@ -92,7 +92,7 @@ array = np.array
 #             plaits (list)
 #                 plait1 (Plait-Shape)
 
-# All objects in this module is a subclass of the Shape or Batch class.
+# All objects in this module is a subclass of the Shape or Group class.
 # They are used to compute the interlacing patterns.
 
 #  Example of a Lace object.
@@ -213,8 +213,6 @@ class Intersection(Shape):
         self.endpoint = endpoint
         self.division = None  # used for fragment divisions' DCEL structure
 
-        common_properties(self, id_only=True)
-
     def _update(self, xform_matrix, reps=0, merge: bool = False):
         """Update the transformation matrix of the intersection.
 
@@ -310,7 +308,6 @@ class Partition(Shape):
         self.subtype = Types.PART
         self.area = polygon_area(self.vertices)
         self.CG = polygon_cg(self.vertices)
-        common_properties(self)
 
     def __str__(self):
         """String representation of the partition.
@@ -343,13 +340,11 @@ class Fragment(Shape):
     def __init__(self, points, **kwargs):
         super().__init__(points, **kwargs)
         self.subtype = Types.FRAGMENT
-        self.area = polygon_area(self.vertices)
         self.sections = []
         self.intersections = []
         self.inner_lines = []
         self._divisions = []
         self.CG = polygon_cg(self.vertices)
-        common_properties(self)
 
     def __str__(self):
         """String representation of the fragment.
@@ -484,11 +479,7 @@ class Section(Shape):
             [start.point, end.point], subtype=Types.SECTION, **kwargs
         )
         self.length = distance(self.start.point, self.end.point)
-        self.midpoint = [
-            (self.start.point[0] + self.end.point[0]) / 2,
-            (self.start.point[1] + self.end.point[1]) / 2,
-        ]
-        common_properties(self)
+
 
     def copy(self):
         """Create a copy of the section.
@@ -544,7 +535,7 @@ class Section(Shape):
         return self.start.endpoint or self.end.endpoint
 
 
-class Overlap(Batch):
+class Overlap(Group):
     """An overlap is a collection of four connected sections.
 
     Args:
@@ -569,7 +560,6 @@ class Overlap(Batch):
         self.subtype = Types.OVERLAP
         self.visited = visited
         self.drawable = drawable
-        common_properties(self)
 
     def __str__(self):
         """String representation of the overlap.
@@ -617,7 +607,6 @@ class Division(Shape):
             xform_matrix=xform_matrix,
             **kwargs,
         )
-        common_properties(self)
 
     def _update(self, xform_matrix, reps=0, merge: bool = False):
         """Update the transformation matrix of the division.
@@ -771,18 +760,18 @@ class Polyline(Shape):
     """
 
     def __init__(self, points, closed=True, xform_matrix=None, **kwargs):
-        self.__dict__["style"] = ShapeStyle()
-        self.__dict__["_style_map"] = shape_style_map
-        self._set_aliases()
         self.closed = closed
-        kwargs["subtype"] = Types.POLYLINE
+
         super().__init__(
-            points, closed=closed, xform_matrix=xform_matrix, **kwargs
+            points,
+            closed=closed,
+            xform_matrix=xform_matrix,
+            subtype=Types.POLYLINE,
+            **kwargs,
         )
         self._set_divisions()
         if not self.closed:
             self._set_intersections()
-        common_properties(self)
 
     def _update(self, xform_matrix, reps=0, merge: bool = False):
         """Update the transformation matrix of the polyline.
@@ -907,7 +896,7 @@ class Polyline(Shape):
             division2.intersections = [x2]
 
 
-class ParallelPolyline(Batch):
+class ParallelPolyline(Group):
     """A ParallelPolylines is a collection of parallel Polylines.
     They are defined by a main polyline and a list of offset
     values (that can be negative or positive).
@@ -937,8 +926,6 @@ class ParallelPolyline(Batch):
         dist_tol2 = dist_tol * dist_tol
         self.polyline = polyline
         self.offset = offset
-        self.dist_tol = dist_tol
-        self.dist_tol2 = dist_tol2
         self.closed = closed
         self._set_offset_polylines()
         self.polyline_list = [self.polyline] + self.offset_poly_list
@@ -946,7 +933,6 @@ class ParallelPolyline(Batch):
         self.subtype = Types.PARALLEL_POLYLINE
         self.overlaps = None
         self.under = under
-        common_properties(self)
 
     @property
     def sections(self) -> List[Section]:
@@ -966,7 +952,7 @@ class ParallelPolyline(Batch):
             vertices = list(polyline.vertices)
             vertices = vertices + [vertices[0]]
             offset_polygons = double_offset_polygons(
-                vertices, self.offset, dist_tol=self.dist_tol
+                vertices, self.offset, dist_tol=defaults["dist_tol"]
             )
         else:
             offset_polylines = double_offset_polylines(
@@ -983,13 +969,13 @@ class ParallelPolyline(Batch):
         self.offset_poly_list = polylines
 
 
-class Lace(Batch):
+class Lace(Group):
     """
     A Lace is a collection of ParallelPolylines objects.
     They are used to create interlace patterns.
 
     Args:
-        shapes (Union[Batch, list[Shape]], optional): Sequence of shapes.
+        shapes (Union[Group, list[Shape]], optional): Sequence of shapes.
         offset (float, optional): Offset value. Defaults to 2.
         rel_tol (float, optional): Relative tolerance. Defaults to None.
         swatch (list, optional): Swatch list. Defaults to None.
@@ -1005,7 +991,7 @@ class Lace(Batch):
 
     def __init__(
         self,
-        shapes: Union[Batch, list[Shape]] = None,
+        shapes: Union[Group, list[Shape]] = None,
         offset: float = 2,
         rel_tol: float = None,
         swatch: list = None,
@@ -1045,16 +1031,16 @@ class Lace(Batch):
             ],
         )
         if isinstance(shapes, Shape):
-            shapes = Batch([shapes]).merge_shapes()
-        elif isinstance(shapes, Batch):
+            shapes = Group([shapes]).merge_shapes()
+        elif isinstance(shapes, Group):
             shapes = shapes.merge_shapes()
         elif isinstance(shapes, (list, tuple)):
-            shapes = Batch(shapes).merge_shapes()
+            shapes = Group(shapes).merge_shapes()
         else:
             raise TypeError("Lace.__init__ : Invalid shapes argument.")
 
-        polygon_shapes = Batch([shp for shp in shapes if shp.closed])
-        polyline_shapes = Batch([shp for shp in shapes if not shp.closed])
+        polygon_shapes = Group([shp for shp in shapes if shp.closed])
+        polyline_shapes = Group([shp for shp in shapes if not shp.closed])
         polygon_shapes = polygon_shapes.merge_shapes()
         polyline_shapes = polyline_shapes.merge_shapes()
 
@@ -1128,7 +1114,6 @@ class Lace(Batch):
                 else:
                     raise AttributeError(f"{k}. Invalid attribute!")
         self.subtype = Types.LACE
-        common_properties(self)
 
     @property
     def center(self):
@@ -1214,7 +1199,7 @@ class Lace(Batch):
         return d_groups
 
     def _check_polygons(self, polygon_shapes):
-        if isinstance(polygon_shapes, Batch):
+        if isinstance(polygon_shapes, Group):
             polygon_shapes = polygon_shapes.all_shapes
         for polygon in polygon_shapes:
             if len(polygon.primary_points) < 3:
@@ -1233,7 +1218,7 @@ class Lace(Batch):
         return polygon_shapes
 
     def _check_polylines(self, polyline_shapes):
-        if isinstance(polyline_shapes, Batch):
+        if isinstance(polyline_shapes, Group):
             polyline_shapes = polyline_shapes.all_shapes
         for polyline in polyline_shapes:
             if len(polyline.primary_points) < 2:
@@ -1321,7 +1306,7 @@ class Lace(Batch):
             offset_polygon(self.outline.vertices, -self.offset)
         )
         # skeleton is the input polylines that the lace is based on
-        self.skeleton = Batch(self.polyline_list)
+        self.skeleton = Group(self.polyline_list)
 
     def set_fragment_groups(self):
         # to do : handle repeated code. same in _set_partition_groups
@@ -1442,11 +1427,11 @@ class Lace(Batch):
         plaits = self.plaits[:]
         fragments = self.fragments[:]
 
-        return Batch(plaits + fragments)
+        return Group(plaits + fragments)
 
     def get_sketch(self):
         """
-        Create and return a Sketch object. Sketch is a Batch object
+        Create and return a Sketch object. Sketch is a Group object
         with Shape elements corresponding to the vertices of the plaits
         and fragments of the Lace instance. They have 'plaits' and
         'fragments' attributes to hold lists of Shape objects populated
@@ -1489,7 +1474,7 @@ class Lace(Batch):
             polygon.subtype = Types.PLAIT
             plaits.append(polygon)
 
-        sketch = Batch((fragments + plaits))
+        sketch = Group((fragments + plaits))
         sketch.fragments = fragments
         sketch.plaits = plaits
         sketch.outline = self.outline

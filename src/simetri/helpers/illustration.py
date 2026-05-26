@@ -15,13 +15,12 @@ import numpy as np
 from ..graphics.core import Base
 from ..graphics.bbox import bounding_box
 from ..graphics.points import Points
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 from ..graphics.shape import Shape
 
 from ..graphics.shapes import reg_poly_points_side_length
 from ..graphics.common import (
     get_defaults,
-    common_properties,
     PointType,
     _set_Nones,
 )
@@ -53,6 +52,7 @@ from ..colors.swatches import swatches_255
 from ..settings.settings import defaults
 from ..colors import colors
 from .validation import validate_args
+from ..graphics.core import StyleMixin
 
 Color = colors.Color
 array = np.array
@@ -65,7 +65,7 @@ def logo(scale=1):
         scale (int, optional): Scale factor for the logo. Defaults to 1.
 
     Returns:
-        Batch: A Batch object containing the logo shapes.
+        Group: A Group object containing the logo shapes.
     """
     w = 10 * scale
     points = [
@@ -132,7 +132,7 @@ def logo(scale=1):
     kernel1.fill_color = fill_color
     kernel2.fill_color = colors.white
 
-    return Batch([kernel1, kernel2])
+    return Group([kernel1, kernel2])
 
 
 def convert_latex_font_size(latex_font_size: FontSize):
@@ -201,13 +201,13 @@ def letter_F(scale=1, **kwargs):
 
 
 def cube(size: float = 100):
-    """Returns a Batch object representing a cube.
+    """Returns a Group object representing a cube.
 
     Args:
         size (float, optional): The size of the cube. Defaults to 100.
 
     Returns:
-        Batch: A Batch object representing the cube.
+        Group: A Group object representing the cube.
     """
     points = reg_poly_points_side_length((0, 0), 6, size)
     center = (0, 0)
@@ -291,7 +291,7 @@ def pdf_to_svg(pdf_path, svg_path):
 
 # To do: use a different name for the Annotation class
 # annotation is a label with an arrow
-class Annotation(Batch):
+class Annotation(Group):
     """An Annotation object is a label with an arrow pointing to a specific location.
 
     Args:
@@ -379,10 +379,9 @@ class TagFrame:
     def __post_init__(self):
         self.type = Types.FRAME
         self.subtype = Types.FRAME
-        common_properties(self, id_only=True)
 
 
-class Tag(Base):
+class Tag(Base, StyleMixin):
     """A Tag object is very similar to TikZ library's nodes. It is a text with a frame.
 
     Args:
@@ -470,7 +469,7 @@ class Tag(Base):
         w = x2 - x1
         h = y2 - y1
         self.points = Points([(0, 0, 1), (w, 0, 1), (w, h, 1), (0, h, 1)])
-        common_properties(self)
+        self.visible = True
 
     def __setattr__(self, name, value):
         obj, attrib = self.__dict__["_aliases"].get(name, (None, None))
@@ -515,7 +514,7 @@ class Tag(Base):
                 tag = tag.copy()
                 tag._update(xform_matrix)
                 tags.append(tag)
-            res = Batch(tags)
+            res = Group(tags)
 
         if merge and reps > 0:
             res = res.merge_shapes()
@@ -786,7 +785,7 @@ def arrow(
         centered (bool, optional): Whether the arrow is centered. Defaults to False.
 
     Returns:
-        Batch: A Batch object containing the arrow shapes.
+        Group: A Group object containing the arrow shapes.
     """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
@@ -813,10 +812,10 @@ def arrow(
         head.translate(*midpoint((x1, y1), (x2, y2)))
     else:
         head.translate(x2, y2)
-    return Batch([body, head])
+    return Group([body, head])
 
 
-class ArcArrow(Batch):
+class ArcArrow(Group):
     """An ArcArrow object is an arrow with an arc.
 
     Args:
@@ -870,7 +869,7 @@ class ArcArrow(Batch):
         self.xform_matrix = get_transform(xform_matrix)
 
 
-class RadialDimension(Batch):
+class RadialDimension(Group):
     """A RadialDimension object is a dimension that represents a radius.
 
     Args:
@@ -928,7 +927,7 @@ class RadialDimension(Batch):
         super().__init__(self._items, subtype=Types.RADIAL_DIMENSION, **kwargs)
 
 
-class Arrow(Batch):
+class Arrow(Group):
     """An Arrow object is a line with an arrow head.
 
     Args:
@@ -1000,7 +999,7 @@ class Arrow(Batch):
         super().__init__(items, subtype=Types.ARROW, **kwargs)
 
 
-class AngularDimension(Batch):
+class AngularDimension(Group):
     """An AngularDimension object is a dimension that represents an angle.
 
     Args:
@@ -1041,7 +1040,7 @@ class AngularDimension(Batch):
         super().__init__(subtype=Types.ANGULAR_DIMENSION, **kwargs)
 
 
-class Dimension(Batch):
+class Dimension(Group):
     """A Dimension object is a line with arrows and a text.
 
     Args:

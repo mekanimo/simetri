@@ -9,11 +9,11 @@ Documentation list all aliases for each style class.
 # to do: Change this so that IDEs can find the classes and methods.
 
 from typing import List, Optional, Sequence, Union
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass
 import enum
 
 from ..settings.settings import defaults, default_types
-from ..graphics.common import get_unique_id, VOID, common_properties
+from ..graphics.common import VOID
 from ..graphics.mask import Gradient
 from ..graphics.all_enums import (
     Align,
@@ -61,7 +61,10 @@ def _set_style_args(obj, attribs, exact=None, prefix=None, values=None):
 
 
 def _get_style_attribs(
-    style: Types.STYLE, prefix: str = None, exact: list = None, exclude: list = None
+    style: Types.STYLE,
+    prefix: str = None,
+    exact: list = None,
+    exclude: list = None,
 ) -> List[str]:
     """Get the list of attributes from the given Style object.
 
@@ -144,7 +147,6 @@ class FontStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
 
 @dataclass
@@ -179,7 +181,6 @@ class GridStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the GridStyle object."""
@@ -233,7 +234,6 @@ class MarkerStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the MarkerStyle object."""
@@ -299,11 +299,12 @@ class LineStyle:
             "double_distance",
         ]
         exclude = ["marker_style"]
-        _style_init(self, exact, exclude, prefix="line", subtype=Types.LINE_STYLE)
+        _style_init(
+            self, exact, exclude, prefix="line", subtype=Types.LINE_STYLE
+        )
         self._exact = exact
         self._exclude = exclude
         self.marker_style = MarkerStyle()
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the LineStyle object."""
@@ -330,7 +331,6 @@ def _style_init(style, exact=None, exclude=None, prefix="", subtype=None):
     style.attribs = _get_style_attribs(
         style, prefix=prefix, exact=exact, exclude=exclude
     )
-    style.id = get_unique_id(style)
     style.type = Types.STYLE
     style.subtype = subtype
 
@@ -374,7 +374,6 @@ class PatternStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the PatternStyle object."""
@@ -455,7 +454,6 @@ class ShadeStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
 
 @dataclass
@@ -498,7 +496,6 @@ class SVG_TileStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the SVG_TileStyle object."""
@@ -552,10 +549,11 @@ class FillStyle:
             "svg_tile_style",
             "gradient_style",
         ]
-        _style_init(self, exact, exclude, prefix="fill", subtype=Types.FILL_STYLE)
+        _style_init(
+            self, exact, exclude, prefix="fill", subtype=Types.FILL_STYLE
+        )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the FillStyle object."""
@@ -608,7 +606,6 @@ class ShapeStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the ShapeStyle object."""
@@ -664,7 +661,6 @@ class FrameStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
 
 @dataclass
@@ -714,7 +710,6 @@ class ImageStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the ImageStyle object."""
@@ -783,7 +778,6 @@ class TagStyle:
         )
         self._exact = exact
         self._exclude = exclude
-        common_properties(self, id_only=True)
 
     def __str__(self):
         """Return a string representation of the TagStyle object."""
@@ -943,9 +937,18 @@ image_style_map = {
     "frame_outer_sep": ("style.frame_style", "outer_sep"),
     "frame_shape": ("style.frame_style", "shape"),
     "grid_alpha": ("style.frame_style.fill_style.grid_style", "alpha"),
-    "grid_back_color": ("style.frame_style.fill_style.grid_style", "back_color"),
-    "grid_line_color": ("style.frame_style.fill_style.grid_style", "line_color"),
-    "grid_line_width": ("style.frame_style.fill_style.grid_style", "line_width"),
+    "grid_back_color": (
+        "style.frame_style.fill_style.grid_style",
+        "back_color",
+    ),
+    "grid_line_color": (
+        "style.frame_style.fill_style.grid_style",
+        "line_color",
+    ),
+    "grid_line_width": (
+        "style.frame_style.fill_style.grid_style",
+        "line_width",
+    ),
     "line_alpha": ("style.frame_style.line_style", "alpha"),
     "line_cap": ("style.frame_style.line_style", "cap"),
     "line_color": ("style.frame_style.line_style", "color"),
@@ -961,17 +964,44 @@ image_style_map = {
     "markers_only": ("style.frame_style.line_style", "markers_only"),
     "pattern_angle": ("style.frame_style.fill_style.pattern_style", "angle"),
     "pattern_color": ("style.frame_style.fill_style.pattern_style", "color"),
-    "pattern_distance": ("style.frame_style.fill_style.pattern_style", "distance"),
-    "pattern_line_width": ("style.frame_style.fill_style.pattern_style", "line_width"),
+    "pattern_distance": (
+        "style.frame_style.fill_style.pattern_style",
+        "distance",
+    ),
+    "pattern_line_width": (
+        "style.frame_style.fill_style.pattern_style",
+        "line_width",
+    ),
     "pattern_points": ("style.frame_style.fill_style.pattern_style", "points"),
     "pattern_radius": ("style.frame_style.fill_style.pattern_style", "radius"),
-    "pattern_type": ("style.frame_style.fill_style.pattern_style", "pattern_type"),
-    "pattern_x_shift": ("style.frame_style.fill_style.pattern_style", "x_shift"),
-    "pattern_y_shift": ("style.frame_style.fill_style.pattern_style", "y_shift"),
-    "shade_axis_angle": ("style.frame_style.fill_style.shade_style", "axis_angle"),
-    "shade_ball_color": ("style.frame_style.fill_style.shade_style", "ball_color"),
-    "shade_bottom_color": ("style.frame_style.fill_style.shade_style", "bottom_color"),
-    "shade_color_wheel": ("style.frame_style.fill_style.shade_style", "color_wheel"),
+    "pattern_type": (
+        "style.frame_style.fill_style.pattern_style",
+        "pattern_type",
+    ),
+    "pattern_x_shift": (
+        "style.frame_style.fill_style.pattern_style",
+        "x_shift",
+    ),
+    "pattern_y_shift": (
+        "style.frame_style.fill_style.pattern_style",
+        "y_shift",
+    ),
+    "shade_axis_angle": (
+        "style.frame_style.fill_style.shade_style",
+        "axis_angle",
+    ),
+    "shade_ball_color": (
+        "style.frame_style.fill_style.shade_style",
+        "ball_color",
+    ),
+    "shade_bottom_color": (
+        "style.frame_style.fill_style.shade_style",
+        "bottom_color",
+    ),
+    "shade_color_wheel": (
+        "style.frame_style.fill_style.shade_style",
+        "color_wheel",
+    ),
     "shade_color_wheel_black": (
         "style.frame_style.fill_style.shade_style",
         "color_wheel_black",
@@ -980,8 +1010,14 @@ image_style_map = {
         "style.frame_style.fill_style.shade_style",
         "color_wheel_white",
     ),
-    "shade_inner_color": ("style.frame_style.fill_style.shade_style", "inner_color"),
-    "shade_left_color": ("style.frame_style.fill_style.shade_style", "left_color"),
+    "shade_inner_color": (
+        "style.frame_style.fill_style.shade_style",
+        "inner_color",
+    ),
+    "shade_left_color": (
+        "style.frame_style.fill_style.shade_style",
+        "left_color",
+    ),
     "shade_lower_left_color": (
         "style.frame_style.fill_style.shade_style",
         "lower_left_color",
@@ -990,10 +1026,22 @@ image_style_map = {
         "style.frame_style.fill_style.shade_style",
         "lower_right_color",
     ),
-    "shade_middle_color": ("style.frame_style.fill_style.shade_style", "middle_color"),
-    "shade_outer_color": ("style.frame_style.fill_style.shade_style", "outer_color"),
-    "shade_right_color": ("style.frame_style.fill_style.shade_style", "right_color"),
-    "shade_top_color": ("style.frame_style.fill_style.shade_style", "top_color"),
+    "shade_middle_color": (
+        "style.frame_style.fill_style.shade_style",
+        "middle_color",
+    ),
+    "shade_outer_color": (
+        "style.frame_style.fill_style.shade_style",
+        "outer_color",
+    ),
+    "shade_right_color": (
+        "style.frame_style.fill_style.shade_style",
+        "right_color",
+    ),
+    "shade_top_color": (
+        "style.frame_style.fill_style.shade_style",
+        "top_color",
+    ),
     "shade_type": ("style.frame_style.fill_style.shade_style", "shade_type"),
     "shade_upper_left_color": (
         "style.frame_style.fill_style.shade_style",
@@ -1088,9 +1136,18 @@ tag_style_map = {
     "frame_outer_sep": ("style.frame_style", "outer_sep"),
     "frame_shape": ("style.frame_style", "shape"),
     "grid_alpha": ("style.frame_style.fill_style.grid_style", "alpha"),
-    "grid_back_color": ("style.frame_style.fill_style.grid_style", "back_color"),
-    "grid_line_color": ("style.frame_style.fill_style.grid_style", "line_color"),
-    "grid_line_width": ("style.frame_style.fill_style.grid_style", "line_width"),
+    "grid_back_color": (
+        "style.frame_style.fill_style.grid_style",
+        "back_color",
+    ),
+    "grid_line_color": (
+        "style.frame_style.fill_style.grid_style",
+        "line_color",
+    ),
+    "grid_line_width": (
+        "style.frame_style.fill_style.grid_style",
+        "line_width",
+    ),
     "italic": ("style.font_style", "italic"),
     "line_alpha": ("style.frame_style.line_style", "alpha"),
     "line_cap": ("style.frame_style.line_style", "cap"),
@@ -1109,17 +1166,44 @@ tag_style_map = {
     "overline": ("style.font_style", "overline"),
     "pattern_angle": ("style.frame_style.fill_style.pattern_style", "angle"),
     "pattern_color": ("style.frame_style.fill_style.pattern_style", "color"),
-    "pattern_distance": ("style.frame_style.fill_style.pattern_style", "distance"),
-    "pattern_line_width": ("style.frame_style.fill_style.pattern_style", "line_width"),
+    "pattern_distance": (
+        "style.frame_style.fill_style.pattern_style",
+        "distance",
+    ),
+    "pattern_line_width": (
+        "style.frame_style.fill_style.pattern_style",
+        "line_width",
+    ),
     "pattern_points": ("style.frame_style.fill_style.pattern_style", "points"),
     "pattern_radius": ("style.frame_style.fill_style.pattern_style", "radius"),
-    "pattern_type": ("style.frame_style.fill_style.pattern_style", "pattern_type"),
-    "pattern_x_shift": ("style.frame_style.fill_style.pattern_style", "x_shift"),
-    "pattern_y_shift": ("style.frame_style.fill_style.pattern_style", "y_shift"),
-    "shade_axis_angle": ("style.frame_style.fill_style.shade_style", "axis_angle"),
-    "shade_ball_color": ("style.frame_style.fill_style.shade_style", "ball_color"),
-    "shade_bottom_color": ("style.frame_style.fill_style.shade_style", "bottom_color"),
-    "shade_color_wheel": ("style.frame_style.fill_style.shade_style", "color_wheel"),
+    "pattern_type": (
+        "style.frame_style.fill_style.pattern_style",
+        "pattern_type",
+    ),
+    "pattern_x_shift": (
+        "style.frame_style.fill_style.pattern_style",
+        "x_shift",
+    ),
+    "pattern_y_shift": (
+        "style.frame_style.fill_style.pattern_style",
+        "y_shift",
+    ),
+    "shade_axis_angle": (
+        "style.frame_style.fill_style.shade_style",
+        "axis_angle",
+    ),
+    "shade_ball_color": (
+        "style.frame_style.fill_style.shade_style",
+        "ball_color",
+    ),
+    "shade_bottom_color": (
+        "style.frame_style.fill_style.shade_style",
+        "bottom_color",
+    ),
+    "shade_color_wheel": (
+        "style.frame_style.fill_style.shade_style",
+        "color_wheel",
+    ),
     "shade_color_wheel_black": (
         "style.frame_style.fill_style.shade_style",
         "color_wheel_black",
@@ -1128,8 +1212,14 @@ tag_style_map = {
         "style.frame_style.fill_style.shade_style",
         "color_wheel_white",
     ),
-    "shade_inner_color": ("style.frame_style.fill_style.shade_style", "inner_color"),
-    "shade_left_color": ("style.frame_style.fill_style.shade_style", "left_color"),
+    "shade_inner_color": (
+        "style.frame_style.fill_style.shade_style",
+        "inner_color",
+    ),
+    "shade_left_color": (
+        "style.frame_style.fill_style.shade_style",
+        "left_color",
+    ),
     "shade_lower_left_color": (
         "style.frame_style.fill_style.shade_style",
         "lower_left_color",
@@ -1138,10 +1228,22 @@ tag_style_map = {
         "style.frame_style.fill_style.shade_style",
         "lower_right_color",
     ),
-    "shade_middle_color": ("style.frame_style.fill_style.shade_style", "middle_color"),
-    "shade_outer_color": ("style.frame_style.fill_style.shade_style", "outer_color"),
-    "shade_right_color": ("style.frame_style.fill_style.shade_style", "right_color"),
-    "shade_top_color": ("style.frame_style.fill_style.shade_style", "top_color"),
+    "shade_middle_color": (
+        "style.frame_style.fill_style.shade_style",
+        "middle_color",
+    ),
+    "shade_outer_color": (
+        "style.frame_style.fill_style.shade_style",
+        "outer_color",
+    ),
+    "shade_right_color": (
+        "style.frame_style.fill_style.shade_style",
+        "right_color",
+    ),
+    "shade_top_color": (
+        "style.frame_style.fill_style.shade_style",
+        "top_color",
+    ),
     "shade_type": ("style.frame_style.fill_style.shade_style", "shade_type"),
     "shade_upper_left_color": (
         "style.frame_style.fill_style.shade_style",
@@ -1197,7 +1299,16 @@ def _set_tag_style_alias_map(debug=False):
         "style.frame_style.fill_style.shade_style",
         "style.frame_style.fill_style.grid_style",
     ]
-    prefixes = ["font", "line", "fill", "marker", "frame", "pattern", "shade", "grid"]
+    prefixes = [
+        "font",
+        "line",
+        "fill",
+        "marker",
+        "frame",
+        "pattern",
+        "shade",
+        "grid",
+    ]
 
     _set_style_alias_map(tag_style_map, styles, paths, prefixes, debug=debug)
     tag_style_map["alpha"] = ("style", "alpha")
@@ -1306,7 +1417,9 @@ def _set_pattern_style_alias_map(debug=False):
     paths = ["pattern_style"]
     prefixes = ["pattern"]
 
-    _set_style_alias_map(pattern_style_map, styles, paths, prefixes, debug=debug)
+    _set_style_alias_map(
+        pattern_style_map, styles, paths, prefixes, debug=debug
+    )
 
     return pattern_style_map
 
@@ -1338,7 +1451,9 @@ def _set_svg_tile_style_alias_map(debug=False):
     paths = ["svg_tile_style"]
     prefixes = ["tile"]
 
-    _set_style_alias_map(svg_tile_style_map, styles, paths, prefixes, debug=debug)
+    _set_style_alias_map(
+        svg_tile_style_map, styles, paths, prefixes, debug=debug
+    )
 
     return svg_tile_style_map
 
@@ -1439,19 +1554,37 @@ shape_style_map = {
     "shade_ball_color": ("style.fill_style.shade_style", "ball_color"),
     "shade_bottom_color": ("style.fill_style.shade_style", "bottom_color"),
     "shade_color_wheel": ("style.fill_style.shade_style", "color_wheel"),
-    "shade_color_wheel_black": ("style.fill_style.shade_style", "color_wheel_black"),
-    "shade_color_wheel_white": ("style.fill_style.shade_style", "color_wheel_white"),
+    "shade_color_wheel_black": (
+        "style.fill_style.shade_style",
+        "color_wheel_black",
+    ),
+    "shade_color_wheel_white": (
+        "style.fill_style.shade_style",
+        "color_wheel_white",
+    ),
     "shade_inner_color": ("style.fill_style.shade_style", "inner_color"),
     "shade_left_color": ("style.fill_style.shade_style", "left_color"),
-    "shade_lower_left_color": ("style.fill_style.shade_style", "lower_left_color"),
-    "shade_lower_right_color": ("style.fill_style.shade_style", "lower_right_color"),
+    "shade_lower_left_color": (
+        "style.fill_style.shade_style",
+        "lower_left_color",
+    ),
+    "shade_lower_right_color": (
+        "style.fill_style.shade_style",
+        "lower_right_color",
+    ),
     "shade_middle_color": ("style.fill_style.shade_style", "middle_color"),
     "shade_outer_color": ("style.fill_style.shade_style", "outer_color"),
     "shade_right_color": ("style.fill_style.shade_style", "right_color"),
     "shade_top_color": ("style.fill_style.shade_style", "top_color"),
     "shade_type": ("style.fill_style.shade_style", "shade_type"),
-    "shade_upper_left_color": ("style.fill_style.shade_style", "upper_left_color"),
-    "shade_upper_right_color": ("style.fill_style.shade_style", "upper_right_color"),
+    "shade_upper_left_color": (
+        "style.fill_style.shade_style",
+        "upper_left_color",
+    ),
+    "shade_upper_right_color": (
+        "style.fill_style.shade_style",
+        "upper_right_color",
+    ),
     "smooth": ("style.line_style", "smooth"),
     "stroke": ("style.line_style", "stroke"),
     "tile_angle": ("style.fill_style.svg_tile_style", "angle"),
@@ -1544,7 +1677,6 @@ def _set_style_alias_map(map_dict, styles, paths, prefixes, debug=False):
 shape_args = [
     "alpha",
     "back_style",
-    "dist_tol",
     "double_distance",
     "double_color",
     "draw_double",
@@ -1581,10 +1713,10 @@ shape_args = [
 
 def _set_shape_args(debug=False):
     shape_args.extend(list(shape_style_map.keys()))
-    shape_args.extend(["subtype", "xform_matrix", "points", "dist_tol"])
+    shape_args.extend(["subtype", "xform_matrix", "points"])
 
 
-# These are applicable to Canvas and Batch objects. They are set in \begin{scope}[...].
+# These are applicable to Canvas and Group objects. They are set in \begin{scope}[...].
 group_args = [
     "blend_mode",
     "clip",
@@ -1599,7 +1731,14 @@ group_args = [
 ]
 
 
-canvas_args = ["page_size", "back_color", "book_margins", "border", "inset", "margins"]
+canvas_args = [
+    "page_size",
+    "back_color",
+    "book_margins",
+    "border",
+    "inset",
+    "margins",
+]
 
 shape_aliases_dict = {}
 
@@ -1670,14 +1809,19 @@ class StyleObj:
         # Handle special cases
         if expected_type == Sequence:
             # Check if it's sequence-like (list, tuple, etc.)
-            if not hasattr(value, "__iter__") or isinstance(value, (str, bytes)):
+            if not hasattr(value, "__iter__") or isinstance(
+                value, (str, bytes)
+            ):
                 raise TypeError(
                     f"Attribute '{name}' must be a sequence (list, tuple, etc.), got {type(value).__name__}"
                 )
             return
 
         # Handle enum types
-        if hasattr(expected_type, "__bases__") and enum.Enum in expected_type.__bases__:
+        if (
+            hasattr(expected_type, "__bases__")
+            and enum.Enum in expected_type.__bases__
+        ):
             if not isinstance(value, expected_type):
                 # Allow string values for enums if they match enum names
                 if isinstance(value, str):
@@ -1693,7 +1837,10 @@ class StyleObj:
             return
 
         # Handle Union types (e.g., Union[FontFamily, str])
-        if hasattr(expected_type, "__origin__") and expected_type.__origin__ is Union:
+        if (
+            hasattr(expected_type, "__origin__")
+            and expected_type.__origin__ is Union
+        ):
             # Check if value matches any of the union types
             union_args = expected_type.__args__
             for union_type in union_args:
@@ -1810,7 +1957,9 @@ def line_style_obj(validate_types=True, **kwargs):
         line_obj = line_style_obj(line_color="red", line_width=2)
         line_obj.line_dash_array = [5, 2]
     """
-    return _get_style_obj(line_style_map, validate_types=validate_types, **kwargs)
+    return _get_style_obj(
+        line_style_map, validate_types=validate_types, **kwargs
+    )
 
 
 def fill_style_obj(validate_types=True, **kwargs):
@@ -1826,7 +1975,9 @@ def fill_style_obj(validate_types=True, **kwargs):
         fill_obj = fill_style_obj(color="blue", alpha=0.5)
         fill_obj.mode = "solid"
     """
-    return _get_style_obj(fill_style_map, validate_types=validate_types, **kwargs)
+    return _get_style_obj(
+        fill_style_map, validate_types=validate_types, **kwargs
+    )
 
 
 def shape_style_obj(validate_types=True, **kwargs):
@@ -1841,7 +1992,9 @@ def shape_style_obj(validate_types=True, **kwargs):
     Example:
         shape_obj = shape_style_obj(line_color="red", fill_color="blue")
     """
-    return _get_style_obj(shape_style_map, validate_types=validate_types, **kwargs)
+    return _get_style_obj(
+        shape_style_map, validate_types=validate_types, **kwargs
+    )
 
 
 def frame_style_obj(validate_types=True, **kwargs):
@@ -1856,7 +2009,9 @@ def frame_style_obj(validate_types=True, **kwargs):
     Example:
         frame_obj = frame_style_obj(frame_inner_sep=5, frame_shape="rectangle")
     """
-    return _get_style_obj(frame_style_map, validate_types=validate_types, **kwargs)
+    return _get_style_obj(
+        frame_style_map, validate_types=validate_types, **kwargs
+    )
 
 
 def image_style_obj(validate_types=True, **kwargs):
@@ -1871,7 +2026,9 @@ def image_style_obj(validate_types=True, **kwargs):
     Example:
         img_obj = image_style_obj(alpha=0.8, blend_mode="normal")
     """
-    return _get_style_obj(image_style_map, validate_types=validate_types, **kwargs)
+    return _get_style_obj(
+        image_style_map, validate_types=validate_types, **kwargs
+    )
 
 
 def tag_style_obj(validate_types=True, **kwargs):
@@ -1886,7 +2043,9 @@ def tag_style_obj(validate_types=True, **kwargs):
     Example:
         tag_obj = tag_style_obj(font_color="black", font_size=12)
     """
-    return _get_style_obj(tag_style_map, validate_types=validate_types, **kwargs)
+    return _get_style_obj(
+        tag_style_map, validate_types=validate_types, **kwargs
+    )
 
 
 def marker_style_obj(validate_types=True, **kwargs):
@@ -1901,7 +2060,9 @@ def marker_style_obj(validate_types=True, **kwargs):
     Example:
         marker_obj = marker_style_obj(marker_color="red", marker_size=3)
     """
-    return _get_style_obj(marker_style_map, validate_types=validate_types, **kwargs)
+    return _get_style_obj(
+        marker_style_map, validate_types=validate_types, **kwargs
+    )
 
 
 def pattern_style_obj(validate_types=True, **kwargs):
@@ -1916,7 +2077,9 @@ def pattern_style_obj(validate_types=True, **kwargs):
     Example:
         pattern_obj = pattern_style_obj(pattern_color="green", pattern_type="lines")
     """
-    return _get_style_obj(pattern_style_map, validate_types=validate_types, **kwargs)
+    return _get_style_obj(
+        pattern_style_map, validate_types=validate_types, **kwargs
+    )
 
 
 # From: https://tikz.dev/library-patterns#pgf.patterns

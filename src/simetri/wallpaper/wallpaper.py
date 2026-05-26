@@ -9,7 +9,7 @@ from typing import Union
 from ..geometry.geometry import midpoint, line_through_point_and_angle
 from ..graphics.common import VecType, PointType, LineType
 from ..helpers.illustration import Tag
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 from ..graphics.shape import Shape
 
 
@@ -18,18 +18,18 @@ cos30 = cos(pi / 6)
 
 
 def cover_hex(
-    item: Union[Batch, Shape, Tag],
+    item: Union[Group, Shape, Tag],
     size: float,
     gap: float = 0,
     reps1: int = 2,
     reps2: int = 2,
     flat: bool = True,
-) -> Batch:
+) -> Group:
     """
     Covers an area with a hexagonal pattern.
 
     Args:
-        item (Union[Batch, Shape, Tag]): The item to be repeated.
+        item (Union[Group, Shape, Tag]): The item to be repeated.
         size (float): The size of the hexagons.
         gap (float, optional): The gap between hexagons. Defaults to 0.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
@@ -37,7 +37,7 @@ def cover_hex(
         flat (bool, optional): If True, hexagons are flat-topped. Defaults to True.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
@@ -61,19 +61,19 @@ def cover_hex(
 
 
 def cover_rhombic(
-    item: Union[Batch, Shape, Tag], size: float, reps1: int = 2, reps2: int = 2
-) -> Batch:
+    item: Union[Group, Shape, Tag], size: float, reps1: int = 2, reps2: int = 2
+) -> Group:
     """
     Covers an area with a rhombic pattern.
 
     Args:
-        item (Union[Batch, Shape, Tag]): The item to be repeated.
+        item (Union[Group, Shape, Tag]): The item to be repeated.
         size (float): The size of the rhombuses.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     sqrt2 = sqrt(2)
     diag = (sqrt2 / 2) * size
@@ -87,7 +87,7 @@ def cover_rhombic(
 
 def hex_grid_pointy(
     x: float, y: float, size: float, n_rows: int, n_cols: int
-) -> Batch:
+) -> Group:
     """
     Creates a hexagonal grid with pointy tops.
 
@@ -99,13 +99,13 @@ def hex_grid_pointy(
         n_cols (int): Number of columns in the grid.
 
     Returns:
-        Batch: The resulting grid as a Batch of Shapes.
+        Group: The resulting grid as a Group of Shapes.
     """
     height = sqrt(3) * size
     width = 2 * size
     edge_length = 2 * size * cos(pi / 6)
     # create the first row by translating a single hexagon in the x direction
-    row = Batch(Shape([(x, y)])).translate(size, 0, reps=n_cols - 1)
+    row = Group(Shape([(x, y)])).translate(size, 0, reps=n_cols - 1)
     # create the second row by translating the first row
     two_rows = row.translate(width, height + edge_length, reps=1)
     # create the grid by translating the first and second row in the y direction
@@ -115,24 +115,24 @@ def hex_grid_pointy(
 
 
 def cover_hex_pointy(
-    item: Union[Shape, Batch, Tag],
+    item: Union[Shape, Group, Tag],
     size: float,
     gap: float = 0,
     reps1: int = 2,
     reps2: int = 2,
-) -> Batch:
+) -> Group:
     """
     Covers an area with a hexagonal pattern with pointy tops.
 
     Args:
-        item (Union[Shape, Batch, Tag]): The item to be repeated.
+        item (Union[Shape, Group, Tag]): The item to be repeated.
         size (float): The size of the hexagons.
         gap (float, optional): The gap between hexagons. Defaults to 0.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
@@ -148,24 +148,24 @@ def cover_hex_pointy(
 
 
 def cover_hex_flat(
-    item: Union[Batch, Shape, Tag],
+    item: Union[Group, Shape, Tag],
     size: float,
     gap: float = 0,
     reps1: int = 2,
     reps2: int = 2,
-) -> Batch:
+) -> Group:
     """
     Covers an area with a hexagonal pattern with flat tops.
 
     Args:
-        item (Union[Batch, Shape, Tag]): The item to be repeated.
+        item (Union[Group, Shape, Tag]): The item to be repeated.
         size (float): The size of the hexagons.
         gap (float, optional): The gap between hexagons. Defaults to 0.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
@@ -191,12 +191,12 @@ def cover_hex_flat(
 
 
 def wallpaper_p1(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     vector1: VecType,
     vector2: VecType,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Translation symmetry.
     IUC: p1
@@ -205,14 +205,14 @@ def wallpaper_p1(
     PointType group: C1
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         vector1 (VecType): The translation vector in the x direction.
         vector2 (VecType): The translation vector in the y direction.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting wallpaper pattern as a Batch object.
+        Group: The resulting wallpaper pattern as a Group object.
     """
     dx1, dy1 = vector1
     wallpaper = generator.translate(dx1, dy1, reps1)
@@ -223,12 +223,12 @@ def wallpaper_p1(
 
 
 def wallpaper_p2(
-    generator: Union[Shape, Batch, Tag],
+    generator: Union[Shape, Group, Tag],
     vector1: VecType,
     vector2: VecType,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Half-turn rotation symmetry.
     IUC: p2 (p211)
@@ -237,14 +237,14 @@ def wallpaper_p2(
     PointType group: C2
 
     Args:
-        generator (Union[Shape, Batch, Tag]): The repeating motif.
+        generator (Union[Shape, Group, Tag]): The repeating motif.
         vector1 (VecType): The translation vector in the x direction.
         vector2 (VecType): The translation vector in the y direction.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting wallpaper pattern as a Batch object.
+        Group: The resulting wallpaper pattern as a Group object.
     """
     rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
@@ -257,13 +257,13 @@ def wallpaper_p2(
 
 
 def wallpaper_p2_rect_lattice(
-    generator: Union[Shape, Batch, Tag],
+    generator: Union[Shape, Group, Tag],
     rotocenter: PointType,
     vector1: VecType,
     vector2: VecType,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     # """
     # Half-turn rotation symmetry.
     # IUC: p2 (p211)
@@ -302,13 +302,13 @@ def wallpaper_p2_rect_lattice(
 
 
 def wallpaper_p3(
-    generator: Union[Shape, Batch, Tag],
+    generator: Union[Shape, Group, Tag],
     rotocenter: PointType,
     distance: float,
     reps1: int = 4,
     reps2: int = 4,
     flat_hex: bool = False,
-) -> Batch:
+) -> Group:
     """
     Three rotations.
     IUC: p3
@@ -317,7 +317,7 @@ def wallpaper_p3(
     PointType group: C3
 
     Args:
-        generator (Union[Shape, Batch, Tag]): The repeating motif.
+        generator (Union[Shape, Group, Tag]): The repeating motif.
         rotocenter (PointType): The center of rotation.
         distance (float): The distance between the centers of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -325,7 +325,7 @@ def wallpaper_p3(
         flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.
 
     Returns:
-        Batch: The resulting wallpaper pattern as a Batch object.
+        Group: The resulting wallpaper pattern as a Group object.
     """
     wallpaper = generator.rotate(2 * pi / 3, rotocenter, reps=2)
     if flat_hex:
@@ -337,12 +337,12 @@ def wallpaper_p3(
 
 
 def wallpaper_p4(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     rotocenter: PointType,
     distance: float,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Pinwheel symmetry.
     IUC: p4
@@ -351,14 +351,14 @@ def wallpaper_p4(
     PointType group: C4
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         rotocenter (PointType): The center of rotation.
         distance (float): The distance between the centers of the squares.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting wallpaper pattern as a Batch object.
+        Group: The resulting wallpaper pattern as a Group object.
     """
     wallpaper = generator.rotate(pi / 2, rotocenter, reps=3)
     wallpaper.translate(distance, 0, reps=reps1)
@@ -368,13 +368,13 @@ def wallpaper_p4(
 
 
 def wallpaper_p6(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     rotocenter: PointType,
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
     flat_hex=False,
-) -> Batch:
+) -> Group:
     """
     Six rotations.
     IUC: p6
@@ -383,7 +383,7 @@ def wallpaper_p6(
     PointType group: C6
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         rotocenter (PointType): The center of rotation.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -391,7 +391,7 @@ def wallpaper_p6(
         flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     wallpaper = generator.rotate(pi / 3, rotocenter, reps=5)
     if flat_hex:
@@ -403,13 +403,13 @@ def wallpaper_p6(
 
 
 def wallpaper_pm(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     mirror_line: LineType,
     dx: float,
     dy: float,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Mirror symmetry.
     Mirror could be horizontal or vertical.
@@ -419,7 +419,7 @@ def wallpaper_pm(
     PointType group: D1
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         mirror_line (LineType): The line of symmetry.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -427,7 +427,7 @@ def wallpaper_pm(
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     wallpaper = generator.mirror(mirror_line, reps=1)
     wallpaper.translate(dx, 0, reps=reps1)
@@ -437,14 +437,14 @@ def wallpaper_pm(
 
 
 def wallpaper_pg(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     mirror_line: LineType,
     distance: float,
     dx: float,
     dy: float,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Glide symmetry.
     IUC: pg(p1g1)
@@ -453,7 +453,7 @@ def wallpaper_pg(
     PointType group: D1
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         mirror_line (LineType): The line of symmetry.
         distance (float): The distance for the glide reflection.
         dx (float): Translation distance in the x direction.
@@ -462,7 +462,7 @@ def wallpaper_pg(
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     wallpaper = generator.glide(mirror_line, distance, reps=1)
     wallpaper.translate(dx, 0, reps=reps1)
@@ -472,13 +472,13 @@ def wallpaper_pg(
 
 
 def wallpaper_cm(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     mirror_point: PointType,
     rhomb_size: float,
     reps1: int = 4,
     reps2: int = 4,
     horizontal: bool = True,
-) -> Batch:
+) -> Group:
     """
     Spinning-sidle symmetry.
     IUC: cm(c1m1)
@@ -487,7 +487,7 @@ def wallpaper_cm(
     PointType group: D1
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         mirror_point (PointType): The point of symmetry.
         rhomb_size (float): The size of the rhombuses.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -495,7 +495,7 @@ def wallpaper_cm(
         horizontal (bool, optional): If True, the mirror line is horizontal. Defaults to True.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     x1, y1 = mirror_point[:2]
     if horizontal:
@@ -514,13 +514,13 @@ def wallpaper_cm(
 
 
 def wallpaper_pmm(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     mirror_cross: PointType,
     dx: float,
     dy: float,
     reps1=4,
     reps2=4,
-) -> Batch:
+) -> Group:
     """
     Double mirror symmetry.
     IUC: pmm(p2mm)
@@ -529,7 +529,7 @@ def wallpaper_pmm(
     PointType group: D2
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         mirror_cross (PointType): The point where the mirror lines cross.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -537,7 +537,7 @@ def wallpaper_pmm(
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
@@ -551,14 +551,14 @@ def wallpaper_pmm(
 
 
 def wallpaper_pmg(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     center_point: PointType,
     dx: float,
     dy: float,
     reps1=4,
     reps2=4,
     horizontal=True,
-) -> Batch:
+) -> Group:
     """
     Glided staggered symmetry.
     IUC: pmg(p2mg)
@@ -567,7 +567,7 @@ def wallpaper_pmg(
     PointType group: D2
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         center_point (PointType): The center point for the symmetry.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -576,7 +576,7 @@ def wallpaper_pmg(
         horizontal (bool, optional): If True, the mirror line is horizontal. Defaults to True.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     x, y = center_point[:2]
     if horizontal:
@@ -594,14 +594,14 @@ def wallpaper_pmg(
 
 
 def wallpaper_pgg(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     rotocenter: PointType,
     dx: float,
     dy: float,
     reps1: int = 4,
     reps2: int = 4,
     horizontal=True,
-) -> Batch:
+) -> Group:
     """
     Double glide symmetry.
     IUC: pgg(p2gg)
@@ -610,7 +610,7 @@ def wallpaper_pgg(
     PointType group: D2
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         rotocenter (PointType): The center of rotation.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -619,7 +619,7 @@ def wallpaper_pgg(
         horizontal (bool, optional): If True, the glide reflection is horizontal. Defaults to True.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     if horizontal:
         dist = rotocenter[0] - generator.center[0]
@@ -638,12 +638,12 @@ def wallpaper_pgg(
 
 
 def wallpaper_cmm(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     mirror_cross: PointType,
     rhomb_size: float,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Staggered double mirror symmetry.
     IUC: cmm(c2mm)
@@ -652,14 +652,14 @@ def wallpaper_cmm(
     PointType group: D2
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         mirror_cross (PointType): The point where the mirror lines cross.
         rhomb_size (float): The size of the rhombuses.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
@@ -672,12 +672,12 @@ def wallpaper_cmm(
 
 
 def wallpaper_p4m(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     mirror_cross: PointType,
     side_length: float,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Block symmetry.
     IUC: p4m(p4mm)
@@ -686,14 +686,14 @@ def wallpaper_p4m(
     PointType group: D4
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         mirror_cross (PointType): The point where the mirror lines cross.
         side_length (float): The side length of the squares.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     x, y = mirror_cross[:2]
     mirror_line = ((x, y), (x, y + 1))
@@ -707,11 +707,11 @@ def wallpaper_p4m(
 
 
 def wallpaper_p4g(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     dist: float,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Mirrored pinwheel symmetry.
     IUC: p4g(p4gm)
@@ -720,13 +720,13 @@ def wallpaper_p4g(
     PointType group: D4
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         dist (float): The distance between the centers of the squares.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     # rotocenter should be (0, 0) and mirror_cross should be (d/4,d/4 )
     # translations are (d, d)
@@ -742,12 +742,12 @@ def wallpaper_p4g(
 
 
 def wallpaper_p3m1(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     center_point: PointType,
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Mirror and three rotations.
     IUC: p3m1
@@ -756,14 +756,14 @@ def wallpaper_p3m1(
     PointType group: D3
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         center_point (PointType): The center point for the symmetry.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     x, y = center_point[:2]
     mirror_line = line_through_point_and_angle((x, y), 2 * pi / 3)
@@ -775,12 +775,12 @@ def wallpaper_p3m1(
 
 
 def wallpaper_p31m(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     center_point: PointType,
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
-) -> Batch:
+) -> Group:
     """
     Three rotations and a mirror.
     IUC: p31m
@@ -789,14 +789,14 @@ def wallpaper_p31m(
     PointType group: D3
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         center_point (PointType): The center point for the symmetry.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     x, y = center_point[:2]
     dy = 0.28866 * hex_size
@@ -812,14 +812,14 @@ def wallpaper_p31m(
 
 
 def wallpaper_p6m(
-    generator: Union[Batch, Shape, Tag],
+    generator: Union[Group, Shape, Tag],
     rotocenter: PointType,
     mirror_cross: PointType,
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
     flat_hex: bool = False,
-) -> Batch:
+) -> Group:
     """
     Kaleidoscope.
     IUC: p6m(p6mm)
@@ -828,7 +828,7 @@ def wallpaper_p6m(
     PointType group: D6
 
     Args:
-        generator (Union[Batch, Shape, Tag]): The repeating motif.
+        generator (Union[Group, Shape, Tag]): The repeating motif.
         rotocenter (PointType): The center of rotation.
         mirror_cross (PointType): The point where the mirror lines cross.
         hex_size (float): The size of the hexagons.
@@ -837,7 +837,7 @@ def wallpaper_p6m(
         flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.
 
     Returns:
-        Batch: The resulting pattern as a Batch object.
+        Group: The resulting pattern as a Group object.
     """
     x, y = mirror_cross[:2]
     mirror1 = [(x, y), (x + 1, y)]

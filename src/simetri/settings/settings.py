@@ -369,7 +369,7 @@ def set_defaults():
     defaults["blend_mode"] = BlendMode.NORMAL
     default_types["blend_mode"] = BlendMode
     defaults_help["blend_mode"] = (
-        "Blend mode. This can be set with the Canvas or Batch objects. "
+        "Blend mode. This can be set with the Canvas or Group objects. "
         "BlendMode.NORMAL, BlendMode.MULTIPLY, BlendMode.SCREEN, "
         "BlendMode.OVERLAY, BlendMode.DARKEN, BlendMode.LIGHTEN, "
         "BlendMode.COLOR_DODGE, BlendMode.COLOR_BURN, "
@@ -455,9 +455,9 @@ def set_defaults():
     defaults["clip"] = False  # clip the outside of the clip_path to the canvas
     default_types["clip"] = bool
     defaults_help["clip"] = (
-        "Boolean property for the canvas and Batch objects. "
+        "Boolean property for the canvas and Group objects. "
         "If true, clip the outside of the canvas.mask to the canvas"
-        "or Batch elemetns."
+        "or Group elemetns."
     )
 
     defaults["color"] = VOID
@@ -513,11 +513,20 @@ def set_defaults():
     )
 
     defaults["dist_tol"] = (
-        0.05  # used for comparing two points to check if they are the
+        0.05  # used for comparing points
     )
     default_types["dist_tol"] = float
     defaults_help["dist_tol"] = (
         "Distance tolerance for comparing two points. "
+        "Positive float. Length in <points>."
+    )
+
+    defaults["dist_tol2"] = (
+        0.05  # used for comparing two points to check if they are the
+    )
+    default_types["dist_tol2"] = float
+    defaults_help["dist_tol2"] = (
+        "Distance tolerance for comparing two distances. "
         "Positive float. Length in <points>."
     )
 

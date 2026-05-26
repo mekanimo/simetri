@@ -1,24 +1,29 @@
 """Path module for graphics package."""
 
 from dataclasses import dataclass
-from math import sin, cos, pi, degrees, radians, sqrt, acos, atan2, ceil
+from math import sin, cos, pi, degrees, radians, sqrt, acos, atan2
 from collections import deque
 import re
-from typing_extensions import Self
-
+from typing_extensions import Self, Union, Any
 import numpy as np
 
-from .core import StyleMixin
-from .batch import Batch
+from .batch import Group
 from .shape import Shape
 from .bbox import bounding_box
-from .common import PointType, common_properties
-from ..helpers.validation import validate_args
+from .common import PointType
 from .all_enums import PathOperation as PathOps
-from .all_enums import Types, TransformationType, Anchor, get_enum_value
-from ..canvas.style_map import shape_style_map, ShapeStyle, shape_args
+from .all_enums import (
+    Types,
+    TransformationType,
+    Anchor,
+    get_enum_value,
+    FillMode,
+    LineCap,
+    LineJoin,
+)
 from ..geometry.bezier import Bezier
 from ..geometry.hobby import hobby_shape
+from ..colors.colors import black, Color
 from ..geometry.geometry import (
     homogenize,
     positive_angle,
@@ -27,7 +32,6 @@ from ..geometry.geometry import (
     close_points2,
 )
 from ..geometry.ellipse import (
-    ellipse_point,
     ellipse_tangent,
     elliptic_arc_points,
 )
@@ -59,38 +63,57 @@ class Operation:
     def __post_init__(self):
         """Post-initialization to set the type and common properties."""
         self.type = Types.PATH_OPERATION
-        common_properties(self, False)
 
 
-class LinPath(Batch, StyleMixin):
-    """LinerPath.
+class LinPath(Group):
+    """LinearPath.
     A LinPath object is a container for various linear elements.
-    Path objects can be transformed like other Shape and Batch objects.
+    Path objects can be transformed like other Shape and Group objects.
     """
 
     def __init__(
-        self, start: PointType = (0, 0), angle: float = pi / 2, **kwargs
+        self,
+        start: PointType = (0, 0),
+        angle: float = pi / 2,
+        fill: bool = True,
+        stroke: bool = True,
+        alpha: Union[float, None] = None,
+        color: Union[Color, None] = None,
+        draw_double: bool = False,
+        draw_fillets: bool = False,
+        draw_markers: bool = False,
+        back_style: Any = None,
+        double_distance: Union[float, None] = None,
+        double_color: Union[Color, None] = None,
+        fill_alpha: float = 1,
+        fill_color: Color = black,
+        fill_mode: FillMode = FillMode.EVENODD,
+        fillet_radius: Union[float, None] = None,
+        gradient: Any = None,
+        line_alpha: float = 1,
+        line_cap: LineCap = LineCap.BUTT,
+        line_color: Color = black,
+        line_dash_array: Any = None,
+        line_dash_phase: Union[float, None] = None,
+        line_join: LineJoin = LineJoin.MITER,
+        line_miter_limit: Union[float, None] = None,
+        line_width: float = 1,
     ):
         """Initialize a Path object.
 
         Args:
             start (PointType, optional): The starting point of the path. Defaults to (0, 0).
             angle (float, optional): The heading angle of the path. Defaults to pi/2.
-            **kwargs: Additional keyword arguments. Common properties are line_width,
-            line_color, stroke, etc.
+
         """
-        self.__dict__["style"] = ShapeStyle()
-        self.__dict__["_style_map"] = shape_style_map
-        self._set_aliases()
-        valid_args = shape_args
-        validate_args(kwargs, valid_args)
+
         self.pos = start
         self.start = start
         self.angle = angle  # heading angle
         self.operations = []
         self.objects = []
         self.even_odd = True  # False is non-zero winding rule
-        super().__init__(**kwargs)
+        super().__init__()
         self.subtype = Types.LINPATH
         self.cur_shape = Shape([start])
         self.append(self.cur_shape)
@@ -98,39 +121,37 @@ class LinPath(Batch, StyleMixin):
         self.rp = self.r_polar  # alias for rel_polar
         self.handles = []
         self.stack = deque()
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-        common_properties(self)
+
         self.closed = False
+        self.alpha = alpha
+        self.color = color
+        self.draw_double = draw_double
+        self.draw_fillets = draw_fillets
+        self.draw_markers = draw_markers
+        self.back_style = back_style
+        self.double_distance = double_distance
+        self.double_color = double_color
+        self.fill = fill
+        self.fill_alpha = fill_alpha
+        self.fill_color = fill_color
+        self.fill_mode = fill_mode
+        self.fillet_radius = fillet_radius
+        self.gradient = gradient
+        self.line_alpha = line_alpha
+        self.line_cap = line_cap
+        self.line_color = line_color
+        self.line_dash_array = line_dash_array
+        self.line_dash_phase = line_dash_phase
+        self.line_join = line_join
+        self.line_miter_limit = line_miter_limit
+        self.line_width = line_width
+        self.stroke = stroke
+        self.visible = True
 
-    def __getattr__(self, name):
-        """Retrieve an attribute of the shape.
-
-        Args:
-            name (str): The attribute name to return.
-
-        Returns:
-            Any: The value of the attribute.
-
-        Raises:
-            AttributeError: If the attribute cannot be found.
-        """
-        # First try StyleMixin for style attributes (which handles aliases)
-        if hasattr(self, "_aliases") and name in self._aliases:
-            return StyleMixin.__getattr__(self, name)
-
-        try:
-            res = super().__getattr__(name)
-        except AttributeError:
-            try:
-                res = self.__dict__[name]
-            except KeyError:
-                raise AttributeError(name)
-        return res
 
     def __bool__(self):
         """Return True if the path has operations.
-        Batch may have no elements yet still be True.
+        Group may have no elements yet still be True.
 
         Returns:
             bool: True if the path has operations.
@@ -187,7 +208,7 @@ class LinPath(Batch, StyleMixin):
         else:
             raise ValueError(f"Invalid operation type: {op_type}")
 
-    def copy(self, **kwargs) -> "LinPath":
+    def copy(self) -> "LinPath":
         """Return a copy of the path.
 
         Returns:
@@ -203,28 +224,59 @@ class LinPath(Batch, StyleMixin):
 
         new_path.pos = self.pos
         new_path.angle = self.angle
-        new_path.operations = self.operations.copy()
-        new_path.elements = [element.copy(**kwargs) for element in self.elements]
+        new_path.operations = (
+            self.operations.copy()
+        )  # shallow-copy of list is fine if Operations are treated as immutable
+        new_path.elements = [element.copy() for element in self.elements]
         new_path.objects = []
         for obj in self.objects:
             if obj is not None:
-                new_path.objects.append(obj.copy(**kwargs))
+                new_path.objects.append(obj.copy())
             else:
                 new_path.objects.append(None)
         new_path.even_odd = self.even_odd
         if cur_shape_index is not None:
             new_path.cur_shape = new_path.elements[cur_shape_index]
         else:
-            new_path.cur_shape = self.cur_shape.copy(**kwargs)
-        new_path.handles = self.handles.copy(**kwargs)
+            new_path.cur_shape = self.cur_shape.copy()
+        new_path.handles = list(
+            self.handles
+        )
         new_path.stack = deque(self.stack)
-        for attrib in shape_style_map:
-            setattr(new_path, attrib, getattr(self, attrib))
-
-        for k, v in kwargs.items():
-            setattr(new_path, k, v)
 
         return new_path
+
+        # new_path = LinPath(start=self.start)
+        # cur_shape_index = None
+        # for index, element in enumerate(self.elements):
+        #     if element is self.cur_shape:
+        #         cur_shape_index = index
+        #         break
+
+        # new_path.pos = self.pos
+        # new_path.angle = self.angle
+        # new_path.operations = self.operations.copy()
+        # new_path.elements = [element.copy(**kwargs) for element in self.elements]
+        # new_path.objects = []
+        # for obj in self.objects:
+        #     if obj is not None:
+        #         new_path.objects.append(obj.copy(**kwargs))
+        #     else:
+        #         new_path.objects.append(None)
+        # new_path.even_odd = self.even_odd
+        # if cur_shape_index is not None:
+        #     new_path.cur_shape = new_path.elements[cur_shape_index]
+        # else:
+        #     new_path.cur_shape = self.cur_shape.copy(**kwargs)
+        # new_path.handles = self.handles.copy(**kwargs)
+        # new_path.stack = deque(self.stack)
+        # for attrib in shape_style_map:
+        #     setattr(new_path, attrib, getattr(self, attrib))
+
+        # for k, v in kwargs.items():
+        #     setattr(new_path, k, v)
+
+        # return new_path
 
     def _add(self, pos, op, data, pnt2=None, **kwargs):
         """Add an operation to the path.
@@ -390,17 +442,16 @@ class LinPath(Batch, StyleMixin):
 
         return self
 
-    def move(self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs) -> Self:
-        if self.active:
-            x, y = pos[:2]
-            anchor = get_enum_value(Anchor, anchor)
-            x1, y1 = getattr(self.b_box, anchor)
-            transform = translation_matrix(x - x1, y - y1)
-            for k, v in kwargs.items():
-                setattr(self, k, v)
-            res = self._update(transform, reps=0)
-        else:
-            res = self.copy(**kwargs)
+    def move(
+        self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs
+    ) -> Self:
+        x, y = pos[:2]
+        anchor = get_enum_value(Anchor, anchor)
+        x1, y1 = getattr(self.b_box, anchor)
+        transform = translation_matrix(x - x1, y - y1)
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        res = self._update(transform, reps=0)
 
         return res
 
@@ -1100,7 +1151,7 @@ class LinPath(Batch, StyleMixin):
         incr: float = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ) -> Batch:
+    ) -> Group:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -1108,7 +1159,7 @@ class LinPath(Batch, StyleMixin):
             reps (int, optional): The number of repetitions, defaults to 0.
 
         Returns:
-            Batch: The updated shape or a batch of shapes.
+            Group: The updated shape or a group of shapes.
         """
         if reps == 0:
             original_pos = self.pos
@@ -1141,7 +1192,7 @@ class LinPath(Batch, StyleMixin):
                 path = path.copy()
                 path._update(xform_matrix)
                 paths.append(path)
-            res = Batch(paths)
+            res = Group(paths)
         if merge and reps > 0:
             res = res.merge_shapes()
         return res
@@ -1281,7 +1332,9 @@ def lin_path_svg(lin_path):
         # Some ops like MOVE_TO append None to objects.
         # CLOSE appends None.
         current_obj = (
-            lin_path.objects[obj_idx] if obj_idx < len(lin_path.objects) else None
+            lin_path.objects[obj_idx]
+            if obj_idx < len(lin_path.objects)
+            else None
         )
 
         if st in [PO.MOVE_TO, PO.R_MOVE]:
@@ -1691,9 +1744,9 @@ def shape_to_path(shape: Shape) -> LinPath:
     return path
 
 
-def batch_to_path(batch: Batch) -> LinPath:
-    """Given a Batch instance returns the equivalent LinPath object."""
-    shapes = batch.all_shapes
+def group_to_path(group: Group) -> LinPath:
+    """Given a Group instance returns the equivalent LinPath object."""
+    shapes = group.all_shapes
     path = LinPath()
     path.move_to(shapes[0][0])
     for i, shape in enumerate(shapes):

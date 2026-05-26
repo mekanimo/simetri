@@ -16,12 +16,12 @@ from numpy import ndarray
 
 from ..colors import colors
 from .affine import identity_matrix
-from .common import common_properties, PointType
+from .common import PointType, get_unique_id
 from .all_enums import Types, Anchor, FrameShape, CurveMode, TexLoc, Extent
 from ..settings.settings import defaults
 from ..geometry.geometry import homogenize
 from ..helpers.utilities import decompose_transformations, round_symmetric
-from .pattern import Pattern, Group
+from .pattern import Pattern
 from ..image.image import Image
 from ..graphics.bbox import bounding_box
 
@@ -49,6 +49,7 @@ class CircleSketch:
         """Initialize the CircleSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.CIRCLE_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             center = self.center
@@ -81,6 +82,7 @@ class EllipseSketch:
         """Initialize the EllipseSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.ELLIPSE_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             center = self.center
@@ -113,6 +115,7 @@ class RectangleSketch:
         """Initialize the RectangleSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.RECTANGLE_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
@@ -128,6 +131,7 @@ class LinesSketch:
         """Initialize the LinesSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LINES_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
@@ -147,6 +151,7 @@ class LineSketch:
         """Initialize the LineSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LINE_SKETCH
+        self.id = get_unique_id(self)
 
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
@@ -274,6 +279,7 @@ class PatternSketch:
         """Initialize the PatternSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PATTERN_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
         self.kernel_vertices = self.pattern.kernel.final_coords
@@ -306,6 +312,7 @@ class ImageSketch:
         """Initialize the ImageSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.IMAGE_SKETCH
+        self.id = get_unique_id(self)
 
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
@@ -356,6 +363,7 @@ class LatexSketch:
         """Initialize the LatexSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LATEX_SKETCH
+        self.id = get_unique_id(self)
         if self.anchor is None:
             self.anchor = Anchor.SOUTHWEST
         if self.xform_matrix is None:
@@ -382,6 +390,7 @@ class MaskSketch:
     def __post_init__(self):
         self.type = Types.SKETCH
         self.subtype = Types.MASK_SKETCH
+        self.id = get_unique_id(self)
         self.code = ""
         self.location = TexLoc.NONE
         self._canvas_mask_scope = True
@@ -416,6 +425,7 @@ class ShapeSketch:
         """Initialize the ShapeSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.SHAPE_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             vertices = self.vertices
             self.xform_matrix = identity_matrix()
@@ -443,6 +453,7 @@ class BezierSketch:
         """Initialize the BezierSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.BEZIER_SKETCH
+        self.id = get_unique_id(self)
 
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
@@ -480,6 +491,7 @@ class ArcSketch:
 
         self.type = Types.SKETCH
         self.subtype = Types.ARC_SKETCH
+        self.id = get_unique_id(self)
         self.closed = self.mode != CurveMode.OPEN
 
 
@@ -497,7 +509,7 @@ class ScopeGroup:
 
     def __post_init__(self):
         self.type = Types.SCOPE_GROUP
-        common_properties(self)
+        self.id = get_unique_id(self)
 
 @dataclass
 class ClippedSketch:
@@ -510,6 +522,7 @@ class ClippedSketch:
         """Initialize the Clippedketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.CLIPPED_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
@@ -526,6 +539,7 @@ class MaskedSketch:
         """Initialize the Clippedketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.MASKED_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
@@ -538,6 +552,7 @@ class FilteredSketch:
         """Initialize the FilteredSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.FILTERED_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
@@ -545,6 +560,7 @@ class FilteredSketch:
         """Initialize the Clippedketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PATH_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
@@ -564,6 +580,7 @@ class PathSketch:
         """Initialize the PathSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PATH_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
@@ -586,6 +603,7 @@ class LaceSketch:
         """Initialize the LaceSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LACESKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
@@ -650,7 +668,7 @@ class FrameSketch:
         """Initialize the FrameSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.FRAME_SKETCH
-        common_properties(self)
+        self.id = get_unique_id(self)
 
 
 @dataclass
@@ -679,6 +697,7 @@ class TagSketch:
         """Initialize the TagSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.TAG_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             pos = self.pos
@@ -711,6 +730,7 @@ class PDFSketch:
         """Initialize the PDFSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PDF_SKETCH
+        self.id = get_unique_id(self)
 
 
 @dataclass
@@ -740,6 +760,7 @@ class RectSketch:
         """
         self.type = Types.SKETCH
         self.subtype = Types.RECTANGLE_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
             pos = self.pos
@@ -766,6 +787,7 @@ class HelpLinesSketch:
         """Initialize the ShapeSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.HELPLINES_SKETCH
+        self.id = get_unique_id(self)
 
     def populate(self, canvas):
         bbox = bounding_box(canvas._all_vertices)
@@ -795,5 +817,6 @@ class CompositeSketch:
         """Initialize the Clippedketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.COMPOSITE_SKETCH
+        self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()

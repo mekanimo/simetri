@@ -1,4 +1,4 @@
-"""Base class. This is the parent for Shape and Batch classes."""
+"""Base class. This is the parent for Shape and Group classes."""
 
 __all__ = ["Base", "StyleMixin"]
 
@@ -21,7 +21,6 @@ from .all_enums import (
     Types,
     point_refs,
     line_refs,
-    length_refs,
 )
 from .common import (
     PointType,
@@ -197,7 +196,7 @@ def _resolve_reference(target, reference):
 
 
 class Base:
-    """Base class for Shape and Batch objects."""
+    """Base class for Shape and Group objects."""
 
     def __getattr__(self, name: str) -> Any:
         if name in anchors:
@@ -248,27 +247,24 @@ class Base:
         Returns:
             Self: The transformed object.
         """
-        if self.active:
-            transform = translation_matrix(dx, dy)
-            if self.type == Types.SHAPE:
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.TRANSLATE,
-                )
-            else:
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    take=take,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.TRANSLATE,
-                )
+        transform = translation_matrix(dx, dy)
+        if self.type == Types.SHAPE:
+            res = self._update(
+                transform,
+                reps=reps,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.TRANSLATE,
+            )
         else:
-            res = self.copy()
+            res = self._update(
+                transform,
+                reps=reps,
+                take=take,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.TRANSLATE,
+            )
 
         return res
 
@@ -355,28 +351,25 @@ class Base:
         Returns:
             Self: The rotated object.
         """
-        if self.active:
-            transform = rotation_matrix(angle, about)
-            if self.__class__.__name__ == "Shape":
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.ROTATE,
-                )
+        transform = rotation_matrix(angle, about)
+        if self.__class__.__name__ == "Shape":
+            res = self._update(
+                transform,
+                reps=reps,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.ROTATE,
+            )
 
-            else:
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    take=take,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.ROTATE,
-                )
         else:
-            res = self.copy()
+            res = self._update(
+                transform,
+                reps=reps,
+                take=take,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.ROTATE,
+            )
         return res
 
     def mirror(
@@ -403,27 +396,24 @@ class Base:
         Returns:
             Self: The mirrored object.
         """
-        if self.active:
-            transform = mirror_matrix(about)
-            if self.__class__.__name__ == "Shape":
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.MIRROR,
-                )
-            else:
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    take=take,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.MIRROR,
-                )
+        transform = mirror_matrix(about)
+        if self.__class__.__name__ == "Shape":
+            res = self._update(
+                transform,
+                reps=reps,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.MIRROR,
+            )
         else:
-            res = self.copy()
+            res = self._update(
+                transform,
+                reps=reps,
+                take=take,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.MIRROR,
+            )
 
         return res
 
@@ -454,27 +444,24 @@ class Base:
         Returns:
             Self: The glided object.
         """
-        if self.active:
-            transform = glide_matrix(glide_line, glide_dist)
-            if self.__class__.__name__ == "Shape":
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.GLIDE,
-                )
-            else:
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    take=take,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.GLIDE,
-                )
+        transform = glide_matrix(glide_line, glide_dist)
+        if self.__class__.__name__ == "Shape":
+            res = self._update(
+                transform,
+                reps=reps,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.GLIDE,
+            )
         else:
-            res = self.copy()
+            res = self._update(
+                transform,
+                reps=reps,
+                take=take,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.GLIDE,
+            )
 
         return res
 
@@ -508,18 +495,15 @@ class Base:
         """
         if scale_y is None:
             scale_y = scale_x
-        if self.active:
-            transform = scale_in_place_matrix(scale_x, scale_y, about)
-            res = self._update(
-                    transform,
-                    reps=reps,
-                    take=take,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.SCALE,
-                )
-        else:
-            res = self.copy()
+        transform = scale_in_place_matrix(scale_x, scale_y, about)
+        res = self._update(
+                transform,
+                reps=reps,
+                take=take,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.SCALE,
+            )
 
         return res
 
@@ -549,27 +533,24 @@ class Base:
         Returns:
             Self: The sheared object.
         """
-        if self.active:
-            transform = shear_matrix(theta_x, theta_y)
-            if self.__class__.__name__ == "Shape":
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.SHEAR,
-                )
-            else:
-                res = self._update(
-                    transform,
-                    reps=reps,
-                    take=take,
-                    incr=incr,
-                    merge=merge,
-                    xform_type=TransformationType.SHEAR,
-                )
+        transform = shear_matrix(theta_x, theta_y)
+        if self.__class__.__name__ == "Shape":
+            res = self._update(
+                transform,
+                reps=reps,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.SHEAR,
+            )
         else:
-            res = self.copy()
+            res = self._update(
+                transform,
+                reps=reps,
+                take=take,
+                incr=incr,
+                merge=merge,
+                xform_type=TransformationType.SHEAR,
+            )
 
         return res
 
@@ -600,24 +581,21 @@ class Base:
         Returns:
             Self: The transformed object.
         """
-        if self.active:
-            if self.__class__.__name__ == "Shape":
-                res = self._update(
-                    transform_matrix,
-                    reps=reps,
-                    merge=merge,
-                    xform_type=TransformationType.TRANSFORM,
-                )
-            else:
-                res = self._update(
-                    transform_matrix,
-                    reps=reps,
-                    take=take,
-                    merge=merge,
-                    xform_type=TransformationType.TRANSFORM,
-                )
+        if self.__class__.__name__ == "Shape":
+            res = self._update(
+                transform_matrix,
+                reps=reps,
+                merge=merge,
+                xform_type=TransformationType.TRANSFORM,
+            )
         else:
-            res = self.copy()
+            res = self._update(
+                transform_matrix,
+                reps=reps,
+                take=take,
+                merge=merge,
+                xform_type=TransformationType.TRANSFORM,
+            )
 
         return res
 
@@ -645,16 +623,13 @@ class Base:
         Returns:
             Self: The moved object.
         """
-        if self.active:
-            x, y = pos[:2]
-            anchor = get_enum_value(Anchor, anchor)
-            x1, y1 = getattr(self.b_box, anchor)
-            transform = translation_matrix(x - x1, y - y1)
-            for k, v in kwargs.items():
-                setattr(self, k, v)
-            res = self._update(transform, reps=0)
-        else:
-            res = self.copy(**kwargs)
+        x, y = pos[:2]
+        anchor = get_enum_value(Anchor, anchor)
+        x1, y1 = getattr(self.b_box, anchor)
+        transform = translation_matrix(x - x1, y - y1)
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        res = self._update(transform, reps=0)
 
         return res
 
@@ -695,8 +670,7 @@ class Base:
 
 class StyleMixin:
     """Mixin class for style attributes.
-    Shape class inherits from this.
-    Some Batch classes with different subtypes also inherit from this.
+    Some Group classes with different subtypes also inherit from this.
     """
 
     def __setattr__(self, name, value):

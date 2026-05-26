@@ -5,7 +5,7 @@
 # Testing is incomplete.
 # Everything is subject to change till we release a beta version.
 
-__version__ = "0.0.8"
+__version__ = "0.0.9"
 __author__ = "Fahri Basegmez"
 
 from math import (
@@ -86,6 +86,7 @@ from ..extensions.tree import make_tree, TreeNode
 from .path import LinPath, Operation
 from .pattern import *
 from ..image.image import Image, open_img
+from .batch import *
 
 # Preserve geometric Line class on public namespace.
 from ..graphics.shapes import Line as Line
@@ -93,22 +94,12 @@ from ..graphics.shapes import Line as Line
 set_tikz_defaults()
 set_svg_defaults()
 
-import simetri.canvas.style_map as style_map
-
-
-def set_alias_maps():
-    style_map._set_shape_style_alias_map()
-    style_map._set_tag_style_alias_map()
-    style_map._set_image_style_alias_map()
-    style_map._set_line_style_alias_map()
-    style_map._set_fill_style_alias_map()
-    style_map._set_marker_style_alias_map()
-    style_map._set_pattern_style_alias_map()
-    style_map._set_frame_style_alias_map()
-    style_map._set_shape_args()
-
 # aliases
 is_close = isclose
-
-# if any of the styles is changed, this should be called again!!!
-# set_alias_maps()
+Batch = Group
+TM = translation_matrix
+RM = rotation_matrix
+MM = mirror_matrix
+GM = glide_matrix
+SM = scale_matrix
+SHM = shear_matrix

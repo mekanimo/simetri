@@ -9,7 +9,7 @@ VPython by Bruce Sherwood.
 
 from math import acos, atan2, cos, hypot, sin
 from numbers import Real
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Union
 
 from ..graphics.common import PointType
 from ..helpers.validation import check_position

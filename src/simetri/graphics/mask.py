@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Union, List
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 
-from ..graphics.common import common_properties
 from ..graphics.all_enums import Types, SvgUnits, GradientType
 
 from ..colors.colors import Color, gray, white
@@ -35,7 +34,6 @@ class Mask:
         if self.shape.type != Types.SHAPE:
             raise TypeError("mask.shape must be a Shape.")
 
-        common_properties(self, graphics_object=False)
         self.type = Types.MASK
 
         if self.opacity is None:
@@ -80,7 +78,6 @@ class Stop:
         self.__post_init__()
 
     def __post_init__(self):
-        common_properties(self, graphics_object=False)
         self.type = Types.STOP
         self.subtype = Types.STOP
 
@@ -138,7 +135,6 @@ class Gradient:
     subtype: Types = None
 
     def __post_init__(self):
-        common_properties(self, graphics_object=False)
         self.type = Types.GRADIENT
 
         if self.spread_method is None:
@@ -203,7 +199,7 @@ def _normalize_units(value: Optional[Union[str, SvgUnits]], field_name: str) -> 
 
 # This is no longer used! Will be deleted soon.
 # We will use canvas.clip(target, mask), canvas.mask(target, mask)
-def clip_mask_(self: "Canvas", target: Union[Shape, Batch, None]=None, mask: Mask=None, **kwargs):
+def clip_mask_(self: "Canvas", target: Union[Shape, Group, None]=None, mask: Mask=None, **kwargs):
     """Apply a `Mask` to a target and draw it.
     """
     mask_opacity = defaults.get("alpha", 1.0)
@@ -317,8 +313,8 @@ def clip_mask_(self: "Canvas", target: Union[Shape, Batch, None]=None, mask: Mas
             self._all_vertices.extend(mask_shape.b_box.corners)
         return self
 
-    if not isinstance(target, (Shape, Batch)):
-        raise TypeError("target must be a Shape, Batch, or None.")
+    if not isinstance(target, (Shape, Group)):
+        raise TypeError("target must be a Shape, Group, or None.")
 
     if _apply_mask_to_existing_target():
         return self

@@ -8,11 +8,10 @@ import numpy as np
 
 from ..graphics.all_enums import IsometryType, LatType, Types, LatRef
 from ..graphics.shape import Shape
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 from ..graphics.shapes import reg_poly_shape
 from ..graphics.common import PointType
 from ..geometry.geometry import (
-    intersect,
     lerp_point,
     is_number,
     distance,
@@ -239,21 +238,21 @@ class Lattice:
 
     def populate_unit(self, kernel):
         if kernel.subtype == "LINPATH":
-            self.pattern = Batch(kernel)
+            self.pattern = Group(kernel)
         elif kernel.type == "SHAPE":
-            self.pattern = Batch(kernel)
+            self.pattern = Group(kernel)
         elif kernel.type == "BATCH":
             self.pattern = kernel
 
         else:
-            raise ValueError("kernel needs to be a Shape or Batch object!")
+            raise ValueError("kernel needs to be a Shape or Group object!")
 
         for isom in self.isometries:
             self.apply(isom)
 
         return self
 
-    def span(self, kernel, horizontal=True, reps: int = 1) -> Batch:
+    def span(self, kernel, horizontal=True, reps: int = 1) -> Group:
         self.populate_unit(kernel)
         pattern = self.pattern
         if horizontal:
@@ -263,7 +262,7 @@ class Lattice:
             dy = self.b
             self.pattern = pattern.translate(0, dy, reps=reps)
 
-    def expand(self, kernel, reps: int = 1) -> Batch:
+    def expand(self, kernel, reps: int = 1) -> Group:
         self.populate_unit(kernel)
         pattern = self.pattern
         subtype = self.subtype
@@ -290,7 +289,7 @@ class Lattice:
 
         return self
 
-    def cell_structure(self) -> Batch:
+    def cell_structure(self) -> Group:
         """Returns the cell structure of the lattice."""
         pass
 

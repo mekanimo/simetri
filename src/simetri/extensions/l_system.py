@@ -2,7 +2,7 @@
 
 from math import ceil
 
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 from ..graphics.shape import Shape
 from .turtle_sg import Turtle
 
@@ -28,11 +28,11 @@ def l_system(
                   This allows extending the default command set.
 
     Returns:
-        Batch: A batch of shapes representing the L-system drawing.
+        Group: A group of shapes representing the L-system drawing.
 
     Example:
         >>> rules = {'F': 'F+F-F-F+F'}  # Koch curve
-        >>> batch = l_system(rules, 'F', 60, 10, 3)
+        >>> group = l_system(rules, 'F', 60, 10, 3)
     """
 
     turtle = Turtle(in_degrees=True)
@@ -73,7 +73,7 @@ def l_system(
         actions.get(char, lambda: None)()
 
     # TikZ gives memory error if there are too many vertices in one shape
-    shapes = Batch()
+    shapes = Group()
     # tot = len(turtle.current_list)
     # part = 200 # partition size
     # for i in range(ceil(tot/part)):

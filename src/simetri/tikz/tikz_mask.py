@@ -12,13 +12,13 @@ from typing import TYPE_CHECKING, Union
 
 from ..colors.colors import Color
 from ..graphics.all_enums import TexLoc
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
+from ..graphics.mask import Mask, Stop
 from ..graphics.shape import Shape
 from ..graphics.sketch import MaskSketch
 from .tikz_sketch import TexSketch
+from .tikz_utils import get_clip_code
 from ..canvas import draw as canvas_draw
-from ..tikz.tikz import get_clip_code
-from ..svg.mask import Mask, Stop
 
 if TYPE_CHECKING:
 	from ..canvas.canvas import Canvas
@@ -176,7 +176,7 @@ def _get_scope_fading_path(mask_shape, fade_id):
 	return f"\\path [scope fading={fade_id}] ({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
 
-def clip_mask(self: "Canvas", target: Union[Shape, Batch, None] = None, mask: Mask = None, **kwargs):
+def clip_mask(self: "Canvas", target: Union[Shape, Group, None] = None, mask: Mask = None, **kwargs):
 	"""Apply a mask for TeX rendering using additive scope/TexSketch logic."""
 	mask_shape, mask_opacity, mask_stops, mask_axis = _normalize_mask_inputs(mask, **kwargs)
 	mask_x1, mask_y1 = mask_axis[0]
@@ -206,8 +206,8 @@ def clip_mask(self: "Canvas", target: Union[Shape, Batch, None] = None, mask: Ma
 			scope_sketch._mask_fade_id = fade_id
 		return self
 
-	if not isinstance(target, (Shape, Batch)):
-		raise TypeError("target must be a Shape, Batch, or None.")
+	if not isinstance(target, (Shape, Group)):
+		raise TypeError("target must be a Shape, Group, or None.")
 
 	clip_code = _get_clip_from_mask(mask_shape)
 	if not clip_code:

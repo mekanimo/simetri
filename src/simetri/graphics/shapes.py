@@ -2,23 +2,19 @@
 
 from math import pi, gcd, sin, cos, comb
 from typing import List, Sequence, Union
-import copy
-import warnings
 
-from numpy import ndarray
 import numpy as np
 
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 from ..graphics.bbox import BoundingBox
 from ..graphics.shape import (
     Shape,
     custom_attributes,
 )
-from ..graphics.common import axis_x, get_defaults, PointType, LineType
+from ..graphics.common import axis_x, get_defaults, PointType
 from ..graphics.all_enums import Types, Extent
-from ..helpers.utilities import decompose_transformations
 from ..settings.settings import defaults
-from .affine import scale_in_place_matrix, rotation_matrix
+from .affine import rotation_matrix
 from ..geometry.ellipse import ellipse_points
 from ..geometry.geometry import (
     side_len_to_radius,
@@ -32,12 +28,7 @@ from ..geometry.geometry import (
 )
 from ..geometry.vectors import v_scale, v_diff, v_sum
 from ..canvas.style_map import (
-    line_style_map,
     shape_style_map,
-    tag_style_map,
-    image_style_map,
-    group_args,
-    StyleObj,
 )
 
 import simetri.colors.colors as colors
@@ -259,22 +250,22 @@ class Line(Shape):
         """
         return lambda t: self.t(t)
 
-    def copy(self, **kwargs):
-        """Return a copy of the line."""
-        line = Line(self.start, self.end, extent=self.extent)
-        for attrib in custom_attributes(self):
-            if attrib in ["vertices", "draw_type", "extent"]:
-                continue
-            setattr(line, attrib, getattr(self, attrib))
-        for attrib in shape_style_map:
-            value = getattr(self, attrib, defaults[attrib])
-            if value is not None:
-                setattr(line, attrib, value)
+    # def copy(self, **kwargs):
+    #     """Return a copy of the line."""
+    #     line = Line(self.start, self.end, extent=self.extent)
+    #     for attrib in custom_attributes(self):
+    #         if attrib in ["vertices", "draw_type", "extent"]:
+    #             continue
+    #         setattr(line, attrib, getattr(self, attrib))
+    #     for attrib in shape_style_map:
+    #         value = getattr(self, attrib, defaults[attrib])
+    #         if value is not None:
+    #             setattr(line, attrib, value)
 
-        for k, v in kwargs.items():
-            setattr(line, k, v)
+    #     for k, v in kwargs.items():
+    #         setattr(line, k, v)
 
-        return line
+    #     return line
 
     def t(self, t: float):
         """Return point at parameter t using start + t * (end - start)."""
@@ -414,35 +405,6 @@ class Rectangle(Shape):
             x, y = self.vertices[i][:2]
             self[i] = (x + x_diff, y + y_diff)
 
-    def copy(self, **kwargs):
-        """Return a copy of the rectangle.
-
-        Returns:
-            Rectangle: A copy of the rectangle.
-        """
-        center = self.center
-        width = self.width
-        height = self.height
-        rectangle = Rectangle(center, width, height)
-        _, rotation, _ = decompose_transformations(self.xform_matrix)
-        rectangle.rotate(rotation, about=center, reps=0)
-        rectangle._set_aliases()
-        custom_attribs = custom_attributes(self)
-        for attrib in custom_attribs:
-            if attrib.startswith("_"):
-                continue
-            if hasattr(self, attrib):
-                setattr(rectangle, attrib, getattr(self, attrib))
-        for attrib in shape_style_map:
-            value = getattr(self, attrib, defaults[attrib])
-            if value is not None:
-                setattr(rectangle, attrib, value)
-
-        for k, v in kwargs.items():
-            setattr(rectangle, k, v)
-
-        return rectangle
-
 
 class Rectangle2(Rectangle):
     """A rectangle defined by two opposite corners."""
@@ -579,35 +541,32 @@ class Circle(Shape):
             return False
         return self.id == other.id
 
-    def copy(self, **kwargs):
-        """Return a copy of the circle.
+    # def copy(self, **kwargs):
+    #     """Return a copy of the circle.
 
-        Returns:
-            Circle: A copy of the circle.
-        """
+    #     Returns:
+    #         Circle: A copy of the circle.
+    #     """
 
-        center = self.center
-        radius = self.radius
-        circle = Circle(center=center, radius=radius)
-        # style = copy.deepcopy(self.style)
-        # circle.style = style
-        circle._set_aliases()
+    #     center = self.center
+    #     radius = self.radius
+    #     circle = Circle(center=center, radius=radius)
 
-        custom_attribs = custom_attributes(self)
-        custom_attribs.remove("center")
-        custom_attribs.remove("_radius")
-        custom_attribs.remove("radius")
-        for attrib in custom_attribs:
-            setattr(circle, attrib, getattr(self, attrib))
-        for attrib in shape_style_map:
-            value = getattr(self, attrib, defaults[attrib])
-            if value is not None:
-                setattr(circle, attrib, value)
+    #     custom_attribs = custom_attributes(self)
+    #     custom_attribs.remove("center")
+    #     custom_attribs.remove("_radius")
+    #     custom_attribs.remove("radius")
+    #     for attrib in custom_attribs:
+    #         setattr(circle, attrib, getattr(self, attrib))
+    #     for attrib in shape_style_map:
+    #         value = getattr(self, attrib, defaults[attrib])
+    #         if value is not None:
+    #             setattr(circle, attrib, value)
 
-        for k, v in kwargs.items():
-            setattr(circle, k, v)
+    #     for k, v in kwargs.items():
+    #         setattr(circle, k, v)
 
-        return circle
+    #     return circle
 
 
 class Segment(Shape):
@@ -660,28 +619,28 @@ class Segment(Shape):
         """
         return distance(self.start, self.end)
 
-    def copy(self, **kwargs) -> Shape:
-        """Return a copy of the segment.
+    # def copy(self, **kwargs) -> Shape:
+    #     """Return a copy of the segment.
 
-        Returns:
-            Shape: A copy of the segment.
-        """
-        segment = Segment(self.start, self.end)
-        custom_attribs = custom_attributes(self)
-        for attrib in custom_attribs:
-            if attrib.startswith("_"):
-                continue
-            if hasattr(self, attrib):
-                setattr(segment, attrib, getattr(self, attrib))
-        for attrib in shape_style_map:
-            value = getattr(self, attrib, defaults[attrib])
-            if value is not None:
-                setattr(segment, attrib, value)
+    #     Returns:
+    #         Shape: A copy of the segment.
+    #     """
+    #     segment = Segment(self.start, self.end)
+    #     custom_attribs = custom_attributes(self)
+    #     for attrib in custom_attribs:
+    #         if attrib.startswith("_"):
+    #             continue
+    #         if hasattr(self, attrib):
+    #             setattr(segment, attrib, getattr(self, attrib))
+    #     for attrib in shape_style_map:
+    #         value = getattr(self, attrib, defaults[attrib])
+    #         if value is not None:
+    #             setattr(segment, attrib, value)
 
-        for k, v in kwargs.items():
-            setattr(segment, k, v)
+    #     for k, v in kwargs.items():
+    #         setattr(segment, k, v)
 
-        return segment
+    #     return segment
 
     def __str__(self):
         """Return a string representation of the segment.
@@ -859,7 +818,7 @@ def reg_poly_points(pos: PointType, n: int, r: float, angle: float=0) -> Sequenc
     return points
 
 
-def di_star(points: Sequence[PointType], n: int) -> Batch:
+def di_star(points: Sequence[PointType], n: int) -> Group:
     """Return a dihedral star with n petals.
 
     Args:
@@ -867,10 +826,10 @@ def di_star(points: Sequence[PointType], n: int) -> Batch:
         n (int): Number of petals.
 
     Returns:
-        Batch: A Batch instance (dihedral star with n petals).
+        Group: A Group instance (dihedral star with n petals).
     """
-    batch = Batch(Shape(points))
-    return batch.mirror(axis_x, reps=1).rotate(2 * pi / n, reps=n - 1)
+    group = Group(Shape(points))
+    return group.mirror(axis_x, reps=1).rotate(2 * pi / n, reps=n - 1)
 
 
 def hex_grid_centers(x, y, side_length, n_rows, n_cols):
@@ -911,17 +870,17 @@ def rect_grid(x, y, cell_width, cell_height, n_rows, n_cols, pattern):
         pattern (list[list[bool]]): A pattern to fill the grid.
 
     Returns:
-        Batch: A Batch object representing the grid.
+        Group: A Group object representing the grid.
     """
     width = cell_width * n_cols
     height = cell_height * n_rows
     horiz_line = line_shape((x, y), (x + width, y))
-    horiz_lines = Batch(horiz_line)
+    horiz_lines = Group(horiz_line)
     horiz_lines.translate(0, cell_height, reps=n_rows)
     vert_line = line_shape((x, y), (x, y + height))
-    vert_lines = Batch(vert_line)
+    vert_lines = Group(vert_line)
     vert_lines.translate(cell_width, 0, reps=n_cols)
-    grid = Batch(horiz_lines, *vert_lines)
+    grid = Group(horiz_lines, *vert_lines)
     for row in range(n_rows):
         for col in range(n_cols):
             if pattern[row][col]:
@@ -940,7 +899,7 @@ def rect_grid(x, y, cell_width, cell_height, n_rows, n_cols, pattern):
     return grid
 
 
-def reg_star_polygon(n, step, rad, **kwargs) -> Shape | Batch:
+def reg_star_polygon(n, step, rad, **kwargs) -> Shape | Group:
     """
     Return a regular star polygon with the given parameters.
 
@@ -950,8 +909,8 @@ def reg_star_polygon(n, step, rad, **kwargs) -> Shape | Batch:
     :type step: int
     :param rad: The radius of the star polygon.
     :type rad: float
-    :return: A Batch object representing the star polygon.
-    :rtype: Batch
+    :return: A Group object representing the star polygon.
+    :rtype: Group
     """
     angle = 2 * pi / n
     points = [(cos(angle * i) * rad, sin(angle * i) * rad) for i in range(n)]
@@ -965,7 +924,7 @@ def reg_star_polygon(n, step, rad, **kwargs) -> Shape | Batch:
     reps = gcd(n, step) - 1
     shape = Shape(vertices, **kwargs)
     if reps > 1:
-        res = Batch(shape.rotate(angle, reps=reps))
+        res = Group(shape.rotate(angle, reps=reps))
     else:
         res = shape
 
@@ -981,14 +940,14 @@ def star_shape(points, reps=5, scale=1):
         scale (float, optional): The scale factor. Defaults to 1.
 
     Returns:
-        Batch: A Batch object representing the star.
+        Group: A Group object representing the star.
     """
     shape = Shape(points, subtype=Types.STAR)
-    batch = Batch(shape)
-    batch.mirror(axis_x, reps=1)
-    batch.rotate(2 * pi / (reps), reps=reps - 1)
-    batch.scale(scale)
-    return batch
+    group = Group(shape)
+    group.mirror(axis_x, reps=1)
+    group.rotate(2 * pi / (reps), reps=reps - 1)
+    group.scale(scale)
+    return group
 
 
 def dot_shape(
@@ -1306,8 +1265,7 @@ def fillet_shape_corners(shape:Shape, d_vert_radius:dict[int, float], n:int=12)-
     '''Using the given shape, creates a new shape with rounded corners.'''
     vertices = fillet_corners(shape.vertices, d_vert_radius, n)
 
-    new_shape = Shape(vertices, closed=shape.closed)
-    shape.clone_style(new_shape)
-    new_shape.subtype = shape.subtype
+    new_shape = shape.copy()
+    new_shape[:] = vertices
 
     return new_shape

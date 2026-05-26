@@ -1,7 +1,6 @@
 """Creates pattern defintions for the Frieze groups"""
 
 from math import pi
-from collections.abc import Callable
 from typing import Union
 from dataclasses import dataclass
 
@@ -12,7 +11,7 @@ from ..graphics.all_enums import (
     Reference,
     Types,
 )
-from ..graphics.common import PointType, common_properties
+from ..graphics.common import PointType
 
 
 @dataclass
@@ -24,7 +23,6 @@ class HopDef:
     def __post_init__(self):
         self.type = Types.PATTERN_DEF
         self.subtype = Types.HOP_DEF
-        common_properties(self, False)
         self._build_pattern()
 
     def __setattr__(self, name, value):
@@ -55,7 +53,6 @@ class StepDef:
     def __post_init__(self):
         self.type = Types.PATTERN_DEF
         self.subtype = Types.STEP_DEF
-        common_properties(self, False)
         self._build_pattern()
 
     def __setattr__(self, name, value):
@@ -87,7 +84,6 @@ class JumpDef:
     def __post_init__(self):
         self.type = Types.PATTERN_DEF
         self.subtype = Types.JUMP_DEF
-        common_properties(self, False)
         self._build_pattern()
 
     def __setattr__(self, name, value):
@@ -125,7 +121,6 @@ class SidleDef:
     def __post_init__(self):
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SIDLE_DEF
-        common_properties(self, False)
         self._build_pattern()
 
     def __setattr__(self, name, value):
@@ -166,7 +161,6 @@ class SpinningHopDef:
     def __post_init__(self):
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_HOP_DEF
-        common_properties(self, False)
         self._build_pattern()
 
     def __setattr__(self, name, value):
@@ -207,7 +201,6 @@ class SpinningJumpDef:
     def __post_init__(self):
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_JUMP_DEF
-        common_properties(self, False)
         self._build_pattern()
 
     def __setattr__(self, name, value):
@@ -256,7 +249,6 @@ class SpinningSidleDef:
     def __post_init__(self):
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_SIDLE_DEF
-        common_properties(self, False)
         self._build_pattern()
 
     def __setattr__(self, name, value):

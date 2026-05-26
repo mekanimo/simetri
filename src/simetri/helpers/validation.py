@@ -228,7 +228,7 @@ def check_subtype(subtype: Any) -> bool:
 
 def check_mask(mask: Any) -> bool:
     """
-    This check is done in Batch class.
+    This check is done in Group class.
 
     Args:
         mask (Any): The mask to check.

@@ -20,7 +20,7 @@ from typing import Sequence
 
 import numpy as np
 
-from ..graphics.common import common_properties, PointType
+from ..graphics.common import PointType
 from ..graphics.all_enums import ColorSpace, Types
 
 
@@ -173,7 +173,6 @@ class Color:
                 self.blue = b / 255
         if self.alpha < 0 or self.alpha > 1:
             self.alpha = self.alpha / 255
-        common_properties(self)
 
     def __str__(self):
         return f"Color({self.red}, {self.green}, {self.blue})"
@@ -470,7 +469,6 @@ class LinearGradient:
     def __post_init__(self):
         self.type = Types.GRADIENT
         self.subtype = Types.LINEAR
-        common_properties(self)
 
 
 @dataclass
@@ -504,7 +502,6 @@ class RadialGradient:
     def __post_init__(self):
         self.type = Types.GRADIENT
         self.subtype = Types.RADIAL
-        common_properties(self)
 
 
 # <xcolor> TikZ library colors

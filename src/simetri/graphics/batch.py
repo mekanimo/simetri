@@ -1,59 +1,67 @@
-"""Batch objects are used for grouping other Shape and Batch objects."""
+"""Group objects are used for grouping other Shape and Group objects."""
 
 from typing import Any, Iterator, List, Sequence, Callable
 
-from numpy import around, array
+from numpy import array
 from typing_extensions import Self, Dict
-import networkx as nx
 import json
 
 
-from .all_enums import InPlace, Types, TransformationType, batch_types, get_enum_value
-from .common import common_properties, _set_Nones, PointType, LineType
+from .all_enums import (
+    InPlace,
+    Types,
+    TransformationType,
+    get_enum_value,
+)
+from .common import PointType, LineType, get_unique_id
 from .core import Base, _update_inplace
 from .bbox import bounding_box
-from ..helpers.validation import validate_args
-from ..helpers.utilities import flatten2
 from ..geometry.geometry import (
     fix_degen_points,
     get_polygons,
     all_close_points,
-    midpoint,
-    distance,
-    connected_pairs,
     round_segment,
     round_point,
 )
-from ..helpers.graph import is_cycle, is_open_walk, Graph
 from ..settings.settings import defaults, issue_warning
 
 from .merge import _merge_shapes, _merge_collinears
 
 
-class Batch(Base):
+class Group(Base):
     """
-    A Batch object is a collection of other objects (Batch, Shape,
+    A Group object is a collection of other objects (Group, Shape,
     and Tag objects). It can be used to apply a transformation to
-    all the objects in the Batch. It is used for creating 1D and 2D
+    all the objects in the Group. It is used for creating 1D and 2D
     patterns of objects. all_vertices, all_elements, etc. means a flat
     list of the specified object gathered recursively from all the
-    elements in the Batch.
+    elements in the Group.
     """
+
+    # __slots__ = [
+    #     "elements",
+    #     "type",
+    #     "subtype",
+    #     "modifiers",
+    #     "visible",
+    #     "d_node_coord",
+    #     "d_coord_node",
+    #     "d_rounded_coord",
+    # ]
 
     def __init__(
         self,
         elements: Sequence[Any] = None,
         modifiers: Sequence["Modifier"] = None,
-        subtype: Types = Types.BATCH,
-        **kwargs,
+        subtype: Types = Types.GROUP,
     ):
         """
-        Initialize a Batch object.
+        Initialize a Group object.
 
         Args:
-            elements (Sequence[Any], optional): The elements to include in the batch.
-            modifiers (Sequence[Modifier], optional): The modifiers to apply to the batch.
-            subtype (Types, optional): The subtype of the batch.
+            elements (Sequence[Any], optional): The elements to include in the group.
+            modifiers (Sequence[Modifier], optional): The modifiers to apply to the group.
+            subtype (Types, optional): The subtype of the group.
             kwargs (dict): Additional keyword arguments.
         """
 
@@ -72,7 +80,7 @@ class Batch(Base):
                 else:
                     yield i
 
-        # validate_args(kwargs, batch_args)
+        # validate_args(kwargs, group_args)
         # We need to handle this differently now!!!
 
         if elements is None:
@@ -92,18 +100,19 @@ class Batch(Base):
             self.elements = _elements[:]
             # self.elements = elements if elements is not None else []
 
-        self.type = Types.BATCH
+        self.type = Types.GROUP
         self.subtype = get_enum_value(Types, subtype)
         if modifiers is None:
             modifiers = []
         self.modifiers = modifiers
-        common_properties(self)
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        self.visible = True
+        self.id = get_unique_id(self)
 
-    def set_attribs(self, attrib: str, value: Any, key: Callable = None) -> Self:
+    def set_attribs(
+        self, attrib: str, value: Any, key: Callable = None
+    ) -> Self:
         """
-        Sets the attribute to the given value for all elements in the batch if it is applicable.
+        Sets the attribute to the given value for all elements in the group if it is applicable.
 
         Args:
             attrib (str): The attribute to set.
@@ -111,19 +120,19 @@ class Batch(Base):
             key (Callable, optional): A function to filter elements by a specific key. Defaults to None.
 
         Returns:
-            Self: The batch object.
+            Self: The group object.
 
-        Example: batch.set_attribs('fill_color', 'red', key=lambda x: x.type == Types.SHAPE)
+        Example: group.set_attribs('fill_color', 'red', key=lambda x: x.type == Types.SHAPE)
         """
         for element in self.elements:
             if key is not None:
                 if key(element):
-                    if element.type == Types.BATCH:
+                    if element.type == Types.GROUP:
                         element.set_attribs(attrib, value, key=key)
                     elif hasattr(element, attrib):
                         setattr(element, attrib, value)
             else:
-                if element.type == Types.BATCH:
+                if element.type == Types.GROUP:
                     element.set_attribs(attrib, value)
                 elif hasattr(element, attrib):
                     setattr(element, attrib, value)
@@ -132,34 +141,34 @@ class Batch(Base):
 
     def __str__(self):
         """
-        Return a string representation of the batch.
+        Return a string representation of the group.
 
         Returns:
-            str: The string representation of the batch.
+            str: The string representation of the group.
         """
         if self.elements is None or len(self.elements) == 0:
-            res = "Batch()"
+            res = "Group()"
         elif len(self.elements) in [1, 2]:
-            res = f"Batch({self.elements})"
+            res = f"Group({self.elements})"
         else:
-            res = f"Batch({self.elements[0]}...{self.elements[-1]})"
+            res = f"Group({self.elements[0]}...{self.elements[-1]})"
         return res
 
     def __repr__(self):
         """
-        Return a string representation of the batch.
+        Return a string representation of the group.
 
         Returns:
-            str: The string representation of the batch.
+            str: The string representation of the group.
         """
         return self.__str__()
 
     def __len__(self):
         """
-        Return the number of elements in the batch.
+        Return the number of elements in the group.
 
         Returns:
-            int: The number of elements in the batch.
+            int: The number of elements in the group.
         """
         return len(self.elements)
 
@@ -174,7 +183,9 @@ class Batch(Base):
             Any: The element(s) at the given subscript.
         """
         if isinstance(subscript, slice):
-            res = self.elements[subscript.start : subscript.stop : subscript.step]
+            res = self.elements[
+                subscript.start : subscript.stop : subscript.step
+            ]
         else:
             res = self.elements[subscript]
         return res
@@ -195,51 +206,51 @@ class Batch(Base):
         else:
             raise TypeError("Invalid subscript type")
 
-    def __add__(self, other: "Batch") -> "Batch":
+    def __add__(self, other: "Group") -> "Group":
         """
-        Add another batch to this batch.
+        Add another group to this group.
 
         Args:
-            other (Batch): The other batch to add.
+            other (Group): The other group to add.
 
         Returns:
-            Batch: The combined batch.
+            Group: The combined group.
 
         Raises:
-            RuntimeError: If the other object is not a batch.
+            RuntimeError: If the other object is not a group.
         """
-        if other.type == Types.BATCH:
-            batch = self.copy()
+        if other.type == Types.GROUP:
+            group = self.copy()
             for element in other.elements:
-                batch.append(element)
-            res = batch
+                group.append(element)
+            res = group
         else:
             raise RuntimeError(
-                "Invalid object. Only Batch objects can be added together!"
+                "Invalid object. Only Group objects can be added together!"
             )
         return res
 
     def __bool__(self):
         """
-        Return whether the batch has any elements.
+        Return whether the group has any elements.
 
         Returns:
-            bool: True if the batch has elements, False otherwise.
+            bool: True if the group has elements, False otherwise.
         """
         return len(self.elements) > 0
 
     def __iter__(self):
         """
-        Return an iterator over the elements in the batch.
+        Return an iterator over the elements in the group.
 
         Returns:
-            Iterator: An iterator over the elements in the batch.
+            Iterator: An iterator over the elements in the group.
         """
         return iter(self.elements)
 
     def _duplicates(self, elements):
         """
-        Check for duplicate elements in the batch.
+        Check for duplicate elements in the group.
 
         Args:
             elements (Sequence[Any]): The elements to check for duplicates.
@@ -258,13 +269,13 @@ class Batch(Base):
         return len(set(elements)) != len(elements)
 
     def to_json(self) -> str:
-        """Serialize the Batch into a JSON string.
+        """Serialize the Group into a JSON string.
 
         The payload includes:
           - type, subtype
           - elements (recursively serialized)
           - modifiers (stringified)
-          - attributes (common batch attributes incl. mask if present)
+          - attributes (common group attributes incl. mask if present)
         """
 
         def _to_jsonable(obj):
@@ -327,14 +338,14 @@ class Batch(Base):
 
     def proximity(self, dist_tol: float = None, n: int = 5) -> list[PointType]:
         """
-        Returns the n closest points in the batch.
+        Returns the n closest points in the group.
 
         Args:
             dist_tol (float, optional): The distance tolerance for proximity.
             n (int, optional): The number of closest points to return.
 
         Returns:
-            list[PointType]: The n closest points in the batch.
+            list[PointType]: The n closest points in the group.
         """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
@@ -345,17 +356,17 @@ class Batch(Base):
 
     def append(self, element: Any) -> Self:
         """
-        Appends the element to the batch.
+        Appends the element to the group.
 
         Args:
             element (Any): The element to append.
 
         Returns:
-            Self: The batch object.
+            Self: The group object.
         """
         if element in self.elements:
             issue_warning(
-                f"Duplicate element added to Batch: {element}",
+                f"Duplicate element added to Group: {element}",
                 stacklevel=2,
             )
         self.elements.append(element)
@@ -363,10 +374,10 @@ class Batch(Base):
 
     def reverse(self) -> Self:
         """
-        Reverses the order of the elements in the batch.
+        Reverses the order of the elements in the group.
 
         Returns:
-            Self: The batch object.
+            Self: The group object.
         """
         self.elements = self.elements[::-1]
         return self
@@ -380,7 +391,7 @@ class Batch(Base):
             element (Any): The element to insert.
 
         Returns:
-            Self: The batch object.
+            Self: The group object.
         """
         if element not in self.elements:
             self.elements.insert(index, element)
@@ -389,13 +400,13 @@ class Batch(Base):
 
     def remove(self, element: Any) -> Self:
         """
-        Removes the element from the batch.
+        Removes the element from the group.
 
         Args:
             element (Any): The element to remove.
 
         Returns:
-            Self: The batch object.
+            Self: The group object.
         """
         if element in self.elements:
             self.elements.remove(element)
@@ -415,23 +426,23 @@ class Batch(Base):
 
     def clear(self) -> Self:
         """
-        Removes all elements from the batch.
+        Removes all elements from the group.
 
         Returns:
-            Self: The batch object.
+            Self: The group object.
         """
         self.elements = []
         return self
 
     def extend(self, elements: Sequence[Any]) -> Self:
         """
-        Extends the batch with the given elements.
+        Extends the group with the given elements.
 
         Args:
-            elements (Sequence[Any]): The elements to extend the batch with.
+            elements (Sequence[Any]): The elements to extend the group with.
 
         Returns:
-            Self: The batch object.
+            Self: The group object.
         """
         for element in elements:
             if element not in self.elements:
@@ -440,17 +451,17 @@ class Batch(Base):
         return self
 
     def iter_elements(self, element_type: Types = None) -> Iterator:
-        """Iterate over all elements in the batch, including the elements
-        in the nested batches.
+        """Iterate over all elements in the group, including the elements
+        in the nested groups.
 
         Args:
             element_type (Types, optional): The type of elements to iterate over. Defaults to None.
 
         Returns:
-            Iterator: An iterator over the elements in the batch.
+            Iterator: An iterator over the elements in the group.
         """
         for elem in self.elements:
-            if elem.type == Types.BATCH:
+            if elem.type == Types.GROUP:
                 yield from elem.iter_elements(element_type)
             else:
                 if element_type is None:
@@ -460,15 +471,15 @@ class Batch(Base):
 
     @property
     def all_elements(self) -> list[Any]:
-        """Return a list of all elements in the batch,
-        including the elements in the nested batches.
+        """Return a list of all elements in the group,
+        including the elements in the nested groups.
 
         Returns:
-            list[Any]: A list of all elements in the batch.
+            list[Any]: A list of all elements in the group.
         """
         elements = []
         for elem in self.elements:
-            if elem.type == Types.BATCH:
+            if elem.type == Types.GROUP:
                 elements.extend(elem.all_elements)
             else:
                 elements.append(elem)
@@ -476,10 +487,10 @@ class Batch(Base):
 
     @property
     def all_shapes(self) -> list["Shape"]:
-        """Return a list of all shapes in the batch.
+        """Return a list of all shapes in the group.
 
         Returns:
-            list[Shape]: A list of all shapes in the batch.
+            list[Shape]: A list of all shapes in the group.
         """
         elements = self.all_elements
         shapes = []
@@ -490,27 +501,27 @@ class Batch(Base):
 
     @property
     def all_vertices(self) -> list[PointType]:
-        """Return a list of all points in the batch in their
+        """Return a list of all points in the group in their
         transformed positions.
 
         Returns:
-            list[PointType]: A list of all points in the batch in their transformed positions.
+            list[PointType]: A list of all points in the group in their transformed positions.
         """
         elements = self.all_elements
         vertices = []
         for element in elements:
             if element.type == Types.SHAPE:
                 vertices.extend(element.vertices)
-            elif element.type == Types.BATCH:
+            elif element.type == Types.GROUP:
                 vertices.extend(element.all_vertices)
         return vertices
 
     @property
     def all_segments(self) -> list[LineType]:
-        """Return a list of all segments in the batch.
+        """Return a list of all segments in the group.
 
         Returns:
-            list[LineType]: A list of all segments in the batch.
+            list[LineType]: A list of all segments in the group.
         """
         elements = self.all_elements
         segments = []
@@ -519,181 +530,8 @@ class Batch(Base):
                 segments.extend(element.vertex_pairs)
         return segments
 
-    def _get_graph_nodes_and_edges(self, dist_tol: float = None, n_round=None):
-        """Get the graph nodes and edges for the batch.
-
-        Args:
-            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
-            n_round (int, optional): The number of decimal places to round to. Defaults to None.
-
-        Returns:
-            tuple: A tuple containing the node coordinates and edges.
-        """
-        if n_round is None:
-            n_round = defaults["n_round"]
-        _set_Nones(self, ["dist_tol", "n_round"], [dist_tol, n_round])
-        vertices = self.all_vertices
-        shapes = self.all_shapes
-        d_ind_coords = {}
-        point_id = []
-        rounded_vertices = []
-        for i, vert in enumerate(vertices):
-            coords = tuple(around(vert, n_round))
-            rounded_vertices.append(coords)
-            d_ind_coords[i] = coords
-            point_id.append([vert[0], vert[1], i])
-
-        _, pairs = all_close_points(point_id, dist_tol=dist_tol, with_dist=True)
-
-        for pair in pairs:
-            id1, id2, _ = pair
-            average = tuple(midpoint(vertices[id1], vertices[id2]))
-            d_ind_coords[id1] = average
-            d_ind_coords[id2] = average
-            rounded_vertices[id1] = average
-            rounded_vertices[id2] = average
-
-        d_coords_node_id = {}
-        d_node_id__rounded_coords = {}
-
-        s_rounded_vertices = set(rounded_vertices)
-        for i, vertex in enumerate(s_rounded_vertices):
-            d_coords_node_id[vertex] = i
-            d_node_id__rounded_coords[i] = vertex
-
-        edges = []
-        ind = 0
-        for shape in shapes:
-            node_ids = []
-            s_vertices = shape.vertices[:]
-            for vertex in s_vertices:
-                node_ids.append(d_coords_node_id[rounded_vertices[ind]])
-                ind += 1
-            edges.extend(connected_pairs(node_ids))
-            if shape.closed:
-                edges.append((node_ids[-1], node_ids[0]))
-
-        return d_node_id__rounded_coords, edges
-
-    def as_graph(
-        self,
-        directed: bool = False,
-        weighted: bool = False,
-        dist_tol: float = None,
-        abs_tol=None,
-        n_round: int = None,
-        cycles: bool = False,
-    ) -> Graph:
-        """Return the batch as a Graph object.
-        Graph.nx is the networkx graph.
-
-        Args:
-            directed (bool, optional): Whether the graph is directed. Defaults to False.
-            weighted (bool, optional): Whether the graph is weighted. Defaults to False.
-            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
-            abs_tol (optional): The absolute tolerance. Defaults to None.
-            n_round (int, optional): The number of decimal places to round to. Defaults to None.
-            cycles (bool, optional): If true, cycles are returned.
-
-        Returns:
-            Graph: The batch as a Graph object.
-        """
-        _set_Nones(
-            self, ["dist_tol", "abs_tol", "n_round"], [dist_tol, abs_tol, n_round]
-        )
-        d_node_id_coords, edges = self._get_graph_nodes_and_edges(dist_tol, n_round)
-        if directed:
-            nx_graph = nx.DiGraph()
-            graph_type = Types.DIRECTED
-        else:
-            nx_graph = nx.Graph()
-            graph_type = Types.UNDIRECTED
-
-        for id_, coords in d_node_id_coords.items():
-            nx_graph.add_node(id_, pos=coords)
-
-        if weighted:
-            for edge in edges:
-                p1 = d_node_id_coords[edge[0]]
-                p2 = d_node_id_coords[edge[1]]
-                nx_graph.add_edge(edge[0], edge[1], weight=distance(p1, p2))
-            subtype = Types.WEIGHTED
-        else:
-            nx_graph.update(edges)
-            subtype = Types.NONE
-
-        try:
-            cycles_ = nx.cycle_basis(nx_graph)
-        except nx.exception.NetworkXNoCycle:
-            cycles_ = None
-
-        # if cycles:
-        #     n = len(cycles_)
-        #     for cycle in cycles_:
-        #         cycle.append(cycle[0])
-        #     if n == 1:
-        #         cycle = cycles_[0]
-        # else:
-        #     cycles_ = None
-        res = []
-        if cycles:
-            for cycle in cycles_:
-                res.append([d_node_id_coords[i] for i in cycle])
-
-        if cycles:
-            return res
-
-        graph = Graph(type=graph_type, subtype=subtype, nx_graph=nx_graph)
-        return graph
-
-    def graph_summary(self, dist_tol: float = None, n_round: int = None) -> str:
-        """Returns a representation of the Batch object as a graph.
-
-        Args:
-            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
-            n_round (int, optional): The number of decimal places to round to. Defaults to None.
-
-        Returns:
-            str: A representation of the Batch object as a graph.
-        """
-        if dist_tol is None:
-            dist_tol = defaults["dist_tol"]
-        if n_round is None:
-            n_round = defaults["n_round"]
-        all_shapes = self.all_shapes
-        all_vertices = self.all_vertices
-        lines = []
-        lines.append("Batch summary:")
-        lines.append(f"# shapes: {len(all_shapes)}")
-        lines.append(f"# vertices: {len(all_vertices)}")
-        for shape in self.all_shapes:
-            if shape.subtype:
-                s = (
-                    f"# vertices in shape(id: {shape.id}, subtype: "
-                    f"{shape.subtype}): {len(shape.vertices)}"
-                )
-            else:
-                s = f"# vertices in shape(id: {shape.id}): {len(shape.vertices)}"
-            lines.append(s)
-        graph = self.as_graph(dist_tol=dist_tol, n_round=n_round).nx_graph
-
-        for island in nx.connected_components(graph):
-            lines.append(f"Island: {island}")
-            if is_cycle(graph, island):
-                lines.append(f"Cycle: {len(island)} nodes")
-            elif is_open_walk(graph, island):
-                lines.append(f"Open Walk: {len(island)} nodes")
-            else:
-                degens = [node for node in island if graph.degree(node) > 2]
-                degrees_ = f"{[(node, graph.degree(node)) for node in degens]}"
-                lines.append(f"Degenerate: {len(island)} nodes")
-                lines.append(f"(Node, Degree): {degrees_}")
-            lines.append("-" * 40)
-
-        return "\n".join(lines)
-
     def merge_collinears(self, edges, rel_tol=None, abs_tol=None):
-        """Merge collinear edges in the batch.
+        """Merge collinear edges in the group.
 
         Args:
             d_node_id_coords (dict): The node coordinates.
@@ -707,8 +545,8 @@ class Batch(Base):
         return _merge_collinears(self, edges)
 
     def merge_shapes(self, dist_tol: float = None, n_round: int = None) -> Self:
-        """Merges the shapes in the batch if they are connected.
-        Returns a new batch with the merged shapes as well as the shapes
+        """Merges the shapes in the group if they are connected.
+        Returns a new group with the merged shapes as well as the shapes
         as well as the shapes that could not be merged.
 
         Args:
@@ -717,12 +555,14 @@ class Batch(Base):
             abs_tol (float, optional): The absolute tolerance. Defaults to None.
 
         Returns:
-            Self: The batch object with merged shapes.
+            Self: The group object with merged shapes.
         """
         return _merge_shapes(self, dist_tol=dist_tol, n_round=n_round)
 
-    def _get_edges_and_segments(self, dist_tol: float = None, n_round: int = None):
-        """Get the edges and segments for the batch.
+    def _get_edges_and_segments(
+        self, dist_tol: float = None, n_round: int = None
+    ):
+        """Get the edges and segments for the group.
 
         Args:
             dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
@@ -782,14 +622,14 @@ class Batch(Base):
         self.d_rounded_coord = d_rounded_coord
 
     def all_polygons(self, dist_tol: float = None) -> list:
-        """Return a list of all polygons in the batch in their
+        """Return a list of all polygons in the group in their
         transformed positions.
 
         Args:
             dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
 
         Returns:
-            list: A list of all polygons in the batch.
+            list: A list of all polygons in the group.
         """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
@@ -804,7 +644,9 @@ class Batch(Base):
         polylines = []
         for element in include:
             points = element.vertices
-            points = fix_degen_points(points, dist_tol=dist_tol, closed=element.closed)
+            points = fix_degen_points(
+                points, dist_tol=dist_tol, closed=element.closed
+            )
             polylines.append(points)
         fixed_polylines = []
         if polylines:
@@ -818,34 +660,36 @@ class Batch(Base):
             res = exclude
         return res
 
-    def copy(self, **kwargs) -> "Batch":
-        """Returns a copy of the batch.
+    def copy(self) -> "Group":
+        """Returns a copy of the group.
 
         Returns:
-            Batch: A copy of the batch.
+            Group: A copy of the group.
         """
-        b = Batch(modifiers=self.modifiers)
+
+        # return deepcopy(self)
+        b = Group(modifiers=self.modifiers)
         if self.elements:
-            b.elements = [elem.copy(**kwargs) for elem in self.elements]
+            b.elements = [elem.copy() for elem in self.elements]
         else:
             b.elements = []
-        custom_attribs = custom_batch_attributes(self)
-        for attrib in custom_attribs:
-            setattr(b, attrib, getattr(self, attrib))
+        # custom_attribs = custom_group_attributes(self)
+        # for attrib in custom_attribs:
+        #     setattr(b, attrib, getattr(self, attrib))
         return b
 
     @property
     def b_box(self):
-        """Returns the bounding box of the batch.
+        """Returns the bounding box of the group.
 
         Returns:
-            BoundingBox: The bounding box of the batch.
+            BoundingBox: The bounding box of the group.
         """
         # To do: memoize the bounding box
         return bounding_box(array(self.all_vertices))
 
     def _modify(self, modifier):
-        """Apply a modifier to the batch.
+        """Apply a modifier to the group.
 
         Args:
             modifier (Modifier): The modifier to apply.
@@ -864,7 +708,7 @@ class Batch(Base):
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Self:
-        """Updates the batch with the given transformation matrix.
+        """Updates the group with the given transformation matrix.
         If reps is 0, the transformation is applied to all elements.
         If reps is greater than 0, the transformation creates
         new elements with the transformed xform_matrix.
@@ -888,7 +732,9 @@ class Batch(Base):
             new = []
             for i in range(reps):
                 if incr is not None and i > 0:
-                    xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
+                    xform_matrix = _update_inplace(
+                        xform_matrix, xform_type, incr
+                    )
                 for element in elements:
                     new_element = element.copy()
                     new_element._update(xform_matrix)
@@ -905,87 +751,97 @@ class Batch(Base):
 
         return self
 
-    def union(self, other: "Batch") -> Self:
-        """Returns the union of two batches.
+    def union(self, other: "Group") -> Self:
+        """Returns the union of two groups.
 
         Args:
-            other (Batch): The other batch to union with.
+            other (Group): The other group to union with.
 
         Returns:
-            Batch: The union of the two batches.
+            Group: The union of the two groups.
         """
-        if not isinstance(other, Batch):
-            raise TypeError("Invalid object. Only Batch objects can be unioned!")
+        if not isinstance(other, Group):
+            raise TypeError(
+                "Invalid object. Only Group objects can be unioned!"
+            )
 
         self_ids = {item.id for item in self.elements}
         other_ids = {item.id for item in other.elements}
 
         union_ids = self_ids.union(other_ids)
 
-        return Batch(
+        return Group(
             elements=[item for item in self.elements if item.id in union_ids],
             modifiers=self.modifiers,
             subtype=self.subtype,
         )
 
-    def intersection(self, other: "Batch") -> Self:
-        """Returns the intersection of two batches.
+    def intersection(self, other: "Group") -> Self:
+        """Returns the intersection of two groups.
 
         Args:
-            other (Batch): The other batch to intersect with.
+            other (Group): The other group to intersect with.
 
         Returns:
-            Batch: The intersection of the two batches.
+            Group: The intersection of the two groups.
         """
-        if not isinstance(other, Batch):
-            raise TypeError("Invalid object. Only Batch objects can be intersected!")
+        if not isinstance(other, Group):
+            raise TypeError(
+                "Invalid object. Only Group objects can be intersected!"
+            )
 
         self_ids = {item.id for item in self.elements}
         other_ids = {item.id for item in other.elements}
 
         intersection_ids = self_ids.intersection(other_ids)
 
-        return Batch(
-            elements=[item for item in self.elements if item.id in intersection_ids],
+        return Group(
+            elements=[
+                item for item in self.elements if item.id in intersection_ids
+            ],
             modifiers=self.modifiers,
             subtype=self.subtype,
         )
 
-    def difference(self, other: "Batch") -> Self:
-        """Returns the difference of two batches.
+    def difference(self, other: "Group") -> Self:
+        """Returns the difference of two groups.
 
         Args:
-            other (Batch): The other batch to subtract.
+            other (Group): The other group to subtract.
 
         Returns:
-            Batch: The difference of the two batches.
+            Group: The difference of the two groups.
         """
-        if not isinstance(other, Batch):
-            raise TypeError("Invalid object. Only Batch objects can be subtracted!")
+        if not isinstance(other, Group):
+            raise TypeError(
+                "Invalid object. Only Group objects can be subtracted!"
+            )
 
         self_ids = {item.id for item in self.elements}
         other_ids = {item.id for item in other.elements}
 
         difference_ids = self_ids.difference(other_ids)
 
-        return Batch(
-            elements=[item for item in self.elements if item.id in difference_ids],
+        return Group(
+            elements=[
+                item for item in self.elements if item.id in difference_ids
+            ],
             modifiers=self.modifiers,
             subtype=self.subtype,
         )
 
-    def symmetric_difference(self, other: "Batch") -> Self:
-        """Returns the symmetric difference of two batches.
+    def symmetric_difference(self, other: "Group") -> Self:
+        """Returns the symmetric difference of two groups.
 
         Args:
-            other (Batch): The other batch to find the symmetric difference with.
+            other (Group): The other group to find the symmetric difference with.
 
         Returns:
-            Batch: The symmetric difference of the two batches.
+            Group: The symmetric difference of the two groups.
         """
-        if not isinstance(other, Batch):
+        if not isinstance(other, Group):
             raise TypeError(
-                "Invalid object. Only Batch objects can be symmetrically differenced!"
+                "Invalid object. Only Group objects can be symmetrically differenced!"
             )
 
         self_ids = {item.id for item in self.elements}
@@ -993,26 +849,28 @@ class Batch(Base):
 
         symmetric_difference_ids = self_ids.symmetric_difference(other_ids)
 
-        return Batch(
+        return Group(
             elements=[
-                item for item in self.elements if item.id in symmetric_difference_ids
+                item
+                for item in self.elements
+                if item.id in symmetric_difference_ids
             ],
             modifiers=self.modifiers,
             subtype=self.subtype,
         )
 
-    def subset(self, other: "Batch") -> bool:
-        """Checks if the current batch is a subset of another batch.
+    def subset(self, other: "Group") -> bool:
+        """Checks if the current group is a subset of another group.
 
         Args:
-            other (Batch): The other batch to check against.
+            other (Group): The other group to check against.
 
         Returns:
-            bool: True if the current batch is a subset of the other batch, False otherwise.
+            bool: True if the current group is a subset of the other group, False otherwise.
         """
-        if not isinstance(other, Batch):
+        if not isinstance(other, Group):
             raise TypeError(
-                "Invalid object. Only Batch objects can be checked for subset!"
+                "Invalid object. Only Group objects can be checked for subset!"
             )
 
         self_ids = {item.id for item in self.elements}
@@ -1020,18 +878,18 @@ class Batch(Base):
 
         return self_ids.issubset(other_ids)
 
-    def superset(self, other: "Batch") -> bool:
-        """Checks if the current batch is a superset of another batch.
+    def superset(self, other: "Group") -> bool:
+        """Checks if the current group is a superset of another group.
 
         Args:
-            other (Batch): The other batch to check against.
+            other (Group): The other group to check against.
 
         Returns:
-            bool: True if the current batch is a superset of the other batch, False otherwise.
+            bool: True if the current group is a superset of the other group, False otherwise.
         """
-        if not isinstance(other, Batch):
+        if not isinstance(other, Group):
             raise TypeError(
-                "Invalid object. Only Batch objects can be checked for superset!"
+                "Invalid object. Only Group objects can be checked for superset!"
             )
 
         self_ids = {item.id for item in self.elements}
@@ -1040,53 +898,58 @@ class Batch(Base):
         return self_ids.issuperset(other_ids)
 
     def __hash__(self) -> int:
-        """Return the hash of the batch.
+        """Return the hash of the group.
 
         Returns:
-            int: The hash of the batch.
+            int: The hash of the group.
         """
         return hash(tuple(self.ids))
 
     def __eq__(self, other: object) -> bool:
-        """Check if two batches are equal.
+        """Check if two groups are equal.
 
         Args:
-            other (object): The other batch to compare.
+            other (object): The other group to compare.
 
         Returns:
-            bool: True if the batches are equal, False otherwise.
+            bool: True if the groups are equal, False otherwise.
         """
-        if not isinstance(other, Batch):
+        if not isinstance(other, Group):
             return False
 
         if len(self.elements) != len(other.elements):
             return False
 
-        return self.elements == other.elements and self.modifiers == other.modifiers
+        return (
+            self.elements == other.elements
+            and self.modifiers == other.modifiers
+        )
 
 
 @property
 def ids(self):
-    """Return a list of ids of the elements in the batch. If the element has an id attribute, it is used.
+    """Return a list of ids of the elements in the group. If the element has an id attribute, it is used.
     Otherwise, id(element) is used.
 
     Returns:
-        list: A list of ids of the elements in the batch.
+        list: A list of ids of the elements in the group.
     """
-    return [item.id if hasattr(item, "id") else id(item) for item in self.elements]
+    return [
+        item.id if hasattr(item, "id") else id(item) for item in self.elements
+    ]
 
 
 @property
 def all_ids(self):
-    """Return a list of ids of the elements in the batch. If the element has an id attribute, it is used.
+    """Return a list of ids of the elements in the group. If the element has an id attribute, it is used.
     Otherwise, id(element) is used.
 
     Returns:
-        list: A list of ids of the elements in the batch.
+        list: A list of ids of the elements in the group.
     """
     ids = []
     for item in self.elements:
-        if hasattr(item, "type") and item.type == Types.BATCH:
+        if hasattr(item, "type") and item.type == Types.GROUP:
             ids.extend(item.all_ids)
         else:
             ids.append(item.id if hasattr(item, "id") else id(item))
@@ -1094,22 +957,22 @@ def all_ids(self):
     return ids
 
 
-def custom_batch_attributes(item: Batch) -> List[str]:
+def custom_group_attributes(item: Group) -> List[str]:
     """
     Return a list of custom attributes of a Shape or
-    Batch instance.
+    Group instance.
 
     Args:
-        item (Batch): The batch object.
+        item (Group): The group object.
 
     Returns:
         List[str]: A list of custom attributes.
     """
     from .shape import Shape
 
-    if isinstance(item, Batch):
+    if isinstance(item, Group):
         dummy_shape = Shape([(0, 0), (1, 0)])
-        dummy = Batch([dummy_shape])
+        dummy = Group([dummy_shape])
     else:
         raise TypeError("Invalid item type")
     native_attribs = set(dir(dummy))

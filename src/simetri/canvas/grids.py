@@ -13,8 +13,8 @@ from ..geometry.geometry import (
     distance,
 )
 from ..geometry.circle import Circle
-from ..graphics.common import PointType, common_properties
-from ..graphics.batch import Batch
+from ..graphics.common import PointType
+from ..graphics.batch import Group
 from ..graphics.shape import Shape
 from ..graphics.all_enums import Types, GridType
 from ..colors.colors import gray
@@ -28,7 +28,7 @@ d_grid_types = {
 }
 
 
-class Grid(Batch):
+class Grid(Group):
     """A base-class for all grids."""
 
     def __init__(
@@ -43,7 +43,6 @@ class Grid(Batch):
         if grid_type not in d_grid_types:
             raise ValueError(f"Invalid grid type: {grid_type}.")
         super().__init__(subtype=d_grid_types[grid_type])
-        common_properties(self)
         self.center = center
         self.radius = radius
         self.n = n

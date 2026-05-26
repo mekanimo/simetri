@@ -12,7 +12,7 @@ from ..graphics.affine import (
     translation_matrix,
     scale_in_place_matrix,
 )
-from ..graphics.batch import Batch
+from ..graphics.batch import Group
 from ..graphics.common import PointType
 from ..graphics.all_enums import Types, Anchor, ImageMode
 from ..helpers.utilities import decompose_transformations
@@ -172,7 +172,7 @@ class Image(Rectangle):
 
     def _update(
         self, xform_matrix: "array", reps: int = 0, merge: bool = False, **kwargs
-    ) -> Union[Batch, "Image"]:
+    ) -> Union[Group, "Image"]:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -180,7 +180,7 @@ class Image(Rectangle):
             reps (int, optional): The number of repetitions, defaults to 0.
 
         Returns:
-            Batch: The updated shape or a batch of shapes.
+            Group: The updated shape or a group of shapes.
         """
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
@@ -192,7 +192,7 @@ class Image(Rectangle):
                 image = image.copy()
                 image._update(xform_matrix)
                 images.append(image)
-            res = Batch(images)
+            res = Group(images)
 
         if merge and reps > 0:
             return res.merge_images()
@@ -568,9 +568,9 @@ class Image(Rectangle):
         """
         return self.pil_img.resize(size, resample, box, reducing_gap)
 
-    # def translate(self, dx: float=0, dy: float=0, reps: int=0, merge: bool=False, **kwargs)  -> Union[Batch, 'Image']:
+    # def translate(self, dx: float=0, dy: float=0, reps: int=0, merge: bool=False, **kwargs)  -> Union[Group, 'Image']:
     #     """
-    #     Returns a translated copy of this image or a batch of translated copies of this image.
+    #     Returns a translated copy of this image or a group of translated copies of this image.
 
     #     Args:
     #         dx (float): The x-coordinate translation.
@@ -579,16 +579,16 @@ class Image(Rectangle):
     #         merge (bool, optional): Whether to merge the images.
 
     #     Returns:
-    #         Image: An Image object or a Batch of images.
+    #         Image: An Image object or a Group of images.
     #     """
     #     transform = translation_matrix(dx, dy)
     #     kwargs = {'transform': Transformation.TRANSLATE}
     #     return self._update(transform, reps=reps, merge=merge, kwargs=kwargs)
 
     # def rotate(self, angle: float, about: PointType=None, reps: int=0, merge: bool=False,
-    #            resample=0, expand=0, translate=None, fillcolor=None) -> Union[Batch, 'Image']:
+    #            resample=0, expand=0, translate=None, fillcolor=None) -> Union[Group, 'Image']:
     #     """
-    #     Returns a rotated copy of this image or a batch of rotated Image objects.
+    #     Returns a rotated copy of this image or a group of rotated Image objects.
 
     #     Args:
     #         angle (float): The angle to rotate the image.
@@ -608,7 +608,7 @@ class Image(Rectangle):
     #         fillcolor (tuple, optional): Optional fill color for the area outside the rotated image.
 
     #     Returns:
-    #         Image or Batch: A batch of images or an Image object.
+    #         Image or Group: A group of images or an Image object.
     #     """
     #     if about is None:
     #         width, height = self.pil_img.size
@@ -624,7 +624,7 @@ class Image(Rectangle):
     #     return self._update(transform, reps=reps, merge=merge, **kwargs)
 
     # def scale(self, scale_x: float=1, scale_y: float=None, about: PointType=(0, 0),
-    #                                 reps: int=0, merge: bool=False) -> Union[Batch, 'Image']:
+    #                                 reps: int=0, merge: bool=False) -> Union[Group, 'Image']:
     #     """
     #     Scales this image by the given scale factors about the given point.
     #         Args:
@@ -635,7 +635,7 @@ class Image(Rectangle):
     #             merge (bool, optional): Whether to merge the images.
 
     #         Returns:
-    #             Image: An Image object or a Batch of images.
+    #             Image: An Image object or a Group of images.
     #     """
     #     if scale_y is None:
     #         scale_y = scale_x
