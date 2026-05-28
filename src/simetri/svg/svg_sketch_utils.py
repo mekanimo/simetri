@@ -7,6 +7,12 @@ from ..colors.colors import Color
 from ..graphics.all_enums import FontFamily, MarkerType, Types
 from ..graphics.bbox import bounding_box
 from ..settings.settings import defaults, issue_warning
+from ..canvas.style_passes import (
+    build_sketch_style_ids,
+    build_style_sketch_dict,
+    build_styles_dict,
+    validate_style_sketch_coverage,
+)
 from .svg_colors import color_to_svg
 
 
@@ -556,6 +562,7 @@ def get_styles_dict(canvas):
     fill_styles = {}
     line_counter = 1
     fill_counter = 1
+    style_sketches = []
 
     def collect_sketch_styles(sketch):
         nonlocal line_counter, fill_counter
@@ -571,11 +578,58 @@ def get_styles_dict(canvas):
         if subtype not in d_shape_types:
             return
 
-        # Get line style
-        line_style_str = get_line_style_options(sketch)
-        if line_style_str:
+        style_sketches.append(sketch)
+
+    pages = canvas.pages
+    if pages:
+        for page in pages:
+            for sketch in page.sketches:
+                collect_sketch_styles(sketch)
+
+    if not style_sketches:
+        return {}
+
+    style_domain_key_sets = {
+        "line": [
+            "stroke",
+            "draw_double",
+            "double_color",
+            "double_distance",
+            "line_color",
+            "line_alpha",
+            "line_width",
+            "line_cap",
+            "line_join",
+            "line_miter_limit",
+            "line_dash_array",
+        ],
+        "fill": ["fill", "fill_color", "fill_alpha", "even_odd"],
+    }
+
+    neutral_styles = build_styles_dict(style_sketches, style_domain_key_sets)
+    style_sketch_dict = build_style_sketch_dict(
+        style_sketches, style_domain_key_sets, neutral_styles
+    )
+    sketch_style_ids = build_sketch_style_ids(style_sketch_dict)
+    validate_style_sketch_coverage(style_sketches, sketch_style_ids)
+
+    sketch_by_id = {sketch.id: sketch for sketch in style_sketches}
+
+    for style_id, style_obj in neutral_styles.items():
+        sketch_ids = style_sketch_dict[style_id]
+        if not sketch_ids:
+            raise ValueError(f"Style {style_id} has no sketches in style_sketch mapping")
+
+        first_sketch_id = sketch_ids[0]
+        if first_sketch_id not in sketch_by_id:
+            raise ValueError(
+                f"Sketch id {first_sketch_id} missing from style sketch lookup"
+            )
+        sketch = sketch_by_id[first_sketch_id]
+
+        if style_obj["domain"] == "line":
+            line_style_str = get_line_style_options(sketch)
             line_style_dict = parse_style_string(line_style_str)
-            # Check if this style already exists (compare as frozenset of items)
             style_exists = any(
                 set(existing.items()) == set(line_style_dict.items())
                 for existing in line_styles.values()
@@ -583,20 +637,17 @@ def get_styles_dict(canvas):
             if not style_exists:
                 line_styles[f"line_style_{line_counter}"] = line_style_dict
                 line_counter += 1
-
-        # Get fill style for sketches with a mapped SVG shape type
-        shape_type = get_shape_type(sketch)
-        if shape_type in [
-            "circle",
-            "ellipse",
-            "polygon",
-            "polyline",
-            "rect",
-        ]:
-            fill_style_str = get_fill_style_options(sketch, shape_type)
-            if fill_style_str:
+        elif style_obj["domain"] == "fill":
+            shape_type = get_shape_type(sketch)
+            if shape_type in [
+                "circle",
+                "ellipse",
+                "polygon",
+                "polyline",
+                "rect",
+            ]:
+                fill_style_str = get_fill_style_options(sketch, shape_type)
                 fill_style_dict = parse_style_string(fill_style_str)
-                # Check if this style already exists
                 style_exists = any(
                     set(existing.items()) == set(fill_style_dict.items())
                     for existing in fill_styles.values()
@@ -604,12 +655,6 @@ def get_styles_dict(canvas):
                 if not style_exists:
                     fill_styles[f"fill_style_{fill_counter}"] = fill_style_dict
                     fill_counter += 1
-
-    pages = canvas.pages
-    if pages:
-        for page in pages:
-            for sketch in page.sketches:
-                collect_sketch_styles(sketch)
 
     # Combine all styles
     all_styles = {**line_styles, **fill_styles}

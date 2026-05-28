@@ -51,6 +51,7 @@ from ..canvas.style_map import (
     shape_style_map,
 
 )
+from ..canvas.pre_render import NON_SCOPABLE_SCOPE_KEYS
 from ..helpers.illustration import Tag
 from ..helpers.utilities import (
     decompose_transformations,
@@ -1450,7 +1451,7 @@ def draw(self, item: Union[Shape, Group], **kwargs) -> Self:
 
     if subtype == Types.GROUP:
         style_group_keys = list(line_style_map.keys())
-        for style_key in ["draw_double", "double_color", "double_distance"]:
+        for style_key in NON_SCOPABLE_SCOPE_KEYS:
             if style_key in style_group_keys:
                 style_group_keys.remove(style_key)
         for style_key in shape_style_map.keys():
@@ -1482,6 +1483,12 @@ def draw(self, item: Union[Shape, Group], **kwargs) -> Self:
                     if same_style_value:
                         scope_style_data[style_key] = style_value
         if len(group_sketches) > 1 and scope_style_data:
+            overlap = set(scope_style_data.keys()) & NON_SCOPABLE_SCOPE_KEYS
+            if overlap:
+                raise ValueError(
+                    "scope style data cannot include non-scopable keys: "
+                    f"{sorted(overlap)}"
+                )
             self.active_page.scope_groups.append(
                 ScopeGroup(
                     label="",

@@ -221,9 +221,6 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
 
     line_scope_style_keys = [
         "stroke",
-        "draw_double",
-        "double_color",
-        "double_distance",
         "line_color",
         "line_alpha",
         "line_width",
