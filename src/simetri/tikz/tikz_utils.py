@@ -484,8 +484,6 @@ def get_line_style_options(sketch, exceptions=None):
     """
     if exceptions is None:
         exceptions = []
-    else:
-        exceptions = list(exceptions)
 
     attrib_map = {
         "double_color": "double",
@@ -502,22 +500,32 @@ def get_line_style_options(sketch, exceptions=None):
         "fillet_radius": "rounded corners",
     }
     attribs = list(line_style_map.keys())
+    if "exclusive" in sketch.__dict__ and sketch.exclusive is not None:
+        attribs = [
+            style_name
+            for style_name in attribs
+            if style_name in sketch.exclusive
+        ]
     for style_key in exceptions:
         if style_key in attribs:
             attribs.remove(style_key)
-    if hasattr(sketch, "stroke") and sketch.stroke:
-        if exceptions and "draw_fillets" not in exceptions:
+    if sketch.stroke:
+        if (
+            "fillet_radius" in attribs
+            and exceptions
+            and "draw_fillets" not in exceptions
+        ):
             conditions = {"fillet_radius": sketch.draw_fillets}
         else:
             conditions = None
-        if sketch.line_alpha in [None, 1] and "line_alpha" in attribs:
+        if "line_alpha" in attribs and sketch.line_alpha in [None, 1]:
             attribs.remove("line_alpha")
-        if not sketch.draw_double:
+        if "double_color" in attribs and not sketch.draw_double:
             if "double_color" in attribs:
                 attribs.remove("double_color")
             if "double_distance" in attribs:
                 attribs.remove("double_distance")
-        if not sketch.smooth and "smooth" in attribs:
+        if "smooth" in attribs and not sketch.smooth:
             attribs.remove("smooth")
         res = sg_to_tikz(sketch, attribs, attrib_map, conditions, exceptions)
     else:
@@ -539,8 +547,6 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
     """
     if exceptions is None:
         exceptions = []
-    else:
-        exceptions = list(exceptions)
 
     attrib_map = {
         "fill_color": "fill",
@@ -550,11 +556,17 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
         "frame_back_color": "fill",
     }
     attribs = list(shape_style_map.keys())
+    if "exclusive" in sketch.__dict__ and sketch.exclusive is not None:
+        attribs = [
+            style_name
+            for style_name in attribs
+            if style_name in sketch.exclusive
+        ]
 
     for style_key in exceptions:
         if style_key in attribs:
             attribs.remove(style_key)
-    if sketch.fill_alpha in [None, 1] and "fill_alpha" in attribs:
+    if "fill_alpha" in attribs and sketch.fill_alpha in [None, 1]:
         attribs.remove("fill_alpha")
     if sketch.fill and not sketch.back_style == BackStyle.PATTERN:
         res = sg_to_tikz(sketch, attribs, attrib_map, exceptions=exceptions)

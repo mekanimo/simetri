@@ -6,81 +6,81 @@ from typing import List
 
 from simetri.settings.settings import defaults
 from simetri.helpers.utilities import *
-from simetri.graphics.all_enums import Types, TexLoc, FrameShape, BackStyle
-from simetri.helpers.utilities import wait_for_file_availability
-from simetri.helpers.file_operations import remove_aux_files
+from simetri.graphics.all_enums import Types, TexLoc
 from simetri.canvas.pre_render import collect_tikz_preamble_requirements
 from simetri.tikz.tikz import (
     color_to_tikz,
     get_limits_code,
     get_canvas_scope,
-    scope_code_required)
+    scope_code_required,
+)
 
-# def remove_aux_files(file_path):
-#     """
-#     Remove auxiliary files generated during compilation.
+def remove_aux_files(file_path):
+    """
+    Remove auxiliary files generated during compilation.
 
-#     Args:
-#         file_path (Path): The path to the file.
-#     """
-#     time_out = 1  # seconds
-#     parent_dir, file_name = os.path.split(file_path)
-#     file_name, extension = os.path.splitext(file_name)
-#     aux_file = os.path.join(parent_dir, file_name + ".aux")
-#     if os.path.exists(aux_file):
-#         if not wait_for_file_availability(aux_file, time_out):
-#             print(
-#                 (
-#                     f"File '{aux_file}' is not available after waiting for "
-#                     f"{time_out} seconds."
-#                 )
-#             )
-#         else:
-#             os.remove(aux_file)
-#     log_file = os.path.join(parent_dir, file_name + ".log")
-#     if os.path.exists(log_file):
-#         if not wait_for_file_availability(log_file, time_out):
-#             print(
-#                 (
-#                     f"File '{log_file}' is not available after waiting for "
-#                     f"{time_out} seconds."
-#                 )
-#             )
-#         else:
-#             if not defaults["keep_log_files"]:
-#                 os.remove(log_file)
-#     tex_file = os.path.join(parent_dir, file_name + ".tex")
-#     if os.path.exists(tex_file):
-#         if not wait_for_file_availability(tex_file, time_out):
-#             print(
-#                 (
-#                     f"File '{tex_file}' is not available after waiting for "
-#                     f"{time_out} seconds."
-#                 )
-#             )
-#         else:
-#             os.remove(tex_file)
-#     file_name, extension = os.path.splitext(file_name)
-#     if extension not in [".pdf", ".tex"]:
-#         pdf_file = os.path.join(parent_dir, file_name + ".pdf")
-#         if os.path.exists(pdf_file):
-#             if not wait_for_file_availability(pdf_file, time_out):
-#                 print(
-#                     (
-#                         f"File '{pdf_file}' is not available after waiting for "
-#                         f"{time_out} seconds."
-#                     )
-#                 )
-#             else:
-#                 # os.remove(pdf_file)
-#                 pass
-#     log_file = os.path.join(parent_dir, "simetri.log")
-#     if os.path.exists(log_file):
-#         try:
-#             os.remove(log_file)
-#         except PermissionError:
-#             # to do: log the error
-#             pass
+    Args:
+        file_path (Path): The path to the file.
+    """
+    time_out = 1  # seconds
+    parent_dir, file_name = os.path.split(file_path)
+    file_name, extension = os.path.splitext(file_name)
+    aux_file = os.path.join(parent_dir, file_name + ".aux")
+    if os.path.exists(aux_file):
+        if not wait_for_file_availability(aux_file, time_out):
+            print(
+                (
+                    f"File '{aux_file}' is not available after waiting for "
+                    f"{time_out} seconds."
+                )
+            )
+        else:
+            os.remove(aux_file)
+    log_file = os.path.join(parent_dir, file_name + ".log")
+    if os.path.exists(log_file):
+        if not wait_for_file_availability(log_file, time_out):
+            print(
+                (
+                    f"File '{log_file}' is not available after waiting for "
+                    f"{time_out} seconds."
+                )
+            )
+        else:
+            if not defaults["keep_log_files"]:
+                os.remove(log_file)
+    tex_file = os.path.join(parent_dir, file_name + ".tex")
+    if os.path.exists(tex_file):
+        if not wait_for_file_availability(tex_file, time_out):
+            print(
+                (
+                    f"File '{tex_file}' is not available after waiting for "
+                    f"{time_out} seconds."
+                )
+            )
+        else:
+            os.remove(tex_file)
+    file_name, extension = os.path.splitext(file_name)
+    if extension not in [".pdf", ".tex"]:
+        pdf_file = os.path.join(parent_dir, file_name + ".pdf")
+        if os.path.exists(pdf_file):
+            if not wait_for_file_availability(pdf_file, time_out):
+                print(
+                    (
+                        f"File '{pdf_file}' is not available after waiting for "
+                        f"{time_out} seconds."
+                    )
+                )
+            else:
+                # os.remove(pdf_file)
+                pass
+    log_file = os.path.join(parent_dir, "simetri.log")
+    if os.path.exists(log_file):
+        try:
+            os.remove(log_file)
+        except PermissionError:
+            # to do: log the error
+            pass
+
 
 def run_job(parent_dir, file_name, extension, tex_path):
     """
@@ -120,7 +120,6 @@ def run_job(parent_dir, file_name, extension, tex_path):
         pdf_file.close()
 
 
-
 def compile_tex(cmd, parent_dir, print_output):
     """
     Compile the TeX file.
@@ -144,6 +143,7 @@ def compile_tex(cmd, parent_dir, print_output):
         print(output.split("\n")[-3:])
     return output
 
+
 @dataclass
 class Tex:
     """Tex class for generating tex code.
@@ -166,7 +166,9 @@ class Tex:
     packages: List[str] = None
     tikz_libraries: List[str] = None
     tikz_code: str = ""  # Generated by the canvas by using sketches
-    sketches: List["Sketch"] = field(default_factory=list)  # List of TexSketch objects
+    sketches: List["Sketch"] = field(
+        default_factory=list
+    )  # List of TexSketch objects
 
     def __post_init__(self):
         """Post-initialization method."""
@@ -307,7 +309,10 @@ class Tex:
                 border = defaults["border"]
             elif isinstance(canvas.border, (int, float)):
                 border = canvas.border
-            elif isinstance(canvas.border, (list, tuple)) and len(canvas.border) == 4:
+            elif (
+                isinstance(canvas.border, (list, tuple))
+                and len(canvas.border) == 4
+            ):
                 if any(item < 0 for item in canvas.border):
                     raise ValueError(
                         "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
@@ -330,12 +335,17 @@ class Tex:
             if font is None:
                 continue
             font_family = font.replace(" ", "")
-            fonts_section += f"\\newfontfamily\\{font_family}[Scale=1.0]{{{font}}}\n"
+            fonts_section += (
+                f"\\newfontfamily\\{font_family}[Scale=1.0]{{{font}}}\n"
+            )
         preamble = f"{doc_class}{packages}{libraries}{fonts_section}"
 
         indices = False
         for sketch in canvas.active_page.sketches:
-            if hasattr(sketch, "marker_type") and sketch.marker_type == "indices":
+            if (
+                hasattr(sketch, "marker_type")
+                and sketch.marker_type == "indices"
+            ):
                 indices = True
                 break
         if indices:
@@ -343,7 +353,10 @@ class Tex:
             font_size = defaults["indices_font_size"]
             count = 0
             for sketch in canvas.active_page.sketches:
-                if hasattr(sketch, "marker_type") and sketch.marker_type == "indices":
+                if (
+                    hasattr(sketch, "marker_type")
+                    and sketch.marker_type == "indices"
+                ):
                     preamble += "\\tikzset{\n"
                     node_style = (
                         f"nodestyle{count}/.style={{draw, circle, gray, "

@@ -38,7 +38,7 @@ from ..helpers.graph import get_cycles
 from ..graphics.common import get_defaults
 from ..graphics.shapes import fillet_shape_corners
 from ..graphics.all_enums import Types, Connection
-from ..canvas.style_map import shape_style_map, ShapeStyle
+from ..canvas.style_map import shape_style_map
 from ..settings.settings import defaults
 from ..helpers.utilities import flatten, group_into_bins
 from ..helpers.validation import validate_args
@@ -479,7 +479,6 @@ class Section(Shape):
             [start.point, end.point], subtype=Types.SECTION, **kwargs
         )
         self.length = distance(self.start.point, self.end.point)
-
 
     def copy(self):
         """Create a copy of the section.

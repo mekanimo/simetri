@@ -1450,6 +1450,9 @@ def draw(self, item: Union[Shape, Group], **kwargs) -> Self:
 
     if subtype == Types.GROUP:
         style_group_keys = list(line_style_map.keys())
+        for style_key in ["draw_double", "double_color", "double_distance"]:
+            if style_key in style_group_keys:
+                style_group_keys.remove(style_key)
         for style_key in shape_style_map.keys():
             if style_key not in style_group_keys:
                 style_group_keys.append(style_key)
@@ -1943,6 +1946,13 @@ def create_sketch(item, canvas, **kwargs):
             return None
         sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
         sketch.subtype = Types.BBOX_SKETCH
+        sketch.exclusive = [
+            "line_color",
+            "line_width",
+            "line_dash_array",
+            "stroke",
+            "fill",
+        ]
         sketch.visible = True
         sketch.closed = True
         sketch.fill = False

@@ -1,6 +1,6 @@
 """Simetri graphics library's wallpaper patterns."""
 
-# Only six of the 17 wallpaper groups are tested yet.
+# This is obsolete now! Replaced by lattice.py
 
 from math import sqrt, pi, cos
 

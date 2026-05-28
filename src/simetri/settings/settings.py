@@ -20,7 +20,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from math import pi
-from typing_extensions import Sequence, Union
+from typing_extensions import Sequence
 
 import numpy as np
 

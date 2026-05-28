@@ -426,6 +426,7 @@ class ShapeSketch:
         self.type = Types.SKETCH
         self.subtype = Types.SHAPE_SKETCH
         self.id = get_unique_id(self)
+        self.exclusive = None
         if self.xform_matrix is None:
             vertices = self.vertices
             self.xform_matrix = identity_matrix()

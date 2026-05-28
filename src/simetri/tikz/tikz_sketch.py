@@ -175,8 +175,6 @@ def draw_bbox_sketch(sketch):
         "line_color": "color",
         "line_width": "line width",
         "line_dash_array": "dash pattern",
-        "double_color": "double",
-        "double_distance": "double distance",
     }
     attrib_list = ["line_color", "line_width", "line_dash_array"]
     options = sg_to_tikz(sketch, attrib_list, attrib_map)

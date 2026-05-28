@@ -5,7 +5,7 @@ import tempfile
 import os
 from pathlib import Path
 
-from IPython.display import HTML, Image, SVG
+from IPython.display import Image, SVG
 from IPython.display import display as ipy_display
 
 

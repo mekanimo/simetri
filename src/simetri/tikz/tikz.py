@@ -164,9 +164,6 @@ def get_tex_code(canvas: "Canvas") -> str:
     scope_style_keys = [
         "back_style",
         "blend_mode",
-        "double_color",
-        "double_distance",
-        "draw_double",
         "fill",
         "fill_alpha",
         "fill_color",

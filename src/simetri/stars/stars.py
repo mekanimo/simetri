@@ -1,6 +1,6 @@
 """This module contains classes and functions for creating stars and rosettes."""
 
-from math import pi, sin, cos, tan, sqrt, asin, acos, atan
+from math import pi, sin, cos, tan, sqrt
 from typing import Union
 
 from ..graphics.batch import Group

@@ -17,6 +17,7 @@ from ..canvas.pre_render import (
     render_svg_scope_loop,
 )
 from ..graphics.sketch import MaskSketch
+from . import svg_sketch_utils as svg_sketch_utils_module
 from .filters import SVG_Filter
 from .svg_sketch_utils import *
 from .svg_sketch import *
@@ -539,6 +540,9 @@ def svg_shape(sketch, styles_dict, exceptions=None):
 {class_attr}{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}
 {coordinates}
 />"""
+
+
+svg_sketch_utils_module.svg_shape = svg_shape
 
 
 def collect_patterns_and_gradients(canvas):
