@@ -1,7 +1,5 @@
 """Helpers for SVG sketch operations."""
 
-from types import SimpleNamespace
-
 import numpy as np
 from PIL import ImageFont
 
@@ -17,6 +15,20 @@ def svg_shape(*args, **kwargs):
     raise RuntimeError(
         "svg_shape must be initialized by simetri.svg.svg before use."
     )
+
+
+_active_svg_style_ids = {}
+
+
+def set_active_svg_style_ids(style_ids):
+    global _active_svg_style_ids
+    _active_svg_style_ids = style_ids
+
+
+def get_active_svg_style_id(sketch):
+    if sketch.id in _active_svg_style_ids:
+        return _active_svg_style_ids[sketch.id]
+    return None
 
 
 d_shape_types = {
@@ -599,6 +611,14 @@ def get_style_maps(canvas):
     d_styles, sketch_style_ids = set_styles(style_sketches)
     sketch_by_id = {sketch.id: sketch for sketch in style_sketches}
     style_sketch_dict = {}
+    special_fill_sketch_ids = set()
+
+    for sketch in style_sketches:
+        sketch_dict = sketch.__dict__
+        if "tile_svg" in sketch_dict and sketch.tile_svg is not None:
+            special_fill_sketch_ids.add(sketch.id)
+        if "gradient" in sketch_dict and has_gradient(sketch):
+            special_fill_sketch_ids.add(sketch.id)
 
     for sketch in style_sketches:
         if sketch.id not in sketch_style_ids:
@@ -614,7 +634,7 @@ def get_style_maps(canvas):
         sketch = sketch_by_id[style_sketch_dict[style_id][0]]
         shape_type = get_shape_type(sketch)
         style_parts = [get_line_style_options(sketch)]
-        if shape_type != "line":
+        if shape_type != "line" and sketch.id not in special_fill_sketch_ids:
             style_parts.append(get_fill_style_options(sketch, shape_type))
         css_styles[style_id] = parse_style_string(" ".join(style_parts))
 
@@ -624,15 +644,6 @@ def get_style_maps(canvas):
 def get_styles_dict(canvas):
     css_styles, _ = get_style_maps(canvas)
     return css_styles
-
-
-def with_svg_style_id(sketch, sketch_style_ids):
-    if sketch.id not in sketch_style_ids:
-        return sketch
-
-    sketch_data = dict(sketch.__dict__)
-    sketch_data["_style_id"] = sketch_style_ids[sketch.id]
-    return SimpleNamespace(**sketch_data)
 
 
 def get_style_class(
@@ -650,10 +661,11 @@ def get_style_class(
         str: Space-separated class names.
     """
 
-    if skip_fill or exceptions:
+    if exceptions:
         return ""
-    if "_style_id" in sketch_attrib(sketch, "__dict__"):
-        return sketch._style_id
+    style_id = get_active_svg_style_id(sketch)
+    if style_id is not None:
+        return style_id
     return ""
 
 
@@ -758,8 +770,12 @@ def generate_gradient_def(sketch, gradient_id):
     transform_attr = f' gradientTransform="{transform}"' if transform else ""
 
     if gradient_type.value == "linear":
-        x1, y1 = gradient.axis[0]
-        x2, y2 = gradient.axis[1]
+        x1, y1 = gradient.axis[0][:2]
+        x2, y2 = gradient.axis[1][:2]
+
+        if units == "objectBoundingBox":
+            y1 = 1 - y1
+            y2 = 1 - y2
 
         if context_bbox is not None and units == "objectBoundingBox":
             bx, by, bw, bh = context_bbox
@@ -772,9 +788,13 @@ def generate_gradient_def(sketch, gradient_id):
         gradient_start = f'  <linearGradient id="{gradient_id}" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" gradientUnits="{units}" spreadMethod="{spread_method}"{transform_attr}>'
         gradient_end = "  </linearGradient>"
     else:  # radial
-        cx, cy = gradient.center
-        fx, fy = gradient.focal
+        cx, cy = gradient.center[:2]
+        fx, fy = gradient.focal[:2]
         r = gradient.radius
+
+        if units == "objectBoundingBox":
+            cy = 1 - cy
+            fy = 1 - fy
 
         if context_bbox is not None and units == "objectBoundingBox":
             bx, by, bw, bh = context_bbox

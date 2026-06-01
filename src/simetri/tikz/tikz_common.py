@@ -114,14 +114,24 @@ def _mask_scope_parts(sketch, fade_id=None):
     else:
         if "mask" not in sketch.__dict__:
             return "", ""
-        mask = sketch.mask
-        if mask is None:
+        mask_data = sketch.mask
+        if mask_data is None:
             return "", ""
 
-        clip = sketch.clip
-        mask_opacity = sketch._mask_opacity
-        mask_stops = sketch._mask_stops
-        mask_axis = sketch._mask_axis
+        if mask_data.type == Types.MASK:
+            mask = mask_data.shape
+            clip = mask_data.opacity >= 1.0 and mask_data.stops is None
+            mask_opacity = mask_data.opacity
+            mask_stops = mask_data.stops
+            mask_axis = mask_data.axis
+            if mask_stops is not None and mask_axis is None:
+                mask_axis = defaults["mask_axis"]
+        else:
+            mask = mask_data
+            clip = sketch.clip
+            mask_opacity = 1.0
+            mask_stops = None
+            mask_axis = None
 
     if mask is None:
         return "", ""

@@ -68,14 +68,25 @@ class TexSketch:
 """TikZ Sketch"""
 
 
+_active_tikz_style_ids = {}
+
+
+def set_active_tikz_style_ids(style_ids):
+    global _active_tikz_style_ids
+    _active_tikz_style_ids = style_ids
+
+
+def get_active_tikz_style_id(sketch):
+    if sketch.id in _active_tikz_style_ids:
+        return _active_tikz_style_ids[sketch.id]
+    return None
+
+
 def _canvas_mask_scope_sketch(canvas):
     page = canvas.active_page
     sketches = page.sketches
     for sketch in reversed(sketches):
-        if (
-            "_canvas_mask_scope" in sketch.__dict__
-            and sketch._canvas_mask_scope
-        ):
+        if sketch.subtype == Types.MASK_SKETCH:
             return sketch
     return None
 
@@ -106,7 +117,7 @@ def draw_helplines_sketch(sketch):
         line_color, line_width, line_dash_array=None, draw_opacity=None
     ):
         options = [
-            f"color={color_to_tikz(line_color)}",
+            f"draw={color_to_tikz(line_color)}",
             f"line width={line_width}",
         ]
         if line_dash_array is not None:
@@ -175,7 +186,7 @@ def draw_bbox_sketch(sketch):
         str: The TikZ code for the BBoxSketch.
     """
     attrib_map = {
-        "line_color": "color",
+        "line_color": "draw",
         "line_width": "line width",
         "line_dash_array": "dash pattern",
     }
@@ -419,8 +430,9 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
     body = get_draw(sketch)
     if body:
         options = []
-        if "_tikz_style_id" in sketch.__dict__:
-            options.append(sketch._tikz_style_id)
+        style_id = get_active_tikz_style_id(sketch)
+        if style_id is not None:
+            options.append(style_id)
         options += get_line_style_options(sketch, exceptions=exceptions)
         if sketch.fill and sketch.closed:
             options += get_fill_style_options(sketch, exceptions=exceptions)
@@ -491,8 +503,9 @@ def draw_shape_sketch_with_markers(sketch, exceptions=None):
     body = get_draw(sketch)
     if body:
         options = []
-        if "_tikz_style_id" in sketch.__dict__:
-            options.append(sketch._tikz_style_id)
+        style_id = get_active_tikz_style_id(sketch)
+        if style_id is not None:
+            options.append(style_id)
         options += get_line_style_options(sketch, exceptions=exceptions)
         if sketch.fill and sketch.closed:
             options += get_fill_style_options(sketch, exceptions=exceptions)
@@ -584,8 +597,9 @@ def draw_pattern_sketch(sketch, exceptions=None):
         str: The TikZ code for the pattern sketch.
     """
     options = []
-    if "_tikz_style_id" in sketch.__dict__:
-        options.append(sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.append(style_id)
 
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options += get_pattern_options(sketch)
@@ -640,8 +654,9 @@ def draw_sketch(sketch, exceptions=None):
     if not res:
         return ""
     options = []
-    if "_tikz_style_id" in sketch.__dict__:
-        options.append(sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.append(style_id)
     gradient_options = _get_gradient_shading_options(sketch)
     has_gradient = bool(gradient_options) and sketch.fill and sketch.closed
 
@@ -812,8 +827,9 @@ def draw_path_sketch(sketch, exceptions=None):
     if not res:
         return ""
     options = []
-    if "_tikz_style_id" in sketch.__dict__:
-        options.append(sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.append(style_id)
     if sketch.stroke:
         options.extend(get_line_style_options(sketch, exceptions=exceptions))
     if sketch.fill:
@@ -837,8 +853,9 @@ def draw_line_sketch(sketch, canvas=None, exceptions=None):
     """
     res = "\\draw"
     options = []
-    if "_tikz_style_id" in sketch.__dict__:
-        options.append(sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.append(style_id)
     options += get_line_style_options(sketch, exceptions=exceptions)
 
     start = sketch.vertices[0]
@@ -870,8 +887,9 @@ def draw_circle_sketch(sketch, exceptions=None):
     if not res:
         return ""
     options = []
-    if "_tikz_style_id" in sketch.__dict__:
-        options.append(sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.append(style_id)
     options += get_line_style_options(sketch, exceptions=exceptions)
     gradient_options = _get_gradient_shading_options(sketch)
     has_gradient = bool(gradient_options) and sketch.fill
@@ -903,8 +921,9 @@ def draw_rect_sketch(sketch, exceptions=None):
     if not res:
         return ""
     options = []
-    if "_tikz_style_id" in sketch.__dict__:
-        options.append(sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.append(style_id)
     options += get_line_style_options(sketch, exceptions=exceptions)
     gradient_options = _get_gradient_shading_options(sketch)
     has_gradient = bool(gradient_options) and sketch.fill
@@ -937,8 +956,9 @@ def draw_ellipse_sketch(sketch, exceptions=None):
     if not res:
         return ""
     options = []
-    if "_tikz_style_id" in sketch.__dict__:
-        options.append(sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.append(style_id)
     options += get_line_style_options(sketch, exceptions=exceptions)
     gradient_options = _get_gradient_shading_options(sketch)
     has_gradient = bool(gradient_options) and sketch.fill
@@ -978,8 +998,9 @@ def draw_arc_sketch(sketch, exceptions=None):
         options = ["smooth cycle"]
     else:
         options = ["smooth"]
-    if "_tikz_style_id" in sketch.__dict__:
-        options.insert(0, sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.insert(0, style_id)
 
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options += get_pattern_options(sketch)
@@ -1032,8 +1053,9 @@ def draw_bezier_sketch(sketch, exceptions=None):
     if not res:
         return ""
     options = []
-    if "_tikz_style_id" in sketch.__dict__:
-        options.append(sketch._tikz_style_id)
+    style_id = get_active_tikz_style_id(sketch)
+    if style_id is not None:
+        options.append(style_id)
     options += get_line_style_options(sketch, exceptions=exceptions)
     options = ", ".join(options)
     if options:
@@ -1063,7 +1085,7 @@ def draw_line(line):
         options.append(line.line_width)
     if line.color is not None:
         color = color_to_tikz(line.color)
-        options.append(color)
+        options.append(f"draw={color}")
     if line.dash_array is not None:
         options.append(line.dash_array)
     # options = [line.width, line.color, line.dash_array, line.cap, line.join]

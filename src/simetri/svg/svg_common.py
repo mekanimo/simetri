@@ -65,12 +65,8 @@ def get_clip_mask_attrs(sketch):
 
     mask_attr = ""
     if mask is not None and (clip is not True):
-        mask_id = sketch_attrib(sketch, "_mask_context_id")
-        if mask_id is not None:
-            mask_attr = f' mask="url(#{mask_id})"'
+        mask_attr = f' mask="url(#mask_{sketch.id})"'
     elif has_mask_style(sketch) and (clip is not True):
-        mask_id = sketch_attrib(sketch, "_mask_context_id")
-        if mask_id is not None:
-            mask_attr = f' mask="url(#{mask_id})"'
+        mask_attr = f' mask="url(#mask_{sketch.id})"'
 
     return clip_attr, mask_attr

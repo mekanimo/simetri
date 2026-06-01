@@ -17,6 +17,7 @@ from ..settings.settings import defaults
 from .svg_colors import color_to_matplotlib, color_to_svg
 from .svg_common import _clip_line_to_rect, get_clip_mask_attrs
 from .svg_sketch_utils import (
+    get_active_svg_style_id,
     _line_limits,
     get_fill_style_options,
     get_line_style_options,
@@ -74,8 +75,9 @@ def draw_line_sketch(sketch, canvas, exceptions=None):
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)
     class_attr = ""
     style_attr = ""
-    if exceptions is None and "_style_id" in sketch_attrib(sketch, "__dict__"):
-        class_attr = f' class="{sketch._style_id}"'
+    style_id = get_active_svg_style_id(sketch)
+    if exceptions is None and style_id is not None:
+        class_attr = f' class="{style_id}"'
     else:
         style = get_line_style_options(sketch, exceptions=exceptions)
         if style:
@@ -117,12 +119,9 @@ def draw_arc_sketch(sketch, exceptions=None):
 
     class_attr = ""
     style = ""
-    if (
-        not skip_fill_style
-        and exceptions is None
-        and "_style_id" in sketch_attrib(sketch, "__dict__")
-    ):
-        class_attr = f' class="{sketch._style_id}"'
+    style_id = get_active_svg_style_id(sketch)
+    if exceptions is None and style_id is not None:
+        class_attr = f' class="{style_id}"'
     else:
         line_style = get_line_style_options(sketch, exceptions=exceptions)
         style = line_style
@@ -166,12 +165,9 @@ def draw_path_sketch(sketch, exceptions=None):
 
     class_attr = ""
     style = ""
-    if (
-        not skip_fill_style
-        and exceptions is None
-        and "_style_id" in sketch_attrib(sketch, "__dict__")
-    ):
-        class_attr = f' class="{sketch._style_id}"'
+    style_id = get_active_svg_style_id(sketch)
+    if exceptions is None and style_id is not None:
+        class_attr = f' class="{style_id}"'
     else:
         line_style = get_line_style_options(sketch, exceptions=exceptions)
         style = line_style
@@ -212,8 +208,9 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
 
     class_attr = ""
     style_attr = ""
-    if exceptions is None and "_style_id" in sketch_attrib(sketch, "__dict__"):
-        class_attr = f'class="{sketch._style_id}"'
+    style_id = get_active_svg_style_id(sketch)
+    if exceptions is None and style_id is not None:
+        class_attr = f'class="{style_id}"'
     else:
         line_style = get_line_style_options(sketch, exceptions=exceptions)
         fill_style = get_fill_style_options(

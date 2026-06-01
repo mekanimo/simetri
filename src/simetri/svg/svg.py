@@ -131,6 +131,7 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
 
     sketch_style_ids = styles_dict["sketch_style_ids"]
     css_styles = styles_dict["css_styles"]
+    svg_sketch_utils_module.set_active_svg_style_ids(sketch_style_ids)
 
     def render_sketches(sketches, ind):
         code = []
@@ -150,14 +151,12 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             tuple: The SVG code and the updated index.
         """
 
-        render_sketch = with_svg_style_id(sketch, sketch_style_ids)
-
         subtype = sketch_attrib(sketch, "subtype")
-        draw_markers = sketch_attrib(render_sketch, "draw_markers")
-        indices = sketch_attrib(render_sketch, "indices")
+        draw_markers = sketch_attrib(sketch, "draw_markers")
+        indices = sketch_attrib(sketch, "indices")
 
         if subtype == Types.TAG_SKETCH:
-            code = draw_tag_sketch(render_sketch)
+            code = draw_tag_sketch(sketch)
         elif subtype == Types.CLIPPED_SKETCH:
             clippath_id = f"clippath_{id(sketch)}"
             child_sketches = []
@@ -180,45 +179,40 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         elif subtype == Types.MASK_SKETCH:
             code = ""
         elif subtype == Types.LATEX_SKETCH:
-            code = draw_latex_sketch(render_sketch)
+            code = draw_latex_sketch(sketch)
         elif subtype == Types.IMAGE_SKETCH:
-            code = draw_image_sketch(render_sketch)
+            code = draw_image_sketch(sketch)
         elif subtype == Types.HELPLINES_SKETCH:
-            code = draw_helplines_sketch(render_sketch)
+            code = draw_helplines_sketch(sketch)
         elif subtype == Types.LINE_SKETCH:
             code = draw_line_sketch(
-                render_sketch, canvas, exceptions=suppressed_style_keys
+                sketch, canvas, exceptions=suppressed_style_keys
             )
         elif subtype == Types.ARC_SKETCH:
-            code = draw_arc_sketch(
-                render_sketch, exceptions=suppressed_style_keys
-            )
+            code = draw_arc_sketch(sketch, exceptions=suppressed_style_keys)
         elif subtype == Types.PATH_SKETCH:
-            code = draw_path_sketch(
-                render_sketch, exceptions=suppressed_style_keys
-            )
+            code = draw_path_sketch(sketch, exceptions=suppressed_style_keys)
         elif (
             draw_markers
-            and sketch_attrib(render_sketch, "marker_type")
-            == MarkerType.INDICES
+            and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
         ) or indices:
             code = draw_shape_sketch_with_indices(
-                render_sketch, exceptions=suppressed_style_keys
+                sketch, exceptions=suppressed_style_keys
             )
         elif draw_markers:
             # Use marker rendering for shapes with markers enabled
             code = draw_shape_sketch_with_markers(
-                render_sketch, exceptions=suppressed_style_keys
+                sketch, exceptions=suppressed_style_keys
             )
         else:
             code = svg_shape(
-                render_sketch,
+                sketch,
                 css_styles,
                 exceptions=suppressed_style_keys,
             )
 
-        sketch_dict = sketch_attrib(render_sketch, "__dict__")
-        sketch_filter = sketch_attrib(render_sketch, "filter")
+        sketch_dict = sketch_attrib(sketch, "__dict__")
+        sketch_filter = sketch_attrib(sketch, "filter")
         if "filter" in sketch_dict and sketch_filter is not None:
             filter_id = sketch_filter.id
             code = f'<g filter="url(#{filter_id})">\n{code}\n</g>'
@@ -250,6 +244,7 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
     rendered_code = render_sketches(sketches, 0)
     code.append(rendered_code)
 
+    svg_sketch_utils_module.set_active_svg_style_ids({})
     code = "\n".join(code)
     return code
 
@@ -313,10 +308,10 @@ def svg_shape(sketch, styles_dict, exceptions=None):
     # Check for opacity mask property (mask shape + clip is not enabled)
     mask_attr = ""
     if mask is not None and (clip is not True):
-        mask_id = sketch_attrib(sketch, "_mask_context_id")
+        mask_id = f"mask_{sketch.id}"
         mask_attr = f' mask="url(#{mask_id})"'
     elif has_mask_style(sketch) and (clip is not True):
-        mask_id = sketch_attrib(sketch, "_mask_context_id")
+        mask_id = f"mask_{sketch.id}"
         mask_attr = f' mask="url(#{mask_id})"'
 
     # Get style class, skipping fill style if gradient/pattern is used
@@ -347,9 +342,11 @@ def svg_shape(sketch, styles_dict, exceptions=None):
         if line_color is None:
             line_color = defaults["line_color"]
         outer_stroke = color_to_svg(check_color(line_color))
-        fill_style = get_fill_style_options(
-            sketch, style_shape_type, exceptions=exceptions
-        )
+        fill_style = ""
+        if not skip_fill_style:
+            fill_style = get_fill_style_options(
+                sketch, style_shape_type, exceptions=exceptions
+            )
         outer_style = f"stroke: {outer_stroke}; stroke-width: {outer_stroke_width}; {fill_style}"
         outer_element = (
             f"<{shape_type}\n"
@@ -371,7 +368,7 @@ def svg_shape(sketch, styles_dict, exceptions=None):
         class_attr = f' class= "{style_class}"'
     else:
         style_parts = [get_line_style_options(sketch, exceptions=exceptions)]
-        if shape_type != "line":
+        if shape_type != "line" and not skip_fill_style:
             style_parts.append(
                 get_fill_style_options(
                     sketch, style_shape_type, exceptions=exceptions
@@ -514,11 +511,11 @@ def collect_masks(canvas):
                 mask = sketch_attrib(sketch, "mask")
                 clip = sketch_attrib(sketch, "clip")
                 if mask is not None and (clip is not True):
-                    mask_key = sketch_attrib(sketch, "_mask_context_id")
+                    mask_key = f"mask_{sketch.id}"
                     if mask_key not in masks:
                         masks[mask_key] = (sketch, mask)
                 elif has_mask_style(sketch):
-                    mask_key = sketch_attrib(sketch, "_mask_context_id")
+                    mask_key = f"mask_{sketch.id}"
                     if mask_key not in masks:
                         masks[mask_key] = (sketch, None)
 
@@ -597,9 +594,9 @@ def generate_defs(canvas, styles_dict):
     if canvas_mask_scope is not None:
         canvas_mask = canvas_mask_scope.mask
         canvas_clip = bool(canvas_mask_scope.clip)
-        canvas_mask_opacity = canvas_mask_scope._mask_opacity
-        canvas_mask_stops = canvas_mask_scope._mask_stops
-        canvas_mask_axis = canvas_mask_scope._mask_axis
+        canvas_mask_opacity = canvas_mask_scope.mask_opacity
+        canvas_mask_stops = canvas_mask_scope.mask_stops
+        canvas_mask_axis = canvas_mask_scope.mask_axis
     else:
         canvas_mask = None
         canvas_clip = False
@@ -682,7 +679,7 @@ def generate_defs(canvas, styles_dict):
                     generate_mask_def(
                         scope_group,
                         scope_group.mask,
-                        scope_group._mask_context_id,
+                        f"mask_{scope_group.id}",
                         canvas,
                         styles_dict,
                     )
@@ -978,18 +975,15 @@ def get_svg_code(canvas):
     limits_clippath_id, _ = get_limits_clippath(canvas)
     canvas_mask_scope = None
     for sketch in reversed(canvas.active_page.sketches):
-        if (
-            "_canvas_mask_scope" in sketch.__dict__
-            and sketch._canvas_mask_scope
-        ):
+        if sketch.subtype == Types.MASK_SKETCH:
             canvas_mask_scope = sketch
             break
 
     if canvas_mask_scope is not None:
         canvas_mask = canvas_mask_scope.mask
         canvas_clip = canvas_mask_scope.clip
-        canvas_mask_opacity = canvas_mask_scope._mask_opacity
-        canvas_mask_stops = canvas_mask_scope._mask_stops
+        canvas_mask_opacity = canvas_mask_scope.mask_opacity
+        canvas_mask_stops = canvas_mask_scope.mask_stops
     else:
         canvas_mask = None
         canvas_clip = False

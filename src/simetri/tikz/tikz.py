@@ -29,6 +29,7 @@ from ..canvas.pre_render import (
 from ..geometry.geometry import homogenize
 
 
+from . import tikz_sketch as tikz_sketch_module
 from .tikz_mask import *
 from .tikz_mask import _effective_alpha_from_stop, _pgf_gray
 from .tikz_sketch import *
@@ -43,15 +44,6 @@ array = np.array
 
 
 enum_map = {}
-
-
-def _with_tikz_style_id(sketch, sketch_style_ids):
-    if sketch.id not in sketch_style_ids:
-        return sketch
-
-    sketch_data = dict(sketch.__dict__)
-    sketch_data["_tikz_style_id"] = sketch_style_ids[sketch.id]
-    return SimpleNamespace(**sketch_data)
 
 
 def anchor_to_tikz(anchor: Anchor | None) -> str | None:
@@ -110,9 +102,9 @@ def get_back_grid_code(grid: Grid, canvas: "Canvas") -> str:
         options.append(f"line width={grid.line_width}")
     if options:
         options = ",".join(options)
-        lines.append(f"\\draw[color={line_color}, step={step}, {options}]")
+        lines.append(f"\\draw[draw={line_color}, step={step}, {options}]")
     else:
-        lines.append(f"\\draw[color={line_color},step={step}]")
+        lines.append(f"\\draw[draw={line_color},step={step}]")
     lines.append("(current bounding box.south west)")
     lines.append(" grid (current bounding box.north east);\n")
     lines.append("\\end{scope}\n")
@@ -177,7 +169,6 @@ def get_tex_code(canvas: "Canvas") -> str:
         str: The TikZ code.
     """
 
-    d_sketch_style = {}
     render_style_ids = {}
 
     styleable_subtypes = [
@@ -214,22 +205,18 @@ def get_tex_code(canvas: "Canvas") -> str:
         Returns:
             tuple: The TikZ code and the updated index.
         """
-        render_sketch = _with_tikz_style_id(sketch, render_style_ids)
-
         if sketch.subtype == Types.TAG_SKETCH:
-            code = draw_tag_sketch(render_sketch)
+            code = draw_tag_sketch(sketch)
         elif sketch.subtype == Types.IMAGE_SKETCH:
-            code = draw_image_sketch(render_sketch)
+            code = draw_image_sketch(sketch)
         elif sketch.subtype == Types.HELPLINES_SKETCH:
-            code = draw_helplines_sketch(render_sketch)
+            code = draw_helplines_sketch(sketch)
         elif sketch.subtype == Types.PDF_SKETCH:
-            code = draw_pdf_sketch(render_sketch)
+            code = draw_pdf_sketch(sketch)
         elif sketch.subtype == Types.BBOX_SKETCH:
-            code = draw_bbox_sketch(render_sketch)
+            code = draw_bbox_sketch(sketch)
         elif sketch.subtype == Types.PATTERN_SKETCH:
-            code = draw_pattern_sketch(
-                render_sketch, exceptions=suppressed_style_keys
-            )
+            code = draw_pattern_sketch(sketch, exceptions=suppressed_style_keys)
         elif sketch.subtype == Types.TEX_SKETCH:
             if sketch.location == TexLoc.NONE:
                 code = sketch.code
@@ -264,15 +251,15 @@ def get_tex_code(canvas: "Canvas") -> str:
             code = child_code
         else:
             if (
-                hasattr(render_sketch, "draw_markers")
-                and render_sketch.draw_markers
-                and render_sketch.marker_type == MarkerType.INDICES
+                hasattr(sketch, "draw_markers")
+                and sketch.draw_markers
+                and sketch.marker_type == MarkerType.INDICES
             ):
-                code = draw_shape_sketch(render_sketch, ind, canvas)
+                code = draw_shape_sketch(sketch, ind, canvas)
                 ind += 1
             else:
                 code = draw_shape_sketch(
-                    render_sketch,
+                    sketch,
                     canvas=canvas,
                     exceptions=suppressed_style_keys,
                 )
@@ -335,6 +322,7 @@ def get_tex_code(canvas: "Canvas") -> str:
 
             d_styles, d_sketch_style = set_styles(style_sketches)
             render_style_ids = {}
+            tikz_sketch_module.set_active_tikz_style_ids(render_style_ids)
             style_sketch_dict = {}
             for sketch in style_sketches:
                 if sketch.id not in d_sketch_style:
@@ -381,6 +369,7 @@ def get_tex_code(canvas: "Canvas") -> str:
 
             ind = 0
             page_code, ind = render_sketches(sketches, ind)
+            tikz_sketch_module.set_active_tikz_style_ids({})
             code.append(page_code)
 
         code = "\n".join(code)
@@ -474,14 +463,30 @@ def _mask_scope_parts(sketch, fade_id=None):
     else:
         if "mask" not in sketch.__dict__:
             return "", ""
-        mask = sketch.mask
-        if mask is None:
+        mask_data = sketch.mask
+        if mask_data is None:
             return "", ""
 
-        clip = sketch.clip
-        mask_opacity = sketch._mask_opacity
-        mask_stops = sketch._mask_stops
-        mask_axis = sketch._mask_axis
+        if mask_data.type == Types.MASK:
+            mask = mask_data.shape
+            clip = mask_data.opacity >= 1.0 and mask_data.stops is None
+            mask_opacity = mask_data.opacity
+            mask_stops = mask_data.stops
+            mask_axis = mask_data.axis
+            if mask_stops is not None and mask_axis is None:
+                mask_axis = defaults["mask_axis"]
+        elif sketch.subtype == Types.MASK_SKETCH:
+            mask = mask_data
+            clip = sketch.clip
+            mask_opacity = sketch.mask_opacity
+            mask_stops = sketch.mask_stops
+            mask_axis = sketch.mask_axis
+        else:
+            mask = mask_data
+            clip = sketch.clip
+            mask_opacity = 1.0
+            mask_stops = None
+            mask_axis = None
 
     if mask is None:
         return "", ""
@@ -532,9 +537,9 @@ def get_canvas_scope(canvas):
     if canvas_mask_scope is not None:
         canvas_mask = canvas_mask_scope.mask
         canvas_clip = canvas_mask_scope.clip
-        canvas_mask_opacity = canvas_mask_scope._mask_opacity
-        canvas_mask_stops = canvas_mask_scope._mask_stops
-        canvas_mask_fade_id = canvas_mask_scope._mask_fade_id
+        canvas_mask_opacity = canvas_mask_scope.mask_opacity
+        canvas_mask_stops = canvas_mask_scope.mask_stops
+        canvas_mask_fade_id = f"simetriCanvasMaskFade{canvas_mask_scope.id}"
     else:
         canvas_mask = None
         canvas_clip = False

@@ -493,7 +493,7 @@ def get_line_style_options(sketch, exceptions=None):
     attrib_map = {
         "double_color": "double",
         "double_distance": "double distance",
-        "line_color": "color",
+        "line_color": "draw",
         "line_width": "line width",
         "line_dash_array": "dash pattern",
         "line_cap": "line cap",

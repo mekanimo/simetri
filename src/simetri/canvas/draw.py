@@ -1620,8 +1620,6 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
         sketch.clip = item.clip
     if hasattr(item, "mask"):
         sketch.mask = item.mask
-    if "_mask_context_id" in item.__dict__:
-        sketch._mask_context_id = item._mask_context_id
     if "_mask_opacity" in item.__dict__:
         sketch._mask_opacity = item._mask_opacity
     if "_mask_stops" in item.__dict__:
@@ -1641,7 +1639,11 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
         "fill_alpha",
     }
     for k, v in kwargs.items():
-        if k in precedence_keys:
+        if k in precedence_keys or k in {
+            "_mask_context_id",
+            "_style_id",
+            "_tikz_style_id",
+        }:
             continue
         setattr(sketch, k, v)
 

@@ -396,12 +396,6 @@ class MaskSketch:
         self.id = get_unique_id(self)
         self.code = ""
         self.location = TexLoc.NONE
-        self._canvas_mask_scope = True
-        self._mask_opacity = self.mask_opacity
-        self._mask_stops = self.mask_stops
-        self._mask_axis = self.mask_axis
-        self._mask_units = self.mask_units
-        self._mask_content_units = self.mask_content_units
 
 
 @dataclass

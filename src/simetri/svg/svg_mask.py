@@ -211,6 +211,12 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             mask_axis = defaults["mask_axis"]
         mask_units = _normalize_svg_units(None)
         mask_content_units = _normalize_svg_units(None)
+    elif sketch.subtype == Types.MASK_SKETCH:
+        mask_opacity = sketch.mask_opacity
+        mask_stops = sketch.mask_stops
+        mask_axis = sketch.mask_axis
+        mask_units = _normalize_svg_units(sketch.mask_units)
+        mask_content_units = _normalize_svg_units(sketch.mask_content_units)
     else:
         mask_opacity = sketch_attrib(sketch, "_mask_opacity")
         if mask_opacity is None:
@@ -321,9 +327,6 @@ def has_mask_style(sketch):
 
 def _canvas_mask_scope_sketch(canvas):
     for sketch in reversed(canvas.active_page.sketches):
-        if (
-            "_canvas_mask_scope" in sketch.__dict__
-            and sketch._canvas_mask_scope
-        ):
+        if sketch.subtype == Types.MASK_SKETCH:
             return sketch
     return None

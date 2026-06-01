@@ -43,7 +43,6 @@ class Mask:
             raise ValueError("mask opacity must be between 0 and 1.")
 
 
-
 @dataclass(init=False)
 class Stop:
     """A gradient stop used by mask gradients.
@@ -80,7 +79,6 @@ class Stop:
     def __post_init__(self):
         self.type = Types.STOP
         self.subtype = Types.STOP
-
 
 
 def _resolve_stops(stops):
@@ -123,6 +121,7 @@ class Gradient:
     [(offset1, opacity1), (offset2, opacity2), ...]
 
     """
+
     gradient_type: GradientType = GradientType.LINEAR
     stops: tuple = ((0, gray), (1, white))
     axis: Optional[tuple] = ((0, 0), (1, 0))
@@ -158,8 +157,9 @@ class Gradient:
             self.subtype = Types.RADIAL
 
 
-
-def _normalize_units(value: Optional[Union[str, SvgUnits]], field_name: str) -> SvgUnits:
+def _normalize_units(
+    value: Optional[Union[str, SvgUnits]], field_name: str
+) -> SvgUnits:
     if value is None:
         if field_name == "mask_units":
             default_value = defaults["mask_units"]
@@ -199,14 +199,24 @@ def _normalize_units(value: Optional[Union[str, SvgUnits]], field_name: str) -> 
 
 # This is no longer used! Will be deleted soon.
 # We will use canvas.clip(target, mask), canvas.mask(target, mask)
-def clip_mask_(self: "Canvas", target: Union[Shape, Group, None]=None, mask: Mask=None, **kwargs):
-    """Apply a `Mask` to a target and draw it.
-    """
+def clip_mask_(
+    self: "Canvas",
+    target: Union[Shape, Group, None] = None,
+    mask: Mask = None,
+    **kwargs,
+):
+    """Apply a `Mask` to a target and draw it."""
     mask_opacity = defaults.get("alpha", 1.0)
     mask_stops = None
     mask_axis = normalize_axis(None)
-    mask_units = _normalize_units(defaults.get("mask_units", SvgUnits.USER_SPACE_ON_USE.value), "mask_units")
-    mask_content_units = _normalize_units(defaults.get("mask_content_units", SvgUnits.USER_SPACE_ON_USE.value), "mask_content_units")
+    mask_units = _normalize_units(
+        defaults.get("mask_units", SvgUnits.USER_SPACE_ON_USE.value),
+        "mask_units",
+    )
+    mask_content_units = _normalize_units(
+        defaults.get("mask_content_units", SvgUnits.USER_SPACE_ON_USE.value),
+        "mask_content_units",
+    )
     if isinstance(mask, Mask):
         mask_shape = mask.shape
         mask_opacity = mask.opacity
@@ -247,57 +257,6 @@ def clip_mask_(self: "Canvas", target: Union[Shape, Group, None]=None, mask: Mas
 
     use_gradient_opacity = mask_stops is not None
 
-    def _next_mask_context_id() -> str:
-        current = getattr(self, "_mask_context_counter", 0) + 1
-        self._mask_context_counter = current
-        return f"mask_target_{current}"
-
-    def _same_vertices(sketch, shape) -> bool:
-        sketch_vertices = getattr(sketch, "vertices", None)
-        shape_vertices = getattr(shape, "vertices", None)
-        if not sketch_vertices or not shape_vertices:
-            return False
-        if len(sketch_vertices) != len(shape_vertices):
-            return False
-        for sk_v, sh_v in zip(sketch_vertices, shape_vertices):
-            if len(sk_v) < 2 or len(sh_v) < 2:
-                return False
-            if abs(float(sk_v[0]) - float(sh_v[0])) > 1e-9:
-                return False
-            if abs(float(sk_v[1]) - float(sh_v[1])) > 1e-9:
-                return False
-        return True
-
-    def _apply_mask_to_existing_target() -> bool:
-        if not isinstance(target, Shape):
-            return False
-
-        mask_context_id = None
-        for sketch in reversed(self.active_page.sketches):
-            if not _same_vertices(sketch, target):
-                continue
-
-            sketch.mask = mask_shape
-            for key, value in kwargs.items():
-                setattr(sketch, key, value)
-            if mask_opacity >= 1.0 and not use_gradient_opacity:
-                sketch.clip = True
-            else:
-                sketch.clip = False
-                mask_context_id = _next_mask_context_id()
-                sketch._mask_context_id = mask_context_id
-                sketch._mask_opacity = mask_opacity
-                sketch._mask_stops = mask_stops
-                sketch._mask_axis = mask_axis
-                sketch._mask_units = mask_units
-                sketch._mask_content_units = mask_content_units
-
-            if mask_shape is not None:
-                self._all_vertices.extend(mask_shape.b_box.corners)
-            return True
-
-        return False
-
     if target is None:
         scope_sketch = MaskSketch(
             mask=mask_shape,
@@ -316,24 +275,18 @@ def clip_mask_(self: "Canvas", target: Union[Shape, Group, None]=None, mask: Mas
     if not isinstance(target, (Shape, Group)):
         raise TypeError("target must be a Shape, Group, or None.")
 
-    if _apply_mask_to_existing_target():
-        return self
-
-    draw_kwargs = {"mask": mask_shape}
-    draw_kwargs.update(kwargs)
     if mask_opacity >= 1.0 and not use_gradient_opacity:
-        draw_kwargs["clip"] = True
-    else:
-        draw_kwargs["clip"] = False
-        draw_kwargs["_mask_context_id"] = _next_mask_context_id()
-        draw_kwargs["_mask_opacity"] = mask_opacity
-        draw_kwargs["_mask_stops"] = mask_stops
-        draw_kwargs["_mask_axis"] = mask_axis
-        draw_kwargs["_mask_units"] = mask_units
-        draw_kwargs["_mask_content_units"] = mask_content_units
+        return self.clip(target, mask_shape, **kwargs)
 
-    vertices_len = len(self._all_vertices)
-    canvas_draw.draw(self, target, **draw_kwargs)
-    del self._all_vertices[vertices_len:]
-    self._all_vertices.extend(mask_shape.b_box.corners)
-    return self
+    if mask_units != _normalize_units(None, "mask_units"):
+        raise ValueError("clip_mask_ does not support mask_units.")
+    if mask_content_units != _normalize_units(None, "mask_content_units"):
+        raise ValueError("clip_mask_ does not support mask_content_units.")
+
+    mask_data = Mask(
+        shape=mask_shape,
+        opacity=mask_opacity,
+        stops=mask_stops,
+        axis=mask_axis,
+    )
+    return self.apply_mask(target, mask_data)

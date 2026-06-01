@@ -88,14 +88,27 @@ def set_styles(sketches):
     d_styles = {}
     d_sketch_style = {}
     signature_to_style_id = {}
+    special_fill_sketch_ids = set()
     style_index = 1
 
     for sketch in sketches:
         sketch_dict = sketch.__dict__
+        if "tile_svg" in sketch_dict and sketch.tile_svg is not None:
+            special_fill_sketch_ids.add(sketch.id)
+        if "gradient" in sketch_dict and sketch.gradient is not None:
+            if sketch.gradient.stops is not None:
+                special_fill_sketch_ids.add(sketch.id)
         style = {}
         signature = []
 
         for prop in style_properties:
+            if sketch.id in special_fill_sketch_ids and prop in [
+                "fill",
+                "fill_alpha",
+                "fill_color",
+                "fill_mode",
+            ]:
+                continue
             if prop in sketch_dict:
                 value = sketch_dict[prop]
             else:
@@ -181,9 +194,13 @@ def collect_tikz_preamble_requirements_for_sketch(
     if "library" in sketch_dict and sketch.library == "fadings":
         if "fadings" not in tikz_libraries:
             tikz_libraries.append("fadings")
-    if "_mask_stops" in sketch_dict and sketch._mask_stops is not None:
+    if sketch.subtype == Types.MASK_SKETCH and sketch.mask_stops is not None:
         if "fadings" not in tikz_libraries:
             tikz_libraries.append("fadings")
+    if "mask" in sketch_dict and sketch.mask is not None:
+        if sketch.mask.type == Types.MASK and sketch.mask.stops is not None:
+            if "fadings" not in tikz_libraries:
+                tikz_libraries.append("fadings")
     if "draw_frame" in sketch_dict and sketch.draw_frame:
         if (
             "frame_shape" in sketch_dict
