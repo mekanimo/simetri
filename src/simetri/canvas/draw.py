@@ -1890,6 +1890,9 @@ def create_sketch(item, canvas, **kwargs):
         for item in items:
             sketch = create_sketch(item, canvas, **kwargs)
             sketches.append(sketch)
+        return sketches
+
+        return sketches
 
     def get_path_sketch(item, canvas, **kwargs):
         """Create sketches for a path from the given item.

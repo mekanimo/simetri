@@ -9,7 +9,12 @@ from ..graphics.all_enums import FontFamily, MarkerType, Types
 from ..graphics.bbox import bounding_box
 from ..settings.settings import defaults, issue_warning
 from .svg_colors import color_to_svg
-from .svg import svg_shape
+
+
+def svg_shape(*args, **kwargs):
+    raise RuntimeError(
+        "svg_shape must be initialized by simetri.svg.svg before use."
+    )
 
 
 d_shape_types = {

@@ -129,16 +129,6 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         str: The SVG code.
     """
 
-    excluded_subtypes = [
-        Types.CLIPPED_SKETCH,
-        Types.HELPLINES_SKETCH,
-        Types.IMAGE_SKETCH,
-        Types.LATEX_SKETCH,
-        Types.MASKED_SKETCH,
-        Types.TAG_SKETCH,
-        Types.TEX_SKETCH,
-    ]
-
     def render_sketches(sketches, ind):
         code = []
         for sketch in sketches:
@@ -364,11 +354,23 @@ def svg_shape(sketch, styles_dict, exceptions=None):
         return f"{outer_element}\n{gap_element}"
 
     class_attr = ""
+    style_attr = ""
     if style_class:
         class_attr = f' class= "{style_class}"'
+    else:
+        style_parts = [get_line_style_options(sketch, exceptions=exceptions)]
+        if shape_type != "line":
+            style_parts.append(
+                get_fill_style_options(
+                    sketch, style_shape_type, exceptions=exceptions
+                )
+            )
+        style = " ".join(part for part in style_parts if part).strip()
+        if style:
+            style_attr = f' style="{style}"'
 
     return f"""<{shape_type}
-{class_attr}{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}
+{class_attr}{style_attr}{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}
 {coordinates}
 />"""
 
