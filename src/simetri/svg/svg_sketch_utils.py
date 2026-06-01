@@ -1,5 +1,7 @@
 """Helpers for SVG sketch operations."""
 
+from types import SimpleNamespace
+
 import numpy as np
 from PIL import ImageFont
 
@@ -536,7 +538,7 @@ def get_style(sketch, shape_type):
     return "; ".join(res)
 
 
-def get_styles_dict(canvas):
+def get_style_maps(canvas):
     """Get all line and fill styles from the sketches and create a dictionary.
       Name them line_style_1, line_style_2, ...
       fill_style_1, fill_style_2, ...
@@ -592,19 +594,16 @@ def get_styles_dict(canvas):
                 collect_sketch_styles(sketch)
 
     if not style_sketches:
-        return {}
+        return {}, {}
 
     d_styles, sketch_style_ids = set_styles(style_sketches)
     sketch_by_id = {sketch.id: sketch for sketch in style_sketches}
     style_sketch_dict = {}
 
     for sketch in style_sketches:
-        if "_style_id" in sketch.__dict__:
-            del sketch._style_id
         if sketch.id not in sketch_style_ids:
             continue
         style_id = sketch_style_ids[sketch.id]
-        sketch._style_id = style_id
         if style_id not in style_sketch_dict:
             style_sketch_dict[style_id] = [sketch.id]
         else:
@@ -619,7 +618,21 @@ def get_styles_dict(canvas):
             style_parts.append(get_fill_style_options(sketch, shape_type))
         css_styles[style_id] = parse_style_string(" ".join(style_parts))
 
+    return css_styles, sketch_style_ids
+
+
+def get_styles_dict(canvas):
+    css_styles, _ = get_style_maps(canvas)
     return css_styles
+
+
+def with_svg_style_id(sketch, sketch_style_ids):
+    if sketch.id not in sketch_style_ids:
+        return sketch
+
+    sketch_data = dict(sketch.__dict__)
+    sketch_data["_style_id"] = sketch_style_ids[sketch.id]
+    return SimpleNamespace(**sketch_data)
 
 
 def get_style_class(

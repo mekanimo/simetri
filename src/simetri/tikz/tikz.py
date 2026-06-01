@@ -45,6 +45,15 @@ array = np.array
 enum_map = {}
 
 
+def _with_tikz_style_id(sketch, sketch_style_ids):
+    if sketch.id not in sketch_style_ids:
+        return sketch
+
+    sketch_data = dict(sketch.__dict__)
+    sketch_data["_tikz_style_id"] = sketch_style_ids[sketch.id]
+    return SimpleNamespace(**sketch_data)
+
+
 def anchor_to_tikz(anchor: Anchor | None) -> str | None:
     """Convert Anchor enum values to TikZ-compatible anchor names."""
     if anchor is None:
@@ -168,6 +177,9 @@ def get_tex_code(canvas: "Canvas") -> str:
         str: The TikZ code.
     """
 
+    d_sketch_style = {}
+    render_style_ids = {}
+
     styleable_subtypes = [
         Types.ARC_SKETCH,
         Types.BEZIER_SKETCH,
@@ -202,18 +214,22 @@ def get_tex_code(canvas: "Canvas") -> str:
         Returns:
             tuple: The TikZ code and the updated index.
         """
+        render_sketch = _with_tikz_style_id(sketch, render_style_ids)
+
         if sketch.subtype == Types.TAG_SKETCH:
-            code = draw_tag_sketch(sketch)
+            code = draw_tag_sketch(render_sketch)
         elif sketch.subtype == Types.IMAGE_SKETCH:
-            code = draw_image_sketch(sketch)
+            code = draw_image_sketch(render_sketch)
         elif sketch.subtype == Types.HELPLINES_SKETCH:
-            code = draw_helplines_sketch(sketch)
+            code = draw_helplines_sketch(render_sketch)
         elif sketch.subtype == Types.PDF_SKETCH:
-            code = draw_pdf_sketch(sketch)
+            code = draw_pdf_sketch(render_sketch)
         elif sketch.subtype == Types.BBOX_SKETCH:
-            code = draw_bbox_sketch(sketch)
+            code = draw_bbox_sketch(render_sketch)
         elif sketch.subtype == Types.PATTERN_SKETCH:
-            code = draw_pattern_sketch(sketch, exceptions=suppressed_style_keys)
+            code = draw_pattern_sketch(
+                render_sketch, exceptions=suppressed_style_keys
+            )
         elif sketch.subtype == Types.TEX_SKETCH:
             if sketch.location == TexLoc.NONE:
                 code = sketch.code
@@ -248,15 +264,17 @@ def get_tex_code(canvas: "Canvas") -> str:
             code = child_code
         else:
             if (
-                hasattr(sketch, "draw_markers")
-                and sketch.draw_markers
-                and sketch.marker_type == MarkerType.INDICES
+                hasattr(render_sketch, "draw_markers")
+                and render_sketch.draw_markers
+                and render_sketch.marker_type == MarkerType.INDICES
             ):
-                code = draw_shape_sketch(sketch, ind, canvas)
+                code = draw_shape_sketch(render_sketch, ind, canvas)
                 ind += 1
             else:
                 code = draw_shape_sketch(
-                    sketch, canvas=canvas, exceptions=suppressed_style_keys
+                    render_sketch,
+                    canvas=canvas,
+                    exceptions=suppressed_style_keys,
                 )
 
         return code, ind
@@ -316,14 +334,12 @@ def get_tex_code(canvas: "Canvas") -> str:
                     style_sketches.append(sketch)
 
             d_styles, d_sketch_style = set_styles(style_sketches)
+            render_style_ids = {}
             style_sketch_dict = {}
             for sketch in style_sketches:
-                if "_tikz_style_id" in sketch.__dict__:
-                    del sketch._tikz_style_id
                 if sketch.id not in d_sketch_style:
                     continue
                 style_id = d_sketch_style[sketch.id]
-                sketch._tikz_style_id = style_id
                 if style_id not in style_sketch_dict:
                     style_sketch_dict[style_id] = [sketch]
                 else:
@@ -333,20 +349,28 @@ def get_tex_code(canvas: "Canvas") -> str:
                 style_lines = ["\\tikzset{"]
                 has_style_lines = False
                 for style_id in d_styles:
-                    sketch = style_sketch_dict[style_id][0]
+                    style_sketches_for_id = style_sketch_dict[style_id]
+                    sketch = style_sketches_for_id[0]
                     options = []
                     if sketch.stroke:
                         options += get_line_style_options(sketch)
-                    if sketch.fill and (
-                        sketch.subtype == Types.PATH_SKETCH
-                        or ("closed" in sketch.__dict__ and sketch.closed)
-                    ):
-                        options += get_fill_style_options(sketch)
+                    fill_style_sketch = None
+                    for candidate_sketch in style_sketches_for_id:
+                        if candidate_sketch.fill and (
+                            candidate_sketch.subtype == Types.PATH_SKETCH
+                            or (
+                                "closed" in candidate_sketch.__dict__
+                                and candidate_sketch.closed
+                            )
+                        ):
+                            fill_style_sketch = candidate_sketch
+                            break
+                    if fill_style_sketch is not None:
+                        options += get_fill_style_options(fill_style_sketch)
                     if not options:
-                        for style_sketch in style_sketch_dict[style_id]:
-                            if "_tikz_style_id" in style_sketch.__dict__:
-                                del style_sketch._tikz_style_id
                         continue
+                    for style_sketch in style_sketches_for_id:
+                        render_style_ids[style_sketch.id] = style_id
                     style_lines.append(
                         f"{style_id}/.style={{{', '.join(options)}}},"
                     )

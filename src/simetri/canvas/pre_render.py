@@ -46,6 +46,7 @@ style_properties = [
     "draw_double",
     "double_distance",
     "double_color",
+    "closed",
     "fill",
     "fill_alpha",
     "fill_color",

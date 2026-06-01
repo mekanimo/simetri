@@ -129,6 +129,9 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         str: The SVG code.
     """
 
+    sketch_style_ids = styles_dict["sketch_style_ids"]
+    css_styles = styles_dict["css_styles"]
+
     def render_sketches(sketches, ind):
         code = []
         for sketch in sketches:
@@ -147,12 +150,14 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
             tuple: The SVG code and the updated index.
         """
 
+        render_sketch = with_svg_style_id(sketch, sketch_style_ids)
+
         subtype = sketch_attrib(sketch, "subtype")
-        draw_markers = sketch_attrib(sketch, "draw_markers")
-        indices = sketch_attrib(sketch, "indices")
+        draw_markers = sketch_attrib(render_sketch, "draw_markers")
+        indices = sketch_attrib(render_sketch, "indices")
 
         if subtype == Types.TAG_SKETCH:
-            code = draw_tag_sketch(sketch)
+            code = draw_tag_sketch(render_sketch)
         elif subtype == Types.CLIPPED_SKETCH:
             clippath_id = f"clippath_{id(sketch)}"
             child_sketches = []
@@ -175,38 +180,45 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         elif subtype == Types.MASK_SKETCH:
             code = ""
         elif subtype == Types.LATEX_SKETCH:
-            code = draw_latex_sketch(sketch)
+            code = draw_latex_sketch(render_sketch)
         elif subtype == Types.IMAGE_SKETCH:
-            code = draw_image_sketch(sketch)
+            code = draw_image_sketch(render_sketch)
         elif subtype == Types.HELPLINES_SKETCH:
-            code = draw_helplines_sketch(sketch)
+            code = draw_helplines_sketch(render_sketch)
         elif subtype == Types.LINE_SKETCH:
             code = draw_line_sketch(
-                sketch, canvas, exceptions=suppressed_style_keys
+                render_sketch, canvas, exceptions=suppressed_style_keys
             )
         elif subtype == Types.ARC_SKETCH:
-            code = draw_arc_sketch(sketch, exceptions=suppressed_style_keys)
+            code = draw_arc_sketch(
+                render_sketch, exceptions=suppressed_style_keys
+            )
         elif subtype == Types.PATH_SKETCH:
-            code = draw_path_sketch(sketch, exceptions=suppressed_style_keys)
+            code = draw_path_sketch(
+                render_sketch, exceptions=suppressed_style_keys
+            )
         elif (
             draw_markers
-            and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
+            and sketch_attrib(render_sketch, "marker_type")
+            == MarkerType.INDICES
         ) or indices:
             code = draw_shape_sketch_with_indices(
-                sketch, exceptions=suppressed_style_keys
+                render_sketch, exceptions=suppressed_style_keys
             )
         elif draw_markers:
             # Use marker rendering for shapes with markers enabled
             code = draw_shape_sketch_with_markers(
-                sketch, exceptions=suppressed_style_keys
+                render_sketch, exceptions=suppressed_style_keys
             )
         else:
             code = svg_shape(
-                sketch, styles_dict, exceptions=suppressed_style_keys
+                render_sketch,
+                css_styles,
+                exceptions=suppressed_style_keys,
             )
 
-        sketch_dict = sketch_attrib(sketch, "__dict__")
-        sketch_filter = sketch_attrib(sketch, "filter")
+        sketch_dict = sketch_attrib(render_sketch, "__dict__")
+        sketch_filter = sketch_attrib(render_sketch, "filter")
         if "filter" in sketch_dict and sketch_filter is not None:
             filter_id = sketch_filter.id
             code = f'<g filter="url(#{filter_id})">\n{code}\n</g>'
@@ -904,9 +916,13 @@ def get_svg_code(canvas):
     color = canvas.back_color
     if color is None:
         color = white
-    styles_dict = get_styles_dict(canvas)
-    styles = get_styles(canvas, styles_dict)
-    defs = generate_defs(canvas, styles_dict)
+    css_styles, sketch_style_ids = get_style_maps(canvas)
+    styles = get_styles(canvas, css_styles)
+    defs = generate_defs(canvas, css_styles)
+    styles_dict = {
+        "css_styles": css_styles,
+        "sketch_style_ids": sketch_style_ids,
+    }
 
     if not canvas.active_page.sketches or not vertices:
         issue_warning(
