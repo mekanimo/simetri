@@ -148,7 +148,6 @@ class LinPath(Group):
         self.stroke = stroke
         self.visible = True
 
-
     def __bool__(self):
         """Return True if the path has operations.
         Group may have no elements yet still be True.
@@ -208,6 +207,42 @@ class LinPath(Group):
         else:
             raise ValueError(f"Invalid operation type: {op_type}")
 
+    def copy_style(self, other):
+        """Copies the other shape's style."""
+        self.alpha = other.alpha
+        self.color = other.color
+
+        if other.color is not None:
+            self.line_color = other.color
+            self.fill_color = other.color
+        else:
+            self.line_color = other.line_color
+            self.fill_color = other.fill_color
+
+        if other.alpha is not None:
+            self.line_alpha = other.alpha
+            self.fill_alpha = other.alpha
+        else:
+            self.line_alpha = other.line_alpha
+            self.fill_alpha = other.fill_alpha
+
+        self.line_width = other.line_width
+        self.fill = other.fill
+        self.stroke = other.stroke
+        self.line_dash_array = other.line_dash_array
+        self.line_dash_phase = other.line_dash_phase
+        self.line_cap = other.line_cap
+        self.line_join = other.line_join
+        self.smooth = other.smooth
+        self.back_style = other.back_style
+        self.draw_markers = other.draw_markers
+        self.marker_type = other.marker_type
+        self.marker_size = other.marker_size
+        self.marker_radius = other.marker_radius
+        self.markers_only = other.markers_only
+
+        return self
+
     def copy(self) -> "LinPath":
         """Return a copy of the path.
 
@@ -235,15 +270,14 @@ class LinPath(Group):
             else:
                 new_path.objects.append(None)
         new_path.even_odd = self.even_odd
+        new_path.closed = self.closed
         if cur_shape_index is not None:
             new_path.cur_shape = new_path.elements[cur_shape_index]
         else:
             new_path.cur_shape = self.cur_shape.copy()
-        new_path.handles = list(
-            self.handles
-        )
+        new_path.handles = list(self.handles)
         new_path.stack = deque(self.stack)
-
+        new_path.copy_style(self)
         return new_path
 
         # new_path = LinPath(start=self.start)
@@ -1102,6 +1136,7 @@ class LinPath(Group):
         Returns:
             Path: The path object.
         """
+        self.closed = True
         self._add(self.pos, PathOps.CLOSE, None, **kwargs)
         return self
 
@@ -1184,6 +1219,11 @@ class LinPath(Group):
             for obj in self.objects:
                 if obj is not None:
                     obj._update(xform_matrix)
+
+            # Check this!!!!
+            for element in self.elements:
+                if element is not None and element.type == Types.SHAPE:
+                    element._update(xform_matrix)
             res = self
         else:
             paths = [self]

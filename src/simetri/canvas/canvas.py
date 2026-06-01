@@ -866,6 +866,11 @@ class Canvas:
         draw.draw_dimension(self, dim, **kwargs)
         return self
 
+    def draw_widget(self, item: Drawable, **kwargs) -> Self:
+        """Draw an item by expanding item.draw_list into a composite sketch."""
+        draw.draw_widget(self, item, **kwargs)
+        return self
+
     def begin_style(self, style: str):
         # code = rf'\begin{{scope}}[every path/.append style={{dashed, draw=green}}]'
         code = rf"\begin{{scope}}[every path/.append style={{ {style} }}]"
@@ -1584,6 +1589,71 @@ class Canvas:
             res = None
         return res
 
+    def _sketch_bbox(self, sketch):
+        """Return axis-aligned bbox tuple (xmin, ymin, xmax, ymax) for a sketch."""
+        sketch_data = sketch.__dict__
+
+        if "vertices" in sketch_data and sketch.vertices:
+            sketch_bbox = bounding_box(sketch.vertices)
+            min_x, min_y = sketch_bbox.southwest[:2]
+            max_x, max_y = sketch_bbox.northeast[:2]
+            return min_x, min_y, max_x, max_y
+
+        if sketch.subtype == Types.CIRCLE_SKETCH:
+            center_x, center_y = sketch.center[:2]
+            radius = sketch.radius
+            return (
+                center_x - radius,
+                center_y - radius,
+                center_x + radius,
+                center_y + radius,
+            )
+
+        if sketch.subtype == Types.ELLIPSE_SKETCH:
+            center_x, center_y = sketch.center[:2]
+            return (
+                center_x - sketch.x_radius,
+                center_y - sketch.y_radius,
+                center_x + sketch.x_radius,
+                center_y + sketch.y_radius,
+            )
+
+        if sketch.subtype == Types.RECTANGLE_SKETCH:
+            min_x, min_y = sketch.lower_left[:2]
+            return min_x, min_y, min_x + sketch.width, min_y + sketch.height
+
+        return None
+
+    def _warn_sketches_outside_page(self) -> None:
+        """Warn when a sketch is completely outside page limits."""
+        if self.page_size is None:
+            return
+
+        page_limits = self.limits
+        page_min_x, page_min_y, page_max_x, page_max_y = page_limits
+
+        for page_index, page in enumerate(self.pages, start=1):
+            for sketch in page.sketches:
+                sketch_bbox = self._sketch_bbox(sketch)
+                if sketch_bbox is None:
+                    continue
+
+                sketch_min_x, sketch_min_y, sketch_max_x, sketch_max_y = (
+                    sketch_bbox
+                )
+                is_outside = (
+                    sketch_max_x < page_min_x
+                    or sketch_min_x > page_max_x
+                    or sketch_max_y < page_min_y
+                    or sketch_min_y > page_max_y
+                )
+                if is_outside:
+                    issue_warning(
+                        "Sketch is completely outside page limits: "
+                        f"page={page_index}, subtype={sketch.subtype}, id={sketch.id}, "
+                        f"bbox={sketch_bbox}, limits={page_limits}."
+                    )
+
     def _show_browser(
         self, filepath: Path, show_browser: bool, multi_page_svg: bool
     ) -> None:
@@ -1631,6 +1701,8 @@ class Canvas:
 
         if inset is not None:
             self.inset = inset
+
+        self._warn_sketches_outside_page()
 
         try:
             parent_dir, file_name, extension = validate_filepath(

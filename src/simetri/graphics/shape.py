@@ -8,6 +8,7 @@ __all__ = [
     "Shape",
     "custom_attributes",
     "clip",
+    "Clipping",
     "trim_margins",
     "all_segments",
     "get_loop",
@@ -20,6 +21,7 @@ __all__ = [
 from typing import Sequence, Union, List, Tuple, Any
 from math import pi, isclose, floor
 from copy import deepcopy
+from dataclasses import dataclass
 
 import json
 import numpy as np
@@ -40,6 +42,7 @@ from .all_enums import (
 )
 from .bbox import BoundingBox
 from .common import PointType, LineType, get_defaults, get_unique_id
+from ..canvas.style_map import shape_style_map
 from ..settings.settings import defaults
 from ..helpers.utilities import (
     get_transform,
@@ -596,6 +599,42 @@ class Shape(Base):
                 data["style"][attrib] = _to_jsonable(val)
 
         return json.dumps(data, ensure_ascii=False)
+
+    def copy_style(self, other):
+        """Copies the other shape's style."""
+        self.alpha = other.alpha
+        self.color = other.color
+
+        if other.color is not None:
+            self.line_color = other.color
+            self.fill_color = other.color
+        else:
+            self.line_color = other.line_color
+            self.fill_color = other.fill_color
+
+        if other.alpha is not None:
+            self.line_alpha = other.alpha
+            self.fill_alpha = other.alpha
+        else:
+            self.line_alpha = other.line_alpha
+            self.fill_alpha = other.fill_alpha
+
+        self.line_width = other.line_width
+        self.fill = other.fill
+        self.stroke = other.stroke
+        self.line_dash_array = other.line_dash_array
+        self.line_dash_phase = other.line_dash_phase
+        self.line_cap = other.line_cap
+        self.line_join = other.line_join
+        self.smooth = other.smooth
+        self.back_style = other.back_style
+        self.draw_markers = other.draw_markers
+        self.marker_type = other.marker_type
+        self.marker_size = other.marker_size
+        self.marker_radius = other.marker_radius
+        self.markers_only = other.markers_only
+
+        return self
 
     def is_clockwise(self) -> bool:
         """Check if the shape is oriented clockwise.
@@ -1660,7 +1699,20 @@ def clip(
     if isinstance(item, Group):
         return _clip_group(item, clipper, exclude_clipper, rel_tol, abs_tol)
     elif isinstance(item, Shape):
-        return _clip_shape(item, clipper, exclude_clipper, rel_tol, abs_tol)
+        clipped_item = _clip_shape(
+            item,
+            clipper,
+            exclude_clipper,
+            rel_tol,
+            abs_tol,
+        )
+        if clipped_item.type == Types.GROUP:
+            for clipped_shape in clipped_item:
+                clipped_shape.copy_style(item)
+        else:
+            clipped_item.copy_style(item)
+
+        return clipped_item
     else:
         raise TypeError("Invalid item type")
 
@@ -1678,8 +1730,37 @@ def _clip_group(
     exclude_clipper bool: If True, clipper's edges are excluded.
     """
     res = Group()
-    for shp in group.all_shapes:
-        res.append(_clip_shape(shp, clipper, exclude_clipper, rel_tol, abs_tol))
+
+    for item in group.elements:
+        if item.type == Types.GROUP:
+            clipped_item = _clip_group(
+                item,
+                clipper,
+                exclude_clipper,
+                rel_tol,
+                abs_tol,
+            )
+        elif item.type == Types.SHAPE:
+            clipped_item = _clip_shape(
+                item,
+                clipper,
+                exclude_clipper,
+                rel_tol,
+                abs_tol,
+            )
+            if clipped_item.type == Types.GROUP:
+                for clipped_shape in clipped_item:
+                    clipped_shape.copy_style(item)
+            else:
+                clipped_item.copy_style(item)
+        else:
+            raise TypeError("Invalid item type")
+
+        if clipped_item.type == Types.GROUP:
+            if len(clipped_item) > 0:
+                res.append(clipped_item)
+        else:
+            res.append(clipped_item)
 
     return res
 
@@ -1697,7 +1778,7 @@ def _clip_shape(
     exclude_clipper bool: If True, clipper's edges are excluded.
     """
     if not clipper.closed:
-        raise Warning("Clipper shape is not closed")
+        raise ValueError("Clipper shape is not closed")
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     n_shape = len(shape)
     segments = [[p1[:2], p2[:2]] for (p1, p2) in shape.edges] + [
@@ -1705,33 +1786,51 @@ def _clip_shape(
     ]
     intersections = all_intersections(segments)
 
-    all_segments_ = []
+    split_points_by_index = {}
     for key, value in intersections[0].items():
-        segment = segments[key]
-        points = [x[0] for x in value]
-        points = remove_duplicate_points(points)
-        all_segments_.append(multi_split_segment(segment, points))
+        points = [point_data[0] for point_data in value]
+        split_points_by_index[key] = remove_duplicate_points(points)
+
+    def split_segment(segment_index: int):
+        points = split_points_by_index.get(segment_index, [])
+        if points:
+            return multi_split_segment(segments[segment_index], points)
+        return [segments[segment_index]]
 
     clipped = Group()
     shape_vertices = shape.vertices
-    polygon = clipper.vertices
+    clipper_vertices = clipper.vertices
     if shape.closed:
-        max_i = n_shape
+        shape_segment_count = n_shape
     else:
-        max_i = n_shape - 1
-    for i, segs in enumerate(all_segments_):
-        if i >= max_i:
-            if not shape.closed or exclude_clipper:
-                break
-            polygon = shape_vertices
-        for seg in segs:
+        shape_segment_count = n_shape - 1
+
+    for segment_index in range(shape_segment_count):
+        for seg in split_segment(segment_index):
             if not isclose(distance(*seg), 0, rel_tol=rel_tol, abs_tol=abs_tol):
-                if in_polygon(midpoint(*seg), polygon, exclude_clipper):
+                if in_polygon(
+                    midpoint(*seg), clipper_vertices, exclude_clipper
+                ):
                     clipped.append(Shape(seg))
 
-    clipped = clipped.merge_shapes()
+    if shape.closed and not exclude_clipper:
+        for segment_index in range(shape_segment_count, len(segments)):
+            for seg in split_segment(segment_index):
+                if not isclose(
+                    distance(*seg),
+                    0,
+                    rel_tol=rel_tol,
+                    abs_tol=abs_tol,
+                ):
+                    if in_polygon(
+                        midpoint(*seg),
+                        shape_vertices,
+                        exclude_clipper,
+                    ):
+                        clipped.append(Shape(seg))
+
     if len(clipped) == 1:
-        clipped = clipped[0]
+        return clipped[0]
 
     return clipped
 
@@ -1759,6 +1858,16 @@ def custom_attributes(item: Shape) -> List[str]:
         custom_attribs = custom_attribs.difference(set(item._aliases.keys()))
 
     return sorted(custom_attribs)
+
+
+@dataclass
+class Clipping:
+    target: Union[Shape, Group]
+    clipper: Shape
+
+    def __post_init__(self):
+        self.type = Types.CLIPPING
+        self.subtype = Types.CLIPPING
 
 
 def union(shape1: "Shape", shape2: "Shape"):

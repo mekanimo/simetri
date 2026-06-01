@@ -58,6 +58,13 @@ class BoundingBox:
         self.type = Types.BOUNDING_BOX
         self.subtype = Types.BOUNDING_BOX
         self.visible = True
+        self.exclusive = [
+            "line_color",
+            "line_width",
+            "line_dash_array",
+            "stroke",
+            "fill",
+        ]
 
     def __getattr__(self, name):
         """
@@ -242,8 +249,8 @@ class BoundingBox:
             self.horiz_centerline,
             self.vert_centerline,
             self.diagonal1,
-            self.diagonal2
-            )
+            self.diagonal2,
+        )
 
     @property
     def width(self):
@@ -376,7 +383,11 @@ class BoundingBox:
         return (self.southeast, self.northwest)
 
     def get_inflated_b_box(
-        self, left_margin=None, bottom_margin=None, right_margin=None, top_margin=None
+        self,
+        left_margin=None,
+        bottom_margin=None,
+        right_margin=None,
+        top_margin=None,
     ):
         """
         Return a bounding box with offset edges.
@@ -530,7 +541,9 @@ class BoundingBox:
         y += dy
         return x, y
 
-    def above(self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0) -> PointType:
+    def above(
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+    ) -> PointType:
         """
         Get the item.north of the reference item.
 
@@ -548,7 +561,9 @@ class BoundingBox:
         y += dy + h2
         return x, y
 
-    def below(self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0) -> PointType:
+    def below(
+        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+    ) -> PointType:
         """
         Get the item.south of the reference item.
 
@@ -711,7 +726,9 @@ def bounding_box(points):
         max_x, max_y = points.max(axis=0)
         if min_x == max_x:  # this could be a vertical line or degenerate points
             max_x += BB_EPSILON
-        if min_y == max_y:  # this could be a horizontal line or degenerate points
+        if (
+            min_y == max_y
+        ):  # this could be a horizontal line or degenerate points
             max_y += BB_EPSILON
     # bounding box corners
     bottom_left = (min_x, min_y)

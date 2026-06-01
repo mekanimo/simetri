@@ -8,7 +8,13 @@ import simetri.graphics as sg
 
 from ..canvas.style_map import line_style_map, marker_style_map, shape_style_map
 from ..colors.colors import Color, check_color
-from ..graphics.all_enums import BackStyle, LineDashArray, LineWidth, ShadeType, Types
+from ..graphics.all_enums import (
+    BackStyle,
+    LineDashArray,
+    LineWidth,
+    ShadeType,
+    Types,
+)
 from ..graphics.shape import Shape
 from ..graphics.sketch import ShapeSketch, TagSketch
 from ..settings.settings import defaults, tikz_defaults
@@ -159,8 +165,6 @@ def get_scope_options(sketch: "Sketch") -> str:
     return ",".join(options)
 
 
-
-
 def get_clip_code(sketch: "Sketch") -> str:
     """Returns the clip code for a sketch.
 
@@ -189,7 +193,9 @@ def get_clip_code(sketch: "Sketch") -> str:
         res = f"\\clip({x}, {y}) circle ({mask.radius});\n"
     elif mask.subtype in [Types.ELLIPSE, Types.ELLIPSE_SKETCH]:
         x, y = mask.center[:2]
-        res = f"\\clip({x}, {y}) ellipse ({mask.x_radius} and {mask.y_radius});\n"
+        res = (
+            f"\\clip({x}, {y}) ellipse ({mask.x_radius} and {mask.y_radius});\n"
+        )
     elif mask.subtype in [Types.RECTANGLE, Types.RECTANGLE_SKETCH]:
         try:
             vertices = mask.vertices
@@ -461,8 +467,7 @@ def sg_to_tikz(
             continue
 
         if tikz_attrib in tikz_defaults and value == tikz_defaults[tikz_attrib]:
-            if attrib_name != "line_width":
-                continue
+            continue
 
         if attrib_name in converters and value is not None:
             value = converters[attrib_name](value)
@@ -849,7 +854,6 @@ def transform_image(
     )
 
 
-
 def is_stroked(shape: Shape) -> bool:
     """Returns True if the shape is stroked.
 
@@ -923,8 +927,6 @@ def _get_gradient_shading_options(sketch):
     axis = gradient.axis
     x1, y1 = axis[0]
     x2, y2 = axis[1]
-
-
 
     try:
         angle = degrees(

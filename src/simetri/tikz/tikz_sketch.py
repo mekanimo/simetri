@@ -1,4 +1,4 @@
-'''TikZ related sketches are handled here.'''
+"""TikZ related sketches are handled here."""
 
 from dataclasses import dataclass
 from math import ceil, degrees
@@ -72,7 +72,10 @@ def _canvas_mask_scope_sketch(canvas):
     page = canvas.active_page
     sketches = page.sketches
     for sketch in reversed(sketches):
-        if "_canvas_mask_scope" in sketch.__dict__ and sketch._canvas_mask_scope:
+        if (
+            "_canvas_mask_scope" in sketch.__dict__
+            and sketch._canvas_mask_scope
+        ):
             return sketch
     return None
 
@@ -415,7 +418,10 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
     begin_scope = get_begin_scope(index)
     body = get_draw(sketch)
     if body:
-        options = get_line_style_options(sketch, exceptions=exceptions)
+        options = []
+        if "_tikz_style_id" in sketch.__dict__:
+            options.append(sketch._tikz_style_id)
+        options += get_line_style_options(sketch, exceptions=exceptions)
         if sketch.fill and sketch.closed:
             options += get_fill_style_options(sketch, exceptions=exceptions)
         if sketch.smooth:
@@ -464,7 +470,7 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
             str_lines.append(f"\\node at {pos} {{{labels[i + 1]}}};\n")
 
     end_scope = get_end_scope()
-    if begin_scope == "\\begin{scope}[]\n":
+    if not begin_scope:
         res = body + "".join(str_lines)
     else:
         res = begin_scope + body + "".join(str_lines) + end_scope
@@ -484,7 +490,10 @@ def draw_shape_sketch_with_markers(sketch, exceptions=None):
     # begin_scope = get_begin_scope()
     body = get_draw(sketch)
     if body:
-        options = get_line_style_options(sketch, exceptions=exceptions)
+        options = []
+        if "_tikz_style_id" in sketch.__dict__:
+            options.append(sketch._tikz_style_id)
+        options += get_line_style_options(sketch, exceptions=exceptions)
         if sketch.fill and sketch.closed:
             options += get_fill_style_options(sketch, exceptions=exceptions)
         if sketch.smooth and sketch.closed:
@@ -574,9 +583,9 @@ def draw_pattern_sketch(sketch, exceptions=None):
     Returns:
         str: The TikZ code for the pattern sketch.
     """
-    begin_scope = "\\begin{scope}"
-
     options = []
+    if "_tikz_style_id" in sketch.__dict__:
+        options.append(sketch._tikz_style_id)
 
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options += get_pattern_options(sketch)
@@ -588,10 +597,7 @@ def draw_pattern_sketch(sketch, exceptions=None):
         options += ["smooth"]
     if sketch.back_style == BackStyle.SHADING and sketch.fill and sketch.closed:
         options += get_shading_options(sketch)
-    options = ", ".join(options)
-    if options:
-        begin_scope += f"[{options}]\n"
-    end_scope = get_end_scope()
+    option_text = f"[{', '.join(options)}]" if options else ""
 
     draw = get_draw(sketch)
     if not draw:
@@ -616,9 +622,9 @@ def draw_pattern_sketch(sketch, exceptions=None):
             str_lines.append("-- cycle;\n")
         else:
             str_lines.append(";\n")
-        shapes.append(draw + "".join(str_lines))
+        shapes.append(draw + option_text + "".join(str_lines))
 
-    return begin_scope + f"[{options}]\n" + "\n".join(shapes) + end_scope
+    return "\n".join(shapes)
 
 
 def draw_sketch(sketch, exceptions=None):
@@ -634,10 +640,10 @@ def draw_sketch(sketch, exceptions=None):
     if not res:
         return ""
     options = []
+    if "_tikz_style_id" in sketch.__dict__:
+        options.append(sketch._tikz_style_id)
     gradient_options = _get_gradient_shading_options(sketch)
-    has_gradient = (
-        bool(gradient_options) and sketch.fill and sketch.closed
-    )
+    has_gradient = bool(gradient_options) and sketch.fill and sketch.closed
 
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options += get_pattern_options(sketch)
@@ -721,8 +727,9 @@ def draw_image_sketch(sketch, exceptions=None):
     # res = f"\\node[draw, {', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
     res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
     end_scope = get_end_scope()
-
-    return begin_scope + res + end_scope
+    if begin_scope:
+        return begin_scope + res + end_scope
+    return res
 
 
 def draw_pdf_sketch(sketch, exceptions=None):
@@ -751,8 +758,9 @@ def draw_pdf_sketch(sketch, exceptions=None):
 
     res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
     end_scope = get_end_scope()
-
-    return begin_scope + res + end_scope
+    if begin_scope:
+        return begin_scope + res + end_scope
+    return res
 
 
 def draw_shape_sketch(sketch, ind=None, canvas=None, exceptions=None):
@@ -800,7 +808,12 @@ def draw_shape_sketch(sketch, ind=None, canvas=None, exceptions=None):
 
 def draw_path_sketch(sketch, exceptions=None):
     """Draw a path sketch using PGF's SVG path parser."""
+    res = get_draw(sketch)
+    if not res:
+        return ""
     options = []
+    if "_tikz_style_id" in sketch.__dict__:
+        options.append(sketch._tikz_style_id)
     if sketch.stroke:
         options.extend(get_line_style_options(sketch, exceptions=exceptions))
     if sketch.fill:
@@ -809,27 +822,8 @@ def draw_path_sketch(sketch, exceptions=None):
         options.extend(get_shading_options(sketch))
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options.extend(get_pattern_options(sketch))
-
-    actions = []
-    if sketch.fill:
-        actions.append("fill")
-    if sketch.stroke:
-        actions.append("stroke")
-    if not actions:
-        return ""
-
-    options_code = ""
-    if options:
-        options_code = f"[{', '.join(options)}]"
-
-    lines = []
-    if options_code:
-        lines.append(f"\\begin{{scope}}{options_code}\n")
-    lines.append(f"\\pgfpathsvg{{{sketch.path_data}}}\n")
-    lines.append(f"\\pgfusepath{{{','.join(actions)}}}\n")
-    if options_code:
-        lines.append("\\end{scope}\n")
-    return "".join(lines)
+    option_text = f"[{', '.join(options)}]" if options else ""
+    return f"{res}{option_text} svg {{{sketch.path_data}}};\n"
 
 
 def draw_line_sketch(sketch, canvas=None, exceptions=None):
@@ -841,9 +835,11 @@ def draw_line_sketch(sketch, canvas=None, exceptions=None):
     Returns:
         str: The TikZ code for the line sketch.
     """
-    begin_scope = get_begin_scope()
     res = "\\draw"
-    options = get_line_style_options(sketch, exceptions=exceptions)
+    options = []
+    if "_tikz_style_id" in sketch.__dict__:
+        options.append(sketch._tikz_style_id)
+    options += get_line_style_options(sketch, exceptions=exceptions)
 
     start = sketch.vertices[0]
     end = sketch.vertices[1]
@@ -855,11 +851,10 @@ def draw_line_sketch(sketch, canvas=None, exceptions=None):
         start, end = _clip_line_to_rect(start, end, limits, extent)
 
     options = ", ".join(options)
-    res += f"[{options}]"
+    if options:
+        res += f"[{options}]"
     res += f" {start[:2]} -- {end[:2]};\n"
-    end_scope = get_end_scope()
-
-    return begin_scope + res + end_scope
+    return res
 
 
 def draw_circle_sketch(sketch, exceptions=None):
@@ -871,11 +866,13 @@ def draw_circle_sketch(sketch, exceptions=None):
     Returns:
         str: The TikZ code for the circle sketch.
     """
-    begin_scope = get_begin_scope()
     res = get_draw(sketch)
     if not res:
         return ""
-    options = get_line_style_options(sketch, exceptions=exceptions)
+    options = []
+    if "_tikz_style_id" in sketch.__dict__:
+        options.append(sketch._tikz_style_id)
+    options += get_line_style_options(sketch, exceptions=exceptions)
     gradient_options = _get_gradient_shading_options(sketch)
     has_gradient = bool(gradient_options) and sketch.fill
     if not has_gradient:
@@ -890,9 +887,7 @@ def draw_circle_sketch(sketch, exceptions=None):
         res += f"[{options}]"
     x, y = sketch.center[:2]
     res += f"({x}, {y}) circle ({sketch.radius});\n"
-    end_scope = get_end_scope()
-
-    return begin_scope + res + end_scope
+    return res
 
 
 def draw_rect_sketch(sketch, exceptions=None):
@@ -904,11 +899,13 @@ def draw_rect_sketch(sketch, exceptions=None):
     Returns:
         str: The TikZ code for the rectangle sketch.
     """
-    begin_scope = get_begin_scope()
     res = get_draw(sketch)
     if not res:
         return ""
-    options = get_line_style_options(sketch, exceptions=exceptions)
+    options = []
+    if "_tikz_style_id" in sketch.__dict__:
+        options.append(sketch._tikz_style_id)
+    options += get_line_style_options(sketch, exceptions=exceptions)
     gradient_options = _get_gradient_shading_options(sketch)
     has_gradient = bool(gradient_options) and sketch.fill
     if not has_gradient:
@@ -919,13 +916,12 @@ def draw_rect_sketch(sketch, exceptions=None):
     if sketch.smooth:
         options += ["smooth"]
     options = ", ".join(options)
-    res += f"[{options}]"
+    if options:
+        res += f"[{options}]"
     x, y = sketch.center[:2]
     width, height = sketch.width, sketch.height
     res += f"({x}, {y}) rectangle ({width}, {height});\n"
-    end_scope = get_end_scope()
-
-    return begin_scope + res + end_scope
+    return res
 
 
 def draw_ellipse_sketch(sketch, exceptions=None):
@@ -937,11 +933,13 @@ def draw_ellipse_sketch(sketch, exceptions=None):
     Returns:
         str: The TikZ code for the ellipse sketch.
     """
-    begin_scope = get_begin_scope()
     res = get_draw(sketch)
     if not res:
         return ""
-    options = get_line_style_options(sketch, exceptions=exceptions)
+    options = []
+    if "_tikz_style_id" in sketch.__dict__:
+        options.append(sketch._tikz_style_id)
+    options += get_line_style_options(sketch, exceptions=exceptions)
     gradient_options = _get_gradient_shading_options(sketch)
     has_gradient = bool(gradient_options) and sketch.fill
     if not has_gradient:
@@ -961,9 +959,7 @@ def draw_ellipse_sketch(sketch, exceptions=None):
     b = sketch.y_radius
 
     res += f"({x}, {y}) ellipse ({a} and {b});\n"
-    end_scope = get_end_scope()
-
-    return begin_scope + res + end_scope
+    return res
 
 
 def draw_arc_sketch(sketch, exceptions=None):
@@ -982,15 +978,15 @@ def draw_arc_sketch(sketch, exceptions=None):
         options = ["smooth cycle"]
     else:
         options = ["smooth"]
+    if "_tikz_style_id" in sketch.__dict__:
+        options.insert(0, sketch._tikz_style_id)
 
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options += get_pattern_options(sketch)
     if sketch.stroke:
         options += get_line_style_options(sketch, exceptions=exceptions)
     gradient_options = _get_gradient_shading_options(sketch)
-    has_gradient = (
-        bool(gradient_options) and sketch.fill and sketch.closed
-    )
+    has_gradient = bool(gradient_options) and sketch.fill and sketch.closed
     if sketch.closed and sketch.fill and not has_gradient:
         options += get_fill_style_options(sketch, exceptions=exceptions)
 
@@ -1032,22 +1028,23 @@ def draw_bezier_sketch(sketch, exceptions=None):
     Returns:
         str: The TikZ code for the Bezier curve sketch.
     """
-    begin_scope = get_begin_scope()
     res = get_draw(sketch)
     if not res:
         return ""
-    options = get_line_style_options(sketch, exceptions=exceptions)
+    options = []
+    if "_tikz_style_id" in sketch.__dict__:
+        options.append(sketch._tikz_style_id)
+    options += get_line_style_options(sketch, exceptions=exceptions)
     options = ", ".join(options)
-    res += f"[{options}]"
+    if options:
+        res += f"[{options}]"
     p1, cp1, cp2, p2 = sketch.control_points
     x1, y1 = p1[:2]
     x2, y2 = cp1[:2]
     x3, y3 = cp2[:2]
     x4, y4 = p2[:2]
     res += f" ({x1}, {y1}) .. controls ({x2}, {y2}) and ({x3}, {y3}) .. ({x4}, {y4});\n"
-    end_scope = get_end_scope()
-
-    return begin_scope + res + end_scope
+    return res
 
 
 def draw_line(line):

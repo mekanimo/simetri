@@ -539,22 +539,23 @@ class IUC(StrEnum):
 
 
 class LatRef(StrEnum):
-    '''Lattice references'''
-    COORD = 'COORD'
-    LERP = 'LERP'
-    AXIS = 'AXIS'
-    POINT = 'POINT'
-    VERTEX = 'VERTEX'
-    EDGE = 'EDGE'
-    DISTANCE = 'DISTANCE'
+    """Lattice references"""
+
+    COORD = "COORD"
+    LERP = "LERP"
+    AXIS = "AXIS"
+    POINT = "POINT"
+    VERTEX = "VERTEX"
+    EDGE = "EDGE"
+    DISTANCE = "DISTANCE"
 
 
 class LatType(StrEnum):
-    HEX = 'HEX' # Hexagon
-    SQR = 'SQR' # Square
-    RECT = 'RECT' # Rectangle
-    RHOMB = 'RHOMB' # Rhombus
-    PAR = 'PAR' # Parallelogram
+    HEX = "HEX"  # Hexagon
+    SQR = "SQR"  # Square
+    RECT = "RECT"  # Rectangle
+    RHOMB = "RHOMB"  # Rhombus
+    PAR = "PAR"  # Parallelogram
 
 
 class LineCap(StrEnum):
@@ -1129,6 +1130,7 @@ class Types(StrEnum):
     CLIP = "CLIP"
     CLIP_GROUP = "CLIP_GROUP"
     CLIPPED_SKETCH = "CLIPPED_SKETCH"
+    CLIPPING = "CLIPPING"
     COLOR = "COLOR"
     COMPOSITE_SKETCH = "COMPOSITE_SKETCH"
     CS = "CS"
@@ -1244,6 +1246,7 @@ class Types(StrEnum):
     STYLE = "STYLE"
     SVG_PATH = "SVG_PATH"
     SVG_PATH_SKETCH = "SVG_PATH_SKETCH"
+    TABLE = "TABLE"
     TAG = "TAG"
     TAG_SKETCH = "TAG_SKETCH"
     TAG_STYLE = "TAG_STYLE"
@@ -1262,6 +1265,7 @@ class Types(StrEnum):
     UNDIRECTED = "UNDIRECTED_GRAPH"
     UNIPATCH = "UNIPATCH"
     UNIPOLY = "UNIPOLY"
+    USER = "USER"
     VERTEX = "VERTEX"
     WARP = "WARP"
     WEFT = "WEFT"

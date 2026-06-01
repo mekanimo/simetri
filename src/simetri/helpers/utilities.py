@@ -258,17 +258,41 @@ def timing(func):
 
 
 def grid_positions(
-    rows: int, cols: int, width: float, height: float, pos: PointType
+    rows: int,
+    cols: int,
+    cell_width: float,
+    cell_height: float,
+    pos: PointType,
+    offset: PointType = (0, 0),
+    page_height: float = None,
+    from_top_left=True,
 ) -> Generator[PointType]:
     """Given number of rows and columns and row height and
-    column width and an origin point, returns a generator of grid positions."""
+    column width and an origin point, returns a generator of grid positions. If from_top_left is False then it starts from
+    bottom right."""
+
+    width, height = cell_width, cell_height
     x, y = pos[:2]
+    offset_x, offset_y = offset[:2]
     grid = []
-    for row in range(rows):
-        y_row = row * height
-        for col in range(cols):
+
+    if from_top_left:
+        if page_height is None:
+            raise ValueError("page_height is required when from_top_left is True")
+        row_indices = range(rows)
+        col_indices = range(cols)
+    else:
+        row_indices = range(rows)
+        col_indices = range(cols - 1, -1, -1)
+
+    for row in row_indices:
+        if from_top_left:
+            y_row = page_height - y - offset_y - row * height
+        else:
+            y_row = y + offset_y + row * height
+        for col in col_indices:
             x_col = col * width
-            grid.append((x + x_col, y + y_row))
+            grid.append((x + offset_x + x_col, y_row))
     return (p for p in grid)
 
 

@@ -1,7 +1,6 @@
 """TikZ exporter. Draws shapes using the TikZ package for LaTeX.
 Sketch objects are converted to TikZ code."""
 
-
 from __future__ import annotations
 
 from math import degrees, atan2
@@ -21,11 +20,11 @@ from ..graphics.all_enums import (
     Anchor,
     Extent,
 )
-from ..canvas.style_map import shape_style_map, line_style_map
 from ..settings.settings import defaults, issue_warning
 from ..canvas.pre_render import (
     collect_tikz_preamble_requirements_for_sketch,
-    render_tikz_scope_loop,
+    set_styles,
+    style_properties,
 )
 from ..geometry.geometry import homogenize
 
@@ -132,10 +131,16 @@ def get_limits_code(canvas: "Canvas") -> str:
         ymax = max(y) - g
 
     points = [(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]
-    vertices = homogenize(points) @ canvas.xform_matrix
+    if canvas.limits is not None:
+        vertices = points
+    else:
+        vertices = homogenize(points) @ canvas.xform_matrix
     coords = " ".join([f"({v[0]}, {v[1]})" for v in vertices])
 
-    return f"\\clip plot[] coordinates {{{coords}}};\n"
+    return (
+        f"\\path[use as bounding box] plot[] coordinates {{{coords}}};\n"
+        f"\\clip plot[] coordinates {{{coords}}};\n"
+    )
 
 
 def get_back_code(canvas: "Canvas") -> str:
@@ -161,23 +166,6 @@ def get_tex_code(canvas: "Canvas") -> str:
         str: The TikZ code.
     """
 
-    scope_style_keys = [
-        "back_style",
-        "blend_mode",
-        "fill",
-        "fill_alpha",
-        "fill_color",
-        "fillet_radius",
-        "line_alpha",
-        "line_cap",
-        "line_color",
-        "line_dash_array",
-        "line_join",
-        "line_miter_limit",
-        "line_width",
-        "smooth",
-        "stroke",
-    ]
     excluded_subtypes = [
         Types.CLIPPED_SKETCH,
         Types.HELPLINES_SKETCH,
@@ -187,88 +175,28 @@ def get_tex_code(canvas: "Canvas") -> str:
         Types.TAG_SKETCH,
         Types.TEX_SKETCH,
     ]
+    styleable_subtypes = [
+        Types.ARC_SKETCH,
+        Types.BEZIER_SKETCH,
+        Types.CIRCLE_SKETCH,
+        Types.ELLIPSE_SKETCH,
+        Types.LINE_SKETCH,
+        Types.PATH_SKETCH,
+        Types.PATTERN_SKETCH,
+        Types.RECTANGLE_SKETCH,
+        Types.SHAPE_SKETCH,
+    ]
     tikz_libraries = []
     tikz_packages = ["tikz", "pgf"]
 
-    def render_sketches(sketches, ind, scope_groups=None):
-        if scope_groups is None:
-            scope_groups = []
-
-        def inspect_preamble_requirements(sketch):
-            collect_tikz_preamble_requirements_for_sketch(
-                sketch, tikz_libraries, tikz_packages
+    def render_sketches(sketches, ind):
+        code = []
+        for sketch in sketches:
+            sketch_code, ind = get_sketch_code(
+                sketch, canvas, ind, style_properties
             )
-
-        def is_scope_eligible(sketch):
-            return True
-
-        def get_scope_options(scope_group, scope_sketch):
-            scope_keys = list(scope_group.style_data.keys())
-            line_exceptions = []
-            for style_key in line_style_map.keys():
-                if style_key not in scope_keys:
-                    line_exceptions.append(style_key)
-            fill_exceptions = []
-            for style_key in shape_style_map.keys():
-                if style_key not in scope_keys:
-                    fill_exceptions.append(style_key)
-            scope_options = []
-            if "stroke" in scope_keys and not scope_sketch.stroke:
-                scope_options.append("draw=none")
-            else:
-                scope_options += get_line_style_options(
-                    scope_sketch, exceptions=line_exceptions
-                )
-            if scope_sketch.fill and (
-                scope_sketch.closed
-                or scope_sketch.subtype == Types.PATH_SKETCH
-            ):
-                scope_options += get_fill_style_options(
-                    scope_sketch, exceptions=fill_exceptions
-                )
-            return scope_options
-
-        def format_manual_scope_open(scope_group, scope_sketch):
-            if scope_group.subtype == Types.CLIP_GROUP:
-                clip_code = get_clip_code(SimpleNamespace(mask=scope_group.mask))
-                return f"\\begin{{scope}}\n{clip_code}"
-            if scope_group.subtype == Types.MASK_GROUP:
-                mask_ns = SimpleNamespace(
-                    mask=scope_group.mask,
-                    clip=scope_group.clip,
-                    _mask_opacity=scope_group._mask_opacity,
-                    _mask_stops=scope_group._mask_stops,
-                    _mask_axis=scope_group._mask_axis,
-                )
-                mask_start, _ = _mask_scope_parts(mask_ns)
-                return mask_start
-            if scope_group.subtype == Types.SCOPE_GROUP:
-                scope_options = get_scope_options(scope_group, scope_sketch)
-                if scope_options:
-                    return f"\\begin{{scope}}[{', '.join(scope_options)}]\n"
-                return "\\begin{scope}\n"
-            return ""
-
-        def format_auto_scope_open(scope_group, scope_sketch):
-            scope_options = get_scope_options(scope_group, scope_sketch)
-            if scope_options:
-                return f"\\begin{{scope}}[{', '.join(scope_options)}]\n"
-            return "\\begin{scope}\n"
-
-        return render_tikz_scope_loop(
-            sketches,
-            ind,
-            scope_groups,
-            scope_style_keys,
-            excluded_subtypes,
-            lambda sketch, local_ind, suppressed_style_keys: get_sketch_code(
-                sketch, canvas, local_ind, suppressed_style_keys
-            ),
-            format_manual_scope_open,
-            format_auto_scope_open,
-            is_scope_eligible,
-            inspect_preamble_requirements,
-        )
+            code.append(sketch_code)
+        return "".join(code), ind
 
     def get_sketch_code(sketch, canvas, ind, suppressed_style_keys):
         """Get the TikZ code for a sketch.
@@ -284,11 +212,11 @@ def get_tex_code(canvas: "Canvas") -> str:
         if sketch.subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
         elif sketch.subtype == Types.IMAGE_SKETCH:
-            code = draw_image_sketch(sketch, exceptions=suppressed_style_keys)
+            code = draw_image_sketch(sketch)
         elif sketch.subtype == Types.HELPLINES_SKETCH:
             code = draw_helplines_sketch(sketch)
         elif sketch.subtype == Types.PDF_SKETCH:
-            code = draw_pdf_sketch(sketch, exceptions=suppressed_style_keys)
+            code = draw_pdf_sketch(sketch)
         elif sketch.subtype == Types.BBOX_SKETCH:
             code = draw_bbox_sketch(sketch)
         elif sketch.subtype == Types.PATTERN_SKETCH:
@@ -322,6 +250,9 @@ def get_tex_code(canvas: "Canvas") -> str:
             masked_code.append(child_code)
             masked_code.append(mask_end)
             code = "".join(masked_code)
+        elif sketch.subtype == Types.COMPOSITE_SKETCH:
+            child_code, ind = render_sketches(sketch.sketches, ind)
+            code = child_code
         else:
             if (
                 hasattr(sketch, "draw_markers")
@@ -353,7 +284,9 @@ def get_tex_code(canvas: "Canvas") -> str:
         for i, page in enumerate(pages):
             canvas.active_page = page
             sketches = page.sketches
-            back_color = f"\\pagecolor{color_to_tikz(page.back_color, 'back_color')}"
+            back_color = (
+                f"\\pagecolor{color_to_tikz(page.back_color, 'back_color')}"
+            )
             if i == 0:
                 if page.back_color:
                     code = [back_color]
@@ -367,19 +300,70 @@ def get_tex_code(canvas: "Canvas") -> str:
                     code.append(get_limits_code(canvas))
 
             sketches_to_populate = list(sketches)
+            style_sketches = []
             while sketches_to_populate:
                 sketch = sketches_to_populate.pop()
-                if sketch.subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+                collect_tikz_preamble_requirements_for_sketch(
+                    sketch, tikz_libraries, tikz_packages
+                )
+                if sketch.subtype in [
+                    Types.CLIPPED_SKETCH,
+                    Types.MASKED_SKETCH,
+                ]:
                     for sketch_list in sketch.sketches:
                         sketches_to_populate.extend(sketch_list)
+                elif sketch.subtype == Types.COMPOSITE_SKETCH:
+                    sketches_to_populate.extend(sketch.sketches)
                 elif sketch.subtype == Types.HELPLINES_SKETCH:
                     sketch.populate(canvas)
                 elif sketch.subtype == Types.LINE_SKETCH:
                     if hasattr(sketch, "populate"):
                         sketch.populate(canvas)
+                if sketch.subtype in styleable_subtypes:
+                    style_sketches.append(sketch)
+
+            d_styles, d_sketch_style = set_styles(style_sketches)
+            style_sketch_dict = {}
+            for sketch in style_sketches:
+                if "_tikz_style_id" in sketch.__dict__:
+                    del sketch._tikz_style_id
+                if sketch.id not in d_sketch_style:
+                    continue
+                style_id = d_sketch_style[sketch.id]
+                sketch._tikz_style_id = style_id
+                if style_id not in style_sketch_dict:
+                    style_sketch_dict[style_id] = [sketch]
+                else:
+                    style_sketch_dict[style_id].append(sketch)
+
+            if d_styles:
+                style_lines = ["\\tikzset{"]
+                has_style_lines = False
+                for style_id in d_styles:
+                    sketch = style_sketch_dict[style_id][0]
+                    options = []
+                    if sketch.stroke:
+                        options += get_line_style_options(sketch)
+                    if sketch.fill and (
+                        sketch.subtype == Types.PATH_SKETCH
+                        or ("closed" in sketch.__dict__ and sketch.closed)
+                    ):
+                        options += get_fill_style_options(sketch)
+                    if not options:
+                        for style_sketch in style_sketch_dict[style_id]:
+                            if "_tikz_style_id" in style_sketch.__dict__:
+                                del style_sketch._tikz_style_id
+                        continue
+                    style_lines.append(
+                        f"{style_id}/.style={{{', '.join(options)}}},"
+                    )
+                    has_style_lines = True
+                style_lines.append("}")
+                if has_style_lines:
+                    code.append("\n".join(style_lines))
 
             ind = 0
-            page_code, ind = render_sketches(sketches, ind, page.scope_groups)
+            page_code, ind = render_sketches(sketches, ind)
             code.append(page_code)
 
         code = "\n".join(code)
@@ -388,7 +372,6 @@ def get_tex_code(canvas: "Canvas") -> str:
     canvas.tex.tikz_libraries = tikz_libraries
     canvas.tex.packages = tikz_packages
     return canvas.tex.tex_code(canvas, code)
-
 
 
 class Grid(sg.Shape):
@@ -423,7 +406,6 @@ class Grid(sg.Shape):
         )
 
 
-
 def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
     parsed_stops = [_effective_alpha_from_stop(stop) for stop in stops]
     parsed_stops.sort(key=lambda item: item[0])
@@ -453,7 +435,6 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
         f"  \\shade[shading={shade_id}, shading angle={angle:.2f}] (0, 0) rectangle (100bp, 100bp);\n"
         f"\\endtikzfadingfrompicture\n"
     )
-
 
 
 def _get_scope_fading_path(mask_shape, fade_id):
@@ -565,7 +546,6 @@ def get_canvas_scope(canvas):
     return "\\begin{scope}\n"
 
 
-
 def get_draw(sketch):
     """Returns the draw command for sketches.
 
@@ -627,7 +607,6 @@ def get_draw(sketch):
     return res
 
 
-
 def _shape_bbox(sketch):
     if hasattr(sketch, "vertices") and getattr(sketch, "vertices", None):
         xs = [v[0] for v in sketch.vertices]
@@ -673,9 +652,7 @@ def _user_space_t_span(sketch, x1, y1, x2, y2):
     return min(t_values), max(t_values)
 
 
-
 # Tex class went to tex.py
-
 
 
 axis_shading_types = [

@@ -71,16 +71,19 @@ def draw_line_sketch(sketch, canvas, exceptions=None):
         limits = _line_limits(canvas)
         start, end = _clip_line_to_rect(start, end, limits, extent)
 
-    style = get_line_style_options(sketch, exceptions=exceptions)
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)
-
+    class_attr = ""
     style_attr = ""
-    if style:
-        style_attr = f' style="{style}"'
+    if exceptions is None and "_style_id" in sketch_attrib(sketch, "__dict__"):
+        class_attr = f' class="{sketch._style_id}"'
+    else:
+        style = get_line_style_options(sketch, exceptions=exceptions)
+        if style:
+            style_attr = f' style="{style}"'
 
     return (
         f'<line x1="{start[0]}" y1="{start[1]}" '
-        f'x2="{end[0]}" y2="{end[1]}"{style_attr}{clip_attr}{mask_attr} />'
+        f'x2="{end[0]}" y2="{end[1]}"{class_attr}{style_attr}{clip_attr}{mask_attr} />'
     )
 
 
@@ -99,8 +102,6 @@ def draw_arc_sketch(sketch, exceptions=None):
     path_data = " ".join(path_parts)
 
     style_shape_type = "path" if closed else "polyline"
-    line_style = get_line_style_options(sketch, exceptions=exceptions)
-
     fill_attr = ""
     skip_fill_style = False
     if sketch_attrib(sketch, "tile_svg") is not None:
@@ -114,12 +115,22 @@ def draw_arc_sketch(sketch, exceptions=None):
         fill_attr = f' fill="url(#{gradient_id})"'
         skip_fill_style = True
 
-    style = line_style
-    if not skip_fill_style:
-        fill_style = get_fill_style_options(
-            sketch, style_shape_type, exceptions=exceptions
-        )
-        style = f"{line_style} {fill_style}".strip()
+    class_attr = ""
+    style = ""
+    if (
+        not skip_fill_style
+        and exceptions is None
+        and "_style_id" in sketch_attrib(sketch, "__dict__")
+    ):
+        class_attr = f' class="{sketch._style_id}"'
+    else:
+        line_style = get_line_style_options(sketch, exceptions=exceptions)
+        style = line_style
+        if not skip_fill_style:
+            fill_style = get_fill_style_options(
+                sketch, style_shape_type, exceptions=exceptions
+            )
+            style = f"{line_style} {fill_style}".strip()
 
     fill_rule_attr = ""
     if skip_fill_style and sketch_attrib(sketch, "even_odd"):
@@ -131,7 +142,7 @@ def draw_arc_sketch(sketch, exceptions=None):
         style_attr = f' style="{style}"'
 
     return (
-        f'<path d="{path_data}"{style_attr}'
+        f'<path d="{path_data}"{class_attr}{style_attr}'
         f"{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr} />"
     )
 
@@ -139,7 +150,6 @@ def draw_arc_sketch(sketch, exceptions=None):
 def draw_path_sketch(sketch, exceptions=None):
     """Draw a LinPath sketch as an SVG path without geometry conversion."""
     path_data = sketch_attrib(sketch, "path_data")
-    line_style = get_line_style_options(sketch, exceptions=exceptions)
 
     fill_attr = ""
     skip_fill_style = False
@@ -154,12 +164,22 @@ def draw_path_sketch(sketch, exceptions=None):
         fill_attr = f' fill="url(#{gradient_id})"'
         skip_fill_style = True
 
-    style = line_style
-    if not skip_fill_style:
-        fill_style = get_fill_style_options(
-            sketch, "path", exceptions=exceptions
-        )
-        style = f"{line_style} {fill_style}".strip()
+    class_attr = ""
+    style = ""
+    if (
+        not skip_fill_style
+        and exceptions is None
+        and "_style_id" in sketch_attrib(sketch, "__dict__")
+    ):
+        class_attr = f' class="{sketch._style_id}"'
+    else:
+        line_style = get_line_style_options(sketch, exceptions=exceptions)
+        style = line_style
+        if not skip_fill_style:
+            fill_style = get_fill_style_options(
+                sketch, "path", exceptions=exceptions
+            )
+            style = f"{line_style} {fill_style}".strip()
 
     fill_rule_attr = ""
     if skip_fill_style and sketch_attrib(sketch, "even_odd"):
@@ -171,7 +191,7 @@ def draw_path_sketch(sketch, exceptions=None):
         style_attr = f' style="{style}"'
 
     return (
-        f'<path d="{path_data}"{style_attr}'
+        f'<path d="{path_data}"{class_attr}{style_attr}'
         f"{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr} />"
     )
 
@@ -190,15 +210,21 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
 
     shape_type = "polygon" if sketch_attrib(sketch, "closed") else "polyline"
 
-    line_style = get_line_style_options(sketch, exceptions=exceptions)
-    fill_style = get_fill_style_options(
-        sketch, shape_type, exceptions=exceptions
-    )
-    style = f"{line_style} {fill_style}".strip()
-    style_attr = f'style="{style}"' if style else ""
+    class_attr = ""
+    style_attr = ""
+    if exceptions is None and "_style_id" in sketch_attrib(sketch, "__dict__"):
+        class_attr = f'class="{sketch._style_id}"'
+    else:
+        line_style = get_line_style_options(sketch, exceptions=exceptions)
+        fill_style = get_fill_style_options(
+            sketch, shape_type, exceptions=exceptions
+        )
+        style = f"{line_style} {fill_style}".strip()
+        style_attr = f'style="{style}"' if style else ""
 
     verts = " ".join([f"{vertex[0]},{vertex[1]}" for vertex in vertices])
-    shape_svg = f'<{shape_type} points="{verts}" {style_attr}/>'
+    attrs = " ".join([part for part in [class_attr, style_attr] if part])
+    shape_svg = f'<{shape_type} points="{verts}" {attrs}/>'
 
     # Determine offset for label positioning
     if hasattr(sketch, "ind_offset"):
@@ -785,9 +811,7 @@ def draw_shape_sketch_with_markers(sketch, exceptions=None):
         if (
             not (exceptions is not None and "even_odd" in exceptions)
             and "even_odd" in sketch_attrib(sketch, "__dict__")
-            and sketch_attrib(
-            sketch, "even_odd"
-            )
+            and sketch_attrib(sketch, "even_odd")
         ):
             fill_rule_attr = ' fill-rule="evenodd"'
 

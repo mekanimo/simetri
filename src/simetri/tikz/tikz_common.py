@@ -46,7 +46,9 @@ def _parse_offset(offset):
 def _effective_alpha_from_stop(stop):
     if isinstance(stop, dict):
         offset = _parse_offset(stop["offset"])
-        stop_opacity = stop.get("stop-opacity", stop.get("stop_opacity", stop.get("opacity", 1.0)))
+        stop_opacity = stop.get(
+            "stop-opacity", stop.get("stop_opacity", stop.get("opacity", 1.0))
+        )
         alpha = max(0.0, min(1.0, float(stop_opacity)))
         return offset, alpha
 
@@ -208,7 +210,7 @@ def get_draw(sketch):
 def get_begin_scope(ind=None):
     """Return \\begin{scope}[every node/.append style=nodestyle{ind}]."""
     if ind is None:
-        result = "\\begin{scope}[]\n"
+        result = ""
     else:
         result = f"\\begin{{scope}}[every node/.append style=nodestyle{ind}]\n"
 

@@ -12,10 +12,7 @@ from ..geometry.geometry import (
 )
 from ..colors.colors import black, white
 from ..settings.settings import defaults, issue_warning, svg_defaults
-from ..canvas.style_map import  marker_style_map
-from ..canvas.pre_render import (
-    render_svg_scope_loop,
-)
+from ..canvas.style_map import marker_style_map
 from ..graphics.sketch import MaskSketch
 from . import svg_sketch_utils as svg_sketch_utils_module
 from .filters import SVG_Filter
@@ -219,23 +216,6 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         str: The SVG code.
     """
 
-    line_scope_style_keys = [
-        "stroke",
-        "line_color",
-        "line_alpha",
-        "line_width",
-        "line_cap",
-        "line_join",
-        "line_miter_limit",
-        "line_dash_array",
-    ]
-    fill_scope_style_keys = [
-        "fill",
-        "fill_color",
-        "fill_alpha",
-        "even_odd",
-    ]
-    scope_style_keys = line_scope_style_keys + fill_scope_style_keys
     excluded_subtypes = [
         Types.CLIPPED_SKETCH,
         Types.HELPLINES_SKETCH,
@@ -246,74 +226,11 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         Types.TEX_SKETCH,
     ]
 
-    def get_scope_style(scope_group, scope_sketch):
-        scope_keys = list(scope_group.style_data.keys())
-        line_exceptions = []
-        for style_key in line_scope_style_keys:
-            if style_key not in scope_keys:
-                line_exceptions.append(style_key)
-        fill_exceptions = []
-        for style_key in fill_scope_style_keys:
-            if style_key not in scope_keys:
-                fill_exceptions.append(style_key)
-        scope_line_style = get_line_style_options(
-            scope_sketch, exceptions=line_exceptions
-        )
-        scope_fill_style = ""
-        if scope_sketch.subtype in d_shape_types:
-            scope_fill_style = get_fill_style_options(
-                scope_sketch,
-                get_shape_type(scope_sketch),
-                exceptions=fill_exceptions,
-            )
-        elif scope_sketch.subtype in [Types.ARC_SKETCH, Types.PATH_SKETCH]:
-            scope_fill_style = get_fill_style_options(
-                scope_sketch, "path", exceptions=fill_exceptions
-            )
-        return f"{scope_line_style} {scope_fill_style}".strip()
-
-    def format_manual_scope_open(scope_group, scope_sketch):
-        if scope_group.subtype == Types.CLIP_GROUP:
-            return f'<g clip-path="url(#clippath_{scope_group.id})">'
-        if scope_group.subtype == Types.MASK_GROUP:
-            return f'<g mask="url(#{scope_group._mask_context_id})">'
-        if scope_group.subtype == Types.SCOPE_GROUP:
-            scope_style = get_scope_style(scope_group, scope_sketch)
-            if scope_style:
-                return f'<g style="{scope_style}">'
-            return "<g>"
-        return ""
-
-    def format_auto_scope_open(scope_group, scope_sketch):
-        scope_style = get_scope_style(scope_group, scope_sketch)
-        if scope_style:
-            return f'<g style="{scope_style}">'
-        return "<g>"
-
-    def is_svg_scope_eligible(sketch):
-        if sketch_attrib(sketch, "tile_svg") is not None:
-            return False
-        if has_gradient(sketch):
-            return False
-        return True
-
-    def render_sketches(sketches, ind, scope_groups=None):
-        if scope_groups is None:
-            scope_groups = []
-
-        return render_svg_scope_loop(
-            sketches,
-            ind,
-            scope_groups,
-            scope_style_keys,
-            excluded_subtypes,
-            lambda sketch, local_ind, suppressed_style_keys: get_sketch_code(
-                sketch, canvas, local_ind, suppressed_style_keys
-            ),
-            format_manual_scope_open,
-            format_auto_scope_open,
-            is_svg_scope_eligible,
-        )
+    def render_sketches(sketches, ind):
+        code = []
+        for sketch in sketches:
+            code.append(get_sketch_code(sketch, canvas, ind, []))
+        return "\n".join(code)
 
     def get_sketch_code(sketch, canvas, ind, suppressed_style_keys):
         """Get the SVG code for a sketch.
@@ -347,6 +264,8 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
                 child_sketches.extend(sketch_list)
             content = render_sketches(child_sketches, ind)
             code = f'<g mask="url(#{mask_id})">\n{content}\n</g>'
+        elif subtype == Types.COMPOSITE_SKETCH:
+            code = render_sketches(sketch.sketches, ind)
         elif subtype == Types.TEX_SKETCH:
             # TexSketch is for TikZ/LaTeX output, skip in SVG
             code = ""
@@ -407,11 +326,13 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
         if subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
             for sketch_list in sketch.sketches:
                 sketches_to_populate.extend(sketch_list)
+        elif subtype == Types.COMPOSITE_SKETCH:
+            sketches_to_populate.extend(sketch.sketches)
         elif subtype == Types.HELPLINES_SKETCH:
             sketch.populate(canvas)
         elif subtype == Types.LINE_SKETCH:
             sketch.populate(canvas)
-    rendered_code = render_sketches(sketches, 0, page.scope_groups)
+    rendered_code = render_sketches(sketches, 0)
     code.append(rendered_code)
 
     code = "\n".join(code)
@@ -630,6 +551,9 @@ def collect_clip_paths(canvas):
                     for sketch_list in sketch.sketches:
                         sketches.extend(sketch_list)
                     continue
+                if subtype == Types.COMPOSITE_SKETCH:
+                    sketches.extend(sketch.sketches)
+                    continue
                 mask = sketch_attrib(sketch, "mask")
                 if sketch_attrib(sketch, "clip") is True and mask is not None:
                     clip_paths[id(sketch)] = (sketch, mask)
@@ -709,8 +633,9 @@ def get_limits_clippath(canvas):
     # Create the clip path points
     points = [(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]
 
-    # Apply transformation matrix if it exists
-    if canvas.xform_matrix is not None:
+    if limits is not None:
+        vertices = points
+    elif canvas.xform_matrix is not None:
         vertices = homogenize(points) @ canvas.xform_matrix
     else:
         vertices = points

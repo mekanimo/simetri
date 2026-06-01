@@ -30,13 +30,13 @@ from ..graphics.sketch import (
     ArcSketch,
     BezierSketch,
     CircleSketch,
+    CompositeSketch,
     EllipseSketch,
     HelpLinesSketch,
     LineSketch,
     PatternSketch,
     RectSketch,
     ShapeSketch,
-    ScopeGroup,
     TagSketch,
     ImageSketch,
     PDFSketch,
@@ -49,9 +49,7 @@ from ..settings.settings import defaults
 from ..canvas.style_map import (
     line_style_map,
     shape_style_map,
-
 )
-from ..canvas.pre_render import NON_SCOPABLE_SCOPE_KEYS
 from ..helpers.illustration import Tag
 from ..helpers.utilities import (
     decompose_transformations,
@@ -627,6 +625,22 @@ def draw_group(self, group, **kwargs):
     return self
 
 
+def draw_widget(self, item, **kwargs):
+    """Draw an item that exposes draw_list as a composite sketch."""
+    active_sketches = self.active_page.sketches
+    first_sketch_index = len(active_sketches)
+
+    for drawable_item in item.draw_list():
+        draw(self, drawable_item, **kwargs)
+
+    widget_sketches = active_sketches[first_sketch_index:]
+    if widget_sketches:
+        del active_sketches[first_sketch_index:]
+        active_sketches.append(CompositeSketch(widget_sketches))
+
+    return self
+
+
 def draw_hobby(
     self,
     points: Sequence[PointType],
@@ -972,7 +986,7 @@ def plait_diamond(self, lace, **kwargs):
 def draw_lace_with_fillets(self, lace, **kwargs):
     r1, r2 = kwargs["fillet_radii"]
     rounded_fragments = lace._fillet_fragments(r1, r2)
-    palette = kwargs.get('palette')
+    palette = kwargs.get("palette")
     self.draw_fragments(palette=palette, fragments=rounded_fragments, **kwargs)
 
     rounded_plaits = lace._fillet_plaits(r1, r2)
@@ -980,7 +994,7 @@ def draw_lace_with_fillets(self, lace, **kwargs):
     if "plait_fill_color" not in kwargs:
         fill_color = defaults["plait_color"]
     else:
-        fill_color = kwargs['plait_fill_color']
+        fill_color = kwargs["plait_fill_color"]
     for plait in rounded_plaits:
         draw(self, plait, fill_color=fill_color, **kwargs)
 
@@ -996,13 +1010,12 @@ def draw_plaits(self, lace=None, **kwargs):
         if color is not None:
             kwargs["plait_fill_color"] = color
     for plait in plaits:
-        self._all_vertices.extend(plait.corners) # This may be redundant!!!
+        self._all_vertices.extend(plait.corners)  # This may be redundant!!!
 
     if "plait_style" in kwargs:
         _handle_plait_style(self, lace, kwargs)
     else:
         _draw_default_plaits(self, lace, kwargs)
-
 
 
 def draw_fragments(self, lace=None, palette=None, **kwargs):
@@ -1063,7 +1076,9 @@ def _handle_plait_innerlines(canvas, lace, **kwargs):
                 shape = Shape(points)
                 line_width = plait.line_widths[i] if widths else 1
                 canvas.active_page.sketches.append(
-                    create_sketch(shape, canvas, line_width=line_width, **kwargs)
+                    create_sketch(
+                        shape, canvas, line_width=line_width, **kwargs
+                    )
                 )
 
 
@@ -1115,7 +1130,7 @@ def draw_lace(self, lace, **kwargs):
         self.draw_lace_with_fillets(lace, **kwargs)
         return self
 
-    palette = kwargs.get('palette', None)
+    palette = kwargs.get("palette", None)
 
     self.draw_fragments(lace, palette=palette, **kwargs)
 
@@ -1131,6 +1146,7 @@ def draw_lines(self, lines, **kwargs):
     sketch = LinesSketch(lines, **kwargs)
     self.active_page.sketches.append(sketch)
     self._sketch_xform_matrix = identity_matrix()
+
 
 def draw_image(self, image, position=None, scale=None, **kwargs):
     """Draw the image object.
@@ -1427,8 +1443,18 @@ def draw(self, item: Union[Shape, Group], **kwargs) -> Self:
         return self
 
     active_sketches = self.active_page.sketches
+    try:
+        draw_list_method = item.draw_list
+    except AttributeError:
+        draw_list_method = None
+    if draw_list_method and callable(draw_list_method):
+        draw_widget(self, item, **kwargs)
+        return self
+
     subtype = item.subtype
-    extend_vertices(self, item)
+    if item.type is not Types.CLIPPING:
+        extend_vertices(self, item)
+
     if subtype == Types.LINPATH and kwargs.get("handles", False):
         handle_size = defaults["handle_marker_size"]
         half_size = handle_size / 2
@@ -1450,53 +1476,8 @@ def draw(self, item: Union[Shape, Group], **kwargs) -> Self:
                 )
 
     if subtype == Types.GROUP:
-        style_group_keys = list(line_style_map.keys())
-        for style_key in NON_SCOPABLE_SCOPE_KEYS:
-            if style_key in style_group_keys:
-                style_group_keys.remove(style_key)
-        for style_key in shape_style_map.keys():
-            if style_key not in style_group_keys:
-                style_group_keys.append(style_key)
-        for style_key in ["stroke", "fill"]:
-            if style_key not in style_group_keys:
-                style_group_keys.append(style_key)
-
-        first_sketch_index = len(active_sketches)
         for group_item in item:
             draw(self, group_item, **kwargs)
-        group_sketches = active_sketches[first_sketch_index:]
-        scope_style_data = {}
-        if group_sketches:
-            first_sketch_dict = group_sketches[0].__dict__
-            for style_key in style_group_keys:
-                if style_key in first_sketch_dict:
-                    style_value = first_sketch_dict[style_key]
-                    same_style_value = True
-                    for group_sketch in group_sketches[1:]:
-                        group_sketch_dict = group_sketch.__dict__
-                        if (
-                            style_key not in group_sketch_dict
-                            or group_sketch_dict[style_key] != style_value
-                        ):
-                            same_style_value = False
-                            break
-                    if same_style_value:
-                        scope_style_data[style_key] = style_value
-        if len(group_sketches) > 1 and scope_style_data:
-            overlap = set(scope_style_data.keys()) & NON_SCOPABLE_SCOPE_KEYS
-            if overlap:
-                raise ValueError(
-                    "scope style data cannot include non-scopable keys: "
-                    f"{sorted(overlap)}"
-                )
-            self.active_page.scope_groups.append(
-                ScopeGroup(
-                    label="",
-                    subtype=Types.SCOPE_GROUP,
-                    sketch_list=group_sketches,
-                    style_data=scope_style_data,
-                )
-            )
     elif subtype in regular_sketch_types:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
@@ -1517,6 +1498,19 @@ def draw(self, item: Union[Shape, Group], **kwargs) -> Self:
         self.draw_lace(item, **kwargs)
     elif subtype == Types.BOUNDING_BOX:
         draw_bbox(self, item, **kwargs)
+    elif subtype == Types.CLIPPING:
+        target = item.target
+        clipper = item.clipper
+        self._sketch_xform_matrix = (
+            self._sketch_xform_matrix @ self._xform_matrix
+        )
+        self.active_page.sketches.append(
+            get_clipped_sketch(target, clipper, self, **kwargs)
+        )
+        extend_vertices(self, clipper)
+        self._sketch_xform_matrix = identity_matrix()
+
+        return self
     return self
 
 
@@ -1563,6 +1557,7 @@ def get_clipped_sketch(target, clipper, canvas, **kwargs):
         sketches.append(get_sketches(target, canvas, **kwargs))
     clipper = get_sketches(clipper, canvas)
     return ClippedSketch(sketches=sketches, clipper=clipper)
+
 
 def get_sketches(
     item: Drawable, canvas: "Canvas" = None, **kwargs
@@ -1798,7 +1793,6 @@ def create_sketch(item, canvas, **kwargs):
 
         return sketch
 
-
     def get_circle_sketch(item, canvas, **kwargs):
         """Create a CircleSketch from the given item.
 
@@ -1890,15 +1884,12 @@ def create_sketch(item, canvas, **kwargs):
         return sketches
 
     def get_composite_sketch(items, canvas, **kwargs):
-        '''Create a sketch for composite items like arrows, grids,
-        parallel_polylines, dimensions, etc.'''
+        """Create a sketch for composite items like arrows, grids,
+        parallel_polylines, dimensions, etc."""
         sketches = []
         for item in items:
             sketch = create_sketch(item, canvas, **kwargs)
             sketches.append(sketch)
-
-
-
 
     def get_path_sketch(item, canvas, **kwargs):
         """Create sketches for a path from the given item.
@@ -1953,13 +1944,7 @@ def create_sketch(item, canvas, **kwargs):
             return None
         sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
         sketch.subtype = Types.BBOX_SKETCH
-        sketch.exclusive = [
-            "line_color",
-            "line_width",
-            "line_dash_array",
-            "stroke",
-            "fill",
-        ]
+        sketch.exclusive = item.exclusive
         sketch.visible = True
         sketch.closed = True
         sketch.fill = False

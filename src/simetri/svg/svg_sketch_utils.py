@@ -4,15 +4,10 @@ import numpy as np
 from PIL import ImageFont
 
 from ..colors.colors import Color
+from ..canvas.pre_render import set_styles
 from ..graphics.all_enums import FontFamily, MarkerType, Types
 from ..graphics.bbox import bounding_box
 from ..settings.settings import defaults, issue_warning
-from ..canvas.style_passes import (
-    build_sketch_style_ids,
-    build_style_sketch_dict,
-    build_styles_dict,
-    validate_style_sketch_coverage,
-)
 from .svg_colors import color_to_svg
 
 
@@ -25,6 +20,9 @@ d_shape_types = {
     Types.HANDLE: "shape",
     Types.SHAPE_SKETCH: "shape",
     Types.TAG_SKETCH: "tag",
+    Types.ARC_SKETCH: "path",
+    Types.BEZIER_SKETCH: "path",
+    Types.PATH_SKETCH: "path",
 }
 
 
@@ -409,7 +407,9 @@ def generate_marker_def(
                     fill_attr = 'fill="none"'
                     stroke_attr = f'stroke="{marker_color_svg}" stroke-width="1" stroke-opacity="{marker_alpha}"'
 
-                shape_svg = f'<{shape_type} {coordinates} {fill_attr} {stroke_attr}/>'
+                shape_svg = (
+                    f"<{shape_type} {coordinates} {fill_attr} {stroke_attr}/>"
+                )
             else:
                 shape_svg = svg_shape(marker_sketch, styles_dict)
 
@@ -558,20 +558,20 @@ def get_styles_dict(canvas):
 
         return style_dict
 
-    line_styles = {}
-    fill_styles = {}
-    line_counter = 1
-    fill_counter = 1
     style_sketches = []
 
     def collect_sketch_styles(sketch):
-        nonlocal line_counter, fill_counter
         subtype = sketch_attrib(sketch, "subtype")
 
         if subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
             for sketch_list in sketch.sketches:
                 for child_sketch in sketch_list:
                     collect_sketch_styles(child_sketch)
+            return
+
+        if subtype == Types.COMPOSITE_SKETCH:
+            for child_sketch in sketch.sketches:
+                collect_sketch_styles(child_sketch)
             return
 
         # Skip non-shape sketches (like TexSketch)
@@ -589,79 +589,37 @@ def get_styles_dict(canvas):
     if not style_sketches:
         return {}
 
-    style_domain_key_sets = {
-        "line": [
-            "stroke",
-            "draw_double",
-            "double_color",
-            "double_distance",
-            "line_color",
-            "line_alpha",
-            "line_width",
-            "line_cap",
-            "line_join",
-            "line_miter_limit",
-            "line_dash_array",
-        ],
-        "fill": ["fill", "fill_color", "fill_alpha", "even_odd"],
-    }
-
-    neutral_styles = build_styles_dict(style_sketches, style_domain_key_sets)
-    style_sketch_dict = build_style_sketch_dict(
-        style_sketches, style_domain_key_sets, neutral_styles
-    )
-    sketch_style_ids = build_sketch_style_ids(style_sketch_dict)
-    validate_style_sketch_coverage(style_sketches, sketch_style_ids)
-
+    d_styles, sketch_style_ids = set_styles(style_sketches)
     sketch_by_id = {sketch.id: sketch for sketch in style_sketches}
+    style_sketch_dict = {}
 
-    for style_id, style_obj in neutral_styles.items():
-        sketch_ids = style_sketch_dict[style_id]
-        if not sketch_ids:
-            raise ValueError(f"Style {style_id} has no sketches in style_sketch mapping")
+    for sketch in style_sketches:
+        if "_style_id" in sketch.__dict__:
+            del sketch._style_id
+        if sketch.id not in sketch_style_ids:
+            continue
+        style_id = sketch_style_ids[sketch.id]
+        sketch._style_id = style_id
+        if style_id not in style_sketch_dict:
+            style_sketch_dict[style_id] = [sketch.id]
+        else:
+            style_sketch_dict[style_id].append(sketch.id)
 
-        first_sketch_id = sketch_ids[0]
-        if first_sketch_id not in sketch_by_id:
-            raise ValueError(
-                f"Sketch id {first_sketch_id} missing from style sketch lookup"
-            )
-        sketch = sketch_by_id[first_sketch_id]
+    css_styles = {}
+    for style_id in d_styles:
+        sketch = sketch_by_id[style_sketch_dict[style_id][0]]
+        shape_type = get_shape_type(sketch)
+        style_parts = [get_line_style_options(sketch)]
+        if shape_type != "line":
+            style_parts.append(get_fill_style_options(sketch, shape_type))
+        css_styles[style_id] = parse_style_string(" ".join(style_parts))
 
-        if style_obj["domain"] == "line":
-            line_style_str = get_line_style_options(sketch)
-            line_style_dict = parse_style_string(line_style_str)
-            style_exists = any(
-                set(existing.items()) == set(line_style_dict.items())
-                for existing in line_styles.values()
-            )
-            if not style_exists:
-                line_styles[f"line_style_{line_counter}"] = line_style_dict
-                line_counter += 1
-        elif style_obj["domain"] == "fill":
-            shape_type = get_shape_type(sketch)
-            if shape_type in [
-                "circle",
-                "ellipse",
-                "polygon",
-                "polyline",
-                "rect",
-            ]:
-                fill_style_str = get_fill_style_options(sketch, shape_type)
-                fill_style_dict = parse_style_string(fill_style_str)
-                style_exists = any(
-                    set(existing.items()) == set(fill_style_dict.items())
-                    for existing in fill_styles.values()
-                )
-                if not style_exists:
-                    fill_styles[f"fill_style_{fill_counter}"] = fill_style_dict
-                    fill_counter += 1
-
-    # Combine all styles
-    all_styles = {**line_styles, **fill_styles}
-    return all_styles
+    return css_styles
 
 
-def get_style_class(sketch, shape_type, styles_dict, skip_fill=False, exceptions=None):
+def get_style_class(
+    sketch, shape_type, styles_dict, skip_fill=False, exceptions=None
+):
     """Find the style class names that match the sketch's styles.
 
     Args:
@@ -674,55 +632,11 @@ def get_style_class(sketch, shape_type, styles_dict, skip_fill=False, exceptions
         str: Space-separated class names.
     """
 
-    def parse_style_string(style_string):
-        """Parse a style string into a dictionary."""
-        style_dict = {}
-        if not style_string:
-            return style_dict
-
-        parts = style_string.split(";")
-        for part in parts:
-            part = part.strip()
-            if ":" in part:
-                key, value = part.split(":", 1)
-                style_dict[key.strip()] = value.strip()
-
-        return style_dict
-
-    class_names = []
-
-    # Get line style and find matching class
-    line_style_str = get_line_style_options(sketch, exceptions=exceptions)
-    if line_style_str:
-        line_style_dict = parse_style_string(line_style_str)
-        for class_name, style_values in styles_dict.items():
-            if class_name.startswith("line_style_") and set(
-                style_values.items()
-            ) == set(line_style_dict.items()):
-                class_names.append(class_name)
-                break
-
-    # Get fill style and find matching class (skip if gradient/pattern is used)
-    if not skip_fill and shape_type in [
-        "circle",
-        "ellipse",
-        "polygon",
-        "polyline",
-        "rect",
-    ]:
-        fill_style_str = get_fill_style_options(
-            sketch, shape_type, exceptions=exceptions
-        )
-        if fill_style_str:
-            fill_style_dict = parse_style_string(fill_style_str)
-            for class_name, style_values in styles_dict.items():
-                if class_name.startswith("fill_style_") and set(
-                    style_values.items()
-                ) == set(fill_style_dict.items()):
-                    class_names.append(class_name)
-                    break
-
-    return " ".join(class_names)
+    if skip_fill or exceptions:
+        return ""
+    if "_style_id" in sketch_attrib(sketch, "__dict__"):
+        return sketch._style_id
+    return ""
 
 
 def has_gradient(sketch):
