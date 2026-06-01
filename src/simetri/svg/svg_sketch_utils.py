@@ -9,6 +9,7 @@ from ..graphics.all_enums import FontFamily, MarkerType, Types
 from ..graphics.bbox import bounding_box
 from ..settings.settings import defaults, issue_warning
 from .svg_colors import color_to_svg
+from .svg import svg_shape
 
 
 d_shape_types = {
@@ -156,7 +157,6 @@ def get_fill_style_options(sketch, shape_type, exceptions=None, frame=False):
     if exceptions is not None:
         for exception in exceptions:
             merged_exceptions.append(exception)
-    sketch_dict = sketch_attrib(sketch, "__dict__")
 
     options = []
     if "fill" not in merged_exceptions:

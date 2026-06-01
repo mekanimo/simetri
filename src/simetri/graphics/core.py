@@ -40,13 +40,13 @@ from ..canvas.style_map import shape_args
 
 STYLE_ATTRIBUTES = set(shape_args)
 
+
 def _update_inplace(
     xform_matrix: "ndarray",
     xform_type: TransformationType,
     incr: Union[
         float | tuple[float, float] | tuple[callable, Any] | tuple[InPlace, Any]
-    ]=None,
-
+    ] = None,
 ):
     """Update a transformation matrix in-place for repeated transformations.
 
@@ -153,7 +153,6 @@ def _update_inplace(
             xform_matrix[2, 0] = dx * scale
             xform_matrix[2, 1] = dy * scale
 
-
     if _is_number(incr):
         _add_increment(incr)
     elif isinstance(incr, Sequence) and not isinstance(incr, (str, bytes)):
@@ -206,7 +205,7 @@ class Base:
         else:
             try:
                 res = self.__dict__[name]
-            except KeyError as exc:
+            except KeyError:
                 try:
                     res = getattr(super(), name)
                 except AttributeError as attr_exc:
@@ -214,9 +213,7 @@ class Base:
                     # This allows the canvas property resolution to work properly
                     if name in STYLE_ATTRIBUTES:
                         return None
-                    msg = (
-                        f"'{self.__class__.__name__}' object has no attribute '{name}'"
-                    )
+                    msg = f"'{self.__class__.__name__}' object has no attribute '{name}'"
                     raise AttributeError(msg) from attr_exc
 
         return res
@@ -497,13 +494,13 @@ class Base:
             scale_y = scale_x
         transform = scale_in_place_matrix(scale_x, scale_y, about)
         res = self._update(
-                transform,
-                reps=reps,
-                take=take,
-                incr=incr,
-                merge=merge,
-                xform_type=TransformationType.SCALE,
-            )
+            transform,
+            reps=reps,
+            take=take,
+            incr=incr,
+            merge=merge,
+            xform_type=TransformationType.SCALE,
+        )
 
         return res
 
@@ -599,7 +596,9 @@ class Base:
 
         return res
 
-    def move(self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs) -> Self:
+    def move(
+        self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs
+    ) -> Self:
         """
         Moves the object to the given position by using its midpoint.
 
@@ -612,7 +611,9 @@ class Base:
         """
         return self.move_to(pos, anchor, **kwargs)
 
-    def move_to(self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs) -> Self:
+    def move_to(
+        self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs
+    ) -> Self:
         """
         Moves the object to the given position by using its midpoint.
 
@@ -649,7 +650,9 @@ class Base:
         side = get_enum_value(Side, side)
         return self.b_box.offset_line(side, offset)
 
-    def offset_point(self, anchor: Anchor, dx: float, dy: float = 0) -> PointType:
+    def offset_point(
+        self, anchor: Anchor, dx: float, dy: float = 0
+    ) -> PointType:
         """
         Offset the point by the given anchor and offset distances.
         anchor can be Anchor.MIDPOINT, Anchor.SOUTHWEST, Anchor.SOUTHEAST,

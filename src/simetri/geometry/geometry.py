@@ -27,7 +27,7 @@ from functools import cmp_to_key
 
 
 import numpy as np
-from numpy import array, around
+from numpy import array, around, ndarray
 
 from simetri.helpers.utilities import (
     lerp,
@@ -3497,7 +3497,7 @@ def get_polygons(
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
-    from ..graph import get_cycles
+    from ..helpers.graph import get_cycles
 
     nested_rounded_points = []
     for points in nested_points:

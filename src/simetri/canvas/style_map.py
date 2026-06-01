@@ -1740,24 +1740,6 @@ canvas_args = [
     "margins",
 ]
 
-shape_aliases_dict = {}
-
-
-def _set_shape_aliases_dict(shape):
-    """Set the shape aliases dictionary.
-
-    Args:
-        shape: The shape object to set aliases for.
-    """
-    for alias, path_attrib in shape_style_map.items():
-        style_path, attrib = path_attrib
-        obj = shape
-        for attrib_name in style_path.split("."):
-            obj = obj.__dict__[attrib_name]
-
-            if obj is not shape:
-                shape_aliases_dict[alias] = (obj, attrib)
-
 
 class StyleObj:
     """

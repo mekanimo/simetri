@@ -30,7 +30,6 @@ Color = colors.Color
 np.set_printoptions(legacy="1.21")
 
 
-
 @dataclass
 class CircleSketch:
     """CircleSketch is a dataclass for creating a circle sketch object.
@@ -121,9 +120,11 @@ class RectangleSketch:
 
         self.closed = True
 
+
 @dataclass
 class LinesSketch:
-    '''LinesSketch is a dataclass for creating multiple line with the same style.'''
+    """LinesSketch is a dataclass for creating multiple line with the same style."""
+
     lines: Sequence[tuple[float, float]]
     xform_matrix: ndarray = None
 
@@ -134,6 +135,7 @@ class LinesSketch:
         self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
+
 
 @dataclass
 class LineSketch:
@@ -248,7 +250,9 @@ class LineSketch:
 
     def populate(self, canvas):
         """Populate rendered vertices for deferred draw types (RAY/INFINITE)."""
-        extent = getattr(self, "extent", getattr(self, "draw_type", Extent.SEGMENT))
+        extent = getattr(
+            self, "extent", getattr(self, "draw_type", Extent.SEGMENT)
+        )
         if not isinstance(extent, Extent) and extent is not None:
             extent = Extent(extent)
 
@@ -286,7 +290,6 @@ class PatternSketch:
         self.all_matrices = self.pattern.composite
         self.count = self.pattern.count
         self.closed = self.pattern.closed
-
 
 
 @dataclass
@@ -503,6 +506,7 @@ class ScopeGroup:
     This is used for defining a style and referencing it from many
     shapes. This makes the source code more readable and shorter.
     """
+
     label: str
     subtype: Types.SCOPE_GROUP
     sketch_list: list
@@ -512,9 +516,11 @@ class ScopeGroup:
         self.type = Types.SCOPE_GROUP
         self.id = get_unique_id(self)
 
+
 @dataclass
 class ClippedSketch:
-    '''canvas.clip creates a ClippedSketch'''
+    """canvas.clip creates a ClippedSketch"""
+
     sketches: List[Types.SKETCH]
     clipper: ShapeSketch
     xform_matrix: ndarray = None
@@ -528,10 +534,10 @@ class ClippedSketch:
             self.xform_matrix = identity_matrix()
 
 
-
 @dataclass
 class MaskedSketch:
-    '''canvas.mask creates a MaskedSketch'''
+    """canvas.mask creates a MaskedSketch"""
+
     sketches: List[Types.SKETCH]
     mask: Any
     xform_matrix: ndarray = None
@@ -544,10 +550,13 @@ class MaskedSketch:
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
+
+@dataclass
 class FilteredSketch:
-    '''canvas.filter creates a FilteredSketch'''
+    """canvas.filter creates a FilteredSketch"""
+
     sketches: List[Types.SKETCH]
-    filter_s: List # list of filters or a filter
+    filter_s: List  # list of filters or a filter
 
     def __post_init__(self):
         """Initialize the FilteredSketch object."""
@@ -557,13 +566,6 @@ class FilteredSketch:
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
-    def __post_init__(self):
-        """Initialize the Clippedketch object."""
-        self.type = Types.SKETCH
-        self.subtype = Types.PATH_SKETCH
-        self.id = get_unique_id(self)
-        if self.xform_matrix is None:
-            self.xform_matrix = identity_matrix()
 
 @dataclass
 class PathSketch:
@@ -779,6 +781,7 @@ class RectSketch:
         ]
         self.closed = True
 
+
 @dataclass
 class HelpLinesSketch:
     spacing: float
@@ -808,6 +811,7 @@ class HelpLinesSketch:
         self.pos = (x1, y1)
         self.width = w
         self.height = h
+
 
 @dataclass
 class CompositeSketch:

@@ -30,9 +30,11 @@ from ..geometry.geometry import homogenize
 
 
 from .tikz_mask import *
+from .tikz_mask import _effective_alpha_from_stop, _pgf_gray
 from .tikz_sketch import *
 from .tikz_sketch import _canvas_mask_scope_sketch
 from .tikz_utils import *
+from .tikz_utils import _get_gradient_shading_options
 
 NumberOrTex = Union[int, float, str]
 
@@ -166,15 +168,6 @@ def get_tex_code(canvas: "Canvas") -> str:
         str: The TikZ code.
     """
 
-    excluded_subtypes = [
-        Types.CLIPPED_SKETCH,
-        Types.HELPLINES_SKETCH,
-        Types.IMAGE_SKETCH,
-        Types.LATEX_SKETCH,
-        Types.MASKED_SKETCH,
-        Types.TAG_SKETCH,
-        Types.TEX_SKETCH,
-    ]
     styleable_subtypes = [
         Types.ARC_SKETCH,
         Types.BEZIER_SKETCH,

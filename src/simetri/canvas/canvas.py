@@ -1044,38 +1044,6 @@ class Canvas:
         )
         return self
 
-    def draw_frame(
-        self, margin: Union[float, Sequence] = None, width=None, **kwargs
-    ) -> Self:
-        """
-        Draw a frame around the canvas.
-
-        Args:
-            margins (Union[float, Sequence]): The margins of the frame.
-            kwargs (dict): Additional keyword arguments.
-
-        Returns:
-            Self: The canvas object.
-        """
-        # to do: add shadow and frame color, shadow width.
-        if margin is None:
-            margin = defaults["canvas_frame_margin"]
-        if width is None:
-            width = defaults["canvas_frame_width"]
-        b_box = bounding_box(self._all_vertices)
-        box2 = b_box.get_inflated_b_box(margin)
-        box3 = box2.get_inflated_b_box(15)
-        shadow = Shape([box3.northwest, box3.southwest, box3.southeast])
-        self.draw(shadow, line_color=light_gray, line_width=width, style=style)
-        self.draw(
-            Shape(box2.corners, closed=True),
-            fill=False,
-            line_width=width,
-            style=style,
-        )
-
-        return self
-
     def reset(self) -> Self:
         """
         Reset the canvas to its initial state.

@@ -2,7 +2,7 @@
 
 from typing import Any, Iterator, List, Sequence, Callable
 
-from numpy import array
+from numpy import array, ndarray
 from typing_extensions import Self, Dict
 import json
 
