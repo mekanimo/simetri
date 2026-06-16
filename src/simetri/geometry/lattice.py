@@ -9,7 +9,7 @@ import numpy as np
 from ..graphics.all_enums import IsometryType, LatType, Types, LatRef
 from ..graphics.shape import Shape
 from ..graphics.batch import Group
-from ..graphics.shapes import reg_poly_shape
+from ..graphics.shapes import reg_poly_shape, Line
 from ..graphics.common import PointType
 from ..geometry.geometry import (
     lerp_point,
@@ -401,7 +401,7 @@ class Lattice:
         return clipped_lines
 
 
-def draw_unit(canvas, lat, group, **kwargs):
+def draw_unit(canvas, lat, group, vertical=False, **kwargs):
     triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)
     hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(0.6)
     diamond = Shape(
@@ -430,6 +430,8 @@ def draw_unit(canvas, lat, group, **kwargs):
     center = (0.5, 0.5)
     piv1 = (1 / 3, 1 / 3)
     piv2 = (2 / 3, 2 / 3)
+
+    unit = Group()
 
     if group in ["p6", "p6m"]:
         hexes = [p[0], p[4], p[8], p[12]]
@@ -491,11 +493,18 @@ def draw_unit(canvas, lat, group, **kwargs):
         fund_domain = [p[0], p[2], center, p[14]]
 
     elif group == "pm":
-        mirrors = [
-            (p[0], p[4]),
-            (p[8], p[12]),
-            (p[6], p[14]),
-        ]
+        if vertical:
+            mirrors = [
+                (p[0], p[12]),
+                (p[4], p[8]),
+                (p[2], p[10]),
+            ]
+        else:
+            mirrors = [
+                (p[0], p[4]),
+                (p[8], p[12]),
+                (p[6], p[14]),
+            ]
 
         fund_domain = [p[0], p[4], p[6], p[14]]
 
@@ -690,59 +699,97 @@ def draw_unit(canvas, lat, group, **kwargs):
         diamonds = [p[0], p[4], p[8], p[12], center, p[2], p[6], p[10], p[14]]
 
     points = [lat._resolve((LatRef.COORD, p)) for p in fund_domain]
-    canvas.draw(Shape(points, closed=True), color=light_gold,
-                fill=True)
+    # canvas.draw(
+    #     Shape(points, closed=True), color=light_gold, fill=True
+    # )
+    unit.append(Shape(points, closed=True, color=light_gold, fill=True))
 
-    canvas.draw(lat.unit, **kwargs)
+    # canvas.draw(lat.unit)
+    unit.append(lat.unit)
 
     for line in hairlines:
         p1, p2 = line
         p1 = lat._resolve((LatRef.COORD, p1))
         p2 = lat._resolve((LatRef.COORD, p2))
 
-        canvas.line(p1, p2, line_width=0.5, line_color=gray)
+        # canvas.line(p1, p2, line_width=0.5, line_color=gray)
+        unit.append(Line(p1, p2, line_width=0.5, line_color=gray))
 
     for line in mirrors:
         p1, p2 = line
         p1 = lat._resolve((LatRef.COORD, p1))
         p2 = lat._resolve((LatRef.COORD, p2))
-
-        canvas.line(
-            p1,
-            p2,
-            draw_double=True,
-            double_distance=2.5,
-            double_color=red,
+        double_distance = 2.5 * kwargs.get("u_scale", 1)
+        # canvas.line(
+        #     p1,
+        #     p2,
+        #     draw_double=True,
+        #     double_distance=double_distance,
+        #     double_color=red,
+        #     **kwargs
+        # )
+        unit.append(
+            Line(
+                p1,
+                p2,
+                draw_double=True,
+                double_distance=double_distance,
+                double_color=red,
+            )
         )
 
     for line in glides:
         p1, p2 = line
         p1 = lat._resolve((LatRef.COORD, p1))
         p2 = lat._resolve((LatRef.COORD, p2))
-
-        canvas.line(
-            p1,
-            p2,
-            line_dash_array=[8, 3, 3, 3],
-            line_width=2.5,
-            line_color=blue,
+        line_width = 2.5 * kwargs.get("u_scale", 1)
+        # canvas.line(
+        #     p1,
+        #     p2,
+        #     line_dash_array=[8, 3, 3, 3],
+        #     line_width=line_width,
+        #     line_color=blue,
+        #     **kwargs
+        # )
+        unit.append(
+            Line(
+                p1,
+                p2,
+                line_dash_array=[8, 3, 3, 3],
+                line_width=line_width,
+                line_color=blue,
+            )
         )
 
+    sf = kwargs.get("u_scale", 1)
+    hexagon.scale(sf)
     for hex in hexes:
-        pos = lat._resolve((LatRef.COORD, hex))
-        canvas.draw(hexagon, pos=pos)
+        pos_ = lat._resolve((LatRef.COORD, hex))
 
+        # canvas.draw(hexagon, pos=pos)
+        unit.append(hexagon.copy().translate(*pos_))
+
+    diamond.scale(sf)
     for diam in diamonds:
-        pos = lat._resolve((LatRef.COORD, diam))
-        canvas.draw(diamond, pos=pos)
+        pos_ = lat._resolve((LatRef.COORD, diam))
 
+        # canvas.draw(diamond, pos=pos)
+        unit.append(diamond.copy().translate(*pos_))
+
+    triangle.scale(sf)
     for tri in triangles:
-        pos = lat._resolve((LatRef.COORD, tri))
-        canvas.draw(triangle, pos=pos)
+        pos_ = lat._resolve((LatRef.COORD, tri))
 
+        # canvas.draw(triangle, pos=pos)
+        unit.append(triangle.copy().translate(*pos_))
+
+    square.scale(sf)
     for sqr in squares:
-        pos = lat._resolve((LatRef.COORD, sqr))
-        canvas.draw(square, pos=pos)
+        pos_ = lat._resolve((LatRef.COORD, sqr))
+
+        # canvas.draw(square, pos=pos)
+        unit.append(square.copy().translate(*pos_))
+    canvas.draw(unit, **kwargs)
 
 
 def lattice_p6(a: float) -> Lattice:
@@ -901,12 +948,12 @@ def lattice_p4g(a: float = 40) -> Lattice:
 
 
 def lattice_p1(
-    a: float = 40, b: float = 40, theta=pi / 2, lat_type=LatType.SQR
+    a: float = 40, b: float = 40, theta=pi / 2, lat_type=LatType.PAR
 ) -> Lattice:
-    lat = Lattice(lat_type, a=a, b=a, theta=theta)
+    lat = Lattice(lat_type, a=a, b=b, theta=theta)
     unit = lat.unit
-    p1 = unit.edge_midpoint(0)
-    p2 = unit.edge_midpoint(3)
+    # p1 = unit.edge_midpoint(0)
+    # p2 = unit.edge_midpoint(3)
     isom1 = Isometry(
         IsometryType.IDENTITY,
         reps=0,
@@ -917,11 +964,34 @@ def lattice_p1(
     return lat
 
 
-def lattice_pm(a: float = 40, lat_type=LatType.SQR) -> Lattice:
-    lat = Lattice(lat_type, a=a)
+def lattice_pm(
+    a: float = 40,
+    b: float = None,
+    theta: float = None,
+    lat_type=LatType.SQR,
+    vertical=False,
+) -> Lattice:
+    """vertical: Mirror orientation"""
+    if lat_type == LatType.SQR:
+        lat = Lattice(lat_type, a=a)
+    elif lat_type == LatType.RECT:
+        lat = Lattice(lat_type, a=a, b=b)
+    elif lat_type == LatType.PAR:
+        lat = Lattice(lat_type, a=a, b=b, theta=theta)
+    else:
+        raise ValueError("Invalid lattice type.")
 
     if lat_type in [LatType.SQR, LatType.RECT, LatType.PAR]:
-        axis = (LatRef.AXIS, ((LatRef.LERP, (1, 0.5)), (LatRef.LERP, (3, 0.5))))
+        if vertical:
+            axis = (
+                LatRef.AXIS,
+                ((LatRef.LERP, (0, 0.5)), (LatRef.LERP, (2, 0.5))),
+            )
+        else:
+            axis = (
+                LatRef.AXIS,
+                ((LatRef.LERP, (1, 0.5)), (LatRef.LERP, (3, 0.5))),
+            )
 
     isom1 = Isometry(IsometryType.MIRROR, axis, reps=1)
 
@@ -930,8 +1000,14 @@ def lattice_pm(a: float = 40, lat_type=LatType.SQR) -> Lattice:
     return lat
 
 
-def lattice_pmm(a: float = 40, lat_type=LatType.SQR) -> Lattice:
-    lat = Lattice(lat_type, a=a)
+def lattice_pmm(
+    a: float = 40, b: float = None, lat_type=LatType.SQR
+) -> Lattice:
+    if b is not None:
+        lat_type = LatType.RECT
+        lat = Lattice(lat_type, a=a, b=b)
+    else:
+        lat = Lattice(lat_type, a=a)
 
     axis1 = (LatRef.AXIS, ((LatRef.COORD, (0.5, 0)), (LatRef.COORD, (0.5, 1))))
     isom1 = Isometry(IsometryType.MIRROR, axis1, reps=1)
@@ -945,8 +1021,13 @@ def lattice_pmm(a: float = 40, lat_type=LatType.SQR) -> Lattice:
 
 
 def lattice_p2(
-    a: float = 40, b: float = None, theta: float = None, lat_type=LatType.SQR
+    a: float = 40,
+    b: float = None,
+    theta: float = 2 * pi / 5,
+    lat_type=LatType.SQR,
 ) -> Lattice:
+    if b is None:
+        b = a
     lat = Lattice(lat_type, a=a, b=b, theta=theta)
 
     isom = Isometry(

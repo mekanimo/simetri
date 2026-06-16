@@ -17,13 +17,11 @@ from ..geometry.geometry import (
     distance,
     rotate_point,
     homogenize,
-     positive_angle
+    positive_angle,
 )
 from ..canvas.style_map import shape_style_map
 from ..settings.settings import defaults
 from ..helpers.utilities import solve_quadratic_eq
-
-
 
 
 class Arc(Shape):
@@ -60,7 +58,12 @@ class Arc(Shape):
             n_points = ceil(n * abs(span_angle) / (2 * pi))
 
         vertices = elliptic_arc_points(
-            center, radius_x, radius_y, start_angle, span_angle, n_points=n_points
+            center,
+            radius_x,
+            radius_y,
+            start_angle,
+            span_angle,
+            n_points=n_points,
         )
         if rot_angle:
             rot_matrix = rotation_matrix(rot_angle, center)
@@ -158,18 +161,26 @@ class Arc(Shape):
         radius_x = self.radius_x
         radius_y = self.radius_y
 
-        arc = Arc(center, radius_x, radius_y, start_angle, span_angle, rot_angle=0)
+        arc = Arc(
+            center, radius_x, radius_y, start_angle, span_angle, rot_angle=0
+        )
         arc.primary_points = self.primary_points.copy()
         arc.xform_matrix = self.xform_matrix.copy()
         arc._orig_triangle = deepcopy(self._orig_triangle)
         arc._c = self._c[:]
         arc.n_points = self.n_points
-
-        for attrib in shape_style_map:
-            setattr(arc, attrib, getattr(self, attrib))
+        arc.copy_style(self)
+        # for attrib in shape_style_map:
+        #     setattr(arc, attrib, getattr(self, attrib))
         arc.subtype = self.subtype
         custom_attribs = custom_attributes(self)
-        arc_attribs = ["center", "start_angle", "span_angle", "radius_x", "radius_y"]
+        arc_attribs = [
+            "center",
+            "start_angle",
+            "span_angle",
+            "radius_x",
+            "radius_y",
+        ]
         for attrib in custom_attribs:
             if attrib not in arc_attribs:
                 setattr(arc, attrib, getattr(self, attrib))
@@ -204,9 +215,13 @@ class Ellipse(Shape):
         n_points = defaults["n_ellipse_points"]
         vertices = [
             tuple(p)
-            for p in ellipse_points(center, width / 2, height / 2, angle, n_points)
+            for p in ellipse_points(
+                center, width / 2, height / 2, angle, n_points
+            )
         ]
-        super().__init__(vertices, closed=True, xform_matrix=xform_matrix, **kwargs)
+        super().__init__(
+            vertices, closed=True, xform_matrix=xform_matrix, **kwargs
+        )
         a = width / 2
         b = height / 2
         self.a = a
@@ -397,7 +412,9 @@ def elliptic_arc_points(
             slice1 = np.column_stack((x, y))
 
             t0 = get_ellipse_t_for_angle(0, rx, ry)
-            t1 = get_ellipse_t_for_angle(start_angle + span_angle - 2 * pi, rx, ry)
+            t1 = get_ellipse_t_for_angle(
+                start_angle + span_angle - 2 * pi, rx, ry
+            )
             t = np.linspace(t0, t1, n_points)
             x = center[0] + rx * np.cos(t)
             y = center[1] + ry * np.sin(t)
@@ -444,7 +461,9 @@ def ellipse_points(
     x = center[0] + a * np.cos(t)
     y = center[1] + b * np.sin(t)
 
-    points = homogenize(np.column_stack((x, y))) @ rotation_matrix(angle, center)
+    points = homogenize(np.column_stack((x, y))) @ rotation_matrix(
+        angle, center
+    )
 
     return points[:, :2].tolist()
 
@@ -699,7 +718,8 @@ def Qbrt(complex_):
     angle = cmath.phase(complex_) * 0.33333333333
     # angle = atan2(complex.y, complex.x)  *  0.33333333333
     l = pow(
-        complex_.real * complex_.real + complex_.imag * complex_.imag, 0.16666666666
+        complex_.real * complex_.real + complex_.imag * complex_.imag,
+        0.16666666666,
     )
     # return Complex(l * cos(angle), l * sin(angle))
     return complex(l * cos(angle), l * sin(angle))

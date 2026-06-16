@@ -37,7 +37,7 @@ class Mask:
         self.type = Types.MASK
 
         if self.opacity is None:
-            self.opacity = defaults.get("alpha", 1.0)
+            self.opacity = 1.0
         self.opacity = float(self.opacity)
         if not (0.0 <= self.opacity <= 1.0):
             raise ValueError("mask opacity must be between 0 and 1.")

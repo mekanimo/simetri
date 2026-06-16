@@ -128,7 +128,7 @@ def _mask_scope_parts(sketch, fade_id=None):
                 mask_axis = defaults["mask_axis"]
         else:
             mask = mask_data
-            clip = sketch.clip
+            clip = True
             mask_opacity = 1.0
             mask_stops = None
             mask_axis = None
