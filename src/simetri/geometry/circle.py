@@ -1,10 +1,15 @@
-from math import pi, cos, sqrt, acos, atan
+from math import pi, sin, cos, sqrt, acos, atan, atan2
 from dataclasses import dataclass
 import cmath
 
 import numpy as np
 
-from .geometry import distance, homogenize, side_len_to_radius, angle_between_lines2
+from .geometry import (
+    distance,
+    homogenize,
+    side_len_to_radius,
+    angle_between_lines2,
+)
 from ..graphics.affine import rotate, scale_matrix, rotation_matrix
 from ..graphics.shapes import Circle
 
@@ -19,6 +24,28 @@ class Circle_:
 
     center: tuple
     radius: float
+
+
+def tangent_points_from_point(circle, point):
+    """Given a circle and a point (outside the circle), returns two tangent points."""
+
+    x, y = point[:2]
+    cx, cy = circle.center[:2]
+    r = circle.radius
+
+    d = distance(circle.center, point)
+
+    theta = acos(r / d)
+
+    phi = atan2(y - cy, x - cx)
+
+    # tangent point 1
+    p1 = (cx + r * cos(phi + theta), cy + r * sin(phi + theta))
+
+    # tangent point 2
+    p2 = (cx + r * cos(phi - theta), cy + r * sin(phi - theta))
+
+    return (p1, p2)
 
 
 def circle_tangent_to_3_circles(c1, r1, c2, r2, c3, r3, s1=-1, s2=-1, s3=-1):
@@ -100,7 +127,9 @@ def apollonius(r1, r2, r3, z1, z2, z3, plus_minus=1):
     k1, k2, k3 = 1 / r1, 1 / r2, 1 / r3
 
     # Applying Descartes' Theorem
-    k4_values = (k1 + k2 + k3) + plus_minus * 2 * sqrt(k1 * k2 + k2 * k3 + k3 * k1)
+    k4_values = (k1 + k2 + k3) + plus_minus * 2 * sqrt(
+        k1 * k2 + k2 * k3 + k3 * k1
+    )
 
     # Handle cases where no solution exists (e.g., division by zero)
     if k4_values == 0:
@@ -189,7 +218,17 @@ def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
             - y1y22
             + y23
             + sqrt(
-                (-r12 + 2 * r1r2 - r22 + x12 - 2 * x1x2 + x22 + y12 - 2 * y1y2 + y22)
+                (
+                    -r12
+                    + 2 * r1r2
+                    - r22
+                    + x12
+                    - 2 * x1x2
+                    + x22
+                    + y12
+                    - 2 * y1y2
+                    + y22
+                )
                 * (
                     4 * r_2
                     + 4 * rr1
@@ -231,7 +270,17 @@ def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
         - y1y22
         + y23
         + sqrt(
-            (-r12 + 2 * r1r2 - r22 + x12 - 2 * x1x2 + x22 + y12 - 2 * y1y2 + y22)
+            (
+                -r12
+                + 2 * r1r2
+                - r22
+                + x12
+                - 2 * x1x2
+                + x22
+                + y12
+                - 2 * y1y2
+                + y22
+            )
             * (
                 4 * r_2
                 + 4 * rr1
@@ -272,7 +321,17 @@ def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
             - y1y22
             + y23
             + sqrt(
-                (-r12 + 2 * r1r2 - r22 + x12 - 2 * x1x2 + x22 + y12 - 2 * y1y2 + y22)
+                (
+                    -r12
+                    + 2 * r1r2
+                    - r22
+                    + x12
+                    - 2 * x1x2
+                    + x22
+                    + y12
+                    - 2 * y1y2
+                    + y22
+                )
                 * (
                     4 * r_2
                     + 4 * rr1
@@ -314,7 +373,17 @@ def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
         - y1y22
         + y23
         + sqrt(
-            (-r12 + 2 * r1r2 - r22 + x12 - 2 * x1x2 + x22 + y12 - 2 * y1y2 + y22)
+            (
+                -r12
+                + 2 * r1r2
+                - r22
+                + x12
+                - 2 * x1x2
+                + x22
+                + y12
+                - 2 * y1y2
+                + y22
+            )
             * (
                 4 * r_2
                 + 4 * rr1
@@ -418,7 +487,8 @@ def flower_angle(r1, r2, r3):
         float: Angle between the lines connecting circles' centers.
     """
     angle = acos(
-        ((r1 + r2) ** 2 + (r1 + r3) ** 2 - (r2 + r3) ** 2) / (2 * (r1 + r2) * (r1 + r3))
+        ((r1 + r2) ** 2 + (r1 + r3) ** 2 - (r2 + r3) ** 2)
+        / (2 * (r1 + r2) * (r1 + r3))
     )
 
     return angle

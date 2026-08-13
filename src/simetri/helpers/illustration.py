@@ -438,7 +438,7 @@ class Tag(Base, StyleMixin):
 
         self.text = text
         if frame is None:
-            self.frame = TagFrame()
+            self.frame = TagFrame(stroke=False)
         self.type = Types.TAG
         self.subtype = Types.TAG
         # self.style = TagStyle()
@@ -486,7 +486,7 @@ class Tag(Base, StyleMixin):
             try:
                 res = super().__getattr__(name)
             except AttributeError:
-                res = self.__dict__[name]
+                res = self.__dict__.get(name, None)
 
         return res
 
@@ -638,7 +638,9 @@ class Tag(Base, StyleMixin):
         h2 = text_height / 2
         x, y = self.pos[:2]
         inner_sep = self.frame.inner_sep
-        effective_align = self.align if self.align is not None else defaults["tag_align"]
+        effective_align = (
+            self.align if self.align is not None else defaults["tag_align"]
+        )
 
         if self.anchor in [Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST]:
             xmin = x - inner_sep
@@ -646,10 +648,16 @@ class Tag(Base, StyleMixin):
         elif self.anchor in [Anchor.EAST, Anchor.SOUTHEAST, Anchor.NORTHEAST]:
             xmin = x - text_width - inner_sep
             xmax = x + inner_sep
-        elif self.anchor in (None, defaults["anchor"]) and effective_align in (Align.LEFT, Align.FLUSH_LEFT):
+        elif self.anchor in (None, defaults["anchor"]) and effective_align in (
+            Align.LEFT,
+            Align.FLUSH_LEFT,
+        ):
             xmin = x - inner_sep
             xmax = x + text_width + inner_sep
-        elif self.anchor in (None, defaults["anchor"]) and effective_align in (Align.RIGHT, Align.FLUSH_RIGHT):
+        elif self.anchor in (None, defaults["anchor"]) and effective_align in (
+            Align.RIGHT,
+            Align.FLUSH_RIGHT,
+        ):
             xmin = x - text_width - inner_sep
             xmax = x + inner_sep
         else:

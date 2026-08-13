@@ -19,10 +19,14 @@ def anchor_to_tikz(anchor: Anchor | None) -> str | None:
     anchor_map = {
         Anchor.BASE_EAST: "base east",
         Anchor.BASE_WEST: "base west",
+        Anchor.BOTTOM: "south",
+        Anchor.LEFT: "west",
         Anchor.NORTHEAST: "north east",
         Anchor.NORTHWEST: "north west",
+        Anchor.RIGHT: "east",
         Anchor.SOUTHEAST: "south east",
         Anchor.SOUTHWEST: "south west",
+        Anchor.TOP: "north",
     }
     return anchor_map.get(anchor, anchor.value)
 

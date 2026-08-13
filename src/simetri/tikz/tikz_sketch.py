@@ -282,7 +282,7 @@ def draw_tag_sketch(sketch):
     x, y = sketch.pos[:2]
 
     options = ""
-    if sketch.draw_frame:
+    if sketch.draw_frame and sketch.line_width > 0:
         options += "draw"
         if sketch.stroke:
             if sketch.frame_shape != FrameShape.RECTANGLE:

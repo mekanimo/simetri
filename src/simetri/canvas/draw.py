@@ -1721,6 +1721,7 @@ def create_sketch(item, canvas, **kwargs):
             pos=pos,
             anchor=item.anchor,
             xform_matrix=canvas.xform_matrix,
+            **kwargs
         )
         for attrib_name in item._style_map:
             if attrib_name in ["color", "alpha"]:

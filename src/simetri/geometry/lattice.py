@@ -162,6 +162,8 @@ class Lattice:
             fill=False,
         )
 
+        self.unit_cell = None
+
         self.isometries = []
         self.pattern = None
         self.kernel = None
@@ -242,6 +244,8 @@ class Lattice:
         elif kernel.type == "SHAPE":
             self.pattern = Group(kernel)
         elif kernel.type == "BATCH":
+            self.pattern = kernel
+        elif kernel.type == "GROUP":
             self.pattern = kernel
 
         else:
@@ -401,7 +405,7 @@ class Lattice:
         return clipped_lines
 
 
-def draw_unit(canvas, lat, group, vertical=False, **kwargs):
+def get_unit(lat, group, vertical=False, **kwargs):
     triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)
     hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(0.6)
     diamond = Shape(
@@ -789,6 +793,12 @@ def draw_unit(canvas, lat, group, vertical=False, **kwargs):
 
         # canvas.draw(square, pos=pos)
         unit.append(square.copy().translate(*pos_))
+
+    return unit
+
+
+def draw_unit(canvas, lat, group, vertical=False, **kwargs):
+    unit = get_unit(lat, group, vertical, **kwargs)
     canvas.draw(unit, **kwargs)
 
 
@@ -805,6 +815,8 @@ def lattice_p6(a: float) -> Lattice:
         IsometryType.ROTATION, (LatRef.COORD, (0.5, 0.5)), pi, reps=1
     )
     lat.isometries = [isom1, isom2]
+
+    lat.unit_cell = get_unit(lat, "p6")
 
     return lat
 
@@ -829,6 +841,8 @@ def lattice_p6m(a: float = 40) -> Lattice:
     )
     lat.isometries = [isom1, isom2, isom3]
 
+    lat.unit_cell = get_unit(lat, "p6m")
+
     return lat
 
 
@@ -850,6 +864,7 @@ def lattice_p31m(a: float = 40) -> Lattice:
     )
 
     lat.isometries = [isom1, isom2]
+    lat.unit_cell = get_unit(lat, "p31m")
 
     return lat
 
@@ -877,6 +892,8 @@ def lattice_p3m1(a: float = 40) -> Lattice:
     )
     lat.isometries = [isom1, isom2, isom3]
 
+    lat.unit_cell = get_unit(lat, "p3m1")
+
     return lat
 
 
@@ -897,6 +914,8 @@ def lattice_p3(a: float = 40) -> Lattice:
     )
     lat.isometries = [isom1, isom2]
 
+    lat.unit_cell = get_unit(lat, "p3")
+
     return lat
 
 
@@ -908,6 +927,8 @@ def lattice_p4(a: float = 40) -> Lattice:
     )
 
     lat.isometries = [isom1]
+
+    lat.unit_cell = get_unit(lat, "p4")
 
     return lat
 
@@ -927,6 +948,8 @@ def lattice_p4m(a: float = 40) -> Lattice:
 
     lat.isometries = [isom1, isom2]
 
+    lat.unit_cell = get_unit(lat, "p4m")
+
     return lat
 
 
@@ -943,6 +966,8 @@ def lattice_p4g(a: float = 40) -> Lattice:
     )
 
     lat.isometries = [isom1, isom2]
+
+    lat.unit_cell = get_unit(lat, "p4g")
 
     return lat
 
@@ -961,13 +986,14 @@ def lattice_p1(
 
     lat.isometries = [isom1]
 
+    lat.unit_cell = get_unit(lat, "p1")
+
     return lat
 
 
 def lattice_pm(
     a: float = 40,
     b: float = None,
-    theta: float = None,
     lat_type=LatType.SQR,
     vertical=False,
 ) -> Lattice:
@@ -976,26 +1002,25 @@ def lattice_pm(
         lat = Lattice(lat_type, a=a)
     elif lat_type == LatType.RECT:
         lat = Lattice(lat_type, a=a, b=b)
-    elif lat_type == LatType.PAR:
-        lat = Lattice(lat_type, a=a, b=b, theta=theta)
     else:
         raise ValueError("Invalid lattice type.")
 
-    if lat_type in [LatType.SQR, LatType.RECT, LatType.PAR]:
-        if vertical:
-            axis = (
-                LatRef.AXIS,
-                ((LatRef.LERP, (0, 0.5)), (LatRef.LERP, (2, 0.5))),
-            )
-        else:
-            axis = (
-                LatRef.AXIS,
-                ((LatRef.LERP, (1, 0.5)), (LatRef.LERP, (3, 0.5))),
-            )
+    if vertical:
+        axis = (
+            LatRef.AXIS,
+            ((LatRef.LERP, (0, 0.5)), (LatRef.LERP, (2, 0.5))),
+        )
+    else:
+        axis = (
+            LatRef.AXIS,
+            ((LatRef.LERP, (1, 0.5)), (LatRef.LERP, (3, 0.5))),
+        )
 
     isom1 = Isometry(IsometryType.MIRROR, axis, reps=1)
 
     lat.isometries = [isom1]
+
+    lat.unit_cell = get_unit(lat, "pm")
 
     return lat
 
@@ -1017,6 +1042,8 @@ def lattice_pmm(
 
     lat.isometries = [isom1, isom2]
 
+    lat.unit_cell = get_unit(lat, "pmm")
+
     return lat
 
 
@@ -1035,6 +1062,8 @@ def lattice_p2(
     )
 
     lat.isometries = [isom]
+
+    lat.unit_cell = get_unit(lat, "p2")
 
     return lat
 
@@ -1055,6 +1084,8 @@ def lattice_pg(
 
     lat.isometries = [isom1]
 
+    lat.unit_cell = get_unit(lat, "pg")
+
     return lat
 
 
@@ -1070,6 +1101,8 @@ def lattice_pmg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
     isom2 = Isometry(IsometryType.MIRROR, axis, reps=1)
 
     lat.isometries = [isom1, isom2]
+
+    lat.unit_cell = get_unit(lat, "pmg")
 
     return lat
 
@@ -1089,6 +1122,8 @@ def lattice_pgg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
     isom2 = Isometry(IsometryType.ROTATION, pivot, pi, reps=1)
 
     lat.isometries = [isom1, isom2]
+
+    lat.unit_cell = get_unit(lat, "pgg")
 
     return lat
 
@@ -1115,6 +1150,8 @@ def lattice_cm(
 
     lat.isometries = [isom1, isom2]
 
+    lat.unit_cell = get_unit(lat, "cm")
+
     return lat
 
 
@@ -1131,5 +1168,7 @@ def lattice_cmm(a: float = 100, theta: float = 2 * pi / 5) -> Lattice:
     isom2 = Isometry(IsometryType.MIRROR, axis2, reps=1)
 
     lat.isometries = [isom1, isom2]
+
+    lat.unit_cell = get_unit(lat, "cmm")
 
     return lat

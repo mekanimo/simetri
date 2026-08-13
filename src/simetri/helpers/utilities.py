@@ -8,7 +8,7 @@ import cmath
 import inspect
 import ast
 from functools import wraps, reduce, cmp_to_key
-from time import time, monotonic, perf_counter
+from time import time, monotonic, perf_counter, sleep
 from math import factorial, cos, sin, pi, atan2, sqrt, ceil, floor
 from pathlib import Path
 from bisect import bisect_left
@@ -168,7 +168,7 @@ def wait_for_file_availability(file_path, timeout=None, check_interval=1):
             if timeout is not None and (monotonic() - start_time) > timeout:
                 # Timeout period elapsed.
                 return False  # Or raise a TimeoutError if you prefer
-            time.sleep(check_interval)
+            sleep(check_interval)
         except Exception as e:
             # Handle other potential exceptions (e.g., file not found) as needed
             print(f"An error occurred: {e}")
@@ -278,7 +278,9 @@ def grid_positions(
 
     if from_top_left:
         if page_height is None:
-            raise ValueError("page_height is required when from_top_left is True")
+            raise ValueError(
+                "page_height is required when from_top_left is True"
+            )
         row_indices = range(rows)
         col_indices = range(cols)
     else:
