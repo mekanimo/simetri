@@ -5,17 +5,19 @@ of this ShapeStyle object will superseed the style attributes of the Shape objec
 """
 
 __all__ = [
-    "Shape",
-    "custom_attributes",
-    "clip",
     "Clipping",
-    "trim_margins",
+    "Shape",
     "all_segments",
+    "clip",
+    "custom_attributes",
     "get_loop",
     "get_partition",
-    "union",
-    "diff",
-    "xor",
+    "polygon_diff",
+    "polygon_difference",
+    "polygon_intersection",
+    "polygon_union",
+    "polygon_xor",
+    "trim_margins",
 ]
 
 from typing import Sequence, Union, List, Tuple, Any
@@ -440,13 +442,12 @@ class Shape(Base):
         self,
         xform_matrix: array,
         reps: int = 0,
-        take: slice = None,
-        incr: Union[
-            float
-            | tuple[float, float]
-            | tuple[callable, Any]
-            | tuple[InPlace, Any]
-        ] = None,
+        take: slice | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Union["Shape", Group]:
@@ -840,7 +841,7 @@ class Shape(Base):
         return positive_angle(res)
 
     @property
-    def vertices(self) -> Tuple[PointType]:
+    def vertices(self) -> tuple[PointType]:
         """The final coordinates of the shape.
 
         Returns:
@@ -853,7 +854,7 @@ class Shape(Base):
                 "_vertices" not in self.__dict__
                 or self.primary_points.nd_array_changed
             ):
-                res = tuple(((x[0], x[1]) for x in (self.final_coords[:, :2])))
+                res = tuple((x[0], x[1]) for x in (self.final_coords[:, :2]))
                 self._vertices = res
                 self.primary_points.nd_array_changed = False
             else:
@@ -1663,12 +1664,12 @@ class Shape(Base):
 
 
 def trim_margins(
-    item: Union[Shape, Group],
+    item: Shape | Group,
     left: float = 0,
     bottom: float = 0,
     right: float = 0,
     top: float = 0,
-) -> Union[Shape, Group]:
+) -> Shape | Group:
     """Trim the margins of a Shape or Group.
 
     Args:
@@ -1690,11 +1691,12 @@ def trim_margins(
 
 
 def clip(
-    item: Union[Shape, Group],
+    item: Shape | Group,
     clipper: Shape,
     exclude_clipper: bool = False,
     rel_tol: float = None,
     abs_tol: float = None,
+    merge: bool = True,
 ):
     if isinstance(item, Group):
         return _clip_group(item, clipper, exclude_clipper, rel_tol, abs_tol)
@@ -1711,6 +1713,9 @@ def clip(
                 clipped_shape.copy_style(item)
         else:
             clipped_item.copy_style(item)
+
+        if merge:
+            clipped_item = clipped_item.merge_shapes()
 
         return clipped_item
     else:
@@ -1821,13 +1826,12 @@ def _clip_shape(
                     0,
                     rel_tol=rel_tol,
                     abs_tol=abs_tol,
+                ) and in_polygon(
+                    midpoint(*seg),
+                    shape_vertices,
+                    exclude_clipper,
                 ):
-                    if in_polygon(
-                        midpoint(*seg),
-                        shape_vertices,
-                        exclude_clipper,
-                    ):
-                        clipped.append(Shape(seg))
+                    clipped.append(Shape(seg))
 
     if len(clipped) == 1:
         return clipped[0]
@@ -1870,7 +1874,7 @@ class Clipping:
         self.subtype = Types.CLIPPING
 
 
-def union(shape1: "Shape", shape2: "Shape"):
+def polygon_union(shape1: "Shape", shape2: "Shape", merge: bool = True):
     """
     shape1 Shape: shape to be clipped
     shape2 Shape: clipping region
@@ -1895,32 +1899,36 @@ def union(shape1: "Shape", shape2: "Shape"):
     shape2_vertices = shape2.vertices
     for segs in all_segments_:
         for seg in segs:
+            if distance(*seg) < 0.001:
+                continue
             in1 = in_polygon(midpoint(*seg), shape_vertices)
             in2 = in_polygon(midpoint(*seg), shape2_vertices)
             if in1 ^ in2:  # only one can be True
                 union_.append(Shape(seg))
+    if merge:
+        union_ = union_.merge_shapes()
 
     return union_
 
 
-def diff(
+def polygon_diff(
     shape1: "Shape",
     shape2: "Shape",
-    exclude_clipper: bool = False,
     dist_tol: float = 0.01,
+    merge: bool = True,
 ):
     """
     shape1 Shape: shape to be clipped
     shape2 Shape: clipping region
-    exclude_clipper bool: If True, clipper's edges are excluded.
     """
+    exclude_clipper = False
     if not (shape1.closed and shape2.closed):
         raise Warning("Both shapes must be closed")
 
     segments = [[p1[:2], p2[:2]] for (p1, p2) in shape1.edges] + [
         [p1[:2], p2[:2]] for (p1, p2) in shape2.edges
     ]
-    intersections = all_intersections(segments)
+    intersections = all_intersections(segments, rel_tol=0, abs_tol=dist_tol)
 
     all_segments_ = []
     for key, value in intersections[0].items():
@@ -1941,28 +1949,47 @@ def diff(
             if in1 and not in2:
                 diff_.append(Shape(seg))
 
-    # diff_ = diff_.merge_shapes()
-    # if len(diff_) == 1:
-    #     diff_ = diff_[0]
+    if merge:
+        diff_ = diff_.merge_shapes()
 
     return diff_
 
 
-def xor(
+def polygon_difference(
     shape1: "Shape",
     shape2: "Shape",
-    exclude_clipper: bool = False,
     dist_tol: float = 0.01,
+    merge: bool = True,
+):
+    return polygon_diff(shape1, shape2, exclude_clipper=False)
+
+
+def polygon_intersection(shape1: "Shape", shape2: "Shape", merge: bool = True):
+    """Returns the intersection of two polygons."""
+    if not (shape1.closed and shape2.closed):
+        raise ValueError("Invalid input: shape1 and shape2 must be closed!")
+    return clip(shape1, shape2, merge=merge)
+
+
+def polygon_xor(
+    shape1: "Shape",
+    shape2: "Shape",
+    dist_tol: float = 0.01,
+    merge: bool = True,
 ):
     """
     shape1 Shape: shape to be clipped
     shape2 Shape: clipping region
-    exclude_clipper bool: If True, clipper's edges are excluded.
     """
-    res1 = diff(shape1, shape2, exclude_clipper)
-    res2 = diff(shape2, shape1, exclude_clipper)
+    res1 = polygon_diff(shape1, shape2)
+    res2 = polygon_diff(shape2, shape1)
 
-    return Group([res1, res2])
+    res = Group([res1, res2])
+
+    if merge:
+        res = res.merge_shapes()
+
+    return res
 
 
 def all_segments(
