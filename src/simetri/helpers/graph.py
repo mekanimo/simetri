@@ -5,7 +5,7 @@ from typing import Sequence
 
 import networkx as nx
 
-from ..graphics.common import  PointType
+from ..graphics.common import PointType
 from ..graphics.all_enums import Types
 from ..settings.settings import defaults
 from ..geometry.geometry import distance, close_points2
@@ -125,36 +125,46 @@ def longest_chain(edges: Sequence[Sequence]) -> Sequence:
     Returns:
         Sequence: List of connected nodes.
     """
+    if not edges:
+        return []
 
-    def add_edge(edge, chain, index, processed):
-        nonlocal no_change
-        if index == 0:
-            chain.insert(0, edge)
-        elif index == -1:
-            chain.append(edge)
-        processed.append(set(edge))
-        no_change = False
+    endpoint_edges = {}
+    for edge_index, edge in enumerate(edges):
+        start, end = edge
+        endpoint_edges.setdefault(start, []).append(edge_index)
+        endpoint_edges.setdefault(end, []).append(edge_index)
 
-    chain = []
-    processed = []
-    while len(chain) < len(edges):
-        no_change = True
-        for edge in edges:
-            if set(edge) in processed:
-                continue
-            if not chain:
-                add_edge(edge, chain, -1, processed)
-            else:
+    chain = [tuple(edges[0])]
+    processed_indices = {0}
+
+    while True:
+        extended = False
+        for edge_index in endpoint_edges[chain[-1][1]]:
+            if edge_index not in processed_indices:
+                edge = edges[edge_index]
                 if edge[0] == chain[-1][1]:
-                    add_edge(edge, chain, -1, processed)
-                elif edge[0] == chain[0][0]:
-                    add_edge((edge[1], edge[0]), chain, 0, processed)
-                elif edge[1] == chain[0][0]:
-                    add_edge(edge, chain, 0, processed)
-                elif edge[1] == chain[-1][1]:
-                    add_edge((edge[1], edge[0]), chain, -1, processed)
-        if no_change:
+                    chain.append(tuple(edge))
+                else:
+                    chain.append((edge[1], edge[0]))
+                processed_indices.add(edge_index)
+                extended = True
+                break
+        if extended:
+            continue
+
+        for edge_index in endpoint_edges[chain[0][0]]:
+            if edge_index not in processed_indices:
+                edge = edges[edge_index]
+                if edge[1] == chain[0][0]:
+                    chain.insert(0, tuple(edge))
+                else:
+                    chain.insert(0, (edge[1], edge[0]))
+                processed_indices.add(edge_index)
+                extended = True
+                break
+        if not extended:
             break
+
     return chain
 
 
@@ -249,7 +259,9 @@ class Node:
         Returns:
             bool: True if the nodes are equal, False otherwise.
         """
-        return close_points2(self.pos, other.pos, dist2=defaults["dist_tol"] ** 2)
+        return close_points2(
+            self.pos, other.pos, dist2=defaults["dist_tol"] ** 2
+        )
 
 
 @dataclass
@@ -267,7 +279,6 @@ class Graph:
     subtype: Types = "none"  # this can be Types.WEIGHTED
     nx_graph: "nx.Graph" = None
 
-
     @property
     def islands(self):
         """
@@ -277,7 +288,8 @@ class Graph:
             List: List of all islands.
         """
         return [
-            list(island) for island in self.nx_graph.connected_components(self.nx_graph)
+            list(island)
+            for island in self.nx_graph.connected_components(self.nx_graph)
         ]
 
     @property

@@ -78,50 +78,46 @@ def _merge_shapes(self, n_round: int = None, **kwargs) -> "Group":
     return group
 
 
-def merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
-    """Merge collinear edges in a bin.
-
-    Args:
-        _bin (list): List of edges in a bin.
-        d_node_coord (dict): Dictionary of node id to coordinates.
-        n_round (int, optional): Number of rounding digits. Defaults to 2.
-
-    Returns:
-        list: List of merged edges.
-    """
-    i_edge = 1
-    segs = [[d_node_coord[node] for node in x[i_edge]] for x in _bin]
+def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
+    """Merge collinear edges in an angle bin."""
     incl_angle = degrees(_bin[0][0])
-    if 45 < incl_angle < 135:
-        # sort by y coordinates
-        segs.sort(key=lambda x: x[0][1])
-    else:
-        # sort by x coordinates
-        segs.sort(key=lambda x: x[0][0])
+    node_adjacency = {}
+    for _, edge in _bin:
+        start, end = edge
+        node_adjacency.setdefault(start, set()).add(end)
+        node_adjacency.setdefault(end, set()).add(start)
 
-    seg_ids = []
-    for seg in segs:
-        p1, p2 = seg
-        seg_ids.append([d_coord_node[p1], d_coord_node[p2]])
-
-    graph = nx.Graph()
-    graph.add_edges_from(seg_ids)
-    islands = list(nx.connected_components(graph))
     res = []
-    for island in islands:
-        island = list(island)
-        if len(island) > 1:
-            island = [d_node_coord[x] for x in island]
-            if 45 < incl_angle < 135:
-                # sort by y coordinates
-                island.sort(key=lambda x: x[1])
-            else:
-                # sort by x coordinates
-                segs.sort(key=lambda x: x[0][0])
-                island.sort()
-            res.append((island[0], island[-1]))
+    unvisited_nodes = set(node_adjacency)
+    while unvisited_nodes:
+        start_node = unvisited_nodes.pop()
+        component_nodes = {start_node}
+        nodes_to_visit = [start_node]
+        while nodes_to_visit:
+            node = nodes_to_visit.pop()
+            for neighbor in node_adjacency[node]:
+                if neighbor in unvisited_nodes:
+                    unvisited_nodes.remove(neighbor)
+                    component_nodes.add(neighbor)
+                    nodes_to_visit.append(neighbor)
+
+        if len(component_nodes) == 1:
+            node = component_nodes.pop()
+            res.append(d_node_coord[node])
+        elif 45 < incl_angle < 135:
+            start_node = min(
+                component_nodes, key=lambda node: d_node_coord[node][1]
+            )
+            end_node = max(
+                component_nodes, key=lambda node: d_node_coord[node][1]
+            )
+            res.append((d_node_coord[start_node], d_node_coord[end_node]))
         else:
-            res.append(d_node_coord[island[0]])
+            start_node = min(
+                component_nodes, key=lambda node: d_node_coord[node]
+            )
+            end_node = max(component_nodes, key=lambda node: d_node_coord[node])
+            res.append((d_node_coord[start_node], d_node_coord[end_node]))
 
     return res
 
@@ -129,16 +125,7 @@ def merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
 def _merge_collinears(
     self, edges: list[LineType], angle_bin_size: float = 0.1
 ) -> list[LineType]:
-    """
-    Merge collinear edges.
-
-    Args:
-        edges (list[LineType]): List of edges.
-        angle_bin_size (float, optional): Bin size for grouping angles. Defaults to 0.1.
-        n_round (int, optional): Number of rounding digits. Defaults to 2.
-    Returns:
-        List[LineType]: List of merged edges.
-    """
+    """Merge connected collinear edges."""
     d_node_coord = self.d_node_coord
     d_coord_node = self.d_coord_node
     if len(edges) < 2:
@@ -147,35 +134,27 @@ def _merge_collinears(
     angles_edges = []
     for edge in edges:
         edge = list(edge)
-        p1 = d_node_coord[edge[0]]
-        p2 = d_node_coord[edge[1]]
-        angle = inclination_angle(p1, p2)
+        start = d_node_coord[edge[0]]
+        end = d_node_coord[edge[1]]
+        angle = inclination_angle(start, end)
         if abs(angle - pi) < angle_bin_size:
             angle = 0
         angles_edges.append((angle, edge))
 
-    # group angles into bins
     angles_edges.sort()
-
     bins = []
-    bin_ = [angles_edges[0]]
-    i_angle = 0
+    current_bin = [angles_edges[0]]
     for angle, edge in angles_edges[1:]:
-        if abs(angle - pi) < angle_bin_size:
-            angle = 0
-        angle1 = bin_[0][i_angle]
-        if abs(angle1 - pi) < angle_bin_size:
-            angle1 = 0
-        diff = abs(angle - angle1)
-        if diff <= angle_bin_size:
-            bin_.append((angle, edge))
+        current_angle = current_bin[0][0]
+        if abs(angle - current_angle) <= angle_bin_size:
+            current_bin.append((angle, edge))
         else:
-            bins.append(bin_)
-            bin_ = [(angle, edge)]
-    bins.append(bin_)
+            bins.append(current_bin)
+            current_bin = [(angle, edge)]
+    bins.append(current_bin)
 
     res = []
-    for bin_ in bins:
-        res.extend(merge_bin(bin_, d_node_coord, d_coord_node))
+    for angle_bin in bins:
+        res.extend(_merge_bin(angle_bin, d_node_coord, d_coord_node))
 
     return res
