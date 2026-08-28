@@ -2,41 +2,40 @@
 
 __all__ = ["Base", "StyleMixin"]
 
-from typing import Sequence, Any, Union, List
-from typing_extensions import Self
 import operator
+from collections.abc import Sequence
 from math import hypot
+from typing import Any, Self
 
 import numpy as np
 from numpy import ndarray
 
-from .all_enums import (
-    Anchor,
-    Side,
-    InPlace,
-    get_enum_value,
-    anchors,
-    Reference,
-    TransformationType,
-    Types,
-    point_refs,
-    line_refs,
-)
-from .common import (
-    PointType,
-    LineType,
-)
+from ..canvas.style_map import shape_args
+from ..geometry.geometry import angled_line, line_angle, offset_line
 from .affine import (
-    translation_matrix,
-    rotation_matrix,
-    mirror_matrix,
     glide_matrix,
+    mirror_matrix,
+    rotation_matrix,
     scale_in_place_matrix,
     shear_matrix,
+    translation_matrix,
 )
-from ..geometry.geometry import line_angle, angled_line, offset_line
-
-from ..canvas.style_map import shape_args
+from .all_enums import (
+    Anchor,
+    InPlace,
+    Reference,
+    Side,
+    TransformationType,
+    Types,
+    anchors,
+    get_enum_value,
+    line_refs,
+    point_refs,
+)
+from .common import (
+    LineType,
+    PointType,
+)
 
 STYLE_ATTRIBUTES = set(shape_args)
 
@@ -44,9 +43,11 @@ STYLE_ATTRIBUTES = set(shape_args)
 def _update_inplace(
     xform_matrix: "ndarray",
     xform_type: TransformationType,
-    incr: Union[
-        float | tuple[float, float] | tuple[callable, Any] | tuple[InPlace, Any]
-    ] = None,
+    incr: float
+    | tuple[float, float]
+    | tuple[callable, Any]
+    | tuple[InPlace, Any]
+    | None = None,
 ):
     """Update a transformation matrix in-place for repeated transformations.
 
@@ -169,7 +170,7 @@ def _update_inplace(
 
 
 def _resolve_reference(target, reference):
-    if isinstance(reference, [tuple, List]):
+    if isinstance(reference, [tuple, list]):
         ref, value = reference
         if isinstance(value, Reference):
             value = getattr(target, f"{reference}")
@@ -222,15 +223,13 @@ class Base:
         self,
         dx: float = 0,
         dy: float = 0,
-        take: slice = None,
+        take: slice | None = None,
         reps: int = 0,
-        incr: Union[
-            float,
-            tuple[float, float],
-            tuple[callable, Any],
-            tuple[InPlace, Any],
-            None,
-        ] = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
     ) -> Self:
         """
@@ -272,13 +271,11 @@ class Base:
         align_tangent: bool = False,
         scale: float = 1,  # scale factor
         rotate: float = 0,  # angle in radians
-        incr: Union[
-            float,
-            tuple[float, float],
-            tuple[callable, Any],
-            tuple[InPlace, Any],
-            None,
-        ] = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
     ) -> Self:
         # This is not up to date anymore!!!
@@ -327,14 +324,12 @@ class Base:
         angle: float,
         about: PointType = (0, 0),
         reps: int = 0,
-        take: slice = None,
-        incr: Union[
-            float,
-            tuple[float, float],
-            tuple[callable, Any],
-            tuple[InPlace, Any],
-            None,
-        ] = None,
+        take: slice | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
     ) -> Self:
         """
@@ -371,23 +366,21 @@ class Base:
 
     def mirror(
         self,
-        about: Union[LineType, PointType],
+        about: LineType | PointType,
         reps: int = 0,
-        take: slice = None,
-        incr: Union[
-            float,
-            tuple[float, float],
-            tuple[callable, Any],
-            tuple[InPlace, Any],
-            None,
-        ] = None,
+        take: slice | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
     ) -> Self:
         """
         Mirrors the object about the given line or point.
 
         Args:
-            about (Union[LineType, PointType]): The line or point to mirror about.
+            about (LineType | PointType): The line or point to mirror about.
             reps (int, optional): The number of repetitions. Defaults to 0.
 
         Returns:
@@ -419,14 +412,12 @@ class Base:
         glide_line: LineType,
         glide_dist: float,
         reps: int = 0,
-        take: slice = None,
-        incr: Union[
-            float,
-            tuple[float, float],
-            tuple[callable, Any],
-            tuple[InPlace, Any],
-            None,
-        ] = None,
+        take: slice | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
     ) -> Self:
         """
@@ -465,17 +456,15 @@ class Base:
     def scale(
         self,
         scale_x: float,
-        scale_y: Union[float, None] = None,
+        scale_y: float | None = None,
         about: PointType = (0, 0),
         reps: int = 0,
-        take: slice = None,
-        incr: Union[
-            float,
-            tuple[float, float],
-            tuple[callable, Any],
-            tuple[InPlace, Any],
-            None,
-        ] = None,
+        take: slice | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
     ) -> Self:
         """
@@ -509,14 +498,12 @@ class Base:
         theta_x: float,
         theta_y: float,
         reps: int = 0,
-        take: slice = None,
-        incr: Union[
-            float,
-            tuple[float, float],
-            tuple[callable, Any],
-            tuple[InPlace, Any],
-            None,
-        ] = None,
+        take: slice | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
     ) -> Self:
         """
@@ -565,7 +552,7 @@ class Base:
         self,
         transform_matrix: ndarray,
         reps: int = 0,
-        take: slice = None,
+        take: slice | None = None,
         merge: bool = False,
     ) -> Self:
         """

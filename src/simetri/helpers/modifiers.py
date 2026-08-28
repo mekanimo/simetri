@@ -1,6 +1,5 @@
-from random import random, choice
 import inspect
-from typing import List
+from random import choice, random
 
 from ..graphics.all_enums import Control, State
 
@@ -138,7 +137,7 @@ class Modifier:
             randomness = self.get_value(self.randomness, target)
         elif isinstance(self.randomness, float):
             randomness = self.randomness >= random()
-        elif isinstance(self.randomness, (List, tuple)):
+        elif isinstance(self.randomness, (list, tuple)):
             randomness = choice(self.randomness)
 
         if callable(self.condition):
@@ -152,7 +151,7 @@ class Modifier:
             life_span = self.life_span
 
         if life_span > 0 and condition and randomness:
-            if self.state in [State.INITIAL, State.RUNNING, State.RESTARTING]:
+            if self.state in (State.INITIAL, State.RUNNING, State.RESTARTING):
                 res = True
             else:
                 res = False

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from math import ceil, degrees
 
 import numpy as np
+
 import simetri.graphics as sg
 
 from ..geometry.geometry import close_points2, round_point, vert_label_positions
@@ -100,7 +101,7 @@ def draw_helplines_sketch(sketch):
     cs_size = sketch.cs_size
     kwargs = dict(sketch.kwargs)
 
-    if spacing in [None, 0]:
+    if spacing in (None, 0):
         spacing = defaults["help_lines_spacing"]
 
     # Match draw.grid defaults
@@ -122,7 +123,7 @@ def draw_helplines_sketch(sketch):
         ]
         if line_dash_array is not None:
             options.append(f"dash pattern={get_dash_pattern(line_dash_array)}")
-        if draw_opacity not in [None, 1]:
+        if draw_opacity not in (None, 1):
             options.append(f"draw opacity={draw_opacity}")
         return ", ".join(options)
 
@@ -863,7 +864,7 @@ def draw_line_sketch(sketch, canvas=None, exceptions=None):
     extent = sketch.extent
     if not isinstance(extent, Extent) and extent is not None:
         extent = Extent(extent)
-    if extent in [Extent.RAY, Extent.INFINITE]:
+    if extent in (Extent.RAY, Extent.INFINITE):
         limits = _line_limits(canvas)
         start, end = _clip_line_to_rect(start, end, limits, extent)
 

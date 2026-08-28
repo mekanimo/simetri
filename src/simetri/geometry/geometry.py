@@ -21,7 +21,7 @@ from math import (
     isclose,
 )
 from itertools import cycle
-from typing import Any, Union, Sequence, Callable
+from typing import List, Any, Sequence, Callable
 import re
 from functools import cmp_to_key
 
@@ -576,7 +576,195 @@ def is_simple2(
     return True
 
 
+def all_segments_sorted(
+    edges: list[tuple[PointType, PointType]],
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
+) -> list[tuple[PointType]]:
+    """Return all intersections sorted by edges.
+    Intersection points are sorted by their proximity to the
+    first point of an edge.
+    For example if there are 1 intersections on edge1,
+    2 intersections on edge2, ...
+
+    Return should be [(edge1[0], ip1, edge1[1]),
+                      (edge2[0], ip2, ip3, edge2[1]),
+                      ...
+                    ]
+    Each row corresponds to an edge, and the resulting list has
+    the same order of edges. The first output edge corresponds
+    to the firts input edge.
+    """
+    intersection_map, points = all_intersections(edges, rel_tol, abs_tol)
+
+    intersections_by_edge = {edge_id: [] for edge_id in range(len(edges))}
+    for edge_id, intersections in intersection_map.items():
+        intersections_by_edge[edge_id] = intersections
+
+    sorted_segments = []
+    for edge_id, edge in enumerate(edges):
+        start_point, end_point = edge
+        intersections = sorted(
+            intersections_by_edge[edge_id],
+            key=lambda item: distance(start_point, item[0]),
+        )
+        points_on_edge = []
+        point_coordinates = {tuple(start_point[:2]), tuple(end_point[:2])}
+        for point, _ in intersections:
+            coordinates = tuple(point[:2])
+            if coordinates not in point_coordinates:
+                points_on_edge.append(point)
+                point_coordinates.add(coordinates)
+        edge_points = [start_point] + points_on_edge + [end_point]
+        sorted_segments.extend(connected_pairs(edge_points))
+        # sorted_segments.append(
+        #     tuple([start_point] + points_on_edge + [end_point])
+
+    return sorted_segments
+
+
 def all_intersections(
+    edges: list[tuple[PointType, PointType]],
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
+    return_points_list: bool = False,
+) -> tuple[dict, list[tuple]]:
+    """
+    Return all proper intersections between the edges.
+
+    Returns a tuple containing a dictionary mapping each edge ID to its
+    intersection points and neighboring edge IDs, together with a flat list
+    of intersection points.
+
+    Bounding-box candidates are collected into one NumPy array. Their
+    line-segment intersections are then computed as NumPy arrays.
+    """
+
+    relative_tolerance, absolute_tolerance = get_defaults(
+        ["rel_tol", "abs_tol"], [rel_tol, abs_tol]
+    )
+    edge_coordinates = []
+    for edge in edges:
+        start_point, end_point = edge
+        start_x, start_y = start_point[:2]
+        end_x, end_y = end_point[:2]
+        edge_coordinates.append([start_x, start_y, end_x, end_y])
+
+    edge_array = np.asarray(edge_coordinates, dtype=float)
+    edge_count = edge_array.shape[0]
+    edge_min_x = np.minimum(edge_array[:, 0], edge_array[:, 2])
+    edge_min_y = np.minimum(edge_array[:, 1], edge_array[:, 3])
+    edge_max_x = np.maximum(edge_array[:, 0], edge_array[:, 2])
+    edge_max_y = np.maximum(edge_array[:, 1], edge_array[:, 3])
+    edge_ids = np.arange(edge_count)
+    sort_order = edge_min_x.argsort()
+    edge_array = edge_array[sort_order]
+    edge_min_x = edge_min_x[sort_order]
+    edge_min_y = edge_min_y[sort_order]
+    edge_max_x = edge_max_x[sort_order]
+    edge_max_y = edge_max_y[sort_order]
+    edge_ids = edge_ids[sort_order]
+
+    candidate_starts = np.arange(edge_count) + 1
+    candidate_ends = np.searchsorted(edge_min_x, edge_max_x, side="right")
+    candidate_counts = candidate_ends - candidate_starts
+    candidate_count = candidate_counts.sum()
+    if not candidate_count:
+        return {}, []
+
+    candidate_offsets = np.cumsum(candidate_counts) - candidate_counts
+    candidate_rows = np.arange(candidate_count)
+    first_indices = np.repeat(np.arange(edge_count), candidate_counts)
+    candidate_offsets = np.repeat(candidate_offsets, candidate_counts)
+    candidate_starts = np.repeat(candidate_starts, candidate_counts)
+    second_indices = candidate_rows - candidate_offsets + candidate_starts
+    y_overlap_mask = (
+        edge_min_y[first_indices] <= edge_max_y[second_indices]
+    ) & (edge_max_y[first_indices] >= edge_min_y[second_indices])
+    first_indices = first_indices[y_overlap_mask]
+    second_indices = second_indices[y_overlap_mask]
+    candidate_array = np.hstack(
+        (
+            edge_array[first_indices],
+            edge_array[second_indices],
+            edge_ids[first_indices, None],
+            edge_ids[second_indices, None],
+        )
+    )
+    first_edges = candidate_array[:, :4]
+    second_edges = candidate_array[:, 4:8]
+    first_delta_x = first_edges[:, 2] - first_edges[:, 0]
+    first_delta_y = first_edges[:, 3] - first_edges[:, 1]
+    second_delta_x = second_edges[:, 2] - second_edges[:, 0]
+    second_delta_y = second_edges[:, 3] - second_edges[:, 1]
+    denominator = (
+        second_delta_y * first_delta_x - second_delta_x * first_delta_y
+    )
+
+    parallel_mask = np.abs(denominator) <= np.maximum(
+        absolute_tolerance, relative_tolerance * np.abs(denominator)
+    )
+    candidate_array = candidate_array[~parallel_mask]
+    first_edges = first_edges[~parallel_mask]
+    second_edges = second_edges[~parallel_mask]
+    first_delta_x = first_delta_x[~parallel_mask]
+    first_delta_y = first_delta_y[~parallel_mask]
+    second_delta_x = second_delta_x[~parallel_mask]
+    second_delta_y = second_delta_y[~parallel_mask]
+    denominator = denominator[~parallel_mask]
+    first_to_second_x = first_edges[:, 0] - second_edges[:, 0]
+    first_to_second_y = first_edges[:, 1] - second_edges[:, 1]
+    first_parameter = (
+        second_delta_x * first_to_second_y - second_delta_y * first_to_second_x
+    ) / denominator
+    second_parameter = (
+        first_delta_x * first_to_second_y - first_delta_y * first_to_second_x
+    ) / denominator
+    intersecting_mask = (
+        (first_parameter >= 0)
+        & (first_parameter <= 1)
+        & (second_parameter >= 0)
+        & (second_parameter <= 1)
+    )
+    intersection_x = first_edges[:, 0] + first_parameter * first_delta_x
+    intersection_y = first_edges[:, 1] + first_parameter * first_delta_y
+    intersection_rows = candidate_array[intersecting_mask]
+
+    if return_points_list:
+        res = [
+            ((x_coordinate, y_coordinate), (int(first_id), int(second_id)))
+            for x_coordinate, y_coordinate, first_id, second_id in zip(
+                intersection_x[intersecting_mask],
+                intersection_y[intersecting_mask],
+                intersection_rows[:, 8],
+                intersection_rows[:, 9],
+            )
+        ]
+    else:
+        d_results = {}
+        points = []
+        for x_coordinate, y_coordinate, first_id, second_id in zip(
+            intersection_x[intersecting_mask],
+            intersection_y[intersecting_mask],
+            intersection_rows[:, 8],
+            intersection_rows[:, 9],
+        ):
+            point = (x_coordinate, y_coordinate)
+            first_id = int(first_id)
+            second_id = int(second_id)
+            if first_id not in d_results:
+                d_results[first_id] = []
+            if second_id not in d_results:
+                d_results[second_id] = []
+            d_results[first_id].append((point, second_id))
+            d_results[second_id].append((point, first_id))
+            points.append(point)
+        res = (d_results, points)
+
+    return res
+
+
+def all_intersections_old(
     segments: Sequence[LineType],
     rel_tol: float = None,
     abs_tol: float = None,
@@ -662,7 +850,7 @@ def all_intersections(
                 res = intersection2(*segment, *seg2, rel_tol, abs_tol)
                 conn_type, x_point = res
             if use_intersection3:
-                if conn_type not in [Connection.DISJOINT, Connection.PARALLEL]:
+                if conn_type not in (Connection.DISJOINT, Connection.PARALLEL):
                     d_ind1_conn_type_x_res_ind2[id1].append(
                         (conn_type, x_res, id2)
                     )
@@ -741,6 +929,18 @@ def cross_product2(a: PointType, b: PointType, c: PointType) -> float:
     b_c_x = c_x - b_x
     b_c_y = c_y - b_y
     return b_a_x * b_c_y - b_a_y * b_c_x
+
+
+def triangle_centroid(p1, p2, p3):
+    """Returns the center (centroid) of a triangle given its three vertices.
+
+    Each point should be a tuple or list like (x, y).
+    """
+
+    cx = (p1[0] + p2[0] + p3[0]) / 3
+    cy = (p1[1] + p2[1] + p3[1]) / 3
+
+    return (cx, cy)
 
 
 def triangle_angles_from_sides(
@@ -1621,7 +1821,6 @@ def multi_split_segment(segment: LineType, points: Sequence, dist_tol=0.1):
             continue
         segments.append((start, point))
         start = point
-    segments.append((start, p2))
 
     return segments
 
@@ -2244,6 +2443,102 @@ def intersection3(
     return (Connection.DISJOINT, None)
 
 
+def on_segment(a, b, p, eps=1e-12):
+    # check collinear + within bbox
+    def cross(ax, ay, bx, by):
+        return ax * by - ay * bx
+
+    def orient(a, b, c):
+        # cross((b-a),(c-a))
+        return cross(b[0] - a[0], b[1] - a[1], c[0] - a[0], c[1] - a[1])
+
+    if abs(orient(a, b, p)) > eps:
+        return False
+    return (
+        min(a[0], b[0]) - eps <= p[0] <= max(a[0], b[0]) + eps
+        and min(a[1], b[1]) - eps <= p[1] <= max(a[1], b[1]) + eps
+    )
+
+
+def point_inside_polygon(p, poly, eps=1e-5):
+    """
+    Strictly inside only.
+    Boundary returns False (consistent with "does not contain any vertices inside").
+    """
+    x, y = p
+    n = len(poly)
+
+    # boundary check
+    for i in range(n):
+        a = poly[i]
+        b = poly[(i + 1) % n]
+        if on_segment(a, b, p, eps=eps):
+            return False
+
+    inside = False
+    for i in range(n):
+        a = poly[i]
+        b = poly[(i + 1) % n]
+        ax, ay = a
+        bx, by = b
+
+        # edge straddles horizontal ray?
+        if (ay > y) != (by > y):
+            # x intersection
+            x_int = (bx - ax) * (y - ay) / (by - ay) + ax
+            if x_int > x + eps:
+                inside = not inside
+    return inside
+
+
+def any_point_inside_polygon(points, polygon, eps=1e-12):
+    """
+    Returns True if ANY point is strictly inside the polygon.
+    Boundary points are treated as outside.
+
+    """
+
+    pts = np.asarray(points, dtype=float)
+    poly = np.asarray(polygon, dtype=float)
+
+    px = pts[:, 0][:, None]  # (M,1)
+    py = pts[:, 1][:, None]
+
+    x1 = poly[:, 0]
+    y1 = poly[:, 1]
+    x2 = np.roll(x1, -1)
+    y2 = np.roll(y1, -1)
+
+    # -----------------------------
+    # Boundary detection (on edge)
+    # -----------------------------
+    cross = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1)
+
+    on_seg = (
+        (np.abs(cross) < eps)
+        & (np.minimum(x1, x2) <= px)
+        & (px <= np.maximum(x1, x2))
+        & (np.minimum(y1, y2) <= py)
+        & (py <= np.maximum(y1, y2))
+    )
+
+    # Any point on boundary is NOT considered inside
+    on_boundary = np.any(on_seg, axis=1)
+
+    # -----------------------------
+    # Ray casting (interior test)
+    # -----------------------------
+    cond = (y1 > py) != (y2 > py)
+    x_intersect = (x2 - x1) * (py - y1) / (y2 - y1 + 1e-15) + x1
+
+    inside = np.sum(cond & (px < x_intersect), axis=1) % 2 == 1
+
+    # Exclude boundary points from interior
+    inside_strict = inside & (~on_boundary)
+
+    return np.any(inside_strict)
+
+
 def merge_consecutive_collinear_edges(
     points, closed=False, area_rtol=None, area_atol=None
 ):
@@ -2336,7 +2631,7 @@ def merge_segments(
     if res:
         conn_type = list(res.values())[0][0][0]
         verts = list(res.values())[0][0][1]
-        if conn_type in [Conn.OVERLAPS, Conn.CONGRUENT, Conn.CHAIN]:
+        if conn_type in (Conn.OVERLAPS, Conn.CONGRUENT, Conn.CHAIN):
             res = verts
         elif conn_type == Conn.COLL_CHAIN:
             res = (verts[0], verts[1])
@@ -3638,6 +3933,21 @@ def round_point(point: list[float], n_digits: int = 2) -> list[float]:
     return (x, y)
 
 
+def round_points(points: list[PointType], n_digits: int = 2) -> list[PointType]:
+    """
+    Round a list of points to a given precision.
+
+    Args:
+        points (list[PointType]): Input point list.
+        n_digits (int, optional): Number of decimal places to round to. Defaults to 2.
+
+    Returns:
+        list[PointType]: Rounded points list.
+    """
+
+    return [round_point(p, n_digits) for p in points]
+
+
 def round_segment(segment: Sequence[PointType], n_digits: int = 2):
     """Round a segment to a given precision.
 
@@ -3746,7 +4056,26 @@ def congruent_polygons(
     return True
 
 
-def polygon_internal_angles(vertices: List[PointType]) -> List[float]:
+def is_ccw(vertices, *, eps=0.0):
+    """
+    Return True if polygon vertices are in counterclockwise order (CCW).
+    vertices: list of (x, y), without repeating the first vertex at the end.
+    eps: tolerance; if abs(area) <= eps -> treated as False (degenerate).
+    """
+    n = len(vertices)
+    if n < 3:
+        raise ValueError("Need at least 3 vertices")
+
+    area = 0.0
+    for i in range(n):
+        x1, y1 = vertices[i]
+        x2, y2 = vertices[(i + 1) % n]
+        area += x1 * y2 - x2 * y1  # 2 * signed area
+
+    return area > 0
+
+
+def polygon_internal_angles(vertices: list[PointType]) -> list[float]:
     """
     Computes internal angles for a polygon given as a list of (x, y) tuples.
     Works for both convex and concave polygons.
@@ -3767,8 +4096,8 @@ def polygon_internal_angles(vertices: List[PointType]) -> List[float]:
     # 1. Determine Winding Order (Signed Area)
     # Positive = CCW, Negative = CW
     area = polygon_area(vertices)
-    is_ccw = area > 0
-    if not is_ccw:
+    is_ccw_ = area > 0
+    if not is_ccw_:
         raise ValueError("""Vertices are not in counterclockwise positive order!
                          Result is for the reversed list of the given vertices.""")
         vertices = list(vertices)[:]
@@ -3929,7 +4258,7 @@ def fillet_points(
     *,
     clamp_radius: bool = False,
     eps: float = 1e-12,
-) -> List[PointType]:
+) -> list[PointType]:
     """
     Return n points along the circular fillet of given radius at vertex p2
     between segments p1->p2 and p2->p3 (2D). Points include tangency endpoints
@@ -4029,7 +4358,7 @@ def fillet_points(
         pt = C + Vector(radius * cos(ang), radius * sin(ang))
         return [(pt.x, pt.y)]
     # n >= 2: include both tangency endpoints
-    pts: List[PointType] = []
+    pts: list[PointType] = []
     for i in range(n):
         t_frac = i / (n - 1)
         ang = a1 + t_frac * delta
@@ -4762,8 +5091,8 @@ class Edge:
 
     def __init__(
         self,
-        start_point: Union[PointType, Vertex],
-        end_point: Union[PointType, Vertex],
+        start_point: PointType | Vertex,
+        end_point: PointType | Vertex,
     ):
         if isinstance(start_point, PointType):
             start = Vertex(*start_point)

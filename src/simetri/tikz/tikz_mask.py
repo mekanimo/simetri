@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from math import atan2, degrees
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from ..colors.colors import Color
 from ..graphics.all_enums import TexLoc, Types
@@ -193,7 +193,7 @@ def _get_scope_fading_path(mask_shape, fade_id):
 
 def clip_mask(
     self: "Canvas",
-    target: Union[Shape, Group, None] = None,
+    target: Shape | Group | None = None,
     mask: Mask = None,
     **kwargs,
 ):

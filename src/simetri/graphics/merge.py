@@ -26,6 +26,7 @@ def _merge_shapes(self, n_round: int = None, **kwargs) -> "Group":
     """
     from .batch import Group
     from .shape import Shape
+
     if len(self) < 2:
         return self
     # n_round = defaults["n_round"] if n_round is None else n_round
@@ -76,6 +77,7 @@ def _merge_shapes(self, n_round: int = None, **kwargs) -> "Group":
 
     return group
 
+
 def merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
     """Merge collinear edges in a bin.
 
@@ -123,16 +125,15 @@ def merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
 
     return res
 
+
 def _merge_collinears(
-    self,
-    edges: List[LineType],
-    angle_bin_size: float = 0.1
-) -> List[LineType]:
+    self, edges: list[LineType], angle_bin_size: float = 0.1
+) -> list[LineType]:
     """
     Merge collinear edges.
 
     Args:
-        edges (List[LineType]): List of edges.
+        edges (list[LineType]): List of edges.
         angle_bin_size (float, optional): Bin size for grouping angles. Defaults to 0.1.
         n_round (int, optional): Number of rounding digits. Defaults to 2.
     Returns:

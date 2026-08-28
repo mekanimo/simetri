@@ -1,32 +1,31 @@
-from math import prod
-from itertools import product
+from collections.abc import Callable
 from dataclasses import dataclass
 from hashlib import md5
-from typing import Any, List
+from itertools import product
+from math import prod
 from types import FunctionType
-from collections.abc import Callable
+from typing import Any, Self
 
 import numpy as np
-from typing_extensions import Union, Self
 
-from .shape import Shape
-from .batch import Group
+from ..canvas.style_map import ShapeStyle, shape_args, shape_style_map
+from ..geometry.geometry import offset_line, offset_point
+from ..helpers.validation import validate_args
 from .affine import *
-from .common import PointType, LineType
 from .all_enums import (
-    Types,
-    get_enum_value,
     Anchor,
     InPlace,
-    TransformationType,
     Reference,
     ReferenceTarget,
+    TransformationType,
+    Types,
+    get_enum_value,
 )
+from .batch import Group
+from .bbox import BoundingBox, bounding_box
+from .common import LineType, PointType
 from .core import StyleMixin
-from .bbox import bounding_box, BoundingBox
-from ..canvas.style_map import ShapeStyle, shape_style_map, shape_args
-from ..helpers.validation import validate_args
-from ..geometry.geometry import offset_line, offset_point
+from .shape import Shape
 
 
 @dataclass
@@ -42,13 +41,13 @@ class Transform:
 
     xform_matrix: "ndarray"
     reps: int = 0
-    incr: Union[
-        float,
-        tuple[float, float],
-        tuple[callable, Any],
-        tuple[InPlace, Any],
-        None,
-    ] = None
+    incr: (
+        float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | None
+    ) = None
     take: slice = None
 
     def __post_init__(self):
@@ -191,7 +190,7 @@ class Transformation:
         components (list): A list of Transform instances representing the transformations.
     """
 
-    components: List[Transform] = None
+    components: list[Transform] = None
 
     def __post_init__(self):
         self.type = Types.TRANSFORMATION
@@ -205,7 +204,7 @@ class Transformation:
     def __str__(self):
         return f"Transformation(components={self.components})"
 
-    def apply(self, kernel: Shape) -> List[Shape]:
+    def apply(self, kernel: Shape) -> list[Shape]:
         all_vertices = kernel.final_coords @ self.composite
         vertices_list = np.hsplit(all_vertices, self.count)
         res = Group()
@@ -304,7 +303,7 @@ class Pattern(Group, StyleMixin):
 
     def __init__(
         self,
-        kernel: Union[Shape, Group] = None,
+        kernel: Shape | Group = None,
         transformation: Transformation = None,
         **kwargs,
     ):
@@ -481,12 +480,12 @@ class Pattern(Group, StyleMixin):
 
         return self
 
-    def mirror(self, about: Union[LineType, PointType], reps: int = 0) -> Self:
+    def mirror(self, about: LineType | PointType, reps: int = 0) -> Self:
         """
         Mirrors the object about the given line or point.
 
         Args:
-            about (Union[Line, PointType]): The line or point to mirror about.
+            about (Line | PointType): The line or point to mirror about.
             reps (int, optional): The number of repetitions. Defaults to 0.
 
         Returns:
@@ -520,7 +519,7 @@ class Pattern(Group, StyleMixin):
     def scale(
         self,
         scale_x: float,
-        scale_y: Union[float, None] = None,
+        scale_y: float | None = None,
         about: PointType = (0, 0),
         reps: int = 0,
     ) -> Self:
@@ -612,7 +611,7 @@ class Pattern(Group, StyleMixin):
 
 #     def __init__(
 #         self,
-#         kernel: Union[Shape, Group] = None,
+#         kernel: Shape | Group = None,
 #         transformation: Transformation = None,
 #         **kwargs,
 #     ):
@@ -626,13 +625,13 @@ class Pattern(Group, StyleMixin):
 @dataclass
 class ReferenceDef:
     reference: Reference  # Bounding-box references
-    target: Union[ReferenceTarget | None] = None  # kernel, pattern, or None
-    offset: Union[PointType | float] = (
+    target: ReferenceTarget | None = None  # kernel, pattern, or None
+    offset: PointType | float = (
         None  # float for line, <dx, dy> for point offset
     )
     multiplier: float = None
     modifier: Callable = None
-    kwargs: Union[dict | None] = None
+    kwargs: dict | None = None
 
     def copy(self):
         return ReferenceDef(
@@ -649,7 +648,7 @@ class ReferenceDef:
 class TransformDef:
     type: TransformationType  # translation, rotation, ...
     ref: ReferenceDef
-    args: Union[ReferenceDef | PointType | float] = None
+    args: ReferenceDef | PointType | float = None
     take: slice = None
     incr: Any = None
     reps: int = 0
@@ -671,7 +670,7 @@ class TransformDef:
 
 @dataclass
 class PatternDef:
-    transform_defs: List[TransformDef]
+    transform_defs: list[TransformDef]
     modifier: Callable = None
 
     def apply(self, kernel) -> Group:

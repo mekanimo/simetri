@@ -1,23 +1,23 @@
 ## ✅ Goal & approach 🧩
-'''
+"""
 
 - 🏗️ Use `@dataclass` for each primitive with explicit attributes
 - 🧰 Include an `extra: dict` on every element to support *any additional attributes* (presentation attributes, future SVG2 attributes, vendor quirks, etc.)
 - 🖨️ Provide `to_element()` + `to_string()` to emit valid SVG markup
 
-'''
+"""
 
-
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, ClassVar
 import xml.etree.ElementTree as ET
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from typing import Any, ClassVar
 
 from ..graphics.all_enums import ColorMatrix, FilterType
 from ..settings.settings import defaults
 
-Number = Union[int, float]
-NumOrStr = Union[Number, str]
-MaybeSeq = Union[None, str, Number, Sequence[NumOrStr]]
+Number = int | float
+NumOrStr = Number | str
+MaybeSeq = None | str | Number | Sequence[NumOrStr]
 
 SVG_NS = "http://www.w3.org/2000/svg"
 XLINK_NS = "http://www.w3.org/1999/xlink"
@@ -46,10 +46,11 @@ def _set_attrib(el: ET.Element, name: str, value: Any) -> None:
 @dataclass
 class SVGElement:
     """Base element with common SVG-ish attributes."""
-    id: Optional[str] = None
-    class_: Optional[str] = None   # maps to "class"
-    style: Optional[str] = None
-    extra: Dict[str, Any] = field(default_factory=dict)
+
+    id: str | None = None
+    class_: str | None = None  # maps to "class"
+    style: str | None = None
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def _apply_common(self, el: ET.Element) -> None:
         _set_attrib(el, "id", self.id)
@@ -74,20 +75,21 @@ class SVG_Filter(SVGElement):
       - filterRes (pair or string)
       - href (SVG2) or xlink:href (legacy)
     """
-    x: Optional[NumOrStr] = None
-    y: Optional[NumOrStr] = None
-    width: Optional[NumOrStr] = None
-    height: Optional[NumOrStr] = None
 
-    filterUnits: Optional[str] = None           # userSpaceOnUse | objectBoundingBox
-    primitiveUnits: Optional[str] = None        # userSpaceOnUse | objectBoundingBox
-    color_interpolation_filters: Optional[str] = None  # "sRGB" | "linearRGB"
-    filterRes: Optional[Union[str, Tuple[int, int]]] = None
+    x: NumOrStr | None = None
+    y: NumOrStr | None = None
+    width: NumOrStr | None = None
+    height: NumOrStr | None = None
 
-    href: Optional[str] = None                  # SVG2
-    xlink_href: Optional[str] = None            # SVG1.1 legacy
+    filterUnits: str | None = None  # userSpaceOnUse | objectBoundingBox
+    primitiveUnits: str | None = None  # userSpaceOnUse | objectBoundingBox
+    color_interpolation_filters: str | None = None  # "sRGB" | "linearRGB"
+    filterRes: str | tuple[int, int] | None = None
 
-    primitives: List["FilterPrimitive"] = field(default_factory=list)
+    href: str | None = None  # SVG2
+    xlink_href: str | None = None  # SVG1.1 legacy
+
+    primitives: list["FilterPrimitive"] = field(default_factory=list)
 
     def add(self, *prims: "FilterPrimitive") -> "SVG_Filter":
         self.primitives.extend(prims)
@@ -105,10 +107,14 @@ class SVG_Filter(SVGElement):
         _set_attrib(el, "height", self.height)
         _set_attrib(el, "filterUnits", self.filterUnits)
         _set_attrib(el, "primitiveUnits", self.primitiveUnits)
-        _set_attrib(el, "color-interpolation-filters", self.color_interpolation_filters)
+        _set_attrib(
+            el, "color-interpolation-filters", self.color_interpolation_filters
+        )
 
         if isinstance(self.filterRes, tuple):
-            _set_attrib(el, "filterRes", f"{self.filterRes[0]} {self.filterRes[1]}")
+            _set_attrib(
+                el, "filterRes", f"{self.filterRes[0]} {self.filterRes[1]}"
+            )
         else:
             _set_attrib(el, "filterRes", self.filterRes)
 
@@ -121,7 +127,12 @@ class SVG_Filter(SVGElement):
 
         return el
 
-    def to_string(self, pretty: bool = True, include_defs: bool = True, include_xmlns: bool = True) -> str:
+    def to_string(
+        self,
+        pretty: bool = True,
+        include_defs: bool = True,
+        include_xmlns: bool = True,
+    ) -> str:
         # Register xlink prefix if we might use it
         ET.register_namespace("xlink", XLINK_NS)
 
@@ -166,14 +177,15 @@ def _indent_xml(elem: ET.Element, level: int = 0) -> None:
 @dataclass
 class FilterPrimitive(SVGElement):
     """Base class for primitives with common primitive-region attributes."""
-    # Common filter primitive attributes
-    x: Optional[NumOrStr] = None
-    y: Optional[NumOrStr] = None
-    width: Optional[NumOrStr] = None
-    height: Optional[NumOrStr] = None
 
-    in_: Optional[str] = None          # maps to "in"
-    result: Optional[str] = None
+    # Common filter primitive attributes
+    x: NumOrStr | None = None
+    y: NumOrStr | None = None
+    width: NumOrStr | None = None
+    height: NumOrStr | None = None
+
+    in_: str | None = None  # maps to "in"
+    result: str | None = None
     primitive_type: ClassVar[FilterType] = None
 
     @property
@@ -196,8 +208,8 @@ class FilterPrimitive(SVGElement):
 @dataclass
 class feBlend(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.BLEND
-    in2: Optional[str] = None
-    mode: Optional[str] = None  # normal|multiply|screen|darken|lighten|...
+    in2: str | None = None
+    mode: str | None = None  # normal|multiply|screen|darken|lighten|...
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feBlend")
@@ -213,8 +225,8 @@ class feBlend(FilterPrimitive):
 @dataclass
 class feColorMatrix(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.COLOR_MATRIX
-    matrix_type: Optional[ColorMatrix] = None
-    values: Optional[MaybeSeq] = None
+    matrix_type: ColorMatrix | None = None
+    values: MaybeSeq | None = None
 
     def __post_init__(self):
         if self.matrix_type is None:
@@ -242,13 +254,14 @@ class feColorMatrix(FilterPrimitive):
 @dataclass
 class feFunc(SVGElement):
     """Base for feFuncR/G/B/A"""
-    type: Optional[str] = None  # identity|table|discrete|linear|gamma
-    tableValues: Optional[MaybeSeq] = None
-    slope: Optional[Number] = None
-    intercept: Optional[Number] = None
-    amplitude: Optional[Number] = None
-    exponent: Optional[Number] = None
-    offset: Optional[Number] = None
+
+    type: str | None = None  # identity|table|discrete|linear|gamma
+    tableValues: MaybeSeq | None = None
+    slope: Number | None = None
+    intercept: Number | None = None
+    amplitude: Number | None = None
+    exponent: Number | None = None
+    offset: Number | None = None
 
     TAG: str = "feFuncR"  # overridden
 
@@ -288,10 +301,10 @@ class feFuncA(feFunc):
 @dataclass
 class feComponentTransfer(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.COMPONENT_TRANSFER
-    funcR: Optional[feFuncR] = None
-    funcG: Optional[feFuncG] = None
-    funcB: Optional[feFuncB] = None
-    funcA: Optional[feFuncA] = None
+    funcR: feFuncR | None = None
+    funcG: feFuncG | None = None
+    funcB: feFuncB | None = None
+    funcA: feFuncA | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feComponentTransfer")
@@ -308,12 +321,12 @@ class feComponentTransfer(FilterPrimitive):
 @dataclass
 class feComposite(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.COMPOSITE
-    in2: Optional[str] = None
-    operator: Optional[str] = None  # over|in|out|atop|xor|arithmetic
-    k1: Optional[Number] = None
-    k2: Optional[Number] = None
-    k3: Optional[Number] = None
-    k4: Optional[Number] = None
+    in2: str | None = None
+    operator: str | None = None  # over|in|out|atop|xor|arithmetic
+    k1: Number | None = None
+    k2: Number | None = None
+    k3: Number | None = None
+    k4: Number | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feComposite")
@@ -333,15 +346,15 @@ class feComposite(FilterPrimitive):
 @dataclass
 class feConvolveMatrix(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.CONVOLVE_MATRIX
-    order: Optional[Union[int, Tuple[int, int]]] = None
-    kernelMatrix: Optional[MaybeSeq] = None
-    divisor: Optional[Number] = None
-    bias: Optional[Number] = None
-    targetX: Optional[int] = None
-    targetY: Optional[int] = None
-    edgeMode: Optional[str] = None  # duplicate|wrap|none
-    kernelUnitLength: Optional[Union[Number, Tuple[Number, Number]]] = None
-    preserveAlpha: Optional[bool] = None
+    order: int | tuple[int, int] | None = None
+    kernelMatrix: MaybeSeq | None = None
+    divisor: Number | None = None
+    bias: Number | None = None
+    targetX: int | None = None
+    targetY: int | None = None
+    edgeMode: str | None = None  # duplicate|wrap|none
+    kernelUnitLength: Number | tuple[Number, Number] | None = None
+    preserveAlpha: bool | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feConvolveMatrix")
@@ -360,7 +373,11 @@ class feConvolveMatrix(FilterPrimitive):
         _set_attrib(el, "edgeMode", self.edgeMode)
 
         if isinstance(self.kernelUnitLength, tuple):
-            _set_attrib(el, "kernelUnitLength", f"{self.kernelUnitLength[0]} {self.kernelUnitLength[1]}")
+            _set_attrib(
+                el,
+                "kernelUnitLength",
+                f"{self.kernelUnitLength[0]} {self.kernelUnitLength[1]}",
+            )
         else:
             _set_attrib(el, "kernelUnitLength", self.kernelUnitLength)
 
@@ -373,8 +390,8 @@ class feConvolveMatrix(FilterPrimitive):
 # -------------------
 @dataclass
 class feDistantLight(SVGElement):
-    azimuth: Optional[Number] = None
-    elevation: Optional[Number] = None
+    azimuth: Number | None = None
+    elevation: Number | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feDistantLight")
@@ -386,9 +403,9 @@ class feDistantLight(SVGElement):
 
 @dataclass
 class fePointLight(SVGElement):
-    x: Optional[Number] = None
-    y: Optional[Number] = None
-    z: Optional[Number] = None
+    x: Number | None = None
+    y: Number | None = None
+    z: Number | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("fePointLight")
@@ -401,14 +418,14 @@ class fePointLight(SVGElement):
 
 @dataclass
 class feSpotLight(SVGElement):
-    x: Optional[Number] = None
-    y: Optional[Number] = None
-    z: Optional[Number] = None
-    pointsAtX: Optional[Number] = None
-    pointsAtY: Optional[Number] = None
-    pointsAtZ: Optional[Number] = None
-    specularExponent: Optional[Number] = None
-    limitingConeAngle: Optional[Number] = None
+    x: Number | None = None
+    y: Number | None = None
+    z: Number | None = None
+    pointsAtX: Number | None = None
+    pointsAtY: Number | None = None
+    pointsAtZ: Number | None = None
+    specularExponent: Number | None = None
+    limitingConeAngle: Number | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feSpotLight")
@@ -430,12 +447,12 @@ class feSpotLight(SVGElement):
 @dataclass
 class feDiffuseLighting(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.DIFFUSE_LIGHTING
-    surfaceScale: Optional[Number] = None
-    diffuseConstant: Optional[Number] = None
-    kernelUnitLength: Optional[Union[Number, Tuple[Number, Number]]] = None
-    lighting_color: Optional[str] = None  # maps to "lighting-color"
+    surfaceScale: Number | None = None
+    diffuseConstant: Number | None = None
+    kernelUnitLength: Number | tuple[Number, Number] | None = None
+    lighting_color: str | None = None  # maps to "lighting-color"
 
-    light: Optional[Union[feDistantLight, fePointLight, feSpotLight]] = None
+    light: feDistantLight | fePointLight | feSpotLight | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feDiffuseLighting")
@@ -444,7 +461,11 @@ class feDiffuseLighting(FilterPrimitive):
         _set_attrib(el, "diffuseConstant", self.diffuseConstant)
 
         if isinstance(self.kernelUnitLength, tuple):
-            _set_attrib(el, "kernelUnitLength", f"{self.kernelUnitLength[0]} {self.kernelUnitLength[1]}")
+            _set_attrib(
+                el,
+                "kernelUnitLength",
+                f"{self.kernelUnitLength[0]} {self.kernelUnitLength[1]}",
+            )
         else:
             _set_attrib(el, "kernelUnitLength", self.kernelUnitLength)
 
@@ -462,10 +483,10 @@ class feDiffuseLighting(FilterPrimitive):
 @dataclass
 class feDisplacementMap(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.DISPLACEMENT_MAP
-    in2: Optional[str] = None
-    scale: Optional[Number] = None
-    xChannelSelector: Optional[str] = None  # R|G|B|A
-    yChannelSelector: Optional[str] = None  # R|G|B|A
+    in2: str | None = None
+    scale: Number | None = None
+    xChannelSelector: str | None = None  # R|G|B|A
+    yChannelSelector: str | None = None  # R|G|B|A
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feDisplacementMap")
@@ -483,11 +504,11 @@ class feDisplacementMap(FilterPrimitive):
 @dataclass
 class feDropShadow(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.DROP_SHADOW
-    dx: Optional[Number] = None
-    dy: Optional[Number] = None
-    stdDeviation: Optional[Union[Number, Tuple[Number, Number]]] = None
-    flood_color: Optional[str] = None        # "flood-color"
-    flood_opacity: Optional[Number] = None   # "flood-opacity"
+    dx: Number | None = None
+    dy: Number | None = None
+    stdDeviation: Number | tuple[Number, Number] | None = None
+    flood_color: str | None = None  # "flood-color"
+    flood_opacity: Number | None = None  # "flood-opacity"
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feDropShadow")
@@ -495,7 +516,11 @@ class feDropShadow(FilterPrimitive):
         _set_attrib(el, "dx", self.dx)
         _set_attrib(el, "dy", self.dy)
         if isinstance(self.stdDeviation, tuple):
-            _set_attrib(el, "stdDeviation", f"{self.stdDeviation[0]} {self.stdDeviation[1]}")
+            _set_attrib(
+                el,
+                "stdDeviation",
+                f"{self.stdDeviation[0]} {self.stdDeviation[1]}",
+            )
         else:
             _set_attrib(el, "stdDeviation", self.stdDeviation)
         _set_attrib(el, "flood-color", self.flood_color)
@@ -509,8 +534,8 @@ class feDropShadow(FilterPrimitive):
 @dataclass
 class feFlood(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.FLOOD
-    flood_color: Optional[str] = None
-    flood_opacity: Optional[Number] = None
+    flood_color: str | None = None
+    flood_opacity: Number | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feFlood")
@@ -527,14 +552,18 @@ class feFlood(FilterPrimitive):
 @dataclass
 class feGaussianBlur(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.GAUSSIAN_BLUR
-    stdDeviation: Optional[Union[Number, Tuple[Number, Number]]] = None
-    edgeMode: Optional[str] = None  # duplicate|wrap|none
+    stdDeviation: Number | tuple[Number, Number] | None = None
+    edgeMode: str | None = None  # duplicate|wrap|none
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feGaussianBlur")
         self._apply_primitive_common(el)
         if isinstance(self.stdDeviation, tuple):
-            _set_attrib(el, "stdDeviation", f"{self.stdDeviation[0]} {self.stdDeviation[1]}")
+            _set_attrib(
+                el,
+                "stdDeviation",
+                f"{self.stdDeviation[0]} {self.stdDeviation[1]}",
+            )
         else:
             _set_attrib(el, "stdDeviation", self.stdDeviation)
         _set_attrib(el, "edgeMode", self.edgeMode)
@@ -547,10 +576,10 @@ class feGaussianBlur(FilterPrimitive):
 @dataclass
 class feImage(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.IMAGE
-    href: Optional[str] = None                 # SVG2
-    xlink_href: Optional[str] = None           # legacy
-    preserveAspectRatio: Optional[str] = None
-    crossOrigin: Optional[str] = None
+    href: str | None = None  # SVG2
+    xlink_href: str | None = None  # legacy
+    preserveAspectRatio: str | None = None
+    crossOrigin: str | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feImage")
@@ -568,7 +597,7 @@ class feImage(FilterPrimitive):
 # -------------------
 @dataclass
 class feMergeNode(SVGElement):
-    in_: Optional[str] = None
+    in_: str | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feMergeNode")
@@ -580,7 +609,7 @@ class feMergeNode(SVGElement):
 @dataclass
 class feMerge(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.MERGE
-    nodes: List[feMergeNode] = field(default_factory=list)
+    nodes: list[feMergeNode] = field(default_factory=list)
 
     def add_node(self, in_: str) -> "feMerge":
         self.nodes.append(feMergeNode(in_=in_))
@@ -600,8 +629,8 @@ class feMerge(FilterPrimitive):
 @dataclass
 class feMorphology(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.MORPHOLOGY
-    operator: Optional[str] = None  # erode|dilate
-    radius: Optional[Union[Number, Tuple[Number, Number]]] = None
+    operator: str | None = None  # erode|dilate
+    radius: Number | tuple[Number, Number] | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feMorphology")
@@ -620,8 +649,8 @@ class feMorphology(FilterPrimitive):
 @dataclass
 class feOffset(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.OFFSET
-    dx: Optional[Number] = None
-    dy: Optional[Number] = None
+    dx: Number | None = None
+    dy: Number | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feOffset")
@@ -637,13 +666,13 @@ class feOffset(FilterPrimitive):
 @dataclass
 class feSpecularLighting(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.SPECULAR_LIGHTING
-    surfaceScale: Optional[Number] = None
-    specularConstant: Optional[Number] = None
-    specularExponent: Optional[Number] = None
-    kernelUnitLength: Optional[Union[Number, Tuple[Number, Number]]] = None
-    lighting_color: Optional[str] = None
+    surfaceScale: Number | None = None
+    specularConstant: Number | None = None
+    specularExponent: Number | None = None
+    kernelUnitLength: Number | tuple[Number, Number] | None = None
+    lighting_color: str | None = None
 
-    light: Optional[Union[feDistantLight, fePointLight, feSpotLight]] = None
+    light: feDistantLight | fePointLight | feSpotLight | None = None
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feSpecularLighting")
@@ -653,7 +682,11 @@ class feSpecularLighting(FilterPrimitive):
         _set_attrib(el, "specularExponent", self.specularExponent)
 
         if isinstance(self.kernelUnitLength, tuple):
-            _set_attrib(el, "kernelUnitLength", f"{self.kernelUnitLength[0]} {self.kernelUnitLength[1]}")
+            _set_attrib(
+                el,
+                "kernelUnitLength",
+                f"{self.kernelUnitLength[0]} {self.kernelUnitLength[1]}",
+            )
         else:
             _set_attrib(el, "kernelUnitLength", self.kernelUnitLength)
 
@@ -671,6 +704,7 @@ class feSpecularLighting(FilterPrimitive):
 @dataclass
 class feTile(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.TILE
+
     def to_element(self) -> ET.Element:
         el = ET.Element("feTile")
         self._apply_primitive_common(el)
@@ -683,18 +717,22 @@ class feTile(FilterPrimitive):
 @dataclass
 class feTurbulence(FilterPrimitive):
     primitive_type: ClassVar[FilterType] = FilterType.TURBULENCE
-    baseFrequency: Optional[Union[Number, Tuple[Number, Number]]] = None
-    numOctaves: Optional[int] = None
-    seed: Optional[Number] = None
-    stitchTiles: Optional[str] = None  # stitch|noStitch
-    turbulence_type: Optional[str] = None         # turbulence|fractalNoise
+    baseFrequency: Number | tuple[Number, Number] | None = None
+    numOctaves: int | None = None
+    seed: Number | None = None
+    stitchTiles: str | None = None  # stitch|noStitch
+    turbulence_type: str | None = None  # turbulence|fractalNoise
 
     def to_element(self) -> ET.Element:
         el = ET.Element("feTurbulence")
         self._apply_primitive_common(el)
 
         if isinstance(self.baseFrequency, tuple):
-            _set_attrib(el, "baseFrequency", f"{self.baseFrequency[0]} {self.baseFrequency[1]}")
+            _set_attrib(
+                el,
+                "baseFrequency",
+                f"{self.baseFrequency[0]} {self.baseFrequency[1]}",
+            )
         else:
             _set_attrib(el, "baseFrequency", self.baseFrequency)
 
@@ -704,8 +742,9 @@ class feTurbulence(FilterPrimitive):
         _set_attrib(el, "type", self.turbulence_type)
         return el
 
+
 # Usage
-'''
+"""
 ## 🧪 Example usage (build a filter + emit `<defs>...</defs>`) 🧪
 
 f = SVG_Filter(id="goo", x="-20%", y="-20%", width="140%", height="140%")
@@ -727,4 +766,4 @@ f.add(
 )
 
 print(f.to_string(pretty=True, include_defs=True))
-'''
+"""

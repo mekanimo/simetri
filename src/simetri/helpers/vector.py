@@ -1,10 +1,10 @@
 from math import cos, sin
-from typing import Tuple, Union
+
 
 import numpy as np
 
 
-Vec2 = Tuple[float, float]
+Vec2 = tuple[float, float]
 
 
 class Vector2D:
@@ -45,14 +45,14 @@ class Vector2D:
         """
         return Vector2D(*(self.vector - other.vector))
 
-    def __mul__(self, other: Union[Vec2, float]) -> Union[float, Vec2]:
+    def __mul__(self, other: Vec2 | float) -> float | Vec2:
         """Multiplies the vector with another vector or a scalar.
 
         Args:
-            other (Union[Vec2, float]): The vector or scalar to multiply with.
+            other (Vec2 | float): The vector or scalar to multiply with.
 
         Returns:
-            Union[float, Vec2]: The resulting vector or scalar.
+            float | Vec2: The resulting vector or scalar.
         """
         if isinstance(other, Vector2D):
             res = np.cross(self.vector, other.vector)
@@ -120,7 +120,10 @@ class Vector2D:
         """
         angle_rad = np.radians(angle)
         rotation_matrix = np.array(
-            [[cos(angle_rad), -sin(angle_rad)], [sin(angle_rad), cos(angle_rad)]]
+            [
+                [cos(angle_rad), -sin(angle_rad)],
+                [sin(angle_rad), cos(angle_rad)],
+            ]
         )
         rotated_vector = rotation_matrix @ self.vector
         return Vector2D(*rotated_vector)

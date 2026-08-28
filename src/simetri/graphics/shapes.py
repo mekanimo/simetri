@@ -1,46 +1,48 @@
 """Shapes module contains classes and functions for creating shapes."""
 
-from math import pi, gcd, sin, cos, comb
-from typing import List, Sequence, Union
+from collections.abc import Sequence
+from math import comb, cos, gcd, pi, sin
 
 import numpy as np
 
+from simetri.colors import colors
+
+from ..canvas.style_map import (
+    shape_style_map,
+)
+from ..geometry.ellipse import ellipse_points
+from ..geometry.geometry import (
+    angle_between_lines2,
+    close_points2,
+    distance,
+    fillet_corners,
+    homogenize,
+    midpoint,
+    offset_polygon_points,
+    side_len_to_radius,
+)
+from ..geometry.vectors import v_diff, v_scale, v_sum
+from ..graphics.all_enums import Extent, Types
 from ..graphics.batch import Group
 from ..graphics.bbox import BoundingBox
+from ..graphics.common import PointType, axis_x, get_defaults
 from ..graphics.shape import (
     Shape,
     custom_attributes,
 )
-from ..graphics.common import axis_x, get_defaults, PointType
-from ..graphics.all_enums import Types, Extent
 from ..settings.settings import defaults
 from .affine import rotation_matrix
-from ..geometry.ellipse import ellipse_points
-from ..geometry.geometry import (
-    side_len_to_radius,
-    offset_polygon_points,
-    distance,
-    midpoint,
-    close_points2,
-    angle_between_lines2,
-    fillet_corners,
-    homogenize,
-)
-from ..geometry.vectors import v_scale, v_diff, v_sum
-from ..canvas.style_map import (
-    shape_style_map,
-)
-
-import simetri.colors.colors as colors
 
 Color = colors.Color
 
 
-def offset_box(corners, offsets: List[float]=None, offset:float=None ) -> "Shape":
-    '''Given four corners and offsets(left, bottom, right, and top or a
+def offset_box(
+    corners, offsets: list[float] = None, offset: float = None
+) -> "Shape":
+    """Given four corners and offsets(left, bottom, right, and top or a
     single offset value) returns a rectangle shape. Negative offsets mean
     deflation.
-    '''
+    """
 
     # Handle the single offset case
     if offset is not None:
@@ -50,7 +52,9 @@ def offset_box(corners, offsets: List[float]=None, offset:float=None ) -> "Shape
         raise ValueError("Either offsets or offset must be provided")
 
     if len(offsets) != 4:
-        raise ValueError("offsets must have 4 values: [left, bottom, right, top]")
+        raise ValueError(
+            "offsets must have 4 values: [left, bottom, right, top]"
+        )
 
     left, bottom, right, top = offsets
 
@@ -78,6 +82,7 @@ def offset_box(corners, offsets: List[float]=None, offset:float=None ) -> "Shape
     ]
 
     return Shape(new_corners, closed=True)
+
 
 def square(
     center: PointType = (0, 0), size: float = 100, angle: float = 0, **kwargs
@@ -254,7 +259,7 @@ class Line(Shape):
     #     """Return a copy of the line."""
     #     line = Line(self.start, self.end, extent=self.extent)
     #     for attrib in custom_attributes(self):
-    #         if attrib in ["vertices", "draw_type", "extent"]:
+    #        if attrib in ("vertices", "draw_type", "extent"):
     #             continue
     #         setattr(line, attrib, getattr(self, attrib))
     #     for attrib in shape_style_map:
@@ -319,7 +324,7 @@ class Rectangle(Shape):
     # def scale(
     #     self,
     #     scale_x: float,
-    #     scale_y: Union[float, None] = None,
+    #     scale_y: float | None = None,
     #     about: PointType = (0, 0),
     #     reps: int = 0,
     # ):
@@ -674,8 +679,6 @@ class Segment(Shape):
         )
 
 
-
-
 def circle_points(
     center: PointType, radius: float, n: int = 30
 ) -> list[PointType]:
@@ -723,7 +726,7 @@ def arc_points(
     return points
 
 
-def hex_points(side_length: float) -> List[List[float]]:
+def hex_points(side_length: float) -> list[list[float]]:
     """Return a list of points that define a hexagon with a given side length.
 
     Args:
@@ -771,7 +774,7 @@ def rectangle_points(
 
 
 def reg_poly_points_side_length(
-    pos: PointType, n: int, side_len: float
+    n: int, side_len: float, pos: PointType = (0, 0), angle: float = 0
 ) -> Sequence[PointType]:
     """Return a regular polygon points list with n sides and side_len length.
 
@@ -789,11 +792,17 @@ def reg_poly_points_side_length(
     points = [
         [cos(angle * i) * rad + x, sin(angle * i) * rad + y] for i in range(n)
     ]
-    points.append(points[0])
+
+    if angle != 0:
+        points = homogenize(points) @ rotation_matrix(angle)
+        points = [(x, y) for (x, y, _) in points]
+
     return points
 
 
-def reg_poly_points(pos: PointType, n: int, r: float, angle: float=0) -> Sequence[PointType]:
+def reg_poly_points(
+    n: int, r: float = 100, pos: PointType = (0, 0), angle: float = 0
+) -> Sequence[PointType]:
     """Return a regular polygon points list with n sides and radius r.
 
     Args:
@@ -1070,8 +1079,10 @@ def circle_shape(radius, pos=(0, 0), n=30, **kwargs):
     return Shape(points, closed=True, **kwargs)
 
 
-def reg_poly_shape(n, r=100, pos=(0, 0), angle=0, **kwargs):
-    """Return a regular polygon.
+def reg_poly_shape(
+    n: int, r: float = 100, pos: PointType = (0, 0), angle: float = 0, **kwargs
+):
+    """Return an n-sided regular polygon with circumradius=r.
 
     Args:
         n (int): The number of sides of the polygon.
@@ -1083,7 +1094,30 @@ def reg_poly_shape(n, r=100, pos=(0, 0), angle=0, **kwargs):
         Shape: A Shape object with points that form a regular polygon.
     """
     x, y = pos[:2]
-    points = reg_poly_points((x, y), n=n, r=r, angle=angle)
+    points = reg_poly_points(n=n, r=r, pos=(x, y), angle=angle)
+
+    return Shape(points, closed=True, **kwargs)
+
+
+def reg_poly_shape_side_length(
+    n: int, side_len: float, pos: PointType = (0, 0), angle: float = 0, **kwargs
+):
+    """Return a regular polygon.
+
+    Args:
+        n (int): The number of sides of the polygon.
+        r (float, optional): The radius of the polygon. Defaults to 100.
+        kwargs (dict): Additional keyword arguments.
+        pos (PointType): The position of the center of the polygon.
+
+    Returns:
+        Shape: A Shape object with points that form a regular polygon.
+    """
+
+    x, y = pos[:2]
+    points = reg_poly_points_side_length(
+        n=n, side_len=side_len, pos=(x, y), angle=angle
+    )
 
     return Shape(points, closed=True, **kwargs)
 
@@ -1152,9 +1186,9 @@ def offset_polygon_shape(
 
 def snap(
     free_shape: Shape,
-    ref1: Union[int, float],
+    ref1: int | float,
     fixed_shape: Shape,
-    ref2: Union[int, float],
+    ref2: int | float,
     angle: float = 0,
 ):
     """Snaps the given free Shape to the fixed Shape using integer indices (for vertices) or floating point numbers for Barycentric edge coordinates.
@@ -1171,9 +1205,7 @@ def snap(
     based indexing) or the midpoint of the second edge.
     """
 
-    def get_edge_indices(
-        shape: Shape, ref: Union[int, float]
-    ) -> tuple[int, int]:
+    def get_edge_indices(shape: Shape, ref: int | float) -> tuple[int, int]:
         """Get the edge indices for alignment.
 
         For a vertex index, returns (prev_vertex, vertex).
@@ -1261,8 +1293,10 @@ def snap(
     return free
 
 
-def fillet_shape_corners(shape:Shape, d_vert_radius:dict[int, float], n:int=12)->Shape:
-    '''Using the given shape, creates a new shape with rounded corners.'''
+def fillet_shape_corners(
+    shape: Shape, d_vert_radius: dict[int, float], n: int = 12
+) -> Shape:
+    """Using the given shape, creates a new shape with rounded corners."""
     vertices = fillet_corners(shape.vertices, d_vert_radius, n)
 
     new_shape = shape.copy()

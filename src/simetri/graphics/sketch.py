@@ -8,22 +8,23 @@ They preserve the state of graphics objects at the time of drawing.
 They are snapshots of the state of the objects and the Canvas at the time of drawing.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import List, Any, Union, Sequence
+from typing import Any
 
 import numpy as np
 from numpy import ndarray
 
 from ..colors import colors
-from .affine import identity_matrix
-from .common import PointType, get_unique_id
-from .all_enums import Types, Anchor, FrameShape, CurveMode, TexLoc, Extent
-from ..settings.settings import defaults
 from ..geometry.geometry import homogenize
-from ..helpers.utilities import decompose_transformations, round_symmetric
-from .pattern import Pattern
-from ..image.image import Image
 from ..graphics.bbox import bounding_box
+from ..helpers.utilities import decompose_transformations, round_symmetric
+from ..image.image import Image
+from ..settings.settings import defaults
+from .affine import identity_matrix
+from .all_enums import Anchor, CurveMode, Extent, FrameShape, TexLoc, Types
+from .common import PointType, get_unique_id
+from .pattern import Pattern
 
 Color = colors.Color
 
@@ -257,7 +258,7 @@ class LineSketch:
             extent = Extent(extent)
 
         self.vertices = self._raw_vertices[:]
-        if extent not in [Extent.RAY, Extent.INFINITE]:
+        if extent not in (Extent.RAY, Extent.INFINITE):
             return
 
         limits = self._line_limits(canvas)
@@ -304,11 +305,10 @@ class ImageSketch:
     image: Image
     pos: PointType = None
     angle: float = None
-    scale: Union[tuple, float] = None
-    anchor: Anchor = None
+    scale: tuple | float = None
     size: tuple = None
     file_path: str = None
-    anchor: Anchor = None
+    anchor: Anchor | None = None
     xform_matrix: ndarray = None
 
     def __post_init__(self):
@@ -515,7 +515,7 @@ class ScopeGroup:
 class ClippedSketch:
     """canvas.clip creates a ClippedSketch"""
 
-    sketches: List[Types.SKETCH]
+    sketches: list[Types.SKETCH]
     clipper: ShapeSketch
     xform_matrix: ndarray = None
 
@@ -532,7 +532,7 @@ class ClippedSketch:
 class MaskedSketch:
     """canvas.mask creates a MaskedSketch"""
 
-    sketches: List[Types.SKETCH]
+    sketches: list[Types.SKETCH]
     mask: Any
     xform_matrix: ndarray = None
 
@@ -549,8 +549,8 @@ class MaskedSketch:
 class FilteredSketch:
     """canvas.filter creates a FilteredSketch"""
 
-    sketches: List[Types.SKETCH]
-    filter_s: List  # list of filters or a filter
+    sketches: list[Types.SKETCH]
+    filter_s: list  # list of filters or a filter
 
     def __post_init__(self):
         """Initialize the FilteredSketch object."""
@@ -566,11 +566,11 @@ class PathSketch:
     """PathSketch is a dataclass for creating a path sketch object.
 
     Attributes:
-        sketches (List[Types.SKETCH]): The list of sketches.
+        sketches (list[Types.SKETCH]): The list of sketches.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     """
 
-    sketches: List[Types.SKETCH]
+    sketches: list[Types.SKETCH]
     xform_matrix: ndarray = None
 
     def __post_init__(self):
@@ -587,13 +587,13 @@ class LaceSketch:
     """LaceSketch is a dataclass for creating a lace sketch object.
 
     Attributes:
-        fragment_sketches (List[ShapeSketch]): The list of fragment sketches.
-        plait_sketches (List[ShapeSketch]): The list of plait sketches.
+        fragment_sketches (list[ShapeSketch]): The list of fragment sketches.
+        plait_sketches (list[ShapeSketch]): The list of plait sketches.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     """
 
-    fragment_sketches: List[ShapeSketch]
-    plait_sketches: List[ShapeSketch]
+    fragment_sketches: list[ShapeSketch]
+    plait_sketches: list[ShapeSketch]
     xform_matrix: ndarray = None
 
     def __post_init__(self):
@@ -793,7 +793,7 @@ class HelpLinesSketch:
         width = bbox.width
         height = bbox.height
         spacing = self.spacing
-        if spacing in [None, 0]:
+        if spacing in (None, 0):
             spacing = defaults["help_lines_spacing"]
             self.spacing = spacing
 
@@ -809,7 +809,7 @@ class HelpLinesSketch:
 
 @dataclass
 class CompositeSketch:
-    sketches: List[Types.SKETCH]
+    sketches: list[Types.SKETCH]
     xform_matrix: ndarray = None
 
     def __post_init__(self):

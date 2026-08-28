@@ -1,7 +1,6 @@
 """Creates pattern defintions for the Frieze groups"""
 
 from math import pi
-from typing import Union
 from dataclasses import dataclass
 
 from ..graphics.pattern import ReferenceDef, PatternDef, TransformDef
@@ -16,8 +15,8 @@ from ..graphics.common import PointType
 
 @dataclass
 class HopDef:
-    dx: Union[float, ReferenceDef]
-    dy: Union[float, ReferenceDef] = 0
+    dx: float | ReferenceDef
+    dy: float | ReferenceDef = 0
     reps: int = 3
 
     def __post_init__(self):
@@ -45,8 +44,8 @@ class HopDef:
 
 @dataclass
 class StepDef:
-    mirror_offset: Union[float, ReferenceDef]
-    distance: Union[float, ReferenceDef]
+    mirror_offset: float | ReferenceDef
+    distance: float | ReferenceDef
     side: Reference = Reference.BOTTOM
     reps: int = 3
 
@@ -76,8 +75,8 @@ class StepDef:
 
 @dataclass
 class JumpDef:
-    mirror_offset: Union[float, ReferenceDef]
-    distance: Union[float, ReferenceDef]
+    mirror_offset: float | ReferenceDef
+    distance: float | ReferenceDef
     side: Reference = Reference.BOTTOM
     reps: int = 3
 
@@ -114,8 +113,8 @@ class JumpDef:
 
 @dataclass
 class SidleDef:
-    mirror_offset: Union[float, ReferenceDef]
-    dx: Union[float, ReferenceDef]
+    mirror_offset: float | ReferenceDef
+    dx: float | ReferenceDef
     reps: int = 0
 
     def __post_init__(self):
@@ -153,9 +152,9 @@ class SidleDef:
 
 @dataclass
 class SpinningHopDef:
-    rotocenter: Union[PointType, ReferenceDef]
-    dx: Union[float, ReferenceDef]
-    dy: Union[float, ReferenceDef] = 0
+    rotocenter: PointType | ReferenceDef
+    dx: float | ReferenceDef
+    dy: float | ReferenceDef = 0
     reps: int = 3
 
     def __post_init__(self):
@@ -192,10 +191,10 @@ class SpinningHopDef:
 
 @dataclass
 class SpinningJumpDef:
-    mirror_offset1: Union[float, ReferenceDef]
-    mirror_offset2: Union[float, ReferenceDef]
-    dx: Union[float, ReferenceDef]
-    dy: Union[float, ReferenceDef] = 0
+    mirror_offset1: float | ReferenceDef
+    mirror_offset2: float | ReferenceDef
+    dx: float | ReferenceDef
+    dy: float | ReferenceDef = 0
     reps: int = 3
 
     def __post_init__(self):
@@ -240,10 +239,10 @@ class SpinningJumpDef:
 
 @dataclass
 class SpinningSidleDef:
-    mirror_offset: Union[float, ReferenceDef]
-    glide_distance: Union[float, ReferenceDef]
-    dx: Union[float, ReferenceDef]
-    dy: Union[float, ReferenceDef] = 0
+    mirror_offset: float | ReferenceDef
+    glide_distance: float | ReferenceDef
+    dx: float | ReferenceDef
+    dy: float | ReferenceDef = 0
     reps: int = 3
 
     def __post_init__(self):
@@ -285,7 +284,7 @@ class SpinningSidleDef:
         return self.pattern_def.apply(design)
 
 
-def hop_def(distance: Union[float, ReferenceDef], reps: int = 3) -> PatternDef:
+def hop_def(distance: float | ReferenceDef, reps: int = 3) -> PatternDef:
     t_type = TransformationType.TRANSLATE
     args = (distance, 0)
     trans_def = TransformDef(t_type, None, args, reps=reps)
@@ -295,8 +294,8 @@ def hop_def(distance: Union[float, ReferenceDef], reps: int = 3) -> PatternDef:
 
 
 def step_def(
-    mirror_offset: Union[float, ReferenceDef],
-    distance: Union[float, ReferenceDef],
+    mirror_offset: float | ReferenceDef,
+    distance: float | ReferenceDef,
     side: Reference = Reference.BOTTOM,
     reps: int = 3,
 ) -> PatternDef:
@@ -310,8 +309,8 @@ def step_def(
 
 
 def jump_def(
-    mirror_offset: Union[float, ReferenceDef],
-    distance: Union[float, ReferenceDef],
+    mirror_offset: float | ReferenceDef,
+    distance: float | ReferenceDef,
     side: Reference = Reference.BOTTOM,
     reps: int = 3,
 ) -> PatternDef:

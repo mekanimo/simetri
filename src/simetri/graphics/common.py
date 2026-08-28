@@ -1,16 +1,17 @@
 """Simetri library's constants and common data."""
 
-from math import pi, cos, sin
-from typing import Sequence, Tuple, Iterator
-from ..settings.settings import defaults
+from collections.abc import Iterator, Sequence
+from math import cos, pi, sin
+
 from ..helpers.vector import Vector2D
+from ..settings.settings import VOID, defaults
 
 PointType = Sequence[float]  # used for type hinting
 LineType = Sequence[Sequence]  # used for type hinting
 VecType = Sequence[float]  # used for type hinting
 PolylineType = Sequence[PointType]  # used for type hinting
 PolygonType = Sequence[PointType]  # used for type hinting
-GraphEdgeType = Tuple[int, int]  # used for type hinting
+GraphEdgeType = tuple[int, int]  # used for type hinting
 MatrixType = Sequence[Sequence[float]]  # used for type hinting
 
 INCH = 72  # (used for converting inches to points)
@@ -19,7 +20,7 @@ MM = 2.83464  # (used for converting millimeters to points)
 # 2 * inch is equal to 144 points
 # 10 * cm is equal to 283.46456 points
 
-VOID = "VOID"  # used for non-existent values
+
 UNDER: bool = True
 
 # Pre-computed values
@@ -42,10 +43,9 @@ def gen_unique_ids() -> Iterator[int]:
         id_ += 1
 
 
-
 unique_id = gen_unique_ids()
 
-d_id_obj = {} # for Shape objects
+d_id_obj = {}  # for Shape objects
 
 
 def get_unique_id(item) -> int:

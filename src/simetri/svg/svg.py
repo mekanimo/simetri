@@ -1,30 +1,27 @@
 from __future__ import annotations
 
-
+from ..canvas.style_map import marker_style_map
+from ..colors.colors import black, check_color, white
+from ..geometry.geometry import (
+    homogenize,
+)
 from ..graphics.all_enums import (
     BackStyle,
     MarkerType,
     Types,
 )
 from ..graphics.bbox import bounding_box
-from ..geometry.geometry import (
-    homogenize,
-)
-from ..colors.colors import black, white
-from ..settings.settings import defaults, issue_warning, svg_defaults
-from ..canvas.style_map import marker_style_map
 from ..graphics.sketch import MaskSketch
+from ..settings.settings import defaults, issue_warning, svg_defaults
+from ..tikz.tikz_utils import sg_to_tikz
 from . import svg_sketch_utils as svg_sketch_utils_module
 from .filters import SVG_Filter
-from .svg_sketch_utils import *
-from .svg_sketch import *
+from .svg_colors import color_to_svg
 from .svg_mask import *
 from .svg_mask import _canvas_mask_scope_sketch
+from .svg_sketch import *
+from .svg_sketch_utils import *
 from .svg_utils import *
-
-from ..colors.colors import check_color
-from .svg_colors import color_to_svg
-from ..tikz.tikz_utils import sg_to_tikz
 
 
 def append_non_default_style_options(options, sketch, style_map):
@@ -232,7 +229,7 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
     while sketches_to_populate:
         sketch = sketches_to_populate.pop()
         subtype = sketch_attrib(sketch, "subtype")
-        if subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+        if subtype in (Types.CLIPPED_SKETCH, Types.MASKED_SKETCH):
             for sketch_list in sketch.sketches:
                 sketches_to_populate.extend(sketch_list)
         elif subtype == Types.COMPOSITE_SKETCH:
@@ -307,10 +304,12 @@ def svg_shape(sketch, styles_dict, exceptions=None):
 
     # Check for opacity mask property (mask shape + clip is not enabled)
     mask_attr = ""
-    if mask is not None and (clip is not True):
-        mask_id = f"mask_{sketch.id}"
-        mask_attr = f' mask="url(#{mask_id})"'
-    elif has_mask_style(sketch) and (clip is not True):
+    if (
+        mask is not None
+        and (clip is not True)
+        or has_mask_style(sketch)
+        and (clip is not True)
+    ):
         mask_id = f"mask_{sketch.id}"
         mask_attr = f' mask="url(#{mask_id})"'
 

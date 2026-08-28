@@ -1,7 +1,7 @@
 """TikZ Helper Functions"""
 
 from math import degrees
-from typing import List, Union
+from typing import List
 
 import numpy as np
 import simetri.graphics as sg
@@ -35,7 +35,7 @@ radial_shading_types = [
     ShadeType.RADIAL_INNER_OUTER,
 ]
 
-NumberOrTex = Union[int, float, str]
+NumberOrTex = int | float | str
 
 
 def get_min_size(sketch: ShapeSketch) -> str:
@@ -69,14 +69,14 @@ def get_min_size(sketch: ShapeSketch) -> str:
     return options
 
 
-def frame_options(sketch: TagSketch) -> List[str]:
+def frame_options(sketch: TagSketch) -> list[str]:
     """Returns the options for the frame of the tag node.
 
     Args:
         sketch (TagSketch): The tag sketch object.
 
     Returns:
-        List[str]: The options for the frame of the tag node.
+        list[str]: The options for the frame of the tag node.
     """
     options = []
     if sketch.draw_frame:
@@ -87,7 +87,7 @@ def frame_options(sketch: TagSketch) -> List[str]:
         fill_options = get_fill_style_options(sketch, frame=True)
         if fill_options:
             options.extend(fill_options)
-        if sketch.text in [None, ""]:
+        if sketch.text in (None, ""):
             min_size = get_min_size(sketch)
             if min_size:
                 options.extend(min_size)
@@ -149,13 +149,13 @@ def get_scope_options(sketch: "Sketch") -> str:
         options.append(f"blend group={blend_mode}")
     elif blend_mode:
         options.append(f"blend mode={blend_mode}")
-    if fill_alpha not in [None, 1]:
+    if fill_alpha not in (None, 1):
         options.append(f"fill opacity={fill_alpha}")
-    if line_alpha not in [None, 1]:
+    if line_alpha not in (None, 1):
         options.append(f"draw opacity={line_alpha}")
-    if text_alpha not in [None, 1]:
+    if text_alpha not in (None, 1):
         options.append(f"text opacity={alpha}")
-    if alpha not in [None, 1]:
+    if alpha not in (None, 1):
         options.append(f"opacity={alpha}")
     if even_odd_rule:
         options.append("even odd rule")
@@ -188,7 +188,7 @@ def get_clip_code(sketch: "Sketch") -> str:
             res.append(get_clip_code(clip_sketch))
         return "".join(res)
 
-    if mask.subtype in [Types.CIRCLE, Types.CIRCLE_SKETCH]:
+    if mask.subtype in (Types.CIRCLE, Types.CIRCLE_SKETCH):
         x, y = mask.center[:2]
         res = f"\\clip({x}, {y}) circle ({mask.radius});\n"
     elif mask.subtype in [Types.ELLIPSE, Types.ELLIPSE_SKETCH]:
@@ -523,7 +523,7 @@ def get_line_style_options(sketch, exceptions=None):
             conditions = {"fillet_radius": sketch.draw_fillets}
         else:
             conditions = None
-        if "line_alpha" in attribs and sketch.line_alpha in [None, 1]:
+        if "line_alpha" in attribs and sketch.line_alpha in (None, 1):
             attribs.remove("line_alpha")
         if "double_color" in attribs and not sketch.draw_double:
             if "double_color" in attribs:
@@ -571,7 +571,7 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
     for style_key in exceptions:
         if style_key in attribs:
             attribs.remove(style_key)
-    if "fill_alpha" in attribs and sketch.fill_alpha in [None, 1]:
+    if "fill_alpha" in attribs and sketch.fill_alpha in (None, 1):
         attribs.remove("fill_alpha")
     if sketch.fill and not sketch.back_style == BackStyle.PATTERN:
         res = sg_to_tikz(sketch, attribs, attrib_map, exceptions=exceptions)
@@ -728,7 +728,7 @@ def get_pattern_options(sketch):
         y_shift = sketch.pattern_y_shift
         if y_shift:
             options += f"yshift={y_shift}, "
-        if pattern_type in ["Stars", "Dots"]:
+        if pattern_type in ("Stars", "Dots"):
             radius = sketch.pattern_radius
             if radius:
                 options += f"radius={radius}, "
@@ -879,7 +879,7 @@ def get_frame_options(sketch):
     """
     options = get_line_style_options(sketch)
     options += get_fill_style_options(sketch)
-    if sketch.text in [None, ""]:
+    if sketch.text in (None, ""):
         if sketch.frame.frame_shape == "rectangle":
             width = sketch.frame.min_width
             height = sketch.frame.min_height

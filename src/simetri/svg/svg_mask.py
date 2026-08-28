@@ -60,7 +60,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             )
         text = str(value).strip()
         lowered = text.lower()
-        if lowered in {"userspaceonuse", "usersapceonuse"}:
+        if lowered in ("userspaceonuse", "usersapceonuse"):
             return SvgUnits.USER_SPACE_ON_USE
         if lowered == "objectboundingbox":
             return SvgUnits.OBJECT_BOUNDING_BOX

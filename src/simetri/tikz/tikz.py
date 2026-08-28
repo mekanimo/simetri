@@ -3,32 +3,30 @@ Sketch objects are converted to TikZ code."""
 
 from __future__ import annotations
 
-from math import degrees, atan2
-from typing import Union
+from math import atan2, degrees
 from types import SimpleNamespace
 
 import numpy as np
 
-import simetri.graphics as sg
-from ..graphics.bbox import bounding_box
-from ..graphics.all_enums import (
-    BackStyle,
-    MarkerType,
-    ShadeType,
-    Types,
-    TexLoc,
-    Anchor,
-    Extent,
-)
-from ..settings.settings import defaults, issue_warning
 from ..canvas.pre_render import (
     collect_tikz_preamble_requirements_for_sketch,
     set_styles,
     style_properties,
 )
 from ..geometry.geometry import homogenize
-
-
+from ..graphics.all_enums import (
+    Anchor,
+    BackStyle,
+    Extent,
+    MarkerType,
+    ShadeType,
+    TexLoc,
+    Types,
+)
+from ..graphics.bbox import bounding_box
+from ..graphics.points import Points
+from ..graphics.shape import Shape
+from ..settings.settings import defaults, issue_warning
 from . import tikz_sketch as tikz_sketch_module
 from .tikz_mask import *
 from .tikz_mask import _effective_alpha_from_stop, _pgf_gray
@@ -37,7 +35,7 @@ from .tikz_sketch import _canvas_mask_scope_sketch
 from .tikz_utils import *
 from .tikz_utils import _get_gradient_shading_options
 
-NumberOrTex = Union[int, float, str]
+NumberOrTex = int | float | str
 
 np.set_printoptions(legacy="1.21")
 array = np.array
@@ -54,20 +52,24 @@ def anchor_to_tikz(anchor: Anchor | None) -> str | None:
     anchor_map = {
         Anchor.BASE_EAST: "base east",
         Anchor.BASE_WEST: "base west",
+        Anchor.BOTTOM: "south",
+        Anchor.LEFT: "west",
         Anchor.NORTHEAST: "north east",
         Anchor.NORTHWEST: "north west",
+        Anchor.RIGHT: "east",
         Anchor.SOUTHEAST: "south east",
         Anchor.SOUTHWEST: "south west",
+        Anchor.TOP: "north",
     }
     return anchor_map.get(anchor, anchor.value)
 
 
-def scope_code_required(canvas: "Canvas") -> bool:
+def scope_code_required(canvas: Canvas) -> bool:
     """Check if canvas-level mask scope sketch exists."""
     return _canvas_mask_scope_sketch(canvas) is not None
 
 
-def get_back_grid_code(grid: Grid, canvas: "Canvas") -> str:
+def get_back_grid_code(grid: Grid, canvas: Canvas) -> str:
     """Return the TikZ background grid code.
 
     Args:
@@ -112,7 +114,7 @@ def get_back_grid_code(grid: Grid, canvas: "Canvas") -> str:
     return "".join(lines)
 
 
-def get_limits_code(canvas: "Canvas") -> str:
+def get_limits_code(canvas: Canvas) -> str:
     """Get the limits of the canvas for clipping.
 
     Args:
@@ -146,7 +148,7 @@ def get_limits_code(canvas: "Canvas") -> str:
     )
 
 
-def get_back_code(canvas: "Canvas") -> str:
+def get_back_code(canvas: Canvas) -> str:
     """Get the background code for the canvas.
 
     Args:
@@ -159,7 +161,7 @@ def get_back_code(canvas: "Canvas") -> str:
     return f"\\pagecolor{back_color}\n"
 
 
-def get_tex_code(canvas: "Canvas") -> str:
+def get_tex_code(canvas: Canvas) -> str:
     """Convert the sketches in the Canvas to TikZ code.
 
     Args:
@@ -380,7 +382,7 @@ def get_tex_code(canvas: "Canvas") -> str:
     return canvas.tex.tex_code(canvas, code)
 
 
-class Grid(sg.Shape):
+class Grid(Shape):
     """Grid shape.
 
     Args:
@@ -402,13 +404,13 @@ class Grid(sg.Shape):
         self.p2 = p2
         self.dx = dx
         self.dy = dy
-        self.primary_points = sg.Points([p1, p2])
+        self.primary_points = Points([p1, p2])
         self.closed = False
         self.fill = False
         self.stroke = True
         self._b_box = None
         super().__init__(
-            [p1, p2], xform_matrix=None, subtype=sg.Types.GRID, **kwargs
+            [p1, p2], xform_matrix=None, subtype=Types.GRID, **kwargs
         )
 
 
@@ -422,15 +424,15 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
     color_stops = []
     for offset, alpha in parsed_stops:
         offset = max(0.0, min(1.0, float(offset)))
-        position = int(round(offset * 100))
-        transparency = int(round((1.0 - float(alpha)) * 100))
+        position = round(offset * 100)
+        transparency = round((1.0 - float(alpha)) * 100)
         color_stops.append(f"color({position}bp)=({_pgf_gray(transparency)})")
 
     if parsed_stops[0][0] > 0.0:
-        first_transparency = int(round((1.0 - float(parsed_stops[0][1])) * 100))
+        first_transparency = round((1.0 - float(parsed_stops[0][1])) * 100)
         color_stops.insert(0, f"color(0bp)=({_pgf_gray(first_transparency)})")
     if parsed_stops[-1][0] < 1.0:
-        last_transparency = int(round((1.0 - float(parsed_stops[-1][1])) * 100))
+        last_transparency = round((1.0 - float(parsed_stops[-1][1])) * 100)
         color_stops.append(f"color(100bp)=({_pgf_gray(last_transparency)})")
 
     shading_decl = "; ".join(color_stops)
@@ -513,7 +515,7 @@ def _mask_scope_parts(sketch, fade_id=None):
         start_code += clip_code
         return start_code, "\\end{scope}\n"
 
-    if mask_opacity not in [None, 1]:
+    if mask_opacity not in (None, 1):
         return (
             f"\\begin{{scope}}[opacity={mask_opacity}]\n{clip_code}",
             "\\end{scope}\n",
@@ -555,7 +557,7 @@ def get_canvas_scope(canvas):
         start_code, _ = _mask_scope_parts(canvas_mask_scope, fade_name)
         return start_code
 
-    if canvas_mask_opacity not in [None, 1] and canvas_mask is not None:
+    if canvas_mask_opacity not in (None, 1) and canvas_mask is not None:
         start_code, _ = _mask_scope_parts(canvas_mask_scope)
         return start_code
 

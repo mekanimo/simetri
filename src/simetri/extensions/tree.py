@@ -57,7 +57,7 @@ class TreeNode:
         Returns:
             None
         """
-        if child.id not in [c.id for c in self.children]:
+        if child.id not in (c.id for c in self.children):
             self.children.append(child)
 
     def num_all_children(self):
@@ -97,10 +97,10 @@ def make_tree(
     dy: float = 18,
     icons=None,
     line1_color=sg.gray,
-    line1_width=.5,
+    line1_width=0.5,
     line1_cap=sg.LineCap.ROUND,
     line2_color=sg.gray,
-    line2_width=.75,
+    line2_width=0.75,
     line2_cap=sg.LineCap.ROUND,
     scale=1,
 ):
@@ -130,7 +130,7 @@ def make_tree(
     star_polygon = sg.reg_star_polygon
 
     star2 = star_polygon(5, 2, 5, fill_color=sg.blue, stroke=False)
-    star2.rotate(sg.pi/10)
+    star2.rotate(sg.pi / 10)
     d = 6
     square = sg.Shape([(0, d), (d, d), (d, 0), (0, 0)], closed=True)
     square.fill_color = sg.blue
@@ -138,7 +138,10 @@ def make_tree(
     star = star_polygon(8, 3, 7, fill_color=sg.red, stroke=False)
     circle = sg.Circle(1.5, fill_color=sg.white, stroke=False)
     hexagon = sg.Group(
-        [sg.reg_poly_shape(6, 4, (0, 0), fill_color=sg.teal, stroke=False), circle]
+        [
+            sg.reg_poly_shape(6, 4, (0, 0), fill_color=sg.teal, stroke=False),
+            circle,
+        ]
     )
 
     # Single red diamond for enum values
@@ -157,11 +160,13 @@ def make_tree(
         icons = [star, diamond, star2, hexagon]
 
     icon1, icon2, icon3, icon4 = icons
-    icon5 = red_diamond        # enum value / enum class
+    icon5 = red_diamond  # enum value / enum class
     icon6 = double_red_diamond  # (unused, kept for reference)
     icon7 = sg.Group(
-        [sg.reg_poly_shape(6, 4, (0, 0), fill_color=sg.teal, stroke=False),
-         sg.Circle(1.5, fill_color=sg.white, stroke=False)]
+        [
+            sg.reg_poly_shape(6, 4, (0, 0), fill_color=sg.teal, stroke=False),
+            sg.Circle(1.5, fill_color=sg.white, stroke=False),
+        ]
     )  # method
 
     def node_icon(node):
@@ -320,10 +325,12 @@ def tree_from_class(
         args = get_args(tp)
         if origin is not None:
             if origin is Union:
-                inner = ", ".join(_type_to_str(arg) for arg in args)
-                return f"Union[{inner}]"
+                inner = " | ".join(_type_to_str(arg) for arg in args)
+                return inner
 
-            origin_name = getattr(origin, "__name__", str(origin).replace("typing.", ""))
+            origin_name = getattr(
+                origin, "__name__", str(origin).replace("typing.", "")
+            )
             if args:
                 inner = ", ".join(_type_to_str(arg) for arg in args)
                 return f"{origin_name}[{inner}]"
@@ -337,7 +344,7 @@ def tree_from_class(
         origin = get_origin(tp)
         args = get_args(tp)
         if origin is None:
-            if tp in {list, tuple, set, Sequence}:
+            if tp in (list, tuple, set, Sequence):
                 return
             if inspect.isclass(tp):
                 yield tp
@@ -365,7 +372,7 @@ def tree_from_class(
         origin = get_origin(ann)
         args = get_args(ann)
 
-        is_sequence = ann is list or origin in {list, tuple, set, Sequence}
+        is_sequence = ann is list or origin in (list, tuple, set, Sequence)
         if not is_sequence or args:
             return inferred
 
@@ -380,7 +387,9 @@ def tree_from_class(
                 desc = field_match.group(1)
                 names = []
 
-                for match in re.finditer(r"\bList\[([A-Za-z_][A-Za-z0-9_]*)\]", desc):
+                for match in re.finditer(
+                    r"\bList\[([A-Za-z_][A-Za-z0-9_]*)\]", desc
+                ):
                     names.append(match.group(1))
 
                 for match in re.finditer(
@@ -402,7 +411,7 @@ def tree_from_class(
 
         params = []
         for i, (name, param) in enumerate(sig.parameters.items()):
-            if i == 0 and name in {"self", "cls"}:
+            if i == 0 and name in ("self", "cls"):
                 continue
             params.append(str(param))
 
@@ -419,7 +428,9 @@ def tree_from_class(
         # If the class is an Enum and enum values are requested, list members and stop.
         if show_enum_values and issubclass(cls, enum.Enum):
             for member in cls:
-                value_node = TreeNode(f"{member.name} = {member.value!r}", extra="enum_value")
+                value_node = TreeNode(
+                    f"{member.name} = {member.value!r}", extra="enum_value"
+                )
                 node.add_child(value_node)
             return
 
@@ -435,7 +446,10 @@ def tree_from_class(
         for name, param in sig.parameters.items():
             if name == "self":
                 continue
-            if param.kind in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL):
+            if param.kind in (
+                inspect.Parameter.VAR_KEYWORD,
+                inspect.Parameter.VAR_POSITIONAL,
+            ):
                 continue
             if name.startswith("_") or name in exclude:
                 continue
@@ -451,10 +465,18 @@ def tree_from_class(
             ann_text = _type_to_str(ann)
             origin = get_origin(ann)
             args = get_args(ann)
-            is_untyped_sequence = (ann is list or origin in {list, tuple, set, Sequence}) and not args
+            is_untyped_sequence = (
+                ann is list or origin in (list, tuple, set, Sequence)
+            ) and not args
             if is_untyped_sequence and len(ref_types) == 1:
-                seq_name = "list" if ann is list or origin is list else (
-                    "tuple" if origin is tuple else ("set" if origin is set else "Sequence")
+                seq_name = (
+                    "list"
+                    if ann is list or origin is list
+                    else (
+                        "tuple"
+                        if origin is tuple
+                        else ("set" if origin is set else "Sequence")
+                    )
                 )
                 ann_text = f"{seq_name}[{ref_types[0].__name__}]"
 
@@ -462,35 +484,61 @@ def tree_from_class(
             node.add_child(child)
 
             for ref_type in ref_types:
-                if ref_type.__module__.startswith("simetri") and ref_type is not cls:
+                if (
+                    ref_type.__module__.startswith("simetri")
+                    and ref_type is not cls
+                ):
                     if ref_type.__name__ in exclude:
-                        if issubclass(ref_type, enum.Enum) and child.extra is None:
+                        if (
+                            issubclass(ref_type, enum.Enum)
+                            and child.extra is None
+                        ):
                             child.extra = "enum_class"
                         continue
-                    sub_extra = "enum_class" if issubclass(ref_type, enum.Enum) else "class"
+                    sub_extra = (
+                        "enum_class"
+                        if issubclass(ref_type, enum.Enum)
+                        else "class"
+                    )
                     sub = TreeNode(ref_type.__name__, extra=sub_extra)
                     child.add_child(sub)
                     if ref_type.__name__ not in stubs:
-                        _add_class_tree(sub, ref_type, visited.copy(), depth + 1, max_depth)
+                        _add_class_tree(
+                            sub, ref_type, visited.copy(), depth + 1, max_depth
+                        )
 
         for name, member in properties.items():
             ret = inspect.signature(member.fget).return_annotation
             if ret is inspect._empty and name in sig.parameters:
                 ret = sig.parameters[name].annotation
-            prop_node = TreeNode(f"{name} -> {_type_to_str(ret)}", extra="property")
+            prop_node = TreeNode(
+                f"{name} -> {_type_to_str(ret)}", extra="property"
+            )
             node.add_child(prop_node)
 
             for ref_type in _iter_referenced_types(ret):
-                if ref_type.__module__.startswith("simetri") and ref_type is not cls:
+                if (
+                    ref_type.__module__.startswith("simetri")
+                    and ref_type is not cls
+                ):
                     if ref_type.__name__ in exclude:
-                        if issubclass(ref_type, enum.Enum) and prop_node.extra == "property":
+                        if (
+                            issubclass(ref_type, enum.Enum)
+                            and prop_node.extra == "property"
+                        ):
                             prop_node.extra = "enum_class"
                         continue
-                    sub_extra = "enum_class" if issubclass(ref_type, enum.Enum) else "class"
+                    sub_extra = (
+                        "enum_class"
+                        if issubclass(ref_type, enum.Enum)
+                        else "class"
+                    )
                     sub = TreeNode(ref_type.__name__, extra=sub_extra)
                     prop_node.add_child(sub)
                     if ref_type.__name__ not in stubs:
-                        _add_class_tree(sub, ref_type, visited.copy(), depth + 1, max_depth)
+                        _add_class_tree(
+                            sub, ref_type, visited.copy(), depth + 1, max_depth
+                        )
 
         methods = {
             name: member
@@ -516,15 +564,27 @@ def tree_from_class(
         stubs = set()
     stubs = set(stubs)
 
-    bases = [base.__name__ for base in class_obj.__bases__ if base is not object]
-    title = f"{class_obj.__name__}({', '.join(bases)})" if bases else class_obj.__name__
+    bases = [
+        base.__name__ for base in class_obj.__bases__ if base is not object
+    ]
+    title = (
+        f"{class_obj.__name__}({', '.join(bases)})"
+        if bases
+        else class_obj.__name__
+    )
     root = TreeNode(title, extra="root", font_color=sg.orange)
     _add_class_tree(root, class_obj, visited=set(), depth=0, max_depth=2)
 
     if draw:
         if canvas is None:
             canvas = sg.Canvas()
-        make_tree(root, canvas=canvas, file_path=file_path, overwrite=overwrite, **kwargs)
+        make_tree(
+            root,
+            canvas=canvas,
+            file_path=file_path,
+            overwrite=overwrite,
+            **kwargs,
+        )
 
     return root
 
@@ -561,11 +621,15 @@ def print_tree(
         canvas = sg.Canvas()
 
     if inspect.isclass(root):
-        node = tree_from_class(canvas, root, exclude=exclude, stubs=stubs, draw=False)
+        node = tree_from_class(
+            canvas, root, exclude=exclude, stubs=stubs, draw=False
+        )
     else:
         node = root
 
-    make_tree(node, canvas=canvas, file_path=file_path, overwrite=overwrite, **kwargs)
+    make_tree(
+        node, canvas=canvas, file_path=file_path, overwrite=overwrite, **kwargs
+    )
     return node
 
 

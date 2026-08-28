@@ -4,15 +4,15 @@ It provides conversion to homogeneous coordinates in nd_arrays.
 Shape.final_coords is computed by using the Points.homogen_coords property."""
 
 import copy
-from typing import Sequence
+from collections.abc import Sequence
+from typing import Self
 
 from numpy import allclose, ndarray
-from typing_extensions import Self, Union
 
 from ..geometry.geometry import homogenize
-from .common import PointType
-from .all_enums import Types
 from ..settings.settings import defaults
+from .all_enums import Types
+from .common import PointType
 
 
 class _GroupUpdateContext:
@@ -334,9 +334,9 @@ class Lines:
     def __init__(
         self,
         point_pairs: Sequence[tuple[PointType, PointType]] = None,
-        points: Union[Points, Sequence[PointType]] = None,
-        start_points: Union[Points, Sequence[PointType]] = None,
-        end_points: Union[Points, Sequence[PointType]] = None,
+        points: Points | Sequence[PointType] = None,
+        start_points: Points | Sequence[PointType] = None,
+        end_points: Points | Sequence[PointType] = None,
     ) -> Self:
         if point_pairs:
             self.start_points = Points([p[0] for p in point_pairs])

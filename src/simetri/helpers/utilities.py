@@ -1,28 +1,83 @@
 """Simetri graphics library's utility functions."""
 
-import collections
-import os
-import re
+import ast
 import base64
 import cmath
+import collections
 import inspect
-import ast
-from functools import wraps, reduce, cmp_to_key
-from time import time, monotonic, perf_counter, sleep
-from math import factorial, cos, sin, pi, atan2, sqrt, ceil, floor
-from pathlib import Path
+import os
+import random
+import re
+import string
 from bisect import bisect_left
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
+from contextlib import contextmanager
+from functools import cmp_to_key, reduce, wraps
+from math import atan2, ceil, cos, factorial, floor, pi, sin, sqrt
+from pathlib import Path
+from time import monotonic, perf_counter, sleep, time
 
-from typing import Sequence
-
-from PIL import ImageFont
-from numpy import array, ndarray
 import numpy as np
-from numpy import isclose
+from numpy import array, isclose, ndarray
+from PIL import ImageFont
 
-from ..settings.settings import defaults
-from ..graphics.common import get_defaults, PointType, LineType
+from ..graphics.common import LineType, PointType, get_defaults
+from ..settings.settings import _print_options, defaults, issue_warning
+
+
+@contextmanager
+def print_options(**kwargs):
+    # Save the current state
+    old_options = _print_options.copy()
+
+    # Update with the new user choices
+    _print_options.update(kwargs)
+    try:
+        yield
+    finally:
+        # Always restore the old state, even if an error happens
+        _print_options.update(old_options)
+
+
+def format_data(data):
+    # Get current formatting options
+    precision = _print_options["precision"]
+    suppress = _print_options["suppress"]
+
+    # Handle floats
+    if isinstance(data, float):
+        if suppress and abs(data) < 1e-4:
+            return "0.0"
+        return f"{data:.{precision}f}"
+
+    # Handle tuples (must convert to string representation)
+    if isinstance(data, tuple):
+        return f"({', '.join(format_data(x) for x in data)})"
+
+    # Handle lists, arrays, or sequences (excluding strings)
+    if isinstance(data, collections.abc.Sequence) and not isinstance(
+        data, (str, bytes)
+    ):
+        return f"[{', '.join(format_data(x) for x in data)}]"
+
+    # Handle dictionaries
+    if isinstance(data, dict):
+        items = [f"{repr(k)}: {format_data(v)}" for k, v in data.items()]
+        return f"{{{', '.join(items)}}}"
+
+    # Return everything else (ints, strings, etc.) as their default string
+    return str(data)
+
+
+def p_print(*data):
+    output = " ".join(format_data(item) for item in data)
+    print(output)
+
+
+def sort_points(points):
+    """Given a list of points returns sorted points by their
+    x and y coords."""
+    return sorted(points, key=lambda p: (p[0], p[1]))
 
 
 def time_it(func):
@@ -175,6 +230,65 @@ def wait_for_file_availability(file_path, timeout=None, check_interval=1):
             return False
 
 
+def random_characters(
+    n=4, lower=True, upper=True, digit=False, exclude_chars=None
+):
+    """Returns n random letters/digits as a string.
+    Default is all letters and digits.
+    exclude_chars is a list of characters to be excluded.
+    Usually l, 0, O are not desirable in variable names.
+    Usually used for creating unique names.
+
+    n = 3: 17576 unique lowercase or uppercase words
+    n = 3: 140608 unique mixed-case words
+    n = 3: 46656 unique lowercase or uppercase words and digits
+    n = 3: 238328 unique mixed-case words and digits
+    n = 4: 456976 unique lowercase or uppercase words
+    n = 4: 7311616 unique mixed-case words
+    n = 4: 1679616 unique lowercase or uppercase words and digits
+    n = 4: 14776336 unique mixed-case words and digits
+    n = 5: 11881376 unique lowercase or uppercase words
+    n = 5: 380204032 unique mixed-case words
+    n = 5: 60466176 unique lowercase or uppercase words and digits
+    n = 5: 916132832 unique mixed-case words and digits
+    n = 6: 308915776 unique lowercase or uppercase words
+    n = 6: 19770609664 unique mixed-case words
+    n = 6: 2176782336 unique lowercase or uppercase words and digits
+    n = 6: 56800235584 unique mixed-case words and digits
+
+    """
+    letters = string.ascii_letters
+    uppers = string.ascii_uppercase
+    lowers = string.ascii_lowercase
+    digits = string.digits
+
+    lowers_uppers_digits = letters + digits
+    lowers_uppers = letters
+    lowers_digits = lowers + digits
+    uppers_digits = uppers + digits
+
+    lookup = {
+        (True, True, True): lowers_uppers_digits,
+        (True, True, False): lowers_uppers,
+        (True, False, True): lowers_digits,
+        (True, False, False): lowers,
+        (False, True, True): uppers_digits,
+        (False, True, False): uppers,
+        (False, False, True): digits,
+    }
+
+    characters = lookup[(lower, upper, digit)]
+    if exclude_chars:
+        characters = list(characters)
+        for char in exclude_chars:
+            try:
+                characters.remove(char)
+            except ValueError:
+                issue_warning(f"{char} is not valid.")
+
+    return "".join([random.choice(characters) for _ in range(n)])
+
+
 def detokenize(text: str) -> str:
     """Replace the special Latex characters with their Latex commands.
     Inline math segments delimited by $ are preserved as-is.
@@ -232,6 +346,13 @@ def get_text_dimensions(text, font_path, font_size):
     text_width = font.getmask(text).getbbox()[2]
     text_height = font.getmask(text).getbbox()[3] + descent
     return text_width, text_height
+
+
+def function_module(func):
+    """Given a function, returns the function's module."""
+    mod = inspect.getmodule(os.path.join)
+
+    return mod.__name__
 
 
 def timing(func):
@@ -819,6 +940,16 @@ def sanitize_graph_edges(edges):
     edges = [(min(x), max(x)) for x in edges]
     edges.sort()
     return edges
+
+
+def zip_points(points1, points2):
+    res = []
+    zipped = list(zip(points1, points2))
+    for a, b in zipped:
+        res.append(a)
+        res.append(b)
+
+    return res
 
 
 def flatten2(nested_list):

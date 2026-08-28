@@ -252,7 +252,7 @@ def collect_tikz_preamble_requirements(canvas):
             collect_tikz_preamble_requirements_for_sketch(
                 sketch, tikz_libraries, tikz_packages
             )
-            if sketch.subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+            if sketch.subtype in (Types.CLIPPED_SKETCH, Types.MASKED_SKETCH):
                 for sketch_list in sketch.sketches:
                     sketches_to_inspect.extend(sketch_list)
 

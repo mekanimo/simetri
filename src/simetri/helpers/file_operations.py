@@ -3,16 +3,16 @@ File operation utilities for the GUI.
 """
 
 import os
-from pathlib import Path
-from string import Template
 import subprocess
 import sys
 import time
-from typing import List, Optional, Union
+from pathlib import Path
+from string import Template
 
 import fitz
 
 from ..settings.settings import issue_warning
+
 
 def validate_filepath(filepath: Path, overwrite: bool):
     """
@@ -33,7 +33,7 @@ def validate_filepath(filepath: Path, overwrite: bool):
         )
     parent_dir, file_name = os.path.split(filepath)
     file_name, extension = os.path.splitext(file_name)
-    if extension not in [".pdf", ".eps", ".ps", ".svg", ".png", ".tex"]:
+    if extension not in (".pdf", ".eps", ".ps", ".svg", ".png", ".tex"):
         raise RuntimeError("File type is not supported.")
     if not os.path.exists(parent_dir):
         raise NotADirectoryError(f"Directory {parent_dir} does not exist.")
@@ -42,7 +42,10 @@ def validate_filepath(filepath: Path, overwrite: bool):
 
     return parent_dir, file_name, extension
 
-def inject_snippet(code: str, snippet: List[str], mark: str, before=True) -> str:
+
+def inject_snippet(
+    code: str, snippet: list[str], mark: str, before=True
+) -> str:
     """Insert the given snippet before/after the line that contains the
     given mark.
     """
@@ -117,8 +120,8 @@ def inject_filepath(code: str, pic_path: str) -> str:
 def inject_border(
     code: str,
     caption: str,
-    width: Optional[float] = None,
-    height: Optional[float] = None,
+    width: float | None = None,
+    height: float | None = None,
 ):
     # inject auto_border(canvas)
     w, h = width, height
@@ -131,7 +134,9 @@ def inject_border(
         f'auto_border(canvas, caption="{caption}", width={w}, height={h})',
     ]
 
-    code_border = inject_snippet(code=code, snippet=snippet, mark=mark, before=True)
+    code_border = inject_snippet(
+        code=code, snippet=snippet, mark=mark, before=True
+    )
 
     return code_border
 
@@ -140,8 +145,8 @@ def inject_border_and_filepath(
     code: str,
     pic_path: str,
     pic_caption: str,
-    width: Optional[float] = None,
-    height: Optional[float] = None,
+    width: float | None = None,
+    height: float | None = None,
 ) -> str:
     w, h = width, height
     mark = "canvas.display()"
@@ -178,7 +183,7 @@ def join_path_with_ext(*folders, filename, ext):
     return path_join(*folders, filename + ext)
 
 
-def path_exists(path: Union[str, os.PathLike[str]]) -> bool:
+def path_exists(path: str | os.PathLike[str]) -> bool:
     """
     Return True if the given path exists (file or directory), otherwise False.
 
@@ -212,7 +217,10 @@ def wait_for_file_availability(filepath, timeout=None, check_interval=1):
                 return True
         except IOError:
             # The file is likely in use.
-            if timeout is not None and (time.monotonic() - start_time) > timeout:
+            if (
+                timeout is not None
+                and (time.monotonic() - start_time) > timeout
+            ):
                 # Timeout period elapsed.
                 return False  # Or raise a TimeoutError if you prefer
             time.sleep(check_interval)
@@ -236,10 +244,8 @@ def remove_aux_files(filepath):
     if os.path.exists(aux_filepath):
         if not wait_for_file_availability(aux_filepath, time_out):
             print(
-                (
-                    f"File '{aux_filepath}' is not available after waiting for "
-                    f"{time_out} seconds."
-                )
+                f"File '{aux_filepath}' is not available after waiting for "
+                f"{time_out} seconds."
             )
         else:
             os.remove(aux_filepath)
@@ -247,10 +253,8 @@ def remove_aux_files(filepath):
     if os.path.exists(log_filepath):
         if not wait_for_file_availability(log_filepath, time_out):
             print(
-                (
-                    f"File '{log_filepath}' is not available after waiting for "
-                    f"{time_out} seconds."
-                )
+                f"File '{log_filepath}' is not available after waiting for "
+                f"{time_out} seconds."
             )
         # else:
         #     if not defaults["keep_log_files"]:
@@ -259,23 +263,19 @@ def remove_aux_files(filepath):
     if os.path.exists(tex_filepath):
         if not wait_for_file_availability(tex_filepath, time_out):
             print(
-                (
-                    f"File '{tex_filepath}' is not available after waiting for "
-                    f"{time_out} seconds."
-                )
+                f"File '{tex_filepath}' is not available after waiting for "
+                f"{time_out} seconds."
             )
         else:
             os.remove(tex_filepath)
     stem, extension = os.path.splitext(filename)
-    if extension not in [".pdf", ".tex"]:
+    if extension not in (".pdf", ".tex"):
         pdf_filepath = path_join(folder, stem + ".pdf")
         if os.path.exists(pdf_filepath):
             if not wait_for_file_availability(pdf_filepath, time_out):
                 print(
-                    (
-                        f"File '{pdf_filepath}' is not available after waiting for "
-                        f"{time_out} seconds."
-                    )
+                    f"File '{pdf_filepath}' is not available after waiting for "
+                    f"{time_out} seconds."
                 )
             else:
                 # os.remove(pdf_file)
@@ -295,11 +295,12 @@ def replace_extension(filepath: str, ext: str) -> str:
     """
     return os.path.splitext(filepath)[0] + ext
 
-def convert_pdf(pdf_path:str, extension:str):
-    '''Converts the given PDF file to given extension.
-       Only .ps, .eps, .svg, and .png extensions are supported.
-    '''
-    if extension in [".eps", ".ps"]:
+
+def convert_pdf(pdf_path: str, extension: str):
+    """Converts the given PDF file to given extension.
+    Only .ps, .eps, .svg, and .png extensions are supported.
+    """
+    if extension in (".eps", ".ps"):
         ps_path = os.path.join(parent_dir, file_name + extension)
         os.chdir(parent_dir)
         cmd = f"pdf2ps {pdf_path} {ps_path}"

@@ -1,6 +1,6 @@
 """Simetri graphics library's frieze patterns."""
 
-from typing import Sequence, Union
+from typing import Sequence
 
 from ..geometry.geometry import vec_along_line, point_to_line_vec, pi
 from ..graphics.common import VecType, LineType, PointType
@@ -10,13 +10,13 @@ from ..graphics.shape import Shape
 
 
 def hop(
-    design: Union[Group, Shape], vector: VecType = (1, 0), reps: int = 3
+    design: Group | Shape, vector: VecType = (1, 0), reps: int = 3
 ) -> Group:
     """
     p1 symmetry group.
 
     Args:
-        design (Union[Group, Shape]): The design to be repeated.
+        design (Group | Shape): The design to be repeated.
         vector (VecType, optional): The direction and distance of the hop. Defaults to (1, 0).
         reps (int, optional): The number of repetitions. Defaults to 3.
 
@@ -27,14 +27,12 @@ def hop(
     return design.translate(dx, dy, reps)
 
 
-def p1(
-    design: Union[Group, Shape], vector: VecType = (1, 0), reps: int = 3
-) -> Group:
+def p1(design: Group | Shape, vector: VecType = (1, 0), reps: int = 3) -> Group:
     """
     p1 symmetry group.
 
     Args:
-        design (Union[Group, Shape]): The design to be repeated.
+        design (Group | Shape): The design to be repeated.
         vector (VecType, optional): The direction and distance of the hop. Defaults to (1, 0).
         reps (int, optional): The number of repetitions. Defaults to 3.
 
@@ -45,7 +43,7 @@ def p1(
 
 
 def jump(
-    design: Union[Group, Shape],
+    design: Group | Shape,
     mirror_line: LineType,
     dist: float,
     reps: int = 3,
@@ -54,7 +52,7 @@ def jump(
     p11m symmetry group.
 
     Args:
-        design (Union[Group, Shape]): The design to be repeated.
+        design (Group | Shape): The design to be repeated.
         mirror_line (Line): The line to mirror the design.
         dist (float): The distance between the shapes.
         reps (int, optional): The number of repetitions. Defaults to 3.

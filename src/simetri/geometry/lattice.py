@@ -119,12 +119,12 @@ class Lattice:
         self.a = a
         self.b = b
 
-        if subtype in [LatType.RECT, LatType.SQR, LatType.HEX]:
+        if subtype in (LatType.RECT, LatType.SQR, LatType.HEX):
             self.theta = angles[self.subtype]
         else:
             self.theta = theta
 
-        if subtype in [LatType.HEX, LatType.SQR, LatType.RHOMB]:
+        if subtype in (LatType.HEX, LatType.SQR, LatType.RHOMB):
             self.b = self.a
 
         self.origin = (0, 0)
@@ -272,7 +272,7 @@ class Lattice:
         subtype = self.subtype
         reps1 = reps // 2
         reps2 = reps
-        if subtype in [LatType.HEX, LatType.PAR]:
+        if subtype in (LatType.HEX, LatType.PAR):
             dx1 = 0
             dy1 = 2 * self.by
             dx2 = self.a
@@ -437,7 +437,7 @@ def get_unit(lat, group, vertical=False, **kwargs):
 
     unit = Group()
 
-    if group in ["p6", "p6m"]:
+    if group in ("p6", "p6m"):
         hexes = [p[0], p[4], p[8], p[12]]
         diamonds = [p[2], p[6], p[10], p[14], center]
         triangles = [piv1, piv2]

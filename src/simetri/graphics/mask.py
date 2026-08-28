@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -25,7 +25,7 @@ class Mask:
     shape: Shape
     opacity: float = None
     stops: list[Stop] = None
-    axis: Optional["Axis"] = None
+    axis: Axis | None = None
     subtype: Types = None
     center: tuple[float, float] = (0, 0)
     focal: tuple[float, float] = (0, 0)
@@ -52,14 +52,14 @@ class Stop:
     """
 
     offset: float
-    color: Optional[Color] = None
-    opacity: Optional[float] = None
+    color: Color | None = None
+    opacity: float | None = None
 
     def __init__(
         self,
         offset: float,
-        color: Optional[Color] = None,
-        opacity: Optional[float] = None,
+        color: Color | None = None,
+        opacity: float | None = None,
     ):
         if not check_percent(offset):
             raise ValueError("Stop offset must be between 0 and 1.0")
@@ -124,13 +124,13 @@ class Gradient:
 
     gradient_type: GradientType = GradientType.LINEAR
     stops: tuple = ((0, gray), (1, white))
-    axis: Optional[tuple] = ((0, 0), (1, 0))
-    center: Optional[tuple[float, float]] = None
-    focal: Optional[tuple[float, float]] = None
-    radius: Optional[float] = None
+    axis: tuple | None = ((0, 0), (1, 0))
+    center: tuple[float, float] | None = None
+    focal: tuple[float, float] | None = None
+    radius: float | None = None
     units: SvgUnits = None
     spread_method: str = None
-    transform: Optional[str] = None
+    transform: str | None = None
     subtype: Types = None
 
     def __post_init__(self):
@@ -157,9 +157,7 @@ class Gradient:
             self.subtype = Types.RADIAL
 
 
-def _normalize_units(
-    value: Optional[Union[str, SvgUnits]], field_name: str
-) -> SvgUnits:
+def _normalize_units(value: str | SvgUnits | None, field_name: str) -> SvgUnits:
     if value is None:
         if field_name == "mask_units":
             default_value = defaults["mask_units"]
@@ -201,7 +199,7 @@ def _normalize_units(
 # We will use canvas.clip(target, mask), canvas.mask(target, mask)
 def clip_mask_(
     self: "Canvas",
-    target: Union[Shape, Group, None] = None,
+    target: Shape | Group | None = None,
     mask: Mask = None,
     **kwargs,
 ):

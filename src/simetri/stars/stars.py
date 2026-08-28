@@ -1,7 +1,6 @@
 """This module contains classes and functions for creating stars and rosettes."""
 
 from math import pi, sin, cos, tan, sqrt
-from typing import Union
 
 from ..graphics.batch import Group
 from ..graphics.shape import Shape
@@ -13,7 +12,7 @@ from ..geometry.geometry import intersect, distance
 
 def rosette(
     n: int,
-    kernel: Union[Shape, Group],
+    kernel: Shape | Group,
     cyclic: bool = False,
     axis: LineType = axis_x,
     merge: bool = True,
@@ -22,7 +21,7 @@ def rosette(
 
     Args:
         n (int): Number of petals.
-        kernel (Union[Shape, Group]): The base shape or group to be used as a petal.
+        kernel (Shape | Group): The base shape or group to be used as a petal.
         cyclic (bool, optional): If True, creates a cyclic pattern. Defaults to False.
         axis (LineType, optional): The axis for mirroring. Defaults to axis_x.
         merge (bool, optional): If True, merges shapes. Defaults to True.
@@ -56,7 +55,11 @@ class Star(Group):
     """
 
     def __init__(
-        self, n: int, inner_radius: float = None, circumradius: float = None, **kwargs
+        self,
+        n: int,
+        inner_radius: float = None,
+        circumradius: float = None,
+        **kwargs,
     ):
         if circumradius is not None and inner_radius is not None:
             raise ValueError(
@@ -161,7 +164,9 @@ class Star(Group):
         """
         kernel = self._kernel2.copy()
         for _ in range(level - 2):
-            kernel, inner_radius, circumradius = self._calc_kernel(kernel, self.n)
+            kernel, inner_radius, circumradius = self._calc_kernel(
+                kernel, self.n
+            )
         return kernel, inner_radius, circumradius
 
     def _get_scale_factor(self, level, inner_radius=None, circumradius=None):
@@ -223,7 +228,9 @@ class Star(Group):
             kernel = self._kernel2.copy().scale(scale_factor)
         else:
             kernel, inner_radius, circumradius = self._get_kernel(level)
-            scale_factor = self._get_scale_factor(level, inner_radius, circumradius)
+            scale_factor = self._get_scale_factor(
+                level, inner_radius, circumradius
+            )
             kernel = kernel.scale(scale_factor)
 
         return kernel
@@ -244,16 +251,24 @@ class Star(Group):
             raise ValueError("level must be a positive integer or zero.")
         if level == 0:
             scale_factor = self._get_scale_factor(0, self._r0, self._circum0)
-            petal = self._kernel0.copy().mirror(axis_x, reps=1).scale(scale_factor)
+            petal = (
+                self._kernel0.copy().mirror(axis_x, reps=1).scale(scale_factor)
+            )
         elif level == 1:
             scale_factor = self._get_scale_factor(1, self._r1, self._circum1)
-            petal = self._kernel1.copy().mirror(axis_x, reps=1).scale(scale_factor)
+            petal = (
+                self._kernel1.copy().mirror(axis_x, reps=1).scale(scale_factor)
+            )
         elif level == 2:
             scale_factor = self._get_scale_factor(2, self._r2, self._circum2)
-            petal = self._kernel2.copy().mirror(axis_x, reps=1).scale(scale_factor)
+            petal = (
+                self._kernel2.copy().mirror(axis_x, reps=1).scale(scale_factor)
+            )
         else:
             kernel, inner_radius, circumradius = self._get_kernel(level)
-            scale_factor = self._get_scale_factor(level, inner_radius, circumradius)
+            scale_factor = self._get_scale_factor(
+                level, inner_radius, circumradius
+            )
             petal = kernel.mirror(axis_x, reps=1).scale(scale_factor)
 
         res = petal.merge_shapes()
@@ -307,7 +322,9 @@ class Star(Group):
 
         return star
 
-    def find_trig_representation(target_value: float, tolerance: float = 1e-6) -> str:
+    def find_trig_representation(
+        target_value: float, tolerance: float = 1e-6
+    ) -> str:
         """Find trigonometric representations of a decimal value.
 
         Args:
@@ -320,20 +337,40 @@ class Star(Group):
         representations = []
 
         # Check common angles in degrees and radians
-        common_angles_deg = [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180]
+        common_angles_deg = [
+            0,
+            15,
+            30,
+            45,
+            60,
+            75,
+            90,
+            105,
+            120,
+            135,
+            150,
+            165,
+            180,
+        ]
         common_angles_rad = [deg * pi / 180 for deg in common_angles_deg]
 
         # Check basic trig functions
         for angle_deg, angle_rad in zip(common_angles_deg, common_angles_rad):
             if abs(sin(angle_rad) - target_value) < tolerance:
-                representations.append(f"sin({angle_deg}°) = sin({angle_rad:.6f})")
+                representations.append(
+                    f"sin({angle_deg}°) = sin({angle_rad:.6f})"
+                )
             if abs(cos(angle_rad) - target_value) < tolerance:
-                representations.append(f"cos({angle_deg}°) = cos({angle_rad:.6f})")
+                representations.append(
+                    f"cos({angle_deg}°) = cos({angle_rad:.6f})"
+                )
             if (
                 angle_deg not in [90, 270]
                 and abs(tan(angle_rad) - target_value) < tolerance
             ):
-                representations.append(f"tan({angle_deg}°) = tan({angle_rad:.6f})")
+                representations.append(
+                    f"tan({angle_deg}°) = tan({angle_rad:.6f})"
+                )
 
         # Check combinations with sqrt, pi, etc.
         common_values = [

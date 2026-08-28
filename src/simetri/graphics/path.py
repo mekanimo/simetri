@@ -1,47 +1,46 @@
 """Path module for graphics package."""
 
-from dataclasses import dataclass
-from math import sin, cos, pi, degrees, radians, sqrt, acos, atan2
-from collections import deque
 import re
-from typing_extensions import Self, Union, Any
+from collections import deque
+from dataclasses import dataclass
+from math import acos, atan2, cos, degrees, pi, radians, sin, sqrt
+from typing import Any, Self
+
 import numpy as np
 
-from .batch import Group
-from .shape import Shape
-from .bbox import bounding_box
-from .common import PointType
-from .all_enums import PathOperation as PathOps
-from .all_enums import (
-    Types,
-    TransformationType,
-    Anchor,
-    get_enum_value,
-    FillMode,
-    LineCap,
-    LineJoin,
-)
+from ..colors.colors import Color, black
 from ..geometry.bezier import Bezier
-from ..geometry.hobby import hobby_shape
-from ..colors.colors import black, Color
-from ..geometry.geometry import (
-    homogenize,
-    positive_angle,
-    polar_to_cartesian,
-    sine_points,
-    close_points2,
-)
 from ..geometry.ellipse import (
     ellipse_tangent,
     elliptic_arc_points,
 )
 from ..geometry.geometry import (
+    close_points2,
     extended_line,
+    homogenize,
     line_angle,
     line_by_point_angle_length,
+    polar_to_cartesian,
+    positive_angle,
+    sine_points,
 )
-from .affine import translation_matrix, rotation_matrix
+from ..geometry.hobby import hobby_shape
 from ..settings.settings import defaults
+from .affine import rotation_matrix, translation_matrix
+from .all_enums import (
+    Anchor,
+    FillMode,
+    LineCap,
+    LineJoin,
+    TransformationType,
+    Types,
+    get_enum_value,
+)
+from .all_enums import PathOperation as PathOps
+from .batch import Group
+from .bbox import bounding_box
+from .common import PointType
+from .shape import Shape
 
 array = np.array
 
@@ -77,26 +76,26 @@ class LinPath(Group):
         angle: float = pi / 2,
         fill: bool = True,
         stroke: bool = True,
-        alpha: Union[float, None] = None,
-        color: Union[Color, None] = None,
+        alpha: float | None = None,
+        color: Color | None = None,
         draw_double: bool = False,
         draw_fillets: bool = False,
         draw_markers: bool = False,
         back_style: Any = None,
-        double_distance: Union[float, None] = None,
-        double_color: Union[Color, None] = None,
+        double_distance: float | None = None,
+        double_color: Color | None = None,
         fill_alpha: float = 1,
         fill_color: Color = black,
         fill_mode: FillMode = FillMode.EVENODD,
-        fillet_radius: Union[float, None] = None,
+        fillet_radius: float | None = None,
         gradient: Any = None,
         line_alpha: float = 1,
         line_cap: LineCap = LineCap.BUTT,
         line_color: Color = black,
         line_dash_array: Any = None,
-        line_dash_phase: Union[float, None] = None,
+        line_dash_phase: float | None = None,
         line_join: LineJoin = LineJoin.MITER,
-        line_miter_limit: Union[float, None] = None,
+        line_miter_limit: float | None = None,
         line_width: float = 1,
     ):
         """Initialize a Path object.
@@ -163,7 +162,7 @@ class LinPath(Group):
         op = self.operations[-1]
         op_type = op.subtype
         data = op.data
-        if op_type in [PO.MOVE_TO, PO.R_MOVE]:
+        if op_type in (PO.MOVE_TO, PO.R_MOVE):
             self.cur_shape = Shape([data])
             self.append(self.cur_shape)
             self.objects.append(None)
@@ -804,7 +803,7 @@ class LinPath(Group):
         # Get previous control point from last operation if it was a quad
         prev_c1 = self.pos
         last_op = self.operations[-1] if self.operations else None
-        if last_op and last_op.subtype in [PathOps.QUAD_TO, PathOps.BLEND_QUAD]:
+        if last_op and last_op.subtype in (PathOps.QUAD_TO, PathOps.BLEND_QUAD):
             # data: (start, c1, end)
             prev_c1 = last_op.data[1]
 
@@ -1301,7 +1300,7 @@ def _transform_path_operation(
     data = operation.data
     transformed_data = data
 
-    if subtype in [PathOps.MOVE_TO, PathOps.R_MOVE]:
+    if subtype in (PathOps.MOVE_TO, PathOps.R_MOVE):
         transformed_data = _transform_path_point(data, xform_matrix)
     elif subtype in [
         PathOps.LINE_TO,
@@ -1377,7 +1376,7 @@ def lin_path_svg(lin_path):
             else None
         )
 
-        if st in [PO.MOVE_TO, PO.R_MOVE]:
+        if st in (PO.MOVE_TO, PO.R_MOVE):
             # data is point (x,y)
             parts.append(f"M {fmt(data[0])},{fmt(data[1])}")
 

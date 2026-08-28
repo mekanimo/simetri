@@ -8,7 +8,7 @@ Documentation list all aliases for each style class.
 """
 # to do: Change this so that IDEs can find the classes and methods.
 
-from typing import List, Optional, Sequence, Union
+from typing import Sequence
 from dataclasses import dataclass
 import enum
 
@@ -65,7 +65,7 @@ def _get_style_attribs(
     prefix: str = None,
     exact: list = None,
     exclude: list = None,
-) -> List[str]:
+) -> list[str]:
     """Get the list of attributes from the given Style object.
 
     Args:
@@ -75,7 +75,7 @@ def _get_style_attribs(
         exclude (list, optional): List of attributes to exclude. Defaults to None.
 
     Returns:
-        List[str]: List of attributes.
+        list[str]: List of attributes.
     """
     attribs = style.__dict__.keys()
     res = []
@@ -96,8 +96,8 @@ class FontStyle:
     Attributes:
         font_family (str): The font family.
         color (Color): The color of the font.
-        family (Union[FontFamily, str]): The font family.
-        size (Union[FontSize, float]): The size of the font.
+        family (FontFamily | str): The font family.
+        size (FontSize | float): The size of the font.
         bold (bool): Whether the font is bold.
         italic (bool): Whether the font is italic.
         small_caps (bool): Whether the font uses small caps.
@@ -111,8 +111,8 @@ class FontStyle:
 
     font_family: str = None
     color: Color = None
-    family: Union[FontFamily, str] = None
-    size: Union[FontSize, float] = None
+    family: FontFamily | str = None
+    size: FontSize | float = None
     bold: bool = None
     italic: bool = None
     small_caps: bool = None
@@ -248,7 +248,7 @@ class LineStyle:
         color (Color): The color of the line.
         alpha (float): The alpha value of the line.
         width (int): The width of the line.
-        dash_array (Optional[Sequence[float]]): The dash array of the line.
+        dash_array (Sequence[float] | None): The dash array of the line.
         dash_phase (float): The dash phase of the line.
         cap (LineCap): The cap style of the line.
         join (LineJoin): The join style of the line.
@@ -269,7 +269,7 @@ class LineStyle:
     color: Color = None
     alpha: float = None
     width: int = None
-    dash_array: Optional[Sequence[float]] = None
+    dash_array: Sequence[float] | None = None
     dash_phase: float = None
     cap: LineCap = None
     join: LineJoin = None
@@ -1818,7 +1818,7 @@ class StyleObj:
                 )
             return
 
-        # Handle Union types (e.g., Union[FontFamily, str])
+        # Handle Union types (e.g., FontFamily | str)
         if (
             hasattr(expected_type, "__origin__")
             and expected_type.__origin__ is Union

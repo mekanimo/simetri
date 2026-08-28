@@ -7,9 +7,9 @@ This module borrows ideas from both PiScript by Bill Casselman and
 VPython by Bruce Sherwood.
 """
 
+from collections.abc import Sequence
 from math import acos, atan2, cos, hypot, sin
 from numbers import Real
-from typing import List, Optional, Sequence, Union
 
 from ..graphics.common import PointType
 from ..helpers.validation import check_position
@@ -36,29 +36,45 @@ class Vector:
             >>> v3 = Vector((20, -5), (40, 0))
         """
         if not args:
-            raise ValueError("Vector requires 1, 2, or 3 numeric components, or two points.")
+            raise ValueError(
+                "Vector requires 1, 2, or 3 numeric components, or two points."
+            )
 
         if len(args) == 1:
             if not isarray(args[0]):
-                raise ValueError("Vector requires a sequence of 2 or 3 numeric components.")
+                raise ValueError(
+                    "Vector requires a sequence of 2 or 3 numeric components."
+                )
             data = list(args[0])
-            if len(data) not in [2, 3]:
-                raise ValueError("Vector sequence input must have 2 or 3 components.")
+            if len(data) not in (2, 3):
+                raise ValueError(
+                    "Vector sequence input must have 2 or 3 components."
+                )
             if not all(isinstance(component, Real) for component in data):
                 raise ValueError("Vector components must be numeric.")
             self.data = data
             return
 
-        if len(args) == 2 and check_position(args[0]) and check_position(args[1]):
+        if (
+            len(args) == 2
+            and check_position(args[0])
+            and check_position(args[1])
+        ):
             point_1 = args[0]
             point_2 = args[1]
             if len(point_1) != len(point_2):
-                raise ValueError("Vector point inputs must have the same dimension.")
-            self.data = [coord_2 - coord_1 for coord_1, coord_2 in zip(point_1, point_2)]
+                raise ValueError(
+                    "Vector point inputs must have the same dimension."
+                )
+            self.data = [
+                coord_2 - coord_1 for coord_1, coord_2 in zip(point_1, point_2)
+            ]
             return
 
-        if len(args) not in [2, 3]:
-            raise ValueError("Vector requires 2 or 3 numeric components, or two points.")
+        if len(args) not in (2, 3):
+            raise ValueError(
+                "Vector requires 2 or 3 numeric components, or two points."
+            )
 
         if not all(isinstance(component, Real) for component in args):
             raise ValueError("Vector components must be numeric.")
@@ -95,14 +111,14 @@ class Vector:
     def __iter__(self):
         return iter(self.data)
 
-    def __add__(self, other: Union["Vector", Sequence[float]]) -> "Vector":
+    def __add__(self, other: "Vector | Sequence[float]") -> "Vector":
         """Add two vectors."""
         if isinstance(other, Vector):
             return Vector(v_sum(self.data, other.data))
         issue_warning("Vector objects are being used with lists/tuples!")
         return Vector(v_sum(self.data, other))
 
-    def __sub__(self, other: Union["Vector", Sequence[float]]) -> "Vector":
+    def __sub__(self, other: "Vector | Sequence[float]") -> "Vector":
         """Subtract two vectors."""
         if isinstance(other, Vector):
             return Vector(v_diff(self.data, other.data))
@@ -110,8 +126,8 @@ class Vector:
         return Vector(v_diff(self.data, other))
 
     def __mul__(
-        self, other: Union["Vector", Sequence[float], float, int]
-    ) -> Union[float, "Vector"]:
+        self, other: "Vector | Sequence[float] | float | int"
+    ) -> "float | Vector":
         """Dot product if other is vector, scalar multiplication if scalar."""
         if isinstance(other, (int, float)):
             return Vector(v_mul(self.data, other))
@@ -120,7 +136,7 @@ class Vector:
         issue_warning("Vector objects are being used with lists/tuples!")
         return v_mul(self.data, other)
 
-    def __rmul__(self, other: Union[float, int]) -> "Vector":
+    def __rmul__(self, other: float) -> "Vector":
         """Reverse scalar multiplication."""
         return self.__mul__(other)
 
@@ -152,7 +168,7 @@ class Vector:
         """Return a perpendicular vector (2D only)."""
         return Vector(v_perp(self.data))
 
-    def distance_to(self, other: Union["Vector", Sequence[float]]) -> float:
+    def distance_to(self, other: "Vector | Sequence[float]") -> float:
         """Distance to another point."""
         if isinstance(other, Vector):
             other_data = other.data
@@ -180,16 +196,14 @@ class Vector:
             return Vector(self.data)
         return self / mag
 
-    def dot(self, other: Union["Vector", Sequence[float]]) -> float:
+    def dot(self, other: "Vector | Sequence[float]") -> float:
         """Dot product."""
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
         issue_warning("Vector objects are being used with lists/tuples!")
         return v_mul(self.data, other)
 
-    def cross(
-        self, other: Union["Vector", Sequence[float]]
-    ) -> Union[float, "Vector"]:
+    def cross(self, other: "Vector | Sequence[float]") -> "float | Vector":
         """Cross product."""
         if isinstance(other, Vector):
             other_data = other.data
@@ -205,7 +219,7 @@ class Vector:
         """Angle of 2D vector."""
         return v_arg(self.data)
 
-    def angle_between(self, other: Union["Vector", Sequence[float]]) -> float:
+    def angle_between(self, other: "Vector | Sequence[float]") -> float:
         """Angle between two vectors."""
         if isinstance(other, Vector):
             other_data = other.data
@@ -214,7 +228,7 @@ class Vector:
             other_data = other
         return v_angle_between(self.data, other_data)
 
-    def bisector(self, other: Union["Vector", Sequence[float]]) -> "Vector":
+    def bisector(self, other: "Vector | Sequence[float]") -> "Vector":
         """Returns the bisector of the self and the other vector.
         Returns self.normalize() + other.normalize().
         """
@@ -226,18 +240,20 @@ class Vector:
     def rotate(
         self,
         angle: float,
-        axis: Optional[Union["Vector", Sequence[float]]] = None,
+        axis: "Vector | Sequence[float] | None" = None,
     ) -> "Vector":
         """Rotate vector by angle (radians)."""
         if isinstance(axis, Vector):
             axis_data = axis.data
         else:
             if axis is not None:
-                issue_warning("Vector objects are being used with lists/tuples!")
+                issue_warning(
+                    "Vector objects are being used with lists/tuples!"
+                )
             axis_data = axis
         return Vector(v_rotated(self.data, angle, axis_data))
 
-    def project(self, other: Union["Vector", Sequence[float]]) -> "Vector":
+    def project(self, other: "Vector | Sequence[float]") -> "Vector":
         """Project this vector onto other."""
         if isinstance(other, Vector):
             other_vec = other
@@ -250,7 +266,7 @@ class Vector:
         scale = self.dot(other_vec) / b_mag_sq
         return other_vec * scale
 
-    def reflect(self, normal: Union["Vector", Sequence[float]]) -> "Vector":
+    def reflect(self, normal: "Vector | Sequence[float]") -> "Vector":
         """Reflect vector across a normal."""
         if isinstance(normal, Vector):
             n = normal
@@ -260,9 +276,7 @@ class Vector:
         n = n.normalize()
         return self - n * (2 * self.dot(n))
 
-    def lerp(
-        self, other: Union["Vector", Sequence[float]], t: float
-    ) -> "Vector":
+    def lerp(self, other: "Vector | Sequence[float]", t: float) -> "Vector":
         """Linear interpolation."""
         if isinstance(other, Vector):
             other_data = other.data
@@ -276,7 +290,7 @@ class Vector:
     __abs__ = mag
 
 
-Vec = Union[Sequence[float], Vector]
+Vec = Sequence[float] | Vector
 
 
 def _as_data(vec: Vec) -> Sequence[float]:
@@ -290,11 +304,12 @@ def _result_like(vec: Vec, values: Sequence[float]) -> Vec:
     return Vector(materialized) if isinstance(vec, Vector) else materialized
 
 
-def v_bisector(vec1: Vec, vec2: Vec)->Vec:
+def v_bisector(vec1: Vec, vec2: Vec) -> Vec:
     """Returns the bisector of the given vectors.
     Vector sum of vec1 unit-vector and vec2 unit-vector.
     """
     return Vector(vec1).bisector(vec2)
+
 
 def v_copy(vec: Vec) -> Vec:
     """Return a shallow copy of the vector preserving output type."""
@@ -311,7 +326,7 @@ def v_neg(vec: Vec) -> Vec:
     return v_minus(vec)
 
 
-def v_mul(vec1: Vec, vec2: Union[Vec, float]) -> Union[float, Vec]:
+def v_mul(vec1: Vec, vec2: Vec | float) -> float | Vec:
     """Return dot product for vector input, or scale vec1 by scalar vec2."""
     v1 = _as_data(vec1)
     if isarray(vec2):
@@ -320,7 +335,7 @@ def v_mul(vec1: Vec, vec2: Union[Vec, float]) -> Union[float, Vec]:
     return _result_like(vec1, (x * vec2 for x in v1))
 
 
-def v_dot(vec1: Vec, vec2: Union[Vec, float]) -> Union[float, Vec]:
+def v_dot(vec1: Vec, vec2: Vec | float) -> float | Vec:
     """Alias for v_mul."""
     return v_mul(vec1, vec2)
 
@@ -349,7 +364,7 @@ def v_equals(vec1: Vec, vec2: Vec) -> bool:
     return list(_as_data(vec1)) == list(_as_data(vec2))
 
 
-def v_cross(vec1: Vec, vec2: Vec) -> Union[Vec, float]:
+def v_cross(vec1: Vec, vec2: Vec) -> Vec | float:
     """Return 3D cross product vector or 2D scalar cross value."""
     v1 = _as_data(vec1)
     v2 = _as_data(vec2)
@@ -397,7 +412,7 @@ def v_perp(vec: Vec) -> Vec:
     return _result_like(vec, (-v[1], v[0]))
 
 
-def v_rotated(vec: Vec, angle: float, axis: Optional[Vec] = None) -> Vec:
+def v_rotated(vec: Vec, angle: float, axis: Vec | None = None) -> Vec:
     """Return rotated vector (2D) or axis-angle rotation result (3D)."""
     c = cos(angle)
     s = sin(angle)
@@ -449,7 +464,7 @@ def v_evaluate(line: Vec, point: Vec) -> float:
     return ln[0] * p[0] + ln[1] * p[1] + ln[2]
 
 
-def v_line_through(point1: Vec, point2: Vec) -> List[float]:
+def v_line_through(point1: Vec, point2: Vec) -> list[float]:
     """Return normalized line coefficients [A, B, C] through two points."""
     p1 = _as_data(point1)
     p2 = _as_data(point2)
@@ -462,7 +477,7 @@ def v_line_through(point1: Vec, point2: Vec) -> List[float]:
     return [A / r, B / r, C / r]
 
 
-def v_intersection(line1: Vec, line2: Vec) -> List[float]:
+def v_intersection(line1: Vec, line2: Vec) -> list[float]:
     """Return intersection point [x, y] of two implicit lines."""
     l1 = _as_data(line1)
     l2 = _as_data(line2)
@@ -475,7 +490,7 @@ def v_intersection(line1: Vec, line2: Vec) -> List[float]:
     ]
 
 
-def v_linethrough(point1: Vec, point2: Vec) -> List[float]:
+def v_linethrough(point1: Vec, point2: Vec) -> list[float]:
     """Compatibility variant that returns [A, B, C] for a line through points."""
     p1 = _as_data(point1)
     p2 = _as_data(point2)
@@ -527,12 +542,14 @@ def v_interpolated(vec1: Vec, vec2: Vec, t: float) -> Vec:
     s = 1 - t
     return _result_like(vec1, (s * p1 + t * p2 for p1, p2 in zip(v1, v2)))
 
-def v_from_points(start: PointType, end: PointType)->Vec:
+
+def v_from_points(start: PointType, end: PointType) -> Vec:
     """Returns the vector defined by the start and end points."""
     dx = end[0] - start[0]
     dy = end[1] - start[1]
 
     return Vector(dx, dy)
+
 
 def isarray(a) -> bool:
     """Check if object is array-like (has __getitem__)."""

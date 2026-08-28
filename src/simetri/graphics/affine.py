@@ -1,18 +1,18 @@
 """Transformation matrices."""
 
+from collections.abc import Sequence
 from math import cos, sin, tan
-from typing import Sequence, Union
 
 import numpy as np
 
-from .common import LineType, PointType
 from ..geometry.geometry import (
-    line_angle,
-    vec_along_line,
+    homogenize,
     is_line,
     is_point,
-    homogenize,
+    line_angle,
+    vec_along_line,
 )
+from .common import LineType, PointType
 
 
 def identity_matrix() -> "ndarray":
@@ -221,7 +221,9 @@ def inv_scale_matrix(scale_x: float, scale_y: float = None) -> "ndarray":
     return np.array([[1 / scale_x, 0, 0], [0, 1 / scale_y, 0], [0, 0, 1.0]])
 
 
-def scale_in_place_matrix(scale_x: float, scale_y: float, about: PointType=(0, 0)) -> "ndarray":
+def scale_in_place_matrix(
+    scale_x: float, scale_y: float, about: PointType = (0, 0)
+) -> "ndarray":
     """
     Return a scale matrix in row form that scales about a point.
 
@@ -268,12 +270,12 @@ def inv_shear_matrix(angle_x: float, angle_y: float = 0) -> "ndarray":
     return np.array([[1, -tan(angle_x), 0], [-tan(angle_y), 1, 0], [0, 0, 1.0]])
 
 
-def mirror_matrix(about: Union[LineType, PointType]) -> "ndarray":
+def mirror_matrix(about: LineType | PointType) -> "ndarray":
     """
     Return a matrix to perform reflection about a line or a point.
 
     Args:
-        about (Union[LineType, PointType]): A line or point about which the reflection is performed.
+        about (LineType | PointType): A line or point about which the reflection is performed.
 
     Returns:
         np.ndarray: A matrix to perform reflection about a line or a point.
@@ -375,7 +377,9 @@ def mirror_about_point_matrix(point: PointType) -> "ndarray":
     return np.array([[-1.0, 0, 0], [0, -1.0, 0], [2 * x, 2 * y, 1.0]])
 
 
-def rotate(points: Sequence[PointType], angle: float, about: PointType = (0, 0)) -> "ndarray":
+def rotate(
+    points: Sequence[PointType], angle: float, about: PointType = (0, 0)
+) -> "ndarray":
     """
     Rotate points by angle about a point.
 
@@ -420,7 +424,9 @@ def mirror(points: Sequence[PointType], about: LineType) -> "ndarray":
     return points @ mirror_matrix(about)
 
 
-def glide(points: Sequence[PointType], mirror_line: LineType, distance: float) -> "ndarray":
+def glide(
+    points: Sequence[PointType], mirror_line: LineType, distance: float
+) -> "ndarray":
     """
     Glide (mirror about a line then translate along the same line) points about a line.
 
@@ -435,7 +441,9 @@ def glide(points: Sequence[PointType], mirror_line: LineType, distance: float) -
     return points @ glide_matrix(mirror_line, distance)
 
 
-def shear(points: Sequence[PointType], angle_x: float, angle_y: float = 0) -> "ndarray":
+def shear(
+    points: Sequence[PointType], angle_x: float, angle_y: float = 0
+) -> "ndarray":
     """
     Shear points by angle_x in x direction and angle_y in y direction.
 
@@ -450,7 +458,9 @@ def shear(points: Sequence[PointType], angle_x: float, angle_y: float = 0) -> "n
     return points @ shear_matrix(angle_x, angle_y)
 
 
-def scale(points: Sequence[PointType], scale_x: float, scale_y: float) -> "ndarray":
+def scale(
+    points: Sequence[PointType], scale_x: float, scale_y: float
+) -> "ndarray":
     """
     Scale points by scale_x in x direction and scale_y in y direction.
 
@@ -466,7 +476,10 @@ def scale(points: Sequence[PointType], scale_x: float, scale_y: float) -> "ndarr
 
 
 def scale_in_place(
-    points: Sequence[PointType], scale_x: float, scale_y: float, about: PointType
+    points: Sequence[PointType],
+    scale_x: float,
+    scale_y: float,
+    about: PointType,
 ) -> "ndarray":
     """
     Scale points about a point by scale_x in x direction and scale_y in y direction.

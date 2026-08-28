@@ -1,20 +1,21 @@
-import os
 import io
+import os
+from collections.abc import Callable, Sequence
 from math import degrees
-from typing import Any, Optional, Union, Callable, Tuple, Dict, List, Sequence
+from typing import Any
 
 from PIL import Image as PIL_Image
 
-from ..graphics.shapes import Rectangle
 from ..graphics.affine import (
     identity_matrix,
     rotation_matrix,
-    translation_matrix,
     scale_in_place_matrix,
+    translation_matrix,
 )
+from ..graphics.all_enums import Anchor, ImageMode, Types
 from ..graphics.batch import Group
 from ..graphics.common import PointType
-from ..graphics.all_enums import Types, Anchor, ImageMode
+from ..graphics.shapes import Rectangle
 from ..helpers.utilities import decompose_transformations
 
 
@@ -24,7 +25,11 @@ class PDF(Rectangle):
     """
 
     def __init__(
-        self, pdf_path: str, pos: PointType = (0, 0), size: Sequence[int] = None, **kwargs
+        self,
+        pdf_path: str,
+        pos: PointType = (0, 0),
+        size: Sequence[int] = None,
+        **kwargs,
     ):
         """
         Initialize a PDF object.
@@ -171,8 +176,12 @@ class Image(Rectangle):
         return res
 
     def _update(
-        self, xform_matrix: "array", reps: int = 0, merge: bool = False, **kwargs
-    ) -> Union[Group, "Image"]:
+        self,
+        xform_matrix: "array",
+        reps: int = 0,
+        merge: bool = False,
+        **kwargs,
+    ) -> "Group | Image":
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -356,7 +365,10 @@ class Image(Rectangle):
         return self.pil_img.decodermaxblock
 
     def alpha_composite(
-        self, im: "Image", dest: Sequence[int] = (0, 0), source: Sequence[int] = (0, 0)
+        self,
+        im: "Image",
+        dest: Sequence[int] = (0, 0),
+        source: Sequence[int] = (0, 0),
     ) -> "Image":
         """
         Blend two images together using alpha compositing.
@@ -380,7 +392,9 @@ class Image(Rectangle):
         """
         return self.pil_img.apply_transparency()
 
-    def convert(self, mode=None, matrix=None, dither=None, palette=0, colors=256):
+    def convert(
+        self, mode=None, matrix=None, dither=None, palette=0, colors=256
+    ):
         """
         Converts an image to a different mode.
 
@@ -568,7 +582,7 @@ class Image(Rectangle):
         """
         return self.pil_img.resize(size, resample, box, reducing_gap)
 
-    # def translate(self, dx: float=0, dy: float=0, reps: int=0, merge: bool=False, **kwargs)  -> Union[Group, 'Image']:
+    # def translate(self, dx: float=0, dy: float=0, reps: int=0, merge: bool=False, **kwargs)  -> "Group | Image":
     #     """
     #     Returns a translated copy of this image or a group of translated copies of this image.
 
@@ -586,7 +600,7 @@ class Image(Rectangle):
     #     return self._update(transform, reps=reps, merge=merge, kwargs=kwargs)
 
     # def rotate(self, angle: float, about: PointType=None, reps: int=0, merge: bool=False,
-    #            resample=0, expand=0, translate=None, fillcolor=None) -> Union[Group, 'Image']:
+    #            resample=0, expand=0, translate=None, fillcolor=None) -> "Group | Image":
     #     """
     #     Returns a rotated copy of this image or a group of rotated Image objects.
 
@@ -624,7 +638,7 @@ class Image(Rectangle):
     #     return self._update(transform, reps=reps, merge=merge, **kwargs)
 
     # def scale(self, scale_x: float=1, scale_y: float=None, about: PointType=(0, 0),
-    #                                 reps: int=0, merge: bool=False) -> Union[Group, 'Image']:
+    #                                 reps: int=0, merge: bool=False) -> "Group | Image":
     #     """
     #     Scales this image by the given scale factors about the given point.
     #         Args:
@@ -761,10 +775,10 @@ def convert_png_to_ico(png_path, ico_path, sizes=None):
     convert_png_to_ico("input.png", "output.ico", sizes=[(16, 16), (32, 32)])
 
 
-def supported_formats() -> List[str]:
+def supported_formats() -> list[str]:
     """Generates a list of supported image formats available in your system.
     Returns:
-        List[str]: A list of supported image formats available in your system.
+        list[str]: A list of supported image formats available in your system.
     """
 
     exts = PIL_Image.registered_extensions()

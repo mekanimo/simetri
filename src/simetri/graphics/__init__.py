@@ -45,52 +45,64 @@ from ..graphics.common import *
 
 
 set_defaults()
-from ..geometry.geometry import *
-from ..geometry.ellipse import *
-from ..geometry.bezier import *
-from ..geometry.hobby import *
-from ..geometry.circle import *
-from ..geometry.sine import *
-from ..geometry.vectors import *
-from .affine import *
-from .dots import *
-from ..graphics.sketch import *
-from ..graphics.shape import Clipping
-from ..geometry.lattice import *
+import simetri.colors as colors
+
 from ..canvas.canvas import *
-from ..canvas.style_map import *
 from ..canvas.grids import *
-from ..helpers.illustration import *
-from ..helpers.constraint_solver import Constraint, solve
-from ..graphics.shapes import *
-from ..helpers.modifiers import *
-from ..lace import Lace
+from ..canvas.style_map import *
 from ..colors.colors import *
 from ..colors.palettes import *
 from ..colors.pastels import *
 from ..colors.swatches import *
-import simetri.colors as colors
-from ..tikz.tikz import *
-from ..svg.svg import *
-from .mask import Mask, Stop, Gradient
-from ..svg.filters import *
-from ..helpers.validation import check_version
-from ..stars import stars
-from ..stars.stars import rosette, Star
-from ..wallpaper import wallpaper
-from ..graphics.all_enums import *
-from ..extensions.turtle_sg import Turtle, spirolateral
-from ..extensions.l_system import l_system
 from ..extensions.easing import *
+from ..extensions.l_system import l_system
+from ..extensions.tree import TreeNode, make_tree
+from ..extensions.turtle_sg import Turtle, spirolateral
 from ..frieze.frieze_patterns import *
-from ..extensions.tree import make_tree, TreeNode
-from .path import LinPath, Operation
-from .pattern import *
-from ..image.image import Image, open_img
-from .batch import *
+from ..geometry.bezier import *
+from ..geometry.circle import *
+from ..geometry.collection import *
+from ..geometry.ellipse import *
+from ..geometry.geometry import *
+from ..geometry.hobby import *
+from ..geometry.lattice import *
+from ..geometry.polygon import *
+from ..geometry.sine import *
+from ..geometry.vectors import *
+from ..graphics.all_enums import *
+from ..graphics.shape import (
+    Clipping,
+    all_segments,
+    clip,
+    polygon_diff,
+    polygon_difference,
+    polygon_intersection,
+    polygon_union,
+    polygon_xor,
+)
+from ..graphics.shapes import *
 
 # Preserve geometric Line class on public namespace.
 from ..graphics.shapes import Line as Line
+from ..graphics.sketch import *
+from ..helpers.constraint_solver import Constraint, solve
+from ..helpers.illustration import *
+from ..helpers.modifiers import *
+from ..helpers.validation import check_version
+from ..image.image import Image, open_img
+from ..lace import Lace
+from ..stars import stars
+from ..stars.stars import Star, rosette
+from ..svg.filters import *
+from ..svg.svg import *
+from ..tikz.tikz import *
+from ..wallpaper import wallpaper
+from .affine import *
+from .batch import *
+from .dots import *
+from .mask import Gradient, Mask, Stop
+from .path import LinPath, Operation
+from .pattern import *
 
 set_tikz_defaults()
 set_svg_defaults()

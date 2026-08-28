@@ -1,31 +1,29 @@
 """Group objects are used for grouping other Shape and Group objects."""
 
-from typing import Any, Iterator, List, Sequence, Callable
+import json
+from collections.abc import Callable, Iterator, Sequence
+from typing import Any, Self
 
 from numpy import array, ndarray
-from typing_extensions import Self, Dict
-import json
 
-
-from .all_enums import (
-    InPlace,
-    Types,
-    TransformationType,
-    get_enum_value,
-)
-from .common import PointType, LineType, get_unique_id
-from .core import Base, _update_inplace
-from .bbox import bounding_box
 from ..geometry.geometry import (
+    all_close_points,
     fix_degen_points,
     get_polygons,
-    all_close_points,
-    round_segment,
     round_point,
+    round_segment,
 )
-from ..settings.settings import defaults, issue_warning
-
-from .merge import _merge_shapes, _merge_collinears
+from ..settings.settings import VOID, defaults, issue_warning
+from .all_enums import (
+    InPlace,
+    TransformationType,
+    Types,
+    get_enum_value,
+)
+from .bbox import bounding_box
+from .common import LineType, PointType, get_unique_id
+from .core import Base, _update_inplace
+from .merge import _merge_collinears, _merge_shapes
 
 
 class Group(Base):
@@ -51,8 +49,8 @@ class Group(Base):
 
     def __init__(
         self,
-        elements: Sequence[Any] = None,
-        modifiers: Sequence["Modifier"] = None,
+        elements: Any | Sequence[Any] | None = None,
+        modifiers: Sequence["Modifier"] | None = None,
         subtype: Types = Types.GROUP,
     ):
         """
@@ -530,6 +528,17 @@ class Group(Base):
                 segments.extend(element.vertex_pairs)
         return segments
 
+    @property
+    def all_edges(self) -> list[LineType]:
+        """Return a list of all segments in the group.
+
+        Returns:
+            list[LineType]: A list of all segments in the group.
+        """
+        # This is an alias for all_segments!
+
+        return self.all_segments
+
     def merge_collinears(self, edges, rel_tol=None, abs_tol=None):
         """Merge collinear edges in the group.
 
@@ -588,14 +597,14 @@ class Group(Base):
         return edges, segments
 
     def _set_node_dictionaries(
-        self, coords: List[PointType], n_round: int = 2
-    ) -> List[Dict]:
+        self, coords: list[PointType], n_round: int = 2
+    ) -> list[dict]:
         """Set dictionaries for nodes and coordinates.
         d_node_coord: Dictionary of node id to coordinates.
         d_coord_node: Dictionary of coordinates to node id.
 
         Args:
-            nodes (List[PointType]): List of vertices.
+            nodes (list[PointType]): list of vertices.
             n_round (int, optional): Number of rounding digits. Defaults to 2.
         """
 
@@ -686,6 +695,7 @@ class Group(Base):
             BoundingBox: The bounding box of the group.
         """
         # To do: memoize the bounding box
+
         return bounding_box(array(self.all_vertices))
 
     def _modify(self, modifier):
@@ -700,11 +710,12 @@ class Group(Base):
         self,
         xform_matrix: "ndarray",
         reps: int = 0,
-        take: slice = None,
+        take: slice | None = None,
         incr: float
         | tuple[float, float]
         | tuple[callable, Any]
-        | tuple[InPlace, Any] = None,
+        | tuple[InPlace, Any]
+        | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Self:
@@ -748,6 +759,7 @@ class Group(Base):
         if merge and reps > 0:
             merged = self.merge_shapes()
             self[:] = merged.elements[:]
+        # check if the bounding-boxes of the elements have changes
 
         return self
 
@@ -957,7 +969,7 @@ def all_ids(self):
     return ids
 
 
-def custom_group_attributes(item: Group) -> List[str]:
+def custom_group_attributes(item: Group) -> list[str]:
     """
     Return a list of custom attributes of a Shape or
     Group instance.
@@ -966,7 +978,7 @@ def custom_group_attributes(item: Group) -> List[str]:
         item (Group): The group object.
 
     Returns:
-        List[str]: A list of custom attributes.
+        list[str]: A list of custom attributes.
     """
     from .shape import Shape
 

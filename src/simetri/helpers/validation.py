@@ -3,7 +3,7 @@
 import re
 import numbers
 from strenum import enum
-from typing import Any, Dict
+from typing import Any
 
 from numpy import ndarray
 from ..graphics import all_enums, __version__
@@ -87,7 +87,8 @@ def check_number(number: Any) -> bool:
 
 
 def check_alpha(alpha: Any) -> bool:
-    return is_numeric(alpha) and alpha >= 0 and alpha <=1.
+    return is_numeric(alpha) and alpha >= 0 and alpha <= 1.0
+
 
 def check_color(color: Any) -> bool:
     """
@@ -314,23 +315,30 @@ def is_positive(value):
 def is_numeric(value):
     return isinstance(value, numbers.Number)
 
+
 def check_percent(value):
     """Checks if a value is a floating point between 0 and 1.0"""
     return is_numeric(value) and value >= 0 and value <= 1.0
 
+
 def is_gradient(value):
     # Fix this import!!!!
     from ..graphics.mask import Gradient
-    return isinstance(value, Gradient)
 
+    return isinstance(value, Gradient)
 
 
 d_validators = {
     "alpha": check_number,
-    "book_margins": lambda value: value is None or (
-        isinstance(value, (list, tuple, ndarray))
-        and len(value) == 4
-        and all(isinstance(item, numbers.Number) and item >= 0 for item in value)
+    "book_margins": lambda value: (
+        value is None
+        or (
+            isinstance(value, (list, tuple, ndarray))
+            and len(value) == 4
+            and all(
+                isinstance(item, numbers.Number) and item >= 0 for item in value
+            )
+        )
     ),
     "clip": check_bool,
     "color": check_color,
@@ -371,15 +379,19 @@ d_validators = {
     "marker_alpha": is_greater_than_zero,
     "marker_color": check_color,
     "marker_radius": check_number,
-    "marker_shape": lambda x: x is None or hasattr(x, 'subtype'),
+    "marker_shape": lambda x: x is None or hasattr(x, "subtype"),
     "marker_size": check_number,
     "markers_only": check_bool,
-    "margins": lambda value: value is None or (
-        isinstance(value, numbers.Number) and value >= 0
-    ) or (
-        isinstance(value, (list, tuple, ndarray))
-        and len(value) == 4
-        and all(isinstance(item, numbers.Number) and item >= 0 for item in value)
+    "margins": lambda value: (
+        value is None
+        or (isinstance(value, numbers.Number) and value >= 0)
+        or (
+            isinstance(value, (list, tuple, ndarray))
+            and len(value) == 4
+            and all(
+                isinstance(item, numbers.Number) and item >= 0 for item in value
+            )
+        )
     ),
     "mask": check_mask,
     "opacity": check_percent,
@@ -419,12 +431,12 @@ d_validators = {
 }
 
 
-def validate_args(args: Dict[str, Any], valid_args: list[str]) -> None:
+def validate_args(args: dict[str, Any], valid_args: list[str]) -> None:
     """
     Validate the user entered arguments.
 
     Args:
-        args (Dict[str, Any]): The arguments to validate.
+        args (dict[str, Any]): The arguments to validate.
         valid_args (list[str]): The list of valid argument keys.
 
     Raises:

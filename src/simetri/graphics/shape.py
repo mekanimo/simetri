@@ -20,60 +20,60 @@ __all__ = [
     "trim_margins",
 ]
 
-from typing import Sequence, Union, List, Tuple, Any
-from math import pi, isclose, floor
+import json
+from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
+from math import floor, isclose, pi
+from typing import Any, Self
 
-import json
-import numpy as np
-from numpy import around, array, allclose
-from numpy.linalg import inv
 import networkx as nx
-from typing_extensions import Self
+import numpy as np
+from numpy import allclose, around, array
+from numpy.linalg import inv
 
-from .affine import identity_matrix
-from .all_enums import (
-    Types,
-    InPlace,
-    TransformationType,
-    shape_attributes,
-    FillMode,
-    LineCap,
-    LineJoin,
-)
-from .bbox import BoundingBox
-from .common import PointType, LineType, get_defaults, get_unique_id
 from ..canvas.style_map import shape_style_map
-from ..settings.settings import defaults
-from ..helpers.utilities import (
-    get_transform,
-    is_nested_sequence,
-    decompose_transformations,
-)
+from ..colors.colors import Color, black
 from ..geometry.geometry import (
-    homogenize,
-    right_handed,
     all_intersections,
-    polygon_area,
-    polyline_length,
+    angle_between_lines2,
     close_points2,
     connected_pairs,
     distance,
-    remove_duplicate_points,
-    multi_split_segment,
+    homogenize,
     in_polygon,
-    midpoint,
-    angle_between_lines2,
-    positive_angle,
     lerp_point,
+    midpoint,
+    multi_split_segment,
+    point_inside_polygon,
     polar_to_cartesian,
+    polygon_area,
+    polyline_length,
+    positive_angle,
+    remove_duplicate_points,
+    right_handed,
 )
-from .core import Base, _update_inplace
-from .bbox import bounding_box
-from .points import Points
+from ..helpers.utilities import (
+    decompose_transformations,
+    get_transform,
+    is_nested_sequence,
+)
+from ..settings.settings import defaults
+from .affine import identity_matrix
+from .all_enums import (
+    FillMode,
+    InPlace,
+    LineCap,
+    LineJoin,
+    TransformationType,
+    Types,
+    shape_attributes,
+)
 from .batch import Group
-from ..colors.colors import Color, black
+from .bbox import BoundingBox, bounding_box
+from .common import LineType, PointType, get_defaults, get_unique_id
+from .core import Base, _update_inplace
+from .points import Points
 
 
 class Shape(Base):
@@ -91,8 +91,8 @@ class Shape(Base):
         "back_style",
         "closed",
         "color",
-        "double_distance",
         "double_color",
+        "double_distance",
         "draw_double",
         "draw_fillets",
         "draw_markers",
@@ -128,41 +128,41 @@ class Shape(Base):
 
     def __init__(
         self,
-        points: Union[Sequence[PointType], None] = None,
+        points: Sequence[PointType] | None = None,
         closed: bool = False,
         fill: bool = True,
         stroke: bool = True,
-        alpha: Union[float, None] = None,
-        color: Union[Color, None] = None,
+        alpha: float | None = None,
+        color: Color | None = None,
         draw_double: bool = False,
         draw_fillets: bool = False,
         draw_markers: bool = False,
         back_style: Any = None,
-        double_distance: Union[float, None] = None,
-        double_color: Union[Color, None] = None,
+        double_distance: float | None = None,
+        double_color: Color | None = None,
         fill_alpha: float = 1,
         fill_color: Color = black,
         fill_mode: FillMode = FillMode.EVENODD,
-        fillet_radius: Union[float, None] = None,
+        fillet_radius: float | None = None,
         gradient: Any = None,
         line_alpha: float = 1,
         line_cap: LineCap = LineCap.BUTT,
         line_color: Color = black,
         line_dash_array: Any = None,
-        line_dash_phase: Union[float, None] = None,
+        line_dash_phase: float | None = None,
         line_join: LineJoin = LineJoin.MITER,
-        line_miter_limit: Union[float, None] = None,
+        line_miter_limit: float | None = None,
         line_width: float = 1,
         marker_alpha: float = 1,
-        marker_color: Union[Color, None] = None,
-        marker_radius: Union[float, None] = None,
+        marker_color: Color | None = None,
+        marker_radius: float | None = None,
         marker_shape: Any = None,
-        marker_size: Union[float, None] = None,
+        marker_size: float | None = None,
         marker_type: Any = None,
         markers_only: bool = False,
         smooth: bool = False,
         subtype: Types = Types.SHAPE,
-        xform_matrix: Union[np.ndarray, None] = None,
+        xform_matrix: np.ndarray | None = None,
     ) -> None:
         """Initialize a Shape object.
 
@@ -278,7 +278,7 @@ class Shape(Base):
         """
         return self.__str__()
 
-    def __getitem__(self, subscript: Union[int, float, slice]):
+    def __getitem__(self, subscript: float | slice):
         """Retrieve point(s) from the shape by index or slice.
 
         Args:
@@ -302,7 +302,7 @@ class Shape(Base):
                 res = (coord[0], coord[1])
             else:
                 n = len(final_coords)
-                index = int(floor(subscript))
+                index = floor(subscript)
                 if self.closed:
                     next_index = (index + 1) % n
                 else:
@@ -450,7 +450,7 @@ class Shape(Base):
         | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ) -> Union["Shape", Group]:
+    ) -> "Shape | Group":
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -564,7 +564,7 @@ class Shape(Base):
             # Sequences -> list
             if isinstance(obj, (list, tuple)):
                 return [_to_jsonable(x) for x in obj]
-            # Dict -> dict
+            # dict -> dict
             if isinstance(obj, dict):
                 return {k: _to_jsonable(v) for k, v in obj.items()}
             # Fallbacks
@@ -684,7 +684,7 @@ class Shape(Base):
         """Merges collinear edges."""
         return Group([self]).merge_shapes()[0]
 
-    def merge(self, other, dist_tol: float = None) -> Union[Self, None]:
+    def merge(self, other, dist_tol: float | None = None) -> Self | None:
         """Merge two shapes if they are connected. Does not work for polygons.
         Only polyline shapes can be merged together.
 
@@ -728,8 +728,8 @@ class Shape(Base):
         self,
         verts1: Sequence[PointType],
         verts2: Sequence[PointType],
-        dist_tol: float = None,
-    ) -> Union[List[PointType], None]:
+        dist_tol: float | None = None,
+    ) -> list[PointType] | None:
         """Chain two sets of vertices if they are connected.
 
         Args:
@@ -804,7 +804,7 @@ class Shape(Base):
             res = array(self.vertices)
         return res
 
-    def as_list(self) -> List[PointType]:
+    def as_list(self) -> list[PointType]:
         """Return the vertices as a list of tuples.
 
         Returns:
@@ -865,7 +865,7 @@ class Shape(Base):
         return res
 
     @property
-    def vertex_pairs(self) -> List[Tuple[PointType, PointType]]:
+    def vertex_pairs(self) -> list[tuple[PointType, PointType]]:
         """Return a list of connected pairs of vertices.
 
         Returns:
@@ -1004,14 +1004,14 @@ class Shape(Base):
         return midpoint(*edge)
 
     @property
-    def edge_midpoints(self) -> List[PointType]:
+    def edge_midpoints(self) -> list[PointType]:
         """Return a list of the edge midpoints."""
         edges = self.edges
 
         return [midpoint(*edge) for edge in edges]
 
     @property
-    def edges(self) -> List[LineType]:
+    def edges(self) -> list[LineType]:
         """Return a list of the edges of the shape.
 
         Edges are represented as tuples of points:
@@ -1028,12 +1028,12 @@ class Shape(Base):
         return tuple(connected_pairs(vertices))
 
     @property
-    def midpoints(self) -> List[PointType]:
+    def midpoints(self) -> list[PointType]:
         """Returns a list of the midpoints of the edges."""
         return [midpoint(*edge) for edge in self.edges]
 
     @property
-    def segments(self) -> List[LineType]:
+    def segments(self) -> list[LineType]:
         """Return a list of edges.
 
         Edges are represented as tuples of points:
@@ -1387,7 +1387,7 @@ class Shape(Base):
         return self.b_box.offset_point(anchor, dx, dy)
 
     def centered(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the center of the reference item.
@@ -1407,7 +1407,7 @@ class Shape(Base):
         return x, y
 
     def left_of(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.west of the reference item.
@@ -1427,7 +1427,7 @@ class Shape(Base):
         return x, y
 
     def right_of(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.east of the reference item.
@@ -1447,7 +1447,7 @@ class Shape(Base):
         return x, y
 
     def above(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.north of the reference item.
@@ -1467,7 +1467,7 @@ class Shape(Base):
         return x, y
 
     def below(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.south of the reference item.
@@ -1487,7 +1487,7 @@ class Shape(Base):
         return x, y
 
     def above_left(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northwest of the reference item.
@@ -1509,7 +1509,7 @@ class Shape(Base):
         return x, y
 
     def above_right(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northeast of the reference item.
@@ -1531,7 +1531,7 @@ class Shape(Base):
         return x, y
 
     def below_left(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southwest of the reference item.
@@ -1553,7 +1553,7 @@ class Shape(Base):
         return x, y
 
     def below_right(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southeast of the reference item.
@@ -1575,7 +1575,7 @@ class Shape(Base):
         return x, y
 
     def polar_pos(
-        self, item: "Union[Shape, Group]", angle: float, radius: float
+        self, item: "Shape | Group", angle: float, radius: float
     ) -> PointType:
         """
         Get the polar position of the reference item.
@@ -1600,8 +1600,8 @@ class Shape(Base):
     ##################################################################
 
     def reorder_vertices(
-        self, value: PointType, index: int = 0, tol: float = None
-    ) -> Union["Shape", None]:
+        self, value: PointType, index: int = 0, tol: float | None = None
+    ) -> "Shape | None":
         """If index is not given, the vertex with the given value will be
         the first index.
         If index is given, the vertex with the given value will be
@@ -1673,14 +1673,14 @@ def trim_margins(
     """Trim the margins of a Shape or Group.
 
     Args:
-        item (Union[Shape, Group]): The Shape or Group to trim.
+        item (Shape | Group): The Shape or Group to trim.
         left (float, optional): The left margin to trim. Defaults to 0.
         bottom (float, optional): The bottom margin to trim. Defaults to 0.
         right (float, optional): The right margin to trim. Defaults to 0.
         top (float, optional): The top margin to trim. Defaults to 0.
 
     Returns:
-        Union[Shape, Group]: The trimmed Shape or Group.
+        Shape | Group: The trimmed Shape or Group.
     """
     corners = item.b_box.get_inflated_b_box(
         -left, -bottom, -right, -top
@@ -1694,8 +1694,8 @@ def clip(
     item: Shape | Group,
     clipper: Shape,
     exclude_clipper: bool = False,
-    rel_tol: float = None,
-    abs_tol: float = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
     merge: bool = True,
 ):
     if isinstance(item, Group):
@@ -1726,8 +1726,8 @@ def _clip_group(
     group: Group,
     clipper: Shape,
     exclude_clipper: bool = True,
-    rel_tol: float = None,
-    abs_tol: float = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ):
     """
     group Group: group to be clipped
@@ -1774,8 +1774,8 @@ def _clip_shape(
     shape: "Shape",
     clipper: "Shape",
     exclude_clipper: bool = False,
-    rel_tol: float = None,
-    abs_tol: float = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ):
     """
     shape Shape: shape to be clipped
@@ -1839,7 +1839,7 @@ def _clip_shape(
     return clipped
 
 
-def custom_attributes(item: Shape) -> List[str]:
+def custom_attributes(item: Shape) -> list[str]:
     """Return a list of custom attributes of a Shape or Group instance.
 
     Args:
@@ -1866,12 +1866,38 @@ def custom_attributes(item: Shape) -> List[str]:
 
 @dataclass
 class Clipping:
-    target: Union[Shape, Group]
+    target: Shape | Group
     clipper: Shape
 
     def __post_init__(self):
         self.type = Types.CLIPPING
         self.subtype = Types.CLIPPING
+
+
+def polygons_union(polygons: Group) -> tuple[Group, Group]:
+    """Given a group of polygons (closed Shapes),
+    returns the union and holes (if there are any)
+    as groups.
+    """
+    poly1 = polygons[0]
+    poly2 = polygons[1]
+    rest = polygons[2:]
+    union = polygon_union(poly1, poly2)
+    union = union.merge_shapes()
+    union = union[0]
+    holes = []
+    for i, shape in enumerate(rest):
+        union = polygon_union(union, shape)
+        n_union = len(union)
+        union = union.merge_shapes()
+        if n_union > 1:
+            for x in union[1:]:
+                if point_inside_polygon(x[-1], union[0]):
+                    holes.append(x)
+
+        union = union[0]
+
+    return union, Group(holes)
 
 
 def polygon_union(shape1: "Shape", shape2: "Shape", merge: bool = True):
@@ -1993,20 +2019,20 @@ def polygon_xor(
 
 
 def all_segments(
-    item: Union[Shape, Group],
+    item: Shape | Group,
     n_round: int = 1,
-    rel_tol: float = None,
-    abs_tol: float = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ):
     """
     Get all line segments from a Shape or Group instance.
     Args:
-        item (Union[Shape, Group]): The input shape or group.
+        item (Shape | Group): The input shape or group.
         n_round (int): The number of decimal places to round segment coordinates.
         rel_tol (float): The relative tolerance for segment comparison.
         abs_tol (float): The absolute tolerance for segment comparison.
     Returns:
-        List[LineType]: A list of line segments.
+        list[LineType]: A list of line segments.
     """
 
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
@@ -2070,7 +2096,7 @@ def get_loop(edges: Sequence[LineType], start_edge: LineType, ccw: bool = True):
             angle = angle_between_lines2(*cur_edge, edge[1])
             angle = positive_angle(angle)
             pi_ = round(pi, 2)
-            if round(angle, 2) not in [0, -pi_, pi_, 2 * pi_]:
+            if round(angle, 2) not in (0, -pi_, pi_, 2 * pi_):
                 angles.append((angle, edge))
         if open_:
             angles.sort()
@@ -2084,13 +2110,13 @@ def get_loop(edges: Sequence[LineType], start_edge: LineType, ccw: bool = True):
 
 
 def get_partition(
-    item: Union[Shape, Group], edge_index: int, ccw: bool = True
+    item: Shape | Group, edge_index: int, ccw: bool = True
 ) -> Shape:
     """
     Get a sub-region from a shape or group object.
     Draw the segments by using canvas.draw_all_segments first to get the indices.
     Args:
-        item Union[Shape, Group]: A shape or a group object.
+        item Shape | Group: A shape or a group object.
         edge_index int: Index of the starting edge of the partition.
         ccw bool: If True, the region is formed by looping in
         counterclockwise direction, clockwise otherwise.

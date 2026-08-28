@@ -3,7 +3,7 @@ Bounding box is axis-aligned. Provides reference edges and points.
 """
 
 import numpy as np
-from .common import PointType, defaults
+from .common import PointType, defaults, get_unique_id, VOID
 from .all_enums import Side, Types, Anchor
 from ..settings.settings import issue_warning
 from ..geometry.geometry import (
@@ -25,7 +25,9 @@ class BoundingBox:
     Provides reference edges and points as shown in the Book page ???.
     """
 
-    def __init__(self, southwest: PointType, northeast: PointType):
+    def __init__(
+        self, southwest: PointType = None, northeast: PointType = None
+    ):
         """
         Initialize a BoundingBox object.
 
@@ -34,10 +36,16 @@ class BoundingBox:
             northeast (PointType): The northeast corner of the bounding box.
         """
         # define the four corners
-        self.__dict__["southwest"] = southwest
-        self.__dict__["northeast"] = northeast
-        self.__dict__["northwest"] = (southwest[0], northeast[1])
-        self.__dict__["southeast"] = (northeast[0], southwest[1])
+        if southwest is None or northeast is None:
+            self.__dict__["southwest"] = None
+            self.__dict__["northeast"] = None
+            self.__dict__["northwest"] = None
+            self.__dict__["southeast"] = None
+        else:
+            self.__dict__["southwest"] = southwest
+            self.__dict__["northeast"] = northeast
+            self.__dict__["northwest"] = (southwest[0], northeast[1])
+            self.__dict__["southeast"] = (northeast[0], southwest[1])
         self._aliases = {
             "s": "south",
             "n": "north",
@@ -65,6 +73,8 @@ class BoundingBox:
             "stroke",
             "fill",
         ]
+
+        self.id = get_unique_id(self)
 
     def __getattr__(self, name):
         """
@@ -482,7 +492,7 @@ class BoundingBox:
         return [x + dx, y + dy]
 
     def centered(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the center of the reference item.
@@ -502,7 +512,7 @@ class BoundingBox:
         return x, y
 
     def left_of(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.west of the reference item.
@@ -522,7 +532,7 @@ class BoundingBox:
         return x, y
 
     def right_of(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.east of the reference item.
@@ -542,7 +552,7 @@ class BoundingBox:
         return x, y
 
     def above(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.north of the reference item.
@@ -562,7 +572,7 @@ class BoundingBox:
         return x, y
 
     def below(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.south of the reference item.
@@ -582,7 +592,7 @@ class BoundingBox:
         return x, y
 
     def above_left(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northwest of the reference item.
@@ -604,7 +614,7 @@ class BoundingBox:
         return x, y
 
     def above_right(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northeast of the reference item.
@@ -626,7 +636,7 @@ class BoundingBox:
         return x, y
 
     def below_left(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southwest of the reference item.
@@ -648,7 +658,7 @@ class BoundingBox:
         return x, y
 
     def below_right(
-        self, item: "Union[Shape, Group]", dx: float = 0, dy: float = 0
+        self, item: "Shape | Group", dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southeast of the reference item.
@@ -670,7 +680,7 @@ class BoundingBox:
         return x, y
 
     def polar_pos(
-        self, item: "Union[Shape, Group]", angle: float, radius: float
+        self, item: "Shape | Group", angle: float, radius: float
     ) -> PointType:
         """
         Get the polar position of the reference item.

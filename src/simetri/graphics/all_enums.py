@@ -1,8 +1,7 @@
 """All enumerations."""
 
-from typing import TYPE_CHECKING, Union
-from typing_extensions import TypeAlias
-from strenum import StrEnum
+from typing import TYPE_CHECKING, TypeAlias
+from enum import StrEnum
 
 if TYPE_CHECKING:
     from simetri.geometry.geometry import Edge
@@ -1211,6 +1210,7 @@ class Types(StrEnum):
     PLAIT_SKETCH = "PLAIT_SKETCH"
     POINT = "POINT"
     POINTS = "POINTS"
+    POLY = "POLY"
     POLYGON = "POLYGON"
     POLYLINE = "POLYLINE"
     Q_BEZIER = "Q_BEZIER"
@@ -1285,7 +1285,7 @@ class Types(StrEnum):
     __hash__ = str.__hash__
 
 
-drawable_types = [
+drawable_types = {
     Types.ARC,
     Types.ARC_ARROW,
     Types.ARROW,
@@ -1328,9 +1328,9 @@ drawable_types = [
     Types.SVG_PATH,
     Types.TAG,
     Types.TURTLE,
-]
+}
 
-shape_types = [
+shape_types = {
     Types.ARC,
     Types.ARROW_HEAD,
     Types.BEZIER,
@@ -1347,9 +1347,9 @@ shape_types = [
     Types.SECTION,
     Types.SHAPE,
     Types.SINE_WAVE,
-]
+}
 
-group_types = [
+group_types = {
     Types.ANGULAR_DIMENSION,
     Types.ANNOTATION,
     Types.ARC_ARROW,
@@ -1371,9 +1371,9 @@ group_types = [
     Types.STAR,
     Types.SVG_PATH,
     Types.TURTLE,
-]
+}
 
-point_refs = [
+point_refs = {
     Reference.WEST,
     Reference.EAST,
     Reference.SOUTH,
@@ -1384,27 +1384,27 @@ point_refs = [
     Reference.NORTHEAST,
     Reference.CENTER,
     Reference.MIDPOINT,
-]
+}
 
-line_refs = [
+line_refs = {
     Reference.LEFT,
     Reference.RIGHT,
     Reference.TOP,
     Reference.BOTTOM,
     Reference.HORIZ_CENTERLINE,
     Reference.VERT_CENTERLINE,
-]
+}
 
-length_refs = [
+length_refs = {
     Reference.WIDTH,
     Reference.HEIGHT,
-]
+}
 # Drawable is used in runtime-imported annotations, so it must reference
 # Python types rather than enum values.
-Drawable: TypeAlias = Union["Base", "Group", "Shape", "Tag", "Edge"]
+Drawable: TypeAlias = "Base | Group | Shape | Tag | Edge"
 
 
-anchors = [
+anchors = {
     "southeast",
     "southwest",
     "northeast",
@@ -1448,23 +1448,23 @@ anchors = [
     "height",
     "width",
     "all_anchors",
-]
+}
 
 
-svg_types = [
+svg_types = {
     Types.RECTANGLE,
     Types.CIRCLE,
     Types.ELLIPSE,
     Types.POLYGON,
     Types.POLYLINE,
     Types.SVG_PATH,
-]
+}
 
 
 # Canonical shape attribute names used across style resolution, sketch creation,
 # and rendering (SVG/TikZ). Keep this list in sync with canvas.style_map shape
 # aliases and shape-level runtime attributes (markers/masks/clip/filter/tile).
-shape_attributes = [
+shape_attributes = {
     "alpha",
     "back_style",
     "clip",
@@ -1509,4 +1509,4 @@ shape_attributes = [
     "text_alpha",
     "visible",
     "xform_matrix",
-]
+}

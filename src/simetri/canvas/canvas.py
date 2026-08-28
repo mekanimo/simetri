@@ -5,72 +5,68 @@ drawing basic shapes like lines, circles, and polygons.
 """
 
 import os
-import sys
-import time
-import tempfile
 import shutil
+import sys
+import tempfile
+import time
 import webbrowser
-from typing import Optional, Any, Tuple, Sequence
-from pathlib import Path
+from collections.abc import Sequence
 from dataclasses import dataclass
 from math import pi
+from pathlib import Path
+from typing import Any, Self
 
 import fitz
-from typing_extensions import Self, Union
-import numpy as np
 import networkx as nx
+import numpy as np
 
+from simetri.canvas import draw
+from simetri.canvas.style_map import canvas_args
+from simetri.colors.colors import Color
+from simetri.geometry.geometry import homogenize
 from simetri.graphics.affine import (
-    rotation_matrix,
-    translation_matrix,
-    scale_matrix,
-    scale_in_place_matrix,
     identity_matrix,
+    rotation_matrix,
+    scale_in_place_matrix,
+    scale_matrix,
+    translation_matrix,
 )
+from simetri.graphics.all_enums import (
+    Align,
+    Anchor,
+    Axis,
+    Drawable,
+    Renderer,
+    TexLoc,
+    Types,
+)
+from simetri.graphics.batch import Group
+from simetri.graphics.bbox import bounding_box
 from simetri.graphics.common import (
-    _set_Nones,
     VOID,
     PointType,
     VecType,
+    _set_Nones,
 )
-from simetri.graphics.all_enums import (
-    Types,
-    Drawable,
-    Anchor,
-    Renderer,
-    TexLoc,
-    Align,
-    Axis,
-)
-from simetri.graphics.shape import Shape, clip as clip_shape
-from simetri.settings.settings import defaults, issue_warning
-from simetri.graphics.bbox import bounding_box
-from simetri.graphics.batch import Group
 from simetri.graphics.shape import Shape
-from simetri.tikz.tikz_sketch import TexSketch
-from simetri.colors.colors import Color, light_gray
-from simetri.canvas import draw
+from simetri.graphics.sketch import MaskedSketch
+from simetri.helpers.file_operations import validate_filepath
+from simetri.helpers.illustration import logo
 from simetri.helpers.utilities import (
     wait_for_file_availability,
-    round_symmetric,
 )
-from simetri.helpers.illustration import logo
-from simetri.helpers.file_operations import validate_filepath
-from simetri.tikz.tikz import get_tex_code
-from simetri.helpers.validation import validate_args, check_color, check_alpha
-from simetri.canvas.style_map import canvas_args
-from simetri.notebook import display
+from simetri.helpers.validation import check_alpha, check_color, validate_args
 from simetri.image.image import Image, create_image_from_data
-from simetri.tex.tex import remove_aux_files, run_job, Tex
-from simetri.svg.filters import SVG_Filter
-from simetri.graphics.mask import Mask
-from simetri.graphics.sketch import MaskedSketch
-from simetri.geometry.geometry import homogenize
+from simetri.notebook import display
+from simetri.settings.settings import defaults, issue_warning
+from simetri.tex.tex import Tex, remove_aux_files, run_job
+from simetri.tikz.tikz import get_tex_code
+from simetri.tikz.tikz_sketch import TexSketch
 
 
 def _save_renderer(extension: str) -> Renderer:
     """Return the renderer family for the output extension."""
-    if extension in [".svg", ".png"]:
+    if extension in (".svg", ".png"):
         return Renderer.SVG
     return Renderer.TEX
 
@@ -93,18 +89,18 @@ class Canvas:
 
     def __init__(
         self,
-        back_color: Optional["Color"] = None,
-        border: Optional[float] = 20,
-        page_size: Optional[VecType] = None,
-        page_origin: Optional[PointType] = (0, 0),
+        back_color: Color | None = None,
+        border: float | None = 20,
+        page_size: VecType | None = None,
+        page_origin: PointType | None = (0, 0),
         **kwargs,
     ):
         """
         Initialize the Canvas.
 
         Args:
-            back_color (Optional[Color]): The background color of the canvas.
-            border (Optional[float]): The border width of the canvas.
+            back_color (Color | None): The background color of the canvas.
+            border (float | None): The border width of the canvas.
             page_size (VecType, optional): The size of the page with canvas.page_origin at (0, 0).
             kwargs (dict): Additional keyword arguments. Rarely used.
 
@@ -491,7 +487,7 @@ class Canvas:
         self,
         center: PointType,
         radius_x: float,
-        radius_y: float = None,
+        radius_y: float | None = None,
         start_angle: float = 0,
         span_angle: float = pi / 2,
         rot_angle: float = 0,
@@ -601,8 +597,8 @@ class Canvas:
         self,
         text: str,
         pos: PointType,
-        font_family: str = None,
-        font_size: int = None,
+        font_family: str | None = None,
+        font_size: int | None = None,
         font_color: Color = None,
         anchor: Anchor = None,
         align: Align = None,
@@ -643,11 +639,11 @@ class Canvas:
 
     def help_lines(
         self,
-        pos: tuple[float, float] = None,
-        width: float = None,
-        height: float = None,
+        pos: tuple[float, float] | None = None,
+        width: float | None = None,
+        height: float | None = None,
         spacing=None,
-        cs_size: float = None,
+        cs_size: float | None = None,
         deferred: bool = True,
         **kwargs,
     ) -> Self:
@@ -891,7 +887,7 @@ class Canvas:
 
     def draw(
         self,
-        item_s: Union[Shape, Group, Sequence],
+        item_s: Shape | Group | Sequence,
         pos: PointType = None,
         angle: float = 0,
         rotocenter: PointType = (0, 0),
@@ -904,7 +900,7 @@ class Canvas:
         Draw the item_s. item_s can be a single item or a list of items.
 
         Args:
-            item_s (Union[Group, Shape, Sequence]): The item(s) to draw.
+            item_s (Group | Shape | Sequence): The item(s) to draw.
             pos (PointType, optional): The position to draw the item(s), defaults to None.
             angle (float, optional): The angle to rotate the item(s), defaults to 0.
             rotocenter (PointType, optional): The point about which to rotate, defaults to (0, 0).
@@ -952,7 +948,7 @@ class Canvas:
 
         return self
 
-    def draw_CS(self, size: float = None, **kwargs) -> Self:
+    def draw_CS(self, size: float | None = None, **kwargs) -> Self:
         """
         Draw the Canvas coordinate system.
 
@@ -1001,7 +997,7 @@ class Canvas:
         formula: str,
         pos: PointType,
         font_size: int = 14,
-        font_family: str = None,
+        font_family: str | None = None,
         font_color=None,
         bold: bool = False,
         anchor=None,
@@ -1155,7 +1151,7 @@ class Canvas:
     def scale_xy(
         self,
         scale_x: float = 1,
-        scale_y: float = None,
+        scale_y: float | None = None,
         about: PointType = (0, 0),
     ) -> None:
         """
@@ -1243,7 +1239,10 @@ class Canvas:
         return self
 
     def scale(
-        self, scale_x: float, scale_y: float = None, about: PointType = (0, 0)
+        self,
+        scale_x: float,
+        scale_y: float | None = None,
+        about: PointType = (0, 0),
     ) -> Self:
         """
         Scale the canvas by scale_x and scale_y about the given point.
@@ -1396,7 +1395,7 @@ class Canvas:
         value = getattr(item, property_name, None)
         if value is None:
             value = defaults.get(property_name, VOID)
-            if value == VOID and property_name not in ["color", "alpha"]:
+            if value == VOID and property_name not in ("color", "alpha"):
                 issue_warning(f"Property {property_name} is not in defaults.")
                 value = None
         return value
@@ -1454,21 +1453,32 @@ class Canvas:
             resolved.extend(["alpha", "line_alpha", "fill_alpha"])
 
         for attrib_name in style_map:
-            if attrib_name in resolved:
-                continue
-            # we need to validate input here!!!!
             if attrib_name in draw_kwargs:
                 d_resolved[attrib_name] = draw_kwargs[attrib_name]
+            elif attrib_name in resolved:
+                continue
             else:
                 d_resolved[attrib_name] = self.resolve_property(
                     item, attrib_name
                 )
             resolved.append(attrib_name)
 
+        # for attrib_name in style_map:
+        #     if attrib_name in resolved:
+        #         continue
+        #     # we need to validate input here!!!!
+        #     if attrib_name in draw_kwargs:
+        #         d_resolved[attrib_name] = draw_kwargs[attrib_name]
+        #     else:
+        #         d_resolved[attrib_name] = self.resolve_property(
+        #             item, attrib_name
+        #         )
+        #     resolved.append(attrib_name)
+
         return d_resolved
 
     def draw_all_segments(
-        self, item: Union[Shape, Group], vert_indices=False, **kwargs
+        self, item: Shape | Group, vert_indices=False, **kwargs
     ) -> Self:
         """
         Using intersections, splits edges of the item into separate segments and
@@ -1494,16 +1504,15 @@ class Canvas:
         """
         user_fonts = set(self._font_list)
 
-        latex_fonts = set(
-            [
-                defaults["main_font"],
-                defaults["sans_font"],
-                defaults["mono_font"],
-                "serif",
-                "sansserif",
-                "monospace",
-            ]
-        )
+        latex_fonts = {
+            defaults["main_font"],
+            defaults["sans_font"],
+            defaults["mono_font"],
+            "serif",
+            "sansserif",
+            "monospace",
+        }
+
         for sketch in self.active_page.sketches:
             if sketch.subtype == Types.TAG_SKETCH:
                 name = sketch.font_family
@@ -1514,7 +1523,7 @@ class Canvas:
     def set_page_size(self, width, height):
         self.page_size = (width, height)
 
-    def _calculate_size(self, border=None, b_box=None) -> Tuple[float, float]:
+    def _calculate_size(self, border=None, b_box=None) -> tuple[float, float]:
         """
         Calculate the size of the canvas based on the bounding box and border.
 
@@ -1523,7 +1532,7 @@ class Canvas:
             b_box (Any, optional): The bounding box of the canvas, defaults to None.
 
         Returns:
-            Tuple[float, float]: The size of the canvas.
+            tuple[float, float]: The size of the canvas.
         """
         vertices = self._all_vertices
         if vertices:
@@ -1648,8 +1657,8 @@ class Canvas:
     def save(
         self,
         filepath: Path,
-        overwrite: bool = None,
-        show: bool = None,
+        overwrite: bool | None = None,
+        show: bool | None = None,
         print_output=False,
         remove_aux=True,
         inset=None,

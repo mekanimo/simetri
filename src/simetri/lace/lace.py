@@ -1,47 +1,46 @@
 """Simetri library's interlace objects."""
 
-from itertools import combinations
-from typing import Iterator, List, Any, Union
 from collections import OrderedDict
+from collections.abc import Iterator
+from itertools import combinations
+from typing import Any
 
 import networkx as nx
 import numpy as np
-
 from numpy import isclose
 
-from ..graphics.shape import Shape, custom_attributes
-from ..graphics.batch import Group
-
+from ..canvas.style_map import shape_style_map
 from ..colors import colors
 from ..geometry.geometry import (
+    close_points2,
     connected_pairs,
-    polygon_area,
+    convex_hull,
     distance,
     double_offset_polygons,
-    get_polygons,
     double_offset_polylines,
+    equal_lines,
+    get_polygons,
     intersection2,
-    right_handed,
-    polygon_cg,
-    round_point,
+    lerp_point,
     offset_polygon,
     offset_polygon_points,
-    convex_hull,
-    close_points2,
-    polygon_center,
-    equal_lines,
-    lerp_point,
-    polygon_internal_angles,
     pi,
+    polygon_area,
+    polygon_center,
+    polygon_cg,
+    polygon_internal_angles,
+    right_handed,
+    round_point,
 )
-from ..helpers.graph import get_cycles
-from ..graphics.common import get_defaults
+from ..graphics.all_enums import Connection, Types
+from ..graphics.batch import Group
+from ..graphics.common import d_id_obj, get_defaults
+from ..graphics.shape import Shape, custom_attributes
 from ..graphics.shapes import fillet_shape_corners
-from ..graphics.all_enums import Types, Connection
-from ..canvas.style_map import shape_style_map
-from ..settings.settings import defaults
+from ..helpers.graph import get_cycles
 from ..helpers.utilities import flatten, group_into_bins
 from ..helpers.validation import validate_args
+from ..settings.settings import defaults
 
 
 def _set_style(obj: Any, attribs):
@@ -269,7 +268,7 @@ class Intersection(Shape):
         """
         return (
             f"Intersection({[round(x, defaults['n_round']) for x in self.point]}, "
-            f"{tuple(list([self.division1, self.division2]))}"
+            f"{(self.division1, self.division2)}"
         )
 
     def __repr__(self):
@@ -547,8 +546,8 @@ class Overlap(Group):
 
     def __init__(
         self,
-        intersections: list[Intersection] = None,
-        sections: list[Section] = None,
+        intersections: list[Intersection] | None = None,
+        sections: list[Section] | None = None,
         visited=False,
         drawable=True,
         **kwargs,
@@ -922,7 +921,6 @@ class ParallelPolyline(Group):
     ):
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
-        dist_tol2 = dist_tol * dist_tol
         self.polyline = polyline
         self.offset = offset
         self.closed = closed
@@ -934,7 +932,7 @@ class ParallelPolyline(Group):
         self.under = under
 
     @property
-    def sections(self) -> List[Section]:
+    def sections(self) -> list[Section]:
         """Return the sections of the parallel polyline.
 
         Returns:
@@ -974,7 +972,7 @@ class Lace(Group):
     They are used to create interlace patterns.
 
     Args:
-        shapes (Union[Group, list[Shape]], optional): Sequence of shapes.
+        shapes (Group | list[Shape], optional): Sequence of shapes.
         offset (float, optional): Offset value. Defaults to 2.
         rel_tol (float, optional): Relative tolerance. Defaults to None.
         swatch (list, optional): Swatch list. Defaults to None.
@@ -990,17 +988,17 @@ class Lace(Group):
 
     def __init__(
         self,
-        shapes: Union[Group, list[Shape]] = None,
+        shapes: Group | list[Shape] = None,
         offset: float = 2,
-        rel_tol: float = None,
-        swatch: list = None,
+        rel_tol: float | None = None,
+        swatch: list | None = None,
         plait_color: colors.Color = None,
         draw_fragments: bool = True,
-        palette: list = None,
+        palette: list | None = None,
         color_step: int = 1,
         with_plaits: bool = True,
-        area_threshold: float = None,
-        radius_threshold: float = None,
+        area_threshold: float | None = None,
+        radius_threshold: float | None = None,
         **kwargs,
     ) -> None:
         validate_args(kwargs, shape_style_map)
@@ -1473,7 +1471,7 @@ class Lace(Group):
             polygon.subtype = Types.PLAIT
             plaits.append(polygon)
 
-        sketch = Group((fragments + plaits))
+        sketch = Group(fragments + plaits)
         sketch.fragments = fragments
         sketch.plaits = plaits
         sketch.outline = self.outline
@@ -1484,8 +1482,8 @@ class Lace(Group):
         return sketch
 
     def _fillet_plaits(
-        self, inner_rad: float = 4, outer_rad: float = None
-    ) -> List[Shape]:
+        self, inner_rad: float = 4, outer_rad: float | None = None
+    ) -> list[Shape]:
         if outer_rad is None:
             outer_rad = inner_rad + self.offset
 
@@ -1512,8 +1510,8 @@ class Lace(Group):
         return res
 
     def _fillet_fragments(
-        self, inner_rad: float = 4, outer_rad: float = None
-    ) -> List[Shape]:
+        self, inner_rad: float = 4, outer_rad: float | None = None
+    ) -> list[Shape]:
         if outer_rad is None:
             outer_rad = inner_rad + self.offset
 
@@ -1543,19 +1541,15 @@ class Lace(Group):
 
                 if sec.end.overlap is not None:
                     if close_points2(edge[1], end):
-                        if i + 1 in d_vert_radius:
-                            del d_vert_radius[i + 1]
+                        d_vert_radius.pop(i + 1, None)
                     else:
-                        if i in d_vert_radius:
-                            del d_vert_radius[i]
+                        d_vert_radius.pop(i, None)
 
                 if sec.start.overlap is not None:
                     if close_points2(edge[1], start):
-                        if i + 1 in d_vert_radius:
-                            del d_vert_radius[i + 1]
+                        d_vert_radius.pop(i + 1, None)
                     else:
-                        if i in d_vert_radius:
-                            del d_vert_radius[i]
+                        d_vert_radius.pop(i, None)
 
             res.append(fillet_shape_corners(frag, d_vert_radius))
 
@@ -1579,7 +1573,7 @@ class Lace(Group):
         frags = self.fragments
         vert_groups = [
             [frag for frag in frags if len(frag.vertices) == n]
-            for n in set([len(f.vertices) for f in frags])
+            for n in {len(f.vertices) for f in frags}
         ]
         groups = []
         for group in vert_groups:
@@ -1589,7 +1583,7 @@ class Lace(Group):
                     for f in group
                     if isclose(f.area, area, rel_tol=rel_tol, abs_tol=abs_tol)
                 ]
-                for area in set([frag.area for frag in group])
+                for area in {frag.area for frag in group}
             ]
             areas.sort(key=lambda x: x[0].area, reverse=True)
             groups.append(areas)
@@ -1672,7 +1666,7 @@ class Lace(Group):
             self._set_inner_lines(fragment, n, offset, line_color, line_width)
 
     @property
-    def all_divisions(self) -> List:
+    def all_divisions(self) -> list:
         """
         Return a list of all the divisions (both main and offset) in the lace.
 
@@ -1751,7 +1745,7 @@ class Lace(Group):
             yield from ppoly.polyline.divisions
 
     @property
-    def main_divisions(self) -> List[Division]:
+    def main_divisions(self) -> list[Division]:
         """Main divisions are the divisions of the main polyline.
 
         Returns:
@@ -1763,7 +1757,7 @@ class Lace(Group):
         return res
 
     @property
-    def offset_divisions(self) -> List[Division]:
+    def offset_divisions(self) -> list[Division]:
         """Offset divisions are the divisions of the offset polylines.
 
         Returns:
@@ -1776,7 +1770,7 @@ class Lace(Group):
         return res
 
     @property
-    def intersections(self) -> List[Intersection]:
+    def intersections(self) -> list[Intersection]:
         """Return all the intersections in the parallel_poly_list.
 
         Returns:
@@ -2204,12 +2198,11 @@ class Lace(Group):
                                 )
                                 raise RuntimeError(msg)
                             section.overlap.visited = True
-                            if ind % 2 == even_odd:
-                                if section.overlap.drawable:
-                                    section.overlap.drawable = False
-                                    section.is_over = True
-                                    section2 = poly2.divisions[i].sections[j]
-                                    section2.is_over = True
+                            if ind % 2 == even_odd and section.overlap.drawable:
+                                section.overlap.drawable = False
+                                section.is_over = True
+                                section2 = poly2.divisions[i].sections[j]
+                                section2.is_over = True
                             ind += 1
                 exclude.extend([poly1, poly2])
                 poly1, poly2, even_odd = next_poly(exclude)
@@ -2255,7 +2248,7 @@ class Lace(Group):
                 return None
             while twin_id != start_division_id:
                 if division.next.twin:
-                    if division.fragment.id not in [x.id for x in fragments]:
+                    if division.fragment.id not in (x.id for x in fragments):
                         fragments.append(division.fragment)
                     twin_id = division.next.twin.id
                     division = division.next.twin
@@ -2275,14 +2268,13 @@ class Lace(Group):
         G = self.fragment_edge_graph()
         G2 = nx.Graph()
         for n in neighbours:
-            if n:
-                if len(n) > 2:
-                    for pair in combinations(n, 2):
-                        ids = tuple([x.id for x in pair])
-                        if ids not in G.edges:
-                            G2.add_node(ids[0], fragment=pair[0])
-                            G2.add_node(ids[1], fragment=pair[1])
-                            G2.add_edge(*ids)
+            if n and len(n) > 2:
+                for pair in combinations(n, 2):
+                    ids = tuple([x.id for x in pair])
+                    if ids not in G.edges:
+                        G2.add_node(ids[0], fragment=pair[0])
+                        G2.add_node(ids[1], fragment=pair[1])
+                        G2.add_edge(*ids)
         return G2
 
 

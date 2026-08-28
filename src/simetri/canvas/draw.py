@@ -1,68 +1,72 @@
 """Canvas object uses these methods to draw shapes and text."""
 
-from math import sin, pi, radians
-from typing_extensions import Self, Sequence, Union
+from collections.abc import Sequence
+from math import pi, radians, sin
+from typing import Self
 
+from ..canvas.style_map import (
+    line_style_map,
+    shape_style_map,
+)
+from ..colors import colors
+from ..colors.colors import Color, change_lightness
+from ..colors.palettes import d_name_palette
+from ..geometry.bezier import bezier_points
+from ..geometry.ellipse import elliptic_arc_points
 from ..geometry.geometry import (
     homogenize,
-    midpoint,
-    intersect,
     inclination_angle,
+    intersect,
     intersection,
+    midpoint,
     offset_polygon,
+)
+from ..graphics.affine import (
+    identity_matrix,
+    rotation_matrix,
+    translation_matrix,
 )
 from ..graphics.all_enums import (
     Anchor,
     BackStyle,
+    Connection,
     Drawable,
     FrameShape,
     MarkerType,
+    PlaitStyle,
+    TexLoc,
     Types,
     drawable_types,
-    TexLoc,
-    PlaitStyle,
-    Connection,
 )
-from ..colors import colors
-from ..colors.palettes import d_name_palette
-from ..colors.colors import Color, change_lightness
+from ..graphics.batch import Group
+from ..graphics.common import PointType, d_id_obj
+from ..graphics.path import lin_path_svg
+from ..graphics.shape import Shape, all_segments
 from ..graphics.sketch import (
     ArcSketch,
     BezierSketch,
     CircleSketch,
+    ClippedSketch,
     CompositeSketch,
     EllipseSketch,
     HelpLinesSketch,
+    ImageSketch,
+    LatexSketch,
     LineSketch,
+    PathSketch,
     PatternSketch,
+    PDFSketch,
     RectSketch,
     ShapeSketch,
     TagSketch,
-    ImageSketch,
-    PDFSketch,
-    LatexSketch,
-    ClippedSketch,
-    PathSketch,
-)
-from ..tikz.tikz_sketch import TexSketch
-from ..settings.settings import defaults
-from ..canvas.style_map import (
-    line_style_map,
-    shape_style_map,
 )
 from ..helpers.illustration import Tag
 from ..helpers.utilities import (
     decompose_transformations,
     group_into_bins,
 )
-from ..graphics.affine import identity_matrix
-from ..graphics.shape import Shape, all_segments
-from ..graphics.batch import Group
-from ..graphics.common import PointType, d_id_obj
-from ..graphics.path import lin_path_svg
-from ..geometry.bezier import bezier_points
-from ..geometry.ellipse import elliptic_arc_points
-from ..graphics.affine import rotation_matrix, translation_matrix
+from ..settings.settings import defaults
+from ..tikz.tikz_sketch import TexSketch
 
 
 def help_lines(
@@ -1428,7 +1432,7 @@ def extend_vertices(canvas, item):
         all_vertices.extend(corners)
 
 
-def draw(self, item: Union[Shape, Group], **kwargs) -> Self:
+def draw(self, item: Shape | Group, **kwargs) -> Self:
     """The item is drawn on the canvas with the given style properties.
 
     Args:
@@ -1515,7 +1519,7 @@ def draw(self, item: Union[Shape, Group], **kwargs) -> Self:
 
 
 def draw_all_segments(
-    self, item: Union[Shape, Group], vert_indices=False, **kwargs
+    self, item: Shape | Group, vert_indices=False, **kwargs
 ) -> Self:
     """
     Using intersections, splits edges of the item into separate segments and
@@ -1639,11 +1643,11 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
         "fill_alpha",
     }
     for k, v in kwargs.items():
-        if k in precedence_keys or k in {
+        if k in precedence_keys or k in (
             "_mask_context_id",
             "_style_id",
             "_tikz_style_id",
-        }:
+        ):
             continue
         setattr(sketch, k, v)
 
@@ -1711,28 +1715,23 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             TagSketch: Created TagSketch.
         """
-        if "pos" in kwargs:
-            pos = kwargs["pos"]
-        else:
-            pos = item.pos
+        pos = kwargs.get("pos", item.pos)
 
         sketch = TagSketch(
             text=item.text,
             pos=pos,
             anchor=item.anchor,
             xform_matrix=canvas.xform_matrix,
-            **kwargs
+            **kwargs,
         )
         for attrib_name in item._style_map:
-            if attrib_name in ["color", "alpha"]:
+            if attrib_name in ("color", "alpha"):
                 continue
             if attrib_name == "fill_color":
-                if item.fill_color in [None, colors.black]:
-                    setattr(
-                        sketch, "frame_back_color", defaults["frame_back_color"]
-                    )
+                if item.fill_color in (None, colors.black):
+                    sketch.frame_back_color = defaults["frame_back_color"]
                 else:
-                    setattr(sketch, "frame_back_color", item.fill_color)
+                    sketch.frame_back_color = item.fill_color
                 continue
             attrib_value = canvas.resolve_property(item, attrib_name)
             setattr(sketch, attrib_name, attrib_value)
@@ -1763,10 +1762,7 @@ def create_sketch(item, canvas, **kwargs):
         Returns:
             EllipseSketch: Created EllipseSketch.
         """
-        if "pos" in kwargs:
-            center = kwargs["pos"]
-        else:
-            center = item.center
+        center = kwargs.get("pos", item.center)
 
         sketch = EllipseSketch(
             center,

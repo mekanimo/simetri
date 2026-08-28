@@ -1,17 +1,16 @@
-from typing import List, Tuple, Dict
 import math
 import re
-from math import sqrt, cos, sin, acos, radians, pi, degrees
+from math import acos, cos, degrees, pi, radians, sin, sqrt
 
 import numpy as np
 
-from ..graphics.common import PointType
 from ..geometry.geometry import (
-    offset_polygon,
     double_offset_polygons,
     double_offset_polylines,
+    offset_polygon,
 )
 from ..graphics.all_enums import PathOperation as PathOps
+from ..graphics.common import PointType
 from ..graphics.path import LinPath
 
 
@@ -20,7 +19,7 @@ def fmt(val, digits=3):
     return f"{val:.{digits}f}".rstrip("0").rstrip(".")
 
 
-def round_corner(points: List["PointType"], radius: float) -> str:
+def round_corner(points: list["PointType"], radius: float) -> str:
     """Given a list of three points generates an svg path corresponding to a
     polyline with two segments and a rounded corner between them"""
     if len(points) != 3:
@@ -75,9 +74,9 @@ def round_corner(points: List["PointType"], radius: float) -> str:
 
 
 def round_corners(
-    points: List["PointType"],
+    points: list["PointType"],
     radius: float = 0,
-    fillets: List[tuple[int, float]] = None,
+    fillets: list[tuple[int, float]] | None = None,
     closed: bool = False,
 ) -> str:
     """Given a list of points generates an svg path corresponding to a polyline
@@ -129,7 +128,7 @@ def round_corners(
     return " ".join(path)
 
 
-def _extract_vertices(svg_path: str) -> Tuple[List[PointType], bool]:
+def _extract_vertices(svg_path: str) -> tuple[list[PointType], bool]:
     tokens = re.findall(r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+)", svg_path)
     points = []
     i = 0
@@ -143,7 +142,7 @@ def _extract_vertices(svg_path: str) -> Tuple[List[PointType], bool]:
         lower_t = t.lower()
 
         # Check if token is a command
-        if lower_t in ["m", "l", "a", "h", "v", "z"]:
+        if lower_t in ("m", "l", "a", "h", "v", "z"):
             cmd = lower_t
             i += 1
         else:
@@ -197,7 +196,7 @@ def _extract_vertices(svg_path: str) -> Tuple[List[PointType], bool]:
     return points, closed
 
 
-def _points_to_svg(points: List[PointType], closed: bool) -> str:
+def _points_to_svg(points: list[PointType], closed: bool) -> str:
     if not points:
         return ""
     parts = [f"M {fmt(points[0][0])},{fmt(points[0][1])}"]
@@ -337,8 +336,7 @@ def convert_svg_arc(
     d = math.hypot(x2 - x1, y2 - y1) / 2
 
     # If radius is too small, adjust it
-    if d > r:
-        r = d
+    r = max(r, d)
 
     # Distance from midpoint to center
     h = math.sqrt(r * r - d * d)
@@ -585,7 +583,7 @@ def linpath_to_svg_path(linpath: "LinPath") -> str:
             linpath.objects[obj_idx] if obj_idx < len(linpath.objects) else None
         )
 
-        if st in [PO.MOVE_TO, PO.R_MOVE]:
+        if st in (PO.MOVE_TO, PO.R_MOVE):
             # data is point (x,y)
             parts.append(f"M {fmt(data[0])},{fmt(data[1])}")
 
@@ -659,7 +657,7 @@ def linpath_to_svg_path(linpath: "LinPath") -> str:
 
 def linpath_points(
     linpath: "LinPath", delta: float
-) -> List[Tuple[float, float]]:
+) -> list[tuple[float, float]]:
     """Given a LinPath instance, returns a list of points separated by the given length.
     It is not possible to create the points with the exact delta. Delta will be
     adjusted for each part of the LinPath accordingly.
@@ -699,7 +697,7 @@ def linpath_points(
     return points
 
 
-def svg_path_points(svg_path: str, delta: float) -> List[Tuple[float, float]]:
+def svg_path_points(svg_path: str, delta: float) -> list[tuple[float, float]]:
     """Given an SVG path string, returns a list of points separated by the given length.
     It is not possible to create the points with the exact delta. Delta will be
     adjusted for each part of the SVG path accordingly.

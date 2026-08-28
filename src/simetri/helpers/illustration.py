@@ -1,61 +1,59 @@
 """This module contains functions and classes for creating annotations,
 arrows, dimensions, etc."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing_extensions import Sequence
-
-from math import pi, atan2
-from PIL import ImageFont
+from math import atan2, pi
 
 import fitz
 import numpy as np
+from PIL import ImageFont
 
-# from reportlab.pdfbase import pdfmetrics # to do: remove this
-
-from ..graphics.core import Base
-from ..graphics.bbox import bounding_box
-from ..graphics.points import Points
-from ..graphics.batch import Group
-from ..graphics.shape import Shape
-
-from ..graphics.shapes import reg_poly_points_side_length
-from ..graphics.common import (
-    get_defaults,
-    PointType,
-    _set_Nones,
-)
-from ..graphics.all_enums import (
-    Align,
-    Types,
-    LineJoin,
-    Anchor,
-    FrameShape,
-    HeadPos,
-    ArrowLine,
-    Placement,
-    FontSize,
-    FontFamily,
-)
-from ..canvas.style_map import shape_style_map, tag_style_map, TagStyle
-from ..graphics.affine import identity_matrix
+from ..canvas.style_map import TagStyle, shape_style_map, tag_style_map
+from ..colors import colors
+from ..colors.swatches import swatches_255
 from ..geometry.ellipse import Arc
 from ..geometry.geometry import (
     distance,
-    line_angle,
     extended_line,
+    line_angle,
     line_by_point_angle_length,
     midpoint,
     polar_to_cartesian,
 )
-from .utilities import get_transform
-from ..colors.swatches import swatches_255
+from ..graphics.affine import identity_matrix
+from ..graphics.all_enums import (
+    Align,
+    Anchor,
+    ArrowLine,
+    FontFamily,
+    FontSize,
+    FrameShape,
+    HeadPos,
+    LineJoin,
+    Placement,
+    Types,
+)
+from ..graphics.batch import Group
+from ..graphics.bbox import bounding_box
+from ..graphics.common import (
+    PointType,
+    _set_Nones,
+    get_defaults,
+)
+
+# from reportlab.pdfbase import pdfmetrics # to do: remove this
+from ..graphics.core import Base, StyleMixin
+from ..graphics.points import Points
+from ..graphics.shape import Shape
+from ..graphics.shapes import reg_poly_points_side_length
 from ..settings.settings import defaults
-from ..colors import colors
+from .utilities import get_transform
 from .validation import validate_args
-from ..graphics.core import StyleMixin
 
 Color = colors.Color
 array = np.array
+NDArray = np.ndarray
 
 
 def logo(scale=1):
@@ -407,17 +405,17 @@ class Tag(Base, StyleMixin):
         self,
         text: str,
         pos: PointType,
-        font_family: str = None,
-        font_size: int = None,
+        font_family: str | None = None,
+        font_size: int | None = None,
         font_color: Color = None,
         anchor: Anchor = Anchor.CENTER,
         bold: bool = False,
         italic: bool = False,
-        text_width: float = None,
+        text_width: float | None = None,
         placement: Placement = None,
-        minimum_size: float = None,
-        minimum_width: float = None,
-        minimum_height: float = None,
+        minimum_size: float | None = None,
+        minimum_width: float | None = None,
+        minimum_height: float | None = None,
         frame=None,
         xform_matrix=None,
         **kwargs,
@@ -642,7 +640,7 @@ class Tag(Base, StyleMixin):
             self.align if self.align is not None else defaults["tag_align"]
         )
 
-        if self.anchor in [Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST]:
+        if self.anchor in (Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST):
             xmin = x - inner_sep
             xmax = x + text_width + inner_sep
         elif self.anchor in [Anchor.EAST, Anchor.SOUTHEAST, Anchor.NORTHEAST]:
@@ -703,9 +701,9 @@ class ArrowHead(Shape):
 
     def __init__(
         self,
-        length: float = None,
-        width_: float = None,
-        points: list = None,
+        length: float | None = None,
+        width_: float | None = None,
+        points: list | None = None,
         **kwargs,
     ):
         length, width_ = get_defaults(
@@ -841,7 +839,7 @@ class ArcArrow(Group):
         radius: float,
         start_angle: float,
         end_angle: float,
-        xform_matrix: array = None,
+        xform_matrix: NDArray | None = None,
         **kwargs,
     ):
         self.center = center
@@ -892,14 +890,14 @@ class RadialDimension(Group):
     def __init__(
         self,
         center: PointType,
-        radius: float = None,
+        radius: float | None = None,
         angle: float = 0,
         text: str = "",
         text_offset: Sequence = (0, 0),
         ext_length: float = 10,
         reverse_arrow: bool = False,
         keep_inside: bool = True,
-        gap: float = None,
+        gap: float | None = None,
         **kwargs,
     ):
         text_offset, gap = get_defaults(
@@ -1030,8 +1028,8 @@ class AngularDimension(Group):
         end_angle: float,
         ext_angle: float,
         gap_angle: float,
-        text_offset: float = None,
-        gap: float = None,
+        text_offset: float | None = None,
+        gap: float | None = None,
         **kwargs,
     ):
         text_offset, gap = get_defaults(
@@ -1078,14 +1076,14 @@ class Dimension(Group):
         p1: PointType,
         p2: PointType,
         ext_length: float,
-        ext_length2: float = None,
+        ext_length2: float | None = None,
         orientation: Anchor = None,
         text: str = "",
         text_pos: Anchor = Anchor.CENTER,
         text_offset: tuple = (0, 0),
-        gap: float = None,
+        gap: float | None = None,
         reverse_arrows: bool = False,
-        reverse_arrow_length: float = None,
+        reverse_arrow_length: float | None = None,
         parallel: bool = False,
         ext1pnt: PointType = None,
         ext2pnt: PointType = None,
@@ -1149,10 +1147,10 @@ class Dimension(Group):
         if parallel:
             if orientation is None:
                 orientation = Anchor.NORTHEAST
-
-            if orientation == Anchor.NORTHEAST:
-                angle = line_angle(p1, p2) + pi / 2
-            elif orientation == Anchor.NORTHWEST:
+            elif (
+                orientation == Anchor.NORTHEAST
+                or orientation == Anchor.NORTHWEST
+            ):
                 angle = line_angle(p1, p2) + pi / 2
             elif orientation == Anchor.SOUTHEAST:
                 angle = line_angle(p1, p2) - pi / 2
@@ -1220,7 +1218,7 @@ class Dimension(Group):
 
         else:
             if self.text == "":
-                if orientation in [Anchor.NORTH, Anchor.SOUTH]:
+                if orientation in (Anchor.NORTH, Anchor.SOUTH):
                     self.text = f"{(max_x - min_x / scale):.2f}"
                 elif orientation in [Anchor.EAST, Anchor.WEST]:
                     self.text = f"{(max_y - min_y / scale):.2f}"
@@ -1261,7 +1259,7 @@ class Dimension(Group):
                     pa1 = (x1, y1)
                     pa2 = (x1, y2)
                 x = pa1[0]
-                if orientation in [Anchor.SOUTHWEST, Anchor.SOUTHEAST]:
+                if orientation in (Anchor.SOUTHWEST, Anchor.SOUTHEAST):
                     px3_1 = pa2
                     y = y2 - self.ext_length2
                     px3_2 = (x, y)
@@ -1348,7 +1346,7 @@ class Dimension(Group):
                     pa2 = (x2, y2)
 
                 y = pa1[1]
-                if orientation in [Anchor.SOUTHWEST, Anchor.NORTHWEST]:
+                if orientation in (Anchor.SOUTHWEST, Anchor.NORTHWEST):
                     px3_1 = pa1
                     x = x1 - self.ext_length2
                     px3_2 = (x, y)
@@ -1363,7 +1361,7 @@ class Dimension(Group):
                 elif orientation in [Anchor.CENTER, Anchor.NORTH, Anchor.SOUTH]:
                     self.text_pos = (x1 + (x2 - x1) / 2, y)
 
-                if orientation not in [Anchor.CENTER, Anchor.WEST, Anchor.EAST]:
+                if orientation not in (Anchor.CENTER, Anchor.WEST, Anchor.EAST):
                     if self.ext1pnt is None:
                         self.ext1 = Shape([px1_1, px1_2])
                     else:
@@ -1451,7 +1449,6 @@ class Dimension(Group):
                     ]:
                         if self.text_side == Anchor.BOTTOM:
                             tx, ty = extended_line(dist, [pa2, pa1])[1]
-                            self
                         else:
                             tx, ty = extended_line(dist, [pa1, pa2])[1]
                             self.text_pos = (tx + text_dx, ty + text_dy)

@@ -4,7 +4,6 @@
 
 from math import sqrt, pi, cos
 
-from typing import Union
 
 from ..geometry.geometry import midpoint, line_through_point_and_angle
 from ..graphics.common import VecType, PointType, LineType
@@ -18,7 +17,7 @@ cos30 = cos(pi / 6)
 
 
 def cover_hex(
-    item: Union[Group, Shape, Tag],
+    item: Group | Shape | Tag,
     size: float,
     gap: float = 0,
     reps1: int = 2,
@@ -29,7 +28,7 @@ def cover_hex(
     Covers an area with a hexagonal pattern.
 
     Args:
-        item (Union[Group, Shape, Tag]): The item to be repeated.
+        item (Group | Shape | Tag): The item to be repeated.
         size (float): The size of the hexagons.
         gap (float, optional): The gap between hexagons. Defaults to 0.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
@@ -61,13 +60,13 @@ def cover_hex(
 
 
 def cover_rhombic(
-    item: Union[Group, Shape, Tag], size: float, reps1: int = 2, reps2: int = 2
+    item: Group | Shape | Tag, size: float, reps1: int = 2, reps2: int = 2
 ) -> Group:
     """
     Covers an area with a rhombic pattern.
 
     Args:
-        item (Union[Group, Shape, Tag]): The item to be repeated.
+        item (Group | Shape | Tag): The item to be repeated.
         size (float): The size of the rhombuses.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 2.
@@ -115,7 +114,7 @@ def hex_grid_pointy(
 
 
 def cover_hex_pointy(
-    item: Union[Shape, Group, Tag],
+    item: Shape | Group | Tag,
     size: float,
     gap: float = 0,
     reps1: int = 2,
@@ -125,7 +124,7 @@ def cover_hex_pointy(
     Covers an area with a hexagonal pattern with pointy tops.
 
     Args:
-        item (Union[Shape, Group, Tag]): The item to be repeated.
+        item (Shape | Group | Tag): The item to be repeated.
         size (float): The size of the hexagons.
         gap (float, optional): The gap between hexagons. Defaults to 0.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
@@ -148,7 +147,7 @@ def cover_hex_pointy(
 
 
 def cover_hex_flat(
-    item: Union[Group, Shape, Tag],
+    item: Group | Shape | Tag,
     size: float,
     gap: float = 0,
     reps1: int = 2,
@@ -158,7 +157,7 @@ def cover_hex_flat(
     Covers an area with a hexagonal pattern with flat tops.
 
     Args:
-        item (Union[Group, Shape, Tag]): The item to be repeated.
+        item (Group | Shape | Tag): The item to be repeated.
         size (float): The size of the hexagons.
         gap (float, optional): The gap between hexagons. Defaults to 0.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 2.
@@ -191,7 +190,7 @@ def cover_hex_flat(
 
 
 def wallpaper_p1(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     vector1: VecType,
     vector2: VecType,
     reps1: int = 4,
@@ -205,7 +204,7 @@ def wallpaper_p1(
     PointType group: C1
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         vector1 (VecType): The translation vector in the x direction.
         vector2 (VecType): The translation vector in the y direction.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -223,7 +222,7 @@ def wallpaper_p1(
 
 
 def wallpaper_p2(
-    generator: Union[Shape, Group, Tag],
+    generator: Shape | Group | Tag,
     vector1: VecType,
     vector2: VecType,
     reps1: int = 4,
@@ -237,7 +236,7 @@ def wallpaper_p2(
     PointType group: C2
 
     Args:
-        generator (Union[Shape, Group, Tag]): The repeating motif.
+        generator (Shape | Group | Tag): The repeating motif.
         vector1 (VecType): The translation vector in the x direction.
         vector2 (VecType): The translation vector in the y direction.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -257,7 +256,7 @@ def wallpaper_p2(
 
 
 def wallpaper_p2_rect_lattice(
-    generator: Union[Shape, Group, Tag],
+    generator: Shape | Group | Tag,
     rotocenter: PointType,
     vector1: VecType,
     vector2: VecType,
@@ -302,7 +301,7 @@ def wallpaper_p2_rect_lattice(
 
 
 def wallpaper_p3(
-    generator: Union[Shape, Group, Tag],
+    generator: Shape | Group | Tag,
     rotocenter: PointType,
     distance: float,
     reps1: int = 4,
@@ -317,7 +316,7 @@ def wallpaper_p3(
     PointType group: C3
 
     Args:
-        generator (Union[Shape, Group, Tag]): The repeating motif.
+        generator (Shape | Group | Tag): The repeating motif.
         rotocenter (PointType): The center of rotation.
         distance (float): The distance between the centers of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -337,7 +336,7 @@ def wallpaper_p3(
 
 
 def wallpaper_p4(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     rotocenter: PointType,
     distance: float,
     reps1: int = 4,
@@ -351,7 +350,7 @@ def wallpaper_p4(
     PointType group: C4
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         rotocenter (PointType): The center of rotation.
         distance (float): The distance between the centers of the squares.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -368,7 +367,7 @@ def wallpaper_p4(
 
 
 def wallpaper_p6(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     rotocenter: PointType,
     hex_size: float,
     reps1: int = 4,
@@ -383,7 +382,7 @@ def wallpaper_p6(
     PointType group: C6
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         rotocenter (PointType): The center of rotation.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -403,7 +402,7 @@ def wallpaper_p6(
 
 
 def wallpaper_pm(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     mirror_line: LineType,
     dx: float,
     dy: float,
@@ -419,7 +418,7 @@ def wallpaper_pm(
     PointType group: D1
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         mirror_line (LineType): The line of symmetry.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -437,7 +436,7 @@ def wallpaper_pm(
 
 
 def wallpaper_pg(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     mirror_line: LineType,
     distance: float,
     dx: float,
@@ -453,7 +452,7 @@ def wallpaper_pg(
     PointType group: D1
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         mirror_line (LineType): The line of symmetry.
         distance (float): The distance for the glide reflection.
         dx (float): Translation distance in the x direction.
@@ -472,7 +471,7 @@ def wallpaper_pg(
 
 
 def wallpaper_cm(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     mirror_point: PointType,
     rhomb_size: float,
     reps1: int = 4,
@@ -487,7 +486,7 @@ def wallpaper_cm(
     PointType group: D1
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         mirror_point (PointType): The point of symmetry.
         rhomb_size (float): The size of the rhombuses.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -514,7 +513,7 @@ def wallpaper_cm(
 
 
 def wallpaper_pmm(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     mirror_cross: PointType,
     dx: float,
     dy: float,
@@ -529,7 +528,7 @@ def wallpaper_pmm(
     PointType group: D2
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         mirror_cross (PointType): The point where the mirror lines cross.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -551,7 +550,7 @@ def wallpaper_pmm(
 
 
 def wallpaper_pmg(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     center_point: PointType,
     dx: float,
     dy: float,
@@ -567,7 +566,7 @@ def wallpaper_pmg(
     PointType group: D2
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         center_point (PointType): The center point for the symmetry.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -594,7 +593,7 @@ def wallpaper_pmg(
 
 
 def wallpaper_pgg(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     rotocenter: PointType,
     dx: float,
     dy: float,
@@ -610,7 +609,7 @@ def wallpaper_pgg(
     PointType group: D2
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         rotocenter (PointType): The center of rotation.
         dx (float): Translation distance in the x direction.
         dy (float): Translation distance in the y direction.
@@ -638,7 +637,7 @@ def wallpaper_pgg(
 
 
 def wallpaper_cmm(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     mirror_cross: PointType,
     rhomb_size: float,
     reps1: int = 4,
@@ -652,7 +651,7 @@ def wallpaper_cmm(
     PointType group: D2
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         mirror_cross (PointType): The point where the mirror lines cross.
         rhomb_size (float): The size of the rhombuses.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -672,7 +671,7 @@ def wallpaper_cmm(
 
 
 def wallpaper_p4m(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     mirror_cross: PointType,
     side_length: float,
     reps1: int = 4,
@@ -686,7 +685,7 @@ def wallpaper_p4m(
     PointType group: D4
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         mirror_cross (PointType): The point where the mirror lines cross.
         side_length (float): The side length of the squares.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -707,7 +706,7 @@ def wallpaper_p4m(
 
 
 def wallpaper_p4g(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     dist: float,
     reps1: int = 4,
     reps2: int = 4,
@@ -720,7 +719,7 @@ def wallpaper_p4g(
     PointType group: D4
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         dist (float): The distance between the centers of the squares.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
         reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
@@ -742,7 +741,7 @@ def wallpaper_p4g(
 
 
 def wallpaper_p3m1(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     center_point: PointType,
     hex_size: float,
     reps1: int = 4,
@@ -756,7 +755,7 @@ def wallpaper_p3m1(
     PointType group: D3
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         center_point (PointType): The center point for the symmetry.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -775,7 +774,7 @@ def wallpaper_p3m1(
 
 
 def wallpaper_p31m(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     center_point: PointType,
     hex_size: float,
     reps1: int = 4,
@@ -789,7 +788,7 @@ def wallpaper_p31m(
     PointType group: D3
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         center_point (PointType): The center point for the symmetry.
         hex_size (float): The size of the hexagons.
         reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
@@ -812,7 +811,7 @@ def wallpaper_p31m(
 
 
 def wallpaper_p6m(
-    generator: Union[Group, Shape, Tag],
+    generator: Group | Shape | Tag,
     rotocenter: PointType,
     mirror_cross: PointType,
     hex_size: float,
@@ -828,7 +827,7 @@ def wallpaper_p6m(
     PointType group: D6
 
     Args:
-        generator (Union[Group, Shape, Tag]): The repeating motif.
+        generator (Group | Shape | Tag): The repeating motif.
         rotocenter (PointType): The center of rotation.
         mirror_cross (PointType): The point where the mirror lines cross.
         hex_size (float): The size of the hexagons.

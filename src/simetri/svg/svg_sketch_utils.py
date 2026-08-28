@@ -3,8 +3,8 @@
 import numpy as np
 from PIL import ImageFont
 
-from ..colors.colors import Color
 from ..canvas.pre_render import set_styles
+from ..colors.colors import Color
 from ..graphics.all_enums import FontFamily, MarkerType, Types
 from ..graphics.bbox import bounding_box
 from ..settings.settings import defaults, issue_warning
@@ -483,7 +483,7 @@ def generate_marker_def(
         stroke_attr = f'stroke="{marker_color_svg}" stroke-width="{marker_line_width}" stroke-opacity="{marker_alpha}"'
 
     # Get marker path
-    elem_type, path_data = get_marker_path(marker_type, marker_size)
+    _, path_data = get_marker_path(marker_type, marker_size)
 
     return f'''  <marker id="{marker_id}" markerWidth="{marker_size * 2}" markerHeight="{marker_size * 2}"
       refX="0" refY="0" viewBox="{-marker_size} {-marker_size} {marker_size * 2} {marker_size * 2}" markerUnits="userSpaceOnUse" orient="auto">
@@ -505,7 +505,7 @@ def get_shape_type(sketch):
 
 
 def get_coordinates(sketch, shape_type):
-    if shape_type in ["polygon", "polyline"]:
+    if shape_type in ("polygon", "polyline"):
         vertices = sketch_attrib(sketch, "vertices")
         verts = ", ".join([f"{x} {y}" for x, y in vertices])
 
@@ -543,7 +543,7 @@ def get_coordinates(sketch, shape_type):
 def get_style(sketch, shape_type):
     line_style = get_line_style_options(sketch)
     res = [line_style]
-    if shape_type in ["circle", "ellipse", "polygon", "polyline", "rect"]:
+    if shape_type in ("circle", "ellipse", "polygon", "polyline", "rect"):
         fill_style = get_fill_style_options(sketch, shape_type)
         res.append(fill_style)
 
@@ -582,7 +582,7 @@ def get_style_maps(canvas):
     def collect_sketch_styles(sketch):
         subtype = sketch_attrib(sketch, "subtype")
 
-        if subtype in [Types.CLIPPED_SKETCH, Types.MASKED_SKETCH]:
+        if subtype in (Types.CLIPPED_SKETCH, Types.MASKED_SKETCH):
             for sketch_list in sketch.sketches:
                 for child_sketch in sketch_list:
                     collect_sketch_styles(child_sketch)

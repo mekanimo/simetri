@@ -1,11 +1,11 @@
 """SVG related sketches are handled here."""
 
-from dataclasses import dataclass
-from math import degrees
-from types import SimpleNamespace
 import html
 import io
 import re
+from dataclasses import dataclass
+from math import degrees
+from types import SimpleNamespace
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -17,8 +17,8 @@ from ..settings.settings import defaults
 from .svg_colors import color_to_matplotlib, color_to_svg
 from .svg_common import _clip_line_to_rect, get_clip_mask_attrs
 from .svg_sketch_utils import (
-    get_active_svg_style_id,
     _line_limits,
+    get_active_svg_style_id,
     get_fill_style_options,
     get_line_style_options,
     get_text_size,
@@ -68,7 +68,7 @@ def draw_line_sketch(sketch, canvas, exceptions=None):
     if not isinstance(extent, Extent) and extent is not None:
         extent = Extent(extent)
 
-    if extent in [Extent.RAY, Extent.INFINITE]:
+    if extent in (Extent.RAY, Extent.INFINITE):
         limits = _line_limits(canvas)
         start, end = _clip_line_to_rect(start, end, limits, extent)
 
@@ -285,7 +285,7 @@ def draw_tag_sketch(sketch):
     # Handle anchor positioning
     anchor = sketch_attrib(sketch, "anchor")
     if anchor:
-        if anchor in [Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST]:
+        if anchor in (Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST):
             text_anchor = "start"
         elif anchor in [Anchor.EAST, Anchor.SOUTHEAST, Anchor.NORTHEAST]:
             text_anchor = "end"
