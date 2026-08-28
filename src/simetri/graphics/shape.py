@@ -1812,11 +1812,10 @@ def _clip_shape(
 
     for segment_index in range(shape_segment_count):
         for seg in split_segment(segment_index):
-            if not isclose(distance(*seg), 0, rel_tol=rel_tol, abs_tol=abs_tol):
-                if in_polygon(
-                    midpoint(*seg), clipper_vertices, exclude_clipper
-                ):
-                    clipped.append(Shape(seg))
+            if not isclose(
+                distance(*seg), 0, rel_tol=rel_tol, abs_tol=abs_tol
+            ) and in_polygon(midpoint(*seg), clipper_vertices, exclude_clipper):
+                clipped.append(Shape(seg))
 
     if shape.closed and not exclude_clipper:
         for segment_index in range(shape_segment_count, len(segments)):

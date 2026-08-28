@@ -64,9 +64,9 @@ class Operation:
         self.type = Types.PATH_OPERATION
 
 
-class LinPath(Group):
+class Path2D(Group):
     """LinearPath.
-    A LinPath object is a container for various linear elements.
+    A Path2D object is a container for various linear elements.
     Path objects can be transformed like other Shape and Group objects.
     """
 
@@ -242,14 +242,14 @@ class LinPath(Group):
 
         return self
 
-    def copy(self) -> "LinPath":
+    def copy(self) -> "Path2D":
         """Return a copy of the path.
 
         Returns:
-            LinPath: The copied path object.
+            Path2D: The copied path object.
         """
 
-        new_path = LinPath(start=self.start)
+        new_path = Path2D(start=self.start)
         cur_shape_index = None
         for index, element in enumerate(self.elements):
             if element is self.cur_shape:
@@ -279,7 +279,7 @@ class LinPath(Group):
         new_path.copy_style(self)
         return new_path
 
-        # new_path = LinPath(start=self.start)
+        # new_path = Path2D(start=self.start)
         # cur_shape_index = None
         # for index, element in enumerate(self.elements):
         #     if element is self.cur_shape:
@@ -1340,7 +1340,7 @@ def _transform_path_operation(
 
 
 def lin_path_svg(lin_path):
-    """Given a LinPath object returns the equivalent svg path."""
+    """Given a Path2D object returns the equivalent svg path."""
 
     def fmt(val):
         """Format a float to a string with 3 decimal places."""
@@ -1451,10 +1451,10 @@ def lin_path_svg(lin_path):
     return " ".join(parts)
 
 
-def svg_path_to_linpath(svg_path: str) -> LinPath:
-    """Converts an svg path string to LinPath object."""
+def svg_path_to_linpath(svg_path: str) -> Path2D:
+    """Converts an svg path string to Path2D object."""
     if not svg_path:
-        return LinPath()
+        return Path2D()
 
     # Tokenizer
     tokens = re.findall(
@@ -1474,13 +1474,13 @@ def svg_path_to_linpath(svg_path: str) -> LinPath:
             # But we need to be careful if M has multiple points (implicit L)
             # or if we want to run the loop cleanly.
             # Easier: Just start at (0,0) and let the first Move set the pos.
-            # But LinPath always starts with a point.
+            # But Path2D always starts with a point.
             # So initialization with correct start is better.
             idx = 3
         except IndexError:
             pass
 
-    lp = LinPath(start=start_point)
+    lp = Path2D(start=start_point)
 
     # If we consumed the first coordinate, we must handle implicit L if any.
     # The loop below handles commands.
@@ -1770,9 +1770,9 @@ def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
     }
 
 
-def shape_to_path(shape: Shape) -> LinPath:
-    """Given a Shape instance returns the equivalent LinPath object."""
-    path = LinPath()
+def shape_to_path(shape: Shape) -> Path2D:
+    """Given a Shape instance returns the equivalent Path2D object."""
+    path = Path2D()
     path.move_to(shape[0])
     for vert in shape.vertices[1:]:
         path.line_to(vert)
@@ -1783,10 +1783,10 @@ def shape_to_path(shape: Shape) -> LinPath:
     return path
 
 
-def group_to_path(group: Group) -> LinPath:
-    """Given a Group instance returns the equivalent LinPath object."""
+def group_to_path(group: Group) -> Path2D:
+    """Given a Group instance returns the equivalent Path2D object."""
     shapes = group.all_shapes
-    path = LinPath()
+    path = Path2D()
     path.move_to(shapes[0][0])
     for i, shape in enumerate(shapes):
         if i > 0:

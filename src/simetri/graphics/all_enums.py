@@ -822,7 +822,7 @@ class PageSize(StrEnum):
 
 class PathOperation(StrEnum):
     """PathOperation is used to set the type of path operation.
-    Used with LinPath objects.
+    Used with Path2D objects.
 
     Valid values are: ARC, ARC_TO, BLEND_ARC, BLEND_CUBIC, BLEND_QUAD, BLEND_SINE, CLOSE, CUBIC_TO, FORWARD,
     HOBBY_TO, H_LINE_TO, LINE_TO, MOVE_TO, QUAD_TO, R_LINE, R_H_LINE, R_V_LINE, R_MOVE, SEGMENTS, SINE, V_LINE_TO.

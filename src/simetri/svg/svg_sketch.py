@@ -147,7 +147,7 @@ def draw_arc_sketch(sketch, exceptions=None):
 
 
 def draw_path_sketch(sketch, exceptions=None):
-    """Draw a LinPath sketch as an SVG path without geometry conversion."""
+    """Draw a Path2D sketch as an SVG path without geometry conversion."""
     path_data = sketch_attrib(sketch, "path_data")
 
     fill_attr = ""

@@ -11,7 +11,7 @@ from ..geometry.geometry import (
 )
 from ..graphics.all_enums import PathOperation as PathOps
 from ..graphics.common import PointType
-from ..graphics.path import LinPath
+from ..graphics.path import Path2D
 
 
 # Helper to format floats to avoid excessive precision in SVG
@@ -371,12 +371,12 @@ def convert_svg_arc(
     return ((cx, cy), start_angle, sweep_angle)
 
 
-def svg_path_to_linpath(svg_path: str) -> "LinPath":
-    """Given an SVG path returns the equivalent LinPath object."""
-    from ..graphics.path import LinPath
+def svg_path_to_linpath(svg_path: str) -> "Path2D":
+    """Given an SVG path returns the equivalent Path2D object."""
+    from ..graphics.path import Path2D
 
     if not svg_path:
-        return LinPath()
+        return Path2D()
 
     # Tokenizer
     tokens = re.findall(
@@ -396,7 +396,7 @@ def svg_path_to_linpath(svg_path: str) -> "LinPath":
         except IndexError:
             pass
 
-    lp = LinPath(start=start_point)
+    lp = Path2D(start=start_point)
 
     current_cmd = ""
     i = 0
@@ -562,8 +562,8 @@ def svg_path_to_linpath(svg_path: str) -> "LinPath":
     return lp
 
 
-def linpath_to_svg_path(linpath: "LinPath") -> str:
-    """Given a LinPath instance, returns the equivalent SVG path string."""
+def linpath_to_svg_path(linpath: "Path2D") -> str:
+    """Given a Path2D instance, returns the equivalent SVG path string."""
     parts = [f"M {fmt(linpath.start[0])},{fmt(linpath.start[1])}"]
 
     # Iterate through operations and convert to SVG path commands
@@ -656,11 +656,11 @@ def linpath_to_svg_path(linpath: "LinPath") -> str:
 
 
 def linpath_points(
-    linpath: "LinPath", delta: float
+    linpath: "Path2D", delta: float
 ) -> list[tuple[float, float]]:
-    """Given a LinPath instance, returns a list of points separated by the given length.
+    """Given a Path2D instance, returns a list of points separated by the given length.
     It is not possible to create the points with the exact delta. Delta will be
-    adjusted for each part of the LinPath accordingly.
+    adjusted for each part of the Path2D accordingly.
     """
     points = []
     vertices = linpath.vertices
@@ -707,7 +707,7 @@ def svg_path_points(svg_path: str, delta: float) -> list[tuple[float, float]]:
 
 
 def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
-    """Convert SVG arc parameters to LinPath arc parameters."""
+    """Convert SVG arc parameters to Path2D arc parameters."""
     x1, y1 = start
     x2, y2 = end
 

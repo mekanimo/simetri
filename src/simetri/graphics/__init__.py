@@ -101,7 +101,7 @@ from .affine import *
 from .batch import *
 from .dots import *
 from .mask import Gradient, Mask, Stop
-from .path import LinPath, Operation
+from .path import Path2D, Operation
 from .pattern import *
 
 set_tikz_defaults()
@@ -116,3 +116,4 @@ MM = mirror_matrix
 GM = glide_matrix
 SM = scale_matrix
 SHM = shear_matrix
+LinPath = Path2D
