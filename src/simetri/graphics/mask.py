@@ -7,11 +7,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ..graphics.all_enums import Types, SvgUnits, GradientType
-
 from ..colors.colors import Color, gray, white
+from ..graphics.all_enums import GradientType, SvgUnits, Types
+from ..helpers.validation import check_color, check_percent
 from ..settings.settings import defaults
-from ..helpers.validation import check_percent, check_color
+
+if TYPE_CHECKING:
+    from ..graphics.sketch import Sketch
 
 
 @dataclass
@@ -198,7 +200,7 @@ def _normalize_units(value: str | SvgUnits | None, field_name: str) -> SvgUnits:
 # This is no longer used! Will be deleted soon.
 # We will use canvas.clip(target, mask), canvas.mask(target, mask)
 def clip_mask_(
-    self: "Canvas",
+    self: Canvas,
     target: Shape | Group | None = None,
     mask: Mask = None,
     **kwargs,

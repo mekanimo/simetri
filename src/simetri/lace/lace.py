@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from collections.abc import Iterator
 from itertools import combinations
+from math import ceil, log10, sqrt
 from typing import Any
 
 import networkx as nx
@@ -32,6 +33,7 @@ from ..geometry.geometry import (
     right_handed,
     round_point,
 )
+
 from ..graphics.all_enums import Connection, Types
 from ..graphics.batch import Group
 from ..graphics.common import d_id_obj, get_defaults
@@ -983,6 +985,11 @@ class Lace(Group):
         with_plaits (bool, optional): If plaits should be included. Defaults to True.
         area_threshold (float, optional): Area threshold. Defaults to None.
         radius_threshold (float, optional): Radius threshold. Defaults to None.
+        dist_tol (float, optional): Distance tolerance used when merging
+            shapes. Defaults to None.
+        merge_angle_tol (float, optional): Angle tolerance in radians used
+            when merging collinear edges. Defaults to 0.1.
+        debug (bool, optional): Print shape merge diagnostics. Defaults to False.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
@@ -999,11 +1006,15 @@ class Lace(Group):
         with_plaits: bool = True,
         area_threshold: float | None = None,
         radius_threshold: float | None = None,
+        dist_tol: float | None = None,
+        merge_angle_tol: float = 0.1,
+        debug: bool = False,
         **kwargs,
     ) -> None:
         validate_args(kwargs, shape_style_map)
         (
             rel_tol,
+            dist_tol,
             swatch,
             plait_color,
             draw_fragments,
@@ -1012,6 +1023,7 @@ class Lace(Group):
         ) = get_defaults(
             [
                 "rel_tol",
+                "dist_tol",
                 "swatch",
                 "plait_color",
                 "draw_fragments",
@@ -1020,6 +1032,7 @@ class Lace(Group):
             ],
             [
                 rel_tol,
+                dist_tol,
                 swatch,
                 plait_color,
                 draw_fragments,
@@ -1027,19 +1040,33 @@ class Lace(Group):
                 radius_threshold,
             ],
         )
+        merge_n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
+        merge_arguments = {
+            "merge_angle_tol": merge_angle_tol,
+            "debug": debug,
+            "dist_tol": dist_tol,
+            "n_round": merge_n_round,
+        }
+        if debug:
+            print(
+                "Lace merge settings: "
+                f"dist_tol={dist_tol}; "
+                f"merge_angle_tol={merge_angle_tol}; "
+                f"automatic n_round={merge_n_round}"
+            )
         if isinstance(shapes, Shape):
-            shapes = Group([shapes]).merge_shapes()
+            shapes = Group([shapes]).merge_shapes(**merge_arguments)
         elif isinstance(shapes, Group):
-            shapes = shapes.merge_shapes()
+            shapes = shapes.merge_shapes(**merge_arguments)
         elif isinstance(shapes, (list, tuple)):
-            shapes = Group(shapes).merge_shapes()
+            shapes = Group(shapes).merge_shapes(**merge_arguments)
         else:
             raise TypeError("Lace.__init__ : Invalid shapes argument.")
 
         polygon_shapes = Group([shp for shp in shapes if shp.closed])
         polyline_shapes = Group([shp for shp in shapes if not shp.closed])
-        polygon_shapes = polygon_shapes.merge_shapes()
-        polyline_shapes = polyline_shapes.merge_shapes()
+        polygon_shapes = polygon_shapes.merge_shapes(**merge_arguments)
+        polyline_shapes = polyline_shapes.merge_shapes(**merge_arguments)
 
         if not polygon_shapes and not polyline_shapes:
             msg = "Lace.__init__ : No polygons or polylines found."
@@ -1051,6 +1078,8 @@ class Lace(Group):
         self.offset_intersections = None
         self.xform_matrix = np.eye(3)
         self.rel_tol = rel_tol
+        self.dist_tol = dist_tol
+        self.merge_angle_tol = merge_angle_tol
         self.swatch = swatch
         self.plait_color = plait_color
         self.draw_fragments = draw_fragments
@@ -1912,22 +1941,86 @@ class Lace(Group):
 
     def _set_plait_ends(self):
         plaits = self.plaits
+        dist_tol = defaults["dist_tol"]
+
+        def edge_cell_key(start, end):
+            start_x, start_y = start[:2]
+            end_x, end_y = end[:2]
+            start_cell = (
+                round(start_x / dist_tol),
+                round(start_y / dist_tol),
+            )
+            end_cell = (round(end_x / dist_tol), round(end_y / dist_tol))
+            if start_cell <= end_cell:
+                return start_cell, end_cell
+            return end_cell, start_cell
+
+        edge_matches = {}
         for plait in plaits:
             plait.ends = []
             plait.overlaps = []
+            for edge_index, edge in enumerate(plait.edges):
+                edge_key = edge_cell_key(*edge)
+                if edge_key not in edge_matches:
+                    edge_matches[edge_key] = []
+                edge_matches[edge_key].append((plait, edge_index, edge))
         for p_poly in self.parallel_poly_list:
             for polyline in p_poly.polyline_list[1:]:
                 for sect in polyline.sections:
                     if sect.overlap:
-                        for p in plaits:
-                            if len(p.ends) == 2:
-                                continue
-                            for i, edge in enumerate(p.edges):
-                                if equal_lines(sect, edge):
-                                    p.ends.append(i)
-                                    p.overlaps.append((i, sect.overlap))
-                                    if len(p.ends) == 2:
-                                        break
+                        start, end = sect.vertices
+                        start_x, start_y = start[:2]
+                        end_x, end_y = end[:2]
+                        start_cell = (
+                            round(start_x / dist_tol),
+                            round(start_y / dist_tol),
+                        )
+                        end_cell = (
+                            round(end_x / dist_tol),
+                            round(end_y / dist_tol),
+                        )
+                        checked_edges = set()
+                        for start_dx in (-1, 0, 1):
+                            for start_dy in (-1, 0, 1):
+                                for end_dx in (-1, 0, 1):
+                                    for end_dy in (-1, 0, 1):
+                                        candidate_start = (
+                                            start_cell[0] + start_dx,
+                                            start_cell[1] + start_dy,
+                                        )
+                                        candidate_end = (
+                                            end_cell[0] + end_dx,
+                                            end_cell[1] + end_dy,
+                                        )
+                                        edge_key = (
+                                            (candidate_start, candidate_end)
+                                            if candidate_start <= candidate_end
+                                            else (
+                                                candidate_end,
+                                                candidate_start,
+                                            )
+                                        )
+                                        if edge_key not in edge_matches:
+                                            continue
+                                        for (
+                                            plait,
+                                            edge_index,
+                                            edge,
+                                        ) in edge_matches[edge_key]:
+                                            edge_id = (plait.id, edge_index)
+                                            if edge_id in checked_edges:
+                                                continue
+                                            checked_edges.add(edge_id)
+                                            if not equal_lines(
+                                                sect, edge, dist_tol=dist_tol
+                                            ):
+                                                continue
+                                            if len(plait.ends) == 2:
+                                                continue
+                                            plait.ends.append(edge_index)
+                                            plait.overlaps.append(
+                                                (edge_index, sect.overlap)
+                                            )
 
     def _set_plait_connections(self):
         for plait in self.plaits:

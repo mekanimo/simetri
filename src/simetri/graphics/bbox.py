@@ -2,19 +2,28 @@
 Bounding box is axis-aligned. Provides reference edges and points.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
-from .common import PointType, defaults, get_unique_id, VOID
-from .all_enums import Side, Types, Anchor
-from ..settings.settings import issue_warning
+
 from ..geometry.geometry import (
     distance,
+    intersect,
+    line_angle,
     midpoint,
     offset_line,
-    line_angle,
-    intersect,
-    positive_angle,
     polar_to_cartesian,
+    positive_angle,
 )
+from ..settings.settings import issue_warning
+from .all_enums import Anchor, Side, Types
+from .common import VOID, PointType, defaults, get_unique_id
+
+if TYPE_CHECKING:
+    from .batch import Group
+    from .shape import Shape
 
 
 class BoundingBox:
@@ -492,7 +501,7 @@ class BoundingBox:
         return [x + dx, y + dy]
 
     def centered(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the center of the reference item.
@@ -512,7 +521,7 @@ class BoundingBox:
         return x, y
 
     def left_of(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.west of the reference item.
@@ -532,7 +541,7 @@ class BoundingBox:
         return x, y
 
     def right_of(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.east of the reference item.
@@ -552,7 +561,7 @@ class BoundingBox:
         return x, y
 
     def above(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.north of the reference item.
@@ -572,7 +581,7 @@ class BoundingBox:
         return x, y
 
     def below(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.south of the reference item.
@@ -592,7 +601,7 @@ class BoundingBox:
         return x, y
 
     def above_left(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northwest of the reference item.
@@ -614,7 +623,7 @@ class BoundingBox:
         return x, y
 
     def above_right(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northeast of the reference item.
@@ -636,7 +645,7 @@ class BoundingBox:
         return x, y
 
     def below_left(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southwest of the reference item.
@@ -658,7 +667,7 @@ class BoundingBox:
         return x, y
 
     def below_right(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southeast of the reference item.
@@ -680,7 +689,7 @@ class BoundingBox:
         return x, y
 
     def polar_pos(
-        self, item: "Shape | Group", angle: float, radius: float
+        self, item: Shape | Group, angle: float, radius: float
     ) -> PointType:
         """
         Get the polar position of the reference item.

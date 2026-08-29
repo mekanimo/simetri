@@ -10,7 +10,7 @@ They are snapshots of the state of the objects and the Canvas at the time of dra
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypeAlias
 
 import numpy as np
 from numpy import ndarray
@@ -819,3 +819,30 @@ class CompositeSketch:
         self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
+
+
+Sketch: TypeAlias = (
+    ArcSketch
+    | BezierSketch
+    | CircleSketch
+    | ClippedSketch
+    | CompositeSketch
+    | EllipseSketch
+    | FilteredSketch
+    | FrameSketch
+    | HelpLinesSketch
+    | ImageSketch
+    | LaceSketch
+    | LatexSketch
+    | LinesSketch
+    | LineSketch
+    | MaskedSketch
+    | MaskSketch
+    | PathSketch
+    | PatternSketch
+    | PDFSketch
+    | RectangleSketch
+    | RectSketch
+    | ShapeSketch
+    | TagSketch
+)

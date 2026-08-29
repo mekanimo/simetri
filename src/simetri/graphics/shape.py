@@ -4,6 +4,8 @@ If a style argument (a ShapeStyle object) is provided, then the style attributes
 of this ShapeStyle object will superseed the style attributes of the Shape object.
 """
 
+from __future__ import annotations
+
 __all__ = [
     "Clipping",
     "Shape",
@@ -25,7 +27,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from math import floor, isclose, pi
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import networkx as nx
 import numpy as np
@@ -74,6 +76,10 @@ from .bbox import BoundingBox, bounding_box
 from .common import LineType, PointType, get_defaults, get_unique_id
 from .core import Base, _update_inplace
 from .points import Points
+
+if TYPE_CHECKING:
+    from .batch import Group
+    from .shape import Shape
 
 
 class Shape(Base):
@@ -450,7 +456,7 @@ class Shape(Base):
         | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ) -> "Shape | Group":
+    ) -> Shape | Group:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -1387,7 +1393,7 @@ class Shape(Base):
         return self.b_box.offset_point(anchor, dx, dy)
 
     def centered(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the center of the reference item.
@@ -1407,7 +1413,7 @@ class Shape(Base):
         return x, y
 
     def left_of(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.west of the reference item.
@@ -1427,7 +1433,7 @@ class Shape(Base):
         return x, y
 
     def right_of(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.east of the reference item.
@@ -1447,7 +1453,7 @@ class Shape(Base):
         return x, y
 
     def above(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.north of the reference item.
@@ -1467,7 +1473,7 @@ class Shape(Base):
         return x, y
 
     def below(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.south of the reference item.
@@ -1487,7 +1493,7 @@ class Shape(Base):
         return x, y
 
     def above_left(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northwest of the reference item.
@@ -1509,7 +1515,7 @@ class Shape(Base):
         return x, y
 
     def above_right(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.northeast of the reference item.
@@ -1531,7 +1537,7 @@ class Shape(Base):
         return x, y
 
     def below_left(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southwest of the reference item.
@@ -1553,7 +1559,7 @@ class Shape(Base):
         return x, y
 
     def below_right(
-        self, item: "Shape | Group", dx: float = 0, dy: float = 0
+        self, item: Shape | Group, dx: float = 0, dy: float = 0
     ) -> PointType:
         """
         Get the item.southeast of the reference item.
@@ -1575,7 +1581,7 @@ class Shape(Base):
         return x, y
 
     def polar_pos(
-        self, item: "Shape | Group", angle: float, radius: float
+        self, item: Shape | Group, angle: float, radius: float
     ) -> PointType:
         """
         Get the polar position of the reference item.
@@ -1771,8 +1777,8 @@ def _clip_group(
 
 
 def _clip_shape(
-    shape: "Shape",
-    clipper: "Shape",
+    shape: Shape,
+    clipper: Shape,
     exclude_clipper: bool = False,
     rel_tol: float | None = None,
     abs_tol: float | None = None,
@@ -1899,7 +1905,7 @@ def polygons_union(polygons: Group) -> tuple[Group, Group]:
     return union, Group(holes)
 
 
-def polygon_union(shape1: "Shape", shape2: "Shape", merge: bool = True):
+def polygon_union(shape1: Shape, shape2: Shape, merge: bool = True):
     """
     shape1 Shape: shape to be clipped
     shape2 Shape: clipping region
@@ -1937,8 +1943,8 @@ def polygon_union(shape1: "Shape", shape2: "Shape", merge: bool = True):
 
 
 def polygon_diff(
-    shape1: "Shape",
-    shape2: "Shape",
+    shape1: Shape,
+    shape2: Shape,
     dist_tol: float = 0.01,
     merge: bool = True,
 ):
@@ -1981,15 +1987,15 @@ def polygon_diff(
 
 
 def polygon_difference(
-    shape1: "Shape",
-    shape2: "Shape",
+    shape1: Shape,
+    shape2: Shape,
     dist_tol: float = 0.01,
     merge: bool = True,
 ):
     return polygon_diff(shape1, shape2, exclude_clipper=False)
 
 
-def polygon_intersection(shape1: "Shape", shape2: "Shape", merge: bool = True):
+def polygon_intersection(shape1: Shape, shape2: Shape, merge: bool = True):
     """Returns the intersection of two polygons."""
     if not (shape1.closed and shape2.closed):
         raise ValueError("Invalid input: shape1 and shape2 must be closed!")
@@ -1997,8 +2003,8 @@ def polygon_intersection(shape1: "Shape", shape2: "Shape", merge: bool = True):
 
 
 def polygon_xor(
-    shape1: "Shape",
-    shape2: "Shape",
+    shape1: Shape,
+    shape2: Shape,
     dist_tol: float = 0.01,
     merge: bool = True,
 ):

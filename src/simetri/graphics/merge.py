@@ -12,13 +12,21 @@ from ..geometry.geometry import (
 from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges_to_nodes
 
 
-def _merge_shapes(self, n_round: int = None, **kwargs) -> "Group":
+def _merge_shapes(
+    self,
+    n_round: int = 2,
+    merge_angle_tol=0.1,
+    debug: bool = False,
+    **kwargs,
+) -> "Group":
     """
     Tries to merge the shapes in the group. Returns a new group
     with the merged shapes as well as the shapes that could not be merged.
 
     Args:
         n_round (int, optional): Number of rounding digits for merging shapes. Defaults to None.
+        debug (bool, optional): Print point and angle diagnostics.
+            Defaults to False.
         **kwargs: Additional keyword arguments.
 
     Returns:
@@ -29,10 +37,17 @@ def _merge_shapes(self, n_round: int = None, **kwargs) -> "Group":
 
     if len(self) < 2:
         return self
+    dist_tol = kwargs.pop("dist_tol")
+    if debug:
+        print("Merge diagnostics:")
     # n_round = defaults["n_round"] if n_round is None else n_round
-    self._set_node_dictionaries(self.all_vertices, n_round=2)
-    edges, segments = self._get_edges_and_segments(n_round=2)
-    segments = self.merge_collinears(edges)
+    self._set_node_dictionaries(self.all_vertices, n_round=n_round)
+    edges, segments = self._get_edges_and_segments(
+        dist_tol=dist_tol, n_round=n_round, debug=debug
+    )
+    segments = self.merge_collinears(
+        edges, merge_angle_tol=merge_angle_tol, debug=debug
+    )
     d_coord_node = self.d_coord_node
     d_node_coord = self.d_node_coord
     edges = [[d_coord_node[coord] for coord in seg] for seg in segments]
@@ -123,7 +138,10 @@ def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
 
 
 def _merge_collinears(
-    self, edges: list[LineType], angle_bin_size: float = 0.1
+    self,
+    edges: list[LineType],
+    merge_angle_tol: float = 0.1,
+    debug: bool = False,
 ) -> list[LineType]:
     """Merge connected collinear edges."""
     d_node_coord = self.d_node_coord
@@ -137,21 +155,45 @@ def _merge_collinears(
         start = d_node_coord[edge[0]]
         end = d_node_coord[edge[1]]
         angle = inclination_angle(start, end)
-        if abs(angle - pi) < angle_bin_size:
+        if abs(angle - pi) < merge_angle_tol:
             angle = 0
         angles_edges.append((angle, edge))
 
     angles_edges.sort()
     bins = []
     current_bin = [angles_edges[0]]
+    smallest_rejected_angle_difference = None
     for angle, edge in angles_edges[1:]:
         current_angle = current_bin[0][0]
-        if abs(angle - current_angle) <= angle_bin_size:
+        angle_difference = abs(angle - current_angle)
+        if angle_difference <= merge_angle_tol:
             current_bin.append((angle, edge))
         else:
+            if (
+                smallest_rejected_angle_difference is None
+                or angle_difference < smallest_rejected_angle_difference
+            ):
+                smallest_rejected_angle_difference = angle_difference
             bins.append(current_bin)
             current_bin = [(angle, edge)]
     bins.append(current_bin)
+
+    if debug:
+        angle_difference_degrees = (
+            None
+            if smallest_rejected_angle_difference is None
+            else degrees(smallest_rejected_angle_difference)
+        )
+        print(
+            "  Smallest rejected angle difference "
+            f"(merge_angle_tol={merge_angle_tol}): "
+            f"{smallest_rejected_angle_difference} radians; "
+            f"{angle_difference_degrees} degrees"
+        )
+        print(
+            "  Recommended angle setting: "
+            f"merge_angle_tol>={smallest_rejected_angle_difference}"
+        )
 
     res = []
     for angle_bin in bins:

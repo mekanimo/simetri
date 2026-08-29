@@ -10,6 +10,7 @@ from math import atan2, degrees
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
+from ..canvas import draw as canvas_draw
 from ..colors.colors import Color
 from ..graphics.all_enums import TexLoc, Types
 from ..graphics.batch import Group
@@ -18,7 +19,6 @@ from ..graphics.shape import Shape
 from ..graphics.sketch import MaskSketch
 from .tikz_sketch import TexSketch
 from .tikz_utils import get_clip_code
-from ..canvas import draw as canvas_draw
 
 if TYPE_CHECKING:
     from ..canvas.canvas import Canvas
@@ -192,7 +192,7 @@ def _get_scope_fading_path(mask_shape, fade_id):
 
 
 def clip_mask(
-    self: "Canvas",
+    self: Canvas,
     target: Shape | Group | None = None,
     mask: Mask = None,
     **kwargs,

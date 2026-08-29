@@ -118,7 +118,7 @@ def get_limits_code(canvas: Canvas) -> str:
     """Get the limits of the canvas for clipping.
 
     Args:
-        canvas ("Canvas"): The canvas object.
+        canvas (Canvas): The canvas object.
 
     Returns:
         str: The limits code for clipping.
@@ -152,7 +152,7 @@ def get_back_code(canvas: Canvas) -> str:
     """Get the background code for the canvas.
 
     Args:
-        canvas ("Canvas"): The canvas object.
+        canvas (Canvas): The canvas object.
 
     Returns:
         str: The background code.
@@ -165,7 +165,7 @@ def get_tex_code(canvas: Canvas) -> str:
     """Convert the sketches in the Canvas to TikZ code.
 
     Args:
-        canvas ("Canvas"): The canvas object.
+        canvas (Canvas): The canvas object.
 
     Returns:
         str: The TikZ code.
@@ -314,11 +314,12 @@ def get_tex_code(canvas: Canvas) -> str:
                         sketches_to_populate.extend(sketch_list)
                 elif sketch.subtype == Types.COMPOSITE_SKETCH:
                     sketches_to_populate.extend(sketch.sketches)
-                elif sketch.subtype == Types.HELPLINES_SKETCH:
+                elif (
+                    sketch.subtype == Types.HELPLINES_SKETCH
+                    or sketch.subtype == Types.LINE_SKETCH
+                    and hasattr(sketch, "populate")
+                ):
                     sketch.populate(canvas)
-                elif sketch.subtype == Types.LINE_SKETCH:
-                    if hasattr(sketch, "populate"):
-                        sketch.populate(canvas)
                 if sketch.subtype in styleable_subtypes:
                     style_sketches.append(sketch)
 

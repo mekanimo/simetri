@@ -1,8 +1,10 @@
 """Canvas object uses these methods to draw shapes and text."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from math import pi, radians, sin
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from ..canvas.style_map import (
     line_style_map,
@@ -58,6 +60,7 @@ from ..graphics.sketch import (
     PDFSketch,
     RectSketch,
     ShapeSketch,
+    Sketch,
     TagSketch,
 )
 from ..helpers.illustration import Tag
@@ -67,6 +70,9 @@ from ..helpers.utilities import (
 )
 from ..settings.settings import defaults
 from ..tikz.tikz_sketch import TexSketch
+
+if TYPE_CHECKING:
+    from .canvas import Canvas
 
 
 def help_lines(
@@ -1564,8 +1570,8 @@ def get_clipped_sketch(target, clipper, canvas, **kwargs):
 
 
 def get_sketches(
-    item: Drawable, canvas: "Canvas" = None, **kwargs
-) -> list["Sketch"]:
+    item: Drawable, canvas: Canvas | None = None, **kwargs
+) -> list[Sketch]:
     """Create sketches from the given item and return them as a list.
 
     Args:

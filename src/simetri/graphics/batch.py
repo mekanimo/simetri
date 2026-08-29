@@ -1,13 +1,17 @@
 """Group objects are used for grouping other Shape and Group objects."""
 
+from __future__ import annotations
+
 import json
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Self
+from itertools import combinations
+from typing import TYPE_CHECKING, Any, Self
 
 from numpy import array, ndarray
 
 from ..geometry.geometry import (
     all_close_points,
+    distance,
     fix_degen_points,
     get_polygons,
     round_point,
@@ -24,6 +28,9 @@ from .bbox import bounding_box
 from .common import LineType, PointType, get_unique_id
 from .core import Base, _update_inplace
 from .merge import _merge_collinears, _merge_shapes
+
+if TYPE_CHECKING:
+    from .shape import Shape
 
 
 class Group(Base):
@@ -107,7 +114,7 @@ class Group(Base):
         self.id = get_unique_id(self)
 
     def set_attribs(
-        self, attrib: str, value: Any, key: Callable = None
+        self, attrib: str, value: Any, key: Callable | None = None
     ) -> Self:
         """
         Sets the attribute to the given value for all elements in the group if it is applicable.
@@ -334,7 +341,9 @@ class Group(Base):
 
         return json.dumps(data, ensure_ascii=False)
 
-    def proximity(self, dist_tol: float = None, n: int = 5) -> list[PointType]:
+    def proximity(
+        self, dist_tol: float | None = None, n: int = 5
+    ) -> list[PointType]:
         """
         Returns the n closest points in the group.
 
@@ -462,9 +471,7 @@ class Group(Base):
             if elem.type == Types.GROUP:
                 yield from elem.iter_elements(element_type)
             else:
-                if element_type is None:
-                    yield elem
-                elif elem.type == element_type:
+                if element_type is None or elem.type == element_type:
                     yield elem
 
     @property
@@ -484,7 +491,7 @@ class Group(Base):
         return elements
 
     @property
-    def all_shapes(self) -> list["Shape"]:
+    def all_shapes(self) -> list[Shape]:
         """Return a list of all shapes in the group.
 
         Returns:
@@ -539,7 +546,9 @@ class Group(Base):
 
         return self.all_segments
 
-    def merge_collinears(self, edges, rel_tol=None, abs_tol=None):
+    def merge_collinears(
+        self, edges, merge_angle_tol: float = 0.1, debug: bool = False
+    ):
         """Merge collinear edges in the group.
 
         Args:
@@ -547,13 +556,23 @@ class Group(Base):
             edges (list): The edges to merge.
             rel_tol (float, optional): The relative tolerance. Defaults to None.
             abs_tol (float, optional): The absolute tolerance. Defaults to None.
+            debug (bool, optional): Print rejected angle diagnostics.
+                Defaults to False.
 
         Returns:
             list: The merged edges.
         """
-        return _merge_collinears(self, edges)
+        return _merge_collinears(
+            self, edges, merge_angle_tol=merge_angle_tol, debug=debug
+        )
 
-    def merge_shapes(self, dist_tol: float = None, n_round: int = None) -> Self:
+    def merge_shapes(
+        self,
+        dist_tol: float = None,
+        n_round: int = 2,
+        merge_angle_tol=0.1,
+        debug: bool = False,
+    ) -> Self:
         """Merges the shapes in the group if they are connected.
         Returns a new group with the merged shapes as well as the shapes
         as well as the shapes that could not be merged.
@@ -562,14 +581,25 @@ class Group(Base):
             tol (float, optional): The tolerance for merging shapes. Defaults to None.
             rel_tol (float, optional): The relative tolerance. Defaults to None.
             abs_tol (float, optional): The absolute tolerance. Defaults to None.
+            debug (bool, optional): Print point and angle diagnostics.
+                Defaults to False.
 
         Returns:
             Self: The group object with merged shapes.
         """
-        return _merge_shapes(self, dist_tol=dist_tol, n_round=n_round)
+        return _merge_shapes(
+            self,
+            dist_tol=dist_tol,
+            n_round=n_round,
+            merge_angle_tol=merge_angle_tol,
+            debug=debug,
+        )
 
     def _get_edges_and_segments(
-        self, dist_tol: float = None, n_round: int = None
+        self,
+        dist_tol: float = None,
+        n_round: int = 2,
+        debug: bool = False,
     ):
         """Get the edges and segments for the group.
 
@@ -587,6 +617,64 @@ class Group(Base):
         d_coord_node = self.d_coord_node
         segments = self.all_segments
         segments = [round_segment(segment, n_round) for segment in segments]
+
+        coordinates = list(d_coord_node)
+        indexed_coordinates = [
+            (*coordinate[:2], index)
+            for index, coordinate in enumerate(coordinates)
+        ]
+        _, close_pairs = all_close_points(
+            indexed_coordinates, dist_tol=dist_tol
+        )
+        parent = list(range(len(coordinates)))
+        for first_index, second_index in close_pairs:
+            first_root = first_index
+            while parent[first_root] != first_root:
+                first_root = parent[first_root]
+            second_root = second_index
+            while parent[second_root] != second_root:
+                second_root = parent[second_root]
+            if first_root != second_root:
+                parent[second_root] = first_root
+
+        for coordinate_index, coordinate in enumerate(coordinates):
+            root = coordinate_index
+            while parent[root] != root:
+                root = parent[root]
+            d_coord_node[coordinate] = d_coord_node[coordinates[root]]
+
+        if debug:
+            closest_distance = None
+            closest_points = None
+            closest_rounded_distance = None
+            for first_point, second_point in combinations(self.all_vertices, 2):
+                first_coordinate = tuple(round_point(first_point, n_round))
+                second_coordinate = tuple(round_point(second_point, n_round))
+                if (
+                    d_coord_node[first_coordinate]
+                    == d_coord_node[second_coordinate]
+                ):
+                    continue
+                point_distance = distance(first_point, second_point)
+                if (
+                    closest_distance is None
+                    or point_distance < closest_distance
+                ):
+                    closest_distance = point_distance
+                    closest_points = (first_point[:2], second_point[:2])
+                    closest_rounded_distance = distance(
+                        first_coordinate, second_coordinate
+                    )
+            print(
+                "  Closest unmerged point distance "
+                f"(dist_tol={dist_tol}): {closest_distance}; "
+                f"points={closest_points}"
+            )
+            print(
+                "  Recommended point setting: "
+                f"dist_tol>={closest_rounded_distance}"
+            )
+
         edges = []
         for seg in segments:
             p1, p2 = seg

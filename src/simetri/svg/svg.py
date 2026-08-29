@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from ..canvas.style_map import marker_style_map
 from ..colors.colors import black, check_color, white
 from ..geometry.geometry import (
@@ -22,6 +24,9 @@ from .svg_mask import _canvas_mask_scope_sketch
 from .svg_sketch import *
 from .svg_sketch_utils import *
 from .svg_utils import *
+
+if TYPE_CHECKING:
+    from ..canvas.canvas import Canvas
 
 
 def append_non_default_style_options(options, sketch, style_map):
@@ -116,11 +121,11 @@ style="{style_options}"/>'
 """
 
 
-def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
+def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
     """Convert the sketches in the Canvas to SVG code.
 
     Args:
-        canvas ("Canvas"): The canvas object.
+        canvas (Canvas): The canvas object.
 
     Returns:
         str: The SVG code.
@@ -234,10 +239,9 @@ def get_svg_shapes(canvas: "Canvas", styles_dict: dict) -> str:
                 sketches_to_populate.extend(sketch_list)
         elif subtype == Types.COMPOSITE_SKETCH:
             sketches_to_populate.extend(sketch.sketches)
-        elif subtype == Types.HELPLINES_SKETCH:
+        elif subtype == Types.HELPLINES_SKETCH or subtype == Types.LINE_SKETCH:
             sketch.populate(canvas)
-        elif subtype == Types.LINE_SKETCH:
-            sketch.populate(canvas)
+
     rendered_code = render_sketches(sketches, 0)
     code.append(rendered_code)
 
@@ -588,7 +592,7 @@ def generate_defs(canvas, styles_dict):
     clip_paths = collect_clip_paths(canvas)
     masks = collect_masks(canvas)
     filters = collect_filters(canvas)
-    limits_clippath_id, limits_clippath_def = get_limits_clippath(canvas)
+    _, limits_clippath_def = get_limits_clippath(canvas)
     canvas_mask_scope = _canvas_mask_scope_sketch(canvas)
     if canvas_mask_scope is not None:
         canvas_mask = canvas_mask_scope.mask

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import os
 import subprocess
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import fitz
 
@@ -14,6 +17,9 @@ from simetri.tikz.tikz import (
     get_limits_code,
     scope_code_required,
 )
+
+if TYPE_CHECKING:
+    from simetri.canvas import Canvas
 
 
 def remove_aux_files(file_path):
@@ -169,11 +175,11 @@ class Tex:
         """Post-initialization method."""
         self.type = Types.TEX
 
-    def tex_code(self, canvas: "Canvas", aux_code: str) -> str:
+    def tex_code(self, canvas: Canvas, aux_code: str) -> str:
         """Generate the final TeX code.
 
         Args:
-            canvas ("Canvas"): The canvas object.
+            canvas (Canvas): The canvas object.
             aux_code (str): Auxiliary code to include.
 
         Returns:
