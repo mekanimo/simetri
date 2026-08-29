@@ -6,6 +6,13 @@ of this ShapeStyle object will superseed the style attributes of the Shape objec
 
 from __future__ import annotations
 
+from ..geometry.in_polygon import in_polygon
+from ..geometry.polygon import (
+    point_inside_polygon,
+    polygon_area,
+    polyline_length,
+)
+
 __all__ = [
     "Clipping",
     "Shape",
@@ -19,6 +26,7 @@ __all__ = [
     "polygon_intersection",
     "polygon_union",
     "polygon_xor",
+    "polygons_union",
     "trim_margins",
 ]
 
@@ -43,14 +51,10 @@ from ..geometry.geometry import (
     connected_pairs,
     distance,
     homogenize,
-    in_polygon,
     lerp_point,
     midpoint,
     multi_split_segment,
-    point_inside_polygon,
     polar_to_cartesian,
-    polygon_area,
-    polyline_length,
     positive_angle,
     remove_duplicate_points,
     right_handed,
@@ -76,10 +80,6 @@ from .bbox import BoundingBox, bounding_box
 from .common import LineType, PointType, get_defaults, get_unique_id
 from .core import Base, _update_inplace
 from .points import Points
-
-if TYPE_CHECKING:
-    from .batch import Group
-    from .shape import Shape
 
 
 class Shape(Base):

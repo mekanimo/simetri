@@ -4,20 +4,19 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Iterator, Sequence
-from itertools import combinations
 from typing import TYPE_CHECKING, Any, Self
 
-from numpy import array, ndarray
+from numpy import array
+from numpy.typing import NDArray
 
 from ..geometry.geometry import (
-    all_close_points,
-    distance,
     fix_degen_points,
     get_polygons,
     round_point,
     round_segment,
 )
-from ..settings.settings import VOID, defaults, issue_warning
+from ..helpers.modifiers import Modifier
+from ..settings.settings import defaults, issue_warning
 from .all_enums import (
     InPlace,
     TransformationType,
@@ -57,7 +56,7 @@ class Group(Base):
     def __init__(
         self,
         elements: Any | Sequence[Any] | None = None,
-        modifiers: Sequence["Modifier"] | None = None,
+        modifiers: Sequence[Modifier] | None = None,
         subtype: Types = Types.GROUP,
     ):
         """
@@ -211,7 +210,7 @@ class Group(Base):
         else:
             raise TypeError("Invalid subscript type")
 
-    def __add__(self, other: "Group") -> "Group":
+    def __add__(self, other: Group) -> Group:
         """
         Add another group to this group.
 
@@ -358,6 +357,8 @@ class Group(Base):
             dist_tol = defaults["dist_tol"]
         vertices = self.all_vertices
         vertices = [(*v, i) for i, v in enumerate(vertices)]
+        from ..geometry.polygon import all_close_points
+
         _, pairs = all_close_points(vertices, dist_tol=dist_tol, with_dist=True)
         return [pair for pair in pairs if pair[2] > 0][:n]
 
@@ -568,7 +569,7 @@ class Group(Base):
 
     def merge_shapes(
         self,
-        dist_tol: float = None,
+        dist_tol: float | None = None,
         n_round: int = 2,
         merge_angle_tol=0.1,
         debug: bool = False,
@@ -597,83 +598,21 @@ class Group(Base):
 
     def _get_edges_and_segments(
         self,
-        dist_tol: float = None,
         n_round: int = 2,
-        debug: bool = False,
     ):
         """Get the edges and segments for the group.
 
         Args:
-            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
             n_round (int, optional): The number of decimal places to round to. Defaults to None.
 
         Returns:
             tuple: A tuple containing the edges and segments.
         """
-        if dist_tol is None:
-            dist_tol = defaults["dist_tol"]
         if n_round is None:
             n_round = defaults["n_round"]
         d_coord_node = self.d_coord_node
         segments = self.all_segments
         segments = [round_segment(segment, n_round) for segment in segments]
-
-        coordinates = list(d_coord_node)
-        indexed_coordinates = [
-            (*coordinate[:2], index)
-            for index, coordinate in enumerate(coordinates)
-        ]
-        _, close_pairs = all_close_points(
-            indexed_coordinates, dist_tol=dist_tol
-        )
-        parent = list(range(len(coordinates)))
-        for first_index, second_index in close_pairs:
-            first_root = first_index
-            while parent[first_root] != first_root:
-                first_root = parent[first_root]
-            second_root = second_index
-            while parent[second_root] != second_root:
-                second_root = parent[second_root]
-            if first_root != second_root:
-                parent[second_root] = first_root
-
-        for coordinate_index, coordinate in enumerate(coordinates):
-            root = coordinate_index
-            while parent[root] != root:
-                root = parent[root]
-            d_coord_node[coordinate] = d_coord_node[coordinates[root]]
-
-        if debug:
-            closest_distance = None
-            closest_points = None
-            closest_rounded_distance = None
-            for first_point, second_point in combinations(self.all_vertices, 2):
-                first_coordinate = tuple(round_point(first_point, n_round))
-                second_coordinate = tuple(round_point(second_point, n_round))
-                if (
-                    d_coord_node[first_coordinate]
-                    == d_coord_node[second_coordinate]
-                ):
-                    continue
-                point_distance = distance(first_point, second_point)
-                if (
-                    closest_distance is None
-                    or point_distance < closest_distance
-                ):
-                    closest_distance = point_distance
-                    closest_points = (first_point[:2], second_point[:2])
-                    closest_rounded_distance = distance(
-                        first_coordinate, second_coordinate
-                    )
-            print(
-                "  Closest unmerged point distance "
-                f"(dist_tol={dist_tol}): {closest_distance}; "
-                f"points={closest_points}"
-            )
-            print(
-                "  Recommended point setting: "
-                f"dist_tol>={closest_rounded_distance}"
-            )
 
         edges = []
         for seg in segments:
@@ -685,7 +624,10 @@ class Group(Base):
         return edges, segments
 
     def _set_node_dictionaries(
-        self, coords: list[PointType], n_round: int = 2
+        self,
+        coords: list[PointType],
+        dist_tol: float,
+        debug: bool = False,
     ) -> list[dict]:
         """Set dictionaries for nodes and coordinates.
         d_node_coord: Dictionary of node id to coordinates.
@@ -693,32 +635,19 @@ class Group(Base):
 
         Args:
             nodes (list[PointType]): list of vertices.
-            n_round (int, optional): Number of rounding digits. Defaults to 2.
+            dist_tol (float): Distance tolerance for grouping coordinates.
+            debug (bool, optional): Print node proximity diagnostics.
+                Defaults to False.
         """
+        from ..geometry.polygon import node_dictionaries
 
-        d_rounded_coord = {}
-        rounded = []
-        for coord in coords:
-            val = tuple(round_point(coord, n_round))
-            rounded.append(val)
-            d_rounded_coord[val] = coord
+        (
+            self.d_node_coord,
+            self.d_coord_node,
+            self.d_rounded_coord,
+        ) = node_dictionaries(coords, dist_tol, debug=debug)
 
-        coords = list(set(rounded))  # remove duplicates
-        coords.sort()  # sort by x coordinates
-        coords.sort(key=lambda x: x[1])  # sort by y coordinates
-
-        d_node_coord = {}
-        d_coord_node = {}
-
-        for i, coord in enumerate(coords):
-            d_node_coord[i] = coord
-            d_coord_node[coord] = i
-
-        self.d_node_coord = d_node_coord
-        self.d_coord_node = d_coord_node
-        self.d_rounded_coord = d_rounded_coord
-
-    def all_polygons(self, dist_tol: float = None) -> list:
+    def all_polygons(self, dist_tol: float | None = None) -> list:
         """Return a list of all polygons in the group in their
         transformed positions.
 
@@ -757,7 +686,7 @@ class Group(Base):
             res = exclude
         return res
 
-    def copy(self) -> "Group":
+    def copy(self) -> Group:
         """Returns a copy of the group.
 
         Returns:
@@ -796,7 +725,7 @@ class Group(Base):
 
     def _update(
         self,
-        xform_matrix: "ndarray",
+        xform_matrix: NDArray,
         reps: int = 0,
         take: slice | None = None,
         incr: float
@@ -851,7 +780,7 @@ class Group(Base):
 
         return self
 
-    def union(self, other: "Group") -> Self:
+    def union(self, other: Group) -> Self:
         """Returns the union of two groups.
 
         Args:
@@ -876,7 +805,7 @@ class Group(Base):
             subtype=self.subtype,
         )
 
-    def intersection(self, other: "Group") -> Self:
+    def intersection(self, other: Group) -> Self:
         """Returns the intersection of two groups.
 
         Args:
@@ -903,7 +832,7 @@ class Group(Base):
             subtype=self.subtype,
         )
 
-    def difference(self, other: "Group") -> Self:
+    def difference(self, other: Group) -> Self:
         """Returns the difference of two groups.
 
         Args:
@@ -930,7 +859,7 @@ class Group(Base):
             subtype=self.subtype,
         )
 
-    def symmetric_difference(self, other: "Group") -> Self:
+    def symmetric_difference(self, other: Group) -> Self:
         """Returns the symmetric difference of two groups.
 
         Args:
@@ -959,7 +888,7 @@ class Group(Base):
             subtype=self.subtype,
         )
 
-    def subset(self, other: "Group") -> bool:
+    def subset(self, other: Group) -> bool:
         """Checks if the current group is a subset of another group.
 
         Args:
@@ -978,7 +907,7 @@ class Group(Base):
 
         return self_ids.issubset(other_ids)
 
-    def superset(self, other: "Group") -> bool:
+    def superset(self, other: Group) -> bool:
         """Checks if the current group is a superset of another group.
 
         Args:

@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from functools import cmp_to_key
-from itertools import cycle
 from math import (
     acos,
     atan2,
@@ -307,72 +306,6 @@ def line_segment_bbox_check(seg1: LineType, seg2: LineType) -> bool:
     return bbox_overlap(
         *line_segment_bbox(x1, y1, x2, y2), *line_segment_bbox(x3, y3, x4, y4)
     )
-
-
-def all_close_points(
-    points: Sequence[Sequence],
-    dist_tol: float | None = None,
-    with_dist: bool = False,
-) -> dict[int, list[tuple[PointType, int]]]:
-    """
-    Find all close points in a list of points along with their ids.
-
-    Args:
-        points (Sequence[Sequence]): List of points with ids [[x1, y1, id1], [x2, y2, id2], ...].
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-        with_dist (bool, optional): Whether to include distances in the result. Defaults to False.
-
-    Returns:
-        dict: Dictionary of the form {id1: [id2, id3, ...], ...}.
-    """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    point_arr = np.array(
-        points, dtype=np.float32
-    )  # points array [[x1, y1, id1], ...]]
-    n_rows = len(points)
-    point_arr = point_arr[point_arr[:, 0].argsort()]  # sort by x values in the
-    # first column
-    xmin = point_arr[:, 0] - dist_tol * 2
-    xmin = xmin.reshape(n_rows, 1)
-    xmax = point_arr[:, 0] + dist_tol * 2
-    xmax = xmax.reshape(n_rows, 1)
-    point_arr = np.concatenate(
-        (point_arr, xmin, xmax), 1
-    )  # [x, y, id, xmin, xmax]
-
-    i_id, i_xmin, i_xmax = 2, 3, 4  # column indices
-    d_connections = {}
-    for i in range(n_rows):
-        d_connections[int(point_arr[i, 2])] = []
-    pairs = []
-    dist_tol2 = dist_tol * dist_tol
-    for i in range(n_rows):
-        x, y, id1, sl_xmin, sl_xmax = point_arr[i, :]
-        id1 = int(id1)
-        point = (x, y)
-        start = i + 1
-        candidates = point_arr[start:, :][
-            (
-                (point_arr[start:, i_xmax] >= sl_xmin)
-                & (point_arr[start:, i_xmin] <= sl_xmax)
-            )
-        ]
-        for cand in candidates:
-            id2 = int(cand[i_id])
-            point2 = cand[:2]
-            if close_points2(point, point2, dist2=dist_tol2):
-                d_connections[id1].append(id2)
-                d_connections[id2].append(id1)
-                if with_dist:
-                    pairs.append((id1, id2, distance(point, point2)))
-                else:
-                    pairs.append((id1, id2))
-    res = {}
-    for k, v in d_connections.items():
-        if v:
-            res[k] = v
-    return res, pairs
 
 
 def sorted_edges(polygon):
@@ -1217,43 +1150,6 @@ def left(a: PointType, b: PointType, c: PointType) -> bool:
     return area(a, b, c) > 0
 
 
-def in_polygon(
-    point: PointType,
-    polygon_vertices: Sequence[PointType],
-    exclude_border: bool = False,
-) -> bool:
-    """
-    Checks if a point is inside a polygon using the winding number algorithm.
-
-    Args:
-        point (tuple): A tuple (x, y) representing the point to test.
-        polygon_vertices (list): A list of tuples, where each tuple (x, y)
-                                represents a vertex of the polygon. The vertices
-                                should be ordered (e.g., clockwise or counter-clockwise).
-
-    Returns:
-        bool: True if the point is inside the polygon, False otherwise.
-    """
-    _, y = point[:2]
-    n_winding = 0  # Initialize the winding number
-
-    n = len(polygon_vertices)
-    for i_ in range(n):
-        p1 = polygon_vertices[i_]
-        p2 = polygon_vertices[(i_ + 1) % n]  # Connect last vertex to first
-        _, y1 = p1
-        _, y2 = p2
-        if point_on_line_segment(point, [p1, p2]):
-            return not exclude_border
-        if y1 <= y:  # Start y <= P.y
-            if y2 > y and left(p1, p2, point):  # An upward crossing
-                n_winding += 1  # P left of edge
-        elif y2 <= y and not left(p1, p2, point):  # A downward crossing
-            n_winding -= 1  # P right of edge
-
-    return n_winding != 0
-
-
 def stitch(
     lines: list[LineType],
     closed: bool = True,
@@ -1306,239 +1202,6 @@ def stitch(
     return res
 
 
-def double_offset_polylines(
-    lines: list[PointType],
-    offset: float = 1,
-    rel_tol: float | None = None,
-    abs_tol: float | None = None,
-) -> list[PointType]:
-    """
-    Return a list of double offset lines from a list of lines.
-
-    Args:
-        lines (list[PointType]): List of points representing the lines.
-        offset (float, optional): Offset distance. Defaults to 1.
-        rel_tol (float, optional): Relative tolerance. Defaults to None.
-        abs_tol (float, optional): Absolute tolerance. Defaults to None.
-
-    Returns:
-        list[PointType]: List of double offset lines.
-    """
-    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
-    lines1 = []
-    lines2 = []
-    for i, point in enumerate(lines[:-1]):
-        line = [point, lines[i + 1]]
-        line1, line2 = double_offset_lines(line, offset)
-        lines1.append(line1)
-        lines2.append(line2)
-    lines1 = stitch(lines1, closed=False)
-    lines2 = stitch(lines2, closed=False)
-    return [lines1, lines2]
-
-
-def polygon_cg(points: list[PointType]) -> PointType:
-    """
-    Given a list of points that define a polygon, return the center point.
-
-    Args:
-        points (list[PointType]): List of points representing the polygon.
-
-    Returns:
-        PointType: Center point of the polygon.
-    """
-    cx = cy = 0
-    n_points = len(points)
-    for i in range(n_points):
-        x = points[i][0]
-        y = points[i][1]
-        xnext = points[(i + 1) % n_points][0]
-        ynext = points[(i + 1) % n_points][1]
-
-        temp = x * ynext - xnext * y
-        cx += (x + xnext) * temp
-        cy += (y + ynext) * temp
-    area_ = polygon_area(points)
-    denom = area_ * 6
-    if denom:
-        res = [cx / denom, cy / denom]
-    else:
-        res = None
-    return res
-
-
-def polygon_center2(polygon_points: list[PointType]) -> PointType:
-    """
-    Given a list of points that define a polygon, return the center point.
-
-    Args:
-        polygon_points (list[PointType]): List of points representing the polygon.
-
-    Returns:
-        PointType: Center point of the polygon.
-    """
-    n = len(polygon_points)
-    x = 0
-    y = 0
-    for point in polygon_points:
-        x += point[0]
-        y += point[1]
-    x = x / n
-    y = y / n
-    return [x, y]
-
-
-def polygon_center(polygon_points: list[PointType]) -> PointType:
-    """
-    Given a list of points that define a polygon, return the center point.
-
-    Args:
-        polygon_points (list[PointType]): List of points representing the polygon.
-
-    Returns:
-        PointType: Center point of the polygon.
-    """
-    x = 0
-    y = 0
-    for i, point in enumerate(polygon_points[:-1]):
-        x += point[0] * (polygon_points[i - 1][1] - polygon_points[i + 1][1])
-        y += point[1] * (polygon_points[i - 1][0] - polygon_points[i + 1][0])
-    area_ = polygon_area(polygon_points)
-    return (x / (6 * area_), y / (6 * area_))
-
-
-def offset_polygon(
-    polygon: list[PointType], offset: float = -1, dist_tol: float | None = None
-) -> list[PointType]:
-    """
-    Return a list of offset lines from a list of lines.
-
-    Args:
-        polygon (list[PointType]): List of points representing the polygon.
-        offset (float, optional): Offset distance. Defaults to -1.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-
-    Returns:
-        list[PointType]: List of offset lines.
-    """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    polygon = list(polygon[:])
-    dist_tol2 = dist_tol * dist_tol
-    if not right_handed(polygon):
-        polygon.reverse()
-    if not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
-        polygon.append(polygon[0])
-    poly = []
-    for i, point in enumerate(polygon[:-1]):
-        line = [point, polygon[i + 1]]
-        offset_edge = offset_line(line, -offset)
-        poly.append(offset_edge)
-
-    poly = stitch(poly, closed=True)
-    return poly
-
-
-def double_offset_polygons(
-    polygon: list[PointType],
-    offset: float = 1,
-    dist_tol: float | None = None,
-    **kwargs,
-) -> list[PointType]:
-    """
-    Return a list of double offset lines from a list of lines.
-
-    Args:
-        polygon (list[PointType]): List of points representing the polygon.
-        offset (float, optional): Offset distance. Defaults to 1.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-
-    Returns:
-        list[PointType]: List of double offset lines.
-    """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
-
-    # helper to ensure polygon is closed
-    if not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
-        polygon.append(polygon[0])
-
-    if not right_handed(polygon):
-        polygon.reverse()
-    poly1 = []
-    poly2 = []
-    for i, point in enumerate(polygon[:-1]):
-        line = [point, polygon[i + 1]]
-        line1, line2 = double_offset_lines(line, offset)
-        poly1.append(line1)
-        poly2.append(line2)
-    poly1 = stitch(poly1)
-    poly2 = stitch(poly2)
-    if "canvas" in kwargs:
-        canvas = kwargs["canvas"]
-        if canvas:
-            canvas.new_page()
-            from ..graphics.shape import Shape
-
-            closed = close_points2(poly1[0], poly1[-1])
-            canvas.draw(Shape(poly1, closed=closed), fill=False)
-            closed = close_points2(poly2[0], poly2[-1])
-            canvas.draw(Shape(poly2, closed=closed), fill=False)
-    return [poly1, poly2]
-
-
-def offset_polygon_points(
-    polygon: list[PointType], offset: float = 1, dist_tol: float | None = None
-) -> list[PointType]:
-    """
-    Return a list of double offset lines from a list of lines.
-
-    Args:
-        polygon (list[PointType]): List of points representing the polygon.
-        offset (float, optional): Offset distance. Defaults to 1.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-
-    Returns:
-        list[PointType]: List of double offset lines.
-    """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
-    polygon = list(polygon)
-    if not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
-        polygon.append(polygon[0])
-    poly = []
-    for i, point in enumerate(polygon[:-1]):
-        line = [point, polygon[i + 1]]
-        offset_edge = offset_line(line, offset)
-        poly.append(offset_edge)
-
-    poly = stitch(poly)
-    if not right_handed(poly):
-        poly.reverse()
-    return poly
-
-
-def double_offset_lines(
-    line: LineType, offset: float = 1
-) -> tuple[LineType, LineType]:
-    """
-    Return two offset lines to a given line segment with the given offset amount.
-
-    Args:
-        line (LineType): Input line segment.
-        offset (float, optional): Offset distance. Defaults to 1.
-
-    Returns:
-        tuple[LineType, LineType]: Two offset lines.
-    """
-    line1 = offset_line(line, offset)
-    line2 = offset_line(line, -offset)
-
-    return line1, line2
-
-
 def equal_lines(
     line1: LineType, line2: LineType, dist_tol: float | None = None
 ) -> bool:
@@ -1565,38 +1228,6 @@ def equal_lines(
         close_points2(p1, p4, dist2=dist_tol2)
         and close_points2(p2, p3, dist2=dist_tol2)
     )
-
-
-def equal_polygons(
-    poly1: Sequence[PointType],
-    poly2: Sequence[PointType],
-    dist_tol: float | None = None,
-) -> bool:
-    """
-    Return True if two polygons are close enough.
-
-    Args:
-        poly1 (Sequence[PointType]): First polygon.
-        poly2 (Sequence[PointType]): Second polygon.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-
-    Returns:
-        bool: True if the polygons are close enough, False otherwise.
-    """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    if len(poly1) != len(poly2):
-        return False
-
-    poly1_ = list(poly1[:])
-    poly1_.sort(key=lambda p: (p[0], p[1]))
-    poly2_ = list(poly2[:])
-    poly2_.sort(key=lambda p: (p[0], p[1]))
-    dist_tol2 = dist_tol * dist_tol
-    for i, pnt in enumerate(poly1_):
-        if not close_points2(pnt, poly2_[i], dist2=dist_tol2):
-            return False
-    return True
 
 
 def extended_line(dist: float, line: LineType, extend_both=False) -> LineType:
@@ -2341,85 +1972,6 @@ def on_segment(a, b, p, eps=1e-12):
         min(a[0], b[0]) - eps <= p[0] <= max(a[0], b[0]) + eps
         and min(a[1], b[1]) - eps <= p[1] <= max(a[1], b[1]) + eps
     )
-
-
-def point_inside_polygon(p, poly, eps=1e-5):
-    """
-    Strictly inside only.
-    Boundary returns False (consistent with "does not contain any vertices inside").
-    """
-    x, y = p
-    n = len(poly)
-
-    # boundary check
-    for i in range(n):
-        a = poly[i]
-        b = poly[(i + 1) % n]
-        if on_segment(a, b, p, eps=eps):
-            return False
-
-    inside = False
-    for i in range(n):
-        a = poly[i]
-        b = poly[(i + 1) % n]
-        ax, ay = a
-        bx, by = b
-
-        # edge straddles horizontal ray?
-        if (ay > y) != (by > y):
-            # x intersection
-            x_int = (bx - ax) * (y - ay) / (by - ay) + ax
-            if x_int > x + eps:
-                inside = not inside
-    return inside
-
-
-def any_point_inside_polygon(points, polygon, eps=1e-12):
-    """
-    Returns True if ANY point is strictly inside the polygon.
-    Boundary points are treated as outside.
-
-    """
-
-    pts = np.asarray(points, dtype=float)
-    poly = np.asarray(polygon, dtype=float)
-
-    px = pts[:, 0][:, None]  # (M,1)
-    py = pts[:, 1][:, None]
-
-    x1 = poly[:, 0]
-    y1 = poly[:, 1]
-    x2 = np.roll(x1, -1)
-    y2 = np.roll(y1, -1)
-
-    # -----------------------------
-    # Boundary detection (on edge)
-    # -----------------------------
-    cross = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1)
-
-    on_seg = (
-        (np.abs(cross) < eps)
-        & (np.minimum(x1, x2) <= px)
-        & (px <= np.maximum(x1, x2))
-        & (np.minimum(y1, y2) <= py)
-        & (py <= np.maximum(y1, y2))
-    )
-
-    # Any point on boundary is NOT considered inside
-    on_boundary = np.any(on_seg, axis=1)
-
-    # -----------------------------
-    # Ray casting (interior test)
-    # -----------------------------
-    cond = (y1 > py) != (y2 > py)
-    x_intersect = (x2 - x1) * (py - y1) / (y2 - y1 + 1e-15) + x1
-
-    inside = np.sum(cond & (px < x_intersect), axis=1) % 2 == 1
-
-    # Exclude boundary points from interior
-    inside_strict = inside & (~on_boundary)
-
-    return np.any(inside_strict)
 
 
 def merge_consecutive_collinear_edges(
@@ -3185,56 +2737,6 @@ def point_to_line_vec(
     return res
 
 
-def polygon_area(polygon: Sequence[PointType], dist_tol=None) -> float:
-    """Calculate the area of a polygon.
-
-    Args:
-        polygon (Sequence[PointType]): List of points representing the polygon.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-
-    Returns:
-        float: Area of the polygon.
-    """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
-    if not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
-        polygon = list(polygon[:])
-        polygon.append(polygon[0])
-    area_ = 0
-    for i, point in enumerate(polygon[:-1]):
-        x1, y1 = point[:2]
-        x2, y2 = polygon[i + 1][:2]
-        area_ += x1 * y2 - x2 * y1
-
-    return area_ / 2
-
-
-def polyline_length(
-    polygon: Sequence[PointType], closed=False, dist_tol=None
-) -> float:
-    """Calculate the perimeter of a polygon.
-
-    Args:
-        polygon (Sequence[PointType]): List of points representing the polygon.
-        closed (bool, optional): Whether the polygon is closed. Defaults to False.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-
-    Returns:
-        float: Perimeter of the polygon.
-    """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
-    if closed and not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
-        polygon = polygon[:]
-        polygon.append(polygon[0])
-    perimeter = 0
-    for i, point in enumerate(polygon[:-1]):
-        perimeter += distance(point, polygon[i + 1])
-    return perimeter
-
-
 def right_handed(polygon: Sequence[PointType], dist_tol=None) -> float:
     """If polygon is counter-clockwise, return True
 
@@ -3891,6 +3393,8 @@ def congruent_polygons(
     Returns:
         bool: True if the polygons are congruent, False otherwise.
     """
+    from simetri.geometry.polygon import polygon_area, polygon_internal_angles
+
     dist_tol, area_tol, angle_tol = get_defaults(
         ["dist_tol", "area_rtol", "angle_rtol"], [dist_tol, area_tol, angle_tol]
     )
@@ -3955,56 +3459,6 @@ def is_ccw(vertices, *, eps=0.0):
         area += x1 * y2 - x2 * y1  # 2 * signed area
 
     return area > 0
-
-
-def polygon_internal_angles(vertices: list[PointType]) -> list[float]:
-    """
-    Computes internal angles for a polygon given as a list of (x, y) tuples.
-    Works for both convex and concave polygons.
-
-    Vertices are expected to be in counterclockwise positive order. If not
-    they are reversed and the result is for the reversed order.
-
-    Args:
-        vertices (list[PointType]): List of points representing the polygon.
-
-    Returns:
-        list[float]: List of internal angles of the polygon.
-    """
-    n = len(vertices)
-    if n < 3:
-        return []
-
-    # 1. Determine Winding Order (Signed Area)
-    # Positive = CCW, Negative = CW
-    area = polygon_area(vertices)
-    is_ccw_ = area > 0
-    if not is_ccw_:
-        raise ValueError("""Vertices are not in counterclockwise positive order!
-                         Result is for the reversed list of the given vertices.""")
-        vertices = list(vertices)[:]
-        vertices.reverse()
-    angles = []
-    for i in range(n):
-        # Define three consecutive points
-        p_prev = vertices[(i - 1) % n]
-        p_curr = vertices[i]
-        p_next = vertices[(i + 1) % n]
-
-        # Vector 1: Incoming (from previous to current)
-        v1 = v_from_points(p_prev, p_curr)
-        # Vector 2: Outgoing (from current to next)
-        v2 = v_from_points(p_curr, p_next)
-
-        cross_prod = v1.cross(v2)
-        dot_prod = v1.dot(v2)
-
-        turning_angle = atan2(cross_prod, dot_prod)
-        # Convert Turning Angle to Internal Angle
-        internal_angle = pi - turning_angle
-        angles.append(internal_angle)
-
-    return angles
 
 
 def bisector_line(a: PointType, b: PointType, c: PointType) -> LineType:
@@ -5153,6 +4607,8 @@ def rotate_line_3D(line: LineType, about: LineType, angle: float) -> LineType:
 def vert_label_positions(shape, offset):
     """Returns the position of the vertex labels using the given
     label offset."""
+    from simetri.geometry.polygon import in_polygon
+
     vertices = list(shape.vertices)
 
     vec1 = v_from_points(vertices[0], vertices[-1])
@@ -5188,6 +4644,8 @@ def vert_label_positions(shape, offset):
 def vert_label_pos(shape, index, offset=10):
     """Returns the position of the vertex label using the given
     index and label offset."""
+    from simetri.geometry.polygon import in_polygon
+
     vertices = shape.vertices
     count = len(vertices)
     prev_point = vertices[(index - 1) % count][:2]
@@ -5216,6 +4674,8 @@ def vert_label_pos(shape, index, offset=10):
 def edge_label_positions(shape, offset):
     """Returns the position of the edge labels using the given
     label offset."""
+    from simetri.geometry.polygon import in_polygon
+
     vertices = list(shape.vertices)
     count = len(vertices)
     num_edges = count if shape.closed else count - 1
@@ -5249,6 +4709,8 @@ def edge_label_positions(shape, offset):
 def edge_label_pos(shape, index, offset=10):
     """Returns the position of the edge label using the given
     edge index and label offset."""
+    from simetri.geometry.polygon import in_polygon
+
     vertices = shape.vertices
     count = len(vertices)
     prev_point = vertices[index][:2]

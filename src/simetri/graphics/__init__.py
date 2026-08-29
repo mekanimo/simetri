@@ -45,7 +45,7 @@ from ..graphics.common import *
 
 
 set_defaults()
-import simetri.colors as colors
+from simetri import colors
 
 from ..canvas.canvas import *
 from ..canvas.grids import *
@@ -79,6 +79,7 @@ from ..graphics.shape import (
     polygon_intersection,
     polygon_union,
     polygon_xor,
+    polygons_union,
 )
 from ..graphics.shapes import *
 
@@ -101,7 +102,7 @@ from .affine import *
 from .batch import *
 from .dots import *
 from .mask import Gradient, Mask, Stop
-from .path import Path2D, Operation
+from .path import Operation, Path2D
 from .pattern import *
 
 set_tikz_defaults()
