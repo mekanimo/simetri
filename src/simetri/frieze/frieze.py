@@ -1,11 +1,11 @@
 """Simetri graphics library's frieze patterns."""
 
-from typing import Sequence
+from collections.abc import Sequence
+from math import pi
 
-from ..geometry.geometry import vec_along_line, point_to_line_vec, pi
-from ..graphics.common import VecType, LineType, PointType
+from ..geometry.vectors import point_to_line_vec, vec_along_line
 from ..graphics.batch import Group
-
+from ..graphics.common import LineType, PointType, VecType
 from ..graphics.shape import Shape
 
 

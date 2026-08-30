@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Self
 from numpy import array
 from numpy.typing import NDArray
 
-from ..geometry.geometry import (
+from ..geometry.geom_utils import (
     fix_degen_points,
     get_polygons,
     round_point,

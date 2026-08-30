@@ -6,12 +6,6 @@ of this ShapeStyle object will superseed the style attributes of the Shape objec
 
 from __future__ import annotations
 
-from ..geometry.in_polygon import in_polygon
-from ..geometry.polygon import (
-    point_inside_polygon,
-    polygon_area,
-    polyline_length,
-)
 
 __all__ = [
     "Clipping",
@@ -44,20 +38,27 @@ from numpy.linalg import inv
 
 from ..canvas.style_map import shape_style_map
 from ..colors.colors import Color, black
-from ..geometry.geometry import (
-    all_intersections,
-    angle_between_lines2,
+from ..geometry.geom_utils import (
     close_points2,
     connected_pairs,
     distance,
     homogenize,
-    lerp_point,
     midpoint,
-    multi_split_segment,
     polar_to_cartesian,
     positive_angle,
-    remove_duplicate_points,
     right_handed,
+)
+from ..geometry.geometry import (
+    all_intersections,
+    angle_between_lines2,
+    lerp_point,
+    multi_split_segment,
+    remove_duplicate_points,
+)
+from ..geometry.polygon import (
+    in_polygon,
+    polygon_area,
+    polyline_length,
 )
 from ..helpers.utilities import (
     decompose_transformations,
@@ -1877,69 +1878,6 @@ class Clipping:
     def __post_init__(self):
         self.type = Types.CLIPPING
         self.subtype = Types.CLIPPING
-
-
-def polygons_union(polygons: Group) -> tuple[Group, Group]:
-    """Given a group of polygons (closed Shapes),
-    returns the union and holes (if there are any)
-    as groups.
-    """
-    poly1 = polygons[0]
-    poly2 = polygons[1]
-    rest = polygons[2:]
-    union = polygon_union(poly1, poly2)
-    union = union.merge_shapes()
-    union = union[0]
-    holes = []
-    for i, shape in enumerate(rest):
-        union = polygon_union(union, shape)
-        n_union = len(union)
-        union = union.merge_shapes()
-        if n_union > 1:
-            for x in union[1:]:
-                if point_inside_polygon(x[-1], union[0]):
-                    holes.append(x)
-
-        union = union[0]
-
-    return union, Group(holes)
-
-
-def polygon_union(shape1: Shape, shape2: Shape, merge: bool = True):
-    """
-    shape1 Shape: shape to be clipped
-    shape2 Shape: clipping region
-    """
-    if not (shape1.closed and shape2.closed):
-        raise Warning("Both shapes must be closed")
-
-    segments = [[p1[:2], p2[:2]] for (p1, p2) in shape1.edges] + [
-        [p1[:2], p2[:2]] for (p1, p2) in shape2.edges
-    ]
-    intersections = all_intersections(segments)
-
-    all_segments_ = []
-    for key, value in intersections[0].items():
-        segment = segments[key]
-        points = [x[0] for x in value]
-        points = remove_duplicate_points(points)
-        all_segments_.append(multi_split_segment(segment, points))
-
-    union_ = Group()
-    shape_vertices = shape1.vertices
-    shape2_vertices = shape2.vertices
-    for segs in all_segments_:
-        for seg in segs:
-            if distance(*seg) < 0.001:
-                continue
-            in1 = in_polygon(midpoint(*seg), shape_vertices)
-            in2 = in_polygon(midpoint(*seg), shape2_vertices)
-            if in1 ^ in2:  # only one can be True
-                union_.append(Shape(seg))
-    if merge:
-        union_ = union_.merge_shapes()
-
-    return union_
 
 
 def polygon_diff(

@@ -1,24 +1,20 @@
 """2D Lattice"""
 
-from math import pi, cos, sin, ceil, floor
 from dataclasses import dataclass
+from math import ceil, cos, floor, pi, sin
 from typing import Any, List
 
 import numpy as np
 
-from ..graphics.all_enums import IsometryType, LatType, Types, LatRef
-from ..graphics.shape import Shape
-from ..graphics.batch import Group
-from ..graphics.shapes import reg_poly_shape, Line
-from ..graphics.common import PointType
-from ..geometry.geometry import (
-    lerp_point,
-    is_number,
-    distance,
-    clip_line_to_rect,
-)
+from ..colors.colors import blue, gray, green, light_gold, navy, purple, red
+from ..geometry.geom_utils import distance, is_number
+from ..geometry.geometry import clip_line_to_rect, lerp_point
 from ..geometry.vectors import Vector
-from ..colors.colors import gray, green, red, navy, blue, purple, light_gold
+from ..graphics.all_enums import IsometryType, LatRef, LatType, Types
+from ..graphics.batch import Group
+from ..graphics.common import PointType
+from ..graphics.shape import Shape
+from ..graphics.shapes import Line, reg_poly_shape
 
 r = 8
 triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)

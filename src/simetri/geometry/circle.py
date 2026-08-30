@@ -1,17 +1,13 @@
-from math import pi, sin, cos, sqrt, acos, atan, atan2
-from dataclasses import dataclass
 import cmath
+from dataclasses import dataclass
+from math import acos, atan, atan2, cos, pi, sin, sqrt
 
 import numpy as np
 
-from .geometry import (
-    distance,
-    homogenize,
-    side_len_to_radius,
-    angle_between_lines2,
-)
-from ..graphics.affine import rotate, scale_matrix, rotation_matrix
+from ..graphics.affine import rotate, rotation_matrix, scale_matrix
 from ..graphics.shapes import Circle
+from .geom_utils import distance, homogenize
+from .geometry import angle_between_lines2, side_len_to_radius
 
 array = np.array
 dot = np.dot

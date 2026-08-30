@@ -4,11 +4,10 @@ from math import acos, cos, degrees, pi, radians, sin, sqrt
 
 import numpy as np
 
-from ..geometry.geometry import (
+from ..geometry.polygon import (
     double_offset_polygons,
-    double_offset_polylines,
-    offset_polygon,
 )
+from ..geometry.polygon import double_offset_polylines, offset_polygon
 from ..graphics.all_enums import PathOperation as PathOps
 from ..graphics.common import PointType
 from ..graphics.path import Path2D

@@ -14,14 +14,16 @@ from ..geometry.ellipse import (
     ellipse_tangent,
     elliptic_arc_points,
 )
-from ..geometry.geometry import (
+from ..geometry.geom_utils import (
     close_points2,
-    extended_line,
     homogenize,
     line_angle,
-    line_by_point_angle_length,
     polar_to_cartesian,
     positive_angle,
+)
+from ..geometry.geometry import (
+    extended_line,
+    line_by_point_angle_length,
     sine_points,
 )
 from ..geometry.hobby import hobby_shape

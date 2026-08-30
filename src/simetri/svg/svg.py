@@ -4,17 +4,13 @@ from typing import TYPE_CHECKING
 
 from ..canvas.style_map import marker_style_map
 from ..colors.colors import black, check_color, white
-from ..geometry.geometry import (
-    homogenize,
-)
+from ..geometry.geom_utils import homogenize
 from ..graphics.all_enums import (
-    BackStyle,
     MarkerType,
     Types,
 )
 from ..graphics.bbox import bounding_box
 from ..graphics.sketch import MaskSketch
-from ..settings.settings import defaults, issue_warning, svg_defaults
 from ..tikz.tikz_utils import sg_to_tikz
 from . import svg_sketch_utils as svg_sketch_utils_module
 from .filters import SVG_Filter

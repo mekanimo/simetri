@@ -11,7 +11,7 @@ import numpy as np
 from numpy import ndarray
 
 from ..canvas.style_map import shape_args
-from ..geometry.geometry import angled_line, line_angle, offset_line
+from ..geometry.geom_utils import angled_line, line_angle, offset_line
 from .affine import (
     glide_matrix,
     mirror_matrix,

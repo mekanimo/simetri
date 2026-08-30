@@ -902,46 +902,6 @@ def inv_lerp(start, end, value):
     return (value - start) / (end - start)
 
 
-def sanitize_weighted_graph_edges(edges):
-    """Sanitize weighted graph edges.
-
-    Args:
-        edges: A list of weighted graph edges.
-
-    Returns:
-        A sanitized list of weighted graph edges.
-    """
-    clean_edges = []
-    s_seen = set()
-    for edge in edges:
-        e1, e2, _ = edge
-        frozen_edge = frozenset((e1, e2))
-        if frozen_edge in s_seen:
-            continue
-        s_seen.add(frozen_edge)
-        clean_edges.append(edge)
-    clean_edges.sort()
-    return clean_edges
-
-
-def sanitize_graph_edges(edges):
-    """Sanitize graph edges.
-
-    Args:
-        edges: A list of graph edges.
-
-    Returns:
-        A sanitized list of graph edges.
-    """
-    s_edge_set = set()
-    for edge in edges:
-        s_edge_set.add(frozenset(edge))
-    edges = [tuple(x) for x in s_edge_set]
-    edges = [(min(x), max(x)) for x in edges]
-    edges.sort()
-    return edges
-
-
 def zip_points(points1, points2):
     res = []
     zipped = list(zip(points1, points2))

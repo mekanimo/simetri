@@ -2,15 +2,14 @@
 
 # This is obsolete now! Replaced by lattice.py
 
-from math import sqrt, pi, cos
+from math import cos, pi, sqrt
 
-
-from ..geometry.geometry import midpoint, line_through_point_and_angle
-from ..graphics.common import VecType, PointType, LineType
-from ..helpers.illustration import Tag
+from ..geometry.geom_utils import midpoint
+from ..geometry.geometry import line_through_point_and_angle
 from ..graphics.batch import Group
+from ..graphics.common import LineType, PointType, VecType
 from ..graphics.shape import Shape
-
+from ..helpers.illustration import Tag
 
 cos60 = cos(pi / 3)
 cos30 = cos(pi / 6)

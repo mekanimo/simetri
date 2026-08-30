@@ -13,7 +13,7 @@ from ..canvas.pre_render import (
     set_styles,
     style_properties,
 )
-from ..geometry.geometry import homogenize
+from ..geometry.geom_utils import homogenize
 from ..graphics.all_enums import (
     Anchor,
     BackStyle,

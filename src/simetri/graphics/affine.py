@@ -4,18 +4,13 @@ from collections.abc import Sequence
 from math import cos, sin, tan
 
 import numpy as np
+from numpy.typing import NDArray
 
-from ..geometry.geometry import (
-    homogenize,
-    is_line,
-    is_point,
-    line_angle,
-    vec_along_line,
-)
+from ..geometry.vectors import vec_along_line
 from .common import LineType, PointType
 
 
-def identity_matrix() -> "ndarray":
+def identity_matrix() -> NDArray:
     """
     Return the identity matrix
     [[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]].
@@ -28,7 +23,7 @@ def identity_matrix() -> "ndarray":
 
 def xform_matrix(
     a: float, b: float, c: float, d: float, e: float, f: float
-) -> "ndarray":
+) -> NDArray:
     """
     Return a transformation matrix in row form
     [[a, b, 0], [c, d, 0], [e, f, 1.0]].
@@ -47,7 +42,7 @@ def xform_matrix(
     return np.array([[a, b, 0], [c, d, 0], [e, f, 1.0]])
 
 
-def translation_matrix(dx: float, dy: float) -> "ndarray":
+def translation_matrix(dx: float, dy: float) -> NDArray:
     """
     Return a translation matrix in row form
     [[1.0, 0, 0], [0, 1.0, 0], [dx, dy, 1.0]].
@@ -62,7 +57,7 @@ def translation_matrix(dx: float, dy: float) -> "ndarray":
     return np.array([[1.0, 0, 0], [0, 1.0, 0], [dx, dy, 1.0]])
 
 
-def inv_translation_matrix(dx: float, dy: float) -> "ndarray":
+def inv_translation_matrix(dx: float, dy: float) -> NDArray:
     """
     Return the inverse of a translation matrix in row form
     [[1.0, 0, 0], [0, 1.0, 0], [-dx, -dy, 1.0]].
@@ -77,7 +72,7 @@ def inv_translation_matrix(dx: float, dy: float) -> "ndarray":
     return np.array([[1.0, 0, 0], [0, 1.0, 0], [-dx, -dy, 1.0]])
 
 
-def rot_about_origin_matrix(angle: float) -> "ndarray":
+def rot_about_origin_matrix(angle: float) -> NDArray:
     """
     Return a rotation matrix in row form
     [[cos(angle), sin(angle), 0], [-sin(angle), cos(angle), 0], [0, 0, 1.0]].
@@ -93,7 +88,7 @@ def rot_about_origin_matrix(angle: float) -> "ndarray":
     return np.array([[c, s, 0], [-s, c, 0], [0, 0, 1.0]])
 
 
-def rotation_matrix(angle: float, about=(0, 0)) -> "ndarray":
+def rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
     """
     Construct a rotation matrix that can be used to rotate a point
     about another point by angle float.
@@ -121,7 +116,7 @@ def rotation_matrix(angle: float, about=(0, 0)) -> "ndarray":
     return trans_mat @ rot_mat @ inv_trans_mat
 
 
-def inv_rotation_matrix(angle: float, about=(0, 0)) -> "ndarray":
+def inv_rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
     """
     Construct the inverse of a rotation matrix that can be used to rotate a point
     about another point by angle float.
@@ -149,7 +144,7 @@ def inv_rotation_matrix(angle: float, about=(0, 0)) -> "ndarray":
     return inv_trans_mat @ rot_mat.T @ trans_mat
 
 
-def glide_matrix(mirror_line: LineType, distance: float) -> "ndarray":
+def glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
     """
     Return a glide-reflection matrix in row form.
     Reflect about the given vector then translate by dx
@@ -169,7 +164,7 @@ def glide_matrix(mirror_line: LineType, distance: float) -> "ndarray":
     return mirror_mat @ trans_mat
 
 
-def inv_glide_matrix(mirror_line: LineType, distance: float) -> "ndarray":
+def inv_glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
     """
     Return the inverse of a glide-reflection matrix in row form.
     Reflect about the given vector then translate by dx
@@ -189,7 +184,7 @@ def inv_glide_matrix(mirror_line: LineType, distance: float) -> "ndarray":
     return trans_matrix @ mirror_mat
 
 
-def scale_matrix(scale_x: float, scale_y: float = None) -> "ndarray":
+def scale_matrix(scale_x: float, scale_y: float | None = None) -> NDArray:
     """
     Return a scale matrix in row form.
 
@@ -205,7 +200,7 @@ def scale_matrix(scale_x: float, scale_y: float = None) -> "ndarray":
     return np.array([[scale_x, 0, 0], [0, scale_y, 0], [0, 0, 1.0]])
 
 
-def inv_scale_matrix(scale_x: float, scale_y: float = None) -> "ndarray":
+def inv_scale_matrix(scale_x: float, scale_y: float | None = None) -> NDArray:
     """
     Return the inverse of a scale matrix in row form.
 
@@ -223,7 +218,7 @@ def inv_scale_matrix(scale_x: float, scale_y: float = None) -> "ndarray":
 
 def scale_in_place_matrix(
     scale_x: float, scale_y: float, about: PointType = (0, 0)
-) -> "ndarray":
+) -> NDArray:
     """
     Return a scale matrix in row form that scales about a point.
 
@@ -242,7 +237,7 @@ def scale_in_place_matrix(
     return trans_mat @ scale_mat @ inv_trans_mat
 
 
-def shear_matrix(angle_x: float, angle_y: float = 0) -> "ndarray":
+def shear_matrix(angle_x: float, angle_y: float = 0) -> NDArray:
     """
     Return a shear matrix in row form.
 
@@ -256,7 +251,7 @@ def shear_matrix(angle_x: float, angle_y: float = 0) -> "ndarray":
     return np.array([[1, tan(angle_y), 0], [tan(angle_x), 1, 0], [0, 0, 1.0]])
 
 
-def inv_shear_matrix(angle_x: float, angle_y: float = 0) -> "ndarray":
+def inv_shear_matrix(angle_x: float, angle_y: float = 0) -> NDArray:
     """
     Return the inverse of a shear matrix in row form.
 
@@ -270,7 +265,7 @@ def inv_shear_matrix(angle_x: float, angle_y: float = 0) -> "ndarray":
     return np.array([[1, -tan(angle_x), 0], [-tan(angle_y), 1, 0], [0, 0, 1.0]])
 
 
-def mirror_matrix(about: LineType | PointType) -> "ndarray":
+def mirror_matrix(about: LineType | PointType) -> NDArray:
     """
     Return a matrix to perform reflection about a line or a point.
 
@@ -292,7 +287,7 @@ def mirror_matrix(about: LineType | PointType) -> "ndarray":
     return res
 
 
-def mirror_about_x_matrix() -> "ndarray":
+def mirror_about_x_matrix() -> NDArray:
     """
     Return a matrix to perform reflection about the x-axis.
 
@@ -302,7 +297,7 @@ def mirror_about_x_matrix() -> "ndarray":
     return np.array([[1.0, 0, 0], [0, -1.0, 0], [0, 0, 1.0]])
 
 
-def mirror_about_y_matrix() -> "ndarray":
+def mirror_about_y_matrix() -> NDArray:
     """
     Return a matrix to perform reflection about the y-axis.
 
@@ -312,7 +307,7 @@ def mirror_about_y_matrix() -> "ndarray":
     return np.array([[-1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]])
 
 
-def mirror_about_line_matrix(line: LineType) -> "ndarray":
+def mirror_about_line_matrix(line: LineType) -> NDArray:
     """
     Return a matrix to perform reflection about a line.
 
@@ -347,7 +342,7 @@ def mirror_about_line_matrix(line: LineType) -> "ndarray":
     )
 
 
-def mirror_about_origin_matrix() -> "ndarray":
+def mirror_about_origin_matrix() -> NDArray:
     """
     Return a matrix to perform reflection about the origin.
 
@@ -357,7 +352,7 @@ def mirror_about_origin_matrix() -> "ndarray":
     return np.array([[-1.0, 0, 0], [0, -1.0, 0], [0, 0, 1.0]])
 
 
-def mirror_about_point_matrix(point: PointType) -> "ndarray":
+def mirror_about_point_matrix(point: PointType) -> NDArray:
     """
     Return a matrix to perform reflection about a point.
 
@@ -379,7 +374,7 @@ def mirror_about_point_matrix(point: PointType) -> "ndarray":
 
 def rotate(
     points: Sequence[PointType], angle: float, about: PointType = (0, 0)
-) -> "ndarray":
+) -> NDArray:
     """
     Rotate points by angle about a point.
 
@@ -395,7 +390,7 @@ def rotate(
     return points @ rotation_matrix(angle, about)
 
 
-def translate(points: Sequence[PointType], dx: float, dy: float) -> "ndarray":
+def translate(points: Sequence[PointType], dx: float, dy: float) -> NDArray:
     """
     Translate points by dx, dy.
 
@@ -410,7 +405,7 @@ def translate(points: Sequence[PointType], dx: float, dy: float) -> "ndarray":
     return points @ translation_matrix(dx, dy)
 
 
-def mirror(points: Sequence[PointType], about: LineType) -> "ndarray":
+def mirror(points: Sequence[PointType], about: LineType) -> NDArray:
     """
     Mirror points about a line.
 
@@ -426,7 +421,7 @@ def mirror(points: Sequence[PointType], about: LineType) -> "ndarray":
 
 def glide(
     points: Sequence[PointType], mirror_line: LineType, distance: float
-) -> "ndarray":
+) -> NDArray:
     """
     Glide (mirror about a line then translate along the same line) points about a line.
 
@@ -443,7 +438,7 @@ def glide(
 
 def shear(
     points: Sequence[PointType], angle_x: float, angle_y: float = 0
-) -> "ndarray":
+) -> NDArray:
     """
     Shear points by angle_x in x direction and angle_y in y direction.
 
@@ -460,7 +455,7 @@ def shear(
 
 def scale(
     points: Sequence[PointType], scale_x: float, scale_y: float
-) -> "ndarray":
+) -> NDArray:
     """
     Scale points by scale_x in x direction and scale_y in y direction.
 
@@ -480,7 +475,7 @@ def scale_in_place(
     scale_x: float,
     scale_y: float,
     about: PointType,
-) -> "ndarray":
+) -> NDArray:
     """
     Scale points about a point by scale_x in x direction and scale_y in y direction.
 
@@ -494,3 +489,68 @@ def scale_in_place(
         np.ndarray: The scaled points.
     """
     return points @ scale_in_place_matrix(scale_x, scale_y, about)
+
+
+def rotate_point_3D(
+    point: PointType, line: LineType, angle: float
+) -> PointType:
+    """Rotate a 2d point (out of paper) about a 2d line by the given angle.
+    This is used for animating mirror reflections.
+     Args:
+         point (PointType): PointType to rotate.
+         line (LineType): Line to rotate about.
+         angle (float): Angle of rotation in radians.
+
+     Returns:
+         PointType: Rotated point.
+    """
+
+    p1, p2 = line
+    line_angle_ = line_angle(p1, p2)
+    translation = translation_matrix(-p1[0], -p1[1])
+    rotation = rotation_matrix(-line_angle_, (0, 0))
+    xform = translation @ rotation
+    x, y = point[:2]
+    x, y, _ = [x, y, 1] @ xform
+
+    y *= cos(angle)
+
+    inv_translation = translation_matrix(p1[0], p1[1])
+    inv_rotation = rotation_matrix(line_angle_, (0, 0))
+    inv_xform = inv_rotation @ inv_translation
+    x, y, _ = [x, y, 1] @ inv_xform
+
+    return (x, y)
+
+
+def rotate_line_3D(line: LineType, about: LineType, angle: float) -> LineType:
+    """Rotate a 3d line about a 3d line by the given angle
+
+    Args:
+        line (LineType): Line to rotate.
+        about (LineType): Line to rotate about.
+        angle (float): Angle of rotation in radians.
+
+    Returns:
+        LineType: Rotated line.
+    """
+    p1 = rotate_point_3D(line[0], about, angle)
+    p2 = rotate_point_3D(line[1], about, angle)
+
+    return [p1, p2]
+
+
+def rotate_point(
+    point: PointType, angle: float, center: PointType = (0, 0)
+) -> PointType:
+    x, y = point[:2]
+    cx, cy = center[:2]
+    x -= cx
+    y -= cy
+    cos_angle = cos(angle)
+    sin_angle = sin(angle)
+    x, y = x * cos_angle - y * sin_angle, x * sin_angle + y * cos_angle
+    x += cx
+    y += cy
+
+    return (x, y)

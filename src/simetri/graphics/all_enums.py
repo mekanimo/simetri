@@ -1,7 +1,7 @@
 """All enumerations."""
 
-from typing import TYPE_CHECKING, TypeAlias
 from enum import StrEnum
+from typing import TYPE_CHECKING, TypeAlias
 
 if TYPE_CHECKING:
     from simetri.geometry.geometry import Edge
@@ -1273,9 +1273,12 @@ class Types(StrEnum):
 
     def __eq__(self, other):
         if isinstance(other, str):
-            if self.value == "GROUP" and other == "BATCH":
-                return True
-            elif self.value == "BATCH" and other == "GROUP":
+            if (
+                self.value == "GROUP"
+                and other == "BATCH"
+                or self.value == "BATCH"
+                and other == "GROUP"
+            ):
                 return True
             return self.value == other
 

@@ -2,53 +2,59 @@
 transformed. They all have a 'shape' property that returns an
 equivalent Shape object that can be transformed."""
 
+from __future__ import annotations
+
 import time
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from itertools import combinations
 from math import atan2, ceil, isclose, log10, pi, sqrt
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 import numpy as np
+from numpy.typing import NDArray
 
-from simetri.geometry.vectors import (
+from ..graphics.common import (
+    LineType,
     PointType,
-    Sequence,
-    distance,
-    v_from_points,
+    d_id_obj,
+    get_defaults,
+    get_unique_id,
 )
-from simetri.graphics.common import LineType, PointType, d_id_obj, get_unique_id
-from simetri.settings.settings import defaults
+from ..settings.settings import defaults
+from .vectors import v_from_points
 
 if TYPE_CHECKING:
     from simetri.graphics.batch import Group
     from simetri.graphics.shape import Shape
 
-from .geometry import (
-    all_intersections,
+from .geom_utils import (
     close_points2,
     distance,
-    left,
     midpoint,
     offset_line,
-    on_segment,
-    point_on_line_segment,
     right_handed,
     round_point,
     round_segment,
+)
+from .geometry import (
+    all_intersections,
+    left,
+    on_segment,
+    point_on_line_segment,
     stitch,
 )
 
 
-def _shape(*args, **kwargs) -> "Shape":
+def _shape(*args: Any, **kwargs: Any) -> Shape:
     from simetri.graphics.shape import Shape
 
     return Shape(*args, **kwargs)
 
 
-def _group(*args, **kwargs) -> "Group":
+def _group(*args: Any, **kwargs: Any) -> Group:
     from simetri.graphics.batch import Group
 
     return Group(*args, **kwargs)
@@ -59,11 +65,11 @@ class Node:
     pos: PointType
     _closed: bool = field(default=False, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.id: int = get_unique_id(self)
 
     @property
-    def shape(self) -> "Shape":
+    def shape(self) -> Shape:
         return _shape([self.pos])
 
     @property
@@ -80,11 +86,11 @@ class Edge:
     _closed: bool = field(default=False, init=False, repr=False)
     _nodes: tuple[Node, Node] = field(init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.id: int = get_unique_id(self)
 
     @property
-    def shape(self) -> "Shape":
+    def shape(self) -> Shape:
         return _shape([n.pos for n in self.nodes])
 
     @property
@@ -107,7 +113,7 @@ class Edge:
         self._nodes = value
 
     @property
-    def length(self):
+    def length(self) -> float:
         # Used cached value if it exists
         if "_length" not in self.__dict__:
             a, b = self.nodes
@@ -127,11 +133,11 @@ class Polyline:
     edges: Sequence[Edge]
     closed: bool = False  # If closed then it becomes a ring
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.id: int = get_unique_id(self)
 
     @property
-    def shape(self) -> "Shape":
+    def shape(self) -> Shape:
         return _shape([n.pos for n in self.nodes], closed=self.closed)
 
     @property
@@ -143,11 +149,13 @@ class Polyline:
         return sum([e.length for e in self.edges])
 
 
-def polygon_area(polygon: Sequence[PointType], dist_tol=None) -> float:
+def polygon_area(
+    polygon: Sequence[PointType], dist_tol: float | None = None
+) -> float:
     """Calculate the area of a polygon.
 
     Args:
-        polygon (Sequence[PointType]): List of points representing the polygon.
+        polygon (Sequence[PointType]): Sequence of points representing the polygon.
         dist_tol (float, optional): Distance tolerance. Defaults to None.
 
     Returns:
@@ -177,7 +185,7 @@ class Polygon:
     holes: Sequence[Polyline]
     _closed: bool = field(default=True, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.id: int = get_unique_id(self)
 
     @property
@@ -186,7 +194,7 @@ class Polygon:
         return self._closed
 
     @property
-    def shape(self) -> "Shape":
+    def shape(self) -> Shape:
         return _shape([n.pos for n in self.nodes], closed=True)
 
     @property
@@ -211,11 +219,11 @@ class Side:
     nodes: tuple[Node, Node]
     _closed: bool = field(default=False, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.id: int = get_unique_id(self)
 
     @property
-    def shape(self) -> "Shape":
+    def shape(self) -> Shape:
         return _shape([n.pos for n in self.nodes])
 
     @property
@@ -230,17 +238,21 @@ class Partition:
     sides: Sequence[Side]
     _closed: bool = field(default=True, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.id: int = get_unique_id(self)
 
     @property
-    def shape(self) -> "Shape":
+    def shape(self) -> Shape:
         return _shape([n.pos for n in self.nodes])
 
     @property
     def closed(self) -> bool:
         """Immutable property, it is always True."""
         return self._closed
+
+    @property
+    def vertices(self) -> Sequence[PointType]:
+        return tuple(n.pos for n in self.nodes)
 
     @property
     def area(self) -> float:
@@ -265,83 +277,86 @@ class Polyset:
 
     polys: Sequence[Polygon | Polyline]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.id: int = get_unique_id(self)
 
     @property
-    def group(self):
+    def group(self) -> Group:
         return _group([poly.shape for poly in self.polys])
 
     @property
-    def union(self):
+    def union(self) -> Any:
         pass
 
     @property
-    def intersection(self):
+    def intersection(self) -> Any:
         pass
 
     @property
-    def symmetric_difference(self):
+    def symmetric_difference(self) -> Any:
         pass
 
     @property
-    def partitions(self):
+    def partitions(self) -> Any:
         pass
 
     @property
-    def d_node_poly(self):
+    def d_node_poly(self) -> Any:
         pass
 
     @property
-    def d_node_edge(self):
+    def d_node_edge(self) -> Any:
         pass
 
     @property
-    def d_node_side(self):
+    def d_node_side(self) -> Any:
         pass
 
     @property
-    def d_node_part(self):
+    def d_node_part(self) -> Any:
         pass
 
     @property
-    def d_edge_poly(self):
+    def d_edge_poly(self) -> Any:
         pass
 
     @property
-    def d_edge_part(self):
+    def d_edge_part(self) -> Any:
         pass
 
     @property
-    def d_edge_side(self):
+    def d_edge_side(self) -> Any:
         pass
 
     @property
-    def d_edge_node(self):
+    def d_edge_node(self) -> Any:
         pass
 
     @property
-    def d_part_poly(self):
+    def d_part_poly(self) -> Any:
         pass
 
     @property
-    def d_part_edge(self):
+    def d_part_edge(self) -> Any:
         pass
 
     @property
-    def d_side_edge(self):
+    def d_side_edge(self) -> Any:
         pass
 
     @property
-    def d_side_part(self):
+    def d_side_part(self) -> Any:
         pass
 
     @property
-    def d_side_poly(self):
+    def d_side_poly(self) -> Any:
         pass
 
 
-def _segment_containment_counts(midpoints, shape_vertices):
+def _segment_containment_counts(
+    midpoints: Sequence[PointType],
+    shape_vertices: Sequence[Sequence[PointType]],
+) -> NDArray[np.int16]:
     """Count how many input polygons contain each segment midpoint."""
     counts = np.zeros(len(midpoints), dtype=np.int16)
     for vertices in shape_vertices:
@@ -351,7 +366,9 @@ def _segment_containment_counts(midpoints, shape_vertices):
     return counts
 
 
-def point_inside_polygon(p, poly, eps=1e-5):
+def point_inside_polygon(
+    p: PointType, poly: Sequence[PointType], eps: float = 1e-5
+) -> bool:
     """
     Strictly inside only.
     Boundary returns False (consistent with "does not contain any vertices inside").
@@ -382,7 +399,12 @@ def point_inside_polygon(p, poly, eps=1e-5):
     return inside
 
 
-def polygons_union(shapes, all_segments, all_midpoints, min_seg_len=0.001):
+def polygons_union(
+    shapes: Sequence[Shape],
+    all_segments: Sequence[LineType],
+    all_midpoints: Sequence[PointType],
+    min_seg_len: float = 0.001,
+) -> tuple[Shape, Group]:
     """Compute polygon union from a pre-built arrangement.
 
     Uses XOR boundary rule on the full segment arrangement instead of
@@ -418,7 +440,7 @@ def polygons_union(shapes, all_segments, all_midpoints, min_seg_len=0.001):
     return outer, _group(holes)
 
 
-def get_time(start, end):
+def get_time(start: int, end: int) -> str:
     ms = (end - start) / 1e6
 
     if ms < 900:
@@ -432,15 +454,18 @@ def get_time(start, end):
 
 
 def all_close_points(
-    points: Sequence[Sequence],
+    points: Sequence[Sequence[float]],
     dist_tol: float | None = None,
     with_dist: bool = False,
-) -> dict[int, list[tuple[PointType, int]]]:
+) -> tuple[
+    dict[int, Sequence[int]],
+    Sequence[tuple[int, int] | tuple[int, int, float]],
+]:
     """
-    Find all close points in a list of points along with their ids.
+    Find all close points in a sequence of points along with their ids.
 
     Args:
-        points (Sequence[Sequence]): List of points with ids [[x1, y1, id1], [x2, y2, id2], ...].
+        points (Sequence[Sequence]): Sequence of points with ids [[x1, y1, id1], [x2, y2, id2], ...].
         dist_tol (float, optional): Distance tolerance. Defaults to None.
         with_dist (bool, optional): Whether to include distances in the result. Defaults to False.
 
@@ -498,14 +523,20 @@ def all_close_points(
 
 
 def node_dictionaries(
-    coords: list, dist_tol: float, debug: bool = False
-) -> tuple[dict, dict, dict]:
+    coords: Sequence[PointType],
+    dist_tol: float,
+    debug: bool = False,
+) -> tuple[
+    dict[int, tuple[float, ...]],
+    dict[tuple[float, ...], int],
+    dict[tuple[float, ...], PointType],
+]:
     """Set dictionaries for nodes and coordinates.
     d_node_coord: Dictionary of node id to coordinates.
     d_coord_node: Dictionary of coordinates to node id.
 
     Args:
-        coords (list[PointType]): List of vertices.
+        coords (Sequence[PointType]): Sequence of vertices.
         dist_tol (float): Distance tolerance for grouping coordinates.
         debug (bool, optional): Print node proximity diagnostics.
             Defaults to False.
@@ -580,8 +611,10 @@ def node_dictionaries(
     return (d_node_coord, d_coord_node, d_rounded_coord)
 
 
-def segment_cycles(segments, length_bound=10):
-    """Given a list of line segments, returns all cycles."""
+def segment_cycles(
+    segments: Sequence[LineType], length_bound: int = 10
+) -> tuple[Sequence[Sequence[PointType]], Sequence[Sequence[int]]]:
+    """Given a sequence of line segments, returns all cycles."""
     coordinates = []
     for seg in segments:
         coordinates.extend(seg)
@@ -599,8 +632,10 @@ def segment_cycles(segments, length_bound=10):
     return res, cycles
 
 
-def segments_from_points(points):
-    """Given a list of collinear points (in any order), returns the connected segments."""
+def segments_from_points(
+    points: Sequence[PointType],
+) -> tuple[PointType, PointType] | None:
+    """Given a sequence of collinear points (in any order), returns the connected segments."""
     n = len(points)
     if n < 2:
         res = None
@@ -614,11 +649,24 @@ def segments_from_points(points):
     return res
 
 
-def set_fills(partitions, d_edge_part):
+def set_fills(
+    partitions: Sequence[Shape], d_edge_part: dict[frozenset, set[int]]
+) -> None:
     """
-    Set the partitions' fill property according to their
-    symmetric difference.
+        Set the partitions' fill property according to their symmetric difference.
+        Used for creating a symmetric-difference of multiple polygons.
+        This function mutates the input partitions!
+        Modifies the partitions's fill properties.
+
+    Args:
+        partitions (Sequence[Shape]): A list or array of polygons (closed Shape objects).
+        d_edge_part (dict[Sequence[LineType, Shape]]): A dictionary with LineType keys
+                                                       and closed Shape values.
+
+    Returns:
+        Sequence[Shape]: The modified input polygons.
     """
+
     # To start, find an edge with a single partition.
     # and the partition to the queue.
     # This is one of the outermost partitions.
@@ -658,11 +706,23 @@ def set_fills(partitions, d_edge_part):
             queue.difference_update(processed)
 
 
-def any_point_inside_polygon(points, polygon, eps=1e-12):
+def any_point_inside_polygon(
+    points: Sequence[PointType],
+    polygon: Shape | NDArray,
+    eps: float = 1e-12,
+) -> bool:
     """
     Returns True if ANY point is strictly inside the polygon.
     Boundary points are treated as outside.
 
+    Args:
+        points (Sequence[PointType]): A list or numpy array of (x, y) coordinates.
+        polygon (Shape): A closed Shape object.
+        eps (float, optional): _description_. Defaults to 1e-12.
+
+    Returns:
+        bool: If any of the input points is in the polygon returns True,
+              False otherwise.
     """
 
     pts = np.asarray(points, dtype=float)
@@ -706,7 +766,9 @@ def any_point_inside_polygon(points, polygon, eps=1e-12):
     return np.any(inside_strict)
 
 
-def get_partitions(shapes, length_bound=10):
+def get_partitions(
+    shapes: Group, length_bound: int = 10
+) -> tuple[Sequence[Shape], defaultdict[frozenset, set[int]], Shape]:
     n_edges = len(shapes.all_segments)
     intersections = all_intersections(
         shapes.all_segments, return_points_list=True
@@ -836,8 +898,8 @@ def get_partitions(shapes, length_bound=10):
 
 
 def equal_sorted_arrays(
-    array1: np.ndarray,
-    array2: np.ndarray,
+    array1: NDArray[np.float64],
+    array2: NDArray[np.float64],
     dist_tol: float,
 ) -> bool:
     if array1.shape != array2.shape:
@@ -857,8 +919,26 @@ def equal_sorted_arrays(
     return bool(np.all((delta * delta).sum(axis=1) <= dist_tol2))
 
 
-def _build_hole_index(holes):
-    """Build bbox/sorted-vertex index for hole lookup."""
+def _build_hole_index(
+    holes: Sequence[Shape],
+) -> tuple[NDArray[Any], Sequence[NDArray[np.float64]], NDArray[np.bool_]]:
+    (
+        """_summary_
+
+    Parameters
+    ----------
+    holes : Sequence[Shape]
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+        """"""
+    )
+
+    # """Build bbox/sorted-vertex index for hole lookup."""
     n_holes = len(holes)
     hole_dtype = [
         ("xmin", np.float64),
@@ -888,14 +968,14 @@ def _build_hole_index(holes):
 
 
 def _candidate_hole_ids(
-    hole_index,
-    hole_processed,
-    xmin,
-    ymin,
-    xmax,
-    ymax,
-    dist_tol,
-):
+    hole_index: NDArray[Any],
+    hole_processed: NDArray[np.bool_],
+    xmin: float,
+    ymin: float,
+    xmax: float,
+    ymax: float,
+    dist_tol: float,
+) -> NDArray[np.int_]:
     """Return hole ids whose bbox matches the given bounds within dist_tol."""
     if len(hole_index) == 0:
         return np.array([], dtype=int)
@@ -909,7 +989,9 @@ def _candidate_hole_ids(
     return hole_index["hole_id"][mask].astype(int)
 
 
-def polygon_xy_array(polygon) -> np.ndarray:
+def polygon_xy_array(
+    polygon: Shape | Sequence[PointType] | NDArray[Any],
+) -> NDArray[np.float64]:
     from simetri.graphics.shape import Shape
 
     if isinstance(polygon, Shape):
@@ -921,15 +1003,17 @@ def polygon_xy_array(polygon) -> np.ndarray:
     return array[:, :2]
 
 
-def sorted_polygon_xy_array(polygon) -> np.ndarray:
+def sorted_polygon_xy_array(
+    polygon: Shape | Sequence[PointType] | NDArray[Any],
+) -> NDArray[np.float64]:
     array = polygon_xy_array(polygon)
     order = np.lexsort((array[:, 1], array[:, 0]))
     return array[order]
 
 
 def equal_sorted_arrays(
-    array1: np.ndarray,
-    array2: np.ndarray,
+    array1: NDArray[np.float64],
+    array2: NDArray[np.float64],
     dist_tol: float,
 ) -> bool:
     if array1.shape != array2.shape:
@@ -950,12 +1034,12 @@ def equal_sorted_arrays(
 
 
 def equal_polygons(
-    poly1,
-    poly2,
+    poly1: Shape | Sequence[PointType],
+    poly2: Shape | Sequence[PointType],
     dist_tol: float | None = None,
     *,
-    _sorted_poly1: np.ndarray | None = None,
-    _sorted_poly2: np.ndarray | None = None,
+    _sorted_poly1: NDArray[np.float64] | None = None,
+    _sorted_poly2: NDArray[np.float64] | None = None,
 ) -> bool:
     """Return True if two polygons match within ``dist_tol``."""
     if dist_tol is None:
@@ -973,7 +1057,23 @@ def equal_polygons(
     return equal_sorted_arrays(sorted_poly1, sorted_poly2, dist_tol)
 
 
-def symmetric_difference(shapes, length_bound=10):
+def symmetric_difference(
+    shapes: Group, length_bound: int = 10
+) -> tuple[Sequence[Shape], Shape]:
+    """_summary_
+
+    Parameters
+    ----------
+    shapes : _type_
+        _description_
+    length_bound : int, optional
+        _description_, by default 10
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     start = time.perf_counter_ns()
     partitions, d_edge_part, union = get_partitions(shapes, length_bound)
     set_fills(partitions, d_edge_part)
@@ -995,7 +1095,7 @@ def in_polygon(
 
     Args:
         point (tuple): A tuple (x, y) representing the point to test.
-        polygon_vertices (list): A list of tuples, where each tuple (x, y)
+        polygon_vertices (list): A sequence of tuples, where each tuple (x, y)
                                 represents a vertex of the polygon. The vertices
                                 should be ordered (e.g., clockwise or counter-clockwise).
 
@@ -1042,22 +1142,22 @@ def double_offset_lines(
 
 
 def double_offset_polylines(
-    lines: list[PointType],
+    lines: Sequence[PointType],
     offset: float = 1,
     rel_tol: float | None = None,
     abs_tol: float | None = None,
-) -> list[PointType]:
+) -> Sequence[Sequence[PointType]]:
     """
-    Return a list of double offset lines from a list of lines.
+    Return a sequence of double offset lines from a sequence of lines.
 
     Args:
-        lines (list[PointType]): List of points representing the lines.
+        lines (Sequence[PointType]): Sequence of points representing the lines.
         offset (float, optional): Offset distance. Defaults to 1.
         rel_tol (float, optional): Relative tolerance. Defaults to None.
         abs_tol (float, optional): Absolute tolerance. Defaults to None.
 
     Returns:
-        list[PointType]: List of double offset lines.
+        Sequence[PointType]: Sequence of double offset lines.
     """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     lines1 = []
@@ -1072,12 +1172,12 @@ def double_offset_polylines(
     return [lines1, lines2]
 
 
-def polygon_cg(points: list[PointType]) -> PointType:
+def polygon_cg(points: Sequence[PointType]) -> PointType | None:
     """
-    Given a list of points that define a polygon, return the center point.
+    Given a sequence of points that define a polygon, return the center point.
 
     Args:
-        points (list[PointType]): List of points representing the polygon.
+        points (Sequence[PointType]): Sequence of points representing the polygon.
 
     Returns:
         PointType: Center point of the polygon.
@@ -1102,12 +1202,12 @@ def polygon_cg(points: list[PointType]) -> PointType:
     return res
 
 
-def polygon_center2(polygon_points: list[PointType]) -> PointType:
+def polygon_center2(polygon_points: Sequence[PointType]) -> PointType:
     """
-    Given a list of points that define a polygon, return the center point.
+    Given a sequence of points that define a polygon, return the center point.
 
     Args:
-        polygon_points (list[PointType]): List of points representing the polygon.
+        polygon_points (Sequence[PointType]): Sequence of points representing the polygon.
 
     Returns:
         PointType: Center point of the polygon.
@@ -1123,12 +1223,12 @@ def polygon_center2(polygon_points: list[PointType]) -> PointType:
     return [x, y]
 
 
-def polygon_center(polygon_points: list[PointType]) -> PointType:
+def polygon_center(polygon_points: Sequence[PointType]) -> PointType:
     """
-    Given a list of points that define a polygon, return the center point.
+    Given a sequence of points that define a polygon, return the center point.
 
     Args:
-        polygon_points (list[PointType]): List of points representing the polygon.
+        polygon_points (Sequence[PointType]): Sequence of points representing the polygon.
 
     Returns:
         PointType: Center point of the polygon.
@@ -1143,18 +1243,20 @@ def polygon_center(polygon_points: list[PointType]) -> PointType:
 
 
 def offset_polygon(
-    polygon: list[PointType], offset: float = -1, dist_tol: float | None = None
-) -> list[PointType]:
+    polygon: Sequence[PointType],
+    offset: float = -1,
+    dist_tol: float | None = None,
+) -> Sequence[PointType]:
     """
-    Return a list of offset lines from a list of lines.
+    Return a sequence of offset lines from a sequence of lines.
 
     Args:
-        polygon (list[PointType]): List of points representing the polygon.
+        polygon (Sequence[PointType]): Sequence of points representing the polygon.
         offset (float, optional): Offset distance. Defaults to -1.
         dist_tol (float, optional): Distance tolerance. Defaults to None.
 
     Returns:
-        list[PointType]: List of offset lines.
+        Sequence[PointType]: Sequence of offset lines.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -1175,21 +1277,21 @@ def offset_polygon(
 
 
 def double_offset_polygons(
-    polygon: list[PointType],
+    polygon: Sequence[PointType],
     offset: float = 1,
     dist_tol: float | None = None,
-    **kwargs,
-) -> list[PointType]:
+    **kwargs: Any,
+) -> Sequence[Sequence[PointType]]:
     """
-    Return a list of double offset lines from a list of lines.
+    Return a sequence of double offset lines from a sequence of lines.
 
     Args:
-        polygon (list[PointType]): List of points representing the polygon.
+        polygon (Sequence[PointType]): Sequence of points representing the polygon.
         offset (float, optional): Offset distance. Defaults to 1.
         dist_tol (float, optional): Distance tolerance. Defaults to None.
 
     Returns:
-        list[PointType]: List of double offset lines.
+        Sequence[PointType]: Sequence of double offset lines.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -1222,18 +1324,20 @@ def double_offset_polygons(
 
 
 def offset_polygon_points(
-    polygon: list[PointType], offset: float = 1, dist_tol: float | None = None
-) -> list[PointType]:
+    polygon: Sequence[PointType],
+    offset: float = 1,
+    dist_tol: float | None = None,
+) -> Sequence[PointType]:
     """
-    Return a list of double offset lines from a list of lines.
+    Return a sequence of double offset lines from a sequence of lines.
 
     Args:
-        polygon (list[PointType]): List of points representing the polygon.
+        polygon (Sequence[PointType]): Sequence of points representing the polygon.
         offset (float, optional): Offset distance. Defaults to 1.
         dist_tol (float, optional): Distance tolerance. Defaults to None.
 
     Returns:
-        list[PointType]: List of double offset lines.
+        Sequence[PointType]: Sequence of double offset lines.
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -1254,12 +1358,14 @@ def offset_polygon_points(
 
 
 def polyline_length(
-    polygon: Sequence[PointType], closed=False, dist_tol=None
+    polygon: Sequence[PointType],
+    closed: bool = False,
+    dist_tol: float | None = None,
 ) -> float:
     """Calculate the perimeter of a polygon.
 
     Args:
-        polygon (Sequence[PointType]): List of points representing the polygon.
+        polygon (Sequence[PointType]): Sequence of points representing the polygon.
         closed (bool, optional): Whether the polygon is closed. Defaults to False.
         dist_tol (float, optional): Distance tolerance. Defaults to None.
 
@@ -1278,19 +1384,19 @@ def polyline_length(
     return perimeter
 
 
-def polygon_internal_angles(vertices: list[PointType]) -> list[float]:
+def polygon_internal_angles(vertices: Sequence[PointType]) -> Sequence[float]:
     """
-    Computes internal angles for a polygon given as a list of (x, y) tuples.
+    Computes internal angles for a polygon given as a sequence of (x, y) tuples.
     Works for both convex and concave polygons.
 
     Vertices are expected to be in counterclockwise positive order. If not
     they are reversed and the result is for the reversed order.
 
     Args:
-        vertices (list[PointType]): List of points representing the polygon.
+        vertices (Sequence[PointType]): Sequence of points representing the polygon.
 
     Returns:
-        list[float]: List of internal angles of the polygon.
+        Sequence[float]: Sequence of internal angles of the polygon.
     """
     n = len(vertices)
     if n < 3:
@@ -1302,7 +1408,7 @@ def polygon_internal_angles(vertices: list[PointType]) -> list[float]:
     is_ccw_ = area > 0
     if not is_ccw_:
         raise ValueError("""Vertices are not in counterclockwise positive order!
-                         Result is for the reversed list of the given vertices.""")
+                         Result is for the reversed sequence of the given vertices.""")
         vertices = list(vertices)[:]
         vertices.reverse()
     angles = []

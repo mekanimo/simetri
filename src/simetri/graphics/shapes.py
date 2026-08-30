@@ -11,16 +11,13 @@ from ..canvas.style_map import (
     shape_style_map,
 )
 from ..geometry.ellipse import ellipse_points
+from ..geometry.geom_utils import close_points2, distance, homogenize, midpoint
 from ..geometry.geometry import (
     angle_between_lines2,
-    close_points2,
-    distance,
     fillet_corners,
-    homogenize,
-    midpoint,
-    offset_polygon_points,
     side_len_to_radius,
 )
+from ..geometry.polygon import offset_polygon_points
 from ..geometry.vectors import v_diff, v_scale, v_sum
 from ..graphics.all_enums import Extent, Types
 from ..graphics.batch import Group

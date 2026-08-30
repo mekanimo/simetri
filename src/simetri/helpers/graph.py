@@ -1,14 +1,14 @@
 """Graph related functions and classes. Uses NetworkX for graph operations."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 import networkx as nx
 
-from ..graphics.common import PointType
+from ..geometry.geom_utils import close_points2, distance
 from ..graphics.all_enums import Types
+from ..graphics.common import PointType
 from ..settings.settings import defaults
-from ..geometry.geometry import distance, close_points2
 
 
 @dataclass
@@ -335,3 +335,43 @@ class Graph:
             NodeView: Nodes of the graph.
         """
         return self.nx_graph.nodes
+
+
+def sanitize_weighted_graph_edges(edges):
+    """Sanitize weighted graph edges.
+
+    Args:
+        edges: A list of weighted graph edges.
+
+    Returns:
+        A sanitized list of weighted graph edges.
+    """
+    clean_edges = []
+    s_seen = set()
+    for edge in edges:
+        e1, e2, _ = edge
+        frozen_edge = frozenset((e1, e2))
+        if frozen_edge in s_seen:
+            continue
+        s_seen.add(frozen_edge)
+        clean_edges.append(edge)
+    clean_edges.sort()
+    return clean_edges
+
+
+def sanitize_graph_edges(edges):
+    """Sanitize graph edges.
+
+    Args:
+        edges: A list of graph edges.
+
+    Returns:
+        A sanitized list of graph edges.
+    """
+    s_edge_set = set()
+    for edge in edges:
+        s_edge_set.add(frozenset(edge))
+    edges = [tuple(x) for x in s_edge_set]
+    edges = [(min(x), max(x)) for x in edges]
+    edges.sort()
+    return edges

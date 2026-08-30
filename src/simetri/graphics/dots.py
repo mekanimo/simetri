@@ -4,15 +4,15 @@ __all__ = ["Dot", "Dots"]
 
 import numpy as np
 
-from .shapes import Shape
-from .batch import Group
-from ..helpers.validation import validate_args
 from ..canvas.style_map import shape_args
-from ..settings.settings import defaults
-from .common import PointType
-from .all_enums import Types
 from ..colors.colors import Color
-from ..geometry.geometry import close_points2
+from ..geometry.geom_utils import close_points2
+from ..helpers.validation import validate_args
+from ..settings.settings import defaults
+from .all_enums import Types
+from .batch import Group
+from .common import PointType
+from .shapes import Shape
 
 
 class Dot(Shape):
@@ -20,7 +20,11 @@ class Dot(Shape):
     The radius is for drawing. The only style property is the color."""
 
     def __init__(
-        self, pos: PointType = (0, 0), radius: float = 1, color: Color = None, **kwargs
+        self,
+        pos: PointType = (0, 0),
+        radius: float = 1,
+        color: Color = None,
+        **kwargs,
     ) -> None:
         """Initialize a Dot object.
 
@@ -112,7 +116,11 @@ class Dots(Group):
     """For creating multiple dots. Initially there is only one dot."""
 
     def __init__(
-        self, pos: PointType = (0, 0), radius: float = 1, color: Color = None, **kwargs
+        self,
+        pos: PointType = (0, 0),
+        radius: float = 1,
+        color: Color = None,
+        **kwargs,
     ) -> None:
         """Initialize a Dots object.
 
@@ -122,6 +130,5 @@ class Dots(Group):
             color (Color, optional): The color of the dots. Defaults to None.
             **kwargs: Additional keyword arguments.
         """
-        valid_args = shape_args + ["radius", "color", "pos"]
         dot = Dot(pos=pos, radius=radius, color=color, **kwargs)
         super().__init__([dot], subtype=Types.DOTS, **kwargs)

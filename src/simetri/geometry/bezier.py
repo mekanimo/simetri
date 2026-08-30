@@ -2,24 +2,19 @@
 https://pomax.github.io/bezierinfo is a good resource for understanding Bezier curves.
 """
 
-from typing import Sequence
+from collections.abc import Sequence
 from functools import lru_cache as memoize
 
 import numpy as np
 
-from ..graphics.shape import Shape
 from ..graphics.all_enums import Types
 from ..graphics.common import PointType
+from ..graphics.shape import Shape
 from ..helpers.utilities import find_closest_value
 from ..settings.settings import defaults
-from .geometry import (
-    distance,
-    line_angle,
-    line_by_point_angle_length,
-    normal,
-    norm,
-    normalize,
-)
+from .geom_utils import distance, line_angle
+from .geometry import line_by_point_angle_length
+from .vectors import norm, normal, normalize
 
 array = np.array
 
@@ -73,7 +68,10 @@ class Bezier(Shape):
                 n = n_points
             vertices = q_bezier_points(*control_points, n)
             super().__init__(
-                vertices, subtype=Types.Q_BEZIER, xform_matrix=xform_matrix, **kwargs
+                vertices,
+                subtype=Types.Q_BEZIER,
+                xform_matrix=xform_matrix,
+                **kwargs,
             )
             self.cubic = False
             self.matrix = quad_poly_matrix @ array(control_points)
@@ -85,7 +83,10 @@ class Bezier(Shape):
                 n = n_points
             vertices = bezier_points(*control_points, n)
             super().__init__(
-                vertices, subtype=Types.BEZIER, xform_matrix=xform_matrix, **kwargs
+                vertices,
+                subtype=Types.BEZIER,
+                xform_matrix=xform_matrix,
+                **kwargs,
             )
             self.cubic = True
             self.matrix = cubic_poly_matrix @ array(control_points)
@@ -171,8 +172,18 @@ class Bezier(Shape):
         t2 = t * t
         t3 = t2 * t
         if self.cubic:
-            x = m3 * p0[0] + 3 * m2 * t * p1[0] + 3 * m * t2 * p2[0] + t3 * p3[0]
-            y = m3 * p0[1] + 3 * m2 * t * p1[1] + 3 * m * t2 * p2[1] + t3 * p3[1]
+            x = (
+                m3 * p0[0]
+                + 3 * m2 * t * p1[0]
+                + 3 * m * t2 * p2[0]
+                + t3 * p3[0]
+            )
+            y = (
+                m3 * p0[1]
+                + 3 * m2 * t * p1[1]
+                + 3 * m * t2 * p2[1]
+                + t3 * p3[1]
+            )
         else:
             x = m2 * p0[0] + 2 * m * t * p1[0] + t2 * p2[0]
             y = m2 * p0[1] + 2 * m * t * p1[1] + t2 * p2[1]
@@ -221,7 +232,9 @@ class Bezier(Shape):
         return d
 
 
-def equidistant_points(p0: PointType, p1: PointType, p2: PointType, p3: PointType, n_points=10):
+def equidistant_points(
+    p0: PointType, p1: PointType, p2: PointType, p3: PointType, n_points=10
+):
     """Return the points on a Bezier curve with equidistant spacing.
 
     Args:
@@ -440,7 +453,14 @@ def q_bezier_points(p0: PointType, p1: PointType, p2: PointType, n_points: int):
     return TMQ @ P
 
 
-def split_bezier(p0: PointType, p1: PointType, p2: PointType, p3: PointType, z: float, n_points=10):
+def split_bezier(
+    p0: PointType,
+    p1: PointType,
+    p2: PointType,
+    p3: PointType,
+    z: float,
+    n_points=10,
+):
     """Split a cubic Bezier curve at t=z.
 
     Args:
@@ -477,10 +497,14 @@ def split_bezier(p0: PointType, p1: PointType, p2: PointType, p3: PointType, z: 
         [z * p3 - (z - 1) * p2],
     ]
 
-    return Bezier(bezier1, n_points=n_points), Bezier(bezier2, n_points=n_points)
+    return Bezier(bezier1, n_points=n_points), Bezier(
+        bezier2, n_points=n_points
+    )
 
 
-def split_q_bezier(p0: PointType, p1: PointType, p2: PointType, z: float, n_points=10):
+def split_q_bezier(
+    p0: PointType, p1: PointType, p2: PointType, z: float, n_points=10
+):
     """Split a quadratic Bezier curve at t=z.
 
     Args:
@@ -508,7 +532,9 @@ def split_q_bezier(p0: PointType, p1: PointType, p2: PointType, z: float, n_poin
         [z * p2 - (z - 1) * p1],
     ]
 
-    return Bezier(bezier1, n_points=n_points), Bezier(bezier2, n_points=n_points)
+    return Bezier(bezier1, n_points=n_points), Bezier(
+        bezier2, n_points=n_points
+    )
 
 
 def mirror_point(cp: PointType, vertex: PointType):
@@ -527,7 +553,9 @@ def mirror_point(cp: PointType, vertex: PointType):
     return cp2
 
 
-def curve(v1: PointType, c1: PointType, c2: PointType, v2: PointType, *args, **kwargs):
+def curve(
+    v1: PointType, c1: PointType, c2: PointType, v2: PointType, *args, **kwargs
+):
     """Return a cubic Bezier curve/s.
 
     Args:

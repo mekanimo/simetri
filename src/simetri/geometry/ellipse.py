@@ -2,26 +2,25 @@
 
 import cmath
 from copy import deepcopy
-from math import cos, sin, pi, atan2, sqrt, ceil, isclose
+from math import atan2, ceil, cos, isclose, pi, sin, sqrt
 
 import numpy as np
 
-from ..graphics.shape import Shape, custom_attributes
-from ..graphics.batch import Group
-from ..graphics.points import Points
-from ..graphics.affine import rotation_matrix
-from ..graphics.common import PointType
-from ..graphics.all_enums import Types
-from ..geometry.geometry import (
-    line_angle,
+from ..canvas.style_map import shape_style_map
+from ..geometry.geom_utils import (
     distance,
-    rotate_point,
     homogenize,
+    line_angle,
     positive_angle,
 )
-from ..canvas.style_map import shape_style_map
-from ..settings.settings import defaults
+from ..graphics.affine import rotate_point, rotation_matrix
+from ..graphics.all_enums import Types
+from ..graphics.batch import Group
+from ..graphics.common import PointType
+from ..graphics.points import Points
+from ..graphics.shape import Shape, custom_attributes
 from ..helpers.utilities import solve_quadratic_eq
+from ..settings.settings import defaults
 
 
 class Arc(Shape):

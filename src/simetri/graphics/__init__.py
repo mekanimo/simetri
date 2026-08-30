@@ -63,6 +63,7 @@ from ..geometry.bezier import *
 from ..geometry.circle import *
 from ..geometry.collection import *
 from ..geometry.ellipse import *
+from ..geometry.geom_utils import *
 from ..geometry.geometry import *
 from ..geometry.hobby import *
 from ..geometry.lattice import *
@@ -77,9 +78,7 @@ from ..graphics.shape import (
     polygon_diff,
     polygon_difference,
     polygon_intersection,
-    polygon_union,
     polygon_xor,
-    polygons_union,
 )
 from ..graphics.shapes import *
 

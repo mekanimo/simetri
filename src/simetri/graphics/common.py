@@ -69,7 +69,7 @@ origin = (0.0, 0.0)  # used for a point at the origin
 axis_x = (origin, (1.0, 0.0))  # used for a line along x axis
 axis_y = (origin, (0.0, 1.0))  # used for a line along y axis
 axis_diag1 = (origin, (1.0, 1.0))  # used for a line along y = x
-axis_diag2 = (origin, (1.0, -1.0))  #
+axis_diag2 = (origin, (1.0, -1.0))
 
 axis_hex = (
     (0.0, 0.0),

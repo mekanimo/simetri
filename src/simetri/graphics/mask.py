@@ -8,11 +8,15 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from ..colors.colors import Color, gray, white
-from ..graphics.all_enums import GradientType, SvgUnits, Types
+from ..graphics.affine import identity_matrix
+from ..graphics.all_enums import Axis, GradientType, SvgUnits, Types
 from ..helpers.validation import check_color, check_percent
 from ..settings.settings import defaults
 
 if TYPE_CHECKING:
+    from ..canvas.canvas import Canvas
+    from ..graphics.batch import Group
+    from ..graphics.shape import Shape
     from ..graphics.sketch import Sketch
 
 
@@ -67,12 +71,10 @@ class Stop:
             raise ValueError("Stop offset must be between 0 and 1.0")
         if color is None and opacity is None:
             raise ValueError("Specify a color, opacity, or both.")
-        if color is not None:
-            if not check_color(color):
-                raise ValueError("Incorrect color value.")
-        if opacity is not None:
-            if not check_percent(opacity):
-                raise ValueError("Stop opacity must be between 0 and 1.0")
+        if color is not None and not check_color(color):
+            raise ValueError("Incorrect color value.")
+        if opacity is not None and not check_percent(opacity):
+            raise ValueError("Stop opacity must be between 0 and 1.0")
         self.offset = offset
         self.color = color
         self.opacity = opacity
@@ -89,7 +91,7 @@ def _resolve_stops(stops):
     if isinstance(stops[0], Stop):
         for stop in stops[1:]:
             if not isinstance(stop, Stop):
-                raise ValueError("All stops must have the same type.")
+                raise TypeError("All stops must have the same type.")
         return stops
     else:
         stops_list = []

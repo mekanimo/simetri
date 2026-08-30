@@ -8,10 +8,10 @@ VPython by Bruce Sherwood.
 """
 
 from collections.abc import Sequence
-from math import acos, atan2, cos, hypot, sin
+from math import acos, atan2, cos, hypot, sin, sqrt
 from numbers import Real
 
-from ..graphics.common import PointType
+from ..graphics.common import LineType, PointType, VecType, axis_x, axis_y
 from ..helpers.validation import check_position
 from ..settings.settings import issue_warning
 
@@ -561,3 +561,361 @@ def distance(point1: Vec, point2: Vec) -> float:
     p1 = _as_data(point1)
     p2 = _as_data(point2)
     return hypot(*(q - p for p, q in zip(p1, p2)))
+
+
+def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
+    """Dot product of two vectors. BA and BC
+    Args:
+        a (PointType): First point, creating vector BA
+        b (PointType): Second point, common point for both vectors
+        c (PointType): Third point, creating vector BC
+
+    Returns:
+        float: The dot product of vectors BA and BC
+    Note:
+        The function calculates (a-b)·(c-b) which is the dot product of vectors BA and BC.
+        This is useful for finding angles between segments that share a common point.
+    """
+    a_x, a_y = a[:2]
+    b_x, b_y = b[:2]
+    c_x, c_y = c[:2]
+    b_a_x = a_x - b_x
+    b_a_y = a_y - b_y
+    b_c_x = c_x - b_x
+    b_c_y = c_y - b_y
+    return b_a_x * b_c_x + b_a_y * b_c_y
+
+
+def cross_product2(a: PointType, b: PointType, c: PointType) -> float:
+    """
+    Return the cross product of two vectors: BA and BC.
+
+    Args:
+        a (PointType): First point, creating vector BA
+        b (PointType): Second point, common point for both vectors
+        c (PointType): Third point, creating vector BC
+
+    Returns:
+        float: The z-component of cross product between vectors BA and BC
+
+    Note:
+        This gives the signed area of the parallelogram formed by the vectors BA and BC.
+        The sign indicates the orientation (positive for counter-clockwise, negative for clockwise).
+        It is useful for determining the orientation of three points and calculating angles.
+
+    vec1 = b - a
+    vec2 = c - b
+    """
+    a_x, a_y = a[:2]
+    b_x, b_y = b[:2]
+    c_x, c_y = c[:2]
+    b_a_x = a_x - b_x
+    b_a_y = a_y - b_y
+    b_c_x = c_x - b_x
+    b_c_y = c_y - b_y
+    return b_a_x * b_c_y - b_a_y * b_c_x
+
+
+def unit_vector(line: LineType) -> VecType:
+    """Return the unit vector of a line
+
+    Args:
+        line (LineType): Input line.
+
+    Returns:
+        VecType: Unit vector of the line.
+    """
+    norm_ = length(line)
+    p1, p2 = line
+    x1, y1 = p1[:2]
+    x2, y2 = p2[:2]
+    return [(x2 - x1) / norm_, (y2 - y1) / norm_]
+
+
+def unit_vector_(line: LineType) -> Sequence[VecType]:
+    """Return the cartesian unit vector of a line
+    with the given line's start and end points
+
+    Args:
+        line (LineType): Input line.
+
+    Returns:
+        Sequence[VecType]: Cartesian unit vector of the line.
+    """
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
+    dx = x2 - x1
+    dy = y2 - y1
+    norm_ = sqrt(dx**2 + dy**2)
+    return [dx / norm_, dy / norm_]
+
+
+def vec_along_line(line: LineType, magnitude: float) -> VecType:
+    """Return a vector along a line with the given magnitude.
+
+    Args:
+        line (LineType): Input line.
+        magnitude (float): Magnitude of the vector.
+
+    Returns:
+        VecType: Vector along the line with the given magnitude.
+    """
+    if line == axis_x:
+        dx, dy = magnitude, 0
+    elif line == axis_y:
+        dx, dy = 0, magnitude
+    else:
+        # line is (p1, p2)
+        theta = line_angle(*line)
+        dx = magnitude * cos(theta)
+        dy = magnitude * sin(theta)
+    return dx, dy
+
+
+def vec_dir_angle(vec: Sequence[float]) -> float:
+    """Return the direction angle of a vector
+
+    Args:
+        vec (Sequence[float]): Input vector.
+
+    Returns:
+        float: Direction angle of the vector.
+    """
+    return atan2(vec[1], vec[0])
+
+
+def cross_product_sense(a: PointType, b: PointType, c: PointType) -> int:
+    """Return the cross product sense of vectors a and b.
+
+    Args:
+        a (PointType): First point.
+        b (PointType): Second point.
+        c (PointType): Third point.
+
+    Returns:
+        int: Cross product sense.
+    """
+    length_ = cross_product2(a, b, c)
+    if length_ == 0:
+        res = 1
+    else:
+        res = length_ / abs(length)
+
+    return res
+
+
+#      A
+#      /
+#     /
+#   B/
+#    \
+#     \
+#      \
+#       C
+
+
+def right_turn(p1, p2, p3):
+    """Return True if p1, p2, p3 make a right turn.
+
+    Args:
+        p1 (PointType): First point.
+        p2 (PointType): Second point.
+        p3 (PointType): Third point.
+
+    Returns:
+        bool: True if the points make a right turn, False otherwise.
+    """
+    return cross(p1, p2, p3) < 0
+
+
+def left_turn(p1, p2, p3):
+    """Return True if p1, p2, p3 make a left turn.
+
+    Args:
+        p1 (PointType): First point.
+        p2 (PointType): Second point.
+        p3 (PointType): Third point.
+
+    Returns:
+        bool: True if the points make a left turn, False otherwise.
+    """
+    return cross(p1, p2, p3) > 0
+
+
+def cross(p1, p2, p3):
+    """Return the cross product of vectors p1p2 and p1p3.
+
+    Args:
+        p1 (PointType): First point.
+        p2 (PointType): Second point.
+        p3 (PointType): Third point.
+
+    Returns:
+        float: Cross product of the vectors.
+    """
+    x1, y1 = p2[0] - p1[0], p2[1] - p1[1]
+    x2, y2 = p3[0] - p1[0], p3[1] - p1[1]
+    return x1 * y2 - x2 * y1
+
+
+def line_to_vector(line: LineType) -> VecType:
+    """Return the vector representation of a line
+
+    Args:
+        line (LineType): Input line.
+
+    Returns:
+        VecType: Vector representation of the line.
+    """
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
+    dx = x2 - x1
+    dy = y2 - y1
+    return [dx, dy]
+
+
+def line_vector(line: LineType) -> VecType:
+    """Return the vector representation of a line.
+
+    Args:
+        line (LineType): Input line.
+
+    Returns:
+        VecType: Vector representation of the line.
+    """
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
+    return Vector(x2 - x1, y2 - y1)
+
+
+def angled_vector(angle_: float) -> Sequence[float]:
+    """
+    Return a vector with the given angle
+
+    Args:
+        angle_ (float): Angle in radians.
+
+    Returns:
+        Sequence[float]: Vector with the given angle.
+    """
+    return [cos(angle_), sin(angle_)]
+
+
+def norm(vec: VecType) -> float:
+    """Return the norm (vector length) of a vector.
+
+    Args:
+        vec (VecType): Input vector.
+
+    Returns:
+        float: Norm of the vector.
+    """
+    return hypot(vec[0], vec[1])
+
+
+def normalize(vec: VecType) -> VecType:
+    """Return the normalized vector.
+
+    Args:
+        vec (VecType): Input vector.
+
+    Returns:
+        VecType: Normalized vector.
+    """
+    norm_ = norm(vec)
+    return [vec[0] / norm_, vec[1] / norm_]
+
+
+def perp_unit_vector(line: LineType) -> VecType:
+    """Return the perpendicular unit vector to a line
+
+    Args:
+        line (LineType): Input line.
+
+    Returns:
+        VecType: Perpendicular unit vector.
+    """
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
+    dx = x2 - x1
+    dy = y2 - y1
+    norm_ = sqrt(dx**2 + dy**2)
+    return [-dy / norm_, dx / norm_]
+
+
+def point_to_line_vec(
+    point: PointType, line: LineType, unit: bool = False
+) -> VecType:
+    """Return the perpendicular vector from a point to a line
+
+    Args:
+        point (PointType): Input point.
+        line (LineType): Input line.
+        unit (bool, optional): Whether to return a unit vector. Defaults to False.
+
+    Returns:
+        VecType: Perpendicular vector from the point to the line.
+    """
+    x0, y0 = point
+    x1, y1 = line[0][:2]
+    x2, y2 = line[1][:2]
+    dx = x2 - x1
+    dy = y2 - y1
+    norm_ = sqrt(dx**2 + dy**2)
+    unit_vec = [-dy / norm_, dx / norm_]
+    dist = (dx * (y1 - y0) - (x1 - x0) * dy) / sqrt(dx**2 + dy**2)
+    if unit:
+        if dist > 0:
+            res = [unit_vec[0], unit_vec[1]]
+        else:
+            res = [-unit_vec[0], -unit_vec[1]]
+    else:
+        res = [unit_vec[0] * dist, unit_vec[1] * dist]
+
+    return res
+
+
+def surface_normal(p1: PointType, p2: PointType, p3: PointType) -> VecType:
+    """
+    Calculates the surface normal of a triangle given its vertices.
+
+    Args:
+        p1 (PointType): First vertex.
+        p2 (PointType): Second vertex.
+        p3 (PointType): Third vertex.
+
+    Returns:
+        VecType: Surface normal vector.
+    """
+    v1 = np.array(p1)
+    v2 = np.array(p2)
+    v3 = np.array(p3)
+    # Create two vectors from the vertices
+    u = v2 - v1
+    v = v3 - v1
+
+    # Calculate the cross product of the two vectors
+    normal = np.cross(u, v)
+
+    # Normalize the vector to get a unit normal vector
+    normal = normal / np.linalg.norm(normal)
+
+    return normal
+
+
+def normal(point1, point2):
+    """Return the normal vector of a line.
+
+    Args:
+        point1 (PointType): First point of the line.
+        point2 (PointType): Second point of the line.
+
+    Returns:
+        VecType: Normal vector of the line.
+    """
+    x1, y1 = point1[:2]
+    x2, y2 = point2[:2]
+    dx = x2 - x1
+    dy = y2 - y1
+    norm = sqrt(dx**2 + dy**2)
+    return [-dy / norm, dx / norm]

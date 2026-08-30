@@ -11,8 +11,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from ..colors.colors import Color, check_color
-from ..geometry.geometry import close_points2, vert_label_positions
+from ..geometry.geom_utils import close_points2
 from ..graphics.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
+from ..helpers.illustration import vert_label_positions
 from ..settings.settings import defaults
 from .svg_colors import color_to_matplotlib, color_to_svg
 from .svg_common import _clip_line_to_rect, get_clip_mask_attrs

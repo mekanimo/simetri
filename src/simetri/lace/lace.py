@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from collections.abc import Iterator
 from itertools import combinations
-from math import ceil, log10, sqrt
+from math import ceil, log10, pi, sqrt
 from typing import Any
 
 import networkx as nx
@@ -12,28 +12,26 @@ from numpy import isclose
 
 from ..canvas.style_map import shape_style_map
 from ..colors import colors
-from ..geometry.geometry import (
+from ..geometry.geom_utils import (
     close_points2,
     connected_pairs,
-    convex_hull,
     distance,
-    double_offset_polygons,
-    double_offset_polylines,
-    equal_lines,
     get_polygons,
     intersection2,
-    lerp_point,
+    right_handed,
+    round_point,
+)
+from ..geometry.geometry import convex_hull, equal_lines, lerp_point
+from ..geometry.polygon import (
+    double_offset_polygons,
+    double_offset_polylines,
     offset_polygon,
     offset_polygon_points,
-    pi,
     polygon_area,
     polygon_center,
     polygon_cg,
     polygon_internal_angles,
-    right_handed,
-    round_point,
 )
-
 from ..graphics.all_enums import Connection, Types
 from ..graphics.batch import Group
 from ..graphics.common import d_id_obj, get_defaults

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ..geometry.geometry import (
+from ..geometry.geom_utils import (
     distance,
     intersect,
     line_angle,
@@ -497,7 +497,7 @@ class BoundingBox:
         elif isinstance(anchor, Anchor):
             x, y = getattr(self, anchor.value)[:2]
         else:
-            raise ValueError(f"Unknown anchor: {anchor}")
+            raise TypeError(f"Unknown anchor: {anchor}")
         return [x + dx, y + dy]
 
     def centered(

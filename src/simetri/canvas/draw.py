@@ -15,14 +15,14 @@ from ..colors.colors import Color, change_lightness
 from ..colors.palettes import d_name_palette
 from ..geometry.bezier import bezier_points
 from ..geometry.ellipse import elliptic_arc_points
-from ..geometry.geometry import (
+from ..geometry.geom_utils import (
     homogenize,
     inclination_angle,
     intersect,
-    intersection,
     midpoint,
-    offset_polygon,
 )
+from ..geometry.geometry import intersection
+from ..geometry.polygon import offset_polygon
 from ..graphics.affine import (
     identity_matrix,
     rotation_matrix,

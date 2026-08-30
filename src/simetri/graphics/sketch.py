@@ -16,7 +16,7 @@ import numpy as np
 from numpy import ndarray
 
 from ..colors import colors
-from ..geometry.geometry import homogenize
+from ..geometry.geom_utils import homogenize
 from ..graphics.bbox import bounding_box
 from ..helpers.utilities import decompose_transformations, round_symmetric
 from ..image.image import Image

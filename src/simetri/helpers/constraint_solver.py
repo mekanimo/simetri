@@ -4,16 +4,16 @@ Uses Sequential Least Squares Programming (SLSQP) to solve the given constraints
 
 from dataclasses import dataclass
 
-from simetri.graphics.all_enums import ConstraintType as ConstType
-from simetri.helpers.vector import Vector2D
-from simetri.geometry.geometry import (
-    direction,
-    distance,
-    is_line,
+from simetri.geometry.circle import Circle_ as Circle
+
+from ..geometry.geom_utils import distance, is_line
+from ..geometry.geometry import (
     angle_between_two_lines,
+    direction,
     point_to_line_distance,
 )
-from simetri.geometry.circle import Circle_ as Circle
+from ..graphics.all_enums import ConstraintType as ConstType
+from ..helpers.vector import Vector2D
 
 
 @dataclass
@@ -158,10 +158,14 @@ def outer_tangent_eq(constraint):
     """
     if is_line(constraint.item1):
         circle = constraint.item2
-        res = circle.radius - point_to_line_distance(circle.center, constraint.item1)
+        res = circle.radius - point_to_line_distance(
+            circle.center, constraint.item1
+        )
     elif is_line(constraint.item2):
         circle = constraint.item1
-        res = circle.radius - point_to_line_distance(circle.center, constraint.item2)
+        res = circle.radius - point_to_line_distance(
+            circle.center, constraint.item2
+        )
     else:
         circle_1 = constraint.item1
         circle_2 = constraint.item2
@@ -388,11 +392,14 @@ item2 = [50, 0]
 
 dist_const = Constraint(item1, item2, ConstType.DISTANCE, value=45)
 
-paralell_const = Constraint([[0, 0], [1, 0]], [item1, item2], ConstType.PARALLEL)
+paralell_const = Constraint(
+    [[0, 0], [1, 0]], [item1, item2], ConstType.PARALLEL
+)
+
 
 # print(distance([0, 0], [4.465e+01,  5.582e+00]))
 def update(x):
-    print('x', x)
+    print("x", x)
     x_, y_ = x
     item2[0] = x_
     item2[1] = y_

@@ -9,7 +9,7 @@ from typing import Self
 
 from numpy import allclose, ndarray
 
-from ..geometry.geometry import homogenize
+from ..geometry.geom_utils import homogenize
 from ..settings.settings import defaults
 from .all_enums import Types
 from .common import PointType

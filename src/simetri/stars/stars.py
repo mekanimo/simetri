@@ -1,13 +1,12 @@
 """This module contains classes and functions for creating stars and rosettes."""
 
-from math import pi, sin, cos, tan, sqrt
+from math import cos, pi, sin, sqrt, tan
 
-from ..graphics.batch import Group
-from ..graphics.shape import Shape
-
-from ..graphics.common import axis_x, LineType
+from ..geometry.geom_utils import distance, intersect
 from ..graphics.all_enums import Types
-from ..geometry.geometry import intersect, distance
+from ..graphics.batch import Group
+from ..graphics.common import LineType, axis_x
+from ..graphics.shape import Shape
 
 
 def rosette(

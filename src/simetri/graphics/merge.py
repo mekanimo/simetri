@@ -1,15 +1,20 @@
-from math import degrees
-from typing import List
+from __future__ import annotations
+
+from math import ceil, degrees, log10, pi, sqrt
+from typing import TYPE_CHECKING
 
 import networkx as nx
 
-from .common import LineType
-from ..geometry.geometry import (
-    right_handed,
+from ..geometry.geom_utils import (
     inclination_angle,
-    pi,
+    right_handed,
 )
-from ..helpers.graph import get_cycles, is_cycle, is_open_walk, edges_to_nodes
+from ..helpers.graph import edges_to_nodes, get_cycles, is_cycle, is_open_walk
+from ..settings.settings import defaults
+from .common import LineType
+
+if TYPE_CHECKING:
+    from .batch import Group
 
 
 def _merge_shapes(
@@ -18,7 +23,7 @@ def _merge_shapes(
     merge_angle_tol=0.1,
     debug: bool = False,
     **kwargs,
-) -> "Group":
+) -> Group:
     """
     Tries to merge the shapes in the group. Returns a new group
     with the merged shapes as well as the shapes that could not be merged.
@@ -38,13 +43,15 @@ def _merge_shapes(
     if len(self) < 2:
         return self
     dist_tol = kwargs.pop("dist_tol")
+    if dist_tol is None:
+        dist_tol = defaults["dist_tol"]
+    n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
     if debug:
         print("Merge diagnostics:")
-    # n_round = defaults["n_round"] if n_round is None else n_round
-    self._set_node_dictionaries(self.all_vertices, n_round=n_round)
-    edges, segments = self._get_edges_and_segments(
-        dist_tol=dist_tol, n_round=n_round, debug=debug
+    self._set_node_dictionaries(
+        self.all_vertices, dist_tol=dist_tol, debug=debug
     )
+    edges, segments = self._get_edges_and_segments(n_round=n_round)
     segments = self.merge_collinears(
         edges, merge_angle_tol=merge_angle_tol, debug=debug
     )

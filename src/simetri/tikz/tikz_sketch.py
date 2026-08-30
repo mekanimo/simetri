@@ -7,7 +7,7 @@ import numpy as np
 
 import simetri.graphics as sg
 
-from ..geometry.geometry import close_points2, round_point, vert_label_positions
+from ..geometry.geom_utils import close_points2, round_point
 from ..graphics.all_enums import (
     Align,
     Anchor,
@@ -21,6 +21,7 @@ from ..graphics.all_enums import (
     Types,
     get_enum_value,
 )
+from ..helpers.illustration import vert_label_positions
 from ..helpers.utilities import detokenize
 from ..settings.settings import defaults
 from .tikz_common import (

@@ -1,24 +1,23 @@
 """Provides facilities for working with grids of cells."""
 
 from itertools import product
-from math import sin, cos, pi, sqrt, isclose
+from math import cos, isclose, pi, sin, sqrt
 from typing import Sequence
 
-from ..helpers.utilities import reg_poly_points
-from ..geometry.geometry import (
-    intersect,
-    cartesian_to_polar,
-    polar_to_cartesian,
-    lerp_point,
-    distance,
-)
-from ..geometry.circle import Circle
-from ..graphics.common import PointType
-from ..graphics.batch import Group
-from ..graphics.shape import Shape
-from ..graphics.all_enums import Types, GridType
 from ..colors.colors import gray
-
+from ..geometry.circle import Circle
+from ..geometry.geom_utils import (
+    cartesian_to_polar,
+    distance,
+    intersect,
+    polar_to_cartesian,
+)
+from ..geometry.geometry import lerp_point
+from ..graphics.all_enums import GridType, Types
+from ..graphics.batch import Group
+from ..graphics.common import PointType
+from ..graphics.shape import Shape
+from ..helpers.utilities import reg_poly_points
 
 d_grid_types = {
     GridType.CIRCULAR: Types.CIRCULAR_GRID,
@@ -147,7 +146,9 @@ class Grid(Group):
         if t < 0 or t > 1:
             raise ValueError("t must be between 0 and 1.")
         if ind1 < 0 or ind1 >= len(self.points):
-            raise ValueError(f"ind1 must be between 0 and {len(self.points) - 1}.")
+            raise ValueError(
+                f"ind1 must be between 0 and {len(self.points) - 1}."
+            )
         if ind1 == ind2:
             raise ValueError("ind1 and ind2 must be different.")
 
@@ -158,7 +159,11 @@ class CircularGrid(Grid):
     """A grid formed by connections of regular polygon points."""
 
     def __init__(
-        self, center: PointType = (0, 0), n: int = 12, radius: float = 100, n_circles=1
+        self,
+        center: PointType = (0, 0),
+        n: int = 12,
+        radius: float = 100,
+        n_circles=1,
     ):
         """
         Initializes the grid with the given center, radius, number of rows, and number of columns.
@@ -170,7 +175,9 @@ class CircularGrid(Grid):
             n_circles (int): The number of circles in the grid. Used for drawing the grid.
         """
         points = reg_poly_points(center, n, radius)
-        super().__init__(GridType.CIRCULAR, center, n, radius, points, n_circles)
+        super().__init__(
+            GridType.CIRCULAR, center, n, radius, points, n_circles
+        )
 
         self.append(Circle(radius, center, fill=False))
 
@@ -178,7 +185,9 @@ class CircularGrid(Grid):
 class HexGrid(Grid):
     """A grid formed by connections of regular polygon points."""
 
-    def __init__(self, center: PointType = (0, 0), radius: float = 100, n_circles=1):
+    def __init__(
+        self, center: PointType = (0, 0), radius: float = 100, n_circles=1
+    ):
         """
         Initializes the grid with the given center, radius, number of rows, and number of columns.
 
@@ -188,13 +197,17 @@ class HexGrid(Grid):
             n_circles (int): The number of circles in the grid. Used for drawing the grid.
         """
         points = reg_poly_points(center, 6, radius)
-        super().__init__(GridType.HEXAGONAL, center, 6, radius, points, n_circles)
+        super().__init__(
+            GridType.HEXAGONAL, center, 6, radius, points, n_circles
+        )
 
 
 class SquareGrid(Grid):
     """A grid formed by connections of square cells."""
 
-    def __init__(self, center: PointType = (0, 0), n: int = 16, cell_size: float = 25):
+    def __init__(
+        self, center: PointType = (0, 0), n: int = 16, cell_size: float = 25
+    ):
         """
         Initializes the grid with the given center, number of rows, number of columns, and cell size.
 

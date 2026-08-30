@@ -9,7 +9,7 @@ from typing import Any, Self
 import numpy as np
 
 from ..canvas.style_map import ShapeStyle, shape_args, shape_style_map
-from ..geometry.geometry import offset_line, offset_point
+from ..geometry.geom_utils import offset_line, offset_point
 from ..helpers.validation import validate_args
 from .affine import *
 from .all_enums import (
