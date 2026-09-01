@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from math import ceil, cos, floor, pi, sin
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 
@@ -235,13 +235,9 @@ class Lattice:
             return self.pattern
 
     def populate_unit(self, kernel):
-        if kernel.subtype == "LINPATH":
+        if kernel.subtype == "LINPATH" or kernel.type == "SHAPE":
             self.pattern = Group(kernel)
-        elif kernel.type == "SHAPE":
-            self.pattern = Group(kernel)
-        elif kernel.type == "BATCH":
-            self.pattern = kernel
-        elif kernel.type == "GROUP":
+        elif kernel.type == "BATCH" or kernel.type == "GROUP":
             self.pattern = kernel
 
         else:
@@ -303,7 +299,7 @@ class Lattice:
 
     def clipped_points(
         self, lower_left: PointType, upper_right: PointType
-    ) -> List:
+    ) -> list:
         """Returns the lattice points within the given rectangle by two points."""
         # Define the 4 corners of the rectangle
         x_min, y_min = lower_left[:2]
@@ -354,7 +350,7 @@ class Lattice:
 
     def clipped_lines(
         self, lower_left: PointType, upper_right: PointType
-    ) -> List:
+    ) -> list:
         """Returns the lattice lines within the given rectangle by two points."""
         # Define the 4 corners of the rectangle
         x_min, y_min = lower_left[:2]

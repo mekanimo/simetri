@@ -1033,22 +1033,121 @@ def set_defaults():
     default_types["image_blend_mode"] = BlendMode
     defaults_help["image_blend_mode"] = "Blend mode for image. BlendMode enum."
 
-    defaults["ind_offset"] = 10  # offset for indices
-    default_types["ind_offset"] = (int, float)
-    defaults_help["ind_offset"] = (
-        "Offset for shape indices. Scalar value for radial offset from vertices."
+    defaults["index_offset"] = 4
+    default_types["index_offset"] = (int, float)
+    defaults_help["index_offset"] = (
+        "Radial offset for vertex index labels from vertices. Scalar in points."
+    )
+
+    defaults["vertex_offset"] = 8
+    default_types["vertex_offset"] = (int, float)
+    defaults_help["vertex_offset"] = (
+        "Radial offset for vertex coordinate labels from vertices. "
+        "Independent of index labels."
+    )
+
+    defaults["n_vert_digits"] = 1
+    default_types["n_vert_digits"] = int
+    defaults_help["n_vert_digits"] = (
+        "Decimal places for vertex coordinate label text (x, y) values."
     )
 
     defaults["indices_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
     default_types["indices_font_family"] = str
     defaults_help["indices_font_family"] = "Indices font family. String."
 
-    defaults["indices_font_size"] = (
-        "tiny"  # tiny, scriptsize, footnotesize, small,
+    defaults["index_font_size"] = (
+        "scriptsize"  # tiny, scriptsize, footnotesize, small,
     )
     # normalsize, large, Large, LARGE, huge, Huge
-    default_types["indices_font_size"] = str
-    defaults_help["indices_font_size"] = "Indices font size. String."
+    default_types["index_font_size"] = (str, int, float)
+    defaults_help["index_font_size"] = (
+        "Vertex index label font size. LaTeX size name string or point size number."
+    )
+
+    defaults["vertex_font_size"] = (
+        "footnotesize"  # miniscule, tiny, scriptsize, footnotesize, small,
+    )
+    # normalsize, large, Large, LARGE, huge, Huge
+    default_types["vertex_font_size"] = (str, int, float)
+    defaults_help["vertex_font_size"] = (
+        "Vertex coordinate label font size. LaTeX size name string or point size number."
+    )
+
+    defaults["index_font_color"] = colors.Color(0.0, 0.42, 0.72)
+    default_types["index_font_color"] = colors.Color
+    defaults_help["index_font_color"] = (
+        "Vertex index label text color. Dark fill with a light halo for contrast."
+    )
+
+    defaults["vertex_font_color"] = colors.Color(0.0, 0.50, 0.55)
+    default_types["vertex_font_color"] = colors.Color
+    defaults_help["vertex_font_color"] = (
+        "Vertex coordinate label text color. Dark fill with a light halo for contrast."
+    )
+
+    defaults["label_halo_color"] = colors.white
+    default_types["label_halo_color"] = colors.Color
+    defaults_help["label_halo_color"] = (
+        "Halo stroke color behind index and vertex labels for readability."
+    )
+
+    defaults["label_halo_width_scale"] = 0.14
+    default_types["label_halo_width_scale"] = (int, float)
+    defaults_help["label_halo_width_scale"] = (
+        "Halo width as a fraction of label font size (SVG stroke; TikZ contourlength)."
+    )
+
+    defaults["label_halo_scale"] = 1.14
+    default_types["label_halo_scale"] = (int, float)
+    defaults_help["label_halo_scale"] = (
+        "Legacy setting; TikZ halos use contourlength from label_halo_width_scale."
+    )
+
+    defaults["auto_expand_canvas_for_vertices"] = True
+    default_types["auto_expand_canvas_for_vertices"] = bool
+    defaults_help["auto_expand_canvas_for_vertices"] = (
+        "When True, export adds vertices_canvas_expand padding per side when "
+        "vertex coordinate labels are drawn (vertices=True)."
+    )
+
+    defaults["vertices_canvas_expand"] = 40
+    default_types["vertices_canvas_expand"] = (int, float)
+    defaults_help["vertices_canvas_expand"] = (
+        "Extra points added to each side of canvas.border when "
+        "auto_expand_canvas_for_vertices is True and coordinate labels are drawn."
+    )
+
+    defaults["vertices_label_avoid_overlap"] = True
+    default_types["vertices_label_avoid_overlap"] = bool
+    defaults_help["vertices_label_avoid_overlap"] = (
+        "When True, index and vertex coordinate labels are repositioned with "
+        "pairwise MTV overlap resolution before SVG/TikZ export."
+    )
+
+    defaults["vertices_label_overlap_gap"] = 1.0
+    default_types["vertices_label_overlap_gap"] = (int, float)
+    defaults_help["vertices_label_overlap_gap"] = (
+        "Minimum gap between vertex/index label boxes during MTV overlap resolution."
+    )
+
+    defaults["vertices_label_overlap_max_iters"] = 2
+    default_types["vertices_label_overlap_max_iters"] = int
+    defaults_help["vertices_label_overlap_max_iters"] = (
+        "Maximum pairwise overlap passes for vertex/index label MTV resolution."
+    )
+
+    defaults["vertices_label_overlap_bbox_scale"] = 1.0
+    default_types["vertices_label_overlap_bbox_scale"] = (int, float)
+    defaults_help["vertices_label_overlap_bbox_scale"] = (
+        "Scale factor for rule-of-thumb label boxes in overlap tests."
+    )
+
+    defaults["vertices_label_bbox_char_width"] = 0.55
+    default_types["vertices_label_bbox_char_width"] = (int, float)
+    defaults_help["vertices_label_bbox_char_width"] = (
+        "Estimated character width as a fraction of font size for overlap boxes."
+    )
 
     defaults["INF"] = np.inf
     default_types["INF"] = float
@@ -1935,6 +2034,13 @@ def set_defaults():
     defaults["tol"] = 0.005  # used for comparing angles and collinearity
     default_types["tol"] = float
     defaults_help["tol"] = "Tolerance. Positive float. Length in <points>."
+
+    defaults["turn_angle_digits"] = 2
+    default_types["turn_angle_digits"] = int
+    defaults_help["turn_angle_digits"] = (
+        "Turn angle digits is used for comparing polygons and shapes."
+        "Shapes are compared for geometric congruency, styling is ignored."
+    )
 
     defaults["underline"] = False
     default_types["underline"] = bool

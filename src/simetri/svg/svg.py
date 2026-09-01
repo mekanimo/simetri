@@ -21,6 +21,8 @@ from .svg_sketch import *
 from .svg_sketch_utils import *
 from .svg_utils import *
 
+from ..helpers.illustration import resolve_page_vertex_labels
+
 if TYPE_CHECKING:
     from ..canvas.canvas import Canvas
 
@@ -152,6 +154,7 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
         subtype = sketch_attrib(sketch, "subtype")
         draw_markers = sketch_attrib(sketch, "draw_markers")
         indices = sketch_attrib(sketch, "indices")
+        show_vertex_coords = sketch_attrib(sketch, "show_vertex_coords")
 
         if subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
@@ -193,7 +196,7 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
         elif (
             draw_markers
             and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
-        ) or indices:
+        ) or indices or show_vertex_coords:
             code = draw_shape_sketch_with_indices(
                 sketch, exceptions=suppressed_style_keys
             )
@@ -238,6 +241,7 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
         elif subtype == Types.HELPLINES_SKETCH or subtype == Types.LINE_SKETCH:
             sketch.populate(canvas)
 
+    resolve_page_vertex_labels(sketches)
     rendered_code = render_sketches(sketches, 0)
     code.append(rendered_code)
 
@@ -884,26 +888,17 @@ def get_styles(canvas, styles_dict):
 
 
 def get_svg_code(canvas):
+    from ..canvas.canvas import (
+        effective_border_for_export,
+        warn_vertex_coord_label_sizing,
+    )
+
     vertices = canvas._all_vertices
     if canvas.page_size is None:
-        if canvas.border is None:
-            border_left = defaults["border"]
-            border_bottom = defaults["border"]
-            border_right = defaults["border"]
-            border_top = defaults["border"]
-        elif isinstance(canvas.border, (int, float)):
-            border_left = canvas.border
-            border_bottom = canvas.border
-            border_right = canvas.border
-            border_top = canvas.border
-        elif (
-            isinstance(canvas.border, (list, tuple)) and len(canvas.border) == 4
-        ):
-            border_left, border_bottom, border_right, border_top = canvas.border
-        else:
-            raise ValueError(
-                "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
-            )
+        warn_vertex_coord_label_sizing(canvas)
+        border_left, border_bottom, border_right, border_top = (
+            effective_border_for_export(canvas)
+        )
     else:
         border_left = 0
         border_bottom = 0

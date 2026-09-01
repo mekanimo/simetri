@@ -238,6 +238,32 @@ def collect_tikz_preamble_requirements_for_sketch(
             if "patterns" not in tikz_libraries:
                 tikz_libraries.append("patterns")
                 tikz_libraries.append("patterns.meta")
+    if getattr(sketch, "indices", False) or getattr(
+        sketch, "show_vertex_coords", False
+    ):
+        if "xcolor" not in tikz_packages:
+            tikz_packages.append("xcolor")
+
+
+def canvas_uses_label_halos(canvas) -> bool:
+    """Return True if any sketch draws index or vertex-coordinate labels."""
+    for page in canvas.pages:
+        sketches_to_inspect = list(page.sketches)
+        while sketches_to_inspect:
+            sketch = sketches_to_inspect.pop()
+            if getattr(sketch, "indices", False) or getattr(
+                sketch, "show_vertex_coords", False
+            ):
+                return True
+            if sketch.subtype in (Types.CLIPPED_SKETCH, Types.MASKED_SKETCH):
+                for sketch_list in sketch.sketches:
+                    sketches_to_inspect.extend(sketch_list)
+    return False
+
+
+def label_halo_preamble_line() -> str:
+    """Preamble line for TikZ/PDF label halos via the contour package."""
+    return "\\usepackage[outline]{contour}\n"
 
 
 def collect_tikz_preamble_requirements(canvas):

@@ -457,3 +457,21 @@ def validate_args(args: dict[str, Any], valid_args: list[str]) -> None:
                 raise ValueError(f"Invalid value for {key}: {value}")
         elif not d_validators[key](value):
             raise ValueError(f"Invalid value for {key}: {value}")
+
+
+def warn_unknown_kwargs(
+    kwargs: dict[str, Any],
+    valid_keys: set[str] | frozenset[str],
+    context: str = "draw",
+    stacklevel: int = 2,
+) -> None:
+    """Emit a warning for keyword arguments that are not recognized."""
+    unknown = sorted(k for k in kwargs if k not in valid_keys)
+    if not unknown:
+        return
+    from ..settings.settings import issue_warning
+
+    issue_warning(
+        f"{context}: unrecognized keyword argument(s): {', '.join(unknown)}",
+        stacklevel=stacklevel,
+    )

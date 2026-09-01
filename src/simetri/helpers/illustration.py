@@ -3,7 +3,7 @@ arrows, dimensions, etc."""
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from math import atan2, pi
+from math import atan2, hypot, pi
 
 import fitz
 import numpy as np
@@ -14,13 +14,14 @@ from ..colors import colors
 from ..colors.swatches import swatches_255
 from ..geometry.ellipse import Arc
 from ..geometry.geom_utils import (
+    bbox_overlap,
     distance,
     line_angle,
     midpoint,
     polar_to_cartesian,
 )
 from ..geometry.geometry import extended_line, line_by_point_angle_length
-from ..geometry.vectors import Vector, v_from_points
+from ..geometry.vectors import Vector, perp_unit_vector, v_from_points
 from ..graphics.affine import identity_matrix
 from ..graphics.all_enums import (
     Align,
@@ -48,6 +49,7 @@ from ..graphics.points import Points
 from ..graphics.shape import Shape
 from ..graphics.shapes import reg_poly_points_side_length
 from ..settings.settings import defaults
+from .label_overlap import LabelRect, resolve_all_overlaps
 from .utilities import get_transform
 from .validation import validate_args
 
@@ -142,18 +144,100 @@ def convert_latex_font_size(latex_font_size: FontSize):
     Returns:
         int: The corresponding numerical font size.
     """
+    return latex_font_size_to_pt(latex_font_size)
+
+
+def latex_font_size_to_pt(latex_font_size: FontSize) -> float:
+    """Convert a LaTeX font-size name to an approximate point size."""
     d_font_size = {
+        FontSize.MINISCULE: 4,
         FontSize.TINY: 5,
-        FontSize.SMALL: 7,
+        FontSize.SCRIPTSIZE: 6,
+        FontSize.FOOTNOTESIZE: 7,
+        FontSize.SMALL: 8,
         FontSize.NORMAL: 10,
-        FontSize.LARGE: 12,
-        FontSize.LARGE2: 14,
-        FontSize.LARGE3: 17,
-        FontSize.HUGE: 20,
-        FontSize.HUGE2: 25,
+        FontSize.LARGE: 11,
+        FontSize.LARGE2: 12,
+        FontSize.LARGE3: 14,
+        FontSize.HUGE: 17,
+        FontSize.HUGE2: 20,
     }
 
     return d_font_size[latex_font_size]
+
+
+def default_font_size_pt(key: str) -> float:
+    """Point size for a ``defaults`` font-size entry (LaTeX name or number)."""
+    size = defaults[key]
+    if isinstance(size, (int, float)):
+        return float(size)
+    return latex_font_size_to_pt(FontSize(size))
+
+
+def sketch_label_font_size_pt(sketch, label_kind: str) -> float:
+    """Label font size in points from sketch kwargs or defaults."""
+    if label_kind == "index":
+        attr = "index_font_size"
+    else:
+        attr = "vertex_font_size"
+    if attr in sketch.__dict__:
+        size = sketch.__dict__[attr]
+        if size is not None:
+            if isinstance(size, (int, float)):
+                return float(size)
+            return latex_font_size_to_pt(FontSize(size))
+    return default_font_size_pt(attr)
+
+
+def sketch_label_offset(sketch, label_kind: str) -> float:
+    """Label radial offset in points from sketch kwargs or defaults."""
+    if label_kind == "index":
+        attr = "index_offset"
+    else:
+        attr = "vertex_offset"
+    try:
+        return float(object.__getattribute__(sketch, attr))
+    except AttributeError:
+        return float(defaults[attr])
+
+
+def sketch_label_font_color(sketch, label_kind: str):
+    """Label text color from sketch kwargs or defaults."""
+    if label_kind == "index":
+        attr = "index_font_color"
+    else:
+        attr = "vertex_font_color"
+    if attr in sketch.__dict__ and sketch.__dict__[attr] is not None:
+        return sketch.__dict__[attr]
+    return defaults[attr]
+
+
+def label_halo_color():
+    """Stroke/halo color behind vertex index and coordinate labels."""
+    return defaults["label_halo_color"]
+
+
+def label_halo_stroke_width(font_size_pt: float) -> float:
+    """SVG halo stroke width / TikZ ``\\contourlength`` in points."""
+    scale = float(defaults.get("label_halo_width_scale", 0.14))
+    return max(0.2, font_size_pt * scale)
+
+
+def label_halo_scale() -> float:
+    """Legacy scale factor (SVG/TikZ use stroke width / contour length instead)."""
+    return float(defaults.get("label_halo_scale", 1.14))
+
+
+def svg_label_paint_attrs(fill_color, font_size_pt: float) -> str:
+    """SVG fill/stroke attributes for halo-backed label text."""
+    fill_r, fill_g, fill_b = fill_color.rgb255
+    halo_r, halo_g, halo_b = label_halo_color().rgb255
+    width = label_halo_stroke_width(font_size_pt)
+    return (
+        f'fill="rgb({fill_r}, {fill_g}, {fill_b})" '
+        f'stroke="rgb({halo_r}, {halo_g}, {halo_b})" '
+        f'stroke-width="{width}" paint-order="stroke fill"'
+    )
 
 
 def letter_F_points():
@@ -1468,9 +1552,8 @@ class Dimension(Group):
                 self.append(self.ext3)
 
 
-def vert_label_positions(shape, offset):
-    """Returns the position of the vertex labels using the given
-    label offset."""
+def vert_label_layout(shape, offset):
+    """Return label anchor, outward direction, and vertex for each vertex."""
     from simetri.geometry.polygon import in_polygon
 
     vertices = list(shape.vertices)
@@ -1478,7 +1561,7 @@ def vert_label_positions(shape, offset):
     vec1 = v_from_points(vertices[0], vertices[-1])
     count = len(vertices)
 
-    positions = []
+    layout = []
     for i, vert in enumerate(vertices):
         prev = vertices[i - 1][:2]
         next = vertices[(i + 1) % count][:2]
@@ -1489,7 +1572,7 @@ def vert_label_positions(shape, offset):
 
         bisector = vec1.bisector(vec2)
         if bisector.norm() < 1e-9:
-            direction = perp_unit_vector((prev, next))
+            direction = Vector(perp_unit_vector((prev, next)))
         else:
             direction = bisector.normalize()
 
@@ -1499,40 +1582,367 @@ def vert_label_positions(shape, offset):
         else:
             pos = vert_vec + direction * offset
 
-        positions.append(pos[:])
+        to_label = pos - vert_vec
+        if to_label.norm() > 1e-9:
+            placement_dir = to_label.normalize()
+        else:
+            placement_dir = direction
+
+        layout.append(
+            {
+                "position": (pos.x, pos.y),
+                "direction": (placement_dir.x, placement_dir.y),
+                "vertex": tuple(vert[:2]),
+            }
+        )
         vec1 = -vec2
 
-    return positions
+    return layout
 
 
-def vert_label_pos(shape, index, offset=10):
-    """Returns the position of the vertex label using the given
-    index and label offset."""
-    from simetri.geometry.polygon import in_polygon
+# Rule-of-thumb centered label boxes (width, height) in pt at reference font size.
+_INDEX_LABEL_BBOX_TIERS = {
+    1: (6, 7),
+    2: (9, 7),
+    3: (12, 8),
+}
+_INDEX_LABEL_BBOX_DEFAULT = (8, 7)
 
-    vertices = shape.vertices
-    count = len(vertices)
-    prev_point = vertices[(index - 1) % count][:2]
-    point = vertices[index][:2]
-    next_point = vertices[(index + 1) % count][:2]
+_VERTEX_COORD_LABEL_BBOX_TIERS = {
+    14: (22, 7),
+    20: (30, 7),
+    26: (38, 8),
+    32: (46, 8),
+}
+_VERTEX_COORD_LABEL_BBOX_DEFAULT = (52, 9)
 
-    vec1 = v_from_points(point, prev_point)
-    vec2 = v_from_points(point, next_point)
-    vert_vec = Vector(point)
 
-    bisector = vec1.bisector(vec2)
-    if bisector.norm() < 1e-9:
-        direction = perp_unit_vector((prev_point, next_point))
+def _tier_label_bbox(
+    text: str,
+    tiers: dict[int, tuple[float, float]],
+    default_size: tuple[float, float],
+    font_size_pt: float,
+    ref_font_pt: float,
+) -> tuple[float, float]:
+    length = len(text)
+    width, height = default_size
+    for max_len, size in sorted(tiers.items()):
+        if length <= max_len:
+            width, height = size
+            break
+    if ref_font_pt <= 0:
+        return width, height
+    scale = font_size_pt / ref_font_pt
+    return width * scale, height * scale
+
+
+def estimate_index_label_bbox(label, font_size_pt: float) -> tuple[float, float]:
+    ref = default_font_size_pt("index_font_size")
+    width, height = _tier_label_bbox(
+        str(label),
+        _INDEX_LABEL_BBOX_TIERS,
+        _INDEX_LABEL_BBOX_DEFAULT,
+        font_size_pt,
+        ref,
+    )
+    halo = label_halo_stroke_width(font_size_pt)
+    return width + 2 * halo, height + 2 * halo
+
+
+def estimate_vertex_coord_label_bbox(text: str, font_size_pt: float) -> tuple[float, float]:
+    ref = default_font_size_pt("vertex_font_size")
+    tier_w, tier_h = _tier_label_bbox(
+        text,
+        _VERTEX_COORD_LABEL_BBOX_TIERS,
+        _VERTEX_COORD_LABEL_BBOX_DEFAULT,
+        font_size_pt,
+        ref,
+    )
+    char_w = float(defaults.get("vertices_label_bbox_char_width", 0.55))
+    width = max(tier_w, len(text) * font_size_pt * char_w)
+    height = max(tier_h, font_size_pt * 1.15)
+    halo = label_halo_stroke_width(font_size_pt)
+    return width + 2 * halo, height + 2 * halo
+
+
+def _centered_label_bbox(
+    center: tuple[float, float], size: tuple[float, float]
+) -> tuple[float, float, float, float]:
+    cx, cy = center
+    w, h = size
+    return (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+
+
+def _label_bboxes_overlap(
+    center_a: tuple[float, float],
+    size_a: tuple[float, float],
+    center_b: tuple[float, float],
+    size_b: tuple[float, float],
+    shrink: float = 1.0,
+) -> bool:
+    if shrink != 1.0:
+        size_a = (size_a[0] * shrink, size_a[1] * shrink)
+        size_b = (size_b[0] * shrink, size_b[1] * shrink)
+    a = _centered_label_bbox(center_a, size_a)
+    b = _centered_label_bbox(center_b, size_b)
+    return bbox_overlap(a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3])
+
+
+def _label_axis_overlaps(
+    center_a: tuple[float, float],
+    size_a: tuple[float, float],
+    center_b: tuple[float, float],
+    size_b: tuple[float, float],
+) -> tuple[float, float]:
+    """Return horizontal and vertical overlap amounts (0 if disjoint)."""
+    ax, ay = center_a
+    bx, by = center_b
+    aw, ah = size_a
+    bw, bh = size_b
+    overlap_h = min(ax + aw / 2, bx + bw / 2) - max(ax - aw / 2, bx - bw / 2)
+    overlap_v = min(ay + ah / 2, by + bh / 2) - max(ay - ah / 2, by - bh / 2)
+    return max(0.0, overlap_h), max(0.0, overlap_v)
+
+
+def format_vertex_coord(x, y, ndigits=None) -> str:
+    """Return ``(x, y)`` formatted for vertex-coordinate labels."""
+    if ndigits is None:
+        ndigits = defaults["n_vert_digits"]
+    return f"({round(float(x), ndigits)}, {round(float(y), ndigits)})"
+
+
+_RESOLVED_LABELS_KEY = "_simetri_resolved_vertex_labels"
+_LABEL_RECTS_KEY = "_simetri_label_rects"
+_LABEL_META_KEY = "_simetri_label_meta"
+
+
+def _vertices_on_hull_points(
+    vertices: Sequence,
+    hull_pts: Sequence | None = None,
+) -> list[int]:
+    """Return vertex indices that lie on the given or computed convex hull."""
+    from ..graphics.convex_hull import convex_hull
+
+    verts = [tuple(v[:2]) for v in vertices]
+    if len(verts) <= 1:
+        return list(range(len(verts)))
+
+    if hull_pts is None:
+        hull_pts = convex_hull(verts, on_edge=True)
     else:
-        direction = bisector.normalize()
+        hull_pts = [tuple(p[:2]) for p in hull_pts]
 
-    test_point = vert_vec + direction
-    if in_polygon(test_point, shape.vertices):
-        pos = vert_vec - direction * offset
-    else:
-        pos = vert_vec + direction * offset
+    ndigits = int(defaults.get("n_vert_digits", 1))
+    tol = 1e-6
+    indices: list[int] = []
+    for i, (vx, vy) in enumerate(verts):
+        for hx, hy in hull_pts:
+            if hypot(vx - hx, vy - hy) <= tol:
+                indices.append(i)
+                break
+            if ndigits >= 0:
+                if round(vx, ndigits) == round(hx, ndigits) and round(
+                    vy, ndigits
+                ) == round(hy, ndigits):
+                    indices.append(i)
+                    break
+    return indices
 
-    return (pos.x, pos.y)
+
+def _hull_vertex_indices(vertices: Sequence) -> list[int]:
+    """Return vertex indices on this shape's own convex hull."""
+    return _vertices_on_hull_points(vertices)
+
+
+def _iter_label_sketches(sketches):
+    """Yield shape sketches that show vertex or index labels."""
+    for sketch in sketches:
+        subtype = getattr(sketch, "subtype", None)
+        if subtype in (Types.CLIPPED_SKETCH, Types.MASKED_SKETCH):
+            for sketch_list in sketch.sketches:
+                yield from _iter_label_sketches(sketch_list)
+        elif subtype == Types.COMPOSITE_SKETCH:
+            yield from _iter_label_sketches(sketch.sketches)
+        elif getattr(sketch, "indices", False) or getattr(
+            sketch, "show_vertex_coords", False
+        ):
+            yield sketch
+
+
+def _coord_label_vertex_indices(sketch, n: int) -> list[int]:
+    """Vertex indices that receive coordinate (not index) labels."""
+    if getattr(sketch, "vertex_on_hull", False):
+        group_hull = getattr(sketch, "_group_hull_points", None)
+        return _vertices_on_hull_points(sketch.vertices, group_hull)
+    return list(range(n))
+
+
+def _index_label_vertex_indices(sketch, n: int) -> list[int]:
+    """Vertex indices that receive index labels (never hull-filtered)."""
+    if isinstance(getattr(sketch, "indices", False), bool):
+        return list(range(n))
+    return list(sketch.indices)
+
+
+def _build_shape_label_rects(sketch) -> list[LabelRect]:
+    """Build centered label boxes at layout anchors (no overlap pass)."""
+    existing = getattr(sketch, _LABEL_RECTS_KEY, None)
+    if existing is not None:
+        return existing
+
+    has_index = bool(getattr(sketch, "indices", False))
+    has_vertex = bool(getattr(sketch, "show_vertex_coords", False))
+    vertices = sketch.vertices
+    n = len(vertices)
+    index_label_indices = _index_label_vertex_indices(sketch, n) if has_index else []
+    coord_label_indices = _coord_label_vertex_indices(sketch, n) if has_vertex else []
+
+    entries: list[tuple[str, int, tuple[float, float], tuple[float, float]]] = []
+    index_labels = None
+    coord_texts = None
+
+    if has_index:
+        index_offset = sketch_label_offset(sketch, "index")
+        index_layout = vert_label_layout(sketch, index_offset)
+        if isinstance(sketch.indices, bool):
+            index_labels = list(range(n))
+        else:
+            index_labels = list(sketch.indices)
+        index_font = sketch_label_font_size_pt(sketch, "index")
+        for i in index_label_indices:
+            pos = index_layout[i]["position"]
+            size = estimate_index_label_bbox(index_labels[i], index_font)
+            entries.append(("index", i, pos, size))
+
+    if has_vertex:
+        vertex_offset = sketch_label_offset(sketch, "vertex")
+        vertex_layout = vert_label_layout(sketch, vertex_offset)
+        coord_texts = [format_vertex_coord(*vertices[i]) for i in range(n)]
+        vertex_font = sketch_label_font_size_pt(sketch, "vertex")
+        for i in coord_label_indices:
+            pos = vertex_layout[i]["position"]
+            size = estimate_vertex_coord_label_bbox(coord_texts[i], vertex_font)
+            entries.append(("vertex", i, pos, size))
+
+    rects = [
+        LabelRect(sketch, kind, i, pos[0], pos[1], size[0], size[1])
+        for kind, i, pos, size in entries
+    ]
+    setattr(sketch, _LABEL_RECTS_KEY, rects)
+    setattr(
+        sketch,
+        _LABEL_META_KEY,
+        {
+            "n": n,
+            "index_labels": index_labels,
+            "coord_texts": coord_texts,
+            "has_index": has_index,
+            "has_vertex": has_vertex,
+            "index_label_indices": index_label_indices,
+            "coord_label_indices": coord_label_indices,
+            "entries": entries,
+        },
+    )
+    return rects
+
+
+def _apply_label_rects_to_sketch(sketch) -> None:
+    """Write label rect centers into the sketch resolved-label cache."""
+    meta = getattr(sketch, _LABEL_META_KEY, None)
+    rects = getattr(sketch, _LABEL_RECTS_KEY, None)
+    if meta is None or rects is None:
+        return
+
+    n = meta["n"]
+    has_index = meta["has_index"]
+    has_vertex = meta["has_vertex"]
+    index_labels = meta["index_labels"]
+    coord_texts = meta["coord_texts"]
+    index_label_indices = meta.get("index_label_indices", list(range(n)))
+    coord_label_indices = meta.get("coord_label_indices", list(range(n)))
+
+    index_positions = [None] * n if has_index else None
+    coord_positions = [None] * n if has_vertex else None
+    for rect in rects:
+        pos = (rect.x, rect.y)
+        if rect.kind == "index":
+            index_positions[rect.vertex_index] = pos
+        else:
+            coord_positions[rect.vertex_index] = pos
+
+    result: dict = {"index": None, "vertex": None}
+    if has_index:
+        result["index"] = (
+            [index_positions[i] for i in index_label_indices],
+            [index_labels[i] for i in index_label_indices],
+        )
+    if has_vertex:
+        result["vertex"] = (
+            [coord_positions[i] for i in coord_label_indices],
+            [coord_texts[i] for i in coord_label_indices],
+        )
+    setattr(sketch, _RESOLVED_LABELS_KEY, result)
+
+
+def resolve_page_vertex_labels(sketches) -> None:
+    """Resolve overlaps for all vertex/index labels on a sketch list (e.g. one page)."""
+    label_sketches = list(_iter_label_sketches(sketches))
+    all_rects: list[LabelRect] = []
+    for sketch in label_sketches:
+        all_rects.extend(_build_shape_label_rects(sketch))
+
+    if (
+        defaults.get("vertices_label_avoid_overlap", True)
+        and len(all_rects) > 1
+    ):
+        gap = float(defaults.get("vertices_label_overlap_gap", 1.0))
+        max_iters = int(defaults.get("vertices_label_overlap_max_iters", 2))
+        debug = any(bool(getattr(s, "debug", False)) for s in label_sketches)
+        if debug:
+            print(
+                f"resolve_page_vertex_labels: {len(all_rects)} labels, "
+                f"gap={gap}, max_iters={max_iters}"
+            )
+        resolve_all_overlaps(all_rects, gap=gap, max_iters=max_iters)
+
+    for sketch in label_sketches:
+        _apply_label_rects_to_sketch(sketch)
+
+
+def _resolve_shape_labels(sketch) -> dict:
+    """Return cached label layout for a shape sketch."""
+    cached = getattr(sketch, _RESOLVED_LABELS_KEY, None)
+    if cached is not None:
+        return cached
+
+    resolve_page_vertex_labels([sketch])
+    return getattr(sketch, _RESOLVED_LABELS_KEY)
+
+
+def prepare_shape_index_labels(
+    sketch,
+) -> tuple[list[tuple[float, float]], list] | None:
+    """Index label positions and values for a shape sketch.
+
+    Uses ``index_offset`` from the sketch or defaults. When coordinate labels
+    are also shown, overlap resolution considers both label types together.
+    """
+    if not getattr(sketch, "indices", False):
+        return None
+    return _resolve_shape_labels(sketch)["index"]
+
+
+def prepare_shape_vertex_coord_labels(
+    sketch,
+) -> tuple[list[tuple[float, float]], list[str]] | None:
+    """Vertex coordinate label positions and texts for a shape sketch.
+
+    Uses ``vertex_offset`` from the sketch or defaults. When index labels are
+    also shown, overlap resolution considers both label types together.
+    """
+    if not getattr(sketch, "show_vertex_coords", False):
+        return None
+    return _resolve_shape_labels(sketch)["vertex"]
 
 
 def edge_label_positions(shape, offset):

@@ -7,7 +7,11 @@ from typing import TYPE_CHECKING
 
 import fitz
 
-from simetri.canvas.pre_render import collect_tikz_preamble_requirements
+from simetri.canvas.pre_render import (
+    canvas_uses_label_halos,
+    collect_tikz_preamble_requirements,
+    label_halo_preamble_line,
+)
 from simetri.graphics.all_enums import TexLoc, Types
 from simetri.helpers.utilities import *
 from simetri.settings.settings import defaults
@@ -296,6 +300,8 @@ class Tex:
 
         if packages:
             packages = f"\\usepackage{{{','.join(packages)}}}\n"
+            if canvas_uses_label_halos(canvas):
+                packages += label_halo_preamble_line()
             if "fontspec" in packages:
                 fonts_section = f"""\\setmainfont{{{defaults["main_font"]}}}
 \\setsansfont{{{defaults["sans_font"]}}}
@@ -351,7 +357,14 @@ class Tex:
                 break
         if indices:
             font_family = defaults["indices_font_family"]
-            font_size = defaults["indices_font_size"]
+            font_size = defaults["index_font_size"]
+            if isinstance(font_size, (int, float)):
+                baseline = ceil(float(font_size) * 1.2)
+                font_spec = (
+                    f"\\{font_family}\\fontsize{{{font_size}}}{{{baseline}}}\\selectfont"
+                )
+            else:
+                font_spec = f"\\{font_family}\\{font_size}"
             count = 0
             for sketch in canvas.active_page.sketches:
                 if (
@@ -362,7 +375,7 @@ class Tex:
                     node_style = (
                         f"nodestyle{count}/.style={{draw, circle, gray, "
                         f"text=black, fill=white, line width = .5, inner sep=.5, "
-                        f"font=\\{font_family}\\{font_size}}}\n}}\n"
+                        f"font={font_spec}}}\n}}\n"
                     )
                     preamble += node_style
                     count += 1

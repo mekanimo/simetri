@@ -13,7 +13,13 @@ import matplotlib.pyplot as plt
 from ..colors.colors import Color, check_color
 from ..geometry.geom_utils import close_points2
 from ..graphics.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
-from ..helpers.illustration import vert_label_positions
+from ..helpers.illustration import (
+    prepare_shape_index_labels,
+    prepare_shape_vertex_coord_labels,
+    sketch_label_font_color,
+    sketch_label_font_size_pt,
+    svg_label_paint_attrs,
+)
 from ..settings.settings import defaults
 from .svg_colors import color_to_matplotlib, color_to_svg
 from .svg_common import _clip_line_to_rect, get_clip_mask_attrs
@@ -194,14 +200,19 @@ def draw_path_sketch(sketch, exceptions=None):
 
 
 def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
-    """Draws a shape sketch with index numbers at each vertex for SVG.
+    """Draw a shape sketch with optional vertex indices and coordinate labels.
+
+    When ``sketch.indices`` is truthy, index numbers are drawn at offset
+    label positions. When ``sketch.show_vertex_coords`` is True, ``(x, y)``
+    coordinate labels are drawn similarly.
 
     Args:
         sketch: The shape sketch object.
         index: The index.
+        exceptions: Style keys to omit from inline SVG styling.
 
     Returns:
-        str: The SVG code for the shape sketch with indices.
+        str: The SVG code for the shape sketch with vertex labels.
     """
     vertices = sketch_attrib(sketch, "vertices")
 
@@ -224,28 +235,37 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
     attrs = " ".join([part for part in [class_attr, style_attr] if part])
     shape_svg = f'<{shape_type} points="{verts}" {attrs}/>'
 
-    # Determine offset for label positioning
-    if hasattr(sketch, "ind_offset"):
-        offset = sketch_attrib(sketch, "ind_offset")
-    else:
-        offset = defaults["ind_offset"]
-
-    # Compute label positions using vert_label_positions
-    label_positions = vert_label_positions(sketch, offset)
-    if isinstance(sketch.indices, bool):
-        labels = range(len(vertices))
-    else:
-        labels = sketch.indices
-
-    font_size = defaults["font_size"]
+    index_font_size = sketch_label_font_size_pt(sketch, "index")
+    vertex_font_size = sketch_label_font_size_pt(sketch, "vertex")
     elements = [shape_svg]
-    for i, (lx, ly) in enumerate(label_positions):
-        elements.append(
-            f'<g transform="translate({lx} {ly}) scale(1,-1)">'
-            f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
-            f' font-size="{font_size}">{labels[i]}</text>'
-            f"</g>"
-        )
+
+    index_draw = prepare_shape_index_labels(sketch)
+    if index_draw is not None:
+        index_positions, index_labels = index_draw
+        for (lx, ly), label in zip(index_positions, index_labels):
+            paint = svg_label_paint_attrs(
+                sketch_label_font_color(sketch, "index"), index_font_size
+            )
+            elements.append(
+                f'<g transform="translate({lx} {ly}) scale(1,-1)">'
+                f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+                f' font-size="{index_font_size}" {paint}>{label}</text>'
+                f"</g>"
+            )
+
+    vertex_draw = prepare_shape_vertex_coord_labels(sketch)
+    if vertex_draw is not None:
+        coord_positions, coord_labels = vertex_draw
+        for (lx, ly), text in zip(coord_positions, coord_labels):
+            paint = svg_label_paint_attrs(
+                sketch_label_font_color(sketch, "vertex"), vertex_font_size
+            )
+            elements.append(
+                f'<g transform="translate({lx} {ly}) scale(1,-1)">'
+                f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+                f' font-size="{vertex_font_size}" {paint}>{text}</text>'
+                f"</g>"
+            )
 
     content = "\n".join(elements)
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)

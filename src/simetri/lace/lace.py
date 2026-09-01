@@ -1038,14 +1038,13 @@ class Lace(Group):
                 radius_threshold,
             ],
         )
-        merge_n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
         merge_arguments = {
             "merge_angle_tol": merge_angle_tol,
             "debug": debug,
             "dist_tol": dist_tol,
-            "n_round": merge_n_round,
         }
         if debug:
+            merge_n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
             print(
                 "Lace merge settings: "
                 f"dist_tol={dist_tol}; "

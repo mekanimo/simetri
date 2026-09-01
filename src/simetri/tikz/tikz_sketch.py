@@ -21,7 +21,14 @@ from ..graphics.all_enums import (
     Types,
     get_enum_value,
 )
-from ..helpers.illustration import vert_label_positions
+from ..helpers.illustration import (
+    label_halo_color,
+    label_halo_stroke_width,
+    prepare_shape_index_labels,
+    prepare_shape_vertex_coord_labels,
+    sketch_label_font_color,
+    sketch_label_font_size_pt,
+)
 from ..helpers.utilities import detokenize
 from ..settings.settings import defaults
 from .tikz_common import (
@@ -418,15 +425,44 @@ def draw_latex_sketch(sketch):
     return f"\\node{option_str} at ({x}, {y}) {tex_formula};\n"
 
 
+def _label_font_tikz(sketch, label_kind: str) -> str:
+    """TikZ node font option for index or vertex-coordinate labels."""
+    family = defaults["indices_font_family"]
+    pt = sketch_label_font_size_pt(sketch, label_kind)
+    baseline = ceil(pt * 1.2)
+    return f"font=\\{family}\\fontsize{{{pt}}}{{{baseline}}}\\selectfont"
+
+
+def _tikz_halo_label_lines(x, y, text, label_kind: str, sketch) -> list[str]:
+    """TikZ node with a contour halo for label readability."""
+    font = _label_font_tikz(sketch, label_kind)
+    text_color = color_to_tikz(sketch_label_font_color(sketch, label_kind))
+    halo_color = color_to_tikz(label_halo_color())
+    pt = sketch_label_font_size_pt(sketch, label_kind)
+    contour_len = label_halo_stroke_width(pt)
+    label_text = str(text)
+    content = (
+        f"\\contourlength{{{contour_len}pt}}"
+        f"\\contour{halo_color}{{\\textcolor{text_color}{{{label_text}}}}}"
+    )
+    return [
+        f"\\node[{font}, inner sep=0pt] at ({x}, {y}) {{{content}}};\n",
+    ]
+
+
 def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
-    """Draws a shape sketch with circle markers with index numbers in them.
+    """Draw a shape sketch with optional vertex indices and coordinate labels.
+
+    When ``sketch.indices`` is truthy, index numbers are drawn at offset
+    label positions. When ``sketch.show_vertex_coords`` is True, ``(x, y)``
+    coordinate labels are drawn similarly.
 
     Args:
         sketch: The shape sketch object.
         index: The index.
 
     Returns:
-        str: The TikZ code for the shape sketch with indices.
+        str: The TikZ code for the shape sketch with vertex labels.
     """
     begin_scope = get_begin_scope(index)
     body = get_draw(sketch)
@@ -447,18 +483,12 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
         body += f"[{options}]"
     else:
         body = ""
-    vertices = sketch.vertices
+    vertex_coords = sketch.vertices
 
-    # Determine offset for label positioning
-    if hasattr(sketch, "ind_offset"):
-        offset = sketch.ind_offset
-    else:
-        offset = defaults["ind_offset"]
+    vertex_font_size = sketch_label_font_size_pt(sketch, "vertex")
+    index_font_size = sketch_label_font_size_pt(sketch, "index")
 
-    # Compute label positions using vert_label_positions
-    label_positions = vert_label_positions(sketch, offset)
-    positions = [f"({lx}, {ly})" for lx, ly in label_positions]
-    vertices = [str(x) for x in vertices]
+    vertices = [str(x) for x in vertex_coords]
     str_lines = [vertices[0]]
     n = len(vertices)
     for i, vertex in enumerate(vertices[1:]):
@@ -474,14 +504,22 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
         if sketch.closed:
             str_lines.append(" -- cycle;\n")
         str_lines.append(";\n")
-    if positions:
-        if isinstance(sketch.indices, bool):
-            labels = range(len(vertices))
-        else:
-            labels = sketch.indices
-        str_lines.append(f"\\node at {positions[0]} {{{labels[0]}}};\n")
-        for i, pos in enumerate(positions[1:]):
-            str_lines.append(f"\\node at {pos} {{{labels[i + 1]}}};\n")
+
+    index_draw = prepare_shape_index_labels(sketch)
+    if index_draw is not None:
+        index_positions, index_labels = index_draw
+        for (lx, ly), label in zip(index_positions, index_labels):
+            str_lines.extend(
+                _tikz_halo_label_lines(lx, ly, label, "index", sketch)
+            )
+
+    vertex_draw = prepare_shape_vertex_coord_labels(sketch)
+    if vertex_draw is not None:
+        coord_positions, coord_labels = vertex_draw
+        for (lx, ly), text in zip(coord_positions, coord_labels):
+            str_lines.extend(
+                _tikz_halo_label_lines(lx, ly, text, "vertex", sketch)
+            )
 
     end_scope = get_end_scope()
     if not begin_scope:
@@ -805,7 +843,9 @@ def draw_shape_sketch(sketch, ind=None, canvas=None, exceptions=None):
         hasattr(sketch, "draw_markers")
         and sketch.draw_markers
         and sketch.marker_type == MarkerType.INDICES
-    ) or (hasattr(sketch, "indices") and sketch.indices):
+    ) or (hasattr(sketch, "indices") and sketch.indices) or (
+        hasattr(sketch, "show_vertex_coords") and sketch.show_vertex_coords
+    ):
         res = draw_shape_sketch_with_indices(sketch, ind, exceptions=exceptions)
     elif (
         hasattr(sketch, "draw_markers")

@@ -35,6 +35,8 @@ from .tikz_sketch import _canvas_mask_scope_sketch
 from .tikz_utils import *
 from .tikz_utils import _get_gradient_shading_options
 
+from ..helpers.illustration import resolve_page_vertex_labels
+
 NumberOrTex = int | float | str
 
 np.set_printoptions(legacy="1.21")
@@ -271,6 +273,11 @@ def get_tex_code(canvas: Canvas) -> str:
     pages = canvas.pages
     has_sketches = any(page.sketches for page in pages)
 
+    from ..canvas.canvas import warn_vertex_coord_label_sizing
+
+    if canvas.page_size is None:
+        warn_vertex_coord_label_sizing(canvas)
+
     if not has_sketches:
         issue_warning(
             "Canvas has no drawings/sketches. Writing empty TeX output."
@@ -370,6 +377,7 @@ def get_tex_code(canvas: Canvas) -> str:
                 if has_style_lines:
                     code.append("\n".join(style_lines))
 
+            resolve_page_vertex_labels(sketches)
             ind = 0
             page_code, ind = render_sketches(sketches, ind)
             tikz_sketch_module.set_active_tikz_style_ids({})

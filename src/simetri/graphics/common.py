@@ -1,18 +1,28 @@
 """Simetri library's constants and common data."""
 
+from __future__ import annotations
+
 from collections.abc import Iterator, Sequence
 from math import cos, pi, sin
+from typing import TYPE_CHECKING, Union
 
 from ..helpers.vector import Vector2D
 from ..settings.settings import VOID, defaults
 
-PointType = Sequence[float]  # used for type hinting
-LineType = Sequence[Sequence]  # used for type hinting
-VecType = Sequence[float]  # used for type hinting
-PolylineType = Sequence[PointType]  # used for type hinting
-PolygonType = Sequence[PointType]  # used for type hinting
-GraphEdgeType = tuple[int, int]  # used for type hinting
-MatrixType = Sequence[Sequence[float]]  # used for type hinting
+if TYPE_CHECKING:
+    from .shape import Shape
+
+# These are used for type hinting and annotations
+GraphEdgeType = tuple[int, int]
+LineType = Sequence[Sequence]
+MatrixType = Sequence[Sequence[float]]
+PointType = Sequence[float]
+PolygonLike = Union["Shape", Sequence[PointType]]
+PolygonType = Sequence[PointType]
+PolylineType = Sequence[PointType]
+TurnPair = tuple[float, float]
+TurnSequence = Sequence[TurnPair]
+VecType = Sequence[float]
 
 INCH = 72  # (used for converting inches to points)
 CM = 28.3464  # (used for converting centimeters to points)

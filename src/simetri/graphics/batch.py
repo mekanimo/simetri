@@ -570,8 +570,7 @@ class Group(Base):
     def merge_shapes(
         self,
         dist_tol: float | None = None,
-        n_round: int = 2,
-        merge_angle_tol=0.1,
+        merge_angle_tol: float = 0.1,
         debug: bool = False,
     ) -> Self:
         """Merges the shapes in the group if they are connected.
@@ -579,9 +578,10 @@ class Group(Base):
         as well as the shapes that could not be merged.
 
         Args:
-            tol (float, optional): The tolerance for merging shapes. Defaults to None.
-            rel_tol (float, optional): The relative tolerance. Defaults to None.
-            abs_tol (float, optional): The absolute tolerance. Defaults to None.
+            dist_tol (float, optional): Distance tolerance for merging vertices.
+                Defaults to None.
+            merge_angle_tol (float, optional): Angle tolerance for merging
+                collinear edges. Defaults to 0.1.
             debug (bool, optional): Print point and angle diagnostics.
                 Defaults to False.
 
@@ -591,7 +591,6 @@ class Group(Base):
         return _merge_shapes(
             self,
             dist_tol=dist_tol,
-            n_round=n_round,
             merge_angle_tol=merge_angle_tol,
             debug=debug,
         )

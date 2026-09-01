@@ -6,12 +6,8 @@ from dataclasses import dataclass
 
 from simetri.geometry.circle import Circle_ as Circle
 
-from ..geometry.geom_utils import distance, is_line
-from ..geometry.geometry import (
-    angle_between_two_lines,
-    direction,
-    point_to_line_distance,
-)
+from ..geometry.geom_utils import distance, is_line, direction
+from ..geometry.geometry import angle_between_two_lines, point_to_line_distance 
 from ..graphics.all_enums import ConstraintType as ConstType
 from ..helpers.vector import Vector2D
 

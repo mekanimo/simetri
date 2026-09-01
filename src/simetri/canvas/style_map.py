@@ -8,7 +8,10 @@ Documentation list all aliases for each style class.
 """
 # to do: Change this so that IDEs can find the classes and methods.
 
-from typing import Sequence
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Union
 from dataclasses import dataclass
 import enum
 
@@ -1709,6 +1712,52 @@ shape_args = [
     "subtype",
     "xform_matrix",
 ]
+
+
+# Keyword arguments accepted by ``canvas.draw()`` beyond style-map keys.
+draw_extra_kwargs = [
+    "vertices",
+    "indices",
+    "index_offset",
+    "vertex_offset",
+    "index_font_size",
+    "vertex_font_size",
+    "index_font_color",
+    "vertex_font_color",
+    "handles",
+    "pos",
+    "closed",
+    "visible",
+    "tile_svg",
+    "clip",
+    "mask",
+    "even_odd",
+    "show_vertex_coords",
+    "vertex_on_hull",
+    "palette",
+    "percent_offsets",
+    "line_widths",
+    "vert_indices",
+    "colors",
+    "debug",
+    "_mask_context_id",
+    "_style_id",
+    "_tikz_style_id",
+]
+
+_draw_valid_kwargs_cache: frozenset[str] | None = None
+
+
+def get_draw_valid_kwargs() -> frozenset[str]:
+    """Return the set of keyword names accepted by ``canvas.draw()``."""
+    global _draw_valid_kwargs_cache
+    if _draw_valid_kwargs_cache is None:
+        keys = set(shape_style_map.keys())
+        keys.update(line_style_map.keys())
+        keys.update(tag_style_map.keys())
+        keys.update(draw_extra_kwargs)
+        _draw_valid_kwargs_cache = frozenset(keys)
+    return _draw_valid_kwargs_cache
 
 
 def _set_shape_args(debug=False):

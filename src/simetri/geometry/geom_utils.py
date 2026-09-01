@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from math import atan2, cos, hypot, sin
+from math import atan2, cos, hypot, isclose, pi, sin
 from typing import Any
 
 import numpy as np
@@ -79,6 +79,98 @@ def is_line(line_: Any) -> bool:
         return is_point(p1) and is_point(p2)
     except:
         return False
+
+def equal_points(point1:PointType, point2:PointType, dist_tol=.001) -> bool:
+    """
+        Given two points, returns True if the points are within the given distance.
+
+        Args:
+            point1: PointType: First point.
+            point2: PointType: Second point.
+
+        Returns:
+            bool: True if the points are within the given distance
+    """
+
+    return distance(point1, point2) <= dist_tol
+
+def congruent_points(point1:PointType, point2:PointType, dist_tol=.001) -> bool:
+    """
+        Given two points, returns True if the points are within the given distance tolerance.
+
+        Args:
+            point1: PointType: First point.
+            point2: PointType: Second point.
+            dist_tol: Distance tolerance
+
+        Returns:
+            bool: True if the points are within the given distance
+    """
+
+    return equal_points(point1, point2, dist_tol=dist_tol)
+
+def equal_edges(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
+    """
+        Given two edges, returns True if the edges' endpoints are within the given distance tolerance.
+
+        Args:
+            edge1: LineType: First edge.
+            edge2: LineType: Second edge.
+
+        Returns:
+            bool: True if the edges' endpoints are within the given distance tolerance.
+    """
+    p1, p2 = edge1
+    p3, p4 = edge2
+
+    return ((equal_points(p1, p3, dist_tol) and equal_points(p2, p4, dist_tol)) or
+            (equal_points(p1, p4, dist_tol) and equal_points(p2, p3, dist_tol)))
+
+# alias for equal_edges
+def equal_segments(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
+    """
+        Given two segments, returns True if the segments' endpoints are within the given distance tolerance.
+
+        Args:
+            edge1: LineType: First edge.
+            edge2: LineType: Second edge.
+
+        Returns:
+            bool: True if the edges' endpoints are within the given distance tolerance.
+    """
+
+    return equal_edges(edge1, edge2, dist_tol=dist_tol)
+
+# alias for equal_edges
+def congruent_edges(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
+    """
+        Given two edges, returns True if the edges' endpoints are within the given distance tolerance.
+
+        Args:
+            edge1: LineType: First edge.
+            edge2: LineType: Second edge.
+
+        Returns:
+            bool: True if the edges' endpoints are within the given distance tolerance.
+    """
+
+    return equal_edges(edge1, edge2, dist_tol=dist_tol)
+
+# alias for equal_edges
+def congruent_segments(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
+    """
+        Given two edges, returns True if the segments' endpoints are within the given distance tolerance.
+
+        Args:
+            edge1: LineType: First edge.
+            edge2: LineType: Second edge.
+
+        Returns:
+            bool: True if the segments' endpoints are within the given distance tolerance.
+    """
+
+    return equal_edges(edge1, edge2, dist_tol=dist_tol)
+
 
 
 def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
@@ -548,7 +640,7 @@ def round_segment(segment: Sequence[PointType], n_digits: int = 2):
     return [p1, p2]
 
 
-def connected_pairs(items):
+def connected_pairs(items, closed:bool=False):
     """Return a list of connected pair tuples corresponding to the items.
     [a, b, c] -> [(a, b), (b, c)]
 
@@ -558,6 +650,8 @@ def connected_pairs(items):
     Returns:
         list[tuple]: List of connected pair tuples.
     """
+    if closed:
+        items.append(items[0])
     return list(zip(items, items[1:]))
 
 
@@ -604,6 +698,76 @@ def distance(p1: PointType, p2: PointType) -> float:
         float: Distance between the two points.
     """
     return hypot(p2[0] - p1[0], p2[1] - p1[1])
+
+
+def bbox_overlap(
+    min_x1: float,
+    min_y1: float,
+    max_x2: float,
+    max_y2: float,
+    min_x3: float,
+    min_y3: float,
+    max_x4: float,
+    max_y4: float,
+) -> bool:
+    """
+    Given two bounding boxes, return True if they overlap.
+
+    Args:
+        min_x1 (float): Minimum x-coordinate of the first bounding box.
+        min_y1 (float): Minimum y-coordinate of the first bounding box.
+        max_x2 (float): Maximum x-coordinate of the first bounding box.
+        max_y2 (float): Maximum y-coordinate of the first bounding box.
+        min_x3 (float): Minimum x-coordinate of the second bounding box.
+        min_y3 (float): Minimum y-coordinate of the second bounding box.
+        max_x4 (float): Maximum x-coordinate of the second bounding box.
+        max_y4 (float): Maximum y-coordinate of the second bounding box.
+
+    Returns:
+        bool: True if the bounding boxes overlap, False otherwise.
+    """
+    return not (
+        max_x2 < min_x3 or max_x4 < min_x1 or max_y2 < min_y3 or max_y4 < min_y1
+    )
+
+def line_segment_bbox(
+    x1: float, y1: float, x2: float, y2: float
+) -> tuple[float, float, float, float]:
+    """
+    Return the bounding box of a line segment.
+
+    Args:
+        x1 (float): Segment start point x-coordinate.
+        y1 (float): Segment start point y-coordinate.
+        x2 (float): Segment end point x-coordinate.
+        y2 (float): Segment end point y-coordinate.
+
+    Returns:
+        tuple: Bounding box as (min_x, min_y, max_x, max_y).
+    """
+    return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
+
+
+def line_segment_bbox_check(seg1: LineType, seg2: LineType) -> bool:
+    """
+    Given two line segments, return True if their bounding boxes overlap.
+
+    Args:
+        seg1 (LineType): First line segment.
+        seg2 (LineType): Second line segment.
+
+    Returns:
+        bool: True if the bounding boxes overlap, False otherwise.
+    """
+    x1, y1 = seg1[0][:2]
+    x2, y2 = seg1[1][:2]
+    x3, y3 = seg2[0][:2]
+    x4, y4 = seg2[1][:2]
+    return bbox_overlap(
+        *line_segment_bbox(x1, y1, x2, y2), *line_segment_bbox(x3, y3, x4, y4)
+    )
+
+
 
 
 def intersect(line1: LineType, line2: LineType) -> PointType:
@@ -872,6 +1036,66 @@ def intersection3(
                 x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol
             )
     return (Connection.DISJOINT, None)
+
+def direction(p, q, r):
+    """
+    Checks the orientation of three points (p, q, r).
+
+    Args:
+        p (PointType): First point.
+        q (PointType): Second point.
+        r (PointType): Third point.
+
+    Returns:
+        int: 0 if collinear, >0 if counter-clockwise, <0 if clockwise.
+    """
+    return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
+
+
+def between(a, b, c):
+    """Return True if c is between a and b.
+
+    Args:
+        a (PointType): First point.
+        b (PointType): Second point.
+        c (PointType): Third point.
+
+    Returns:
+        bool: True if c is between a and b, False otherwise.
+    """
+    if not collinear(a, b, c):
+        res = False
+    elif a[0] != b[0]:
+        res = ((a[0] <= c[0]) and (c[0] <= b[0])) or (
+            (a[0] >= c[0]) and (c[0] >= b[0])
+        )
+    else:
+        res = ((a[1] <= c[1]) and (c[1] <= b[1])) or (
+            (a[1] >= c[1]) and (c[1] >= b[1])
+        )
+    return res
+
+def collinear_segments(segment1, segment2, rel_tol=None, abs_tol=None):
+    """
+    Checks if two line segments (a1, b1) and (a2, b2) are collinear.
+
+    Args:
+        segment1 (LineType): First line segment.
+        segment2 (LineType): Second line segment.
+        rel_tol (float, optional): Relative tolerance. Defaults to None.
+        abs_tol (float, optional): Absolute tolerance. Defaults to None.
+
+    Returns:
+        bool: True if the segments are collinear, False otherwise.
+    """
+    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
+    a1, b1 = segment1
+    a2, b2 = segment2
+
+    return isclose(
+        direction(a1, b1, a2), 0, rel_tol=rel_tol, abs_tol=abs_tol
+    ) and isclose(direction(a1, b1, b2), 0, rel_tol=rel_tol, abs_tol=abs_tol)
+
 
 
 def polar_to_cartesian(r, theta, center=(0, 0)):

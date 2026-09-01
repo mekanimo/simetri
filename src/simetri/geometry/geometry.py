@@ -29,7 +29,20 @@ import numpy as np
 from numpy import around, array, ndarray
 from numpy.typing import NDArray
 
-from ..geometry.geom_utils import line_angle
+from ..geometry.geom_utils import (
+    area,
+    close_points2,
+    collinear,
+    connected_pairs,
+    intersect,
+    intersect2,
+    intersection2,
+    intersection3,
+    line_angle,
+    midpoint,
+    positive_angle,
+)
+from ..graphics.affine import rotate_point
 from ..graphics.all_enums import Connection, Types
 from ..graphics.common import (
     LineType,
@@ -83,37 +96,6 @@ def clip_line_to_rect(point, direction, lower_left, upper_right):
         end = (point[0] + t_max * direction[0], point[1] + t_max * direction[1])
         return (start, end)
     return None
-
-
-def bbox_overlap(
-    min_x1: float,
-    min_y1: float,
-    max_x2: float,
-    max_y2: float,
-    min_x3: float,
-    min_y3: float,
-    max_x4: float,
-    max_y4: float,
-) -> bool:
-    """
-    Given two bounding boxes, return True if they overlap.
-
-    Args:
-        min_x1 (float): Minimum x-coordinate of the first bounding box.
-        min_y1 (float): Minimum y-coordinate of the first bounding box.
-        max_x2 (float): Maximum x-coordinate of the first bounding box.
-        max_y2 (float): Maximum y-coordinate of the first bounding box.
-        min_x3 (float): Minimum x-coordinate of the second bounding box.
-        min_y3 (float): Minimum y-coordinate of the second bounding box.
-        max_x4 (float): Maximum x-coordinate of the second bounding box.
-        max_y4 (float): Maximum y-coordinate of the second bounding box.
-
-    Returns:
-        bool: True if the bounding boxes overlap, False otherwise.
-    """
-    return not (
-        max_x2 < min_x3 or max_x4 < min_x1 or max_y2 < min_y3 or max_y4 < min_y1
-    )
 
 
 def sine_wave(
@@ -251,44 +233,6 @@ def circle_inversion(point, center, radius):
     inv_x = cx + inv_dist * (x - cx) / dist
     inv_y = cy + inv_dist * (y - cy) / dist
     return inv_x, inv_y
-
-
-def line_segment_bbox(
-    x1: float, y1: float, x2: float, y2: float
-) -> tuple[float, float, float, float]:
-    """
-    Return the bounding box of a line segment.
-
-    Args:
-        x1 (float): Segment start point x-coordinate.
-        y1 (float): Segment start point y-coordinate.
-        x2 (float): Segment end point x-coordinate.
-        y2 (float): Segment end point y-coordinate.
-
-    Returns:
-        tuple: Bounding box as (min_x, min_y, max_x, max_y).
-    """
-    return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
-
-
-def line_segment_bbox_check(seg1: LineType, seg2: LineType) -> bool:
-    """
-    Given two line segments, return True if their bounding boxes overlap.
-
-    Args:
-        seg1 (LineType): First line segment.
-        seg2 (LineType): Second line segment.
-
-    Returns:
-        bool: True if the bounding boxes overlap, False otherwise.
-    """
-    x1, y1 = seg1[0][:2]
-    x2, y2 = seg1[1][:2]
-    x3, y3 = seg2[0][:2]
-    x4, y4 = seg2[1][:2]
-    return bbox_overlap(
-        *line_segment_bbox(x1, y1, x2, y2), *line_segment_bbox(x3, y3, x4, y4)
-    )
 
 
 def sorted_edges(polygon):
@@ -570,6 +514,8 @@ def all_intersections(
     candidate_counts = candidate_ends - candidate_starts
     candidate_count = candidate_counts.sum()
     if not candidate_count:
+        if return_points_list:
+            return []
         return {}, []
 
     candidate_offsets = np.cumsum(candidate_counts) - candidate_counts
@@ -1300,43 +1246,6 @@ def is_chained(seg1, seg2):
     )
 
 
-def direction(p, q, r):
-    """
-    Checks the orientation of three points (p, q, r).
-
-    Args:
-        p (PointType): First point.
-        q (PointType): Second point.
-        r (PointType): Third point.
-
-    Returns:
-        int: 0 if collinear, >0 if counter-clockwise, <0 if clockwise.
-    """
-    return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
-
-
-def collinear_segments(segment1, segment2, rel_tol=None, abs_tol=None):
-    """
-    Checks if two line segments (a1, b1) and (a2, b2) are collinear.
-
-    Args:
-        segment1 (LineType): First line segment.
-        segment2 (LineType): Second line segment.
-        rel_tol (float, optional): Relative tolerance. Defaults to None.
-        abs_tol (float, optional): Absolute tolerance. Defaults to None.
-
-    Returns:
-        bool: True if the segments are collinear, False otherwise.
-    """
-    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
-    a1, b1 = segment1
-    a2, b2 = segment2
-
-    return isclose(
-        direction(a1, b1, a2), 0, rel_tol=rel_tol, abs_tol=abs_tol
-    ) and isclose(direction(a1, b1, b2), 0, rel_tol=rel_tol, abs_tol=abs_tol)
-
-
 def global_to_local(
     x: float, y: float, xi: float, yi: float, theta: float = 0
 ) -> PointType:
@@ -2005,47 +1914,19 @@ def cart_to_tri(points):
     return array(points) @ convert
 
 
-def convex_hull(points):
+def convex_hull(points, on_edge=False):
     """Return the convex hull of a set of 2D points.
 
     Args:
         points (list[PointType]): List of 2D points.
+        on_edge (bool): Include collinear boundary points when True.
 
     Returns:
         list[PointType]: Convex hull of the points.
     """
-    # From http://en.wikibooks.org/wiki/Algorithm__implementation/Geometry/
-    # Convex_hull/Monotone_chain
-    # Sort points lexicographically (tuples are compared lexicographically).
-    # Remove duplicates to detect the case we have just one unique point.
-    points = sorted(set(points))
-    # Boring case: no points or a single point, possibly repeated multiple times.
-    if len(points) <= 1:
-        return points
+    from ..graphics.convex_hull import convex_hull as _convex_hull
 
-    # 2D cross product of OA and OB vectors, i.e. z-component of their 3D cross
-    # product.
-    # Return a positive value, if OAB makes a counter-clockwise turn,
-    # negative for clockwise turn, and zero if the points are collinear.
-    def cross_(o, a, b):
-        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
-
-    # Build lower hull
-    lower = []
-    for p in points:
-        while len(lower) >= 2 and cross_(lower[-2], lower[-1], p) <= 0:
-            lower.pop()
-        lower.append(p)
-    # Build upper hull
-    upper = []
-    for p in reversed(points):
-        while len(upper) >= 2 and cross_(upper[-2], upper[-1], p) <= 0:
-            upper.pop()
-        upper.append(p)
-    # Concatenation of the lower and upper hulls gives the convex hull.
-    # Last point of each list is omitted because it is repeated at the beginning
-    # of the other list.
-    return lower[:-1] + upper[:-1]
+    return _convex_hull(points, on_edge=on_edge)
 
 
 def flat_points(connected_segments):
@@ -2296,28 +2177,6 @@ def bisector_line(a: PointType, b: PointType, c: PointType) -> LineType:
     return [d, b]
 
 
-def between(a, b, c):
-    """Return True if c is between a and b.
-
-    Args:
-        a (PointType): First point.
-        b (PointType): Second point.
-        c (PointType): Third point.
-
-    Returns:
-        bool: True if c is between a and b, False otherwise.
-    """
-    if not collinear(a, b, c):
-        res = False
-    elif a[0] != b[0]:
-        res = ((a[0] <= c[0]) and (c[0] <= b[0])) or (
-            (a[0] >= c[0]) and (c[0] >= b[0])
-        )
-    else:
-        res = ((a[1] <= c[1]) and (c[1] <= b[1])) or (
-            (a[1] >= c[1]) and (c[1] >= b[1])
-        )
-    return res
 
 
 def fillet(
@@ -3231,7 +3090,6 @@ class Edge:
 
     @property
     def y1(self):
-        """"""
         """y-coordinate of the start point."""
         return self.start.y
 

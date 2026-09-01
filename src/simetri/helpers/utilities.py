@@ -74,6 +74,354 @@ def p_print(*data):
     print(output)
 
 
+# alias for get_cell_position
+def get_cell_pos(
+    index: int,
+    n_columns: int,
+    cell_width: float,
+    cell_height: float,
+    gap: float | None = None,
+    horiz_gap: float | None = None,
+    vert_gap: float | None = None,
+    margin: float | None = None,
+    left_margin: float | None = None,
+    bot_margin: float | None = None,
+    right_margin: float | None = None,
+    top_margin: float | None = None,
+    from_bottom_left: bool = True,
+) -> tuple[float, float]:
+    """Return the center of a grid cell by linear index.
+
+    Cells are laid out in row-major order: index increases along columns first,
+    then along rows. With ``from_bottom_left=True`` (default), row 0 is the
+    bottom row and later rows stack upward. With ``from_bottom_left=False``,
+    row 0 is the top row and later rows stack downward.
+
+    Args:
+        index: Linear cell index (0-based).
+        n_columns: Number of columns in the grid.
+        cell_width: Width of each cell.
+        cell_height: Height of each cell.
+        gap: Uniform spacing between cells. Defaults to 0. Do not pass together
+            with ``horiz_gap`` or ``vert_gap``.
+        horiz_gap: Horizontal spacing between adjacent cells. Defaults to
+            ``gap`` when not given.
+        vert_gap: Vertical spacing between adjacent cells. Defaults to ``gap``
+            when not given.
+        margin: Uniform offset for unset sides. Defaults to 0. May be combined
+            with individual side margins; any side not passed explicitly uses
+            ``margin``. Do not pass together with all four per-side margins.
+        left_margin: Offset of the grid from the left. Defaults to ``margin``
+            when not given.
+        bot_margin: Offset of the grid from the bottom when
+            ``from_bottom_left=True``. Defaults to ``margin`` when not given.
+        right_margin: Offset of the grid from the right. Defaults to ``margin``
+            when not given (not used for cell-center placement).
+        top_margin: Offset of the grid from the top when
+            ``from_bottom_left=False``. Defaults to ``margin`` when not given.
+        from_bottom_left: If True, index 0 is the bottom-left cell and rows
+            increase upward. If False, index 0 is the top-left cell and rows
+            increase downward.
+
+    Returns:
+        ``(x, y)`` coordinates of the cell center.
+
+    Raises:
+        ValueError: If ``gap`` is passed together with ``horiz_gap`` or
+            ``vert_gap``, or if ``margin`` is passed together with all four
+            per-side margins.
+    """
+
+    return get_cell_position(
+        index=index,
+        n_columns=n_columns,
+        cell_width=cell_width,
+        cell_height=cell_height,
+        gap=gap,
+        horiz_gap=horiz_gap,
+        vert_gap=vert_gap,
+        margin=margin,
+        left_margin=left_margin,
+        bot_margin=bot_margin,
+        right_margin=right_margin,
+        top_margin=top_margin,
+        from_bottom_left=from_bottom_left,
+    )
+
+
+def get_cell_position(
+    index: int,
+    n_columns: int,
+    cell_width: float,
+    cell_height: float,
+    gap: float | None = None,
+    horiz_gap: float | None = None,
+    vert_gap: float | None = None,
+    margin: float | None = None,
+    left_margin: float | None = None,
+    bot_margin: float | None = None,
+    right_margin: float | None = None,
+    top_margin: float | None = None,
+    from_bottom_left: bool = True,
+) -> tuple[float, float]:
+    """Return the center of a grid cell by linear index.
+
+    Cells are laid out in row-major order: index increases along columns first,
+    then along rows. With ``from_bottom_left=True`` (default), row 0 is the
+    bottom row and later rows stack upward. With ``from_bottom_left=False``,
+    row 0 is the top row and later rows stack downward.
+
+    Args:
+        index: Linear cell index (0-based).
+        n_columns: Number of columns in the grid.
+        cell_width: Width of each cell.
+        cell_height: Height of each cell.
+        gap: Uniform spacing between cells. Defaults to 0. Do not pass together
+            with ``horiz_gap`` or ``vert_gap``.
+        horiz_gap: Horizontal spacing between adjacent cells. Defaults to
+            ``gap`` when not given.
+        vert_gap: Vertical spacing between adjacent cells. Defaults to ``gap``
+            when not given.
+        margin: Uniform offset for unset sides. Defaults to 0. May be combined
+            with individual side margins; any side not passed explicitly uses
+            ``margin``. Do not pass together with all four per-side margins.
+        left_margin: Offset of the grid from the left. Defaults to ``margin``
+            when not given.
+        bot_margin: Offset of the grid from the bottom when
+            ``from_bottom_left=True``. Defaults to ``margin`` when not given.
+        right_margin: Offset of the grid from the right. Defaults to ``margin``
+            when not given (not used for cell-center placement).
+        top_margin: Offset of the grid from the top when
+            ``from_bottom_left=False``. Defaults to ``margin`` when not given.
+        from_bottom_left: If True, index 0 is the bottom-left cell and rows
+            increase upward. If False, index 0 is the top-left cell and rows
+            increase downward.
+
+    Returns:
+        ``(x, y)`` coordinates of the cell center.
+
+    Raises:
+        ValueError: If ``gap`` is passed together with ``horiz_gap`` or
+            ``vert_gap``, or if ``margin`` is passed together with all four
+            per-side margins.
+    """
+
+    row = index // n_columns
+    col = index % n_columns
+
+    if gap is not None and (horiz_gap is not None or vert_gap is not None):
+        raise ValueError(
+            "Cannot set both gap and horiz_gap/vert_gap; pass one or the other."
+        )
+
+    all_margins = (
+        margin is not None
+        and left_margin is not None
+        and bot_margin is not None
+        and right_margin is not None
+        and top_margin is not None
+    )
+    if all_margins:
+        raise ValueError(
+            "Cannot set margin together with all per-side margins."
+        )
+
+    if gap is None:
+        gap = 0
+    if horiz_gap is None:
+        horiz_gap = gap
+    if vert_gap is None:
+        vert_gap = gap
+
+    if margin is None:
+        margin = 0
+    if left_margin is None:
+        left_margin = margin
+    if bot_margin is None:
+        bot_margin = margin
+    if right_margin is None:
+        right_margin = margin
+    if top_margin is None:
+        top_margin = margin
+
+    pitch_x = cell_width + horiz_gap
+    pitch_y = cell_height + vert_gap
+    x = left_margin + col * pitch_x + cell_width / 2
+
+    if from_bottom_left:
+        y = bot_margin + row * pitch_y + cell_height / 2
+    else:
+        y = -(top_margin + row * pitch_y + cell_height / 2)
+
+    res = (x, y)
+    return res
+
+
+def all_cells_connected(
+    indices,
+    n_rows: int = 3,
+    n_cols: int = 3,
+    diagonal_neighbors: bool = True,
+) -> bool:
+    """Return True if every cell in ``indices`` belongs to one connected group.
+
+    Args:
+        indices: Cell indices on the grid (e.g. ``range(9)`` for 3×3).
+        n_rows: Number of grid rows.
+        n_cols: Number of grid columns.
+        diagonal_neighbors: If True, cells sharing a corner are adjacent. If
+            False, only edge-adjacent cells are adjacent.
+
+    Returns:
+        True when all given cells form a single connected component (including
+        when the set is empty or has one cell); False when the cells form two
+        or more separate groups.
+    """
+
+    def connected(
+        index1: int,
+        index2: int,
+        n_rows: int = 3,
+        n_cols: int = 3,
+        diagonal_neighbors: bool = True,
+    ) -> bool:
+        row1, col1 = divmod(index1, n_cols)
+        row2, col2 = divmod(index2, n_cols)
+        if row2 < 0 or row2 >= n_rows or col2 < 0 or col2 >= n_cols:
+            return False
+        dr = abs(row1 - row2)
+        dc = abs(col1 - col2)
+        if dr > 1 or dc > 1 or (dr == 0 and dc == 0):
+            return False
+        if diagonal_neighbors:
+            return True
+        return dr + dc == 1
+
+    cells = set(indices)
+    if len(cells) <= 1:
+        res = True
+    else:
+        visited = set()
+        stack = [next(iter(cells))]
+        while stack:
+            i = stack.pop()
+            if i in visited:
+                continue
+            visited.add(i)
+            for j in cells:
+                if j not in visited and connected(
+                    i, j, n_rows, n_cols, diagonal_neighbors
+                ):
+                    stack.append(j)
+
+        res = len(visited) == len(cells)
+    return res
+
+
+def get_island_cells(
+    starting_cell_index: int,
+    all_cells: Sequence[Sequence],
+    empty=None,
+    diagonal_neighbors: bool = True,
+    from_bottom_left: bool = True,
+) -> tuple[tuple, tuple]:
+    """Return values and indices of non-empty cells connected to the start cell.
+
+    ``all_cells`` is a rectangular grid stored row by row. With
+    ``from_bottom_left=True``, ``all_cells[0]`` is the bottom row and index 0
+    is the bottom-left cell. With ``from_bottom_left=False``, ``all_cells[0]``
+    is the top row and index 0 is the top-left cell. Indexing is row-major in
+    both cases.
+
+    Args:
+        starting_cell_index: Linear index of the cell to grow the island from.
+        all_cells: Grid of cell values (e.g. ``((2, 3, None), ...)``).
+        empty: Value(s) treated as empty. Default ``None`` means only ``None``
+            is empty. Pass a collection to mark several values as empty.
+        diagonal_neighbors: If True, cells sharing a corner are neighbors. If
+            False, only edge-adjacent cells are neighbors.
+        from_bottom_left: If True, row 0 is the bottom row; if False, row 0
+            is the top row (see above).
+
+    Returns:
+        ``(values, indices)`` — parallel tuples of connected non-empty cell
+        values and their indices. If the starting cell is out of range or
+        empty, both tuples are empty.
+
+    Examples:
+        Grid ``((2, 3, None), (5, None, 6), (7, None, 4))`` with bottom row
+        ``(2, 3, None)`` and edge-only neighbors::
+
+            get_island_cells(0, grid, diagonal_neighbors=False)
+            # ((2, 3, 5, 7), (0, 1, 3, 6))
+            get_island_cells(8, grid, diagonal_neighbors=False)
+            # ((4, 6), (8, 5))
+            get_island_cells(7, grid)  # ((), ())  — start cell is empty
+
+        With ``diagonal_neighbors=True``, corner-adjacent cells are included
+        and this example grid becomes one connected island.
+    """
+    n_rows = len(all_cells)
+    if n_rows == 0:
+        res = ((), ())
+        return res
+    n_cols = len(all_cells[0])
+    n_cells = n_rows * n_cols
+
+    def cell_empty(value) -> bool:
+        if isinstance(empty, (tuple, list, set, frozenset)):
+            return value in empty
+        if empty is None:
+            return value is None
+        return value == empty
+
+    def cells_neighbors(index1: int, index2: int) -> bool:
+        row1, col1 = divmod(index1, n_cols)
+        row2, col2 = divmod(index2, n_cols)
+        if row2 < 0 or row2 >= n_rows or col2 < 0 or col2 >= n_cols:
+            return False
+        dr = abs(row1 - row2)
+        dc = abs(col1 - col2)
+        if dr > 1 or dc > 1 or (dr == 0 and dc == 0):
+            return False
+        if diagonal_neighbors:
+            return True
+        return dr + dc == 1
+
+    if starting_cell_index < 0 or starting_cell_index >= n_cells:
+        res = ((), ())
+        return res
+
+    start_row, start_col = divmod(starting_cell_index, n_cols)
+    start_value = all_cells[start_row][start_col]
+    if cell_empty(start_value):
+        res = ((), ())
+        return res
+
+    visited: set[int] = set()
+    stack = [starting_cell_index]
+    indices_list: list[int] = []
+    values_list: list = []
+
+    while stack:
+        i = stack.pop()
+        if i in visited:
+            continue
+        row, col = divmod(i, n_cols)
+        value = all_cells[row][col]
+        if cell_empty(value):
+            continue
+        visited.add(i)
+        indices_list.append(i)
+        values_list.append(value)
+        for j in range(n_cells):
+            if j not in visited and cells_neighbors(i, j):
+                stack.append(j)
+
+    res = (tuple(values_list), tuple(indices_list))
+    return res
+
+
 def sort_points(points):
     """Given a list of points returns sorted points by their
     x and y coords."""

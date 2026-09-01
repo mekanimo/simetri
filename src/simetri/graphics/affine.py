@@ -1,13 +1,21 @@
 """Transformation matrices."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from math import cos, sin, tan
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
 
+from ..geometry.geom_utils import homogenize, is_line, is_point, line_angle
 from ..geometry.vectors import vec_along_line
 from .common import LineType, PointType
+
+if TYPE_CHECKING:
+    from .batch import Group
+    from .shape import Shape
 
 
 def identity_matrix() -> NDArray:

@@ -85,6 +85,7 @@ from ..graphics.shapes import *
 # Preserve geometric Line class on public namespace.
 from ..graphics.shapes import Line as Line
 from ..graphics.sketch import *
+from ..helpers.box_solver import push_boxes_apart, Box
 from ..helpers.constraint_solver import Constraint, solve
 from ..helpers.illustration import *
 from ..helpers.modifiers import *
@@ -103,6 +104,7 @@ from .dots import *
 from .mask import Gradient, Mask, Stop
 from .path import Operation, Path2D
 from .pattern import *
+from .convex_hull import convex_hull
 
 set_tikz_defaults()
 set_svg_defaults()

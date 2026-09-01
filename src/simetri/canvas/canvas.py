@@ -21,7 +21,7 @@ import networkx as nx
 import numpy as np
 
 from simetri.canvas import draw
-from simetri.canvas.style_map import canvas_args
+from simetri.canvas.style_map import canvas_args, get_draw_valid_kwargs
 from simetri.colors.colors import Color
 from simetri.geometry.geom_utils import homogenize
 from simetri.graphics.affine import (
@@ -55,7 +55,12 @@ from simetri.helpers.illustration import logo
 from simetri.helpers.utilities import (
     wait_for_file_availability,
 )
-from simetri.helpers.validation import check_alpha, check_color, validate_args
+from simetri.helpers.validation import (
+    check_alpha,
+    check_color,
+    validate_args,
+    warn_unknown_kwargs,
+)
 from simetri.image.image import Image, create_image_from_data
 from simetri.notebook import display
 from simetri.settings.settings import defaults, issue_warning
@@ -78,6 +83,70 @@ def save_svg_png(svg_code: str, filepath: Path) -> None:
     pixmap = page.get_pixmap()
     pixmap.save(filepath)
     document.close()
+
+
+def canvas_has_vertex_coord_labels(canvas) -> bool:
+    """Return True if any sketch on the canvas shows vertex coordinate labels."""
+    for page in canvas.pages:
+        for sketch in page.sketches:
+            if getattr(sketch, "show_vertex_coords", False):
+                return True
+    return False
+
+
+def normalize_canvas_border(border) -> tuple[float, float, float, float]:
+    """Return (left, bottom, right, top) border values."""
+    if border is None:
+        border = defaults["border"]
+    if isinstance(border, (int, float)):
+        return (border, border, border, border)
+    if isinstance(border, (list, tuple, np.ndarray)) and len(border) == 4:
+        return tuple(border)
+    raise ValueError(
+        "Canvas.border must be a positive numeric value or a tuple of 4 "
+        "positive numeric values."
+    )
+
+
+def effective_border_for_export(canvas) -> tuple[float, float, float, float]:
+    """Border for export sizing, with optional extra padding for vertex labels."""
+    border_left, border_bottom, border_right, border_top = normalize_canvas_border(
+        canvas.border
+    )
+    if (
+        defaults["auto_expand_canvas_for_vertices"]
+        and canvas_has_vertex_coord_labels(canvas)
+    ):
+        extra = defaults["vertices_canvas_expand"]
+        return (
+            border_left + extra,
+            border_bottom + extra,
+            border_right + extra,
+            border_top + extra,
+        )
+    return border_left, border_bottom, border_right, border_top
+
+
+def warn_vertex_coord_label_sizing(canvas) -> None:
+    """Warn once per export about vertex label sizing behavior."""
+    if getattr(canvas, "_vertex_label_sizing_warned", False):
+        return
+    if not canvas_has_vertex_coord_labels(canvas):
+        return
+
+    if defaults["auto_expand_canvas_for_vertices"]:
+        extra = defaults["vertices_canvas_expand"]
+        issue_warning(
+            f"Vertex coordinate labels use extra canvas padding of {extra}pt "
+            "per side (auto_expand_canvas_for_vertices). Increase "
+            "vertices_canvas_expand or canvas.border if labels are still clipped."
+        )
+    else:
+        issue_warning(
+            "Vertex coordinate labels are not included in canvas size. "
+            "Increase canvas.border (e.g. 40) if labels are clipped."
+        )
+    canvas._vertex_label_sizing_warned = True
 
 
 class Canvas:
@@ -913,6 +982,12 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
+        warn_unknown_kwargs(
+            kwargs,
+            get_draw_valid_kwargs(),
+            context="canvas.draw",
+            stacklevel=3,
+        )
         sketch_xform = self._sketch_xform_matrix
 
         if pos is not None:
@@ -1679,6 +1754,7 @@ class Canvas:
         if inset is not None:
             self.inset = inset
 
+        self._vertex_label_sizing_warned = False
         self._warn_sketches_outside_page()
 
         try:

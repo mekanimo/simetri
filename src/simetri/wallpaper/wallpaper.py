@@ -843,7 +843,7 @@ def wallpaper_p6m(
     wallpaper = generator.mirror(mirror1, reps=1)
     wallpaper.mirror(mirror2, reps=1)
     wallpaper.rotate(pi / 3, rotocenter, reps=5)
-    wallpaper = wallpaper.merge_shapes(1, n_round=0)
+    wallpaper = wallpaper.merge_shapes(dist_tol=1)
     if flat_hex:
         cover_hex_flat(wallpaper, hex_size, reps1=reps1, reps2=reps2)
     else:

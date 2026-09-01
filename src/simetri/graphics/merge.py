@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 
 def _merge_shapes(
     self,
-    n_round: int = 2,
-    merge_angle_tol=0.1,
+    dist_tol: float | None = None,
+    merge_angle_tol: float = 0.1,
     debug: bool = False,
     **kwargs,
 ) -> Group:
@@ -29,10 +29,13 @@ def _merge_shapes(
     with the merged shapes as well as the shapes that could not be merged.
 
     Args:
-        n_round (int, optional): Number of rounding digits for merging shapes. Defaults to None.
+        dist_tol (float, optional): Distance tolerance for merging vertices.
+            Defaults to None.
+        merge_angle_tol (float, optional): Angle tolerance for merging collinear
+            edges. Defaults to 0.1.
         debug (bool, optional): Print point and angle diagnostics.
             Defaults to False.
-        **kwargs: Additional keyword arguments.
+        **kwargs: Additional keyword arguments passed to the returned group.
 
     Returns:
         Group: A new group with the merged shapes.
@@ -42,7 +45,6 @@ def _merge_shapes(
 
     if len(self) < 2:
         return self
-    dist_tol = kwargs.pop("dist_tol")
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))

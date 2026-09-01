@@ -1486,8 +1486,15 @@ def draw(self, item: Shape | Group, **kwargs) -> Self:
                 )
 
     if subtype == Types.GROUP:
+        group_kwargs = dict(kwargs)
+        if kwargs.get("vertex_on_hull") and "_group_hull_points" not in kwargs:
+            from ..graphics.convex_hull import convex_hull
+
+            group_kwargs["_group_hull_points"] = convex_hull(
+                item.all_vertices, on_edge=True
+            )
         for group_item in item:
-            draw(self, group_item, **kwargs)
+            draw(self, group_item, **group_kwargs)
     elif subtype in regular_sketch_types:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
@@ -1496,8 +1503,6 @@ def draw(self, item: Shape | Group, **kwargs) -> Self:
         draw_image(self, item, **kwargs)
     elif subtype == Types.PATTERN:
         draw_pattern(self, item, **kwargs)
-    elif subtype == Types.GROUP:
-        draw_group(self, item, **kwargs)
     elif subtype == Types.DIMENSION:
         self.draw_dimension(item, **kwargs)
     elif subtype == Types.ARROW:
@@ -1653,22 +1658,78 @@ def set_shape_sketch_style(sketch, item, canvas, linear=False, **kwargs):
             "_mask_context_id",
             "_style_id",
             "_tikz_style_id",
+            "vertices",
+            "index_font_size",
+            "vertex_font_size",
+            "index_offset",
+            "vertex_offset",
+            "index_font_color",
+            "vertex_font_color",
+            "debug",
+            "vertex_on_hull",
+            "_group_hull_points",
         ):
             continue
         setattr(sketch, k, v)
 
-    if sketch.marker_type == MarkerType.INDICES:
-        if "indices" in kwargs:
-            sketch.indices = kwargs["indices"]
-        elif "indices" in item.__dict__:
-            sketch.indices = item.indices
-        else:
-            sketch.indices = True
+    if "_group_hull_points" in kwargs:
+        sketch._group_hull_points = kwargs["_group_hull_points"]
 
-        if "ind_offset" in kwargs:
-            sketch.ind_offset = kwargs["ind_offset"]
-        elif "ind_offset" in item.__dict__:
-            sketch.ind_offset = item.ind_offset
+    if "indices" in kwargs:
+        sketch.indices = kwargs["indices"]
+    elif "indices" in item.__dict__:
+        sketch.indices = item.indices
+
+    if "index_font_size" in kwargs:
+        sketch.index_font_size = kwargs["index_font_size"]
+    elif "index_font_size" in item.__dict__:
+        sketch.index_font_size = item.index_font_size
+
+    if kwargs.get("vertices"):
+        sketch.show_vertex_coords = True
+    elif kwargs.get("vertex_on_hull"):
+        sketch.show_vertex_coords = True
+    elif getattr(item, "vertex_on_hull", False):
+        sketch.show_vertex_coords = True
+    elif "show_vertex_coords" in item.__dict__:
+        sketch.show_vertex_coords = item.show_vertex_coords
+
+    if "vertex_on_hull" in kwargs:
+        sketch.vertex_on_hull = kwargs["vertex_on_hull"]
+    elif "vertex_on_hull" in item.__dict__:
+        sketch.vertex_on_hull = item.vertex_on_hull
+
+    if "vertex_font_size" in kwargs:
+        sketch.vertex_font_size = kwargs["vertex_font_size"]
+    elif "vertex_font_size" in item.__dict__:
+        sketch.vertex_font_size = item.vertex_font_size
+
+    if "index_offset" in kwargs:
+        sketch.index_offset = kwargs["index_offset"]
+    elif "index_offset" in item.__dict__:
+        sketch.index_offset = item.index_offset
+
+    if "vertex_offset" in kwargs:
+        sketch.vertex_offset = kwargs["vertex_offset"]
+    elif "vertex_offset" in item.__dict__:
+        sketch.vertex_offset = item.vertex_offset
+
+    if "index_font_color" in kwargs:
+        sketch.index_font_color = kwargs["index_font_color"]
+    elif "index_font_color" in item.__dict__:
+        sketch.index_font_color = item.index_font_color
+
+    if "vertex_font_color" in kwargs:
+        sketch.vertex_font_color = kwargs["vertex_font_color"]
+    elif "vertex_font_color" in item.__dict__:
+        sketch.vertex_font_color = item.vertex_font_color
+
+    if "debug" in kwargs:
+        sketch.debug = kwargs["debug"]
+
+    if sketch.marker_type == MarkerType.INDICES:
+        if "indices" not in kwargs and "indices" not in item.__dict__:
+            sketch.indices = True
 
 
 def get_verts_in_new_pos(item, **kwargs):
