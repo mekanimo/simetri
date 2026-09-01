@@ -1636,7 +1636,9 @@ def _tier_label_bbox(
     return width * scale, height * scale
 
 
-def estimate_index_label_bbox(label, font_size_pt: float) -> tuple[float, float]:
+def estimate_index_label_bbox(
+    label, font_size_pt: float
+) -> tuple[float, float]:
     ref = default_font_size_pt("index_font_size")
     width, height = _tier_label_bbox(
         str(label),
@@ -1649,7 +1651,9 @@ def estimate_index_label_bbox(label, font_size_pt: float) -> tuple[float, float]
     return width + 2 * halo, height + 2 * halo
 
 
-def estimate_vertex_coord_label_bbox(text: str, font_size_pt: float) -> tuple[float, float]:
+def estimate_vertex_coord_label_bbox(
+    text: str, font_size_pt: float
+) -> tuple[float, float]:
     ref = default_font_size_pt("vertex_font_size")
     tier_w, tier_h = _tier_label_bbox(
         text,
@@ -1721,7 +1725,7 @@ def _vertices_on_hull_points(
     hull_pts: Sequence | None = None,
 ) -> list[int]:
     """Return vertex indices that lie on the given or computed convex hull."""
-    from ..graphics.convex_hull import convex_hull
+    from ..geometry.convex_hull import convex_hull
 
     verts = [tuple(v[:2]) for v in vertices]
     if len(verts) <= 1:
@@ -1794,10 +1798,16 @@ def _build_shape_label_rects(sketch) -> list[LabelRect]:
     has_vertex = bool(getattr(sketch, "show_vertex_coords", False))
     vertices = sketch.vertices
     n = len(vertices)
-    index_label_indices = _index_label_vertex_indices(sketch, n) if has_index else []
-    coord_label_indices = _coord_label_vertex_indices(sketch, n) if has_vertex else []
+    index_label_indices = (
+        _index_label_vertex_indices(sketch, n) if has_index else []
+    )
+    coord_label_indices = (
+        _coord_label_vertex_indices(sketch, n) if has_vertex else []
+    )
 
-    entries: list[tuple[str, int, tuple[float, float], tuple[float, float]]] = []
+    entries: list[
+        tuple[str, int, tuple[float, float], tuple[float, float]]
+    ] = []
     index_labels = None
     coord_texts = None
 
