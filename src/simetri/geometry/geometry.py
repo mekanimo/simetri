@@ -1914,21 +1914,6 @@ def cart_to_tri(points):
     return array(points) @ convert
 
 
-def convex_hull(points, on_edge=False):
-    """Return the convex hull of a set of 2D points.
-
-    Args:
-        points (list[PointType]): List of 2D points.
-        on_edge (bool): Include collinear boundary points when True.
-
-    Returns:
-        list[PointType]: Convex hull of the points.
-    """
-    from ..graphics.convex_hull import convex_hull as _convex_hull
-
-    return _convex_hull(points, on_edge=on_edge)
-
-
 def flat_points(connected_segments):
     """Return a list of points from a list of connected pairs of points.
 
@@ -2175,8 +2160,6 @@ def bisector_line(a: PointType, b: PointType, c: PointType) -> LineType:
     d = midpoint(a, c)
 
     return [d, b]
-
-
 
 
 def fillet(

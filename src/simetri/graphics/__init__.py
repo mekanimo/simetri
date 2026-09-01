@@ -62,6 +62,7 @@ from ..frieze.frieze_patterns import *
 from ..geometry.bezier import *
 from ..geometry.circle import *
 from ..geometry.collection import *
+from ..geometry.convex_hull import convex_hull
 from ..geometry.ellipse import *
 from ..geometry.geom_utils import *
 from ..geometry.geometry import *
@@ -104,7 +105,7 @@ from .dots import *
 from .mask import Gradient, Mask, Stop
 from .path import Operation, Path2D
 from .pattern import *
-from .convex_hull import convex_hull
+
 
 set_tikz_defaults()
 set_svg_defaults()

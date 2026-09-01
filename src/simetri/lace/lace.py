@@ -12,6 +12,7 @@ from numpy import isclose
 
 from ..canvas.style_map import shape_style_map
 from ..colors import colors
+from ..geometry.convex_hull import convex_hull
 from ..geometry.geom_utils import (
     close_points2,
     connected_pairs,
@@ -21,7 +22,7 @@ from ..geometry.geom_utils import (
     right_handed,
     round_point,
 )
-from ..geometry.geometry import convex_hull, equal_lines, lerp_point
+from ..geometry.geometry import equal_lines, lerp_point
 from ..geometry.polygon import (
     double_offset_polygons,
     double_offset_polylines,

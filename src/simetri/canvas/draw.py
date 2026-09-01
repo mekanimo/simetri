@@ -14,6 +14,7 @@ from ..colors import colors
 from ..colors.colors import Color, change_lightness
 from ..colors.palettes import d_name_palette
 from ..geometry.bezier import bezier_points
+from ..geometry.convex_hull import convex_hull
 from ..geometry.ellipse import elliptic_arc_points
 from ..geometry.geom_utils import (
     homogenize,
@@ -1488,8 +1489,6 @@ def draw(self, item: Shape | Group, **kwargs) -> Self:
     if subtype == Types.GROUP:
         group_kwargs = dict(kwargs)
         if kwargs.get("vertex_on_hull") and "_group_hull_points" not in kwargs:
-            from ..graphics.convex_hull import convex_hull
-
             group_kwargs["_group_hull_points"] = convex_hull(
                 item.all_vertices, on_edge=True
             )
