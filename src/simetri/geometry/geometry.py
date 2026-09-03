@@ -53,7 +53,6 @@ from ..graphics.common import (
     j_vec,
 )
 from ..helpers.utilities import (
-    equal_cycles,
     lerp,
     reg_poly_points,
 )
@@ -2051,78 +2050,6 @@ def get_polygon_grid_point(n, line1, line2, circumradius=100):
     p4 = points[line2[1]]
 
     return intersection((p1, p2), (p3, p4))[1]
-
-
-def congruent_polygons(
-    polygon1: list[PointType],
-    polygon2: list[PointType],
-    dist_tol: float | None = None,
-    area_tol: float | None = None,
-    side_length_tol: float | None = None,
-    angle_tol: float | None = None,
-) -> bool:
-    """
-    Return True if two polygons are congruent.
-    They can be translated, rotated and/or reflected.
-
-    Args:
-        polygon1 (list[PointType]): First polygon.
-        polygon2 (list[PointType]): Second polygon.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-        area_tol (float, optional): Area tolerance. Defaults to None.
-        side_length_tol (float, optional): Side length tolerance. Defaults to None.
-        angle_tol (float, optional): Angle tolerance. Defaults to None.
-
-    Returns:
-        bool: True if the polygons are congruent, False otherwise.
-    """
-    from simetri.geometry.polygon import polygon_area, polygon_internal_angles
-
-    dist_tol, area_tol, angle_tol = get_defaults(
-        ["dist_tol", "area_rtol", "angle_rtol"], [dist_tol, area_tol, angle_tol]
-    )
-    if side_length_tol is None:
-        side_length_tol = defaults["rel_tol"]
-    dist_tol2 = dist_tol * dist_tol
-    poly1 = polygon1
-    poly2 = polygon2
-    if close_points2(poly1[0], poly1[-1], dist2=dist_tol2):
-        poly1 = poly1[:-1]
-    if close_points2(poly2[0], poly2[-1], dist2=dist_tol2):
-        poly2 = poly2[:-1]
-    len_poly1 = len(poly1)
-    len_poly2 = len(poly2)
-    if len_poly1 != len_poly2:
-        return False
-    if not isclose(
-        abs(polygon_area(poly1)),
-        abs(polygon_area(poly2)),
-        rel_tol=area_tol,
-        abs_tol=area_tol,
-    ):
-        return False
-
-    side_lengths1 = [distance(poly1[i], poly1[i - 1]) for i in range(len_poly1)]
-    side_lengths2 = [distance(poly2[i], poly2[i - 1]) for i in range(len_poly2)]
-    check1 = equal_cycles(side_lengths1, side_lengths2, rel_tol=side_length_tol)
-    if not check1:
-        check_reverse = equal_cycles(
-            side_lengths1, side_lengths2[::-1], rel_tol=side_length_tol
-        )
-        if not (check1 or check_reverse):
-            return False
-
-    angles1 = polygon_internal_angles(poly1)
-    angles2 = polygon_internal_angles(poly2)
-    check1 = equal_cycles(angles1, angles2, angle_tol)
-    if not check1:
-        poly2 = poly2[::-1]
-        angles2 = polygon_internal_angles(poly2)
-        check_reverse = equal_cycles(angles1, angles2, angle_tol)
-        if not (check1 or check_reverse):
-            return False
-
-    return True
 
 
 def is_ccw(vertices, *, eps=0.0):

@@ -13,12 +13,12 @@ from bisect import bisect_left
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from functools import cmp_to_key, reduce, wraps
-from math import atan2, ceil, cos, factorial, floor, pi, sin, sqrt
+from math import atan2, ceil, cos, factorial, floor, pi, sin, sqrt, isclose
 from pathlib import Path
 from time import monotonic, perf_counter, sleep, time
 
 import numpy as np
-from numpy import array, isclose, ndarray
+from numpy import array, ndarray
 from PIL import ImageFont
 
 from ..graphics.common import LineType, PointType, get_defaults
@@ -701,6 +701,61 @@ def function_module(func):
     mod = inspect.getmodule(os.path.join)
 
     return mod.__name__
+
+
+def _class_signature(cls) -> str:
+    """Return ``ClassName(...)`` with constructor signature when available."""
+    try:
+        sig = inspect.signature(cls)
+        return f"{cls.__name__}{sig}"
+    except (TypeError, ValueError):
+        return cls.__name__
+
+
+def _class_help(cls) -> str:
+    """Build help text for a class: signature, class doc, and ``__init__`` doc."""
+    parts: list[str] = [_class_signature(cls)]
+
+    class_doc = inspect.getdoc(cls)
+    if class_doc:
+        parts.append(class_doc)
+
+    init = cls.__init__
+    if init is not object.__init__:
+        init_doc = inspect.getdoc(init)
+        if init_doc:
+            parts.append("__init__\n" + init_doc)
+
+    return "\n\n".join(parts)
+
+
+def help(obj):
+    """Return the documentation string for ``obj``.
+
+    For classes (and instances of Simetri types), returns the constructor
+    signature, class docstring, and ``__init__`` docstring. For functions,
+    methods, modules, and other objects, returns ``inspect.getdoc(obj)``.
+
+    Args:
+        obj: Object to document.
+
+    Returns:
+        Documentation text, or an empty string if none is available.
+    """
+    if inspect.isclass(obj):
+        return _class_help(obj)
+
+    if not isinstance(obj, (str, bytes, int, float, bool, complex)):
+        cls = type(obj)
+        if cls is not type and not inspect.isroutine(obj) and not inspect.ismodule(obj):
+            mod = getattr(cls, "__module__", "")
+            if mod != "builtins":
+                return _class_help(cls)
+            doc = inspect.getdoc(cls) or inspect.getdoc(obj)
+            return doc if doc is not None else ""
+
+    doc = inspect.getdoc(obj)
+    return doc if doc is not None else ""
 
 
 def timing(func):

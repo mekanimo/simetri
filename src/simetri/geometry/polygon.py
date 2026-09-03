@@ -20,8 +20,6 @@ from ..graphics.common import (
     LineType,
     PointType,
     PolygonLike,
-    TurnPair,
-    TurnSequence,
     d_id_obj,
     get_defaults,
     get_unique_id,
@@ -1050,93 +1048,27 @@ def sorted_polygon_xy_array(
     return array[order]
 
 
-def cyclic_mirror_turns_equal(
-    turns1: TurnSequence, turns2: TurnSequence, dist_tol: float
-) -> bool:
-    """Return True if ``turns2`` matches a reflection of ``turns1`` cyclically.
-
-    For some starting-vertex offset, each side length agrees within
-    ``dist_tol`` and each turn angle of ``turns2`` is the negation of the
-    corresponding angle in ``turns1`` (via ``mirror_turn_sequences_equal``).
-    Empty sequences of equal length are treated as equal.
+def polygon_vertices(polygon: PolygonLike) -> Sequence[PointType]:
+    """Extract vertices from a Shape or return a vertex sequence as-is.
 
     Args:
-        turns1: First sequence of ``(side_length, turn_angle)`` pairs.
-        turns2: Second sequence of ``(side_length, turn_angle)`` pairs.
-        dist_tol: Maximum allowed difference in side lengths.
+        polygon: A ``Shape`` or a sequence of points. Groups are not accepted;
+            the caller must unwrap them first.
 
     Returns:
-        True if some cyclic rotation of ``turns2`` is a mirror match of
-        ``turns1``; False otherwise.
+        Vertex coordinates of the polygon.
     """
-    res = False
-    n = len(turns1)
-    if n == len(turns2):
-        if n == 0:
-            res = True
-        else:
-            for offset in range(n):
-                rotated = turns2[offset:] + turns2[:offset]
-                if mirror_turn_sequences_equal(turns1, rotated, dist_tol):
-                    res = True
-                    break
+    from ..graphics.shape import Shape
+
+    if isinstance(polygon, Shape):
+        res = polygon.vertices
+    else:
+        res = polygon
 
     return res
 
 
-def negated_turns(turns: TurnSequence) -> list[TurnPair]:
-    """Return a turn sequence with each signed angle negated.
-
-    Used when comparing opposite winding of the same chirality: reverse
-    the walk order and negate angles so left turns become right turns.
-
-    Args:
-        turns: Sequence of ``(side_length, turn_angle)`` pairs.
-
-    Returns:
-        A new list with the same side lengths and each angle replaced by
-        ``-angle``, rounded to ``defaults["turn_angle_digits"]``.
-    """
-    TURN_ANGLE_DIGITS = defaults["turn_angle_digits"]
-
-    return [
-        (length, round(-angle, TURN_ANGLE_DIGITS)) for length, angle in turns
-    ]
-
-
-def equal_turns(
-    turns1: TurnSequence,
-    turns2: TurnSequence,
-    check_mirror: bool = False,
-) -> bool:
-    """Return True if two signed turn sequences represent congruent walks.
-
-    Sequences are ``(side_length, turn_angle)`` pairs. Comparison is cyclic
-    (starting vertex may differ). Signed angles distinguish convex and
-    reflex corners. Callers should pass turns from CCW+ vertex walks.
-
-    Args:
-        turns1: First turn sequence.
-        turns2: Second turn sequence.
-        check_mirror: If True, also match reflections (angles negate under
-            cyclic alignment), including the reverse-order listing of a
-            mirrored walk.
-
-    Returns:
-        True if the sequences are equivalent under the requested checks.
-    """
-    dist_tol = defaults["dist_tol"]
-    res = cyclic_turns_equal(turns1, turns2, dist_tol)
-    if not res and check_mirror:
-        res = cyclic_mirror_turns_equal(turns1, turns2, dist_tol)
-        if not res:
-            reversed_turns = list(reversed(turns2))
-            res = cyclic_mirror_turns_equal(turns1, reversed_turns, dist_tol)
-
-    return res
-
-
-def polygon_turns(vertices: Sequence[PointType]) -> list[TurnPair]:
+def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
     """Return the signed turn sequence of a polygon.
 
     For each vertex ``i``, records the length of the edge from ``i`` to
@@ -1149,7 +1081,7 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[TurnPair]:
             not repeated).
 
     Returns:
-        A list of ``(side_length, turn_angle)`` pairs, one per vertex.
+        A list with alternating side-length and angle values.
     """
     n = len(vertices)
     res = []
@@ -1160,95 +1092,20 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[TurnPair]:
         next_seg = (next_vert, vertices[(i + 2) % n])
         seg = (vert, next_vert)
         angle = angle_between_lines2(vert, *next_seg)
-        res.append((distance(*seg), round(angle, TURN_ANGLE_DIGITS)))
+        res.append(distance(*seg))
+        res.append(round(angle, TURN_ANGLE_DIGITS))
 
     return res
 
 
-def equal_polygon_turns(
-    polygon1: Sequence[PointType],
-    polygon2: Sequence[PointType],
-    check_mirror: bool = False,
-) -> bool:
-    """Return True if two polygons have congruent signed turn sequences.
-
-    Each polygon is copied to CCW+ order before turn extraction. Builds
-    ``polygon_turns`` for each copy and delegates to ``equal_turns``. When
-    ``check_mirror`` is True and turn matching fails, also tries
-    ``mirror_equivalent_polygons`` (axis reflections after normalizing the
-    first vertex to the origin).
-
-    Args:
-        polygon1: First polygon as a sequence of points.
-        polygon2: Second polygon as a sequence of points.
-        check_mirror: If True, also match mirror images.
-
-    Returns:
-        True if the polygons are congruent under the requested checks.
-    """
-    verts1 = ccw_positive_vertices(polygon1)
-    verts2 = ccw_positive_vertices(polygon2)
-    turns1 = polygon_turns(verts1)
-    turns2 = polygon_turns(verts2)
-    res = equal_turns(turns1, turns2, check_mirror=check_mirror)
-    if not res and check_mirror:
-        res = mirror_equivalent_polygons(verts1, verts2)
-
-    return res
-
-
-def congruent_shapes(
-    shape1: Shape,
-    shape2: Shape,
-    mirror: bool = False,
-) -> bool:
-    """Return True if ``shape1`` and ``shape2`` are congruent.
-
-    Congruence ignores translation and rotation. Vertices are normalized to
-    CCW+ before signed turn sequences are compared so convex and reflex
-    corners remain distinct.
-
-    Args:
-        shape1: First shape as a ``Shape`` object.
-        shape2: Second shape as a ``Shape`` object.
-        mirror: If True, also treat reflection (mirror image) as congruent.
-
-    Returns:
-        True if the shapes are congruent; False otherwise.
-    """
-    verts1 = shape1.vertices
-    verts2 = shape2.vertices
-
-    if len(verts1) != len(verts2):
-        res = False
-    else:
-        res = equal_polygon_turns(verts1, verts2, check_mirror=mirror)
-
-    return res
-
-
-def _polygon_vertices(polygon: PolygonLike) -> Sequence[PointType]:
-    """Extract vertices from a polygon-like value.
-
-    Args:
-        polygon: A ``Shape``, a ``Group`` of shapes, or a sequence of points.
-
-    Returns:
-        A list of vertex coordinates. For a ``Group``, uses the largest
-        closed outline (same logic as ``polygon_verts_and_bbox``).
-    """
-    from ..graphics.batch import Group
-    from ..graphics.shape import Shape
-
-    if isinstance(polygon, Shape):
-        res = list(polygon.vertices)
-    elif isinstance(polygon, Group):
-        verts, _, _, _, _ = polygon_verts_and_bbox(polygon)
-        res = list(verts)
-    else:
-        res = list(polygon)
-
-    return res
+def rotate_turns_to_min_edge(turns: Sequence[float]) -> list[float]:
+    """Rotate a flat ``[length, angle, ...]`` cycle to start at a min edge."""
+    if len(turns) < 2:
+        return list(turns)
+    n_edges = len(turns) // 2
+    min_i = min(range(n_edges), key=lambda i: turns[2 * i])
+    start = 2 * min_i
+    return list(turns[start:]) + list(turns[:start])
 
 
 def congruent_polygons(
@@ -1258,9 +1115,8 @@ def congruent_polygons(
 ) -> bool:
     """Return True if ``polygon1`` and ``polygon2`` are congruent.
 
-    Congruence ignores translation and rotation. Vertices are normalized to
-    CCW+ before signed turn sequences are compared so convex and reflex
-    corners remain distinct.
+    Congruence ignores translation and rotation. Signed turn sequences are
+    compared cyclically so convex and reflex corners remain distinct.
 
     Args:
         polygon1: First polygon as a ``Shape`` or a sequence of points.
@@ -1270,261 +1126,53 @@ def congruent_polygons(
     Returns:
         True if the polygons are congruent; False otherwise.
     """
-    verts1 = _polygon_vertices(polygon1)
-    verts2 = _polygon_vertices(polygon2)
+    from ..helpers.utilities import equal_cycles
+
+    verts1 = polygon_vertices(polygon1)
+    verts2 = polygon_vertices(polygon2)
     if len(verts1) != len(verts2):
         res = False
     else:
-        res = equal_polygon_turns(verts1, verts2, check_mirror=mirror)
+        poly1_turns = polygon_turns(verts1)
+        poly2_turns = polygon_turns(verts2)
+
+        if mirror:
+            if equal_cycles(poly1_turns, poly2_turns):
+                res = True
+            else:
+                poly2_turns.reverse()
+                res = equal_cycles(poly1_turns, poly2_turns)
+        else:
+            res = equal_cycles(poly1_turns, poly2_turns)
 
     return res
 
 
-# alias for congruent_polygons
 def equal_polygons(
     polygon1: PolygonLike,
     polygon2: PolygonLike,
     mirror: bool = False,
 ) -> bool:
-    """Return True if ``polygon1`` and ``polygon2`` are congruent.
-
-    Congruence ignores translation and rotation. Vertices are normalized to
-    CCW+ before signed turn sequences are compared so convex and reflex
-    corners remain distinct.
-
-    Args:
-        polygon1: First polygon as a ``Shape`` or a sequence of points.
-        polygon2: Second polygon as a ``Shape`` or a sequence of points.
-        mirror: If True, also treat reflection (mirror image) as congruent.
-
-    Returns:
-        True if the polygons are congruent; False otherwise.
-    """
-
+    """Alias for ``congruent_polygons``."""
     return congruent_polygons(polygon1, polygon2, mirror)
 
 
-def normalize_at_origin(
-    vertices: Sequence[PointType],
-) -> list[tuple[float, float]]:
-    """Translate vertices so the first point is at the origin.
-
-    Args:
-        vertices: Polygon vertices in walk order.
-
-    Returns:
-        A new list of ``(x, y)`` points with ``vertices[0]`` mapped to
-        ``(0, 0)``; relative positions are unchanged.
-    """
-    origin_x, origin_y = vertices[0][:2]
-
-    return [(x - origin_x, y - origin_y) for x, y in vertices]
-
-
-def mirror_equivalent_polygons(
-    polygon1: Sequence[PointType],
-    polygon2: Sequence[PointType],
-    dist_tol: float | None = None,
+def congruent_shapes(
+    shape1: Shape,
+    shape2: Shape,
+    mirror: bool = False,
 ) -> bool:
-    """Return True if ``polygon2`` matches a reflection of ``polygon1``.
-
-    Both polygons are translated so their first vertex is at the origin and
-    normalized to CCW+, then axis reflections of ``polygon1`` are compared
-    with ``equal_polygon_turns`` (without re-entering mirror checks).
-    """
-    normalized1 = ccw_positive_vertices(normalize_at_origin(polygon1))
-    normalized2 = ccw_positive_vertices(normalize_at_origin(polygon2))
-    res = False
-    for flip_x, flip_y in ((1, -1), (-1, 1), (-1, -1)):
-        mirrored = ccw_positive_vertices(
-            [(flip_x * x, flip_y * y) for x, y in normalized1]
-        )
-        if equal_polygon_turns(mirrored, normalized2, check_mirror=False):
-            res = True
-            break
-
-    return res
-
-
-def turn_angle_equal(angle1: float, angle2: float, ang_tol: float) -> bool:
-    """Return True if two signed turn angles agree within ``ang_tol``.
-
-    The absolute difference is reduced modulo ``2π`` so collinear turns
-    ``π`` and ``-π`` are treated as equal.
+    """Return True if ``shape1`` and ``shape2`` are congruent.
 
     Args:
-        angle1: First signed turn angle in radians.
-        angle2: Second signed turn angle in radians.
-        ang_tol: Maximum allowed angular difference.
+        shape1: First shape as a ``Shape`` object.
+        shape2: Second shape as a ``Shape`` object.
+        mirror: If True, also treat reflection (mirror image) as congruent.
 
     Returns:
-        True if the angles match within tolerance; False otherwise.
+        True if the shapes are congruent; False otherwise.
     """
-    tau = 2 * pi
-    delta = abs(angle1 - angle2)
-    delta = min(delta, abs(delta - tau), abs(delta + tau))
-
-    return delta <= ang_tol
-
-
-def _turn_pair_equal(pair1: TurnPair, pair2: TurnPair, dist_tol: float) -> bool:
-    """Return True if two ``(length, angle)`` pairs match within tolerance.
-
-    Side lengths must agree within ``dist_tol``. Signed turn angles must
-    agree within ``10 ** -defaults["turn_angle_digits"]`` (modulo ``2π``).
-
-    Args:
-        pair1: First ``(side_length, turn_angle)`` pair.
-        pair2: Second ``(side_length, turn_angle)`` pair.
-        dist_tol: Maximum allowed difference in side lengths.
-
-    Returns:
-        True if both length and angle match; False otherwise.
-    """
-    TURN_ANGLE_DIGITS = defaults["turn_angle_digits"]
-    length1, angle1 = pair1
-    length2, angle2 = pair2
-    turn_angle_tol = 10**-TURN_ANGLE_DIGITS
-    res = abs(length1 - length2) <= dist_tol and turn_angle_equal(
-        angle1, angle2, turn_angle_tol
-    )
-
-    return res
-
-
-def turn_sequences_equal(
-    turns1: TurnSequence, turns2: TurnSequence, dist_tol: float
-) -> bool:
-    """Return True if two turn sequences match entry-wise in order.
-
-    Sequences must have the same length. Each corresponding pair is
-    compared with ``_turn_pair_equal`` (no cyclic shift).
-
-    Args:
-        turns1: First sequence of ``(side_length, turn_angle)`` pairs.
-        turns2: Second sequence of ``(side_length, turn_angle)`` pairs.
-        dist_tol: Maximum allowed difference in side lengths.
-
-    Returns:
-        True if every entry matches; False if lengths differ or any
-        pair fails.
-    """
-    res = False
-    if len(turns1) == len(turns2):
-        res = all(
-            _turn_pair_equal(pair1, pair2, dist_tol)
-            for pair1, pair2 in zip(turns1, turns2)
-        )
-
-    return res
-
-
-def cyclic_turns_equal(
-    turns1: TurnSequence, turns2: TurnSequence, dist_tol: float
-) -> bool:
-    """Return True if ``turns2`` matches ``turns1`` under cyclic shift.
-
-    Used for rotation invariance: the starting vertex may differ.
-    Empty sequences of equal length are treated as equal.
-
-    Args:
-        turns1: First sequence of ``(side_length, turn_angle)`` pairs.
-        turns2: Second sequence of ``(side_length, turn_angle)`` pairs.
-        dist_tol: Maximum allowed difference in side lengths.
-
-    Returns:
-        True if some cyclic rotation of ``turns2`` matches ``turns1``
-        entry-wise; False otherwise.
-    """
-    res = False
-    n = len(turns1)
-    if n == len(turns2):
-        if n == 0:
-            res = True
-        else:
-            for offset in range(n):
-                rotated = turns2[offset:] + turns2[:offset]
-                if turn_sequences_equal(turns1, rotated, dist_tol):
-                    res = True
-                    break
-
-    return res
-
-
-def mirror_turn_angle_equal(
-    angle1: float, angle2: float, ang_tol: float
-) -> bool:
-    """Return True if signed turn angles are negatives of each other.
-
-    Used for mirror-image walks (``angle1 ≈ -angle2``). The absolute
-    sum is reduced modulo ``2π`` so wrap-around cases still match.
-
-    Args:
-        angle1: First signed turn angle in radians.
-        angle2: Second signed turn angle in radians.
-        ang_tol: Maximum allowed deviation from exact negation.
-
-    Returns:
-        True if the angles are mirrors within tolerance; False otherwise.
-    """
-    tau = 2 * pi
-    delta = abs(angle1 + angle2)
-    delta = min(delta, abs(delta - tau), abs(delta + tau))
-
-    return delta <= ang_tol
-
-
-def mirror_turn_pair_equal(
-    pair1: TurnPair, pair2: TurnPair, dist_tol: float
-) -> bool:
-    """Return True if lengths match and turn angles are mirrored.
-
-    Side lengths must agree within ``dist_tol``. Signed turn angles must
-    satisfy ``angle1 ≈ -angle2`` within ``10 ** -defaults["turn_angle_digits"]``.
-
-    Args:
-        pair1: First ``(side_length, turn_angle)`` pair.
-        pair2: Second ``(side_length, turn_angle)`` pair.
-        dist_tol: Maximum allowed difference in side lengths.
-
-    Returns:
-        True if length and mirrored angle both match; False otherwise.
-    """
-    TURN_ANGLE_DIGITS = defaults["turn_angle_digits"]
-    length1, angle1 = pair1
-    length2, angle2 = pair2
-    turn_angle_tol = 10**-TURN_ANGLE_DIGITS
-    res = abs(length1 - length2) <= dist_tol and mirror_turn_angle_equal(
-        angle1, angle2, turn_angle_tol
-    )
-    return res
-
-
-def mirror_turn_sequences_equal(
-    turns1: TurnSequence, turns2: TurnSequence, dist_tol: float
-) -> bool:
-    """Return True if sequences match entry-wise with mirrored angles.
-
-    Sequences must have the same length. Each corresponding pair is
-    compared with ``mirror_turn_pair_equal`` (no cyclic shift).
-
-    Args:
-        turns1: First sequence of ``(side_length, turn_angle)`` pairs.
-        turns2: Second sequence of ``(side_length, turn_angle)`` pairs.
-        dist_tol: Maximum allowed difference in side lengths.
-
-    Returns:
-        True if every entry is a mirror match; False if lengths differ
-        or any pair fails.
-    """
-    res = False
-    if len(turns1) == len(turns2):
-        res = all(
-            mirror_turn_pair_equal(pair1, pair2, dist_tol)
-            for pair1, pair2 in zip(turns1, turns2)
-        )
-
-    return res
+    return congruent_polygons(shape1, shape2, mirror=mirror)
 
 
 def remove_duplicate_edges(
@@ -1685,133 +1333,88 @@ def polygon_verts_and_bbox(
 
 def remove_duplicate_polygons(
     polygons: Sequence[PolygonLike],
-    dist_tol: float = 0.001,
-    check_mirrors: bool = True,
+    mirror: bool = True,
     keep_one: bool = True,
 ) -> list[PolygonLike]:
     """Return polygons with congruent duplicates removed.
 
-    Congruence uses signed turn sequences (``polygon_turns`` / ``equal_turns``)
-    so reflex and convex corners remain distinct. Bounding-box overlap and
-    dimension filters narrow candidates before turn comparison.
+    Algorithm:
+        1. Group polygons by vertex count.
+        2. Build ``polygon_turns`` for each polygon.
+        3. Rotate each turn cycle so it starts at a smallest edge length.
+        4. Within each vertex-count group, only compare polygons whose
+           starting edge lengths match; use ``congruent_polygons`` there.
 
     Args:
-        polygons: Polygons as ``Shape``, ``Group``, or vertex sequences.
-        dist_tol: Tolerance for bbox dimension matching and side lengths.
-        check_mirrors: If True, mirror-image equivalents are treated as
-            duplicates (includes ``mirror_equivalent_polygons`` fallback).
-        keep_one: If True, keep the first occurrence of each congruent
-            polygon. If False, drop every polygon that has a congruent
-            duplicate.
+        polygons: Sequence of ``Shape`` objects or vertex sequences.
+            Groups are not accepted; unwrap them first.
+        mirror: If True, treat reflections as duplicates.
+        keep_one: If True, keep the first of each congruent class.
+            If False, drop every polygon that has a congruent partner.
 
     Returns:
-        A new list of polygon references. The input sequence is not modified;
-        returned items are the same objects as in ``polygons``.
+        A new list of polygon references (same objects as in ``polygons``).
     """
+    dist_tol = defaults["dist_tol"]
+    entries = []
+    by_n: dict[int, list[int]] = defaultdict(list)
 
-    def _entry(poly: PolygonLike) -> dict:
-        verts, min_x, min_y, max_x, max_y = polygon_verts_and_bbox(poly)
-        verts = ccw_positive_vertices(verts)
-        turns = polygon_turns(verts)
-        return {
-            "verts": verts,
-            "turns": turns,
-            "min_x": min_x,
-            "min_y": min_y,
-            "max_x": max_x,
-            "max_y": max_y,
-            "width": max_x - min_x,
-            "height": max_y - min_y,
-            "n_vertices": len(verts),
-        }
+    for i, poly in enumerate(polygons):
+        verts = polygon_vertices(poly)
+        turns = rotate_turns_to_min_edge(polygon_turns(verts))
+        start_len = turns[0] if turns else 0.0
+        entries.append(
+            {
+                "poly": poly,
+                "turns": turns,
+                "start_len": start_len,
+            }
+        )
+        by_n[len(verts)].append(i)
 
-    def _congruent(entry_a: dict, entry_b: dict) -> bool:
-        if entry_a["n_vertices"] != entry_b["n_vertices"]:
+    def _same_start_len(i: int, j: int) -> bool:
+        return isclose(
+            entries[i]["start_len"],
+            entries[j]["start_len"],
+            rel_tol=0.0,
+            abs_tol=dist_tol,
+        )
+
+    def _are_congruent(i: int, j: int) -> bool:
+        if not _same_start_len(i, j):
             return False
-
-        overlap = (
-            entry_b["max_x"] >= entry_a["min_x"]
-            and entry_a["max_x"] >= entry_b["min_x"]
-            and entry_b["max_y"] >= entry_a["min_y"]
-            and entry_a["max_y"] >= entry_b["min_y"]
+        return congruent_polygons(
+            entries[i]["poly"],
+            entries[j]["poly"],
+            mirror=mirror,
         )
-        aligned_dims = (
-            np.abs(entry_b["width"] - entry_a["width"]) <= dist_tol
-            and np.abs(entry_b["height"] - entry_a["height"]) <= dist_tol
-        )
-        rotated_dims = (
-            np.abs(entry_b["width"] - entry_a["height"]) <= dist_tol
-            and np.abs(entry_b["height"] - entry_a["width"]) <= dist_tol
-        )
-        if not (overlap or aligned_dims or rotated_dims):
-            return False
 
-        duplicate_match = equal_turns(
-            entry_a["turns"],
-            entry_b["turns"],
-            check_mirror=check_mirrors,
-        )
-        if not duplicate_match and check_mirrors:
-            duplicate_match = mirror_equivalent_polygons(
-                entry_a["verts"],
-                entry_b["verts"],
-            )
-        return duplicate_match
+    n = len(polygons)
+    if n == 0:
+        return []
 
-    if not keep_one:
-        n = len(polygons)
-        if n == 0:
-            res = []
-        else:
-            entries = [_entry(poly) for poly in polygons]
-            bboxes = np.array(
-                [
-                    [e["min_x"], e["min_y"], e["max_x"], e["max_y"]]
-                    for e in entries
-                ],
-                dtype=float,
-            )
-            duplicate_mask = np.zeros(n, dtype=bool)
-            for i in range(n):
-                min_x = entries[i]["min_x"]
-                min_y = entries[i]["min_y"]
-                max_x = entries[i]["max_x"]
-                max_y = entries[i]["max_y"]
-                overlap_mask = (
-                    (bboxes[:, 2] >= min_x)
-                    & (bboxes[:, 0] <= max_x)
-                    & (bboxes[:, 3] >= min_y)
-                    & (bboxes[:, 1] <= max_y)
-                )
-                for j in np.nonzero(overlap_mask)[0]:
-                    if j <= i:
-                        continue
-                    if _congruent(entries[i], entries[j]):
-                        duplicate_mask[i] = True
-                        duplicate_mask[j] = True
-
-            res = [
-                poly for i, poly in enumerate(polygons) if not duplicate_mask[i]
-            ]
+    if keep_one:
+        keep = [True] * n
+        for indices in by_n.values():
+            kept_in_group: list[int] = []
+            for i in indices:
+                if any(_are_congruent(i, j) for j in kept_in_group):
+                    keep[i] = False
+                else:
+                    kept_in_group.append(i)
+        res = [polygons[i] for i in range(n) if keep[i]]
     else:
-        unique_polygons = []
-        unique_entries = []
-
-        for poly in polygons:
-            entry = _entry(poly)
-            duplicate = False
-            for unique_entry in unique_entries:
-                if _congruent(entry, unique_entry):
-                    duplicate = True
-                    break
-
-            if not duplicate:
-                unique_polygons.append(poly)
-                unique_entries.append(entry)
-
-        res = unique_polygons
+        has_duplicate = [False] * n
+        for indices in by_n.values():
+            for a, i in enumerate(indices):
+                for j in indices[a + 1 :]:
+                    if _are_congruent(i, j):
+                        has_duplicate[i] = True
+                        has_duplicate[j] = True
+        res = [polygons[i] for i in range(n) if not has_duplicate[i]]
 
     return res
+
 
 
 def symmetric_difference(

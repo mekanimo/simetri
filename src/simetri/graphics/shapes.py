@@ -1,4 +1,4 @@
-"""Shapes module contains classes and functions for creating shapes."""
+"""Classes and functions for creating geometric shapes."""
 
 from collections.abc import Sequence
 from math import comb, cos, gcd, pi, sin
@@ -36,9 +36,21 @@ Color = colors.Color
 def offset_box(
     corners, offsets: list[float] = None, offset: float = None
 ) -> "Shape":
-    """Given four corners and offsets(left, bottom, right, and top or a
-    single offset value) returns a rectangle shape. Negative offsets mean
-    deflation.
+    """Return a rectangle ``Shape`` from four corners and edge offsets.
+
+    Positive offsets expand the box; negative offsets deflate it.
+
+    Args:
+        corners: Four corner points defining the original box.
+        offsets: Per-edge offsets ``[left, bottom, right, top]``.
+        offset: Single offset applied to all four edges (alternative to ``offsets``).
+
+    Returns:
+        A closed rectangle ``Shape``.
+
+    Raises:
+        ValueError: If neither ``offsets`` nor ``offset`` is given, if ``offsets``
+            has length other than four, or if ``corners`` does not have four points.
     """
 
     # Handle the single offset case
@@ -102,19 +114,17 @@ def square(
 
 class Line(Shape):
     """A line defined by two points.
-    They are drawn different depending on their types.
-    line.extent == sg.Extent.INFINITE drawn to the canvas limits
-    on both sides.
-    line.extent == sg.Extent.RAY drawn from the first point to the
-    canvas.limit.
-    line.extent == sg.Extent.SEGMENT drawn from the first point to
-    the second point as a line segment.
-    For representing the line in Ax + By + C = 0 (general form) use:
-    line.A -> A, line.B -> B, line.C -> C, and line.ABC -> (A, B, C)
-    For representing the line in mx + b = 0 (slope and intercept form) use:
-    line.slope -> m and line.intercept -> b, and line.m_b -> (m, b)
-    line.parametric_function Return a callable f(t) that gives points on the line.
-    line.t returns an interpolation using the parametric form of the line.
+
+    Rendering depends on ``extent``:
+
+    - ``Extent.INFINITE``: drawn through both directions to canvas limits.
+    - ``Extent.RAY``: drawn from ``start`` toward ``end`` to the canvas limit.
+    - ``Extent.SEGMENT``: drawn as a finite segment from ``start`` to ``end``.
+
+    General form ``Ax + By + C = 0``: use ``A``, ``B``, ``C``, or ``ABC``.
+    Slope-intercept form ``y = mx + b``: use ``slope``, ``intercept``, or ``m_b``.
+    Parametric evaluation: ``parametric_function`` or ``t(t)`` returns
+    ``start + t * (end - start)``.
     """
 
     def __init__(
@@ -246,9 +256,12 @@ class Line(Shape):
 
     @property
     def parametric_function(self):
-        """Return a callable f(t) that gives points on the line.
+        """Return a callable ``f(t)`` that gives points on the line.
 
-        For SEGMENT lines, meaningful values are typically 0 <= t <= 1.
+        For ``Extent.SEGMENT`` lines, meaningful values are typically ``0 <= t <= 1``.
+
+        Returns:
+            Callable mapping parameter ``t`` to a point on the line.
         """
         return lambda t: self.t(t)
 
@@ -270,7 +283,14 @@ class Line(Shape):
     #     return line
 
     def t(self, t: float):
-        """Return point at parameter t using start + t * (end - start)."""
+        """Return point at parameter ``t`` using ``start + t * (end - start)``.
+
+        Args:
+            t: Parametric coordinate along the line.
+
+        Returns:
+            PointType: The point at parameter ``t``.
+        """
         direction = v_diff(self.end, self.start)
 
         return v_sum(self.start, v_scale(direction, t))
@@ -573,7 +593,8 @@ class Circle(Shape):
 
 class Segment(Shape):
     """A line segment defined by two points.
-    This is not used in the code-base, but is here for the API.
+
+    Prefer ``Line`` with ``extent=Extent.SEGMENT`` for the public API.
     """
 
     def __init__(self, start: PointType, end: PointType, **kwargs) -> None:
@@ -773,15 +794,17 @@ def rectangle_points(
 def reg_poly_points_side_length(
     n: int, side_len: float, pos: PointType = (0, 0), angle: float = 0
 ) -> Sequence[PointType]:
-    """Return a regular polygon points list with n sides and side_len length.
+    """Return vertices of a regular polygon with a given side length.
 
     Args:
-        pos (PointType): The position of the center of the polygon.
-        n (int): The number of sides of the polygon.
-        side_len (float): The length of each side of the polygon.
+        n: Number of sides.
+        side_len: Length of each side.
+        pos: Center of the polygon. Defaults to ``(0, 0)``.
+        angle: Rotation angle in radians. Defaults to 0.
 
     Returns:
-        Sequence[PointType]: A list of points that form the polygon.
+        Sequence[PointType]: Vertices of the polygon (not closed; first vertex
+        is not repeated).
     """
     rad = side_len_to_radius(n, side_len)
     angle = 2 * pi / n
@@ -800,15 +823,17 @@ def reg_poly_points_side_length(
 def reg_poly_points(
     n: int, r: float = 100, pos: PointType = (0, 0), angle: float = 0
 ) -> Sequence[PointType]:
-    """Return a regular polygon points list with n sides and radius r.
+    """Return vertices of a regular polygon with a given circumradius.
 
     Args:
-        pos (PointType): The position of the center of the polygon.
-        n (int): The number of sides of the polygon.
-        r (float): The radius of the polygon.
+        n: Number of sides.
+        r: Circumradius. Defaults to 100.
+        pos: Center of the polygon. Defaults to ``(0, 0)``.
+        angle: Rotation angle in radians. Defaults to 0.
 
     Returns:
-        Sequence[PointType]: A list of points that form the polygon.
+        Sequence[PointType]: Vertices of the polygon (closed; first vertex is
+        repeated at the end).
     """
     theta = 2 * pi / n
     x, y = pos[:2]
@@ -906,17 +931,17 @@ def rect_grid(x, y, cell_width, cell_height, n_rows, n_cols, pattern):
 
 
 def reg_star_polygon(n, step, rad, **kwargs) -> Shape | Group:
-    """
-    Return a regular star polygon with the given parameters.
+    """Return a regular star polygon.
 
-    :param n: The number of vertices of the star polygon.
-    :type n: int
-    :param step: The step size for connecting vertices.
-    :type step: int
-    :param rad: The radius of the star polygon.
-    :type rad: float
-    :return: A Group object representing the star polygon.
-    :rtype: Group
+    Args:
+        n: Number of vertices on the generating regular ``n``-gon.
+        step: Step size for connecting vertices (star polygon parameter).
+        rad: Circumradius of the generating regular polygon.
+        **kwargs: Additional keyword arguments passed to ``Shape``.
+
+    Returns:
+        ``Shape`` or ``Group``: A single star polygon, or a ``Group`` of rotated
+        copies when ``gcd(n, step) > 1``.
     """
     angle = 2 * pi / n
     points = [(cos(angle * i) * rad, sin(angle * i) * rad) for i in range(n)]
@@ -963,17 +988,17 @@ def dot_shape(
     line_color=None,
     line_width=None,
 ):
-    """Return a Shape object with a single point.
+    """Return a marker dot ``Shape`` (a single point with marker radius).
 
     Args:
-        radius (float, optional): The radius of the point. Defaults to 1.
-        pos (PointType, optional): The position of the point. Defaults to (0, 0).
-        fill_color (Color, optional): The fill color of the point. Defaults to None.
-        line_color (Color, optional): The line color of the point. Defaults to None.
-        line_width (float, optional): The line width of the point. Defaults to None.
+        radius: Marker radius. Defaults to 1.
+        pos: Position of the dot. Defaults to ``(0, 0)``.
+        fill_color: Fill color. Defaults to package defaults.
+        line_color: Stroke color. Defaults to package defaults.
+        line_width: Stroke width. Defaults to package defaults.
 
     Returns:
-        Shape: A Shape object with a single point.
+        Shape: A point shape with ``marker`` set to ``radius``.
     """
     fill_color, line_color, line_width = get_defaults(
         ["fill_color", "line_color", "line_width"],
@@ -1003,21 +1028,21 @@ def rect_shape(
     marker: "Marker" = None,
     **kwargs,
 ) -> Shape:
-    """Given lower left corner position, width, and height,
-    return a Shape object with points that form a rectangle.
+    """Return a rectangle ``Shape`` from lower-left corner, width, and height.
 
     Args:
-        width (float): The width of the rectangle.
-        height (float): The height of the rectangle.
-        pos (PointType, optional): The position of the lower left corner of the rectangle. Defaults to (0, 0).
-        fill_color (Color, optional): The fill color of the rectangle. Defaults to colors.white.
-        line_color (Color, optional): The line color of the rectangle. Defaults to defaults["line_color"].
-        line_width (float, optional): The line width of the rectangle. Defaults to defaults["line_width"].
-        fill (bool, optional): Whether to fill the rectangle. Defaults to True.
-        marker (Marker, optional): The marker for the rectangle. Defaults to None.
+        width: Rectangle width.
+        height: Rectangle height.
+        pos: Lower-left corner. Defaults to ``(0, 0)``.
+        fill_color: Interior color. Defaults to ``colors.white``.
+        line_color: Stroke color. Defaults to ``defaults["line_color"]``.
+        line_width: Stroke width. Defaults to ``defaults["line_width"]``.
+        fill: Whether the rectangle is filled. Defaults to True.
+        marker: Optional vertex marker. Defaults to None.
+        **kwargs: Additional keyword arguments passed to ``Shape``.
 
     Returns:
-        Shape: A Shape object with points that form a rectangle.
+        Shape: A closed axis-aligned rectangle.
     """
     x, y = pos[:2]
     fill_color, line_color, line_width = get_defaults(
@@ -1079,16 +1104,17 @@ def circle_shape(radius, pos=(0, 0), n=30, **kwargs):
 def reg_poly_shape(
     n: int, r: float = 100, pos: PointType = (0, 0), angle: float = 0, **kwargs
 ):
-    """Return an n-sided regular polygon with circumradius=r.
+    """Return an ``n``-sided regular polygon with circumradius ``r``.
 
     Args:
-        n (int): The number of sides of the polygon.
-        r (float, optional): The radius of the polygon. Defaults to 100.
-        kwargs (dict): Additional keyword arguments.
-        pos (PointType): The position of the center of the polygon.
+        n: Number of sides.
+        r: Circumradius. Defaults to 100.
+        pos: Center of the polygon. Defaults to ``(0, 0)``.
+        angle: Rotation angle in radians. Defaults to 0.
+        **kwargs: Additional keyword arguments passed to ``Shape``.
 
     Returns:
-        Shape: A Shape object with points that form a regular polygon.
+        Shape: A closed regular polygon.
     """
     x, y = pos[:2]
     points = reg_poly_points(n=n, r=r, pos=(x, y), angle=angle)
@@ -1099,16 +1125,17 @@ def reg_poly_shape(
 def reg_poly_shape_side_length(
     n: int, side_len: float, pos: PointType = (0, 0), angle: float = 0, **kwargs
 ):
-    """Return a regular polygon.
+    """Return a regular polygon with a given side length.
 
     Args:
-        n (int): The number of sides of the polygon.
-        r (float, optional): The radius of the polygon. Defaults to 100.
-        kwargs (dict): Additional keyword arguments.
-        pos (PointType): The position of the center of the polygon.
+        n: Number of sides.
+        side_len: Length of each side.
+        pos: Center of the polygon. Defaults to ``(0, 0)``.
+        angle: Rotation angle in radians. Defaults to 0.
+        **kwargs: Additional keyword arguments passed to ``Shape``.
 
     Returns:
-        Shape: A Shape object with points that form a regular polygon.
+        Shape: A closed regular polygon.
     """
 
     x, y = pos[:2]
@@ -1120,17 +1147,18 @@ def reg_poly_shape_side_length(
 
 
 def ellipse_shape(width, height, angle=0, pos=(0, 0), n_points=None, **kwargs):
-    """Return a Shape object with points that form an ellipse with the given parameters.
+    """Return an ellipse as a ``Shape``.
 
     Args:
-        width (float): The width of the ellipse.
-        height (float): The height of the ellipse.
-        angle (float, optional): The rotation angle of the ellipse. Defaults to 0.
-        pos (PointType, optional): The position of the center of the ellipse. Defaults to (0, 0).
-        n_points (int, optional): The number of points to use for the ellipse. Defaults to 30.
+        width: Major-axis diameter (full width).
+        height: Minor-axis diameter (full height).
+        angle: Rotation angle in radians. Defaults to 0.
+        pos: Center of the ellipse. Defaults to ``(0, 0)``.
+        n_points: Number of sample points. Defaults to ``defaults["n_ellipse_points"]``.
+        **kwargs: Additional keyword arguments passed to ``Shape``.
 
     Returns:
-        Shape: A Shape object with points that form an ellipse.
+        Shape: An ellipse approximated by a polyline.
     """
     if n_points is None:
         n_points = defaults["n_ellipse_points"]
@@ -1140,17 +1168,17 @@ def ellipse_shape(width, height, angle=0, pos=(0, 0), n_points=None, **kwargs):
 
 
 def line_shape(p1, p2, line_width=1, line_color=colors.black, **kwargs):
-    """Return a Shape object with two points p1 and p2.
+    """Return a ``Line`` between two points.
 
     Args:
-        p1 (PointType): The first point of the line.
-        p2 (PointType): The second point of the line.
-        line_width (float, optional): The width of the line. Defaults to 1.
-        line_color (Color, optional): The color of the line. Defaults to colors.black.
-        kwargs (dict): Additional keyword arguments.
+        p1: Start point.
+        p2: End point.
+        line_width: Stroke width. Defaults to 1.
+        line_color: Stroke color. Defaults to ``colors.black``.
+        **kwargs: Additional keyword arguments passed to ``Line``.
 
     Returns:
-        Shape: A Shape object with two points that form a line.
+        Line: A line segment between ``p1`` and ``p2``.
     """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
@@ -1165,16 +1193,17 @@ def line_shape(p1, p2, line_width=1, line_color=colors.black, **kwargs):
 
 def offset_polygon_shape(
     polygon_shape, offset: float = 1, dist_tol: float = defaults["dist_tol"]
-) -> list[PointType]:
-    """Return a copy of a polygon with offset edges.
+) -> Shape:
+    """Return a polygon ``Shape`` with offset edges.
 
     Args:
-        polygon_shape (Shape): The original polygon shape.
-        offset (float, optional): The offset distance. Defaults to 1.
-        dist_tol (float, optional): The distance tolerance. Defaults to defaults["dist_tol"].
+        polygon_shape: Source polygon ``Shape``.
+        offset: Offset distance (positive expands outward). Defaults to 1.
+        dist_tol: Distance tolerance for offset construction. Defaults to
+            ``defaults["dist_tol"]``.
 
     Returns:
-        list[PointType]: A list of points that form the offset polygon.
+        Shape: A new closed polygon with offset vertices.
     """
     vertices = offset_polygon_points(polygon_shape.vertices, offset, dist_tol)
 
@@ -1188,18 +1217,33 @@ def snap(
     ref2: int | float,
     angle: float = 0,
 ):
-    """Snaps the given free Shape to the fixed Shape using integer indices (for vertices) or floating point numbers for Barycentric edge coordinates.
-    For closed shapes (polygons), indices need to be in counterclockwise order.
-    Both references need to be vertices or points on edges.
-    When the angle is zero then the objects are attached with edge to edge
-    condition.
-    Example:
-    sg.snap(free=triangle, 0, square, 1, angle=sg.pi/4)
-    angle is computed from the triangle[1], square[1], square[0]
-    A floating point number indicates a point on an edge in Barycentric
-    coordinates. For example,
-    1.5 indicates the midpoint between the second and third vertices (zero
-    based indexing) or the midpoint of the second edge.
+    """Snap ``free_shape`` to ``fixed_shape`` at the given references.
+
+    References are vertex indices (``int``) or barycentric edge coordinates
+    (``float``). For closed polygons, vertex walks are assumed counter-clockwise.
+
+    When ``angle`` is zero, edges meeting at the snap points align edge-to-edge.
+    Otherwise ``free_shape`` is rotated about the coincident point so the angle
+    between the adjacent edges matches ``angle``.
+
+    Integer ``ref``: snap at vertex ``k``.
+    Float ``ref``: snap at a point on an edge; for example ``1.5`` is the
+    midpoint of the edge from vertex 1 to vertex 2 (zero-based indexing).
+
+    Example::
+
+        sg.snap(triangle, 0, square, 1, angle=sg.pi / 4)
+
+    Args:
+        free_shape: Shape moved and rotated into place.
+        ref1: Reference on ``free_shape`` (vertex index or edge coordinate).
+        fixed_shape: Shape that stays fixed.
+        ref2: Reference on ``fixed_shape``.
+        angle: Target angle in radians between adjacent edges at the snap point.
+            Defaults to 0 (edge-to-edge alignment).
+
+    Returns:
+        The transformed ``free_shape`` (same object, mutated in place).
     """
 
     def get_edge_indices(shape: Shape, ref: int | float) -> tuple[int, int]:
@@ -1293,7 +1337,16 @@ def snap(
 def fillet_shape_corners(
     shape: Shape, d_vert_radius: dict[int, float], n: int = 12
 ) -> Shape:
-    """Using the given shape, creates a new shape with rounded corners."""
+    """Return a copy of ``shape`` with rounded corners.
+
+    Args:
+        shape: Source polygon or polyline.
+        d_vert_radius: Mapping ``vertex_index -> fillet radius`` for corners to round.
+        n: Number of points per fillet arc. Defaults to 12.
+
+    Returns:
+        A copy of ``shape`` with fillet vertices substituted.
+    """
     vertices = fillet_corners(shape.vertices, d_vert_radius, n)
 
     new_shape = shape.copy()
