@@ -1,4 +1,15 @@
-"""Base class. This is the parent for Shape and Group classes."""
+"""Base transforms and style mixin for Shape and Group.
+
+``Base`` provides ``translate``, ``rotate``, ``mirror``, ``glide``,
+``scale``, ``shear``, ``move``, and ``move_to``. ``StyleMixin``
+resolves style attribute aliases.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> from math import pi
+    >>> s = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
+    >>> s.translate(5, 0).rotate(pi / 4, about=s.midpoint)
+"""
 
 __all__ = ["Base", "StyleMixin"]
 
@@ -196,9 +207,29 @@ def _resolve_reference(target, reference):
 
 
 class Base:
-    """Base class for Shape and Group objects."""
+    """Shared transform and anchor API for Shape and Group.
+
+    Anchor names (``midpoint``, ``southwest``, ``left``, …) resolve through
+    ``b_box``. Transform methods support ``reps`` (repeated copies) and
+    optional ``incr`` increments between repetitions.
+
+    Note:
+        Concrete subclasses must implement ``_update``, ``copy``, ``append``
+        (for groups), and expose ``b_box`` / ``type``.
+    """
 
     def __getattr__(self, name: str) -> Any:
+        """Resolve bounding-box anchors or fall back to instance attributes.
+
+        Args:
+            name: Attribute or anchor name (also accepts ``bbox_`` prefix).
+
+        Returns:
+            Any: Anchor geometry or stored attribute value.
+
+        Raises:
+            AttributeError: If the name is unknown and not a style attribute.
+        """
         if name in anchors:
             if name.startswith("bbox_"):
                 name = name[4:]
@@ -232,16 +263,23 @@ class Base:
         | None = None,
         merge: bool = False,
     ) -> Self:
-        """
-        Translates the object by dx and dy.
+        """Translate the object by ``dx`` and ``dy``.
 
         Args:
-            dx (float): The translation distance along the x-axis.
-            dy (float): The translation distance along the y-axis.
-            reps (int, optional): The number of repetitions. Defaults to 0.
+            dx: Translation along the x-axis.
+            dy: Translation along the y-axis.
+            take: Optional slice selecting which group elements to transform.
+            reps: Extra repetitions (copies) of the transform. Defaults to 0.
+            incr: Optional increment applied between repetitions.
+            merge: If True, merge results where supported.
 
         Returns:
-            Self: The transformed object.
+            Self: The transformed object (often ``self`` after in-place update).
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> s = sg.Shape([(0, 0), (1, 0)])
+            >>> s.translate(10, 5)
         """
         transform = translation_matrix(dx, dy)
         if self.type == Types.SHAPE:
@@ -332,16 +370,24 @@ class Base:
         | None = None,
         merge: bool = False,
     ) -> Self:
-        """
-        Rotates the object by the given angle (in radians) about the given point.
+        """Rotate by ``angle`` radians about a point.
 
         Args:
-            angle (float): The rotation angle in radians.
-            about (PointType, optional): The point to rotate about. Defaults to (0, 0).
-            reps (int, optional): The number of repetitions. Defaults to 0.
+            angle: Rotation angle in radians (counterclockwise).
+            about: Center of rotation. Defaults to ``(0, 0)``.
+            reps: Extra repetitions of the transform. Defaults to 0.
+            take: Optional slice of group elements to transform.
+            incr: Optional angle (or operator) increment between reps.
+            merge: If True, merge results where supported.
 
         Returns:
             Self: The rotated object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> from math import pi
+            >>> s = sg.Shape([(0, 0), (20, 0), (20, 10), (0, 10)], closed=True)
+            >>> s.rotate(pi / 2, about=s.midpoint)
         """
         transform = rotation_matrix(angle, about)
         if self.__class__.__name__ == "Shape":
@@ -659,16 +705,21 @@ class Base:
 
 
 class StyleMixin:
-    """Mixin class for style attributes.
-    Some Group classes with different subtypes also inherit from this.
+    """Mixin that maps style aliases onto nested style objects.
+
+    Used by Shape subclasses and some Group subtypes so attributes like
+    ``line_color`` resolve through the style map.
+
+    Note:
+        Requires ``_aliases`` and ``_set_aliases`` on the concrete class.
     """
 
     def __setattr__(self, name, value):
-        """Set an attribute of the shape.
+        """Set a style alias or ordinary instance attribute.
 
         Args:
-            name (str): The name of the attribute.
-            value (Any): The value to set.
+            name: Attribute name (may be a style alias).
+            value: Value to assign.
         """
         # Handle case where _aliases might not be set up yet
         aliases = self.__dict__.get("_aliases", {})

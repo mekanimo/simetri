@@ -1,14 +1,15 @@
-import numpy as np
+"""John Hobby's cubic Bezier spline algorithm (METAFONT-style).
+
+Implementation details follow Knuth's METAFONT: The Program (pp. 112–113).
+Adapted from https://github.com/ltrujello/Hobby_Curve_Algorithm (2025-02-07).
+"""
+
 import cmath
 
-from ..graphics.shape import Shape
-from ..geometry.bezier import bezier_points
+import numpy as np
 
-"""
-Implementation of John Hobby's Bezier curve algorithm in Python.
-The algorithm is very simple and efficient. Details are on page 112, 113 in Knuth's METAFONT: The Program.
-"""
-# Taken from https://github.com/ltrujello/Hobby_Curve_Algorithm 2/7/2025
+from ..geometry.bezier import bezier_points
+from ..graphics.shape import Shape
 
 
 class HobbyPoint(complex):
@@ -307,6 +308,14 @@ def hobby_ctrl_points(
 
     Returns:
         A list of (x, y) tuples representing the Bezier control points.
+
+    Examples:
+        ::
+
+            from simetri.geometry.hobby import hobby_ctrl_points
+
+            pts = [(0, 0), (1, 1), (2, 0)]
+            hobby_ctrl_points(pts, tension=1)
     """
     curve = HobbyCurve(
         points,
@@ -375,21 +384,31 @@ def velocity(theta: float, phi: float) -> float:
 def hobby_shape(
     points, cyclic=False, tension=1, begin_curl=1, end_curl=1, n_points=None
 ):
-    """Create a Shape object from points using John Hobby's algorithm.
+    """Create a ``Shape`` along a Hobby spline through the given points.
 
-    This function calculates cubic Bezier control points using Hobby's algorithm,
-    then creates a Shape object by generating points along the resulting Bezier curves.
+    Computes cubic Bezier control points with Hobby's algorithm, then samples
+    points along each segment.
 
     Args:
-        points: List of (x, y) tuples representing the curve's points.
-        cyclic: Whether the curve should be closed.
-        tension: Controls the "tightness" of the curve (lower is tighter).
-        begin_curl: Curl value for the beginning of the curve.
-        end_curl: Curl value for the end of the curve.
-        debug: Whether to print debug information.
+        points: List of ``(x, y)`` tuples defining the spline path.
+        cyclic: If True, close the curve by connecting the last point to the first.
+        tension: Controls curve tightness (lower is tighter). Defaults to 1.
+        begin_curl: Curl at the start of an open curve. Defaults to 1.
+        end_curl: Curl at the end of an open curve. Defaults to 1.
+        n_points: Reserved for future use; currently ignored (fixed sample
+            counts are used per segment).
 
     Returns:
-        A Shape object containing points along the smooth Hobby curve.
+        Shape: Polyline vertices along the smooth Hobby curve.
+
+    Examples:
+        ::
+
+            import simetri.graphics as sg
+
+            shape = sg.hobby_shape([(0, 0), (40, 30), (80, 0)], tension=1)
+            canvas = sg.Canvas()
+            canvas.draw(shape)
     """
     controls = hobby_ctrl_points(
         points, tension=tension, cyclic=cyclic, begin_curl=begin_curl, end_curl=end_curl

@@ -1,4 +1,13 @@
-"""Path module for graphics package."""
+"""Path builders for polylines, Beziers, arcs, and related operations.
+
+``Path2D`` (alias ``LinPath``) is a ``Group``
+that accumulates drawing operations from a turtle-like pen state.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> p = sg.Path2D(start=(0, 0))
+    >>> p.line_to((10, 0)).line_to((10, 10)).close()
+"""
 
 import re
 from collections import deque
@@ -49,12 +58,13 @@ array = np.array
 
 @dataclass
 class Operation:
-    """An operation for a Path object.
+    """One recorded path operation (move, line, curve, …).
 
     Attributes:
-        subtype (Types): The subtype of the operation.
-        data (tuple): The data associated with the operation.
-        name (str): The name of the operation.
+        subtype: Path operation kind (from ``PathOperation`` / ``Types``).
+        data: Payload for the operation (points, radii, …).
+        name: Optional label.
+        type: Always ``Types.PATH_OPERATION`` after init.
     """
 
     subtype: Types
@@ -62,14 +72,28 @@ class Operation:
     name: str = ""
 
     def __post_init__(self):
-        """Post-initialization to set the type and common properties."""
+        """Set ``type`` to ``Types.PATH_OPERATION``."""
         self.type = Types.PATH_OPERATION
 
 
 class Path2D(Group):
-    """LinearPath.
-    A Path2D object is a container for various linear elements.
-    Path objects can be transformed like other Shape and Group objects.
+    """Constructive 2D path with a pen position and heading.
+
+    Operations such as ``line_to``, ``cubic_to``, and ``arc`` append geometry
+    while updating ``pos`` and ``angle``. The path is also a Group of Shape
+    segments for transforms and drawing.
+
+    Attributes:
+        pos: Current pen position.
+        start: Path start point.
+        angle: Current heading in radians.
+        operations: List of ``Operation`` records.
+        subtype: ``Types.LINPATH``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> path = sg.Path2D((0, 0))
+        >>> path.forward(10).turn(1.57).forward(5)
     """
 
     def __init__(
@@ -100,12 +124,20 @@ class Path2D(Group):
         line_miter_limit: float | None = None,
         line_width: float = 1,
     ):
-        """Initialize a Path object.
+        """Initialize a Path2D.
 
         Args:
-            start (PointType, optional): The starting point of the path. Defaults to (0, 0).
-            angle (float, optional): The heading angle of the path. Defaults to pi/2.
-
+            start: Starting pen position. Defaults to ``(0, 0)``.
+            angle: Initial heading in radians. Defaults to ``pi/2``.
+            fill / stroke: Whether to fill or stroke when drawn.
+            alpha / color: Overall opacity and convenience color.
+            draw_double / draw_fillets / draw_markers: Stroke options.
+            back_style: Background style.
+            double_distance / double_color: Double-line options.
+            fill_alpha / fill_color / fill_mode: Fill style.
+            fillet_radius: Fillet radius when enabled.
+            gradient: Optional fill gradient.
+            line_*: Stroke style attributes.
         """
 
         self.pos = start
@@ -417,30 +449,34 @@ class Path2D(Group):
         return x1 + x, y1 + y
 
     def line_to(self, point: PointType, **kwargs) -> Self:
-        """Add a line to the path.
+        """Draw a straight segment from the current position to ``point``.
 
         Args:
-            point (PointType): The end point of the line.
-            **kwargs: Additional keyword arguments.
+            point: Absolute end point.
+            **kwargs: Reserved for future style overrides on the segment.
 
         Returns:
-            Path: The path object.
+            Self: This path (for chaining).
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).line_to((10, 0))
+            >>> p.pos
+            (10, 0)
         """
         self._add(point, PathOps.LINE_TO, (self.pos, point))
 
         return self
 
     def forward(self, length: float, **kwargs) -> Self:
-        """Extend the path by the given length.
+        """Advance the pen ``length`` units along the current heading.
 
         Args:
-            length (float): The length to extend.
-            **kwargs: Additional keyword arguments.
+            length: Distance to travel.
+            **kwargs: Reserved for future style overrides.
 
         Returns:
-            Path: The path object.
-
-
+            Self: This path (for chaining).
         """
 
         x, y = line_by_point_angle_length(self.pos, self.angle, length)[1][:2]
@@ -449,26 +485,27 @@ class Path2D(Group):
         return self
 
     def orient(self, angle: float) -> Self:
-        """Set the path angle.
+        """Set the absolute heading angle.
 
         Args:
-            angle (float): The angle in radians.
+            angle: New heading in radians.
 
-        Returns: self
+        Returns:
+            Self: This path.
         """
         self.angle = angle
 
         return self
 
     def turn(self, angle: float, distance: float = 0) -> Self:
-        """Turn by the given angle and forward by the given distance.
+        """Turn by ``angle`` radians, optionally moving ``distance`` forward.
 
         Args:
-            angle (float): The angle increment.
-            distance (float): The forward distance.
+            angle: Heading increment in radians.
+            distance: Optional forward distance after the turn.
 
         Returns:
-            self: The path object.
+            Self: This path.
         """
 
         self.angle += angle

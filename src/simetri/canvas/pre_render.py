@@ -85,6 +85,16 @@ default_values = {
 
 
 def set_styles(sketches):
+    """Group sketches by shared non-default style signatures.
+
+    Args:
+        sketches: Sequence of sketch objects to analyze.
+
+    Returns:
+        tuple: ``(d_styles, d_sketch_style)`` where ``d_styles`` maps style
+        ids to property dicts and ``d_sketch_style`` maps sketch ids to
+        style ids.
+    """
     d_styles = {}
     d_sketch_style = {}
     signature_to_style_id = {}
@@ -185,7 +195,13 @@ def set_styles(sketches):
 def collect_tikz_preamble_requirements_for_sketch(
     sketch, tikz_libraries, tikz_packages
 ):
-    """Collect required TikZ libraries and TeX packages for a sketch."""
+    """Collect required TikZ libraries and TeX packages for a sketch.
+
+    Args:
+        sketch: Sketch to inspect.
+        tikz_libraries: Mutable list of TikZ library names (updated in place).
+        tikz_packages: Mutable list of TeX package names (updated in place).
+    """
     sketch_dict = sketch.__dict__
 
     if sketch.subtype == Types.PATH_SKETCH:
@@ -246,7 +262,14 @@ def collect_tikz_preamble_requirements_for_sketch(
 
 
 def canvas_uses_label_halos(canvas) -> bool:
-    """Return True if any sketch draws index or vertex-coordinate labels."""
+    """Return True if any sketch draws index or vertex-coordinate labels.
+
+    Args:
+        canvas: Canvas whose pages/sketches are inspected.
+
+    Returns:
+        bool: True if label rendering needs contour/halo support.
+    """
     for page in canvas.pages:
         sketches_to_inspect = list(page.sketches)
         while sketches_to_inspect:
@@ -267,7 +290,14 @@ def label_halo_preamble_line() -> str:
 
 
 def collect_tikz_preamble_requirements(canvas):
-    """Collect required TikZ libraries and TeX packages for a canvas."""
+    """Collect required TikZ libraries and TeX packages for a canvas.
+
+    Args:
+        canvas: Canvas whose sketches are inspected.
+
+    Returns:
+        tuple[list, list]: ``(tikz_libraries, tikz_packages)``.
+    """
     tikz_libraries = []
     tikz_packages = ["tikz", "pgf"]
 

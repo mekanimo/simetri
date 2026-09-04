@@ -1,6 +1,16 @@
-"""Used for polygon operations. These objects are not meant to be
-transformed. They all have a 'shape' property that returns an
-equivalent Shape object that can be transformed."""
+"""Polygon topology and boolean/partition helpers.
+
+Objects here (``Node``, ``Edge``, ``Polygon``, ``Partition``, …) are not meant
+to be transformed directly. Each exposes a ``shape`` (or ``group``) property
+that returns a drawable ``simetri.graphics`` object.
+
+Examples:
+    ::
+
+        import simetri.graphics as sg
+
+        area = sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1)])
+"""
 
 from __future__ import annotations
 
@@ -65,6 +75,12 @@ def _group(*args: Any, **kwargs: Any) -> Group:
 
 @dataclass
 class Node:
+    """A polygon vertex with a unique id.
+
+    Attributes:
+        pos: Point coordinates ``(x, y)``.
+    """
+
     pos: PointType
     _closed: bool = field(default=False, init=False, repr=False)
 
@@ -73,17 +89,30 @@ class Node:
 
     @property
     def shape(self) -> Shape:
+        """Return a single-point ``Shape`` at this node.
+
+        Returns:
+            Shape: Drawable point shape.
+        """
         return _shape([self.pos])
 
     @property
     def closed(self) -> bool:
-        """Immutable property, it is always False."""
+        """Whether this geometry is closed (always False for a node).
+
+        Returns:
+            bool: Always False.
+        """
         return self._closed
 
 
 @dataclass
 class Edge:
-    """Polygon edges."""
+    """A polygon edge between two ``Node`` endpoints.
+
+    Attributes:
+        nodes: Pair of endpoint nodes.
+    """
 
     nodes: tuple[Node, Node]
     _closed: bool = field(default=False, init=False, repr=False)
@@ -94,19 +123,38 @@ class Edge:
 
     @property
     def shape(self) -> Shape:
+        """Return a two-point ``Shape`` for this edge.
+
+        Returns:
+            Shape: Drawable segment.
+        """
         return _shape([n.pos for n in self.nodes])
 
     @property
     def closed(self) -> bool:
-        """Immutable property, it is always False."""
+        """Whether this geometry is closed (always False for an edge).
+
+        Returns:
+            bool: Always False.
+        """
         return self._closed
 
     @property
     def nodes(self) -> tuple[Node, Node]:
+        """Endpoint nodes of the edge.
+
+        Returns:
+            tuple[Node, Node]: Start and end nodes.
+        """
         return self._nodes
 
     @nodes.setter
     def nodes(self, value: tuple[Node, Node]) -> None:
+        """Set endpoint nodes (invalidates cached length).
+
+        Args:
+            value: New ``(start, end)`` node pair.
+        """
         if (
             "_nodes" in self.__dict__
             and self._nodes != value
@@ -117,6 +165,11 @@ class Edge:
 
     @property
     def length(self) -> float:
+        """Euclidean length of the edge (cached).
+
+        Returns:
+            float: Edge length.
+        """
         # Used cached value if it exists
         if "_length" not in self.__dict__:
             a, b = self.nodes
@@ -130,7 +183,13 @@ class Edge:
 
 @dataclass
 class Polyline:
-    """Connected line segments that can be closed or open."""
+    """Connected line segments that can be open or closed (a ring).
+
+    Attributes:
+        nodes: Ordered vertices.
+        edges: Ordered edges between consecutive nodes.
+        closed: If True, the polyline is a closed ring.
+    """
 
     nodes: Sequence[Node]
     edges: Sequence[Edge]
@@ -141,14 +200,29 @@ class Polyline:
 
     @property
     def shape(self) -> Shape:
+        """Return a drawable ``Shape`` for this polyline.
+
+        Returns:
+            Shape: Polyline shape (closed if ``self.closed``).
+        """
         return _shape([n.pos for n in self.nodes], closed=self.closed)
 
     @property
     def vertices(self) -> Sequence[PointType]:
+        """Vertex positions as a sequence of points.
+
+        Returns:
+            Sequence[PointType]: Node positions.
+        """
         return tuple(n.pos for n in self.nodes)
 
     @property
     def length(self) -> float:
+        """Total length of all edges.
+
+        Returns:
+            float: Sum of edge lengths.
+        """
         return sum([e.length for e in self.edges])
 
 
@@ -187,6 +261,12 @@ def ccw_positive_vertices(
     Vertices are copied. If the signed area is negative (clockwise walk),
     the copy is reversed so the walk is counter-clockwise with positive
     signed area.
+
+    Args:
+        vertices: Polygon vertices in order.
+
+    Returns:
+        list[tuple[float, float]]: CCW-ordered vertex copy.
     """
     verts = [(float(x), float(y)) for x, y in vertices]
     if polygon_area(verts) < 0:
@@ -197,7 +277,13 @@ def ccw_positive_vertices(
 
 @dataclass
 class Polygon:
-    """Polygon geometry."""
+    """Closed polygon with optional holes.
+
+    Attributes:
+        nodes: Boundary vertices.
+        edges: Boundary edges.
+        holes: Interior hole polylines.
+    """
 
     nodes: Sequence[Node]
     edges: Sequence[Edge]
@@ -209,31 +295,59 @@ class Polygon:
 
     @property
     def closed(self) -> bool:
-        """Immutable property, it is always True."""
+        """Whether this polygon is closed (always True).
+
+        Returns:
+            bool: Always True.
+        """
         return self._closed
 
     @property
     def shape(self) -> Shape:
+        """Return a closed drawable ``Shape`` for the outer boundary.
+
+        Returns:
+            Shape: Closed polygon shape.
+        """
         return _shape([n.pos for n in self.nodes], closed=True)
 
     @property
     def vertices(self) -> Sequence[PointType]:
+        """Outer-boundary vertex positions.
+
+        Returns:
+            Sequence[PointType]: Node positions.
+        """
         return tuple(n.pos for n in self.nodes)
 
     @property
     def area(self) -> float:
+        """Signed area of the outer boundary (cached).
+
+        Returns:
+            float: Polygon area.
+        """
         if "_area" not in self.__dict__:
             self._area = polygon_area(self.vertices)
         return self._area
 
     @property
     def perimeter(self) -> float:
+        """Sum of outer-boundary edge lengths.
+
+        Returns:
+            float: Perimeter length.
+        """
         return sum([e.length for e in self.edges])
 
 
 @dataclass
 class Side:
-    """Partitions have sides instead of edges."""
+    """A partition side (like an edge, but for partitions).
+
+    Attributes:
+        nodes: Endpoint nodes.
+    """
 
     nodes: tuple[Node, Node]
     _closed: bool = field(default=False, init=False, repr=False)
@@ -243,16 +357,32 @@ class Side:
 
     @property
     def shape(self) -> Shape:
+        """Return a two-point ``Shape`` for this side.
+
+        Returns:
+            Shape: Drawable segment.
+        """
         return _shape([n.pos for n in self.nodes])
 
     @property
     def closed(self) -> bool:
-        """Immutable property, it is always False."""
+        """Whether this geometry is closed (always False for a side).
+
+        Returns:
+            bool: Always False.
+        """
         return self._closed
 
 
 @dataclass
 class Partition:
+    """A closed polygonal region defined by nodes and sides.
+
+    Attributes:
+        nodes: Ordered vertices of the partition.
+        sides: Boundary sides.
+    """
+
     nodes: Sequence[Node]
     sides: Sequence[Side]
     _closed: bool = field(default=True, init=False, repr=False)
@@ -262,36 +392,61 @@ class Partition:
 
     @property
     def shape(self) -> Shape:
+        """Return a drawable ``Shape`` for this partition.
+
+        Returns:
+            Shape: Partition outline.
+        """
         return _shape([n.pos for n in self.nodes])
 
     @property
     def closed(self) -> bool:
-        """Immutable property, it is always True."""
+        """Whether this partition is closed (always True).
+
+        Returns:
+            bool: Always True.
+        """
         return self._closed
 
     @property
     def vertices(self) -> Sequence[PointType]:
+        """Vertex positions of the partition.
+
+        Returns:
+            Sequence[PointType]: Node positions.
+        """
         return tuple(n.pos for n in self.nodes)
 
     @property
     def area(self) -> float:
+        """Signed area of the partition (cached).
+
+        Returns:
+            float: Partition area.
+        """
         if "_area" not in self.__dict__:
             self._area = polygon_area(self.vertices)
         return self._area
 
     @property
     def perimeter(self) -> float:
+        """Sum of side lengths.
+
+        Returns:
+            float: Perimeter length.
+        """
         return sum([e.length for e in self.sides])
 
 
 @dataclass
 class Polyset:
-    """Used for multiple polygons/polylines.
+    """Collection of polygons/polylines with topological relations.
 
-    Provides relationships between polygons, polylines, partitions, etc.
-    Boolean operations.
-    Not for cosmetic properties.
-    Use collections for cosmetic properties.
+    Provides relationship dictionaries and (stub) boolean operations.
+    Not for cosmetic styling — use graphics collections for that.
+
+    Attributes:
+        polys: Member polygons and/or polylines.
     """
 
     polys: Sequence[Polygon | Polyline]
@@ -301,74 +456,112 @@ class Polyset:
 
     @property
     def group(self) -> Group:
+        """Return a ``Group`` of shapes for each member.
+
+        Returns:
+            Group: Drawable group of member shapes.
+        """
         return _group([poly.shape for poly in self.polys])
 
     @property
     def union(self) -> Any:
+        """Boolean union of member polygons (stub).
+
+        Returns:
+            Any: Not yet implemented.
+        """
         pass
 
     @property
     def intersection(self) -> Any:
+        """Boolean intersection of member polygons (stub).
+
+        Returns:
+            Any: Not yet implemented.
+        """
         pass
 
     @property
     def symmetric_difference(self) -> Any:
+        """Boolean symmetric difference of member polygons (stub).
+
+        Returns:
+            Any: Not yet implemented.
+        """
         pass
 
     @property
     def partitions(self) -> Any:
+        """Partitions derived from member polygons (stub).
+
+        Returns:
+            Any: Not yet implemented.
+        """
         pass
 
     @property
     def d_node_poly(self) -> Any:
+        """Node-to-polygon relation dictionary (stub)."""
         pass
 
     @property
     def d_node_edge(self) -> Any:
+        """Node-to-edge relation dictionary (stub)."""
         pass
 
     @property
     def d_node_side(self) -> Any:
+        """Node-to-side relation dictionary (stub)."""
         pass
 
     @property
     def d_node_part(self) -> Any:
+        """Node-to-partition relation dictionary (stub)."""
         pass
 
     @property
     def d_edge_poly(self) -> Any:
+        """Edge-to-polygon relation dictionary (stub)."""
         pass
 
     @property
     def d_edge_part(self) -> Any:
+        """Edge-to-partition relation dictionary (stub)."""
         pass
 
     @property
     def d_edge_side(self) -> Any:
+        """Edge-to-side relation dictionary (stub)."""
         pass
 
     @property
     def d_edge_node(self) -> Any:
+        """Edge-to-node relation dictionary (stub)."""
         pass
 
     @property
     def d_part_poly(self) -> Any:
+        """Partition-to-polygon relation dictionary (stub)."""
         pass
 
     @property
     def d_part_edge(self) -> Any:
+        """Partition-to-edge relation dictionary (stub)."""
         pass
 
     @property
     def d_side_edge(self) -> Any:
+        """Side-to-edge relation dictionary (stub)."""
         pass
 
     @property
     def d_side_part(self) -> Any:
+        """Side-to-partition relation dictionary (stub)."""
         pass
 
     @property
     def d_side_poly(self) -> Any:
+        """Side-to-polygon relation dictionary (stub)."""
         pass
 
 
@@ -388,9 +581,17 @@ def _segment_containment_counts(
 def point_inside_polygon(
     p: PointType, poly: Sequence[PointType], eps: float = 1e-5
 ) -> bool:
-    """
-    Strictly inside only.
-    Boundary returns False (consistent with "does not contain any vertices inside").
+    """Return True only if ``p`` is strictly inside ``poly``.
+
+    Points on the boundary return False.
+
+    Args:
+        p: Query point ``(x, y)``.
+        poly: Ordered polygon vertices.
+        eps: Tolerance for on-segment tests. Defaults to ``1e-5``.
+
+    Returns:
+        bool: True if strictly inside; False on boundary or outside.
     """
     x, y = p
     n = len(poly)
@@ -424,10 +625,22 @@ def polygons_union(
     all_midpoints: Sequence[PointType],
     min_seg_len: float = 0.001,
 ) -> tuple[Shape, Group]:
-    """Compute polygon union from a pre-built arrangement.
+    """Compute polygon union from a pre-built segment arrangement.
 
-    Uses XOR boundary rule on the full segment arrangement instead of
+    Uses an XOR boundary rule on the full segment arrangement instead of
     repeated pairwise ``polygon_union`` calls.
+
+    Args:
+        shapes: Input polygon shapes.
+        all_segments: Arrangement segments covering the union problem.
+        all_midpoints: Midpoints parallel to ``all_segments``.
+        min_seg_len: Drop segments shorter than this. Defaults to 0.001.
+
+    Returns:
+        tuple[Shape, Group]: Outer union boundary and a group of holes.
+
+    Raises:
+        ValueError: If ``shapes`` is empty.
     """
     if len(shapes) == 0:
         raise ValueError("polygons_union requires at least one polygon")
@@ -460,7 +673,15 @@ def polygons_union(
 
 
 def get_time(start: int, end: int) -> str:
-    ms = (end - start) / 1e6
+    """Format an elapsed ``perf_counter_ns`` interval as text.
+
+    Args:
+        start: Start time from ``time.perf_counter_ns()``.
+        end: End time from ``time.perf_counter_ns()``.
+
+    Returns:
+        str: Human-readable duration, e.g. ``\"12.34 milliseconds\"``.
+    """
 
     if ms < 900:
         elapsed = ms
@@ -633,7 +854,18 @@ def node_dictionaries(
 def segment_cycles(
     segments, length_bound: int = 10, cycle_basis=False, dist_tol=None
 ):
-    """Given a sequence of line segments, returns all cycles."""
+    """Return cycles (closed walks) formed by a set of line segments.
+
+    Args:
+        segments: Sequence of line segments ``[(p1, p2), ...]``.
+        length_bound: Maximum cycle length considered. Defaults to 10.
+        cycle_basis: If True, use a cycle-basis extraction. Defaults to False.
+        dist_tol: Distance tolerance for merging nearby endpoints.
+            Defaults to ``defaults[\"dist_tol\"]``.
+
+    Returns:
+        list: Cycles found among the segments.
+    """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     coordinates = []
@@ -801,6 +1033,16 @@ def any_point_inside_polygon(
 def get_partitions(
     shapes: Group, length_bound: int = 10
 ) -> tuple[Sequence[Shape], defaultdict[frozenset, set[int]], Shape]:
+    """Partition overlapping shapes into face regions from their arrangement.
+
+    Args:
+        shapes: Group whose segments define the arrangement.
+        length_bound: Maximum cycle length when enumerating faces.
+            Defaults to 10.
+
+    Returns:
+        tuple: ``(partition_shapes, membership_map, merged_outline)``.
+    """
     n_edges = len(shapes.all_segments)
     intersections = all_intersections(
         shapes.all_segments, return_points_list=True
@@ -934,6 +1176,16 @@ def equal_sorted_arrays(
     array2: NDArray[np.float64],
     dist_tol: float,
 ) -> bool:
+    """Return True if two same-shaped point arrays match within ``dist_tol``.
+
+    Args:
+        array1: First ``(n, 2)`` point array.
+        array2: Second ``(n, 2)`` point array (same order).
+        dist_tol: Maximum allowed per-point distance.
+
+    Returns:
+        bool: True if every corresponding pair is within tolerance.
+    """
     if array1.shape != array2.shape:
         return False
     n_vertices = array1.shape[0]
@@ -955,23 +1207,14 @@ def equal_sorted_arrays(
 def _build_hole_index(
     holes: Sequence[Shape],
 ) -> tuple[NDArray[Any], Sequence[NDArray[np.float64]], NDArray[np.bool_]]:
-    (
-        """_summary_
+    """Build a bbox / sorted-vertex index for hole lookup.
 
-    Parameters
-    ----------
-    holes : Sequence[Shape]
-        _description_
+    Args:
+        holes: Hole shapes to index.
 
-    Returns
-    -------
-    _type_
-        _description_
+    Returns:
+        tuple: ``(hole_index, sorted_hole_arrays, unused_mask)``.
     """
-        """"""
-    )
-
-    # """Build bbox/sorted-vertex index for hole lookup."""
     n_holes = len(holes)
     hole_dtype = [
         ("xmin", np.float64),
@@ -1027,6 +1270,14 @@ def _candidate_hole_ids(
 def polygon_xy_array(
     polygon: Shape | Sequence[PointType] | NDArray[Any],
 ) -> NDArray[np.float64]:
+    """Return an ``(n, 2)`` float array of polygon xy coordinates.
+
+    Args:
+        polygon: A ``Shape``, point sequence, or array-like.
+
+    Returns:
+        NDArray[np.float64]: XY coordinates (uses ``final_coords`` for shapes).
+    """
     from simetri.graphics.shape import Shape
 
     if isinstance(polygon, Shape):
@@ -1042,6 +1293,14 @@ def polygon_xy_array(
 def sorted_polygon_xy_array(
     polygon: Shape | Sequence[PointType] | NDArray[Any],
 ) -> NDArray[np.float64]:
+    """Return polygon xy coordinates sorted by ``x`` then ``y``.
+
+    Args:
+        polygon: A ``Shape``, point sequence, or array-like.
+
+    Returns:
+        NDArray[np.float64]: Lexicographically sorted XY coordinates.
+    """
     array = polygon_xy_array(polygon)
     order = np.lexsort((array[:, 1], array[:, 0]))
 
@@ -1099,7 +1358,14 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
 
 
 def rotate_turns_to_min_edge(turns: Sequence[float]) -> list[float]:
-    """Rotate a flat ``[length, angle, ...]`` cycle to start at a min edge."""
+    """Rotate a flat ``[length, angle, ...]`` cycle to start at a min edge.
+
+    Args:
+        turns: Alternating edge lengths and turn angles.
+
+    Returns:
+        list[float]: Rotated cycle starting at the shortest edge.
+    """
     if len(turns) < 2:
         return list(turns)
     n_edges = len(turns) // 2
@@ -1153,7 +1419,16 @@ def equal_polygons(
     polygon2: PolygonLike,
     mirror: bool = False,
 ) -> bool:
-    """Alias for ``congruent_polygons``."""
+    """Return True if two polygons are congruent (alias of ``congruent_polygons``).
+
+    Args:
+        polygon1: First polygon.
+        polygon2: Second polygon.
+        mirror: If True, allow mirror congruence. Defaults to False.
+
+    Returns:
+        bool: True when the polygons match under congruence.
+    """
     return congruent_polygons(polygon1, polygon2, mirror)
 
 
@@ -1420,19 +1695,14 @@ def remove_duplicate_polygons(
 def symmetric_difference(
     shapes: Group, length_bound: int = 10
 ) -> tuple[Sequence[Shape], Shape]:
-    """_summary_
+    """Partition overlapping shapes and return the XOR (symmetric difference) faces.
 
-    Parameters
-    ----------
-    shapes : _type_
-        _description_
-    length_bound : int, optional
-        _description_, by default 10
+    Args:
+        shapes: Group of overlapping polygon shapes.
+        length_bound: Maximum cycle length for face enumeration. Defaults to 10.
 
-    Returns
-    -------
-    _type_
-        _description_
+    Returns:
+        tuple[Sequence[Shape], Shape]: Filled partitions and their union outline.
     """
     start = time.perf_counter_ns()
     partitions, d_edge_part, union = get_partitions(shapes, length_bound)
@@ -1450,17 +1720,25 @@ def in_polygon(
     polygon_vertices: Sequence[PointType],
     exclude_border: bool = False,
 ) -> bool:
-    """
-    Checks if a point is inside a polygon using the winding number algorithm.
+    """Return whether a point lies inside a polygon (winding number).
 
     Args:
-        point (tuple): A tuple (x, y) representing the point to test.
-        polygon_vertices (list): A sequence of tuples, where each tuple (x, y)
-                                represents a vertex of the polygon. The vertices
-                                should be ordered (e.g., clockwise or counter-clockwise).
+        point: Point ``(x, y)`` to test.
+        polygon_vertices: Ordered polygon vertices (clockwise or
+            counter-clockwise).
+        exclude_border: If True, points on an edge return False. If False
+            (default), border points are treated as inside.
 
     Returns:
-        bool: True if the point is inside the polygon, False otherwise.
+        bool: True if inside (subject to ``exclude_border``), else False.
+
+    Examples:
+        ::
+
+            import simetri.graphics as sg
+
+            square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+            sg.in_polygon((0.5, 0.5), square)  # True
     """
     _, y = point[:2]
     n_winding = 0  # Initialize the winding number

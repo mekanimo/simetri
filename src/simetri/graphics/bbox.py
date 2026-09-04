@@ -1,5 +1,15 @@
-"""Bounding box class. Shape and Group objects have a bounding box.
-Bounding box is axis-aligned. Provides reference edges and points.
+"""Axis-aligned bounding boxes for Shape and Group objects.
+
+Provides reference anchors (corners, mid-sides, diagonals) and placement
+helpers such as ``left_of``, ``above``, and ``polar_pos``.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> box = sg.BoundingBox((0, 0), (100, 50))
+    >>> box.width, box.height
+    (100, 50)
+    >>> box.midpoint
+    (50.0, 25.0)
 """
 
 from __future__ import annotations
@@ -27,22 +37,33 @@ if TYPE_CHECKING:
 
 
 class BoundingBox:
-    """Rectangular bounding box.
-    If the object is a Shape, it contains all points.
-    If the object is a Group, it contains all points of all Shapes.
+    """Axis-aligned rectangular bounding box.
 
-    Provides reference edges and points as shown in the Book page ???.
+    For a Shape it encloses all vertices; for a Group it encloses all
+    vertices of all nested shapes. Exposes corner/edge anchors and
+    placement helpers used by transforms and tags.
+
+    Attributes:
+        southwest: Lower-left corner ``(x, y)``, or ``None`` if empty.
+        northeast: Upper-right corner ``(x, y)``, or ``None`` if empty.
+        type: Always ``Types.BOUNDING_BOX``.
+        id: Unique object id.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> bb = sg.BoundingBox((0, 0), (10, 20))
+        >>> bb.northwest
+        (0, 20)
     """
 
     def __init__(
         self, southwest: PointType = None, northeast: PointType = None
     ):
-        """
-        Initialize a BoundingBox object.
+        """Initialize a BoundingBox from opposite corners.
 
         Args:
-            southwest (PointType): The southwest corner of the bounding box.
-            northeast (PointType): The northeast corner of the bounding box.
+            southwest: Southwest (min-x, min-y) corner.
+            northeast: Northeast (max-x, max-y) corner.
         """
         # define the four corners
         if southwest is None or northeast is None:
@@ -106,16 +127,14 @@ class BoundingBox:
             return self.__dict__[name]
         raise AttributeError(name)
 
-    def angle_point(self, angle: float) -> float:
-        """
-        Return the intersection point of the angled line starting
-        from the midpoint and the bounding box. angle is in radians.
+    def angle_point(self, angle: float) -> PointType:
+        """Return where a ray from the midpoint hits the box boundary.
 
         Args:
-            angle (float): The angle in radians.
+            angle: Ray direction in radians (from positive x-axis).
 
         Returns:
-            float: The intersection point.
+            PointType: Intersection of the ray with the bounding-box edge.
         """
         angle = positive_angle(angle)
         line = ((0, 0), (np.cos(angle), np.sin(angle)))
@@ -691,16 +710,17 @@ class BoundingBox:
     def polar_pos(
         self, item: Shape | Group, angle: float, radius: float
     ) -> PointType:
-        """
-        Get the polar position of the reference item.
+        """Return a point at polar offset from ``item.midpoint``.
+
+        Used to place this box's midpoint at that polar position.
 
         Args:
-            item (object): The reference item. Shape or Group.
-            theta (float): The angle in radians.
-            radius (float): The radius.
+            item: Reference Shape or Group.
+            angle: Angle in radians from the positive x-axis.
+            radius: Distance from ``item.midpoint``.
 
         Returns:
-            PointType: The polar position of the reference item.
+            PointType: Target ``(x, y)`` for this box's midpoint.
         """
 
         x, y = item.midpoint[:2]
@@ -713,17 +733,22 @@ class BoundingBox:
 
 
 def bounding_box(points):
-    """
-    Given a list of (x, y) points return the corresponding BoundingBox object.
+    """Build a ``BoundingBox`` from a sequence of points.
 
     Args:
-        points (list): The list of points.
+        points: Sequence or ndarray of ``(x, y)`` points.
 
     Returns:
-        BoundingBox: The corresponding BoundingBox object.
+        BoundingBox: Axis-aligned box enclosing the points.
 
     Raises:
-        ValueError: If the list of points is empty.
+        ValueError: If ``points`` is empty.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> bb = sg.bounding_box([(0, 0), (10, 5), (3, 8)])
+        >>> bb.southwest, bb.northeast  # doctest: +SKIP
+        ((0, 0), (10, 8))
     """
     if isinstance(points, np.ndarray):
         points = points[:, :2]

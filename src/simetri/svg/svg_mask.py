@@ -1,4 +1,4 @@
-"""SVG Mask"""
+"""SVG opacity-mask and clip-path definition helpers."""
 
 import numpy as np
 

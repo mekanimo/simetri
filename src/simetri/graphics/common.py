@@ -1,4 +1,14 @@
-"""Simetri library's constants and common data."""
+"""Shared constants, type aliases, and ID helpers for Simetri graphics.
+
+Unit constants convert physical lengths to PostScript points (1 inch = 72 pt).
+Type aliases such as ``PointType`` and ``LineType`` are used throughout the
+graphics and geometry APIs.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> from simetri.graphics.common import INCH, CM, phi
+    >>> width_pt = 2 * INCH  # 144 points
+"""
 
 from __future__ import annotations
 
@@ -40,12 +50,18 @@ phi = (1 + 5**0.5) / 2  # golden ratio
 
 
 def gen_unique_ids() -> Iterator[int]:
-    """
-    Generate unique Ids.
-    Every object in Simetri has a unique id.
+    """Yield an infinite sequence of unique integer IDs.
+
+    Every drawable object in Simetri receives an ID from this generator
+    (via ``get_unique_id``).
 
     Yields:
-        Iterator[int]: A unique id.
+        int: The next unique identifier, starting at 0.
+
+    Examples:
+        >>> gen = gen_unique_ids()
+        >>> next(gen), next(gen)
+        (0, 1)
     """
     id_ = 0
     while True:
@@ -59,16 +75,18 @@ d_id_obj = {}  # for Shape objects
 
 
 def get_unique_id(item) -> int:
-    """
-    Return a unique id.
-    Every Shape object in Simetri has a unique id.
-    Register the object in d_id_obj.
+    """Allocate a unique ID and register ``item`` in ``d_id_obj``.
 
     Args:
-        item (Any): The object to get a unique id for.
+        item: Object to register (typically a Shape, Group, or sketch).
 
     Returns:
-        int: The unique id.
+        int: Newly assigned unique identifier.
+
+    Examples:
+        >>> class _T: pass
+        >>> get_unique_id(_T())  # doctest: +SKIP
+        0
     """
     id_ = next(unique_id)
     d_id_obj[id_] = item

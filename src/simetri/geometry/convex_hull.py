@@ -12,18 +12,22 @@ Point = tuple[float, float]
 
 
 def _as_xy(point) -> Point:
+    """Return ``(x, y)`` floats from a point-like value."""
     return float(point[0]), float(point[1])
 
 
 def _sub(a: Point, b: Point) -> Point:
+    """Return vector ``a - b``."""
     return a[0] - b[0], a[1] - b[1]
 
 
 def _cross(a: Point, b: Point) -> float:
+    """Return 2D cross product ``a_x * b_y - a_y * b_x``."""
     return a[0] * b[1] - a[1] * b[0]
 
 
 def _dot(a: Point, b: Point) -> float:
+    """Return 2D dot product."""
     return a[0] * b[0] + a[1] * b[1]
 
 
@@ -39,6 +43,14 @@ def convex_hull(points: Sequence, on_edge: bool = False) -> list[Point]:
     Returns:
         Hull vertices starting at the leftmost point, without repeating the
         start point at the end.
+
+    Examples:
+        ::
+
+            from simetri.geometry.convex_hull import convex_hull
+
+            hull = convex_hull([(0, 0), (1, 0), (0.5, 0.5), (0, 1)])
+            # [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]
     """
     if not points:
         return []

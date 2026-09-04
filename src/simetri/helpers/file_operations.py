@@ -46,8 +46,17 @@ def validate_filepath(filepath: Path, overwrite: bool):
 def inject_snippet(
     code: str, snippet: list[str], mark: str, before=True
 ) -> str:
-    """Insert the given snippet before/after the line that contains the
-    given mark.
+    """Insert the given snippet before/after the line that contains the mark.
+
+    Args:
+        code (str): Source code to modify.
+        snippet (list[str]): Lines to insert.
+        mark (str): Substring identifying the insertion anchor line.
+        before (bool, optional): If True, insert before the mark line;
+            otherwise insert after. Defaults to True.
+
+    Returns:
+        str: Modified source code, or None if the mark was not found.
     """
 
     lines = code.split("\n")
@@ -72,9 +81,15 @@ def inject_snippet(
 
 
 def replace_token(code: str, token: str, replace: str) -> str:
-    """'Replace the line with the given mark with the given
-    new_line.
-    Return the modified snippet.
+    """Replace occurrences of ``token`` in each matching line.
+
+    Args:
+        code (str): Source code to modify.
+        token (str): Substring to find within lines.
+        replace (str): Replacement text for ``token``.
+
+    Returns:
+        str: Modified source code, or None if the token was not found.
     """
     lines = code.split("\n")
     res_lines = []
@@ -94,9 +109,14 @@ def replace_token(code: str, token: str, replace: str) -> str:
 
 
 def inject_filepath(code: str, pic_path: str) -> str:
-    """'Replace 'canvas.display()' with
-    'canvas.save(pic_path, overwrite=True)'
-    and returns the modified script.
+    """Replace ``canvas.display()`` with ``canvas.save(...)``.
+
+    Args:
+        code (str): Source code to modify.
+        pic_path (str): Output path passed to ``canvas.save``.
+
+    Returns:
+        str: Modified source code, or None if ``canvas.display()`` was not found.
     """
     lines = code.split("\n")
     res_lines = []
@@ -123,6 +143,17 @@ def inject_border(
     width: float | None = None,
     height: float | None = None,
 ):
+    """Inject an ``auto_border`` call before ``canvas.save(``.
+
+    Args:
+        code (str): Source code to modify.
+        caption (str): Caption passed to ``auto_border``.
+        width (float | None, optional): Optional border width.
+        height (float | None, optional): Optional border height.
+
+    Returns:
+        str: Modified source code with the border snippet inserted.
+    """
     # inject auto_border(canvas)
     w, h = width, height
     mark = "canvas.save("
@@ -148,6 +179,18 @@ def inject_border_and_filepath(
     width: float | None = None,
     height: float | None = None,
 ) -> str:
+    """Inject ``auto_border`` and replace ``canvas.display()`` with save.
+
+    Args:
+        code (str): Source code to modify.
+        pic_path (str): Output path for ``canvas.save``.
+        pic_caption (str): Caption passed to ``auto_border``.
+        width (float | None, optional): Optional border width.
+        height (float | None, optional): Optional border height.
+
+    Returns:
+        str: Modified source code.
+    """
     w, h = width, height
     mark = "canvas.display()"
     snippet = [
@@ -170,6 +213,15 @@ def inject_border_and_filepath(
 
 
 def path_join(path, *paths):
+    """Join path segments using ``os.path.join``.
+
+    Args:
+        path: First path segment.
+        *paths: Additional path segments.
+
+    Returns:
+        str: Joined path string.
+    """
     joined_path = os.path.join(path, *paths)
     joined_path.replace(os.sep, "/")
 
@@ -177,21 +229,32 @@ def path_join(path, *paths):
 
 
 def join_path_with_ext(*folders, filename, ext):
-    """Given a folder-path filename and ext (".ext") returns the full path
-    with forward slashes."""
+    """Build a full path from folders, filename, and extension.
+
+    Args:
+        *folders: Parent folder segments.
+        filename: File stem without extension.
+        ext: Extension including the leading dot (for example ``.pdf``).
+
+    Returns:
+        str: Joined path (intended to use forward slashes).
+    """
 
     return path_join(*folders, filename + ext)
 
 
 def path_exists(path: str | os.PathLike[str]) -> bool:
-    """
-    Return True if the given path exists (file or directory), otherwise False.
+    """Return True if the given path exists (file or directory).
 
-    Parameters:
-      path: str or PathLike - the path to check
+    Args:
+        path (str | os.PathLike[str]): Path to check.
 
-    Example:
-      path_exists("/tmp/test.txt")  # True if the file exists
+    Returns:
+        bool: True if the path exists.
+
+    Examples:
+        >>> path_exists("/tmp/test.txt")
+        False
     """
     return Path(path).exists()
 
@@ -290,15 +353,29 @@ def remove_aux_files(filepath):
 
 
 def replace_extension(filepath: str, ext: str) -> str:
-    """Given a fileapth and an extension ('.pdf', '.py', etc.)
-    returns a filepath with the given extension.
+    """Return ``filepath`` with its extension replaced.
+
+    Args:
+        filepath (str): Original file path.
+        ext (str): New extension including the leading dot.
+
+    Returns:
+        str: Path with the new extension.
     """
     return os.path.splitext(filepath)[0] + ext
 
 
 def convert_pdf(pdf_path: str, extension: str):
-    """Converts the given PDF file to given extension.
-    Only .ps, .eps, .svg, and .png extensions are supported.
+    """Convert a PDF file to another supported image/vector format.
+
+    Only ``.ps``, ``.eps``, ``.svg``, and ``.png`` extensions are supported.
+
+    Args:
+        pdf_path (str): Path to the source PDF.
+        extension (str): Target extension including the leading dot.
+
+    Raises:
+        RuntimeError: If PDF-to-PS conversion fails.
     """
     if extension in (".eps", ".ps"):
         ps_path = os.path.join(parent_dir, file_name + extension)

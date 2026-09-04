@@ -1,4 +1,14 @@
-"""Color related operations"""
+"""Color related operations.
+
+Provides the ``Color`` class, conversion helpers, blend utilities, and
+named color constants used throughout Simetri drawings.
+
+Examples:
+    >>> from simetri.colors.colors import Color
+    >>> red = Color(1.0, 0.0, 0.0)
+    >>> red.rgb255
+    (255, 0, 0)
+"""
 
 import colorsys
 
@@ -25,7 +35,15 @@ from ..graphics.all_enums import ColorSpace, Types
 
 
 def get_lighter(rgb255_color1:Sequence, rgb255_color2:Sequence):
-    '''Given two rgb255 colors, returns the lighter color.'''
+    """Return the lighter of two RGB-255 colors.
+
+    Args:
+        rgb255_color1 (Sequence): First RGB color with components in 0-255.
+        rgb255_color2 (Sequence): Second RGB color with components in 0-255.
+
+    Returns:
+        Sequence: The lighter of the two colors.
+    """
     lightness1 = rgb2hls(*rgb255_color1)[1]
     lightness2 = rgb2hls(*rgb255_color2)[1]
     if lightness1 < lightness2:
@@ -34,7 +52,14 @@ def get_lighter(rgb255_color1:Sequence, rgb255_color2:Sequence):
     return rgb255_color1
 
 def get_lightest(rgb255_palette:Sequence):
-    '''Given a sequence of rgb255 colors, returns the lightest color.'''
+    """Return the lightest color in an RGB-255 palette.
+
+    Args:
+        rgb255_palette (Sequence): Sequence of RGB colors with components in 0-255.
+
+    Returns:
+        Sequence: The lightest color in the palette.
+    """
     lightest = [0, 0, 0]
     for i, color in enumerate(rgb255_palette):
         lightest = get_lighter(color, lightest)
@@ -93,40 +118,108 @@ def change_saturation(color: "Color", delta: float) -> "Color":
 
 
 def change_alpha(color, delta):
+    """Change the alpha channel of a color by ``delta``.
+
+    Args:
+        color: Source ``Color`` instance.
+        delta: Amount added to the alpha channel.
+
+    Returns:
+        Color: New color with updated alpha.
+    """
     r, g, b, a = color.rgba
     return Color(r, g, b, a + delta)
 
 
 def change_red(color, delta):
+    """Change the red channel of a color by ``delta``.
+
+    Args:
+        color: Source ``Color`` instance.
+        delta: Amount added to the red channel.
+
+    Returns:
+        Color: New color with updated red.
+    """
     r, g, b, a = color.rgba
     return Color(r + delta, g, b, a)
 
 
 def change_green(color, delta):
+    """Change the green channel of a color by ``delta``.
+
+    Args:
+        color: Source ``Color`` instance.
+        delta: Amount added to the green channel.
+
+    Returns:
+        Color: New color with updated green.
+    """
     r, g, b, a = color.rgba
     return Color(r, g + delta, b, a)
 
 
 def change_blue(color, delta):
+    """Change the blue channel of a color by ``delta``.
+
+    Args:
+        color: Source ``Color`` instance.
+        delta: Amount added to the blue channel.
+
+    Returns:
+        Color: New color with updated blue.
+    """
     r, g, b, a = color.rgba
     return Color(r, g, b + delta, a)
 
 
 def rgb255_to_1(rgb):
+    """Convert RGB components from 0-255 to 0-1.
+
+    Args:
+        rgb: Sequence of RGB components in 0-255.
+
+    Returns:
+        list: RGB components scaled to 0-1.
+    """
     return [x / 255 for x in rgb]
 
 
 def rgb1_to_255(rgb):
+    """Convert RGB components from 0-1 to 0-255 integers.
+
+    Args:
+        rgb: Sequence of RGB components in 0-1.
+
+    Returns:
+        list: RGB components scaled to 0-255.
+    """
     return [int(x * 255) for x in rgb]
 
 
 def hex_to_rgb(hex_val: str):
-    """Convert hex to RGB."""
+    """Convert a hex color string to an RGB tuple in 0-1 range.
+
+    Args:
+        hex_val (str): Hex color string (with or without ``#``).
+
+    Returns:
+        tuple: RGB components in 0-1 range.
+    """
     return hex2rgb(hex_val)
 
 
 def rgb_to_hex(r, g, b):
-    """Convert RGB to hex."""
+    """Convert integer RGB components to a hex string without ``#``.
+
+    Args:
+        r: Red component.
+        g: Green component.
+        b: Blue component.
+
+    Returns:
+        str: Hex color string without a leading ``#``.
+    """
     return f"{r:X}{g:X}{b:X}"
 
 
@@ -175,19 +268,44 @@ class Color:
             self.alpha = self.alpha / 255
 
     def __str__(self):
+        """Return a readable string representation.
+
+        Returns:
+            str: ``Color(r, g, b)`` style string.
+        """
         return f"Color({self.red}, {self.green}, {self.blue})"
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            str: ``Color(r, g, b)`` style string.
+        """
         return f"Color({self.red}, {self.green}, {self.blue})"
 
     def copy(self):
+        """Return a shallow copy of this color.
+
+        Returns:
+            Color: New ``Color`` with the same RGBA values.
+        """
         return Color(self.red, self.green, self.blue, self.alpha)
 
     @property
     def __key__(self):
+        """Return the RGB tuple used for hashing and equality.
+
+        Returns:
+            tuple: ``(red, green, blue)``.
+        """
         return (self.red, self.green, self.blue)
 
     def __hash__(self):
+        """Return a hash based on RGB components.
+
+        Returns:
+            int: Hash of the RGB key.
+        """
         return hash(self.__key__)
 
     @property
@@ -196,6 +314,14 @@ class Color:
         pass
 
     def __eq__(self, other):
+        """Compare two colors by RGB components.
+
+        Args:
+            other: Object to compare.
+
+        Returns:
+            bool: True if ``other`` is a ``Color`` with the same RGB.
+        """
         if isinstance(other, Color):
             return self.__key__ == other.__key__
         else:
@@ -203,14 +329,29 @@ class Color:
 
     @property
     def rgb(self):
+        """RGB components in 0-1 range.
+
+        Returns:
+            tuple: ``(red, green, blue)``.
+        """
         return (self.red, self.green, self.blue)
 
     @property
     def rgba(self):
+        """RGBA components in 0-1 range.
+
+        Returns:
+            tuple: ``(red, green, blue, alpha)``.
+        """
         return (self.red, self.green, self.blue, self.alpha)
 
     @property
     def rgb255(self):
+        """RGB components in 0-255 range.
+
+        Returns:
+            tuple: Integer RGB components.
+        """
         r, g, b = self.rgb
         if r > 1 or g > 1 or b > 1:
             return (r, g, b)
@@ -218,18 +359,42 @@ class Color:
 
     @property
     def rgba255(self):
+        """RGBA components in 0-255 range.
+
+        Returns:
+            tuple: Integer RGBA components.
+        """
         return tuple(round(i * 255) for i in self.rgba)
 
 
 def hex_color(hex_value: str):
-    """Returns RGB equivalent of the given hex color."""
+    """Return a ``Color`` from a hex string.
+
+    Args:
+        hex_value (str): Hex color string (with or without ``#``).
+
+    Returns:
+        Color: Color constructed from the hex value.
+    """
     return Color(*hex2rgb(hex_value))
 
 
 def map_color(
     r: float, g: float, b: float, r_max: float, g_max: float, b_max: float
 ) -> Color:
-    """Map RGB values to a range of 0-255."""
+    """Map RGB values from custom maxima into the 0-255 range.
+
+    Args:
+        r (float): Red value in ``[0, r_max]``.
+        g (float): Green value in ``[0, g_max]``.
+        b (float): Blue value in ``[0, b_max]``.
+        r_max (float): Maximum red input.
+        g_max (float): Maximum green input.
+        b_max (float): Maximum blue input.
+
+    Returns:
+        Color: Mapped color.
+    """
     i_range = range(256)
     r_range = np.arange(0, r_max, r_max / 256)
     g_range = np.arange(0, g_max, g_max / 256)
@@ -243,8 +408,19 @@ def map_color(
 
 
 def blend(color1: Color, percent: int, color2: Color):
-    """percent% of color1 and (100-percent)% of color2
-    blended together to create a new color."""
+    """Blend two colors using a percentage weight.
+
+    ``percent`` percent of ``color1`` is mixed with ``(100 - percent)``
+    percent of ``color2``.
+
+    Args:
+        color1 (Color): First color.
+        percent (int): Weight of ``color1`` in percent.
+        color2 (Color): Second color.
+
+    Returns:
+        Color: Blended color.
+    """
     percent = percent / 100
     r1, g1, b1 = color1
     r2, g2, b2 = color2
@@ -257,10 +433,16 @@ def blend(color1: Color, percent: int, color2: Color):
 
 
 def get_color(value):
-    """
-    if value is [r, g, b] return Color(r, g, b)
-    if value is a string return Color(value)
-    if value is a Color return value
+    """Normalize a color-like value to a ``Color`` instance.
+
+    Args:
+        value: A ``Color``, named/hex string, or RGB sequence.
+
+    Returns:
+        Color: Normalized color.
+
+    Raises:
+        TypeError: If ``value`` cannot be interpreted as a color.
     """
     if isinstance(value, Color):
         return value
@@ -273,6 +455,17 @@ def get_color(value):
 
 
 def check_color(color):
+    """Validate and normalize a color-like value.
+
+    Args:
+        color: A ``Color``, named/hex string, or RGB sequence.
+
+    Returns:
+        Color: Normalized color.
+
+    Raises:
+        ValueError: If the color cannot be resolved.
+    """
     if isinstance(color, Color):
         return color
     elif isinstance(color, str):
@@ -290,37 +483,111 @@ def check_color(color):
 
 
 def rgb2hls(r, g, b):
+    """Convert RGB to HLS.
+
+    Args:
+        r: Red component in 0-1.
+        g: Green component in 0-1.
+        b: Blue component in 0-1.
+
+    Returns:
+        tuple: ``(h, l, s)`` components.
+    """
     return rgb_to_hls(r, g, b)
 
 
 def hls2rgb(h, l, s):
+    """Convert HLS to RGB.
+
+    Args:
+        h: Hue component.
+        l: Lightness component.
+        s: Saturation component.
+
+    Returns:
+        tuple: ``(r, g, b)`` components in 0-1.
+    """
     return hls_to_rgb(h, l, s)
 
 
 def rgb2hsv(r, g, b):
+    """Convert RGB to HSV.
+
+    Args:
+        r: Red component in 0-1.
+        g: Green component in 0-1.
+        b: Blue component in 0-1.
+
+    Returns:
+        tuple: ``(h, s, v)`` components.
+    """
     return rgb_to_hsv(r, g, b)
 
 
 def hsv2rgb(h, s, v):
+    """Convert HSV to RGB.
+
+    Args:
+        h: Hue component.
+        s: Saturation component.
+        v: Value component.
+
+    Returns:
+        tuple: ``(r, g, b)`` components in 0-1.
+    """
     return hsv_to_rgb(h, s, v)
 
 
 def rgb2yiq(r, g, b):
+    """Convert RGB to YIQ.
+
+    Args:
+        r: Red component in 0-1.
+        g: Green component in 0-1.
+        b: Blue component in 0-1.
+
+    Returns:
+        tuple: ``(y, i, q)`` components.
+    """
     return rgb_to_yiq(r, g, b)
 
 
 def yiq2rgb(y, i, q):
+    """Convert YIQ to RGB.
+
+    Args:
+        y: Y component.
+        i: I component.
+        q: Q component.
+
+    Returns:
+        tuple: ``(r, g, b)`` components in 0-1.
+    """
     return yiq_to_rgb(y, i, q)
 
 
 def rgb2hex(rgb):
-    """Convert an RGB tuple to a hex color value."""
+    """Convert an RGB tuple to a hex color value.
+
+    Args:
+        rgb: RGB components suitable for ``:02x`` formatting.
+
+    Returns:
+        str: Hex color string with a leading ``#``.
+    """
     r, g, b = rgb
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
 def hex2rgb(hex_val: str):
-    """Convert a hex color value to an RGB tuple."""
+    """Convert a hex color value to an RGB tuple in 0-1 range.
+
+    Args:
+        hex_val (str): Hex color string (with or without ``#``).
+
+    Returns:
+        tuple: RGB components in 0-1 range.
+    """
     hex_val = hex_val.strip("#")
     return tuple(round(int(hex_val[i : i + 2], 16) / 255, 3) for i in (0, 2, 4))
 
@@ -398,13 +665,24 @@ def rgb2cmyk(r, g, b):
 
 
 def random_color():
-    """Return a random color."""
+    """Return a random RGB color with components in 0-1.
+
+    Returns:
+        Color: Random color.
+    """
     return Color(random(), random(), random())
 
 
 def expand_palette(rgb255_palette, n):
-    """Given a list of (r, g, b) values, creates a
-    new interpolated palette with n colors."""
+    """Interpolate an RGB-255 palette to ``n`` colors.
+
+    Args:
+        rgb255_palette: Sequence of RGB colors with components in 0-255.
+        n: Desired number of colors in the expanded palette.
+
+    Returns:
+        list: Expanded RGB colors (0-1 components from ``hex2rgb``).
+    """
     hex_colors = [rgb2hex(c) for c in rgb255_palette]
     interp_func = Color_aide.interpolate(hex_colors)
     expanded = [interp_func(i / (n - 1)) for i in range(n)]
@@ -416,6 +694,16 @@ def expand_palette(rgb255_palette, n):
 
 
 def show_expanded(rgb255_palette, n, name=""):
+    """Expand a palette and display a swatch plot.
+
+    Args:
+        rgb255_palette: Sequence of RGB colors with components in 0-255.
+        n: Desired number of colors in the expanded palette.
+        name (str, optional): Optional palette name for the plot.
+
+    Returns:
+        list: Expanded RGB colors.
+    """
     hex_colors = [rgb2hex(c) for c in rgb255_palette]
     interp_func = Color_aide.interpolate(hex_colors)
     expanded = [interp_func(i / (n - 1)) for i in range(n)]
@@ -429,6 +717,13 @@ def show_expanded(rgb255_palette, n, name=""):
 
 
 def show_swatch(rgb255_palette, name="", size=None):
+    """Display a swatch plot for an RGB-255 palette.
+
+    Args:
+        rgb255_palette: Sequence of RGB colors with components in 0-255.
+        name (str, optional): Optional palette name for the plot.
+        size (optional): Optional ``figsize`` passed to ``swatchplot``.
+    """
     hex_colors = [rgb2hex(c) for c in rgb255_palette]
     hex_palette = palette(hex_colors, name=name)
     if size:
@@ -467,6 +762,7 @@ class LinearGradient:
     extend: bool = False
 
     def __post_init__(self):
+        """Set gradient type metadata after dataclass initialization."""
         self.type = Types.GRADIENT
         self.subtype = Types.LINEAR
 
@@ -500,6 +796,7 @@ class RadialGradient:
     extend: bool = False
 
     def __post_init__(self):
+        """Set gradient type metadata after dataclass initialization."""
         self.type = Types.GRADIENT
         self.subtype = Types.RADIAL
 

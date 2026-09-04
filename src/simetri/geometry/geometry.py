@@ -1,9 +1,11 @@
-"""Geometry related utilities.
-These functions are used to perform geometric operations.
-They are not documented. Some of the are one off functions that
-are not used in the main codebase or tested."""
+"""Core 2D geometry operations used across simetri.
 
-# To do: Clean up this module and add documentation.
+Includes line clipping, intersections, polygon simplicity tests, trimming,
+fillets, and related utilities. Many helpers are also re-exported via
+``import simetri.graphics as sg``.
+"""
+
+# To do: Clean up this module.
 
 from __future__ import annotations
 
@@ -66,10 +68,19 @@ tau = 2 * pi  # 360 degrees
 
 
 def clip_line_to_rect(point, direction, lower_left, upper_right):
-    """
-    Clips a line defined by point p and direction vector d against a rectangle.
-    rect: (x_min, y_min, x_max, y_max)
-    Returns: ((x1, y1), (x2, y2)) or None
+    """Clip an infinite line against an axis-aligned rectangle.
+
+    The line is defined by a point and a direction vector.
+
+    Args:
+        point: A point on the line ``(x, y)``.
+        direction: Direction vector ``(dx, dy)``.
+        lower_left: Rectangle lower-left corner.
+        upper_right: Rectangle upper-right corner.
+
+    Returns:
+        tuple | None: Clipped segment ``((x1, y1), (x2, y2))``, or None if
+        the line misses the rectangle.
     """
     x_min, y_min = lower_left[:2]
     x_max, y_max = upper_right[:2]
@@ -235,6 +246,17 @@ def circle_inversion(point, center, radius):
 
 
 def sorted_edges(polygon):
+    """Return polygon edges sorted for sweep-line processing.
+
+    Edges are oriented left-to-right, then sorted by increasing start ``x``
+    and ``y``. Used by simplicity tests.
+
+    Args:
+        polygon: Sequence of polygon vertices.
+
+    Returns:
+        list: Oriented and sorted edges ``[(p1, p2), ...]``.
+    """
     # order the edges:increasing x coordinates then increasing y coordinates for the start points
     # this is used for line sweep algorithm to check if the polygon is simple
     def get_edges(polygon):
@@ -282,8 +304,18 @@ def equal_angles(
     rel_tol: float | None = None,
     abs_tol: float | None = None,
 ) -> bool:
-    """Checks if the given angles are close enough.
-    Negative angles will be converted to positive values for comparison.
+    """Return True if two angles are equal within tolerance.
+
+    Negative angles are converted to positive values before comparison.
+
+    Args:
+        angle1: First angle in radians.
+        angle2: Second angle in radians.
+        rel_tol: Relative tolerance. Defaults to ``defaults[\"rel_tol\"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults[\"abs_tol\"]``.
+
+    Returns:
+        bool: True if the angles match within tolerance.
     """
     if rel_tol is None:
         rel_tol = defaults["rel_tol"]
@@ -298,9 +330,16 @@ def equal_angles(
 
 
 def is_simple(polygon):
-    """Sweep line algorithm variation to test if the polygon is simple (i.e. non intersecting).
-    Returns True if it is a simple polygon, False otherwise.
-    If the polygon has more than 100 vertices, is_simple2 is used.
+    """Return True if ``polygon`` is simple (non-self-intersecting).
+
+    Uses a sweep-line style test. Polygons with more than 100 vertices
+    are delegated to ``is_simple2``.
+
+    Args:
+        polygon: Ordered polygon vertices.
+
+    Returns:
+        bool: True if the polygon does not self-intersect.
     """
     if len(polygon) > 100:
         return is_simple2(polygon)
@@ -424,19 +463,18 @@ def all_segments_sorted(
     rel_tol: float | None = None,
     abs_tol: float | None = None,
 ) -> list[tuple[PointType]]:
-    """Return all intersections sorted by edges.
-    Intersection points are sorted by their proximity to the
-    first point of an edge.
-    For example if there are 1 intersections on edge1,
-    2 intersections on edge2, ...
+    """Split edges at intersection points, ordered along each edge.
 
-    Return should be [(edge1[0], ip1, edge1[1]),
-                      (edge2[0], ip2, ip3, edge2[1]),
-                      ...
-                    ]
-    Each row corresponds to an edge, and the resulting list has
-    the same order of edges. The first output edge corresponds
-    to the firts input edge.
+    Intersection points on an edge are sorted by distance from the edge's
+    first endpoint. The result is a flat list of consecutive sub-segments.
+
+    Args:
+        edges: Input line segments.
+        rel_tol: Relative tolerance for intersections.
+        abs_tol: Absolute tolerance for intersections.
+
+    Returns:
+        list: Sub-segments covering each input edge in order.
     """
     intersection_map, _ = all_intersections(edges, rel_tol, abs_tol)
 
@@ -472,15 +510,21 @@ def all_intersections(
     abs_tol: float | None = None,
     return_points_list: bool = False,
 ) -> tuple[dict, list[tuple]]:
-    """
-    Return all proper intersections between the edges.
+    """Return all proper intersections between the given edges.
 
-    Returns a tuple containing a dictionary mapping each edge ID to its
-    intersection points and neighboring edge IDs, together with a flat list
-    of intersection points.
+    Bounding-box candidates are collected into one NumPy array, then
+    line-segment intersections are computed in bulk.
 
-    Bounding-box candidates are collected into one NumPy array. Their
-    line-segment intersections are then computed as NumPy arrays.
+    Args:
+        edges: Line segments to test.
+        rel_tol: Relative tolerance. Defaults to settings default.
+        abs_tol: Absolute tolerance. Defaults to settings default.
+        return_points_list: If True, include a flat list of intersection
+            points in the return value.
+
+    Returns:
+        tuple: ``(intersection_map, points)`` when ``return_points_list``
+        is True; otherwise an intersection map keyed by edge id.
     """
 
     relative_tolerance, absolute_tolerance = get_defaults(
@@ -610,9 +654,15 @@ def all_intersections(
 
 
 def triangle_centroid(p1, p2, p3):
-    """Returns the center (centroid) of a triangle given its three vertices.
+    """Return the centroid of a triangle given its three vertices.
 
-    Each point should be a tuple or list like (x, y).
+    Args:
+        p1: First vertex ``(x, y)``.
+        p2: Second vertex ``(x, y)``.
+        p3: Third vertex ``(x, y)``.
+
+    Returns:
+        tuple: Centroid ``(cx, cy)``.
     """
 
     cx = (p1[0] + p2[0] + p3[0]) / 3
@@ -1061,10 +1111,15 @@ def line_through_point_angle(
 
 
 def split_segment(segment: LineType, point: PointType):
-    """
-    Splits the segment into two pieces by using the given point.
-    Returns two segments.
-    If the point is not on the segment, returns None.
+    """Split a segment into two pieces at ``point``.
+
+    Args:
+        segment: Line segment ``(p1, p2)``.
+        point: Split point (must lie on the segment, not at an endpoint).
+
+    Returns:
+        tuple | None: ``((p1, point), (point, p2))``, or None if ``point``
+        is an endpoint or not on the segment.
     """
     p1, p2 = segment
     if close_points2(point, p1) or close_points2(point, p2):
@@ -1076,8 +1131,17 @@ def split_segment(segment: LineType, point: PointType):
 
 
 def multi_split_segment(segment: LineType, points: Sequence, dist_tol=0.1):
-    """Splits the segment into multiple pieces by using the given points.
-    Returns multiple segments.
+    """Split a segment into multiple pieces at the given points.
+
+    Split points are ordered by distance from the segment start.
+
+    Args:
+        segment: Line segment ``(p1, p2)``.
+        points: Points that lie on the segment.
+        dist_tol: Unused legacy tolerance parameter. Defaults to 0.1.
+
+    Returns:
+        list: Consecutive sub-segments from start to end.
     """
     p1, p2 = segment
     distances = []
@@ -1349,6 +1413,17 @@ def _homogenize(coordinates: Sequence[float]) -> NDArray:
 
 
 def on_segment(a, b, p, eps=1e-12):
+    """Return True if point ``p`` lies on segment ``ab`` within ``eps``.
+
+    Args:
+        a: Segment start point.
+        b: Segment end point.
+        p: Query point.
+        eps: Numeric tolerance. Defaults to ``1e-12``.
+
+    Returns:
+        bool: True if ``p`` is collinear with ``ab`` and inside its bbox.
+    """
     # check collinear + within bbox
     def cross(ax, ay, bx, by):
         return ax * by - ay * bx
@@ -1393,21 +1468,17 @@ def intersection(
 def merge_segments(
     seg1: Sequence[PointType], seg2: Sequence[PointType]
 ) -> Sequence[PointType]:
-    """Merge two segments into one segment if they are connected.
-        They need to be overlapping or simply connected to each other,
-        otherwise they will not be merged. Order doesn't matter.
+    """Merge two segments into one if they overlap or chain.
 
-    Parameters
-    ----------
-    seg1 : Sequence[PointType]
-        _description_
-    seg2 : Sequence[PointType]
-        _description_
+    Order of endpoints does not matter. Unconnected segments are not merged.
 
-    Returns
-    -------
-    Sequence[PointType]
-        _description_
+    Args:
+        seg1: First segment ``(p1, p2)``.
+        seg2: Second segment ``(p3, p4)``.
+
+    Returns:
+        Sequence[PointType]: Merged segment endpoints, or the originals if
+        they cannot be merged.
     """
 
     # """Merge two segments into one segment if they are connected.
@@ -2053,10 +2124,19 @@ def get_polygon_grid_point(n, line1, line2, circumradius=100):
 
 
 def is_ccw(vertices, *, eps=0.0):
-    """
-    Return True if polygon vertices are in counterclockwise order (CCW).
-    vertices: list of (x, y), without repeating the first vertex at the end.
-    eps: tolerance; if abs(area) <= eps -> treated as False (degenerate).
+    """Return True if polygon vertices are in counter-clockwise order.
+
+    Args:
+        vertices: List of ``(x, y)`` without repeating the first vertex at
+            the end.
+        eps: Tolerance; if ``abs(signed_area) <= eps``, returns False
+            (degenerate).
+
+    Returns:
+        bool: True for CCW orientation.
+
+    Raises:
+        ValueError: If fewer than 3 vertices are provided.
     """
     n = len(vertices)
     if n < 3:
@@ -2130,21 +2210,28 @@ def fillet_points(
     clamp_radius: bool = False,
     eps: float = 1e-12,
 ) -> list[PointType]:
-    """
-    Return n points along the circular fillet of given radius at vertex p2
-    between segments p1->p2 and p2->p3 (2D). Points include tangency endpoints
-    when n >= 2. If n == 1, returns the midpoint of the arc. If n <= 0, returns [].
+    """Sample points along a circular fillet at vertex ``p2``.
 
-    Parameters:
-      p1, p2, p3: 2D points (x, y). p1-p2 and p2-p3 must not be collinear.
-      radius: desired fillet radius (> 0).
-      n: number of sample points along the arc (>= 1 recommended).
-      clamp_radius: if True, reduces radius to the maximal feasible value
-                    when the requested radius is too large for the given segments.
-      eps: small numeric tolerance.
+    The fillet is between segments ``p1→p2`` and ``p2→p3`` (2D). When
+    ``n >= 2``, samples include tangency endpoints. When ``n == 1``, returns
+    the arc midpoint. When ``n <= 0``, returns an empty list.
+
+    Args:
+        p1: First point ``(x, y)``.
+        p2: Corner vertex ``(x, y)``.
+        p3: Third point ``(x, y)``.
+        radius: Desired fillet radius (must be > 0).
+        n: Number of sample points along the arc.
+        clamp_radius: If True, reduce ``radius`` to the maximal feasible
+            value when it is too large for the segments.
+        eps: Numeric tolerance.
+
+    Returns:
+        list[PointType]: Sampled points along the fillet arc.
 
     Raises:
-      ValueError if geometry is degenerate or radius is infeasible (unless clamped).
+        ValueError: If geometry is degenerate or radius is infeasible
+            (unless ``clamp_radius`` is True).
     """
     if radius <= 0:
         raise ValueError("radius must be > 0")
@@ -2241,9 +2328,15 @@ def fillet_points(
 def fillet_corners(
     vertices: Sequence[PointType], d_vert_radius: dict[int, float], n: int = 12
 ) -> Sequence[PointType]:
-    """Create a new list of vertices with rounded corners (using the corresponding vertices in the indices list.)
-    d_vert_radius is a dictionary with index and radius values for keys and values respectively.
-    n is the number of points to use to define each fillet.
+    """Return a new vertex list with selected corners filleted.
+
+    Args:
+        vertices: Original polygon/polyline vertices.
+        d_vert_radius: Map from vertex index to fillet radius.
+        n: Number of sample points per fillet. Defaults to 12.
+
+    Returns:
+        Sequence[PointType]: Vertices including fillet arc samples.
     """
     count = len(vertices)
 
@@ -2833,6 +2926,11 @@ class Vertex(list):
         )
 
     def copy(self):
+        """Return a new ``Vertex`` with the same coordinates.
+
+        Returns:
+            Vertex: Copy of this vertex.
+        """
         return Vertex(self.x, self.y, self.z)
 
     def __add__(self, other):

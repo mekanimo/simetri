@@ -1,4 +1,18 @@
-"""Group objects are used for grouping other Shape and Group objects."""
+"""Group containers for Shape, Group, and Tag objects.
+
+A Group applies transforms to its members and supports set-like geometry
+operations (union, intersection, …) and edge merging.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> g = sg.Group([
+    ...     sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True),
+    ...     sg.Shape([(20, 0), (30, 0)]),
+    ... ])
+    >>> len(g)
+    2
+    >>> g.translate(5, 0)
+"""
 
 from __future__ import annotations
 
@@ -33,13 +47,26 @@ if TYPE_CHECKING:
 
 
 class Group(Base):
-    """
-    A Group object is a collection of other objects (Group, Shape,
-    and Tag objects). It can be used to apply a transformation to
-    all the objects in the Group. It is used for creating 1D and 2D
-    patterns of objects. all_vertices, all_elements, etc. means a flat
-    list of the specified object gathered recursively from all the
-    elements in the Group.
+    """Collection of drawable elements that transform together.
+
+    Elements may be Shape, Group, or Tag objects. Methods such as
+    ``all_vertices`` and ``all_shapes`` flatten nested groups recursively.
+    Alias: ``Batch`` on the ``simetri.graphics`` namespace.
+
+    Attributes:
+        elements: Flat list of top-level members.
+        type: Always ``Types.GROUP``.
+        subtype: Group subtype (for example ``Types.DOTS``).
+        modifiers: Optional animation/constraint modifiers.
+        visible: Whether the group is drawn.
+        id: Unique object id.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+        >>> g.append(sg.Shape([(2, 0), (3, 0)]))
+        >>> len(g)
+        2
     """
 
     # __slots__ = [
@@ -59,14 +86,13 @@ class Group(Base):
         modifiers: Sequence[Modifier] | None = None,
         subtype: Types = Types.GROUP,
     ):
-        """
-        Initialize a Group object.
+        """Initialize a Group.
 
         Args:
-            elements (Sequence[Any], optional): The elements to include in the group.
-            modifiers (Sequence[Modifier], optional): The modifiers to apply to the group.
-            subtype (Types, optional): The subtype of the group.
-            kwargs (dict): Additional keyword arguments.
+            elements: Single element or sequence of elements (nested lists
+                are flattened one level recursively).
+            modifiers: Optional modifiers applied to the group.
+            subtype: Group subtype enum or name. Defaults to ``Types.GROUP``.
         """
 
         def flatten_elements(nested_list):
@@ -126,7 +152,10 @@ class Group(Base):
         Returns:
             Self: The group object.
 
-        Example: group.set_attribs('fill_color', 'red', key=lambda x: x.type == Types.SHAPE)
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g.set_attribs("line_width", 2)
         """
         for element in self.elements:
             if key is not None:
@@ -548,23 +577,30 @@ class Group(Base):
         return self.all_segments
 
     def merge_collinears(
-        self, edges, merge_angle_tol: float = 0.1, debug: bool = False
+        self,
+        edges,
+        merge_angle_tol: float = 0.1,
+        debug: bool = False,
+        remove_duplicate_edges: bool = False,
     ):
-        """Merge collinear edges in the group.
+        """Merge connected collinear edges into longer segments.
 
         Args:
-            d_node_id_coords (dict): The node coordinates.
-            edges (list): The edges to merge.
-            rel_tol (float, optional): The relative tolerance. Defaults to None.
-            abs_tol (float, optional): The absolute tolerance. Defaults to None.
-            debug (bool, optional): Print rejected angle diagnostics.
-                Defaults to False.
+            edges: Edges as node-id pairs (see ``_set_node_dictionaries``).
+            merge_angle_tol: Angle tolerance in radians for collinearity.
+            debug: If True, print rejected-angle diagnostics.
+            remove_duplicate_edges: If True, drop congruent duplicate edges
+                before merging.
 
         Returns:
-            list: The merged edges.
+            list: Merged segments as coordinate pairs.
         """
         return _merge_collinears(
-            self, edges, merge_angle_tol=merge_angle_tol, debug=debug
+            self,
+            edges,
+            merge_angle_tol=merge_angle_tol,
+            debug=debug,
+            remove_duplicate_edges=remove_duplicate_edges,
         )
 
     def merge_shapes(
@@ -572,27 +608,36 @@ class Group(Base):
         dist_tol: float | None = None,
         merge_angle_tol: float = 0.1,
         debug: bool = False,
+        remove_duplicate_edges: bool = False,
     ) -> Self:
-        """Merges the shapes in the group if they are connected.
-        Returns a new group with the merged shapes as well as the shapes
-        as well as the shapes that could not be merged.
+        """Merge connected shapes into polygons and open polylines.
+
+        Returns a new group containing reconstructed shapes from the edge
+        graph. Unmerged content may be omitted depending on connectivity.
 
         Args:
-            dist_tol (float, optional): Distance tolerance for merging vertices.
-                Defaults to None.
-            merge_angle_tol (float, optional): Angle tolerance for merging
-                collinear edges. Defaults to 0.1.
-            debug (bool, optional): Print point and angle diagnostics.
-                Defaults to False.
+            dist_tol: Vertex snap tolerance. Defaults to library ``dist_tol``.
+            merge_angle_tol: Collinearity angle tolerance in radians.
+            debug: If True, print merge diagnostics.
+            remove_duplicate_edges: If True, drop congruent duplicates first.
 
         Returns:
-            Self: The group object with merged shapes.
+            Group: New group of merged shapes.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> g = sg.Group([
+            ...     sg.Shape([(0, 0), (10, 0)]),
+            ...     sg.Shape([(10, 0), (20, 0)]),
+            ... ])
+            >>> g.merge_shapes()  # doctest: +SKIP
         """
         return _merge_shapes(
             self,
             dist_tol=dist_tol,
             merge_angle_tol=merge_angle_tol,
             debug=debug,
+            remove_duplicate_edges=remove_duplicate_edges,
         )
 
     def _get_edges_and_segments(

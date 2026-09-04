@@ -1,7 +1,7 @@
-﻿"""
-36 Pastel Color Palettes
-Each palette contains 16 pastel colors in RGB format [R, G, B]
-Values range from 0-255, optimized for soft, muted pastel tones
+"""36 pastel color palettes in RGB-255 format.
+
+Each palette contains 16 soft pastel colors as ``[R, G, B]`` lists
+with component values in 0-255.
 """
 
 # Palette 0: Soft Spring

@@ -1,4 +1,12 @@
-"""Swatches from Japanese Color Harmony Dictionary by Teruko Sakurai"""
+"""Swatches from Japanese Color Harmony Dictionary by Teruko Sakurai.
+
+Each swatch is a list of nine RGB colors. Use ``get_swatch`` or
+``random_swatch`` to obtain ``Color`` instances for drawings.
+
+Examples:
+    >>> from simetri.colors.swatches import get_swatch
+    >>> colors = get_swatch(0)
+"""
 
 from random import randint
 from itertools import cycle
@@ -949,7 +957,11 @@ def swatch_cyc():
 
 
 def random_swatch():
-    """Return a random swatch."""
+    """Return a random nine-color swatch.
+
+    Returns:
+        list[Color]: Random swatch from the curated collection.
+    """
 
     i = randint(0, 83)
     try:
@@ -964,7 +976,14 @@ def random_swatch():
 
 
 def get_swatch(ind):
-    """Returns a nine color swatch."""
+    """Return a nine-color swatch by index.
+
+    Args:
+        ind: Zero-based index into ``swatches_255``.
+
+    Returns:
+        list[Color]: Swatch colors as ``Color`` instances.
+    """
     swatch_ = [Color(*c) for c in swatches_255[ind]]
 
     return swatch_

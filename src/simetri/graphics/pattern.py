@@ -1,3 +1,18 @@
+"""Repeated geometric patterns built from a kernel and transforms.
+
+A ``Pattern`` stores a kernel Shape/Group plus a
+``Transformation`` (list of ``Transform`` matrices with
+repetitions). Calling transform helpers such as ``translate`` / ``rotate``
+appends transforms rather than baking them into the kernel.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> from math import pi
+    >>> kernel = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+    >>> p = sg.Pattern(kernel)
+    >>> p.rotate(pi / 3, about=(0, 0), reps=5)
+"""
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from hashlib import md5
@@ -30,13 +45,15 @@ from .shape import Shape
 
 @dataclass
 class Transform:
-    """
-    A class representing a single transformation.
-    Used in the Transformation class to represent a transformation matrix and its repetitions.
+    """A single transformation matrix with optional repetitions.
+
+    Used inside ``Transformation`` to build a composite matrix stack.
 
     Attributes:
-        xform_matrix (ndarray): The transformation matrix.
-        reps (int): The number of repetitions of the transformation.
+        xform_matrix: 3×3 affine matrix (row form).
+        reps: Number of repetitions (0 means identity only in partitions).
+        incr: Optional increment between repetitions.
+        take: Optional slice for selective application.
     """
 
     xform_matrix: "ndarray"
@@ -183,11 +200,11 @@ class Transform:
 
 @dataclass
 class Transformation:
-    """
-    A class representing a transformation that can be composite or not.
+    """Ordered list of ``Transform`` components forming a pattern.
 
     Attributes:
-        components (list): A list of Transform instances representing the transformations.
+        components: List of ``Transform`` instances applied in order.
+        type: Always ``Types.TRANSFORMATION``.
     """
 
     components: list[Transform] = None
@@ -205,6 +222,14 @@ class Transformation:
         return f"Transformation(components={self.components})"
 
     def apply(self, kernel: Shape) -> list[Shape]:
+        """Apply the composite transform to ``kernel`` and return copies.
+
+        Args:
+            kernel: Source shape whose ``final_coords`` are transformed.
+
+        Returns:
+            Group: Group of shapes, one per transform partition.
+        """
         all_vertices = kernel.final_coords @ self.composite
         vertices_list = np.hsplit(all_vertices, self.count)
         res = Group()
@@ -293,12 +318,20 @@ class Transformation:
 
 
 class Pattern(Group, StyleMixin):
-    """
-    A class representing a pattern of a shape or group object.
+    """Drawable pattern: a kernel repeated by a Transformation.
+
+    Transform methods (``translate``, ``rotate``, …) append to
+    ``transformation`` instead of mutating the kernel geometry directly.
 
     Attributes:
-        kernel (Shape/Group): The repeated form.
-        transformation: A Transformation object.
+        kernel: Shape or Group that is repeated.
+        transformation: Accumulated ``Transformation``.
+        subtype: Always ``Types.PATTERN``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> p = sg.Pattern(sg.Shape([(0, 0), (5, 0), (5, 5)], closed=True))
+        >>> p.translate(10, 0, reps=3)
     """
 
     def __init__(
@@ -307,13 +340,12 @@ class Pattern(Group, StyleMixin):
         transformation: Transformation = None,
         **kwargs,
     ):
-        """
-        Initializes the Pattern instance with a pattern and its count.
+        """Initialize a Pattern.
 
         Args:
-            kernel (Shape/Group): The repeated form of the pattern.
-            transformation (Transformation): The transformation applied to the pattern.
-            **kwargs: Additional keyword arguments.
+            kernel: Shape or Group to repeat.
+            transformation: Optional existing Transformation.
+            **kwargs: Style attributes validated against ``shape_args``.
         """
         self.__dict__["style"] = ShapeStyle()
         self.__dict__["_style_map"] = shape_style_map

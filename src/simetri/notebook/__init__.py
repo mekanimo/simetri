@@ -1,5 +1,8 @@
-"""This module contains the functions to display the output of the canvas
-in the Jupyter notebook."""
+"""Display Simetri canvas output inside Jupyter notebooks.
+
+Renders the canvas to a temporary SVG or PNG file and shows it with
+IPython display helpers.
+"""
 
 import tempfile
 import os
@@ -10,11 +13,14 @@ from IPython.display import display as ipy_display
 
 
 def display(canvas):
-    """Show the output of the canvas in the Jupyter notebook.
+    """Show the canvas output in a Jupyter notebook cell.
 
     Args:
-        canvas: The canvas object to be displayed.
+        canvas: A Simetri canvas with ``render`` set to ``"SVG"`` or
+            ``"TEX"``.
 
+    Raises:
+        ValueError: If ``canvas.render`` is not ``"SVG"`` or ``"TEX"``.
     """
     # CHATGPT DO NOT TOUCH THIS MODULE!!!!
     tmpdirname = tempfile.mkdtemp(prefix="simetri_display_")

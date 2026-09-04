@@ -19,17 +19,16 @@ next_id.counter = 0
 
 
 class TreeNode:
-    """TreeNode object representing a tree structure.
-    Each node has a tag, an id, a list of children, and optional extra attributes.
+    """Node in a tree diagram with optional styling metadata.
 
-    Args:
-        tag (str): The tag of the node.
-        children (list): A list of child nodes. Defaults to an empty list.
-        extra (str): Optional extra attribute for the node.
-        **kwargs: Additional keyword arguments for the node. (font_size, font_color, bold)
-
-    Returns:
-        None
+    Attributes:
+        tag: Display label for the node.
+        id: Unique integer id assigned at construction.
+        children: Child ``TreeNode`` instances.
+        extra: Optional role marker (e.g. ``"class"``, ``"method"``).
+        font_size: Label font size.
+        font_color: Label color.
+        bold: Whether the label is drawn bold.
     """
 
     def __init__(
@@ -41,6 +40,16 @@ class TreeNode:
         font_color=sg.black,
         bold=False,
     ):
+        """Create a tree node.
+
+        Args:
+            tag: Display label for the node.
+            children: Child nodes. Defaults to an empty list.
+            extra: Optional role marker used when choosing icons.
+            font_size: Label font size.
+            font_color: Label color.
+            bold: Whether the label is drawn bold.
+        """
         self.tag = tag
         self.id = next_id()
         self.children = children if children is not None else []
@@ -50,36 +59,29 @@ class TreeNode:
         self.bold = bold
 
     def add_child(self, child):
-        """Adds a child node to the current node.
+        """Add a child node if it is not already present.
+
         Args:
             child (TreeNode): The child node to add.
-
-        Returns:
-            None
         """
         if child.id not in (c.id for c in self.children):
             self.children.append(child)
 
     def num_all_children(self):
-        """Counts the number of children and grandchildren of the node.
-        Args:
-            None
+        """Count descendants of this node (children and deeper).
 
         Returns:
-            int: The number of children and grandchildren.
+            int: Total number of descendant nodes.
         """
         return len(self.children) + sum(
             child.num_all_children() for child in self.children
         )
 
     def depth(self):
-        """Calculates the depth of the node in the tree.
-        Args:
-            None
-
+        """Return a layout depth metric based on descendant counts.
 
         Returns:
-            int: The depth of the node.
+            int: Depth value used when laying out siblings.
         """
         if not self.children:
             return 0
@@ -104,24 +106,23 @@ def make_tree(
     line2_cap=sg.LineCap.ROUND,
     scale=1,
 ):
-    """Creates a tree structure and draws it on the canvas.
-    Args:
-        node: The root node of the tree.
-        canvas: The canvas to draw the tree structure.
-        file_path: The file path to save the tree structure.
-        overwrite: Whether to overwrite the existing file.
-        dx: The horizontal distance between nodes.
-        dy: The vertical distance between nodes.
-        icons: A list of icons to use for the nodes.
-        line1_color: The color of the first line.
-        line1_width: The width of the first line.
-        line1_cap: The cap style of the first line.
-        line2_color: The color of the second line.
-        line2_width: The width of the second line.
-        line2_cap: The cap style of the second line.
+    """Draw a tree diagram on a canvas and optionally save it.
 
-    Returns:
-        None
+    Args:
+        node: The root ``TreeNode``.
+        canvas: Canvas to draw on. Created if omitted.
+        file_path: Optional path to save the drawing.
+        overwrite: Whether to overwrite an existing file.
+        dx: Horizontal spacing between indentation levels.
+        dy: Vertical spacing between successive nodes.
+        icons: Optional list of four icons for node kinds.
+        line1_color: Color of connector stubs.
+        line1_width: Width of connector stubs.
+        line1_cap: Cap style of connector stubs.
+        line2_color: Color of longer connectors.
+        line2_width: Width of longer connectors.
+        line2_cap: Cap style of longer connectors.
+        scale: Overall scale factor for the drawing.
     """
     diamond = sg.Shape([(0, 5), (3, 0), (0, -5), (-3, 0)], closed=True)
     diamond.fill_color = sg.black
@@ -183,16 +184,12 @@ def make_tree(
         return icon2
 
     def draw_tree(node, indent: int = 0, canvas: Any = None):
-        """Prints the tree structure of the node and its children.
-        Args:
-            node: The node to print.
-            indent: The indentation level for the current node.
-            canvas: The canvas to draw the tree structure.
-            file_path: The file path to save the tree structure.
-            overwrite: Whether to overwrite the existing file.
+        """Draw ``node`` and recursively draw its children.
 
-        Returns:
-            None
+        Args:
+            node: Current tree node.
+            indent: Indentation level (horizontal depth).
+            canvas: Canvas receiving the drawing commands.
         """
         nonlocal count
         count += 1

@@ -1,4 +1,13 @@
-"""simetri.graphics is a module that provides a simple and intuitive way to create geometric shapes and patterns."""
+"""Public entry point for Simetri graphics.
+
+Re-exports shapes, groups, transforms, colors, canvas helpers, and related
+utilities so callers can use ``import simetri.graphics as sg``.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> square = sg.Shape([(0, 0), (50, 0), (50, 50), (0, 50)], closed=True)
+    >>> square.translate(10, 20)
+"""
 
 # status: prototype
 # This is a proof of concept.

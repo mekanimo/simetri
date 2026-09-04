@@ -1,3 +1,12 @@
+"""2D vector math helpers built on NumPy.
+
+Examples:
+    >>> from simetri.helpers.vector import Vector2D
+    >>> v = Vector2D(3, 4)
+    >>> abs(v)
+    5.0
+"""
+
 from math import cos, sin
 
 

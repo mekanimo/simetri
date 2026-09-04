@@ -1,11 +1,17 @@
-"""
-This module creates sketch objects with a neutral format for drawing.
-Every other format is converted from this format.
-If you need to save as a different format, you can use these
-sketch objects to convert to the format you need.
-Sketches are not meant to be modified.
-They preserve the state of graphics objects at the time of drawing.
-They are snapshots of the state of the objects and the Canvas at the time of drawing.
+"""Neutral sketch snapshots used by SVG/TikZ renderers.
+
+Sketches capture drawable state at draw time and are not meant to be edited.
+Each sketch dataclass has ``type == Types.SKETCH`` and a specific ``subtype``.
+
+Note:
+    Prefer creating sketches through canvas draw APIs rather than constructing
+    them by hand unless writing a backend.
+
+Examples:
+    >>> from simetri.graphics.sketch import CircleSketch
+    >>> sk = CircleSketch(center=(0, 0), radius=10)
+    >>> sk.subtype.name
+    'CIRCLE_SKETCH'
 """
 
 from collections.abc import Sequence
@@ -33,12 +39,14 @@ np.set_printoptions(legacy="1.21")
 
 @dataclass
 class CircleSketch:
-    """CircleSketch is a dataclass for creating a circle sketch object.
+    """Immutable circle snapshot for rendering backends.
 
     Attributes:
-        center (tuple): The center of the circle.
-        radius (float): The radius of the circle.
-        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+        center: Circle center after applying ``xform_matrix``.
+        radius: Circle radius.
+        xform_matrix: Affine transform at draw time.
+        type: Always ``Types.SKETCH``.
+        subtype: Always ``Types.CIRCLE_SKETCH``.
     """
 
     center: tuple
@@ -46,7 +54,7 @@ class CircleSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
-        """Initialize the CircleSketch object."""
+        """Bake transform into ``center`` and set type metadata."""
         self.type = Types.SKETCH
         self.subtype = Types.CIRCLE_SKETCH
         self.id = get_unique_id(self)
@@ -95,14 +103,15 @@ class EllipseSketch:
 
 @dataclass
 class RectangleSketch:
-    """RectangleSketch is a dataclass for creating an rectangle sketch object.
+    """Immutable rectangle snapshot for rendering backends.
 
     Attributes:
-        lower_left (PointType): The center of the rectangle.
-        width (PointType); Width of the rectangle
-        height (PointType); Height of the rectangle
-        angle (float, optional): The orientation angle. Defaults to 0.
-        xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
+        lower_left: Lower-left corner of the rectangle.
+        width: Rectangle width.
+        height: Rectangle height.
+        angle: Orientation angle in radians. Defaults to 0.
+        xform_matrix: Affine transform at draw time.
+        subtype: Always ``Types.RECTANGLE_SKETCH``.
     """
 
     lower_left: PointType
@@ -112,7 +121,7 @@ class RectangleSketch:
     xform_matrix: ndarray = None
 
     def __post_init__(self):
-        """Initialize the RectangleSketch object."""
+        """Set type metadata and default transform."""
         self.type = Types.SKETCH
         self.subtype = Types.RECTANGLE_SKETCH
         self.id = get_unique_id(self)
@@ -124,13 +133,19 @@ class RectangleSketch:
 
 @dataclass
 class LinesSketch:
-    """LinesSketch is a dataclass for creating multiple line with the same style."""
+    """Immutable multi-line snapshot sharing one style.
+
+    Attributes:
+        lines: Sequence of line geometries.
+        xform_matrix: Affine transform at draw time.
+        subtype: Always ``Types.LINES_SKETCH``.
+    """
 
     lines: Sequence[tuple[float, float]]
     xform_matrix: ndarray = None
 
     def __post_init__(self):
-        """Initialize the LinesSketch object."""
+        """Set type metadata."""
         self.type = Types.SKETCH
         self.subtype = Types.LINES_SKETCH
         self.id = get_unique_id(self)

@@ -1,3 +1,5 @@
+"""Circle geometry: tangents, Apollonius, Steiner chains, and related helpers."""
+
 import cmath
 from dataclasses import dataclass
 from math import acos, atan, atan2, cos, pi, sin, sqrt
@@ -16,14 +18,27 @@ linalg = np.linalg
 
 @dataclass
 class Circle_:
-    """A simple circle class."""
+    """Lightweight circle with center and radius (not a drawable Shape).
+
+    Attributes:
+        center: Center point ``(x, y)``.
+        radius: Circle radius.
+    """
 
     center: tuple
     radius: float
 
 
 def tangent_points_from_point(circle, point):
-    """Given a circle and a point (outside the circle), returns two tangent points."""
+    """Return the two tangent points from an external point to a circle.
+
+    Args:
+        circle: Object with ``center`` and ``radius`` attributes (e.g. ``Circle_``).
+        point: External point ``(x, y)``.
+
+    Returns:
+        tuple: Two tangent points ``(p1, p2)`` on the circle.
+    """
 
     x, y = point[:2]
     cx, cy = circle.center[:2]
@@ -508,19 +523,29 @@ ratios = {
 
 
 def circle_flower(n, radius=25, layers=6, ratio=None):
-    """Steiner chain. Return a list of circles that form a flower-like pattern.
+    """Return a Steiner-chain style circle flower pattern.
 
     Args:
-        n (int): Number of circles.
-        radius (float, optional): Radius of the circles. Defaults to 25.
-        layers (int, optional): Number of layers. Defaults to 6.
-        ratio (float, optional): Ratio for scaling. Defaults to None.
+        n: Number of circles around the ring (must be >= 8).
+        radius: Circle radius. Defaults to 25.
+        layers: Number of scaled/rotated layers. Defaults to 6.
+        ratio: Scale factor between layers; if None, uses a tabulated or
+            fitted value for ``n``.
 
     Returns:
-        list: List of circles forming a flower-like pattern.
+        Group: Circles forming a flower-like pattern after layered transforms.
 
     Raises:
-        ValueError: If n is less than 8.
+        ValueError: If ``n`` is less than 8.
+
+    Examples:
+        ::
+
+            import simetri.graphics as sg
+
+            flowers = sg.circle_flower(n=8, radius=20, layers=4)
+            canvas = sg.Canvas()
+            canvas.draw(flowers)
     """
     if n < 8:
         raise ValueError("n must be greater than 7")

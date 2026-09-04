@@ -1,4 +1,12 @@
-"""Simetri library's interlace objects."""
+"""Interlace (lace) patterns from offset polylines and crossings.
+
+Provides ``Lace``, ``Polyline``, ``ParallelPolyline``, and related helpers
+for building over/under weaving patterns that can be drawn on a canvas.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> from simetri.lace.lace import Lace, Polyline
+"""
 
 from collections import OrderedDict
 from collections.abc import Iterator
@@ -968,28 +976,12 @@ class ParallelPolyline(Group):
 
 
 class Lace(Group):
-    """
-    A Lace is a collection of ParallelPolylines objects.
-    They are used to create interlace patterns.
+    """Collection of parallel polylines used to build interlace patterns.
 
-    Args:
-        shapes (Group | list[Shape], optional): Sequence of shapes.
-        offset (float, optional): Offset value. Defaults to 2.
-        rel_tol (float, optional): Relative tolerance. Defaults to None.
-        swatch (list, optional): Swatch list. Defaults to None.
-        plait_color (colors.Color, optional): Plait color. Defaults to None.
-        draw_fragments (bool, optional): If fragments should be drawn. Defaults to True.
-        palette (list, optional): Palette list. Defaults to None.
-        color_step (int, optional): Color step. Defaults to 1.
-        with_plaits (bool, optional): If plaits should be included. Defaults to True.
-        area_threshold (float, optional): Area threshold. Defaults to None.
-        radius_threshold (float, optional): Radius threshold. Defaults to None.
-        dist_tol (float, optional): Distance tolerance used when merging
-            shapes. Defaults to None.
-        merge_angle_tol (float, optional): Angle tolerance in radians used
-            when merging collinear edges. Defaults to 0.1.
-        debug (bool, optional): Print shape merge diagnostics. Defaults to False.
-        **kwargs: Additional attributes for cosmetic/drawing purposes.
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.lace.lace import Lace
+        >>> lace = Lace([sg.Shape([(0, 0), (40, 0), (40, 40)])], offset=3)
     """
 
     def __init__(
@@ -1010,6 +1002,26 @@ class Lace(Group):
         debug: bool = False,
         **kwargs,
     ) -> None:
+        """Create a lace from shapes with parallel-offset weaving.
+
+        Args:
+            shapes: Sequence of shapes to interlace.
+            offset: Offset distance for parallel polylines.
+            rel_tol: Relative tolerance for geometric comparisons.
+            swatch: Optional color swatch list.
+            plait_color: Color used for plaits.
+            draw_fragments: Whether fragments should be drawn.
+            palette: Optional palette list.
+            color_step: Step when cycling palette colors.
+            with_plaits: Whether plaits are included.
+            area_threshold: Minimum area filter for fragments.
+            radius_threshold: Minimum radius filter for fragments.
+            dist_tol: Distance tolerance when merging shapes.
+            merge_angle_tol: Angle tolerance (radians) for merging
+                collinear edges.
+            debug: Print shape-merge diagnostics when True.
+            **kwargs: Style and drawing attributes.
+        """
         validate_args(kwargs, shape_style_map)
         (
             rel_tol,
@@ -1333,6 +1345,11 @@ class Lace(Group):
         self.skeleton = Group(self.polyline_list)
 
     def set_fragment_groups(self):
+        """Group fragments by similar area and distance from center.
+
+        Populates ``fragments_by_area`` and ``fragments_by_radius`` using
+        ``area_threshold`` and ``radius_threshold``.
+        """
         # to do : handle repeated code. same in _set_partition_groups
         areas = []
         for i, fragment in enumerate(self.fragments):
@@ -1444,6 +1461,14 @@ class Lace(Group):
         self.convex_hull = convex_hull(self.outline.vertices)
 
     def copy(self, **kwargs):
+        """Return a lightweight Group copy of plaits and fragments.
+
+        Args:
+            **kwargs: Accepted for API compatibility; unused.
+
+        Returns:
+            Group: Group containing copies of plaits and fragments.
+        """
         # class Dummy(Lace):
         #     pass
 

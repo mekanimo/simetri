@@ -1,7 +1,16 @@
-"""Shape object uses the Points class to store the coordinates of the points that make up the shape.
-The Points class is a container for coordinates of multiple points.
-It provides conversion to homogeneous coordinates in nd_arrays.
-Shape.final_coords is computed by using the Points.homogen_coords property."""
+"""Point and line containers used by Shape geometry.
+
+``Points`` stores ``(x, y)`` vertices and lazily builds a homogeneous
+``ndarray`` for affine transforms. ``Lines`` stores segment pairs.
+
+Examples:
+    >>> from simetri.graphics.points import Points
+    >>> pts = Points([(0, 0), (1, 0), (1, 1)])
+    >>> len(pts)
+    3
+    >>> pts.nd_array.shape
+    (3, 3)
+"""
 
 import copy
 from collections.abc import Sequence
@@ -35,15 +44,29 @@ class _GroupUpdateContext:
 
 
 class Points:
-    """Container for coordinates of multiple points. They provide conversion to homogeneous
-    coordinates in nd_arrays. Used for creating light-weight drawable objects.
+    """Mutable sequence of 2D points with lazy homogeneous coordinates.
+
+    Used by ``Shape`` as ``primary_points``.
+    Affinely transformed coordinates are obtained via ``homogen_coords`` /
+    ``nd_array``.
+
+    Attributes:
+        coords: List of ``(x, y)`` tuples.
+        type: Always ``Types.POINTS``.
+        nd_array_changed: Set when the cache should be refreshed by Shape.
+
+    Examples:
+        >>> pts = Points([(0, 0), (10, 0)])
+        >>> pts.append((10, 10))
+        >>> list(pts)
+        [(0, 0), (10, 0), (10, 10)]
     """
 
     def __init__(self, coords: Sequence[PointType] = None) -> None:
-        """Initialize a Points object.
+        """Initialize a Points container.
 
         Args:
-            coords (Sequence[PointType], optional): The coordinates of the points. Defaults to None.
+            coords: Optional sequence of points. Defaults to an empty list.
         """
         # coords are a list of (x, y) values
         if coords is None:
@@ -325,10 +348,17 @@ class Points:
 
 
 class Lines:
-    """Container for coordinates of multiple line segments.
+    """Mutable container of line segments as start/end point pairs.
 
-    Lines are stored as two parallel Points containers holding segment
-    start and end coordinates.
+    Attributes:
+        starts / ends: Parallel ``Points`` for segment endpoints.
+        type: Always ``Types.LINES`` when set by callers.
+
+    Examples:
+        >>> from simetri.graphics.points import Lines
+        >>> lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
+        >>> len(lines)
+        2
     """
 
     def __init__(

@@ -1,3 +1,9 @@
+"""Raster image and PDF drawable objects for Simetri canvases.
+
+Wraps Pillow images as canvas items and provides helpers for opening
+and constructing ``Image`` / ``PDF`` objects.
+"""
+
 import io
 import os
 from collections.abc import Callable, Sequence
@@ -708,6 +714,14 @@ class Image(Rectangle):
 
 
 def open_img(file_path):
+    """Open an image file and wrap it as a Simetri ``Image``.
+
+    Args:
+        file_path: Path to a raster image file supported by Pillow.
+
+    Returns:
+        Image: Simetri image object backed by the opened Pillow image.
+    """
     img = PIL_Image.open(file_path)
 
     return Image(img=img)
@@ -788,6 +802,14 @@ def supported_formats() -> list[str]:
 
 
 def create_image_from_data(image_path):
+    """Load image bytes from disk into a new Simetri ``Image``.
+
+    Args:
+        image_path: Path to the image file.
+
+    Returns:
+        Image: Wrapped image on success, or None if loading fails.
+    """
     try:
         with open(image_path, "rb") as f:
             image_data = f.read()

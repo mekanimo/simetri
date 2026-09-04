@@ -1,4 +1,4 @@
-"""SVG related sketches are handled here."""
+"""Draw individual sketch types as SVG element markup."""
 
 import html
 import io
@@ -68,6 +68,16 @@ class SVG_Mask:
 
 
 def draw_line_sketch(sketch, canvas, exceptions=None):
+    """Serialize a line sketch to an SVG ``<line>`` element.
+
+    Args:
+        sketch: Line sketch to draw.
+        canvas: Canvas used for clipping infinite/ray extents.
+        exceptions: Optional style properties to emit inline instead of CSS.
+
+    Returns:
+        str: SVG ``<line>`` markup.
+    """
     vertices = sketch_attrib(sketch, "vertices")
     start = vertices[0]
     end = vertices[1]
@@ -412,6 +422,14 @@ def draw_tag_sketch(sketch):
 
 
 def draw_helplines_sketch(sketch):
+    """Serialize help-line / grid sketch geometry to SVG markup.
+
+    Args:
+        sketch: Helplines sketch with position, size, and spacing.
+
+    Returns:
+        str: SVG markup for grid and optional coordinate axes.
+    """
     x, y = sketch_attrib(sketch, "pos")[:2]
     width = sketch_attrib(sketch, "width")
     height = sketch_attrib(sketch, "height")

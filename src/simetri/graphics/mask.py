@@ -1,4 +1,13 @@
-"""Gradient and Mask objects for both SVG and TikZ"""
+"""Gradient and Mask objects for SVG and TikZ backends.
+
+Masks wrap a shape used for clipping or luminance/opacity masking.
+Gradients describe linear or radial fills with color/opacity stops.
+
+Examples:
+    >>> from simetri.graphics.mask import Gradient
+    >>> from simetri.colors.colors import gray, white
+    >>> g = Gradient(stops=((0, gray), (1, white)))
+"""
 
 from __future__ import annotations
 
@@ -22,10 +31,23 @@ if TYPE_CHECKING:
 
 @dataclass
 class Mask:
-    """Mask object used by clipping/masking APIs.
+    """Mask payload used by clipping and masking APIs.
 
-    A mask always has a shape payload plus optional opacity/gradient data.
-    mask.subtype can be Types.CLIP, Types.LUMINANCE, Types.OPACITY
+    A mask always has a shape plus optional opacity and gradient stop data.
+    ``subtype`` may be ``Types.CLIP``, ``Types.LUMINANCE``, or ``Types.OPACITY``.
+
+    Attributes:
+        shape: Shape defining the mask geometry (must have ``type == Types.SHAPE``).
+        opacity: Overall opacity in ``[0, 1]``. Defaults to 1.0.
+        stops: Optional gradient stops for opacity/color masking.
+        axis: Optional axis for linear gradient masks.
+        subtype: Mask kind (clip / luminance / opacity).
+        center: Radial gradient center. Defaults to ``(0, 0)``.
+        focal: Radial gradient focal point. Defaults to ``(0, 0)``.
+
+    Raises:
+        TypeError: If ``shape`` is not a Shape.
+        ValueError: If ``opacity`` is outside ``[0, 1]``.
     """
 
     shape: Shape
@@ -51,10 +73,18 @@ class Mask:
 
 @dataclass(init=False)
 class Stop:
-    """A gradient stop used by mask gradients.
-    offset: 0 <= offset <= 1.0
-    opacity: 0 <= opacity <= 1.0
-    color: Color
+    """A gradient stop (offset with color and/or opacity).
+
+    Attributes:
+        offset: Position along the gradient in ``[0, 1]``.
+        color: Optional stop color.
+        opacity: Optional stop opacity in ``[0, 1]``.
+        type: Always ``Types.STOP``.
+        subtype: Always ``Types.STOP``.
+
+    Raises:
+        ValueError: If offset/opacity are out of range, or neither color nor
+            opacity is given, or color is invalid.
     """
 
     offset: float
@@ -67,6 +97,16 @@ class Stop:
         color: Color | None = None,
         opacity: float | None = None,
     ):
+        """Create a gradient stop.
+
+        Args:
+            offset: Stop position in ``[0, 1]``.
+            color: Optional color at this stop.
+            opacity: Optional opacity at this stop.
+
+        Raises:
+            ValueError: If validation of offset, color, or opacity fails.
+        """
         if not check_percent(offset):
             raise ValueError("Stop offset must be between 0 and 1.0")
         if color is None and opacity is None:
@@ -86,6 +126,20 @@ class Stop:
 
 
 def _resolve_stops(stops):
+    """Normalize stop sequences to a list of ``Stop`` instances.
+
+    Args:
+        stops: Either a sequence of ``Stop`` objects or tuples of
+            ``(offset, color)``, ``(offset, opacity)``, or
+            ``(offset, opacity, color)``.
+
+    Returns:
+        list[Stop]: Validated stop list.
+
+    Raises:
+        ValueError: If fewer than two stops are given or values are invalid.
+        TypeError: If stop types are mixed inconsistently.
+    """
     if not isinstance(stops, (list, tuple)) or len(stops) < 2:
         raise ValueError("Invalid stop values.")
     if isinstance(stops[0], Stop):
@@ -118,12 +172,36 @@ def _resolve_stops(stops):
 
 @dataclass
 class Gradient:
-    """Gradient object for shape fills in SVG/TikZ backends.
-    stops can be a list of Stop objects or
-    [(offset1, opacity1, color1), (offset2, opacity2, color2), ...] or
-    [(offset1, color1), (offset2, color2), ...] or
-    [(offset1, opacity1), (offset2, opacity2), ...]
+    """Linear or radial gradient for shape fills.
 
+    ``stops`` may be a list of ``Stop`` objects or tuples:
+
+    - ``[(offset, color), ...]``
+    - ``[(offset, opacity), ...]``
+    - ``[(offset, opacity, color), ...]``
+
+    Attributes:
+        gradient_type: ``GradientType.LINEAR`` or ``GradientType.RADIAL``.
+        stops: Color/opacity stops (normalized in ``__post_init__``).
+        axis: Line for linear gradients (start, end). Unused for radial.
+        center: Radial center. Unused for linear.
+        focal: Radial focal point. Unused for linear.
+        radius: Radial radius (must be positive). Unused for linear.
+        units: SVG gradient units.
+        spread_method: SVG spread method string.
+        transform: Optional SVG transform string.
+        subtype: ``Types.LINEAR`` or ``Types.RADIAL`` after init.
+
+    Raises:
+        ValueError: If radial ``radius`` is not positive, or stops are invalid.
+
+    Examples:
+        >>> from simetri.graphics.mask import Gradient
+        >>> from simetri.graphics.all_enums import GradientType
+        >>> from simetri.colors.colors import gray, white
+        >>> g = Gradient(stops=((0, gray), (1, white)))
+        >>> g.subtype.name
+        'LINEAR'
     """
 
     gradient_type: GradientType = GradientType.LINEAR
@@ -162,6 +240,19 @@ class Gradient:
 
 
 def _normalize_units(value: str | SvgUnits | None, field_name: str) -> SvgUnits:
+    """Normalize a units string or enum to ``SvgUnits``.
+
+    Args:
+        value: Units value or ``None`` (uses defaults for known field names).
+        field_name: One of ``mask_units``, ``mask_content_units``,
+            ``gradient_units``.
+
+    Returns:
+        SvgUnits: Normalized units enum.
+
+    Raises:
+        ValueError: If the field name or value is unsupported.
+    """
     if value is None:
         if field_name == "mask_units":
             default_value = defaults["mask_units"]
@@ -207,7 +298,25 @@ def clip_mask_(
     mask: Mask = None,
     **kwargs,
 ):
-    """Apply a `Mask` to a target and draw it."""
+    """Apply a ``Mask`` to a target and draw it (legacy API).
+
+    Note:
+        Prefer ``canvas.clip`` / ``canvas.mask`` / ``canvas.apply_mask``.
+        This helper is retained temporarily for compatibility.
+
+    Args:
+        self: Canvas instance (bound method style).
+        target: Shape or Group to mask, or ``None`` to open a mask scope.
+        mask: Mask instance or Shape used as the mask.
+        **kwargs: Legacy private kwargs such as ``_mask_opacity``.
+
+    Returns:
+        Canvas or result of ``clip`` / ``apply_mask``.
+
+    Raises:
+        TypeError: If ``mask`` or ``target`` has an unsupported type.
+        ValueError: If opacity or unsupported units are invalid.
+    """
     mask_opacity = defaults.get("alpha", 1.0)
     mask_stops = None
     mask_axis = normalize_axis(None)

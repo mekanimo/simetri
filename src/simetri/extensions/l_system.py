@@ -30,7 +30,7 @@ def l_system(
     Returns:
         Group: A group of shapes representing the L-system drawing.
 
-    Example:
+    Examples:
         >>> rules = {'F': 'F+F-F-F+F'}  # Koch curve
         >>> group = l_system(rules, 'F', 60, 10, 3)
     """

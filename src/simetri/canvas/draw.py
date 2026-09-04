@@ -637,7 +637,12 @@ def draw_group(self, group, **kwargs):
 
 
 def draw_widget(self, item, **kwargs):
-    """Draw an item that exposes draw_list as a composite sketch."""
+    """Draw an item that exposes ``draw_list`` as a composite sketch.
+
+    Args:
+        item: Drawable with a ``draw_list()`` method.
+        **kwargs: Style overrides applied to nested drawables.
+    """
     active_sketches = self.active_page.sketches
     first_sketch_index = len(active_sketches)
 
@@ -707,6 +712,12 @@ def shade_value(angle):
 
 
 def plait_emboss1(self, lace, **kwargs):
+    """Draw lace plaits with embossed quad shading (style 1).
+
+    Args:
+        lace: Lace object whose plaits are embossed.
+        **kwargs: Style overrides such as ``fill_color``.
+    """
     if "fill_color" not in kwargs:
         if lace.plait_color is None:
             lace.plait_color = defaults["plait_color"]
@@ -807,6 +818,12 @@ def plait_emboss1(self, lace, **kwargs):
 
 
 def plait_emboss2(self, lace, **kwargs):
+    """Draw lace plaits with embossed quad shading (style 2).
+
+    Args:
+        lace: Lace object whose plaits are embossed.
+        **kwargs: Style overrides such as ``fill_color``.
+    """
     if "fill_color" not in kwargs:
         if lace.plait_color is None:
             lace.plait_color = defaults["plait_color"]
@@ -908,6 +925,12 @@ def plait_emboss2(self, lace, **kwargs):
 
 
 def plait_diamond(self, lace, **kwargs):
+    """Draw lace plaits using a diamond/offset-quad fill style.
+
+    Args:
+        lace: Lace object whose plaits are drawn.
+        **kwargs: Style overrides such as ``fill_color``.
+    """
     lace._set_plait_ends()
     quad_pairs = []
     end_quads = []
@@ -995,6 +1018,13 @@ def plait_diamond(self, lace, **kwargs):
 
 
 def draw_lace_with_fillets(self, lace, **kwargs):
+    """Draw lace fragments and plaits with fillet radii applied.
+
+    Args:
+        lace: Lace object to draw.
+        **kwargs: Must include ``fillet_radii``; may also include
+            ``palette`` and ``plait_fill_color``.
+    """
     r1, r2 = kwargs["fillet_radii"]
     rounded_fragments = lace._fillet_fragments(r1, r2)
     palette = kwargs.get("palette")
@@ -1011,6 +1041,14 @@ def draw_lace_with_fillets(self, lace, **kwargs):
 
 
 def draw_plaits(self, lace=None, **kwargs):
+    """Draw lace plaits, optionally using a plait style handler.
+
+    Args:
+        lace (optional): Lace object providing ``plaits``. If omitted,
+            ``kwargs['plaits']`` is used.
+        **kwargs: Style overrides such as ``plait_fill_color`` and
+            ``plait_style``.
+    """
     if lace is None:
         plaits = kwargs["plaits"]
     else:
@@ -1030,6 +1068,14 @@ def draw_plaits(self, lace=None, **kwargs):
 
 
 def draw_fragments(self, lace=None, palette=None, **kwargs):
+    """Draw lace fragments colored by area bins from a palette.
+
+    Args:
+        lace (optional): Lace object providing ``fragments``. If omitted,
+            ``kwargs['fragments']`` is used.
+        palette (optional): Color palette; ``kwargs['swatch']`` overrides it.
+        **kwargs: Style overrides forwarded to ``draw``.
+    """
     areas = []
     if lace is None:
         fragments = kwargs["fragments"]
@@ -1151,6 +1197,12 @@ def draw_lace(self, lace, **kwargs):
 
 
 def draw_lines(self, lines, **kwargs):
+    """Draw a collection of line segments onto the canvas.
+
+    Args:
+        lines: Sequence of line segments ``((x1, y1), (x2, y2))``.
+        **kwargs: Style overrides for the lines sketch.
+    """
     self._sketch_xform_matrix = self.xform_matrix
     extend_vertices([p[0] for p in lines])
     extend_vertices([p[1] for p in lines])
@@ -1173,8 +1225,7 @@ def draw_image(self, image, position=None, scale=None, **kwargs):
     """
     if not image.visible:
         return self
-    if not image.active:
-        return self
+
     translation, rotation, decomposed_scale = decompose_transformations(
         image.xform_matrix
     )
@@ -1563,6 +1614,17 @@ def draw_all_segments(
 
 
 def get_clipped_sketch(target, clipper, canvas, **kwargs):
+    """Build a ``ClippedSketch`` for a target clipped by ``clipper``.
+
+    Args:
+        target: Drawable content to clip (shape or group).
+        clipper: Drawable used as the clipping path.
+        canvas: Canvas providing transform context.
+        **kwargs: Style overrides for target sketches.
+
+    Returns:
+        ClippedSketch: Composite sketch with clipper attached.
+    """
     sketches = []
     if target.type == Types.GROUP:
         for item in target:

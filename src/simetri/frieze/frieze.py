@@ -1,4 +1,14 @@
-"""Simetri graphics library's frieze patterns."""
+"""Simetri graphics library's frieze patterns.
+
+Implements the seven frieze symmetries (hop, jump, sidle, step, and
+spinning variants) by transforming a motif along a strip.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> from simetri.frieze import frieze
+    >>> motif = sg.Circle(10)
+    >>> strip = frieze.hop(motif, vector=(40, 0), reps=4)
+"""
 
 from collections.abc import Sequence
 from math import pi

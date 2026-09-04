@@ -1,4 +1,12 @@
-"""Dot and Dots classes for creating dots."""
+"""Dot and Dots classes for creating circular markers.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> d = sg.Dot((10, 20), radius=3)
+    >>> d.pos
+    (10, 20)
+    >>> cluster = sg.Dots((0, 0), radius=2)
+"""
 
 __all__ = ["Dot", "Dots"]
 
@@ -16,8 +24,23 @@ from .shapes import Shape
 
 
 class Dot(Shape):
-    """A dot defined by a single point.
-    The radius is for drawing. The only style property is the color."""
+    """A filled circular marker at a single point.
+
+    Geometry is a one-point shape; ``radius`` is used only for drawing.
+    The primary style property is ``color``.
+
+    Attributes:
+        pos: Position of the dot (same as ``vertices[0]``).
+        radius: Draw radius.
+        color: Fill/stroke color for the marker.
+        subtype: Always ``Types.DOT``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> dot = sg.Dot((5, 5), radius=2)
+        >>> dot.subtype.name
+        'DOT'
+    """
 
     def __init__(
         self,
@@ -26,13 +49,13 @@ class Dot(Shape):
         color: Color = None,
         **kwargs,
     ) -> None:
-        """Initialize a Dot object.
+        """Initialize a Dot.
 
         Args:
-            pos (PointType, optional): The position of the dot. Defaults to (0, 0).
-            radius (float, optional): The radius of the dot. Defaults to 1.
-            color (Color, optional): The color of the dot. Defaults to None.
-            **kwargs: Additional keyword arguments.
+            pos: Position of the dot. Defaults to ``(0, 0)``.
+            radius: Draw radius. Defaults to 1.
+            color: Marker color. Defaults to ``defaults["dot_color"]``.
+            **kwargs: Additional shape style keyword arguments.
         """
         valid_args = shape_args
         validate_args(kwargs, valid_args)
@@ -47,10 +70,10 @@ class Dot(Shape):
 
     @property
     def pos(self) -> PointType:
-        """Return the point of the dot.
+        """Return the position of the dot.
 
         Returns:
-            PointType: The point of the dot.
+            PointType: The single vertex of the dot.
         """
         return self.vertices[0]
 
@@ -59,20 +82,23 @@ class Dot(Shape):
         """Set the position of the dot.
 
         Args:
-            new_pos (PointType): The new position of the dot.
+            new_pos: New ``(x, y)`` position.
 
         Raises:
-            TypeError: If the new position is not a list, tuple, or ndarray.
+            TypeError: If ``new_pos`` is not a list, tuple, or ndarray.
         """
         if not isinstance(new_pos, (list, tuple, np.ndarray)):
             raise TypeError("Name must be a string")
         self.move_to(new_pos)
 
     def copy(self, **kwargs) -> Shape:
-        """Return a copy of the dot.
+        """Return a deep-enough copy of the dot.
+
+        Args:
+            **kwargs: Attributes to override on the copy.
 
         Returns:
-            Shape: A copy of the dot.
+            Shape: A new ``Dot`` at the same position with copied color.
         """
         color = self.color.copy()
         dot = Dot(self.pos, self.radius, color)
@@ -83,29 +109,21 @@ class Dot(Shape):
         return dot
 
     def __str__(self):
-        """Return a string representation of the dot.
-
-        Returns:
-            str: The string representation of the dot.
-        """
+        """Return a human-readable representation."""
         return f"Dot({self.pos}, {self.radius}, {self.color})"
 
     def __repr__(self):
-        """Return a string representation of the dot.
-
-        Returns:
-            str: The string representation of the dot.
-        """
+        """Return a developer-oriented representation."""
         return f"Dot({self.pos}, {self.radius}, {self.color})"
 
     def __eq__(self, other):
-        """Check if the dot is equal to another dot.
+        """Return True if ``other`` is a Dot at nearly the same position.
 
         Args:
-            other (Dot): The other dot to compare to.
+            other: Object to compare.
 
         Returns:
-            bool: True if the dots are equal, False otherwise.
+            bool: True when types match and positions are within tolerance.
         """
         return other.type == Types.DOT and close_points2(
             self.pos, other.pos, self.dtol2
@@ -113,7 +131,18 @@ class Dot(Shape):
 
 
 class Dots(Group):
-    """For creating multiple dots. Initially there is only one dot."""
+    """Group that starts with a single Dot and can hold more.
+
+    Attributes:
+        elements: List of contained ``Dot`` (and nested) elements.
+        subtype: Always ``Types.DOTS``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> dots = sg.Dots((0, 0), radius=1)
+        >>> len(dots)
+        1
+    """
 
     def __init__(
         self,
@@ -122,13 +151,13 @@ class Dots(Group):
         color: Color = None,
         **kwargs,
     ) -> None:
-        """Initialize a Dots object.
+        """Initialize a Dots group with one Dot.
 
         Args:
-            pos (PointType, optional): The position of the dots. Defaults to (0, 0).
-            radius (float, optional): The radius of the dots. Defaults to 1.
-            color (Color, optional): The color of the dots. Defaults to None.
-            **kwargs: Additional keyword arguments.
+            pos: Position of the initial dot. Defaults to ``(0, 0)``.
+            radius: Draw radius for the initial dot. Defaults to 1.
+            color: Color for the initial dot. Defaults to None (library default).
+            **kwargs: Additional keyword arguments passed to the Dot.
         """
         dot = Dot(pos=pos, radius=radius, color=color, **kwargs)
         super().__init__([dot], subtype=Types.DOTS, **kwargs)

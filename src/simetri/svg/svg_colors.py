@@ -1,3 +1,9 @@
+"""Color conversion helpers for SVG output.
+
+Turns Simetri ``Color`` objects into SVG/CSS
+color strings (``rgb``/``rgba``) and related fill/stroke attributes.
+"""
+
 from ..settings.settings import defaults
 from ..colors.colors import check_color
 
@@ -19,10 +25,11 @@ def color_to_svg(color, property_name=None):
     """Converts a Color object to a SVG color string.
 
     Args:
-        color (Color): The color object.
+        color (Color): The color object, or None to use a default.
+        property_name: defaults key used when ``color`` is None.
 
     Returns:
-        str: The SVG color string.
+        str: The SVG color string (``rgb`` or ``rgba``).
     """
     if color is None:
         color = defaults[property_name]

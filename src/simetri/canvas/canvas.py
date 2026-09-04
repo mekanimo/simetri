@@ -77,7 +77,12 @@ def _save_renderer(extension: str) -> Renderer:
 
 
 def save_svg_png(svg_code: str, filepath: Path) -> None:
-    """Rasterize SVG code to a PNG file."""
+    """Rasterize SVG code to a PNG file.
+
+    Args:
+        svg_code (str): SVG document text.
+        filepath (Path): Destination PNG path.
+    """
     document = fitz.open(stream=svg_code.encode("utf-8"), filetype="svg")
     page = document[0]
     pixmap = page.get_pixmap()
@@ -86,7 +91,14 @@ def save_svg_png(svg_code: str, filepath: Path) -> None:
 
 
 def canvas_has_vertex_coord_labels(canvas) -> bool:
-    """Return True if any sketch on the canvas shows vertex coordinate labels."""
+    """Return True if any sketch on the canvas shows vertex coordinate labels.
+
+    Args:
+        canvas: Canvas instance to inspect.
+
+    Returns:
+        bool: True if at least one sketch has ``show_vertex_coords``.
+    """
     for page in canvas.pages:
         for sketch in page.sketches:
             if getattr(sketch, "show_vertex_coords", False):
@@ -95,7 +107,14 @@ def canvas_has_vertex_coord_labels(canvas) -> bool:
 
 
 def normalize_canvas_border(border) -> tuple[float, float, float, float]:
-    """Return (left, bottom, right, top) border values."""
+    """Return ``(left, bottom, right, top)`` border values.
+
+    Args:
+        border: Scalar border, 4-tuple, or ``None`` (uses defaults).
+
+    Returns:
+        tuple[float, float, float, float]: Normalized border sides.
+    """
     if border is None:
         border = defaults["border"]
     if isinstance(border, (int, float)):
@@ -109,14 +128,20 @@ def normalize_canvas_border(border) -> tuple[float, float, float, float]:
 
 
 def effective_border_for_export(canvas) -> tuple[float, float, float, float]:
-    """Border for export sizing, with optional extra padding for vertex labels."""
-    border_left, border_bottom, border_right, border_top = normalize_canvas_border(
-        canvas.border
+    """Return export border, optionally expanded for vertex labels.
+
+    Args:
+        canvas: Canvas instance whose border is used.
+
+    Returns:
+        tuple[float, float, float, float]: ``(left, bottom, right, top)``.
+    """
+    border_left, border_bottom, border_right, border_top = (
+        normalize_canvas_border(canvas.border)
     )
-    if (
-        defaults["auto_expand_canvas_for_vertices"]
-        and canvas_has_vertex_coord_labels(canvas)
-    ):
+    if defaults[
+        "auto_expand_canvas_for_vertices"
+    ] and canvas_has_vertex_coord_labels(canvas):
         extra = defaults["vertices_canvas_expand"]
         return (
             border_left + extra,
@@ -128,7 +153,11 @@ def effective_border_for_export(canvas) -> tuple[float, float, float, float]:
 
 
 def warn_vertex_coord_label_sizing(canvas) -> None:
-    """Warn once per export about vertex label sizing behavior."""
+    """Warn once per export about vertex label sizing behavior.
+
+    Args:
+        canvas: Canvas instance being exported.
+    """
     if getattr(canvas, "_vertex_label_sizing_warned", False):
         return
     if not canvas_has_vertex_coord_labels(canvas):
@@ -150,30 +179,41 @@ def warn_vertex_coord_label_sizing(canvas) -> None:
 
 
 class Canvas:
-    """Canvas class for drawing shapes and text on a page. All drawing
-    operations are handled by the Canvas class. Canvas class can draw all
-    graphics objects and text objects. It also provides methods for
-    drawing basic shapes like lines, circles, and polygons.
+    """Main drawing surface for shapes, text, and pages.
+
+    All drawing operations go through ``Canvas``. It can draw graphics and
+    text objects and provides helpers for lines, circles, polygons, and more.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(sg.Circle((0, 0), 20))
+        >>> canvas.save('out.pdf')
     """
 
     def __init__(
         self,
         back_color: Color | None = None,
-        border: float | None = 20,
+        border: float | None = None,
         page_size: VecType | None = None,
         page_origin: PointType | None = (0, 0),
         **kwargs,
     ):
-        """
-        Initialize the Canvas.
+        """Create a canvas with optional background, border, and page size.
+
+        If you use ``canvas = sg.Canvas()``, default settings are applied.
 
         Args:
-            back_color (Color | None): The background color of the canvas.
-            border (float | None): The border width of the canvas.
-            page_size (VecType, optional): The size of the page with canvas.page_origin at (0, 0).
-            kwargs (dict): Additional keyword arguments. Rarely used.
+            back_color: Background color of the canvas.
+            border: Border width applied to all margins.
+            page_size: Page size with ``page_origin`` at ``(0, 0)``.
+                Calculated automatically unless specified.
+            page_origin: Origin of the page coordinate system.
+            **kwargs: Style and positioning options such as ``fill``,
+                ``line_width``, ``line_color``, and ``fill_color``.
 
-            You should not need to specify "page_size" since it is calculated.
+        Returns:
+            A ``Canvas`` instance.
         """
         validate_args(kwargs, canvas_args)
         _set_Nones(self, ["back_color", "border"], [back_color, border])
@@ -241,6 +281,16 @@ class Canvas:
         self.stack = []
 
     def __setattr__(self, name, value):
+        """Set canvas attributes with special handling for layout properties.
+
+        Args:
+            name: Attribute name.
+            value: Attribute value.
+
+        Raises:
+            ValueError: If ``border``, ``margins``, ``book_margins``, ``pos``,
+                or ``angle`` is invalid.
+        """
         if name == "back_color":
             if hasattr(self, "active_page"):
                 self.active_page.__setattr__(name, value)
@@ -385,15 +435,29 @@ class Canvas:
             self.__dict__[name] = value
 
     def push_matrix(self):
+        """Push the current transform matrix onto the stack."""
         self.stack.append(self._xform_matrix)
 
     def pop_matrix(self):
+        """Pop the transform matrix from the stack.
+
+        Warns if the stack is empty.
+        """
         if self.stack:
             self._xform_matrix = self.stack.pop()
         else:
             issue_warning("Trying to pop from an empty stack!")
 
     def apply_mask(self, target, mask):
+        """Apply a mask to a drawable target and append a masked sketch.
+
+        Args:
+            target: Shape or Group to mask.
+            mask: Mask object applied to the target.
+
+        Returns:
+            Self: The canvas object.
+        """
         sketches = []
         if target.type == Types.GROUP:
             for item in target:
@@ -409,6 +473,16 @@ class Canvas:
         return self
 
     def clip(self, target, clipper, **kwargs):
+        """Clip a drawable target with a clipper shape.
+
+        Args:
+            target: Drawable content to clip.
+            clipper: Shape used as the clipping path.
+            **kwargs: Style overrides for the clipped sketch.
+
+        Returns:
+            Self: The canvas object.
+        """
         # create a ClippedSketch
         # this replaces begin_clip and end_clip
         self._sketch_xform_matrix = (
@@ -423,6 +497,18 @@ class Canvas:
         return self
 
     def apply_filter(self, target, filters):
+        """Apply filters to a drawable target.
+
+        Note:
+            Currently a no-op placeholder that returns ``self``.
+
+        Args:
+            target: Drawable content to filter.
+            filters: Filter specification.
+
+        Returns:
+            Self: The canvas object.
+        """
         # createa FilteredSketch
 
         return self
@@ -515,6 +601,11 @@ class Canvas:
             raise ValueError("Limits must be a tuple of 4 values.")
 
     def b_box(self):
+        """Return the axis-aligned bounding box of drawn content.
+
+        Returns:
+            Bounding box of all recorded vertices in canvas space.
+        """
         xform = np.linalg.inv(self._xform_matrix)
         return bounding_box(homogenize(self._all_vertices) @ xform)
 
@@ -648,16 +739,44 @@ class Canvas:
         return self
 
     def draw_fragments(self, lace=None, palette=None, **kwargs):
+        """Draw lace fragment regions, optionally colored by a palette.
+
+        Args:
+            lace (optional): Lace object whose fragments are drawn.
+            palette (optional): Color palette applied to fragments.
+            **kwargs: Style overrides forwarded to the draw helper.
+
+        Returns:
+            Self: The canvas object.
+        """
         draw.draw_fragments(self, lace, palette, **kwargs)
 
         return self
 
     def draw_plaits(self, lace=None, **kwargs):
+        """Draw lace plaits.
+
+        Args:
+            lace (optional): Lace object whose plaits are drawn.
+            **kwargs: Style overrides forwarded to the draw helper.
+
+        Returns:
+            Self: The canvas object.
+        """
         draw.draw_plaits(self, lace, **kwargs)
 
         return self
 
     def draw_lace_with_fillets(self, lace, **kwargs):
+        """Draw a lace with filleted plait geometry.
+
+        Args:
+            lace: Lace object to draw.
+            **kwargs: Style overrides forwarded to the draw helper.
+
+        Returns:
+            Self: The canvas object.
+        """
         draw.draw_lace_with_fillets(self, lace, **kwargs)
 
         return self
@@ -932,11 +1051,27 @@ class Canvas:
         return self
 
     def draw_widget(self, item: Drawable, **kwargs) -> Self:
-        """Draw an item by expanding item.draw_list into a composite sketch."""
+        """Draw an item by expanding ``item.draw_list`` into a composite sketch.
+
+        Args:
+            item (Drawable): Widget-like drawable with a ``draw_list``.
+            **kwargs: Style overrides forwarded to the draw helper.
+
+        Returns:
+            Self: The canvas object.
+        """
         draw.draw_widget(self, item, **kwargs)
         return self
 
     def begin_style(self, style: str):
+        """Begin a TikZ scope that appends ``style`` to every path.
+
+        Args:
+            style (str): TikZ style fragment inserted into the scope options.
+
+        Returns:
+            Self: The canvas object.
+        """
         # code = rf'\begin{{scope}}[every path/.append style={{dashed, draw=green}}]'
         code = rf"\begin{{scope}}[every path/.append style={{ {style} }}]"
         code += "\n"
@@ -946,6 +1081,11 @@ class Canvas:
         return self
 
     def end_style(self):
+        """End the TikZ style scope started by ``begin_style``.
+
+        Returns:
+            Self: The canvas object.
+        """
         return self._end_scope()
 
     def _end_scope(self):
@@ -1124,6 +1264,8 @@ class Canvas:
         """
         self._code = []
         self.preamble = defaults["preamble"]
+        self.back_color = defaults["back_color"]
+        self.border = defaults["canvas_border"]
         page_margins = self.margins
         if self.book_margins is not None:
             gutter, footer, margin, header = self.book_margins
@@ -1144,6 +1286,7 @@ class Canvas:
         self._sketch_xform_matrix = identity_matrix()
         self.active_page = self.pages[0]
         self._all_vertices = []
+
         return self
 
     def __str__(self) -> str:
@@ -1596,6 +1739,12 @@ class Canvas:
         return list(user_fonts.difference(latex_fonts))
 
     def set_page_size(self, width, height):
+        """Set the active page size.
+
+        Args:
+            width: Page width.
+            height: Page height.
+        """
         self.page_size = (width, height)
 
     def _calculate_size(self, border=None, b_box=None) -> tuple[float, float]:
@@ -1879,6 +2028,7 @@ class PageGrid:
     y_shift: float = None
 
     def __post_init__(self):
+        """Initialize page-grid defaults from settings."""
         self.type = Types.PAGE_GRID
         self.subtype = Types.RECTANGULAR
         self.spacing = defaults["page_grid_spacing"]
@@ -1917,6 +2067,7 @@ class Page:
     kwargs: dict = None
 
     def __post_init__(self):
+        """Initialize page metadata and an empty sketch list."""
         self.type = Types.PAGE
         self.sketches = []
         self.scope_groups = []

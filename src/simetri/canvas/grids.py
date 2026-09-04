@@ -39,6 +39,19 @@ class Grid(Group):
         points: Sequence[PointType] = None,
         n_circles=1,
     ):
+        """Initialize a geometric grid of points and connecting lines.
+
+        Args:
+            grid_type (GridType): Kind of grid to build.
+            center (PointType, optional): Grid center. Defaults to ``(0, 0)``.
+            n (int, optional): Number of points. Defaults to 9.
+            radius (float, optional): Circumradius. Defaults to 100.
+            points (Sequence[PointType], optional): Explicit grid points.
+            n_circles (optional): Number of concentric circles for circular grids.
+
+        Raises:
+            ValueError: If ``grid_type`` is not recognized.
+        """
         if grid_type not in d_grid_types:
             raise ValueError(f"Invalid grid type: {grid_type}.")
         super().__init__(subtype=d_grid_types[grid_type])

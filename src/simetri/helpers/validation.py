@@ -87,6 +87,14 @@ def check_number(number: Any) -> bool:
 
 
 def check_alpha(alpha: Any) -> bool:
+    """Check if ``alpha`` is a numeric value in ``[0, 1]``.
+
+    Args:
+        alpha (Any): Value to check.
+
+    Returns:
+        bool: True if ``alpha`` is a valid opacity.
+    """
     return is_numeric(alpha) and alpha >= 0 and alpha <= 1.0
 
 
@@ -297,31 +305,86 @@ for item in items:
 
 
 def is_positive_integer(value):
+    """Return True if ``value`` is an integer greater than zero.
+
+    Args:
+        value: Value to check.
+
+    Returns:
+        bool: True if ``value`` is a positive integer.
+    """
     return isinstance(value, int) and value > 0
 
 
 def is_float(value):
+    """Return True if ``value`` is a float.
+
+    Args:
+        value: Value to check.
+
+    Returns:
+        bool: True if ``value`` is a float.
+    """
     return isinstance(value, float)
 
 
 def is_greater_than_zero(value):
+    """Return True if ``value`` is a number strictly greater than zero.
+
+    Args:
+        value: Value to check.
+
+    Returns:
+        bool: True if ``value`` is ``> 0``.
+    """
     return isinstance(value, (int, float)) and value > 0
 
 
 def is_positive(value):
+    """Return True if ``value`` is a number greater than or equal to zero.
+
+    Args:
+        value: Value to check.
+
+    Returns:
+        bool: True if ``value`` is ``>= 0``.
+    """
     return isinstance(value, (int, float)) and value >= 0
 
 
 def is_numeric(value):
+    """Return True if ``value`` is a Python number.
+
+    Args:
+        value: Value to check.
+
+    Returns:
+        bool: True if ``value`` is an instance of ``numbers.Number``.
+    """
     return isinstance(value, numbers.Number)
 
 
 def check_percent(value):
-    """Checks if a value is a floating point between 0 and 1.0"""
+    """Check if a value is a floating point between 0 and 1.0.
+
+    Args:
+        value: Value to check.
+
+    Returns:
+        bool: True if ``value`` is numeric and in ``[0, 1]``.
+    """
     return is_numeric(value) and value >= 0 and value <= 1.0
 
 
 def is_gradient(value):
+    """Return True if ``value`` is a ``Gradient`` instance.
+
+    Args:
+        value: Value to check.
+
+    Returns:
+        bool: True if ``value`` is a gradient.
+    """
     # Fix this import!!!!
     from ..graphics.mask import Gradient
 
@@ -465,7 +528,19 @@ def warn_unknown_kwargs(
     context: str = "draw",
     stacklevel: int = 2,
 ) -> None:
-    """Emit a warning for keyword arguments that are not recognized."""
+    """Emit a warning for keyword arguments that are not recognized.
+
+    Args:
+        kwargs (dict[str, Any]): Keyword arguments provided by the caller.
+        valid_keys (set[str] | frozenset[str]): Allowed keyword names.
+        context (str, optional): Context string for the warning message.
+            Defaults to ``draw``.
+        stacklevel (int, optional): Stack level passed to the warning helper.
+            Defaults to 2.
+
+    Returns:
+        None
+    """
     unknown = sorted(k for k in kwargs if k not in valid_keys)
     if not unknown:
         return

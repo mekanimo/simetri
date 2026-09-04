@@ -1,4 +1,4 @@
-"""TikZ related sketches are handled here."""
+"""Serialize individual sketch types to TikZ/PGF markup."""
 
 from dataclasses import dataclass
 from math import ceil, degrees
@@ -81,11 +81,24 @@ _active_tikz_style_ids = {}
 
 
 def set_active_tikz_style_ids(style_ids):
+    """Set the active sketch-id to TikZ style-id mapping.
+
+    Args:
+        style_ids: Mapping of sketch id to TikZ style id.
+    """
     global _active_tikz_style_ids
     _active_tikz_style_ids = style_ids
 
 
 def get_active_tikz_style_id(sketch):
+    """Return the TikZ style id for ``sketch``, if any.
+
+    Args:
+        sketch: Sketch whose style id is requested.
+
+    Returns:
+        The active style id, or None.
+    """
     if sketch.id in _active_tikz_style_ids:
         return _active_tikz_style_ids[sketch.id]
     return None

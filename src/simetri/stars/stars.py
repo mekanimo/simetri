@@ -1,4 +1,11 @@
-"""This module contains classes and functions for creating stars and rosettes."""
+"""Classes and functions for creating stars and rosettes.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> from simetri.stars.stars import rosette, Star
+    >>> petal = sg.Shape([(0, 0), (20, 5), (0, 10)])
+    >>> pattern = rosette(8, petal)
+"""
 
 from math import cos, pi, sin, sqrt, tan
 

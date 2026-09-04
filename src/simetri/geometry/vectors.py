@@ -17,23 +17,35 @@ from ..settings.settings import issue_warning
 
 
 class Vector:
-    """A 2D/3D vector class.
+    """A 2D/3D vector with an object-oriented interface over sequence ops.
 
-    Wraps the functional vector operations for an object-oriented interface.
+    Wraps the functional ``v_*`` helpers. Many methods return new ``Vector``
+    instances and can be chained.
+
+    Examples:
+        ::
+
+            from simetri.geometry.vectors import Vector
+
+            v = Vector(3, 4)
+            v.mag()  # 5.0
+            (v + Vector(1, 0)).normalize()
     """
 
     def __init__(self, *args):
         """Initialize a vector.
 
         Can be initialized with:
-        - Separate components: Vector(1, 2) or Vector(1, 2, 3)
-        - A sequence: Vector([1, 2]) or Vector((1, 2, 3))
-        - Two points: Vector(p1, p2)
 
-        Example:
-            >>> v1 = Vector(1, 2)
-            >>> v2 = Vector([3, 4, 5])
-            >>> v3 = Vector((20, -5), (40, 0))
+        - Separate components: ``Vector(1, 2)`` or ``Vector(1, 2, 3)``
+        - A sequence: ``Vector([1, 2])`` or ``Vector((1, 2, 3))``
+        - Two points: ``Vector(p1, p2)`` (from ``p1`` to ``p2``)
+
+        Args:
+            *args: Components, a sequence, or two points.
+
+        Raises:
+            ValueError: If the arguments do not form a valid 2D/3D vector.
         """
         if not args:
             raise ValueError(
@@ -112,14 +124,28 @@ class Vector:
         return iter(self.data)
 
     def __add__(self, other: "Vector | Sequence[float]") -> "Vector":
-        """Add two vectors."""
+        """Add two vectors.
+
+        Args:
+            other: Vector or sequence to add.
+
+        Returns:
+            Vector: Element-wise sum.
+        """
         if isinstance(other, Vector):
             return Vector(v_sum(self.data, other.data))
         issue_warning("Vector objects are being used with lists/tuples!")
         return Vector(v_sum(self.data, other))
 
     def __sub__(self, other: "Vector | Sequence[float]") -> "Vector":
-        """Subtract two vectors."""
+        """Subtract two vectors.
+
+        Args:
+            other: Vector or sequence to subtract.
+
+        Returns:
+            Vector: Element-wise difference ``self - other``.
+        """
         if isinstance(other, Vector):
             return Vector(v_diff(self.data, other.data))
         issue_warning("Vector objects are being used with lists/tuples!")
@@ -128,7 +154,14 @@ class Vector:
     def __mul__(
         self, other: "Vector | Sequence[float] | float | int"
     ) -> "float | Vector":
-        """Dot product if other is vector, scalar multiplication if scalar."""
+        """Dot product if ``other`` is a vector; otherwise scale by scalar.
+
+        Args:
+            other: Vector/sequence (dot) or scalar (scale).
+
+        Returns:
+            float | Vector: Dot product or scaled vector.
+        """
         if isinstance(other, (int, float)):
             return Vector(v_mul(self.data, other))
         if isinstance(other, Vector):
@@ -169,7 +202,14 @@ class Vector:
         return Vector(v_perp(self.data))
 
     def distance_to(self, other: "Vector | Sequence[float]") -> float:
-        """Distance to another point."""
+        """Return Euclidean distance to another point/vector.
+
+        Args:
+            other: Target point or vector.
+
+        Returns:
+            float: Distance between ``self`` and ``other``.
+        """
         if isinstance(other, Vector):
             other_data = other.data
         else:
@@ -197,14 +237,28 @@ class Vector:
         return self / mag
 
     def dot(self, other: "Vector | Sequence[float]") -> float:
-        """Dot product."""
+        """Return the dot product with ``other``.
+
+        Args:
+            other: Other vector or sequence.
+
+        Returns:
+            float: Dot product.
+        """
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
         issue_warning("Vector objects are being used with lists/tuples!")
         return v_mul(self.data, other)
 
     def cross(self, other: "Vector | Sequence[float]") -> "float | Vector":
-        """Cross product."""
+        """Return the cross product with ``other``.
+
+        Args:
+            other: Other vector or sequence (same dimension).
+
+        Returns:
+            float | Vector: 2D scalar cross or 3D cross-product vector.
+        """
         if isinstance(other, Vector):
             other_data = other.data
         else:
@@ -220,7 +274,14 @@ class Vector:
         return v_arg(self.data)
 
     def angle_between(self, other: "Vector | Sequence[float]") -> float:
-        """Angle between two vectors."""
+        """Return the angle in radians between ``self`` and ``other``.
+
+        Args:
+            other: Other vector or sequence.
+
+        Returns:
+            float: Angle in radians.
+        """
         if isinstance(other, Vector):
             other_data = other.data
         else:
@@ -229,8 +290,15 @@ class Vector:
         return v_angle_between(self.data, other_data)
 
     def bisector(self, other: "Vector | Sequence[float]") -> "Vector":
-        """Returns the bisector of the self and the other vector.
-        Returns self.normalize() + other.normalize().
+        """Return the angle bisector of ``self`` and ``other``.
+
+        Computed as ``self.normalize() + other.normalize()``.
+
+        Args:
+            other: Other vector or sequence.
+
+        Returns:
+            Vector: Bisector direction (not necessarily unit length).
         """
         if not isinstance(other, Vector):
             other = Vector(other)
@@ -242,7 +310,15 @@ class Vector:
         angle: float,
         axis: "Vector | Sequence[float] | None" = None,
     ) -> "Vector":
-        """Rotate vector by angle (radians)."""
+        """Rotate this vector by ``angle`` radians.
+
+        Args:
+            angle: Rotation angle in radians.
+            axis: Optional 3D axis; if None, performs 2D rotation in the plane.
+
+        Returns:
+            Vector: Rotated copy.
+        """
         if isinstance(axis, Vector):
             axis_data = axis.data
         else:
@@ -254,7 +330,14 @@ class Vector:
         return Vector(v_rotated(self.data, angle, axis_data))
 
     def project(self, other: "Vector | Sequence[float]") -> "Vector":
-        """Project this vector onto other."""
+        """Project this vector onto ``other``.
+
+        Args:
+            other: Direction to project onto.
+
+        Returns:
+            Vector: Parallel projection of ``self`` onto ``other``.
+        """
         if isinstance(other, Vector):
             other_vec = other
         else:
@@ -267,7 +350,14 @@ class Vector:
         return other_vec * scale
 
     def reflect(self, normal: "Vector | Sequence[float]") -> "Vector":
-        """Reflect vector across a normal."""
+        """Reflect this vector across a normal.
+
+        Args:
+            normal: Surface normal (will be normalized).
+
+        Returns:
+            Vector: Reflected vector.
+        """
         if isinstance(normal, Vector):
             n = normal
         else:
@@ -277,7 +367,15 @@ class Vector:
         return self - n * (2 * self.dot(n))
 
     def lerp(self, other: "Vector | Sequence[float]", t: float) -> "Vector":
-        """Linear interpolation."""
+        """Linearly interpolate between ``self`` and ``other``.
+
+        Args:
+            other: Target vector.
+            t: Interpolation parameter (0 = self, 1 = other).
+
+        Returns:
+            Vector: Interpolated vector.
+        """
         if isinstance(other, Vector):
             other_data = other.data
         else:
@@ -327,7 +425,15 @@ def v_neg(vec: Vec) -> Vec:
 
 
 def v_mul(vec1: Vec, vec2: Vec | float) -> float | Vec:
-    """Return dot product for vector input, or scale vec1 by scalar vec2."""
+    """Return the dot product, or scale ``vec1`` by a scalar.
+
+    Args:
+        vec1: First vector.
+        vec2: Second vector (dot) or scalar (scale).
+
+    Returns:
+        float | Vec: Dot product or scaled vector (type matches ``vec1``).
+    """
     v1 = _as_data(vec1)
     if isarray(vec2):
         v2 = _as_data(vec2)

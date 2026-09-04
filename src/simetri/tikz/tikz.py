@@ -1,5 +1,8 @@
-"""TikZ exporter. Draws shapes using the TikZ package for LaTeX.
-Sketch objects are converted to TikZ code."""
+"""TikZ exporter for Simetri canvases.
+
+Converts sketch objects into TikZ/PGF code for LaTeX documents. Public
+helpers map Simetri anchors, styles, and drawables onto TikZ syntax.
+"""
 
 from __future__ import annotations
 
@@ -47,7 +50,14 @@ enum_map = {}
 
 
 def anchor_to_tikz(anchor: Anchor | None) -> str | None:
-    """Convert Anchor enum values to TikZ-compatible anchor names."""
+    """Convert an ``Anchor`` enum value to a TikZ anchor name.
+
+    Args:
+        anchor: Simetri anchor, or None.
+
+    Returns:
+        TikZ anchor string (for example ``"north east"``), or None.
+    """
     if anchor is None:
         return None
 

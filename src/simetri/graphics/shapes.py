@@ -1,4 +1,17 @@
-"""Classes and functions for creating geometric shapes."""
+"""Factory classes and helpers for common geometric shapes.
+
+Includes ``Line``, ``Rectangle``, ``Circle``, ``Segment``, and helpers such
+as ``square``, ``circle_points``, and ``reg_poly_shape``.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> c = sg.Circle(radius=25, center=(0, 0))
+    >>> c.radius
+    25
+    >>> sq = sg.square(center=(0, 0), size=40)
+    >>> sq.closed
+    True
+"""
 
 from collections.abc import Sequence
 from math import comb, cos, gcd, pi, sin
@@ -51,6 +64,12 @@ def offset_box(
     Raises:
         ValueError: If neither ``offsets`` nor ``offset`` is given, if ``offsets``
             has length other than four, or if ``corners`` does not have four points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> box = sg.offset_box([(0, 0), (10, 0), (10, 5), (0, 5)], offset=1)
+        >>> box.closed
+        True
     """
 
     # Handle the single offset case
@@ -96,16 +115,22 @@ def offset_box(
 def square(
     center: PointType = (0, 0), size: float = 100, angle: float = 0, **kwargs
 ) -> Shape:
-    """Return a square shape.
+    """Return a closed square Shape.
 
     Args:
-        center (PointType): The center of the square.
-        size (float): The width and height of the square.
-        angle (float): The rotation angle of the square.
-        **kwargs: Additional keyword arguments.
+        center: Center of the square. Defaults to ``(0, 0)``.
+        size: Side length (width and height). Defaults to 100.
+        angle: Rotation angle in radians. Defaults to 0.
+        **kwargs: Passed to ``Shape``.
 
     Returns:
-        Shape: A square shape.
+        Shape: Closed square.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sq = sg.square(size=50)
+        >>> len(sq.vertices) >= 4
+        True
     """
     points = rectangle_points(center, size, size, angle)
 
@@ -125,6 +150,12 @@ class Line(Shape):
     Slope-intercept form ``y = mx + b``: use ``slope``, ``intercept``, or ``m_b``.
     Parametric evaluation: ``parametric_function`` or ``t(t)`` returns
     ``start + t * (end - start)``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> line = sg.Line((0, 0), (10, 0))
+        >>> line.extent.name
+        'SEGMENT'
     """
 
     def __init__(
@@ -135,14 +166,14 @@ class Line(Shape):
         draw_type: Extent = None,
         **kwargs,
     ) -> None:
-        """Initialize a Line object.
+        """Initialize a Line.
 
         Args:
-            start (PointType): The start point of the line.
-            end (PointType): The end point of the line.
-            extent (Extent, optional): Rendering mode. Defaults to Extent.SEGMENT.
-            draw_type (Extent, optional): Backward-compatible alias for extent.
-            **kwargs: Additional keyword arguments.
+            start: Start point.
+            end: End point.
+            extent: Rendering mode. Defaults to ``Extent.SEGMENT``.
+            draw_type: Backward-compatible alias for ``extent``.
+            **kwargs: Additional shape keyword arguments.
 
         Raises:
             ValueError: If start and end points are the same.
@@ -297,18 +328,25 @@ class Line(Shape):
 
 
 class Rectangle(Shape):
-    """A rectangle defined by width and height."""
+    """Axis-aligned rectangle defined by center, width, and height.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> r = sg.Rectangle((0, 0), 40, 20)
+        >>> r.subtype.name
+        'RECTANGLE'
+    """
 
     def __init__(
         self, center: PointType, width: float, height: float, **kwargs
     ) -> None:
-        """Initialize a Rectangle object.
+        """Initialize a Rectangle.
 
         Args:
-            center (PointType): The center point of the rectangle.
-            width (float): The width of the rectangle.
-            height (float): The height of the rectangle.
-            **kwargs: Additional keyword arguments.
+            center: Center point of the rectangle.
+            width: Width of the rectangle.
+            height: Height of the rectangle.
+            **kwargs: Additional shape keyword arguments.
         """
         x, y = center[:2]
         half_width = width / 2
@@ -452,7 +490,22 @@ class Rectangle2(Rectangle):
 
 
 class Circle(Shape):
-    """A circle defined by a center point and a radius."""
+    """Circle defined by center and radius.
+
+    Stored as a one-point shape at the center; ``radius`` drives drawing and
+    the bounding box.
+
+    Attributes:
+        center: Center point (alias for the single vertex).
+        radius: Circle radius.
+        subtype: Always ``Types.CIRCLE``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> c = sg.Circle(radius=10, center=(5, 5))
+        >>> c.center
+        (5, 5)
+    """
 
     def __init__(
         self,
@@ -461,13 +514,13 @@ class Circle(Shape):
         xform_matrix: np.array = None,
         **kwargs,
     ) -> None:
-        """Initialize a Circle object.
+        """Initialize a Circle.
 
         Args:
-            center (PointType, optional): The center point of the circle. Defaults to (0, 0).
-            radius (float, optional): The radius of the circle. Defaults to None.
-            xform_matrix (np.array, optional): The transformation matrix. Defaults to None.
-            **kwargs: Additional keyword arguments.
+            radius: Circle radius. Defaults to ``defaults["circle_radius"]``.
+            center: Center point. Defaults to ``(0, 0)``.
+            xform_matrix: Optional initial transform.
+            **kwargs: Additional shape keyword arguments.
         """
         if radius is None:
             radius = defaults["circle_radius"]
@@ -592,18 +645,24 @@ class Circle(Shape):
 
 
 class Segment(Shape):
-    """A line segment defined by two points.
+    """Finite line segment between two points.
 
-    Prefer ``Line`` with ``extent=Extent.SEGMENT`` for the public API.
+    Prefer ``Line`` with ``extent=Extent.SEGMENT`` for new code.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> seg = sg.Segment((0, 0), (10, 0))
+        >>> seg.subtype.name
+        'SEGMENT'
     """
 
     def __init__(self, start: PointType, end: PointType, **kwargs) -> None:
-        """Initialize a Segment object.
+        """Initialize a Segment.
 
         Args:
-            start (PointType): The start point of the segment.
-            end (PointType): The end point of the segment.
-            **kwargs: Additional keyword arguments.
+            start: Start point.
+            end: End point.
+            **kwargs: Additional shape keyword arguments.
 
         Raises:
             ValueError: If the start and end points are the same.
@@ -767,16 +826,22 @@ def rectangle_points(
     height: float = 100,
     angle: float = 0,
 ) -> Sequence[PointType]:
-    """Return a list of points that form a rectangle with the given parameters.
+    """Return four corner points of a rectangle.
 
     Args:
-        pos (PointType): The position of the rectangle.
-        width (float): The width of the rectangle.
-        height (float): The height of the rectangle.
-        angle (float, optional): The rotation angle of the rectangle. Defaults to 0.
+        pos: Center of the rectangle. Defaults to ``(0, 0)``.
+        width: Rectangle width. Defaults to 100.
+        height: Rectangle height. Defaults to 100.
+        angle: Rotation about ``pos`` in radians. Defaults to 0.
 
     Returns:
-        Sequence[PointType]: A list of points that form the rectangle.
+        Sequence[PointType]: Corner points in order (not closed).
+
+    Examples:
+        >>> from simetri.graphics.shapes import rectangle_points
+        >>> pts = rectangle_points((0, 0), 10, 4)
+        >>> len(pts)
+        4
     """
     from ..graphics.affine import rotate
 
@@ -1230,9 +1295,9 @@ def snap(
     Float ``ref``: snap at a point on an edge; for example ``1.5`` is the
     midpoint of the edge from vertex 1 to vertex 2 (zero-based indexing).
 
-    Example::
-
-        sg.snap(triangle, 0, square, 1, angle=sg.pi / 4)
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.snap(triangle, 0, square, 1, angle=sg.pi / 4)
 
     Args:
         free_shape: Shape moved and rotated into place.

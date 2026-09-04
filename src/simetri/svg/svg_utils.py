@@ -1,3 +1,6 @@
+"""Low-level SVG path utilities (rounding, offsets, Path2D conversion).
+"""
+
 import math
 import re
 from math import acos, cos, degrees, pi, radians, sin, sqrt
@@ -15,6 +18,15 @@ from ..graphics.path import Path2D
 
 # Helper to format floats to avoid excessive precision in SVG
 def fmt(val, digits=3):
+    """Format a float for SVG attributes without trailing zeros.
+
+    Args:
+        val: Numeric value to format.
+        digits: Maximum digits after the decimal point.
+
+    Returns:
+        str: Compact decimal string.
+    """
     return f"{val:.{digits}f}".rstrip("0").rstrip(".")
 
 

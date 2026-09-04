@@ -28,19 +28,25 @@ quad_poly_matrix = np.array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
 class Bezier(Shape):
     """A Bezier curve defined by control points.
 
-    For cubic Bezier curves: [V1, CP1, CP2, V2]
-    For quadratic Bezier curves: [V1, CP, V2]
-    Like all other geometry in simetri.graphics,
-    bezier curves are represented as a sequence of points.
-    Both quadratic and cubic bezier curves are supported.
-    Number of control points determines the type of Bezier curve.
-    A cubic Bezier curve has 4 control points, while a quadratic Bezier curve has 3.
-    curve.subtype reflects this as Types.BEZIER or Types.Q_BEZIER.
+    For cubic Bezier curves: ``[V1, CP1, CP2, V2]``.
+    For quadratic Bezier curves: ``[V1, CP, V2]``.
+    Like other geometry in ``simetri.graphics``, Bezier curves are represented
+    as a sequence of sampled points. The number of control points selects the
+    type: 4 for cubic (``Types.BEZIER``) or 3 for quadratic (``Types.Q_BEZIER``).
 
     Attributes:
         control_points (Sequence[PointType]): Control points of the Bezier curve.
-        cubic (bool): True if the Bezier curve is cubic, False if quadratic.
+        cubic (bool): True if cubic, False if quadratic.
         matrix (array): Polynomial matrix for the Bezier curve.
+
+    Examples:
+        ::
+
+            import simetri.graphics as sg
+
+            curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)])
+            canvas = sg.Canvas()
+            canvas.draw(curve)
     """
 
     def __init__(
@@ -143,13 +149,16 @@ class Bezier(Shape):
         return copy_
 
     def point(self, t: float):
-        """Return the point on the Bezier curve at t.
+        """Return the point on the Bezier curve at parameter ``t``.
+
+        Note:
+            This method is currently a stub; use ``point2`` instead.
 
         Args:
-            t (float): Parameter t, where 0 <= t <= 1.
+            t: Parameter in ``[0, 1]``.
 
         Returns:
-            list: PointType on the Bezier curve at t.
+            PointType: Point on the curve at ``t`` (when implemented).
         """
         # if self.cubic:
         #     np.array([t**3, t**2, t, 1]) @ self.matrix
@@ -391,20 +400,27 @@ M = array([[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]])
 
 
 def bezier_points(p0, p1: PointType, p2: PointType, p3: PointType, n_points=10):
-    """Return the points on a cubic Bezier curve.
+    """Return sampled points on a cubic Bezier curve.
 
     Args:
-        p0 (list): First control point.
-        p1 (list): Second control point.
-        p2 (list): Third control point.
-        p3 (list): Fourth control point.
-        n_points (int, optional): Number of points. Defaults to 10.
+        p0: First control point (start).
+        p1: Second control point.
+        p2: Third control point.
+        p3: Fourth control point (end).
+        n_points: Number of samples (must be >= 5). Defaults to 10.
 
     Returns:
-        list: Points on the cubic Bezier curve.
+        ndarray: Sampled points along the cubic Bezier.
 
     Raises:
-        ValueError: If n_points is less than 5.
+        ValueError: If ``n_points`` is less than 5.
+
+    Examples:
+        ::
+
+            from simetri.geometry.bezier import bezier_points
+
+            pts = bezier_points((0, 0), (1, 2), (2, 2), (3, 0), n_points=20)
     """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")

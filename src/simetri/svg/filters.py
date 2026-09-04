@@ -1,10 +1,8 @@
-## ✅ Goal & approach 🧩
-"""
+"""SVG filter element builders (``<filter>`` and filter primitives).
 
-- 🏗️ Use `@dataclass` for each primitive with explicit attributes
-- 🧰 Include an `extra: dict` on every element to support *any additional attributes* (presentation attributes, future SVG2 attributes, vendor quirks, etc.)
-- 🖨️ Provide `to_element()` + `to_string()` to emit valid SVG markup
-
+Dataclass wrappers for SVG filter primitives with ``to_element()`` /
+``to_string()`` helpers for emitting markup. Each element supports an
+``extra`` dict for additional presentation attributes.
 """
 
 import xml.etree.ElementTree as ET
@@ -65,15 +63,20 @@ class SVGElement:
 # ----------------------------
 @dataclass
 class SVG_Filter(SVGElement):
-    """
-    Represents an SVG <filter> element containing filter primitives.
+    """SVG ``<filter>`` element containing filter primitives.
 
-    Common <filter> attributes:
-      - x, y, width, height
-      - filterUnits, primitiveUnits
-      - color-interpolation-filters
-      - filterRes (pair or string)
-      - href (SVG2) or xlink:href (legacy)
+    Attributes:
+        x: Filter region x.
+        y: Filter region y.
+        width: Filter region width.
+        height: Filter region height.
+        filterUnits: ``userSpaceOnUse`` or ``objectBoundingBox``.
+        primitiveUnits: Coordinate system for primitives.
+        color_interpolation_filters: ``sRGB`` or ``linearRGB``.
+        filterRes: Optional filter resolution.
+        href: SVG2 href reference.
+        xlink_href: Legacy xlink:href reference.
+        primitives: Child ``FilterPrimitive`` instances.
     """
 
     x: NumOrStr | None = None
@@ -92,10 +95,23 @@ class SVG_Filter(SVGElement):
     primitives: list["FilterPrimitive"] = field(default_factory=list)
 
     def add(self, *prims: "FilterPrimitive") -> "SVG_Filter":
+        """Append filter primitives and return ``self`` for chaining.
+
+        Args:
+            *prims: One or more ``FilterPrimitive`` instances.
+
+        Returns:
+            SVG_Filter: This filter, for fluent calls.
+        """
         self.primitives.extend(prims)
         return self
 
     def to_element(self) -> ET.Element:
+        """Build an ``xml.etree.ElementTree.Element`` for this filter.
+
+        Returns:
+            ET.Element: ``<filter>`` element with child primitives.
+        """
         # Note: ElementTree namespaces are easiest if we emit plain tags here and
         # include xmlns at the top-level string creation (see to_string()).
         el = ET.Element("filter")
@@ -133,6 +149,16 @@ class SVG_Filter(SVGElement):
         include_defs: bool = True,
         include_xmlns: bool = True,
     ) -> str:
+        """Serialize this filter to an SVG markup string.
+
+        Args:
+            pretty: If True, indent the XML for readability.
+            include_defs: If True, wrap the filter in a ``<defs>`` element.
+            include_xmlns: If True, set the SVG xmlns on the root element.
+
+        Returns:
+            str: SVG markup for the filter (optionally wrapped in ``<defs>``).
+        """
         # Register xlink prefix if we might use it
         ET.register_namespace("xlink", XLINK_NS)
 
@@ -190,6 +216,11 @@ class FilterPrimitive(SVGElement):
 
     @property
     def type(self) -> FilterType:
+        """Return the SVG filter primitive type enum.
+
+        Returns:
+            FilterType: Primitive type for this filter element.
+        """
         return self.primitive_type
 
     def _apply_primitive_common(self, el: ET.Element) -> None:
@@ -207,11 +238,17 @@ class FilterPrimitive(SVGElement):
 # -------------------
 @dataclass
 class feBlend(FilterPrimitive):
+    """SVG ``<feBlend>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.BLEND
     in2: str | None = None
     mode: str | None = None  # normal|multiply|screen|darken|lighten|...
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feBlend")
         self._apply_primitive_common(el)
         _set_attrib(el, "in2", self.in2)
@@ -224,6 +261,7 @@ class feBlend(FilterPrimitive):
 # -------------------
 @dataclass
 class feColorMatrix(FilterPrimitive):
+    """SVG ``<feColorMatrix>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.COLOR_MATRIX
     matrix_type: ColorMatrix | None = None
     values: MaybeSeq | None = None
@@ -241,6 +279,11 @@ class feColorMatrix(FilterPrimitive):
                 self.values = defaults["filter_color_matrix_values"]
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feColorMatrix")
         self._apply_primitive_common(el)
         _set_attrib(el, "type", self.matrix_type)
@@ -253,7 +296,7 @@ class feColorMatrix(FilterPrimitive):
 # -------------------
 @dataclass
 class feFunc(SVGElement):
-    """Base for feFuncR/G/B/A"""
+    """Base for feFuncR/G/B/A channel transfer functions."""
 
     type: str | None = None  # identity|table|discrete|linear|gamma
     tableValues: MaybeSeq | None = None
@@ -266,6 +309,11 @@ class feFunc(SVGElement):
     TAG: str = "feFuncR"  # overridden
 
     def to_element(self) -> ET.Element:
+        """Build the channel transfer function element.
+
+        Returns:
+            ET.Element: ``feFunc*`` element.
+        """
         el = ET.Element(self.TAG)
         self._apply_common(el)
         _set_attrib(el, "type", self.type)
@@ -280,26 +328,31 @@ class feFunc(SVGElement):
 
 @dataclass
 class feFuncR(feFunc):
+    """Transfer function for the red channel (``<feFuncR>``)."""
     TAG: str = "feFuncR"
 
 
 @dataclass
 class feFuncG(feFunc):
+    """Transfer function for the green channel (``<feFuncG>``)."""
     TAG: str = "feFuncG"
 
 
 @dataclass
 class feFuncB(feFunc):
+    """Transfer function for the blue channel (``<feFuncB>``)."""
     TAG: str = "feFuncB"
 
 
 @dataclass
 class feFuncA(feFunc):
+    """Transfer function for the alpha channel (``<feFuncA>``)."""
     TAG: str = "feFuncA"
 
 
 @dataclass
 class feComponentTransfer(FilterPrimitive):
+    """SVG ``<feComponentTransfer>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.COMPONENT_TRANSFER
     funcR: feFuncR | None = None
     funcG: feFuncG | None = None
@@ -307,6 +360,11 @@ class feComponentTransfer(FilterPrimitive):
     funcA: feFuncA | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feComponentTransfer")
         self._apply_primitive_common(el)
         for f in (self.funcR, self.funcG, self.funcB, self.funcA):
@@ -320,6 +378,7 @@ class feComponentTransfer(FilterPrimitive):
 # -------------------
 @dataclass
 class feComposite(FilterPrimitive):
+    """SVG ``<feComposite>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.COMPOSITE
     in2: str | None = None
     operator: str | None = None  # over|in|out|atop|xor|arithmetic
@@ -329,6 +388,11 @@ class feComposite(FilterPrimitive):
     k4: Number | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feComposite")
         self._apply_primitive_common(el)
         _set_attrib(el, "in2", self.in2)
@@ -345,6 +409,7 @@ class feComposite(FilterPrimitive):
 # -------------------
 @dataclass
 class feConvolveMatrix(FilterPrimitive):
+    """SVG ``<feConvolveMatrix>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.CONVOLVE_MATRIX
     order: int | tuple[int, int] | None = None
     kernelMatrix: MaybeSeq | None = None
@@ -357,6 +422,11 @@ class feConvolveMatrix(FilterPrimitive):
     preserveAlpha: bool | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feConvolveMatrix")
         self._apply_primitive_common(el)
 
@@ -390,10 +460,16 @@ class feConvolveMatrix(FilterPrimitive):
 # -------------------
 @dataclass
 class feDistantLight(SVGElement):
+    """SVG ``<feDistantLight>`` light source."""
     azimuth: Number | None = None
     elevation: Number | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feDistantLight")
         self._apply_common(el)
         _set_attrib(el, "azimuth", self.azimuth)
@@ -403,11 +479,17 @@ class feDistantLight(SVGElement):
 
 @dataclass
 class fePointLight(SVGElement):
+    """SVG ``<fePointLight>`` light source."""
     x: Number | None = None
     y: Number | None = None
     z: Number | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("fePointLight")
         self._apply_common(el)
         _set_attrib(el, "x", self.x)
@@ -418,6 +500,7 @@ class fePointLight(SVGElement):
 
 @dataclass
 class feSpotLight(SVGElement):
+    """SVG ``<feSpotLight>`` light source."""
     x: Number | None = None
     y: Number | None = None
     z: Number | None = None
@@ -428,6 +511,11 @@ class feSpotLight(SVGElement):
     limitingConeAngle: Number | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feSpotLight")
         self._apply_common(el)
         _set_attrib(el, "x", self.x)
@@ -446,6 +534,7 @@ class feSpotLight(SVGElement):
 # -------------------
 @dataclass
 class feDiffuseLighting(FilterPrimitive):
+    """SVG ``<feDiffuseLighting>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.DIFFUSE_LIGHTING
     surfaceScale: Number | None = None
     diffuseConstant: Number | None = None
@@ -455,6 +544,11 @@ class feDiffuseLighting(FilterPrimitive):
     light: feDistantLight | fePointLight | feSpotLight | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feDiffuseLighting")
         self._apply_primitive_common(el)
         _set_attrib(el, "surfaceScale", self.surfaceScale)
@@ -482,6 +576,7 @@ class feDiffuseLighting(FilterPrimitive):
 # -------------------
 @dataclass
 class feDisplacementMap(FilterPrimitive):
+    """SVG ``<feDisplacementMap>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.DISPLACEMENT_MAP
     in2: str | None = None
     scale: Number | None = None
@@ -489,6 +584,11 @@ class feDisplacementMap(FilterPrimitive):
     yChannelSelector: str | None = None  # R|G|B|A
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feDisplacementMap")
         self._apply_primitive_common(el)
         _set_attrib(el, "in2", self.in2)
@@ -503,6 +603,7 @@ class feDisplacementMap(FilterPrimitive):
 # -------------------
 @dataclass
 class feDropShadow(FilterPrimitive):
+    """SVG ``<feDropShadow>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.DROP_SHADOW
     dx: Number | None = None
     dy: Number | None = None
@@ -511,6 +612,11 @@ class feDropShadow(FilterPrimitive):
     flood_opacity: Number | None = None  # "flood-opacity"
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feDropShadow")
         self._apply_primitive_common(el)
         _set_attrib(el, "dx", self.dx)
@@ -533,11 +639,17 @@ class feDropShadow(FilterPrimitive):
 # -------------------
 @dataclass
 class feFlood(FilterPrimitive):
+    """SVG ``<feFlood>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.FLOOD
     flood_color: str | None = None
     flood_opacity: Number | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feFlood")
         # feFlood doesn't use "in" in the usual sense, but allowing it doesn't hurt.
         self._apply_primitive_common(el)
@@ -551,11 +663,17 @@ class feFlood(FilterPrimitive):
 # -------------------
 @dataclass
 class feGaussianBlur(FilterPrimitive):
+    """SVG ``<feGaussianBlur>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.GAUSSIAN_BLUR
     stdDeviation: Number | tuple[Number, Number] | None = None
     edgeMode: str | None = None  # duplicate|wrap|none
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feGaussianBlur")
         self._apply_primitive_common(el)
         if isinstance(self.stdDeviation, tuple):
@@ -575,6 +693,7 @@ class feGaussianBlur(FilterPrimitive):
 # -------------------
 @dataclass
 class feImage(FilterPrimitive):
+    """SVG ``<feImage>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.IMAGE
     href: str | None = None  # SVG2
     xlink_href: str | None = None  # legacy
@@ -582,6 +701,11 @@ class feImage(FilterPrimitive):
     crossOrigin: str | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feImage")
         self._apply_primitive_common(el)
         _set_attrib(el, "href", self.href)
@@ -597,9 +721,15 @@ class feImage(FilterPrimitive):
 # -------------------
 @dataclass
 class feMergeNode(SVGElement):
+    """SVG ``<feMergeNode>`` child of ``<feMerge>``."""
     in_: str | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feMergeNode")
         self._apply_common(el)
         _set_attrib(el, "in", self.in_)
@@ -608,14 +738,28 @@ class feMergeNode(SVGElement):
 
 @dataclass
 class feMerge(FilterPrimitive):
+    """SVG ``<feMerge>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.MERGE
     nodes: list[feMergeNode] = field(default_factory=list)
 
     def add_node(self, in_: str) -> "feMerge":
+        """Append an ``feMergeNode`` and return ``self`` for chaining.
+
+        Args:
+            in_: Input image name for the merge node.
+
+        Returns:
+            feMerge: This merge primitive.
+        """
         self.nodes.append(feMergeNode(in_=in_))
         return self
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feMerge")
         self._apply_primitive_common(el)
         for n in self.nodes:
@@ -628,11 +772,17 @@ class feMerge(FilterPrimitive):
 # -------------------
 @dataclass
 class feMorphology(FilterPrimitive):
+    """SVG ``<feMorphology>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.MORPHOLOGY
     operator: str | None = None  # erode|dilate
     radius: Number | tuple[Number, Number] | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feMorphology")
         self._apply_primitive_common(el)
         _set_attrib(el, "operator", self.operator)
@@ -648,11 +798,17 @@ class feMorphology(FilterPrimitive):
 # -------------------
 @dataclass
 class feOffset(FilterPrimitive):
+    """SVG ``<feOffset>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.OFFSET
     dx: Number | None = None
     dy: Number | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feOffset")
         self._apply_primitive_common(el)
         _set_attrib(el, "dx", self.dx)
@@ -665,6 +821,7 @@ class feOffset(FilterPrimitive):
 # -------------------
 @dataclass
 class feSpecularLighting(FilterPrimitive):
+    """SVG ``<feSpecularLighting>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.SPECULAR_LIGHTING
     surfaceScale: Number | None = None
     specularConstant: Number | None = None
@@ -675,6 +832,11 @@ class feSpecularLighting(FilterPrimitive):
     light: feDistantLight | fePointLight | feSpotLight | None = None
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feSpecularLighting")
         self._apply_primitive_common(el)
         _set_attrib(el, "surfaceScale", self.surfaceScale)
@@ -703,9 +865,15 @@ class feSpecularLighting(FilterPrimitive):
 # -------------------
 @dataclass
 class feTile(FilterPrimitive):
+    """SVG ``<feTile>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.TILE
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feTile")
         self._apply_primitive_common(el)
         return el
@@ -716,6 +884,7 @@ class feTile(FilterPrimitive):
 # -------------------
 @dataclass
 class feTurbulence(FilterPrimitive):
+    """SVG ``<feTurbulence>`` filter primitive."""
     primitive_type: ClassVar[FilterType] = FilterType.TURBULENCE
     baseFrequency: Number | tuple[Number, Number] | None = None
     numOctaves: int | None = None
@@ -724,6 +893,11 @@ class feTurbulence(FilterPrimitive):
     turbulence_type: str | None = None  # turbulence|fractalNoise
 
     def to_element(self) -> ET.Element:
+        """Build an ElementTree element for this SVG filter node.
+
+        Returns:
+            ET.Element: XML element ready for serialization.
+        """
         el = ET.Element("feTurbulence")
         self._apply_primitive_common(el)
 

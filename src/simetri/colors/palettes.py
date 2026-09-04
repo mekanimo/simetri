@@ -1,3 +1,14 @@
+"""Color palette collections adapted from palettable and related sources.
+
+Palette names may be prefixed with ``div``, ``qual``, or ``seq`` for
+diverging, qualitative, and sequential palettes. Lookup helpers return
+``Color`` instances suitable for Simetri drawings.
+
+Examples:
+    >>> from simetri.colors.palettes import get_palette
+    >>> colors = get_palette(3, 0)
+"""
+
 from enum import Enum
 from datetime import datetime
 from random import randint
@@ -193,6 +204,14 @@ from simetri.colors.colors import Color
 
 
 class PaletteType(Enum):
+    """High-level palette categories.
+
+    Attributes:
+        DIVERGENT: Diverging palettes.
+        SEQUENTIAL: Sequential palettes.
+        QUALITATIVE: Qualitative palettes.
+    """
+
     DIVERGENT, SEQUENTIAL, QUALITATIVE = range(3)
 
 
@@ -17862,7 +17881,11 @@ d_name_palette_type[PaletteType.SEQUENTIAL] = [
 
 
 def random_palette():
-    """Return a random swatch."""
+    """Return a random 256-color palette.
+
+    Returns:
+        list: Random palette entries from ``d_n_palette[256]``.
+    """
 
     i = randint(0, len(d_n_palette[256]) - 1)
     try:
@@ -17877,6 +17900,15 @@ def random_palette():
 
 
 def get_palette(n_colors, ind):
+    """Return a named palette as a list of ``Color`` instances.
+
+    Args:
+        n_colors: Number of colors key into ``d_n_palette``.
+        ind: Index of the palette within that size group.
+
+    Returns:
+        list[Color]: Palette colors.
+    """
     palettes = d_n_palette[n_colors]
     palette = d_name_palette[palettes[ind]]
     palette = [Color(*c) for c in palette]

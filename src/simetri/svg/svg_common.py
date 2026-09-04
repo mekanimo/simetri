@@ -6,6 +6,17 @@ from .svg_sketch_utils import sketch_attrib
 
 
 def _clip_line_to_rect(start, end, rect, draw_type):
+    """Clip a line segment/ray/infinite line to a rectangle.
+
+    Args:
+        start: Line start point.
+        end: Line end point.
+        rect: ``(xmin, ymin, xmax, ymax)`` clip rectangle, or None.
+        draw_type: ``Extent`` value.
+
+    Returns:
+        tuple: Possibly clipped ``(start, end)`` points.
+    """
     if rect is None:
         return start, end
 
@@ -56,6 +67,14 @@ def _clip_line_to_rect(start, end, rect, draw_type):
 
 
 def get_clip_mask_attrs(sketch):
+    """Build SVG ``clip-path`` / ``mask`` attribute strings for a sketch.
+
+    Args:
+        sketch: Sketch that may reference a clip path or opacity mask.
+
+    Returns:
+        tuple: ``(clip_attr, mask_attr)`` strings (possibly empty).
+    """
     clip_attr = ""
     clip = sketch_attrib(sketch, "clip")
     mask = sketch_attrib(sketch, "mask")

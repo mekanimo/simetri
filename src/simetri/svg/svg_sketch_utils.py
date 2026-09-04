@@ -12,6 +12,11 @@ from .svg_colors import color_to_svg
 
 
 def svg_shape(*args, **kwargs):
+    """Placeholder replaced by ``svg`` at import time.
+
+    Raises:
+        RuntimeError: If called before SVG module initialization.
+    """
     raise RuntimeError(
         "svg_shape must be initialized by simetri.svg.svg before use."
     )
@@ -21,11 +26,24 @@ _active_svg_style_ids = {}
 
 
 def set_active_svg_style_ids(style_ids):
+    """Set the active sketch-id to CSS-class-id mapping.
+
+    Args:
+        style_ids: Mapping of sketch id to CSS class id.
+    """
     global _active_svg_style_ids
     _active_svg_style_ids = style_ids
 
 
 def get_active_svg_style_id(sketch):
+    """Return the CSS class id for ``sketch``, if any.
+
+    Args:
+        sketch: Sketch whose style id is requested.
+
+    Returns:
+        str | None: Active style id, or None.
+    """
     if sketch.id in _active_svg_style_ids:
         return _active_svg_style_ids[sketch.id]
     return None
@@ -47,6 +65,15 @@ d_shape_types = {
 
 
 def sketch_attrib(sketch, attrib):
+    """Read a sketch attribute, falling back to library defaults.
+
+    Args:
+        sketch: Sketch object.
+        attrib: Attribute name.
+
+    Returns:
+        The attribute value, or the matching default when missing.
+    """
     try:
         return object.__getattribute__(sketch, attrib)
     except AttributeError:
@@ -92,6 +119,16 @@ def get_text_size(text, font_name, font_size):
 
 
 def get_text_size2(text, font_path, font_size):
+    """Measure text size using a TrueType font file path.
+
+    Args:
+        text: Text to measure.
+        font_path: Path to a ``.ttf`` (or similar) font file.
+        font_size: Font size in points.
+
+    Returns:
+        tuple: ``(width, height)`` of the text.
+    """
     font = ImageFont.truetype(font_path, font_size)
     _, descent = font.getmetrics()
     text_width = font.getmask(text).getbbox()[2]
@@ -494,6 +531,14 @@ def generate_marker_def(
 
 
 def get_shape_type(sketch):
+    """Map a sketch type enum to an SVG shape category string.
+
+    Args:
+        sketch: Sketch whose type is inspected.
+
+    Returns:
+        str: Shape category such as ``line``, ``circle``, or ``shape``.
+    """
     shape_type = d_shape_types[sketch_attrib(sketch, "subtype")]
     if shape_type == "shape":
         if sketch_attrib(sketch, "closed"):
@@ -505,6 +550,15 @@ def get_shape_type(sketch):
 
 
 def get_coordinates(sketch, shape_type):
+    """Build SVG coordinate attributes for a sketch and shape type.
+
+    Args:
+        sketch: Sketch providing geometry.
+        shape_type: Category from ``get_shape_type``.
+
+    Returns:
+        str: Attribute fragment such as ``x1=... y1=...`` or path ``d``.
+    """
     if shape_type in ("polygon", "polyline"):
         vertices = sketch_attrib(sketch, "vertices")
         verts = ", ".join([f"{x} {y}" for x, y in vertices])
@@ -541,6 +595,15 @@ def get_coordinates(sketch, shape_type):
 
 
 def get_style(sketch, shape_type):
+    """Build a CSS style attribute string for a sketch.
+
+    Args:
+        sketch: Sketch to style.
+        shape_type: SVG shape category from ``get_shape_type``.
+
+    Returns:
+        str: Semicolon-separated CSS declarations.
+    """
     line_style = get_line_style_options(sketch)
     res = [line_style]
     if shape_type in ("circle", "ellipse", "polygon", "polyline", "rect"):
@@ -642,6 +705,14 @@ def get_style_maps(canvas):
 
 
 def get_styles_dict(canvas):
+    """Return the CSS class dictionary for a canvas.
+
+    Args:
+        canvas: Canvas whose sketches are styled.
+
+    Returns:
+        dict: Mapping of CSS class name to property dictionaries.
+    """
     css_styles, _ = get_style_maps(canvas)
     return css_styles
 

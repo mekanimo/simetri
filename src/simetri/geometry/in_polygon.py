@@ -1,3 +1,5 @@
+"""Point-in-polygon test using the winding-number algorithm."""
+
 from simetri.geometry.geometry import left, point_on_line_segment
 from simetri.geometry.vectors import PointType, Sequence
 from simetri.graphics.common import PointType
@@ -8,17 +10,28 @@ def in_polygon(
     polygon_vertices: Sequence[PointType],
     exclude_border: bool = False,
 ) -> bool:
-    """
-    Checks if a point is inside a polygon using the winding number algorithm.
+    """Return whether a point lies inside a polygon (winding number).
 
     Args:
-        point (tuple): A tuple (x, y) representing the point to test.
-        polygon_vertices (list): A list of tuples, where each tuple (x, y)
-                                represents a vertex of the polygon. The vertices
-                                should be ordered (e.g., clockwise or counter-clockwise).
+        point: Point ``(x, y)`` to test.
+        polygon_vertices: Ordered polygon vertices (clockwise or
+            counter-clockwise). The last vertex need not repeat the first.
+        exclude_border: If True, points on an edge return False. If False
+            (default), border points are treated as inside.
 
     Returns:
-        bool: True if the point is inside the polygon, False otherwise.
+        True if the point is inside the polygon (subject to
+        ``exclude_border``), otherwise False.
+
+    Examples:
+        ::
+
+            from simetri.geometry.in_polygon import in_polygon
+
+            square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+            in_polygon((0.5, 0.5), square)  # True
+            in_polygon((2, 2), square)  # False
+            in_polygon((0, 0), square, exclude_border=True)  # False
     """
     _, y = point[:2]
     n_winding = 0  # Initialize the winding number

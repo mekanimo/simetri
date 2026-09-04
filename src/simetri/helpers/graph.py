@@ -13,18 +13,28 @@ from ..settings.settings import defaults
 
 @dataclass
 class GraphEdge:
-    """Edge in a graph. It has a start and end point as nodes."""
+    """Edge in a graph with start and end nodes.
+
+    Attributes:
+        start (PointType): Start node.
+        end (PointType): End node.
+        length (float): Edge length computed in ``__post_init__``.
+    """
 
     start: PointType
     end: PointType
 
     def __post_init__(self):
-        """Initialize the GraphEdge with start and end points."""
+        """Compute ``length`` from the start and end node positions."""
         self.length = distance(self.start.pos, self.end.pos)
 
     @property
     def nodes(self):
-        """Return the start and end nodes of the edge."""
+        """Return the start and end nodes of the edge.
+
+        Returns:
+            tuple: ``(start, end)`` nodes.
+        """
         return (self.start, self.end)
 
 

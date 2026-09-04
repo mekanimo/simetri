@@ -1,4 +1,9 @@
-"""Turtle graphics variant, with a twist."""
+"""Turtle graphics variant built on Simetri ``Group`` objects.
+
+Provides a familiar pen-based drawing API (forward, turn, pen up/down) that
+records polylines as shapes. Also includes helpers such as ``spirolateral``
+and ``spiral``.
+"""
 
 from math import pi, radians
 from typing import Sequence, Any
@@ -11,12 +16,12 @@ from ..geometry.geometry import line_by_point_angle_length as get_pos
 
 @dataclass
 class State:
-    """A state of the turtle.
+    """A snapshot of turtle position, heading, and pen state.
 
     Attributes:
-        pos (tuple): The position of the turtle.
-        angle (float): The angle of the turtle.
-        pen_is_down (bool): Whether the pen is down.
+        pos: Turtle position as ``(x, y)``.
+        angle: Heading angle in degrees or radians.
+        pen_is_down: Whether the pen is currently drawing.
     """
 
     pos: tuple
@@ -25,15 +30,19 @@ class State:
 
 
 class Turtle(Group):
-    """A Turtle graphics variant, with a twist.
-
-    This class implements a turtle graphics system that can be used to draw
-    geometric shapes and patterns.
+    """Turtle graphics that records drawn paths as Simetri shapes.
 
     Args:
-        *args: Variable length argument list passed to the parent class.
-        in_degrees (bool, optional): Whether angles are measured in degrees. Defaults to False.
-        **kwargs: Arbitrary keyword arguments passed to the parent class.
+        *args: Positional arguments forwarded to ``Group``.
+        in_degrees: If True, angles are in degrees; otherwise radians.
+        **kwargs: Keyword arguments forwarded to ``Group``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> t = sg.Turtle(in_degrees=True)
+        >>> t.forward(40)
+        >>> t.right(90)
+        >>> t.forward(40)
     """
 
     def __init__(self, *args: Any, in_degrees: bool = False, **kwargs: Any) -> None:
@@ -258,8 +267,10 @@ def add_digits(n: int) -> int:
         int: The sum of all digits in n.
 
     Examples:
-        10 -> 1 + 0 -> 1
-        123 -> 1 + 2 + 3 -> 6
+        >>> add_digits(10)
+        1
+        >>> add_digits(123)
+        6
     """
     return sum((int(x) for x in str(n)))
 
@@ -267,16 +278,20 @@ def add_digits(n: int) -> int:
 def spirolateral(
     sequence: Sequence, angle: float, cycles: int = 15, multiplier: float = 50
 ) -> Turtle:
-    """Draw a spirolateral with the given sequence and angle.
+    """Draw a spirolateral with the given sequence and turn angle.
 
     Args:
-        sequence (Sequence): Sequence of numbers determining segment lengths.
-        angle (float): Angle in degrees for turns.
-        cycles (int, optional): Number of cycles to draw. Defaults to 15.
-        multiplier (float, optional): Scaling factor for segment lengths. Defaults to 50.
+        sequence: Sequence of numbers determining segment lengths.
+        angle: Exterior turn angle in degrees.
+        cycles: Number of forward/turn steps to draw.
+        multiplier: Scaling factor for segment lengths.
 
     Returns:
-        Turtle: The turtle object used for drawing.
+        The ``Turtle`` used for drawing.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> t = sg.spirolateral([1, 2, 3], angle=90, cycles=12)
     """
     turtle = Turtle(in_degrees=True)
     count = 0
@@ -291,17 +306,22 @@ def spirolateral(
 def spiral(
     turtle: Turtle, side: float, angle: float, delta: float, cycles: int = 15
 ) -> Turtle:
-    """Draw a spiral with the given side, angle, delta, and cycles.
+    """Draw a spiral by repeatedly moving forward and turning.
 
     Args:
-        turtle (Turtle): The turtle object to use for drawing.
-        side (float): Initial length of the side.
-        angle (float): Angle to turn after drawing each side.
-        delta (float): Amount to increase the side length in each step.
-        cycles (int, optional): Number of segments to draw. Defaults to 15.
+        turtle: Turtle used for drawing.
+        side: Initial segment length.
+        angle: Turn angle after each segment.
+        delta: Amount added to ``side`` after each step.
+        cycles: Number of segments to draw.
 
     Returns:
-        Turtle: The turtle object used for drawing.
+        The turtle used for drawing.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> t = sg.Turtle(in_degrees=True)
+        >>> sg.spiral(t, side=10, angle=20, delta=2, cycles=30)
     """
     t = turtle
     count = 0

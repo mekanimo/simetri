@@ -1,3 +1,17 @@
+"""Low-level 2D geometry utilities: points, lines, distances, and intersections.
+
+These helpers are used throughout ``simetri.geometry`` and ``simetri.graphics``.
+Prefer the higher-level Shape APIs in ``simetri.graphics`` for drawing.
+
+Examples:
+    ::
+
+        from simetri.geometry.geom_utils import distance, midpoint
+
+        distance((0, 0), (3, 4))  # 5.0
+        midpoint((0, 0), (2, 2))  # (1.0, 1.0)
+"""
+
 from collections.abc import Sequence
 from math import atan2, cos, hypot, isclose, pi, sin
 from typing import Any
@@ -14,14 +28,21 @@ around = np.around
 
 
 def homogenize(points: Sequence[PointType]) -> NDArray:
-    """
-    Convert a list of points to homogeneous coordinates.
+    """Convert a list of points to homogeneous coordinates.
 
     Args:
-        points (Sequence[PointType]): List of points.
+        points: Sequence of ``(x, y)`` points (extra coords ignored).
 
     Returns:
-        np.ndarray: Homogeneous coordinates.
+        NDArray: Homogeneous coordinates with a trailing 1 column.
+
+    Examples:
+        ::
+
+            from simetri.geometry.geom_utils import homogenize
+
+            homogenize([(1, 2), (3, 4)])
+            # array([[1., 2., 1.], [3., 4., 1.]])
     """
     try:
         xy_array = np.array(points, dtype=float)
@@ -80,45 +101,48 @@ def is_line(line_: Any) -> bool:
     except:
         return False
 
-def equal_points(point1:PointType, point2:PointType, dist_tol=.001) -> bool:
-    """
-        Given two points, returns True if the points are within the given distance.
+def equal_points(point1: PointType, point2: PointType, dist_tol=.001) -> bool:
+    """Return True if two points are within ``dist_tol`` of each other.
 
-        Args:
-            point1: PointType: First point.
-            point2: PointType: Second point.
+    Args:
+        point1: First point.
+        point2: Second point.
+        dist_tol: Maximum allowed distance. Defaults to 0.001.
 
-        Returns:
-            bool: True if the points are within the given distance
+    Returns:
+        bool: True if the points are within the given distance.
     """
 
     return distance(point1, point2) <= dist_tol
 
-def congruent_points(point1:PointType, point2:PointType, dist_tol=.001) -> bool:
-    """
-        Given two points, returns True if the points are within the given distance tolerance.
 
-        Args:
-            point1: PointType: First point.
-            point2: PointType: Second point.
-            dist_tol: Distance tolerance
+def congruent_points(
+    point1: PointType, point2: PointType, dist_tol=.001
+) -> bool:
+    """Alias for ``equal_points``.
 
-        Returns:
-            bool: True if the points are within the given distance
+    Args:
+        point1: First point.
+        point2: Second point.
+        dist_tol: Maximum allowed distance. Defaults to 0.001.
+
+    Returns:
+        bool: True if the points are within the given distance.
     """
 
     return equal_points(point1, point2, dist_tol=dist_tol)
 
-def equal_edges(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
-    """
-        Given two edges, returns True if the edges' endpoints are within the given distance tolerance.
 
-        Args:
-            edge1: LineType: First edge.
-            edge2: LineType: Second edge.
+def equal_edges(edge1: LineType, edge2: LineType, dist_tol=.001) -> bool:
+    """Return True if two edges have matching endpoints (either orientation).
 
-        Returns:
-            bool: True if the edges' endpoints are within the given distance tolerance.
+    Args:
+        edge1: First edge ``(p1, p2)``.
+        edge2: Second edge ``(p3, p4)``.
+        dist_tol: Endpoint distance tolerance. Defaults to 0.001.
+
+    Returns:
+        bool: True if endpoints match within ``dist_tol``.
     """
     p1, p2 = edge1
     p3, p4 = edge2
@@ -126,47 +150,52 @@ def equal_edges(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
     return ((equal_points(p1, p3, dist_tol) and equal_points(p2, p4, dist_tol)) or
             (equal_points(p1, p4, dist_tol) and equal_points(p2, p3, dist_tol)))
 
+
 # alias for equal_edges
-def equal_segments(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
-    """
-        Given two segments, returns True if the segments' endpoints are within the given distance tolerance.
+def equal_segments(edge1: LineType, edge2: LineType, dist_tol=.001) -> bool:
+    """Alias for ``equal_edges``.
 
-        Args:
-            edge1: LineType: First edge.
-            edge2: LineType: Second edge.
+    Args:
+        edge1: First segment.
+        edge2: Second segment.
+        dist_tol: Endpoint distance tolerance. Defaults to 0.001.
 
-        Returns:
-            bool: True if the edges' endpoints are within the given distance tolerance.
+    Returns:
+        bool: True if endpoints match within ``dist_tol``.
     """
 
     return equal_edges(edge1, edge2, dist_tol=dist_tol)
 
+
 # alias for equal_edges
-def congruent_edges(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
-    """
-        Given two edges, returns True if the edges' endpoints are within the given distance tolerance.
+def congruent_edges(edge1: LineType, edge2: LineType, dist_tol=.001) -> bool:
+    """Alias for ``equal_edges``.
 
-        Args:
-            edge1: LineType: First edge.
-            edge2: LineType: Second edge.
+    Args:
+        edge1: First edge.
+        edge2: Second edge.
+        dist_tol: Endpoint distance tolerance. Defaults to 0.001.
 
-        Returns:
-            bool: True if the edges' endpoints are within the given distance tolerance.
+    Returns:
+        bool: True if endpoints match within ``dist_tol``.
     """
 
     return equal_edges(edge1, edge2, dist_tol=dist_tol)
 
+
 # alias for equal_edges
-def congruent_segments(edge1: LineType, edge2:LineType, dist_tol=.001) -> bool:
-    """
-        Given two edges, returns True if the segments' endpoints are within the given distance tolerance.
+def congruent_segments(
+    edge1: LineType, edge2: LineType, dist_tol=.001
+) -> bool:
+    """Alias for ``equal_edges``.
 
-        Args:
-            edge1: LineType: First edge.
-            edge2: LineType: Second edge.
+    Args:
+        edge1: First segment.
+        edge2: Second segment.
+        dist_tol: Endpoint distance tolerance. Defaults to 0.001.
 
-        Returns:
-            bool: True if the segments' endpoints are within the given distance tolerance.
+    Returns:
+        bool: True if endpoints match within ``dist_tol``.
     """
 
     return equal_edges(edge1, edge2, dist_tol=dist_tol)
@@ -687,15 +716,21 @@ def distance2(p1: PointType, p2: PointType) -> float:
 
 
 def distance(p1: PointType, p2: PointType) -> float:
-    """
-    Return the distance between two points.
+    """Return the Euclidean distance between two points.
 
     Args:
-        p1 (PointType): First point.
-        p2 (PointType): Second point.
+        p1: First point.
+        p2: Second point.
 
     Returns:
         float: Distance between the two points.
+
+    Examples:
+        ::
+
+            from simetri.geometry.geom_utils import distance
+
+            distance((0, 0), (3, 4))  # 5.0
     """
     return hypot(p2[0] - p1[0], p2[1] - p1[1])
 

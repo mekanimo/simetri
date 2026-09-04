@@ -1,7 +1,22 @@
+"""Circle and circular-arc helpers for SVG path construction.
+
+Utilities for intersecting circles/arcs and converting arc parameters to
+SVG ``A`` path commands.
+"""
+
 import math
 
 
 def circle_intersections(circ1, circ2):
+    """Return intersection points of two circles.
+
+    Args:
+        circ1: ``((x, y), radius)`` for the first circle.
+        circ2: ``((x, y), radius)`` for the second circle.
+
+    Returns:
+        list: Zero or two ``(x, y)`` intersection points.
+    """
     x1, y1 = circ1[0][:2]
     x2, y2 = circ2[0][:2]
     r1 = circ1[1]
@@ -26,22 +41,44 @@ def circle_intersections(circ1, circ2):
 
 
 def svg_arc_to(x, y, r, sweep):
+    """Format an SVG circular arc command ending at ``(x, y)``.
+
+    Args:
+        x: Arc end x.
+        y: Arc end y.
+        r: Arc radius.
+        sweep: SVG sweep-flag (0 or 1).
+
+    Returns:
+        str: ``A …`` path fragment.
+    """
     return f"A {r} {r} 0 0 {sweep} {x:.4f} {y:.4f}"
 
 
 def is_inside(p, circle):
+    """Return whether point ``p`` lies inside or on ``circle``.
+
+    Args:
+        p: Point ``(x, y)``.
+        circle: ``((cx, cy), radius)``.
+
+    Returns:
+        bool: True if the point is within the circle (with a small tolerance).
+    """
     return (
         math.hypot(p[0] - circle[0][0], p[1] - circle[0][1]) < circle[1] + 1e-6
     )
 
 
 def union_of_circles(circles):
-    """
-    given n intersecting circles
-    circles = [((x,y), r), ...]
+    """Build an SVG path for the union outline of intersecting circles.
 
-    Returns the union as an svg path.
+    Args:
+        circles: Sequence of ``((x, y), r)`` circles. Currently handles
+            pairs of intersecting circles most completely.
 
+    Returns:
+        str: SVG path ``d`` string, or empty if no outline is produced.
     """
     if not circles:
         return ""
@@ -96,10 +133,14 @@ def union_of_circles(circles):
 
 
 def arc_arc_intersection(arc1, arc2):
-    """
-    Finds the intersection points of two circular arcs.
-    arc = (center, radius, start_angle, sweep_angle)
-    Angles are in radians.
+    """Find intersection points of two circular arcs.
+
+    Args:
+        arc1: ``(center, radius, start_angle, sweep_angle)`` in radians.
+        arc2: Same format as ``arc1``.
+
+    Returns:
+        list: Intersection points that lie on both arcs.
     """
     c1, r1, start1, sweep1 = arc1
     c2, r2, start2, sweep2 = arc2
@@ -152,8 +193,17 @@ def arc_arc_intersection(arc1, arc2):
 
 
 def convert_arc(center, radius, start_angle, sweep_angle):
-    """Given an arc by center, radius, start and sweep angles,
-    returns and svg path with an arc."""
+    """Convert center/radius/angles to an SVG path with a single arc.
+
+    Args:
+        center: Arc center ``(x, y)``.
+        radius: Arc radius.
+        start_angle: Start angle in radians.
+        sweep_angle: Signed sweep in radians.
+
+    Returns:
+        str: SVG path ``d`` string starting with ``M`` then ``A``.
+    """
     # Calculate start point
     start_x = center[0] + radius * math.cos(start_angle)
     start_y = center[1] + radius * math.sin(start_angle)
@@ -176,9 +226,21 @@ def convert_arc(center, radius, start_angle, sweep_angle):
 def convert_svg_arc(
     start_point, end_point, rx, ry, x_axis_rotation, large_arc_flag, sweep_flag
 ):
-    """Given an SVG arc in endpoint parameterization,
-    returns ((cx, cy), start_angle, sweep_angle) in center parameterization.
-    Assumes circular arcs (rx == ry).
+    """Convert SVG endpoint arc parameters to center parameterization.
+
+    Assumes a circular arc (``rx == ry``).
+
+    Args:
+        start_point: Arc start ``(x, y)``.
+        end_point: Arc end ``(x, y)``.
+        rx: X radius.
+        ry: Y radius (treated as circular with ``rx``).
+        x_axis_rotation: Unused for circular arcs; kept for SVG parity.
+        large_arc_flag: SVG large-arc flag.
+        sweep_flag: SVG sweep flag.
+
+    Returns:
+        tuple: ``((cx, cy), start_angle, sweep_angle)``.
     """
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
@@ -234,8 +296,16 @@ def convert_svg_arc(
 
 
 def circles_to_arcs(circle1, circle2):
-    """Given two intersecting circles,
-    returns four svg paths (arcs)"""
+    """Split two intersecting circles into four SVG arc path strings.
+
+    Args:
+        circle1: ``((cx, cy), radius)``.
+        circle2: ``((cx, cy), radius)``.
+
+    Returns:
+        list: Four SVG path strings, or empty if the circles do not intersect
+        at exactly two points.
+    """
     # Find intersection points
     intersections = circle_intersections(circle1, circle2)
 

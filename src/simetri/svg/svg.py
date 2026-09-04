@@ -1,3 +1,9 @@
+"""Convert Simetri canvas sketches to SVG markup.
+
+Builds SVG documents from canvas pages: styles, defs (gradients, patterns,
+filters, masks), shape elements, and page framing via ``get_svg_code``.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -263,6 +269,19 @@ d_shape_types = {
 
 
 def svg_shape(sketch, styles_dict, exceptions=None):
+    """Convert a sketch to an SVG element string.
+
+    Chooses element type (line, circle, path, text, …), coordinates, CSS
+    class, and optional clip/mask/filter attributes.
+
+    Args:
+        sketch: Sketch object to serialize.
+        styles_dict: Style maps with ``css_styles`` and ``sketch_style_ids``.
+        exceptions: Optional set of style property names to omit.
+
+    Returns:
+        str: SVG markup for the sketch, or empty string if nothing to draw.
+    """
     shape_type = get_shape_type(sketch)
     style_shape_type = shape_type
     coordinates = get_coordinates(sketch, shape_type)
@@ -852,6 +871,23 @@ def header(
     styles,
     defs="",
 ):
+    """Build the opening SVG document fragment.
+
+    Args:
+        width: Output width in points.
+        height: Output height in points.
+        vbox_x: ViewBox origin x.
+        vbox_y: ViewBox origin y.
+        vbox_width: ViewBox width.
+        vbox_height: ViewBox height.
+        color: Canvas background color.
+        dy: Vertical translation used with the y-flip transform.
+        styles: CSS ``<style>`` block string.
+        defs: Optional ``<defs>`` inner markup.
+
+    Returns:
+        str: Opening ``<svg>…`` markup including background rect.
+    """
     back_color = color_to_svg(color)
     defs_section = f"\n{defs}" if defs else ""
     return rf'''<svg
@@ -868,12 +904,26 @@ def header(
 
 
 def footer():
+    """Return the closing SVG tags.
+
+    Returns:
+        str: Closing ``</g></svg>`` markup.
+    """
     return r"""   </g>
 </svg>
 """
 
 
 def get_styles(canvas, styles_dict):
+    """Build a ``<style>`` block from CSS class dictionaries.
+
+    Args:
+        canvas: Canvas (unused; kept for call-site symmetry).
+        styles_dict: Mapping of CSS class name to property dict.
+
+    Returns:
+        str: SVG ``<style>…</style>`` markup.
+    """
     styles_lines = []
     for key, value_dict in styles_dict.items():
         # Convert dictionary to CSS string
@@ -888,6 +938,17 @@ def get_styles(canvas, styles_dict):
 
 
 def get_svg_code(canvas):
+    """Serialize a canvas to a complete SVG document string.
+
+    Computes viewBox from page size or content bounds, emits styles/defs,
+    and walks page sketches (including clip/mask scopes).
+
+    Args:
+        canvas: Simetri ``Canvas`` to render.
+
+    Returns:
+        str: Full SVG document markup.
+    """
     from ..canvas.canvas import (
         effective_border_for_export,
         warn_vertex_coord_label_sizing,

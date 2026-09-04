@@ -4,7 +4,17 @@ from collections.abc import Sequence
 
 
 class LabelRect:
-    """Mutable centered label bbox for overlap resolution."""
+    """Mutable centered label bbox for overlap resolution.
+
+    Attributes:
+        sketch: Associated sketch that owns the label.
+        kind (str): Label kind identifier (for example ``index``).
+        vertex_index (int): Vertex index the label refers to.
+        x (float): Center x of the label box.
+        y (float): Center y of the label box.
+        width (float): Box width.
+        height (float): Box height.
+    """
 
     __slots__ = ("sketch", "kind", "vertex_index", "x", "y", "width", "height")
 
@@ -18,6 +28,17 @@ class LabelRect:
         width: float,
         height: float,
     ):
+        """Initialize a centered label rectangle.
+
+        Args:
+            sketch: Associated sketch that owns the label.
+            kind (str): Label kind identifier.
+            vertex_index (int): Vertex index the label refers to.
+            x (float): Center x of the label box.
+            y (float): Center y of the label box.
+            width (float): Box width.
+            height (float): Box height.
+        """
         self.sketch = sketch
         self.kind = kind
         self.vertex_index = vertex_index
@@ -27,6 +48,11 @@ class LabelRect:
         self.height = height
 
     def __repr__(self) -> str:
+        """Return a compact debug representation.
+
+        Returns:
+            str: String representation of the rectangle.
+        """
         return (
             f"LabelRect(kind={self.kind!r}, vertex_index={self.vertex_index}, "
             f"x={self.x}, y={self.y}, width={self.width}, height={self.height})"
@@ -34,7 +60,16 @@ class LabelRect:
 
 
 def resolve_collision(rect_a: LabelRect, rect_b: LabelRect) -> tuple[bool, tuple[float, float]]:
-    """Return whether two centered boxes overlap and the MTV for ``rect_a``."""
+    """Return whether two centered boxes overlap and the MTV for ``rect_a``.
+
+    Args:
+        rect_a (LabelRect): First centered rectangle (receives the MTV).
+        rect_b (LabelRect): Second centered rectangle.
+
+    Returns:
+        tuple[bool, tuple[float, float]]: ``(collides, mtv)`` where ``mtv`` is
+        the minimum translation vector to separate ``rect_a`` from ``rect_b``.
+    """
     half_w_a = rect_a.width / 2
     half_w_b = rect_b.width / 2
     half_h_a = rect_a.height / 2
@@ -60,7 +95,15 @@ def resolve_collision(rect_a: LabelRect, rect_b: LabelRect) -> tuple[bool, tuple
 
 
 def labels_collide(a: LabelRect, b: LabelRect) -> bool:
-    """Return True when two label boxes overlap in 2D."""
+    """Return True when two label boxes overlap in 2D.
+
+    Args:
+        a (LabelRect): First label rectangle.
+        b (LabelRect): Second label rectangle.
+
+    Returns:
+        bool: True if the rectangles overlap.
+    """
     return resolve_collision(a, b)[0]
 
 
@@ -69,7 +112,17 @@ def resolve_all_overlaps(
     gap: float = 1,
     max_iters: int = 2,
 ) -> None:
-    """Separate overlapping label boxes in place."""
+    """Separate overlapping label boxes in place.
+
+    Args:
+        rectangles (Sequence[LabelRect]): Label rectangles to separate.
+        gap (float, optional): Extra gap padded around each box during
+            separation. Defaults to 1.
+        max_iters (int, optional): Maximum separation passes. Defaults to 2.
+
+    Returns:
+        None
+    """
     if gap:
         buffer = 2 * gap
         for rect in rectangles:

@@ -1,4 +1,18 @@
-"""2D Lattice"""
+"""2D lattices and wallpaper-group isometry helpers.
+
+Provides ``Lattice`` / ``Isometry`` plus factory functions for the
+seventeen wallpaper groups (``lattice_p1``, ``lattice_p6m``, …). Motifs are
+typically ``Shape`` / ``Group`` instances from ``simetri.graphics``.
+
+Examples:
+    ::
+
+        import simetri.graphics as sg
+
+        lat = sg.lattice_p4(a=40)
+        motif = sg.Circle((10, 10), 5)
+        lat.populate_unit(motif)
+"""
 
 from dataclasses import dataclass
 from math import ceil, cos, floor, pi, sin
@@ -26,6 +40,17 @@ square = reg_poly_shape(4, r, angle=-pi / 4, fill_color=green).scale(0.6)
 
 
 def basis_to_cart(a_, b_, u, v):
+    """Convert lattice basis coordinates ``(a_, b_)`` to Cartesian ``(x, y)``.
+
+    Args:
+        a_: Coefficient along basis vector ``u``.
+        b_: Coefficient along basis vector ``v``.
+        u: First basis vector ``(ux, uy)``.
+        v: Second basis vector ``(vx, vy)``.
+
+    Returns:
+        tuple: Cartesian point ``(x, y)``.
+    """
     ux, uy = u
     vx, vy = v
     x = a_ * ux + b_ * vx
@@ -34,6 +59,20 @@ def basis_to_cart(a_, b_, u, v):
 
 
 def cart_to_basis(x, y, u, v):
+    """Convert Cartesian ``(x, y)`` to lattice basis coordinates.
+
+    Args:
+        x: Cartesian x-coordinate.
+        y: Cartesian y-coordinate.
+        u: First basis vector ``(ux, uy)``.
+        v: Second basis vector ``(vx, vy)``.
+
+    Returns:
+        tuple: Basis coordinates ``(a, b)``.
+
+    Raises:
+        ValueError: If ``u`` and ``v`` are linearly dependent.
+    """
     ux, uy = u
     vx, vy = v
     det = ux * vy - uy * vx
@@ -46,9 +85,12 @@ def cart_to_basis(x, y, u, v):
 
 
 def all_axes():
-    """
-    Returns all unique axes using a corner-crossing check.
-    A segment is valid if it crosses a corner OR both endpoints are corners.
+    """Return index pairs of unique lattice axes.
+
+    A segment is kept if it crosses a corner or both endpoints are corners.
+
+    Returns:
+        list[tuple[int, int]]: Pairs of axis endpoint indices in ``0..15``.
     """
     corners = {0, 4, 8, 12}
 
@@ -68,18 +110,17 @@ def all_axes():
 
 @dataclass
 class Isometry:
-    """Isometries are transformations that preserve:
-        - distances
-        - angles
-        - shape
-        - size
+    """Distance-preserving transformation used to fill a lattice unit cell.
 
-    There are four different types:
-        - Translation
-        - Rotation
-        - Reflection
-        - Glide Reflection
+    Supported subtypes: translation, rotation, reflection, and glide
+    reflection (plus identity).
 
+    Attributes:
+        subtype: ``IsometryType`` kind of transformation.
+        reference: Lattice reference locating the transform (axis, point, …).
+        quantifier: Extra parameter (angle, distance, translation components).
+        reps: How many times to repeat the isometry when applied.
+        take: Optional slice selecting which copies to keep.
     """
 
     subtype: IsometryType
@@ -93,8 +134,19 @@ class Isometry:
 
 
 class Lattice:
-    """A 2D latttice that can have five different types.
-    'PAR', 'RECT', 'RHOMB', 'SQR', and 'HEX'
+    """A 2D lattice of type PAR, RECT, RHOMB, SQR, or HEX.
+
+    Attributes:
+        subtype: Lattice type (``LatType``).
+        a: First lattice spacing.
+        b: Second lattice spacing (equals ``a`` for HEX/SQR/RHOMB).
+        theta: Angle between basis vectors.
+        origin: Lattice origin in Cartesian coordinates.
+        u: First basis vector.
+        v: Second basis vector.
+        unit: Unit-cell parallelogram as a ``Shape``.
+        isometries: List of ``Isometry`` objects for the wallpaper group.
+        pattern: Motif ``Group`` after ``populate_unit``.
     """
 
     def __init__(
@@ -105,6 +157,18 @@ class Lattice:
         theta=None,
         origin=(0, 0),
     ):
+        """Create a 2D lattice.
+
+        Args:
+            subtype: Lattice type. Defaults to ``LatType.HEX``.
+            a: Primary spacing. Defaults to 40.
+            b: Secondary spacing (RECT/PAR). Defaults to None.
+            theta: Angle between basis vectors when not implied by type.
+            origin: Cartesian origin. Defaults to ``(0, 0)``.
+
+        Raises:
+            ValueError: If the basis vectors are linearly dependent.
+        """
         angles = {
             LatType.HEX: pi / 3,
             LatType.RECT: pi / 2,
@@ -165,6 +229,7 @@ class Lattice:
         self.kernel = None
 
     def _resolve(self, reference: Any):
+        """Resolve a lattice reference to a numeric/geometric value."""
         ref, quantifier = reference
         if is_number(ref):
             res = ref
@@ -193,12 +258,26 @@ class Lattice:
 
     @property
     def center(self):
+        """Return the Cartesian center of the unit cell.
+
+        Returns:
+            list: Center coordinates ``[x, y]``.
+        """
         orig = Vector(self.origin[:2])
 
         return (orig + self.u / 2 + self.v / 2).data
 
     def apply(self, isometry):
-        """Applies an isometry using references of the lattice."""
+        """Apply an isometry to ``self.pattern`` using lattice references.
+
+        Args:
+            isometry: ``Isometry`` describing translation, rotation, mirror,
+                glide, or identity.
+
+        Returns:
+            Group | Shape | None: Transformed pattern (or ``self.pattern`` for
+            identity).
+        """
         reference = isometry.reference
         quantifier = isometry.quantifier
         reps = isometry.reps
@@ -235,6 +314,17 @@ class Lattice:
             return self.pattern
 
     def populate_unit(self, kernel):
+        """Set ``pattern`` from ``kernel`` and apply configured isometries.
+
+        Args:
+            kernel: Motif ``Shape`` or ``Group`` to place in the unit cell.
+
+        Returns:
+            Lattice: ``self``, for chaining.
+
+        Raises:
+            ValueError: If ``kernel`` is not a Shape or Group.
+        """
         if kernel.subtype == "LINPATH" or kernel.type == "SHAPE":
             self.pattern = Group(kernel)
         elif kernel.type == "BATCH" or kernel.type == "GROUP":
@@ -249,6 +339,16 @@ class Lattice:
         return self
 
     def span(self, kernel, horizontal=True, reps: int = 1) -> Group:
+        """Populate the unit and translate the pattern along one axis.
+
+        Args:
+            kernel: Motif ``Shape`` or ``Group``.
+            horizontal: If True, span along ``a``; otherwise along ``b``.
+            reps: Number of translations. Defaults to 1.
+
+        Returns:
+            Group: Updated pattern (also stored on ``self.pattern``).
+        """
         self.populate_unit(kernel)
         pattern = self.pattern
         if horizontal:
@@ -259,6 +359,15 @@ class Lattice:
             self.pattern = pattern.translate(0, dy, reps=reps)
 
     def expand(self, kernel, reps: int = 1) -> Group:
+        """Populate the unit and expand the pattern by repeated translations.
+
+        Args:
+            kernel: Motif ``Shape`` or ``Group``.
+            reps: Expansion repetitions. Defaults to 1.
+
+        Returns:
+            Lattice: ``self``, for chaining.
+        """
         self.populate_unit(kernel)
         pattern = self.pattern
         subtype = self.subtype
@@ -286,21 +395,52 @@ class Lattice:
         return self
 
     def cell_structure(self) -> Group:
-        """Returns the cell structure of the lattice."""
+        """Return the cell structure of the lattice.
+
+        Note:
+            Currently unimplemented (returns None via ``pass``).
+
+        Returns:
+            Group: Cell structure visualization (when implemented).
+        """
         pass
 
     def cartesian_to_basis(self, point: PointType) -> PointType:
+        """Convert a Cartesian point to this lattice's basis coordinates.
+
+        Args:
+            point: Cartesian point ``(x, y)``.
+
+        Returns:
+            PointType: Basis coordinates ``(a, b)``.
+        """
         x, y = point
         return cart_to_basis(x, y, self.u, self.v)
 
     def basis_to_cartesian(self, point: PointType) -> PointType:
+        """Convert lattice-basis coordinates to Cartesian.
+
+        Args:
+            point: Basis coordinates ``(a, b)``.
+
+        Returns:
+            PointType: Cartesian point ``(x, y)``.
+        """
         a, b = point
         return basis_to_cart(a, b, self.u, self.v)
 
     def clipped_points(
         self, lower_left: PointType, upper_right: PointType
     ) -> list:
-        """Returns the lattice points within the given rectangle by two points."""
+        """Return lattice points that lie inside the given axis-aligned rectangle.
+
+        Args:
+            lower_left: Lower-left corner of the clip rectangle.
+            upper_right: Upper-right corner of the clip rectangle.
+
+        Returns:
+            list: Lattice points inside the rectangle.
+        """
         # Define the 4 corners of the rectangle
         x_min, y_min = lower_left[:2]
         x_max, y_max = upper_right[:2]
@@ -351,7 +491,15 @@ class Lattice:
     def clipped_lines(
         self, lower_left: PointType, upper_right: PointType
     ) -> list:
-        """Returns the lattice lines within the given rectangle by two points."""
+        """Return lattice lines clipped to the given axis-aligned rectangle.
+
+        Args:
+            lower_left: Lower-left corner of the clip rectangle.
+            upper_right: Upper-right corner of the clip rectangle.
+
+        Returns:
+            list: Line segments inside the rectangle.
+        """
         # Define the 4 corners of the rectangle
         x_min, y_min = lower_left[:2]
         x_max, y_max = upper_right[:2]
@@ -398,6 +546,17 @@ class Lattice:
 
 
 def get_unit(lat, group, vertical=False, **kwargs):
+    """Build the fundamental-domain motif for a lattice wallpaper group.
+
+    Args:
+        lat: ``Lattice`` whose unit cell anchors the motif.
+        group: Wallpaper group name (e.g. ``\"p4\"``) or a motif group.
+        vertical: Orientation flag for some groups. Defaults to False.
+        **kwargs: Extra style/options passed through to motif construction.
+
+    Returns:
+        Group | Shape: Unit motif for the group.
+    """
     triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)
     hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(0.6)
     diamond = Shape(
@@ -790,11 +949,28 @@ def get_unit(lat, group, vertical=False, **kwargs):
 
 
 def draw_unit(canvas, lat, group, vertical=False, **kwargs):
+    """Draw the lattice unit motif on ``canvas``.
+
+    Args:
+        canvas: Target canvas.
+        lat: ``Lattice`` instance.
+        group: Wallpaper group name or motif group.
+        vertical: Orientation flag for some groups. Defaults to False.
+        **kwargs: Passed to ``get_unit`` and ``canvas.draw``.
+    """
     unit = get_unit(lat, group, vertical, **kwargs)
     canvas.draw(unit, **kwargs)
 
 
 def lattice_p6(a: float) -> Lattice:
+    """Return a hexagonal lattice configured for wallpaper group p6.
+
+    Args:
+        a: Lattice spacing.
+
+    Returns:
+        Lattice: Lattice with p6 isometries and unit cell.
+    """
     lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
@@ -814,6 +990,14 @@ def lattice_p6(a: float) -> Lattice:
 
 
 def lattice_p6m(a: float = 40) -> Lattice:
+    """Return a hexagonal lattice configured for wallpaper group p6m.
+
+    Args:
+        a: Lattice spacing. Defaults to 40.
+
+    Returns:
+        Lattice: Lattice with p6m isometries and unit cell.
+    """
     lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
@@ -839,6 +1023,14 @@ def lattice_p6m(a: float = 40) -> Lattice:
 
 
 def lattice_p31m(a: float = 40) -> Lattice:
+    """Return a hexagonal lattice configured for wallpaper group p31m.
+
+    Args:
+        a: Lattice spacing. Defaults to 40.
+
+    Returns:
+        Lattice: Lattice with p31m isometries and unit cell.
+    """
     lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
@@ -862,6 +1054,14 @@ def lattice_p31m(a: float = 40) -> Lattice:
 
 
 def lattice_p3m1(a: float = 40) -> Lattice:
+    """Return a hexagonal lattice configured for wallpaper group p3m1.
+
+    Args:
+        a: Lattice spacing. Defaults to 40.
+
+    Returns:
+        Lattice: Lattice with p3m1 isometries and unit cell.
+    """
     lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
@@ -890,6 +1090,14 @@ def lattice_p3m1(a: float = 40) -> Lattice:
 
 
 def lattice_p3(a: float = 40) -> Lattice:
+    """Return a hexagonal lattice configured for wallpaper group p3.
+
+    Args:
+        a: Lattice spacing. Defaults to 40.
+
+    Returns:
+        Lattice: Lattice with p3 isometries and unit cell.
+    """
     lat = Lattice(LatType.HEX, a=a)
 
     isom1 = Isometry(
@@ -912,6 +1120,14 @@ def lattice_p3(a: float = 40) -> Lattice:
 
 
 def lattice_p4(a: float = 40) -> Lattice:
+    """Return a square lattice configured for wallpaper group p4.
+
+    Args:
+        a: Lattice spacing. Defaults to 40.
+
+    Returns:
+        Lattice: Lattice with p4 isometries and unit cell.
+    """
     lat = Lattice(LatType.SQR, a=a)
 
     isom1 = Isometry(
@@ -926,6 +1142,14 @@ def lattice_p4(a: float = 40) -> Lattice:
 
 
 def lattice_p4m(a: float = 40) -> Lattice:
+    """Return a square lattice configured for wallpaper group p4m.
+
+    Args:
+        a: Lattice spacing. Defaults to 40.
+
+    Returns:
+        Lattice: Lattice with p4m isometries and unit cell.
+    """
     lat = Lattice(LatType.SQR, a=a)
 
     isom1 = Isometry(
@@ -946,6 +1170,14 @@ def lattice_p4m(a: float = 40) -> Lattice:
 
 
 def lattice_p4g(a: float = 40) -> Lattice:
+    """Return a square lattice configured for wallpaper group p4g.
+
+    Args:
+        a: Lattice spacing. Defaults to 40.
+
+    Returns:
+        Lattice: Lattice with p4g isometries and unit cell.
+    """
     lat = Lattice(LatType.SQR, a=a)
 
     isom1 = Isometry(
@@ -967,6 +1199,17 @@ def lattice_p4g(a: float = 40) -> Lattice:
 def lattice_p1(
     a: float = 40, b: float = 40, theta=pi / 2, lat_type=LatType.PAR
 ) -> Lattice:
+    """Return a lattice configured for wallpaper group p1 (translations only).
+
+    Args:
+        a: Primary spacing. Defaults to 40.
+        b: Secondary spacing. Defaults to 40.
+        theta: Angle between basis vectors. Defaults to ``pi/2``.
+        lat_type: Lattice type. Defaults to ``LatType.PAR``.
+
+    Returns:
+        Lattice: Lattice with p1 isometries and unit cell.
+    """
     lat = Lattice(lat_type, a=a, b=b, theta=theta)
     unit = lat.unit
     # p1 = unit.edge_midpoint(0)
@@ -989,7 +1232,20 @@ def lattice_pm(
     lat_type=LatType.SQR,
     vertical=False,
 ) -> Lattice:
-    """vertical: Mirror orientation"""
+    """Return a lattice configured for wallpaper group pm (parallel mirrors).
+
+    Args:
+        a: Primary spacing. Defaults to 40.
+        b: Secondary spacing for rectangular lattices. Defaults to None.
+        lat_type: ``LatType.SQR`` or ``LatType.RECT``. Defaults to SQR.
+        vertical: If True, orient mirrors vertically; otherwise horizontally.
+
+    Returns:
+        Lattice: Lattice with pm isometries and unit cell.
+
+    Raises:
+        ValueError: If ``lat_type`` is not SQR or RECT.
+    """
     if lat_type == LatType.SQR:
         lat = Lattice(lat_type, a=a)
     elif lat_type == LatType.RECT:
@@ -1020,6 +1276,16 @@ def lattice_pm(
 def lattice_pmm(
     a: float = 40, b: float = None, lat_type=LatType.SQR
 ) -> Lattice:
+    """Return a lattice configured for wallpaper group pmm.
+
+    Args:
+        a: Primary spacing. Defaults to 40.
+        b: If given, forces a rectangular lattice with this secondary spacing.
+        lat_type: Lattice type when ``b`` is None. Defaults to SQR.
+
+    Returns:
+        Lattice: Lattice with pmm isometries and unit cell.
+    """
     if b is not None:
         lat_type = LatType.RECT
         lat = Lattice(lat_type, a=a, b=b)
@@ -1045,6 +1311,17 @@ def lattice_p2(
     theta: float = 2 * pi / 5,
     lat_type=LatType.SQR,
 ) -> Lattice:
+    """Return a lattice configured for wallpaper group p2 (180° rotations).
+
+    Args:
+        a: Primary spacing. Defaults to 40.
+        b: Secondary spacing; defaults to ``a`` when None.
+        theta: Angle for non-square/rect types. Defaults to ``2*pi/5``.
+        lat_type: Lattice type. Defaults to SQR.
+
+    Returns:
+        Lattice: Lattice with p2 isometries and unit cell.
+    """
     if b is None:
         b = a
     lat = Lattice(lat_type, a=a, b=b, theta=theta)
@@ -1063,6 +1340,17 @@ def lattice_p2(
 def lattice_pg(
     a: float = 40, b: float = 20, glide_dist=10, lat_type=LatType.RECT
 ) -> Lattice:
+    """Return a lattice configured for wallpaper group pg (glide reflections).
+
+    Args:
+        a: Primary spacing. Defaults to 40.
+        b: Secondary spacing. Defaults to 20.
+        glide_dist: Glide distance along the axis. Defaults to 10.
+        lat_type: Lattice type. Defaults to RECT.
+
+    Returns:
+        Lattice: Lattice with pg isometries and unit cell.
+    """
     lat = Lattice(lat_type, a=a, b=b)
 
     axis = (LatRef.AXIS, ((LatRef.LERP, (3, 0.5)), (LatRef.LERP, (1, 0.5))))
@@ -1082,6 +1370,16 @@ def lattice_pg(
 
 
 def lattice_pmg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
+    """Return a lattice configured for wallpaper group pmg.
+
+    Args:
+        a: Primary spacing. Defaults to 40.
+        b: Secondary spacing. Defaults to 30.
+        lat_type: Lattice type. Defaults to RECT.
+
+    Returns:
+        Lattice: Lattice with pmg isometries and unit cell.
+    """
     lat = Lattice(lat_type, a=a, b=b)
 
     isom1 = Isometry(
@@ -1100,6 +1398,16 @@ def lattice_pmg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
 
 
 def lattice_pgg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
+    """Return a lattice configured for wallpaper group pgg.
+
+    Args:
+        a: Primary spacing. Defaults to 40.
+        b: Secondary spacing. Defaults to 30.
+        lat_type: Lattice type. Defaults to RECT.
+
+    Returns:
+        Lattice: Lattice with pgg isometries and unit cell.
+    """
     lat = Lattice(lat_type, a=a, b=b)
 
     axis1 = (
@@ -1123,8 +1431,17 @@ def lattice_pgg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
 def lattice_cm(
     a: float = 100, theta: float = 2 * pi / 5, glide_dist: float = None
 ) -> Lattice:
-    """Rhombic lattice with a glide_reflection and a mirror.
-    theta cannot be 60 degrees or 90 degrees.
+    """Return a rhombic lattice configured for wallpaper group cm.
+
+    Combines a glide reflection and a mirror. ``theta`` must not be 60° or 90°.
+
+    Args:
+        a: Rhombus side length. Defaults to 100.
+        theta: Acute angle of the rhombus. Defaults to ``2*pi/5``.
+        glide_dist: Glide distance; defaults to ``a`` when None.
+
+    Returns:
+        Lattice: Lattice with cm isometries and unit cell.
     """
     lat_type = LatType.RHOMB
     lat = Lattice(lat_type, a=a, b=a, theta=theta)
@@ -1148,8 +1465,18 @@ def lattice_cm(
 
 
 def lattice_cmm(a: float = 100, theta: float = 2 * pi / 5) -> Lattice:
-    """Rhombic lattice with cross-mirrors. If theta is 90 degrees then it is a
-    square lattice. Theta cannot be 60 degrees."""
+    """Return a rhombic lattice configured for wallpaper group cmm.
+
+    Cross-mirrors on the diagonals. If ``theta`` is 90°, the lattice is square.
+    ``theta`` must not be 60°.
+
+    Args:
+        a: Rhombus side length. Defaults to 100.
+        theta: Angle of the rhombus. Defaults to ``2*pi/5``.
+
+    Returns:
+        Lattice: Lattice with cmm isometries and unit cell.
+    """
     lat_type = LatType.RHOMB
     lat = Lattice(lat_type, a=a, b=a, theta=theta)
 

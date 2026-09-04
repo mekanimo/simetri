@@ -1,4 +1,15 @@
-"""Simetri graphics library's wallpaper patterns."""
+"""Simetri graphics library's wallpaper patterns.
+
+Note:
+    Prefer ``lattice`` for newer lattice-based APIs.
+    This module remains for the classic wallpaper group helpers.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> import simetri.wallpaper as wp
+    >>> motif = sg.letter_F()
+    >>> pattern = wp.wallpaper_p1(motif, (40, 0), (0, 50), reps1=3, reps2=2)
+"""
 
 # This is obsolete now! Replaced by lattice.py
 
@@ -262,32 +273,27 @@ def wallpaper_p2_rect_lattice(
     reps1: int = 4,
     reps2: int = 4,
 ) -> Group:
-    # """
-    # Half-turn rotation symmetry.
-    # IUC: p2 (p211)
-    # Conway: 2222
-    # Oblique lattice
-    # PointType group: C2
+    """Half-turn rotation symmetry on a rectangular lattice (IUC: p2).
 
-    # PointType argument can be an Anchor object or a tuple, or two points can be given
-    # as a sequence.
+    Args:
+        generator: Motif to repeat.
+        rotocenter: Center of the 180° rotation.
+        vector1: First lattice translation vector.
+        vector2: Second lattice translation vector.
+        reps1: Repetitions along ``vector1``.
+        reps2: Repetitions along ``vector2``.
 
-    # Example:
-    # import simetri.graphics as sg
-    # import simetri.wallpaper as wp
+    Returns:
+        Group: Wallpaper pattern as a Group.
 
-    # directory = 'dir_path'
-    # canvas = sg.Canvas()
-
-    # F = sg.letter_F()
-    # vec1 = (2 * F.width + 10, 0)
-    # vec2 = (0, F.height + 10)
-
-    # pattern = wp.wallpaper_p2(F, vec1, vec2, reps1=2, reps2=2)
-    # file_path = os.path.join(directory, 'wallpaper_test_p2.pdf')
-    # canvas.draw(pattern, file_path=file_path)
-
-    # """
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import simetri.wallpaper as wp
+        >>> F = sg.letter_F()
+        >>> pattern = wp.wallpaper_p2_rect_lattice(
+        ...     F, (0, 0), (F.width * 2, 0), (0, F.height * 2), reps1=2, reps2=2
+        ... )
+    """
 
     rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)

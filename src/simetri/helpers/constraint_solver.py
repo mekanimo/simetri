@@ -395,6 +395,11 @@ paralell_const = Constraint(
 
 # print(distance([0, 0], [4.465e+01,  5.582e+00]))
 def update(x):
+    """Example solver callback that writes coordinates into ``item2``.
+
+    Args:
+        x: Sequence of two floats ``(x, y)`` from the optimizer.
+    """
     print("x", x)
     x_, y_ = x
     item2[0] = x_

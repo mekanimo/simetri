@@ -1,5 +1,9 @@
-"""This module contains functions and classes for creating annotations,
-arrows, dimensions, etc."""
+"""Illustration helpers for annotations, tags, arrows, and dimensions.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> tag = sg.Tag("Hello", (0, 0))
+"""
 
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -148,7 +152,14 @@ def convert_latex_font_size(latex_font_size: FontSize):
 
 
 def latex_font_size_to_pt(latex_font_size: FontSize) -> float:
-    """Convert a LaTeX font-size name to an approximate point size."""
+    """Convert a LaTeX font-size name to an approximate point size.
+
+    Args:
+        latex_font_size (FontSize): Named LaTeX font size.
+
+    Returns:
+        float: Approximate size in points.
+    """
     d_font_size = {
         FontSize.MINISCULE: 4,
         FontSize.TINY: 5,
@@ -167,7 +178,14 @@ def latex_font_size_to_pt(latex_font_size: FontSize) -> float:
 
 
 def default_font_size_pt(key: str) -> float:
-    """Point size for a ``defaults`` font-size entry (LaTeX name or number)."""
+    """Point size for a ``defaults`` font-size entry (LaTeX name or number).
+
+    Args:
+        key (str): Key into ``defaults``.
+
+    Returns:
+        float: Font size in points.
+    """
     size = defaults[key]
     if isinstance(size, (int, float)):
         return float(size)
@@ -175,7 +193,15 @@ def default_font_size_pt(key: str) -> float:
 
 
 def sketch_label_font_size_pt(sketch, label_kind: str) -> float:
-    """Label font size in points from sketch kwargs or defaults."""
+    """Label font size in points from sketch kwargs or defaults.
+
+    Args:
+        sketch: Sketch providing optional font-size attributes.
+        label_kind (str): ``index`` or ``vertex``.
+
+    Returns:
+        float: Font size in points.
+    """
     if label_kind == "index":
         attr = "index_font_size"
     else:
@@ -190,7 +216,15 @@ def sketch_label_font_size_pt(sketch, label_kind: str) -> float:
 
 
 def sketch_label_offset(sketch, label_kind: str) -> float:
-    """Label radial offset in points from sketch kwargs or defaults."""
+    """Label radial offset in points from sketch kwargs or defaults.
+
+    Args:
+        sketch: Sketch providing optional offset attributes.
+        label_kind (str): ``index`` or ``vertex``.
+
+    Returns:
+        float: Radial offset in points.
+    """
     if label_kind == "index":
         attr = "index_offset"
     else:
@@ -202,7 +236,15 @@ def sketch_label_offset(sketch, label_kind: str) -> float:
 
 
 def sketch_label_font_color(sketch, label_kind: str):
-    """Label text color from sketch kwargs or defaults."""
+    """Label text color from sketch kwargs or defaults.
+
+    Args:
+        sketch: Sketch providing optional font-color attributes.
+        label_kind (str): ``index`` or ``vertex``.
+
+    Returns:
+        Color: Label text color.
+    """
     if label_kind == "index":
         attr = "index_font_color"
     else:
@@ -332,8 +374,17 @@ def get_pdf_dimensions(pdf_path):
 
 
 def get_image_dimensions_from_pdf_pages(pdf_path):
-    """
-    Extracts and prints the dimensions (width and height) of images found in a PDF.
+    """Extract image dimensions found in a PDF.
+
+    Args:
+        pdf_path: Path to the PDF file.
+
+    Returns:
+        list | None: Collected page image dimension lists, or ``None`` on error.
+
+    Note:
+        Current implementation initializes ``pages`` but only appends to
+        per-page ``images`` lists; callers should treat this as incomplete.
     """
     try:
         doc = fitz.open(pdf_path)
@@ -394,6 +445,10 @@ class Annotation(Group):
         arrow_line=ArrowLine.STRAIGHT_END,
         **kwargs,
     ):
+        """Create a text annotation with an arrow.
+
+        See the class docstring for argument details.
+        """
         self.text = text
         self.pos = pos
         self.frame = frame
@@ -459,6 +514,7 @@ class TagFrame:
     min_size: float = None
 
     def __post_init__(self):
+        """Set frame type metadata after dataclass initialization."""
         self.type = Types.FRAME
         self.subtype = Types.FRAME
 
@@ -504,6 +560,10 @@ class Tag(Base, StyleMixin):
         xform_matrix=None,
         **kwargs,
     ):
+        """Create a framed text tag.
+
+        See the class docstring for argument details.
+        """
         self.__dict__["style"] = TagStyle()
         self.__dict__["_style_map"] = tag_style_map
         self._set_aliases()
@@ -554,6 +614,12 @@ class Tag(Base, StyleMixin):
         self.visible = True
 
     def __setattr__(self, name, value):
+        """Set an attribute, routing style aliases when present.
+
+        Args:
+            name: Attribute name.
+            value: Attribute value.
+        """
         obj, attrib = self.__dict__["_aliases"].get(name, (None, None))
         if obj:
             setattr(obj, attrib, value)
@@ -561,6 +627,14 @@ class Tag(Base, StyleMixin):
             self.__dict__[name] = value
 
     def __getattr__(self, name):
+        """Get an attribute, resolving style aliases when present.
+
+        Args:
+            name: Attribute name.
+
+        Returns:
+            Resolved attribute value, or ``None`` if missing.
+        """
         obj, attrib = self.__dict__["_aliases"].get(name, (None, None))
         if obj:
             res = getattr(obj, attrib)
@@ -767,9 +841,19 @@ class Tag(Base, StyleMixin):
         return bbox.corners
 
     def __str__(self) -> str:
+        """Return a readable string representation.
+
+        Returns:
+            str: ``Tag(text)`` style string.
+        """
         return f"Tag({self.text})"
 
     def __repr__(self) -> str:
+        """Return the official string representation.
+
+        Returns:
+            str: ``Tag(text)`` style string.
+        """
         return f"Tag({self.text})"
 
 
@@ -790,6 +874,10 @@ class ArrowHead(Shape):
         points: list | None = None,
         **kwargs,
     ):
+        """Create an arrow head shape.
+
+        See the class docstring for argument details.
+        """
         length, width_ = get_defaults(
             ["arrow_head_length", "arrow_head_width"], [length, width_]
         )
@@ -926,6 +1014,13 @@ class ArcArrow(Group):
         xform_matrix: NDArray | None = None,
         **kwargs,
     ):
+        """Create an arc with arrow heads at both ends.
+
+        See the class docstring for argument details.
+
+        Raises:
+            AttributeError: If an invalid style keyword is provided.
+        """
         self.center = center
         self.radius = radius
         self.start_angle = start_angle
@@ -984,6 +1079,10 @@ class RadialDimension(Group):
         gap: float | None = None,
         **kwargs,
     ):
+        """Create a radial dimension annotation.
+
+        See the class docstring for argument details.
+        """
         text_offset, gap = get_defaults(
             ["text_offset", "gap"], [text_offset, gap]
         )
@@ -1038,6 +1137,10 @@ class Arrow(Group):
         color: Color = colors.black,
         **kwargs,
     ):
+        """Create a line arrow with one or more heads.
+
+        See the class docstring for argument details.
+        """
         self.p1 = p1
         self.p2 = p2
         self.head_pos = head_pos
@@ -1116,6 +1219,10 @@ class AngularDimension(Group):
         gap: float | None = None,
         **kwargs,
     ):
+        """Create an angular dimension annotation.
+
+        See the class docstring for argument details.
+        """
         text_offset, gap = get_defaults(
             ["text_offset", "gap"], [text_offset, gap]
         )
@@ -1177,6 +1284,10 @@ class Dimension(Group):
         text_side: Anchor = None,  # (Anchor.TOP, Anchor.BOTTOM, Anchor.LEFT, Anchor.RIGHT)
         **kwargs,
     ):
+        """Create a linear dimension with extension lines and arrows.
+
+        See the class docstring for argument details.
+        """
         ext_length2, gap, reverse_arrow_length = get_defaults(
             ["ext_length2", "gap", "rev_arrow_length"],
             [ext_length2, gap, reverse_arrow_length],
@@ -1639,6 +1750,15 @@ def _tier_label_bbox(
 def estimate_index_label_bbox(
     label, font_size_pt: float
 ) -> tuple[float, float]:
+    """Estimate width/height for an index label including halo padding.
+
+    Args:
+        label: Index label value (converted with ``str``).
+        font_size_pt (float): Font size in points.
+
+    Returns:
+        tuple[float, float]: ``(width, height)`` of the label box.
+    """
     ref = default_font_size_pt("index_font_size")
     width, height = _tier_label_bbox(
         str(label),
@@ -1654,6 +1774,15 @@ def estimate_index_label_bbox(
 def estimate_vertex_coord_label_bbox(
     text: str, font_size_pt: float
 ) -> tuple[float, float]:
+    """Estimate width/height for a vertex coordinate label including halo.
+
+    Args:
+        text (str): Coordinate label text.
+        font_size_pt (float): Font size in points.
+
+    Returns:
+        tuple[float, float]: ``(width, height)`` of the label box.
+    """
     ref = default_font_size_pt("vertex_font_size")
     tier_w, tier_h = _tier_label_bbox(
         text,
@@ -1895,7 +2024,14 @@ def _apply_label_rects_to_sketch(sketch) -> None:
 
 
 def resolve_page_vertex_labels(sketches) -> None:
-    """Resolve overlaps for all vertex/index labels on a sketch list (e.g. one page)."""
+    """Resolve overlaps for all vertex/index labels on a sketch list.
+
+    Args:
+        sketches: Sketches belonging to one page (or comparable group).
+
+    Returns:
+        None
+    """
     label_sketches = list(_iter_label_sketches(sketches))
     all_rects: list[LabelRect] = []
     for sketch in label_sketches:
@@ -1932,10 +2068,16 @@ def _resolve_shape_labels(sketch) -> dict:
 def prepare_shape_index_labels(
     sketch,
 ) -> tuple[list[tuple[float, float]], list] | None:
-    """Index label positions and values for a shape sketch.
+    """Return index label positions and values for a shape sketch.
 
     Uses ``index_offset`` from the sketch or defaults. When coordinate labels
     are also shown, overlap resolution considers both label types together.
+
+    Args:
+        sketch: Shape sketch that may request index labels.
+
+    Returns:
+        tuple | None: ``(positions, labels)`` or ``None`` if indices are off.
     """
     if not getattr(sketch, "indices", False):
         return None
@@ -1945,10 +2087,16 @@ def prepare_shape_index_labels(
 def prepare_shape_vertex_coord_labels(
     sketch,
 ) -> tuple[list[tuple[float, float]], list[str]] | None:
-    """Vertex coordinate label positions and texts for a shape sketch.
+    """Return vertex coordinate label positions and texts for a shape sketch.
 
     Uses ``vertex_offset`` from the sketch or defaults. When index labels are
     also shown, overlap resolution considers both label types together.
+
+    Args:
+        sketch: Shape sketch that may request coordinate labels.
+
+    Returns:
+        tuple | None: ``(positions, texts)`` or ``None`` if coords are off.
     """
     if not getattr(sketch, "show_vertex_coords", False):
         return None
@@ -1956,8 +2104,15 @@ def prepare_shape_vertex_coord_labels(
 
 
 def edge_label_positions(shape, offset):
-    """Returns the position of the edge labels using the given
-    label offset."""
+    """Return edge-label positions using the given radial offset.
+
+    Args:
+        shape: Shape whose edges are labeled.
+        offset: Distance from each edge midpoint to the label.
+
+    Returns:
+        list: Label positions for each edge.
+    """
     from simetri.geometry.polygon import in_polygon
 
     vertices = list(shape.vertices)

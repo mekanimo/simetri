@@ -1,4 +1,4 @@
-"""defs for working with ellipses."""
+"""Ellipses, circular/elliptic arcs, and related intersection helpers."""
 
 import cmath
 from copy import deepcopy
@@ -24,8 +24,26 @@ from ..settings.settings import defaults
 
 
 class Arc(Shape):
-    """A circular or elliptic arc defined by a center, radius_x, radius_y, start angle,
-    and span angle. If radius_y is not provided, the arc is a circular arc."""
+    """A circular or elliptic arc.
+
+    Defined by center, ``radius_x``, optional ``radius_y``, start angle, and
+    span angle. If ``radius_y`` is omitted, the arc is circular.
+
+    Attributes:
+        start_angle: Starting angle in radians.
+        span_angle: Arc span in radians (negative draws clockwise).
+        n_points: Number of sampled points.
+
+    Examples:
+        ::
+
+            import simetri.graphics as sg
+            from math import pi
+
+            arc = sg.Arc((0, 0), 40, start_angle=0, span_angle=pi / 2)
+            canvas = sg.Canvas()
+            canvas.draw(arc)
+    """
 
     def __init__(
         self,
@@ -39,16 +57,18 @@ class Arc(Shape):
         xform_matrix: "ndarray" = None,
         **kwargs,
     ):
-        """
+        """Create a circular or elliptic arc.
+
         Args:
-            center (PointType): The center of the arc.
-            radius_x (float): The x radius of the arc.
-            radius_y (float): The y radius for elliptical arcs.
-            start_angle (float): The starting angle of the arc.
-            span_angle (float): The span angle of the arc.
-            rot_angle (float, optional): Rotation angle. Defaults to 0. If negative, the arc is drawn clockwise.
-            xform_matrix (ndarray, optional): Transformation matrix. Defaults to None.
-            **kwargs: Additional keyword arguments.
+            center: Arc center ``(x, y)``.
+            radius_x: Semi-axis along x (before rotation).
+            radius_y: Semi-axis along y; defaults to ``radius_x`` (circle).
+            start_angle: Starting angle in radians. Defaults to 0.
+            span_angle: Sweep angle in radians. Defaults to ``pi/2``.
+            rot_angle: Extra rotation about the center. Defaults to 0.
+            n_points: Sample count; defaults from settings scaled by span.
+            xform_matrix: Optional transformation matrix.
+            **kwargs: Additional keyword arguments passed to ``Shape``.
         """
         if radius_y is None:
             radius_y = radius_x
@@ -153,7 +173,14 @@ class Arc(Shape):
         return distance(b, c)
 
     def copy(self, **kwargs):
-        """Return a copy of the arc."""
+        """Return a copy of the arc.
+
+        Args:
+            **kwargs: Attribute overrides applied to the copy.
+
+        Returns:
+            Arc: Copied arc.
+        """
         center = self.center
         start_angle = self.start_angle
         span_angle = self.span_angle
@@ -191,7 +218,25 @@ class Arc(Shape):
 
 
 class Ellipse(Shape):
-    """An ellipse defined by center, width, and height."""
+    """An axis-aligned or rotated ellipse defined by center, width, and height.
+
+    Attributes:
+        a: Semi-axis along width (``width / 2``).
+        b: Semi-axis along height (``height / 2``).
+        center: Ellipse center.
+        width: Full width.
+        height: Full height.
+        angle: Rotation angle in radians.
+
+    Examples:
+        ::
+
+            import simetri.graphics as sg
+
+            ell = sg.Ellipse((0, 0), width=80, height=40)
+            canvas = sg.Canvas()
+            canvas.draw(ell)
+    """
 
     def __init__(
         self,
@@ -202,14 +247,15 @@ class Ellipse(Shape):
         xform_matrix: "ndarray" = None,
         **kwargs,
     ) -> None:
-        """
+        """Create an ellipse.
+
         Args:
-            center (PointType): The center of the ellipse.
-            width (float): The width of the ellipse.
-            height (float): The height of the ellipse.
-            angle (float, optional): Rotation angle. Defaults to 0.
-            xform_matrix (ndarray, optional): Transformation matrix. Defaults to None.
-            **kwargs: Additional keyword arguments.
+            center: Ellipse center ``(x, y)``.
+            width: Full width of the ellipse.
+            height: Full height of the ellipse.
+            angle: Rotation angle in radians. Defaults to 0.
+            xform_matrix: Optional transformation matrix.
+            **kwargs: Additional keyword arguments passed to ``Shape``.
         """
         n_points = defaults["n_ellipse_points"]
         vertices = [
@@ -244,6 +290,11 @@ class Ellipse(Shape):
 
     @closed.setter
     def closed(self, value: bool):
+        """Ellipses are always closed; assignment is ignored.
+
+        Args:
+            value: Ignored closed flag.
+        """
         pass
 
     def _update(
@@ -697,21 +748,54 @@ def inverse_complex_number(z: complex) -> complex:
 
 
 def Re(num):
+    """Return ``num`` as a complex number on the real axis.
+
+    Args:
+        num: Real scalar.
+
+    Returns:
+        complex: ``complex(num, 0)``.
+    """
     return complex(num, 0)
     # return Complex(num, 0)
 
 
 def Im(num):
+    """Return ``num`` as a complex number on the imaginary axis.
+
+    Args:
+        num: Real scalar.
+
+    Returns:
+        complex: ``complex(0, num)``.
+    """
     return complex(0, num)
     # return Complex(0, num)
 
 
 def Sqrt(complex_):
+    """Return the principal square root of a complex number.
+
+    Args:
+        complex_: Complex value.
+
+    Returns:
+        complex: Principal square root (note: currently does not return the
+        value — call site should use ``cmath.sqrt`` directly if needed).
+    """
     cmath.sqrt(complex_)
     # return complex.sqrt
 
 
 def Qbrt(complex_):
+    """Return a complex cube root used by the ellipse-intersection solver.
+
+    Args:
+        complex_: Complex value.
+
+    Returns:
+        complex: One cube root of ``complex_``.
+    """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/quartic.js
 
     angle = cmath.phase(complex_) * 0.33333333333
@@ -726,6 +810,15 @@ def Qbrt(complex_):
 
 # x^2 + bx + c = 0
 def solve_complex_quadratic_equation(b, c):
+    """Solve ``z^2 + b z + c = 0`` over the complexes.
+
+    Args:
+        b: Linear coefficient.
+        c: Constant term.
+
+    Returns:
+        list[complex]: The two roots.
+    """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/quartic.js
 
     # sqrtD = Sqrt(b.MulComplex(b).Sub(c.Mul(4)))
@@ -735,6 +828,16 @@ def solve_complex_quadratic_equation(b, c):
 
 # x^3 + ax^2 + bx + c = 0
 def get_one_cubic_equation_root(a, b, c):
+    """Return one root of the cubic ``z^3 + a z^2 + b z + c = 0``.
+
+    Args:
+        a: ``z^2`` coefficient.
+        b: ``z`` coefficient.
+        c: Constant term.
+
+    Returns:
+        complex: One cubic root.
+    """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/quartic.js
 
     p = b - a * a * 0.33333333333
@@ -750,6 +853,17 @@ def get_one_cubic_equation_root(a, b, c):
 
 # x^4 + ax^3 + bx^2 + cx + d = 0
 def solve_quartic_equation(a, b, c, d):
+    """Solve ``z^4 + a z^3 + b z^2 + c z + d = 0``.
+
+    Args:
+        a: ``z^3`` coefficient.
+        b: ``z^2`` coefficient.
+        c: ``z`` coefficient.
+        d: Constant term.
+
+    Returns:
+        list[complex]: The four roots.
+    """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/geometry.js
 
     a2 = a * a

@@ -197,7 +197,17 @@ def clip_mask(
     mask: Mask = None,
     **kwargs,
 ):
-    """Apply a mask for TeX rendering using additive scope/TexSketch logic."""
+    """Apply a mask for TeX rendering using scope / ``TexSketch`` logic.
+
+    Args:
+        self: Canvas receiving the mask sketches.
+        target: Shape or group to mask, or None to open a mask scope.
+        mask: ``Mask`` instance (or shape plus mask kwargs).
+        **kwargs: Optional mask overrides such as ``_mask_opacity``.
+
+    Returns:
+        The canvas (``self``) for chaining.
+    """
     mask_shape, mask_opacity, mask_stops, mask_axis = _normalize_mask_inputs(
         mask, **kwargs
     )

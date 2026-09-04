@@ -1,3 +1,9 @@
+"""LaTeX / TeX compilation helpers for Simetri canvas export.
+
+Builds TeX documents from canvas TikZ code, runs the configured LaTeX
+compiler, and cleans auxiliary files.
+"""
+
 from __future__ import annotations
 
 import os
@@ -88,11 +94,13 @@ def remove_aux_files(file_path):
 
 
 def run_job(parent_dir, file_name, extension, tex_path):
-    """
-    Run the job to compile and save the file.
+    """Compile a TeX file and write the requested output format.
 
-    Returns:
-        None
+    Args:
+        parent_dir: Directory containing the TeX file and outputs.
+        file_name: Base name without extension.
+        extension: Desired output extension (e.g. ``.pdf``, ``.png``).
+        tex_path: Full path to the ``.tex`` source file.
     """
     output_path = os.path.join(parent_dir, file_name + extension)
     compiler = defaults["latex_compiler"].lower()

@@ -1,4 +1,4 @@
-"""TikZ Helper Functions"""
+"""TikZ helper functions for styles, colors, paths, and shading."""
 
 from math import degrees
 from typing import List

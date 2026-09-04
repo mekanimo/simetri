@@ -1,7 +1,14 @@
-"""Shape objects are the main geometric entities in Simetri.
-They are created by providing a sequence of points (a list of (x, y) coordinates).
-If a style argument (a ShapeStyle object) is provided, then the style attributes
-of this ShapeStyle object will superseed the style attributes of the Shape object.
+"""Shape: the primary geometric drawable in Simetri.
+
+Create a Shape from a sequence of ``(x, y)`` points. Optional style
+arguments control fill, stroke, markers, and related rendering options.
+Boolean helpers such as ``clip``, ``polygon_diff``, and ``polygon_xor``
+operate on closed shapes.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> tri = sg.Shape([(0, 0), (50, 0), (25, 40)], closed=True)
+    >>> tri.translate(10, 0)
 """
 
 from __future__ import annotations
@@ -84,13 +91,26 @@ from .points import Points
 
 
 class Shape(Base):
-    """The main class for all geometric entities in Simetri.
+    """Polyline/polygon drawable with style and affine transform state.
 
-     A Shape is created by providing a sequence of points (a sequence of (x, y) coordinates).
-    If a style argument (a ShapeStyle object) is provided, then its style attributes override
-    the default values the Shape object would assign. Additional attributes (e.g. line_width, fill_color, line_style)
-    may be provided.
+    Constructed from a sequence of points. When ``closed`` is True (or the
+    first and last points coincide), the shape is treated as a polygon for
+    fill and boolean operations.
 
+    Attributes:
+        primary_points: ``Points`` storage.
+        xform_matrix: 3×3 affine transform (row form).
+        closed: Whether the outline is closed.
+        fill / stroke: Draw fill and/or stroke.
+        line_width / line_color / fill_color: Common style attributes.
+        subtype: Shape subtype (``Types.SHAPE``, ``Types.CIRCLE``, …).
+        id: Unique object id.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> s = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> s.width > 0
+        True
     """
 
     __slots__ = [
@@ -171,16 +191,32 @@ class Shape(Base):
         subtype: Types = Types.SHAPE,
         xform_matrix: np.ndarray | None = None,
     ) -> None:
-        """Initialize a Shape object.
+        """Initialize a Shape.
 
         Args:
-            points (Sequence[PointType], optional): The points that make up the shape.
-            closed (bool, optional): Whether the shape is closed. Defaults to False.
-            xform_matrix (np.array, optional): The transformation matrix. Defaults to None.
-            **kwargs (dict): Additional attributes for the shape.
+            points: Vertices as ``(x, y)`` pairs. Defaults to empty.
+            closed: If True, treat as a closed polygon.
+            fill: Whether to fill the interior.
+            stroke: Whether to stroke the outline.
+            alpha: Overall opacity override.
+            color: Convenience color (may set fill/line depending on style).
+            draw_double / draw_fillets / draw_markers: Stroke embellishments.
+            back_style: Background style enum/value.
+            double_distance / double_color: Double-line stroke options.
+            fill_alpha / fill_color / fill_mode: Fill style.
+            fillet_radius: Corner fillet radius when drawing fillets.
+            gradient: Optional fill gradient.
+            line_alpha / line_cap / line_color / line_dash_array /
+                line_dash_phase / line_join / line_miter_limit / line_width:
+                Stroke style.
+            marker_*: Marker drawing options.
+            markers_only: If True, draw markers without the path.
+            smooth: Prefer smooth curve rendering when applicable.
+            subtype: Shape subtype. Defaults to ``Types.SHAPE``.
+            xform_matrix: Optional initial transform.
 
         Raises:
-            ValueError: If the provided subtype is not valid.
+            ValueError: If ``subtype`` is invalid (when validated by callers).
         """
 
         self.id = get_unique_id(self)
@@ -1705,6 +1741,28 @@ def clip(
     abs_tol: float | None = None,
     merge: bool = True,
 ):
+    """Clip a Shape or Group against a closed clipper polygon.
+
+    Args:
+        item: Shape or Group to clip.
+        clipper: Closed clipping region.
+        exclude_clipper: If True, treat clipper boundary specially in tests.
+        rel_tol: Relative intersection tolerance.
+        abs_tol: Absolute intersection tolerance.
+        merge: If True, merge clipped fragments via ``merge_shapes``.
+
+    Returns:
+        Shape | Group: Clipped geometry with style copied from ``item``.
+
+    Raises:
+        TypeError: If ``item`` is neither Shape nor Group.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> subject = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> window = sg.Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
+        >>> clip(subject, window)  # doctest: +SKIP
+    """
     if isinstance(item, Group):
         return _clip_group(item, clipper, exclude_clipper, rel_tol, abs_tol)
     elif isinstance(item, Shape):
@@ -1872,6 +1930,14 @@ def custom_attributes(item: Shape) -> list[str]:
 
 @dataclass
 class Clipping:
+    """Pair of a draw target and a clipper shape.
+
+    Attributes:
+        target: Shape or Group to be clipped.
+        clipper: Closed Shape used as the clipping region.
+        type: Always ``Types.CLIPPING``.
+    """
+
     target: Shape | Group
     clipper: Shape
 
@@ -1886,9 +1952,26 @@ def polygon_diff(
     dist_tol: float = 0.01,
     merge: bool = True,
 ):
-    """
-    shape1 Shape: shape to be clipped
-    shape2 Shape: clipping region
+    """Return the difference of two closed polygons (``shape1 \\ shape2``).
+
+    Args:
+        shape1: Shape to clip (must be closed).
+        shape2: Clipping region (must be closed).
+        dist_tol: Intersection snap tolerance.
+        merge: If True, merge resulting edge fragments into shapes.
+
+    Returns:
+        Group: Segments or merged shapes belonging to ``shape1`` outside
+        ``shape2``.
+
+    Raises:
+        Warning: If either shape is not closed (raised as ``Warning``).
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> a = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
+        >>> polygon_diff(a, b)  # doctest: +SKIP
     """
     exclude_clipper = False
     if not (shape1.closed and shape2.closed):
@@ -1930,11 +2013,31 @@ def polygon_difference(
     dist_tol: float = 0.01,
     merge: bool = True,
 ):
+    """Alias for ``polygon_diff``.
+
+    Args:
+        shape1: Shape to clip.
+        shape2: Clipping region.
+        dist_tol: Intersection snap tolerance.
+        merge: If True, merge resulting fragments.
+
+    Returns:
+        Group: Difference result.
+    """
     return polygon_diff(shape1, shape2, exclude_clipper=False)
 
 
 def polygon_intersection(shape1: Shape, shape2: Shape, merge: bool = True):
-    """Returns the intersection of two polygons."""
+    """Return the intersection of two closed polygons.
+
+    Args:
+        shape1: First closed shape.
+        shape2: Second closed shape.
+        merge: If True, merge resulting edge fragments.
+
+    Returns:
+        Group: Intersection fragments or merged shapes.
+    """
     if not (shape1.closed and shape2.closed):
         raise ValueError("Invalid input: shape1 and shape2 must be closed!")
     return clip(shape1, shape2, merge=merge)
@@ -1946,9 +2049,16 @@ def polygon_xor(
     dist_tol: float = 0.01,
     merge: bool = True,
 ):
-    """
-    shape1 Shape: shape to be clipped
-    shape2 Shape: clipping region
+    """Return the symmetric difference of two closed polygons.
+
+    Args:
+        shape1: First closed shape.
+        shape2: Second closed shape.
+        dist_tol: Passed through to ``polygon_diff``.
+        merge: If True, merge the combined result.
+
+    Returns:
+        Group: Symmetric difference fragments or merged shapes.
     """
     res1 = polygon_diff(shape1, shape2)
     res2 = polygon_diff(shape2, shape1)
@@ -1967,15 +2077,16 @@ def all_segments(
     rel_tol: float | None = None,
     abs_tol: float | None = None,
 ):
-    """
-    Get all line segments from a Shape or Group instance.
+    """Collect unique line segments from a Shape or Group.
+
     Args:
-        item (Shape | Group): The input shape or group.
-        n_round (int): The number of decimal places to round segment coordinates.
-        rel_tol (float): The relative tolerance for segment comparison.
-        abs_tol (float): The absolute tolerance for segment comparison.
+        item: Input shape or group.
+        n_round: Decimal places used when rounding segment coordinates.
+        rel_tol: Relative tolerance for segment comparison.
+        abs_tol: Absolute tolerance for segment comparison.
+
     Returns:
-        list[LineType]: A list of line segments.
+        list[LineType]: Deduplicated line segments.
     """
 
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])

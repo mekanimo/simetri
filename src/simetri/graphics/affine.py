@@ -1,4 +1,15 @@
-"""Transformation matrices."""
+"""3×3 affine transformation matrices and point-transform helpers.
+
+Matrices are stored in row form suitable for ``points @ matrix`` with
+homogeneous coordinates. Public aliases on ``simetri.graphics`` include
+``TM``, ``RM``, ``MM``, ``GM``, ``SM``, and ``SHM``.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> from math import pi
+    >>> M = sg.translation_matrix(10, 20)
+    >>> R = sg.rotation_matrix(pi / 2, about=(0, 0))
+"""
 
 from __future__ import annotations
 
@@ -19,12 +30,14 @@ if TYPE_CHECKING:
 
 
 def identity_matrix() -> NDArray:
-    """
-    Return the identity matrix
-    [[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]].
+    """Return the 3×3 identity matrix.
 
     Returns:
-        np.ndarray: The identity matrix.
+        np.ndarray: ``[[1, 0, 0], [0, 1, 0], [0, 0, 1]]``.
+
+    Examples:
+        >>> identity_matrix()[0, 0]
+        1.0
     """
     return np.identity(3)
 
@@ -51,16 +64,22 @@ def xform_matrix(
 
 
 def translation_matrix(dx: float, dy: float) -> NDArray:
-    """
-    Return a translation matrix in row form
-    [[1.0, 0, 0], [0, 1.0, 0], [dx, dy, 1.0]].
+    """Return a translation matrix in row form.
+
+    The matrix is ``[[1, 0, 0], [0, 1, 0], [dx, dy, 1]]``.
 
     Args:
-        dx (float): The translation distance along the x-axis.
-        dy (float): The translation distance along the y-axis.
+        dx: Translation along the x-axis.
+        dy: Translation along the y-axis.
 
     Returns:
         np.ndarray: The translation matrix.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.translation_matrix(5, -2)
+        >>> M[2, 0], M[2, 1]
+        (5.0, -2.0)
     """
     return np.array([[1.0, 0, 0], [0, 1.0, 0], [dx, dy, 1.0]])
 
@@ -97,21 +116,24 @@ def rot_about_origin_matrix(angle: float) -> NDArray:
 
 
 def rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
-    """
-    Construct a rotation matrix that can be used to rotate a point
-    about another point by angle float.
-    Return a rotation matrix in row form
-    dx, dy = about
-    [[cos(angle), sin(angle), 0],
-    [-sin(angle), cos(angle), 0],
-    cos(angle)dx-sin(angle)dy+x, cos(angle)dy+sin(angle)dx+y, 1]].
+    """Return a rotation matrix about a point.
+
+    Composes translate-to-origin, rotate by ``angle`` (radians), then
+    translate back. Row form for ``points @ matrix``.
 
     Args:
-        angle (float): The rotation angle in radians.
-        about (tuple, optional): The point to rotate about, defaults to (0, 0).
+        angle: Rotation angle in radians (counterclockwise).
+        about: Point to rotate about. Defaults to ``(0, 0)``.
 
     Returns:
         np.ndarray: The rotation matrix.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from math import pi
+        >>> M = sg.rotation_matrix(pi / 2)
+        >>> round(M[0, 1], 6)
+        1.0
     """
     dx, dy = about[:2]
     # translate 'about' to the origin
@@ -383,16 +405,22 @@ def mirror_about_point_matrix(point: PointType) -> NDArray:
 def rotate(
     points: Sequence[PointType], angle: float, about: PointType = (0, 0)
 ) -> NDArray:
-    """
-    Rotate points by angle about a point.
+    """Rotate points by ``angle`` about a point.
 
     Args:
-        points (Sequence[PointType]): The points to rotate.
-        angle (float): The angle to rotate by.
-        about (PointType, optional): The point to rotate about, defaults to (0, 0).
+        points: Points to rotate (homogeneous or 2D; homogenized if needed).
+        angle: Rotation angle in radians.
+        about: Center of rotation. Defaults to ``(0, 0)``.
 
     Returns:
-        np.ndarray: The rotated points.
+        np.ndarray: Homogeneous rotated points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from math import pi
+        >>> pts = sg.rotate([(1, 0)], pi / 2)
+        >>> round(float(pts[0, 1]), 6)
+        1.0
     """
     points = homogenize(points)
     return points @ rotation_matrix(angle, about)
@@ -502,15 +530,17 @@ def scale_in_place(
 def rotate_point_3D(
     point: PointType, line: LineType, angle: float
 ) -> PointType:
-    """Rotate a 2d point (out of paper) about a 2d line by the given angle.
-    This is used for animating mirror reflections.
-     Args:
-         point (PointType): PointType to rotate.
-         line (LineType): Line to rotate about.
-         angle (float): Angle of rotation in radians.
+    """Rotate a 2D point out of the plane about a 2D line by ``angle``.
 
-     Returns:
-         PointType: Rotated point.
+    Used for animating mirror reflections (folding a point around an axis).
+
+    Args:
+        point: Point to rotate.
+        line: Axis line (two points) to rotate about.
+        angle: Rotation angle in radians.
+
+    Returns:
+        PointType: Rotated point ``(x, y)`` in the plane projection.
     """
 
     p1, p2 = line
@@ -551,6 +581,21 @@ def rotate_line_3D(line: LineType, about: LineType, angle: float) -> LineType:
 def rotate_point(
     point: PointType, angle: float, center: PointType = (0, 0)
 ) -> PointType:
+    """Rotate a single 2D point about ``center`` by ``angle`` radians.
+
+    Args:
+        point: Point ``(x, y)`` to rotate.
+        angle: Rotation angle in radians (counterclockwise).
+        center: Center of rotation. Defaults to ``(0, 0)``.
+
+    Returns:
+        PointType: Rotated point as ``(x, y)``.
+
+    Examples:
+        >>> from math import pi
+        >>> rotate_point((1, 0), pi / 2)
+        (0.0, 1.0)
+    """
     x, y = point[:2]
     cx, cy = center[:2]
     x -= cx

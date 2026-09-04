@@ -1,4 +1,16 @@
-"""Creates pattern defintions for the Frieze groups"""
+"""Creates pattern definitions for the Frieze groups.
+
+Each ``*Def`` dataclass builds a ``PatternDef``
+for one frieze symmetry (hop, step, jump, sidle, and spinning variants).
+Factory helpers ``hop_def``, ``step_def``, ``jump_def``, and ``sidle_def``
+return plain ``PatternDef`` objects.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> from simetri.frieze.frieze_patterns import HopDef
+    >>> motif = sg.Circle(10)
+    >>> HopDef(dx=40, reps=4).apply(motif)
+"""
 
 from math import pi
 from dataclasses import dataclass
@@ -15,6 +27,15 @@ from ..graphics.common import PointType
 
 @dataclass
 class HopDef:
+    """p1 (translation) frieze pattern definition.
+
+    Attributes:
+        dx: Horizontal translation distance or reference.
+        dy: Vertical translation distance or reference.
+        reps: Number of translation repetitions.
+        pattern_def: Built ``PatternDef``.
+    """
+
     dx: float | ReferenceDef
     dy: float | ReferenceDef = 0
     reps: int = 3
@@ -39,11 +60,29 @@ class HopDef:
         self.pattern_def = PatternDef([trans_def])
 
     def apply(self, design):
+        """Apply this hop pattern to ``design``.
+
+        Args:
+            design: Shape or group to transform.
+
+        Returns:
+            The transformed design (pattern result).
+        """
         return self.pattern_def.apply(design)
 
 
 @dataclass
 class StepDef:
+    """p11g (glide) frieze pattern definition.
+
+    Attributes:
+        mirror_offset: Offset of the glide axis from the kernel side.
+        distance: Glide distance.
+        side: Which side of the kernel supplies the glide axis.
+        reps: Number of glide repetitions.
+        pattern_def: Built ``PatternDef``.
+    """
+
     mirror_offset: float | ReferenceDef
     distance: float | ReferenceDef
     side: Reference = Reference.BOTTOM
@@ -63,6 +102,7 @@ class StepDef:
             self._build_pattern()
 
     def _build_pattern(self):
+        """Rebuild pattern_def from current glide parameters."""
         t_type = TransformationType.GLIDE
         target = ReferenceTarget.KERNEL
         ref_def = ReferenceDef(self.side, target, self.mirror_offset)
@@ -70,11 +110,29 @@ class StepDef:
         self.pattern_def = PatternDef([glide_def])
 
     def apply(self, design):
+        """Apply this step (glide) pattern to ``design``.
+
+        Args:
+            design: Shape or group to transform.
+
+        Returns:
+            The transformed design (pattern result).
+        """
         return self.pattern_def.apply(design)
 
 
 @dataclass
 class JumpDef:
+    """p11m (mirror then translate) frieze pattern definition.
+
+    Attributes:
+        mirror_offset: Offset of the mirror line from the kernel side.
+        distance: Translation distance after mirroring.
+        side: Which side of the kernel supplies the mirror line.
+        reps: Number of translation repetitions.
+        pattern_def: Built ``PatternDef``.
+    """
+
     mirror_offset: float | ReferenceDef
     distance: float | ReferenceDef
     side: Reference = Reference.BOTTOM
@@ -94,6 +152,7 @@ class JumpDef:
             self._build_pattern()
 
     def _build_pattern(self):
+        """Rebuild pattern_def from current mirror/translate parameters."""
         t_type = TransformationType.MIRROR
         target = ReferenceTarget.KERNEL
         ref_def = ReferenceDef(self.side, target, self.mirror_offset)
@@ -108,11 +167,28 @@ class JumpDef:
         self.pattern_def = PatternDef([mirror_def, trans_def])
 
     def apply(self, design):
+        """Apply this jump pattern to ``design``.
+
+        Args:
+            design: Shape or group to transform.
+
+        Returns:
+            The transformed design (pattern result).
+        """
         return self.pattern_def.apply(design)
 
 
 @dataclass
 class SidleDef:
+    """p1m1 (vertical mirror then translate) frieze pattern definition.
+
+    Attributes:
+        mirror_offset: Offset of the right-side mirror from the kernel.
+        dx: Horizontal translation after mirroring.
+        reps: Number of translation repetitions.
+        pattern_def: Built ``PatternDef``.
+    """
+
     mirror_offset: float | ReferenceDef
     dx: float | ReferenceDef
     reps: int = 0
@@ -131,6 +207,7 @@ class SidleDef:
             self._build_pattern()
 
     def _build_pattern(self):
+        """Rebuild pattern_def from current mirror/translate parameters."""
         mirror_def = TransformDef(
             TransformationType.MIRROR,
             ReferenceDef(
@@ -147,11 +224,29 @@ class SidleDef:
         self.pattern_def = PatternDef([mirror_def, trans_def])
 
     def apply(self, design):
+        """Apply this sidle pattern to ``design``.
+
+        Args:
+            design: Shape or group to transform.
+
+        Returns:
+            The transformed design (pattern result).
+        """
         return self.pattern_def.apply(design)
 
 
 @dataclass
 class SpinningHopDef:
+    """p2 (180° rotation then translate) frieze pattern definition.
+
+    Attributes:
+        rotocenter: Center of the 180° rotation.
+        dx: Horizontal translation after rotation.
+        dy: Vertical translation after rotation.
+        reps: Number of translation repetitions.
+        pattern_def: Built ``PatternDef``.
+    """
+
     rotocenter: PointType | ReferenceDef
     dx: float | ReferenceDef
     dy: float | ReferenceDef = 0
@@ -171,6 +266,7 @@ class SpinningHopDef:
             self._build_pattern()
 
     def _build_pattern(self):
+        """Rebuild pattern_def from current rotation/translate parameters."""
         rotate_def = TransformDef(
             TransformationType.ROTATE,
             self.rotocenter,
@@ -186,11 +282,30 @@ class SpinningHopDef:
         self.pattern_def = PatternDef([rotate_def, trans_def])
 
     def apply(self, design):
+        """Apply this spinning-hop pattern to ``design``.
+
+        Args:
+            design: Shape or group to transform.
+
+        Returns:
+            The transformed design (pattern result).
+        """
         return self.pattern_def.apply(design)
 
 
 @dataclass
 class SpinningJumpDef:
+    """p2mm (two mirrors then translate) frieze pattern definition.
+
+    Attributes:
+        mirror_offset1: Offset for the vertical (right) mirror.
+        mirror_offset2: Offset for the horizontal (bottom) mirror.
+        dx: Horizontal translation after mirroring.
+        dy: Vertical translation after mirroring.
+        reps: Number of translation repetitions.
+        pattern_def: Built ``PatternDef``.
+    """
+
     mirror_offset1: float | ReferenceDef
     mirror_offset2: float | ReferenceDef
     dx: float | ReferenceDef
@@ -211,6 +326,7 @@ class SpinningJumpDef:
             self._build_pattern()
 
     def _build_pattern(self):
+        """Rebuild pattern_def from current mirror/translate parameters."""
         mirror_def1 = TransformDef(
             TransformationType.MIRROR,
             ReferenceDef(
@@ -234,11 +350,30 @@ class SpinningJumpDef:
         self.pattern_def = PatternDef([mirror_def1, mirror_def2, trans_def])
 
     def apply(self, design):
+        """Apply this spinning-jump pattern to ``design``.
+
+        Args:
+            design: Shape or group to transform.
+
+        Returns:
+            The transformed design (pattern result).
+        """
         return self.pattern_def.apply(design)
 
 
 @dataclass
 class SpinningSidleDef:
+    """p2mg (mirror, glide, then translate) frieze pattern definition.
+
+    Attributes:
+        mirror_offset: Offset for the vertical mirror.
+        glide_distance: Distance of the subsequent glide.
+        dx: Horizontal translation after mirror/glide.
+        dy: Vertical translation after mirror/glide.
+        reps: Number of translation repetitions.
+        pattern_def: Built ``PatternDef``.
+    """
+
     mirror_offset: float | ReferenceDef
     glide_distance: float | ReferenceDef
     dx: float | ReferenceDef
@@ -259,6 +394,7 @@ class SpinningSidleDef:
             self._build_pattern()
 
     def _build_pattern(self):
+        """Rebuild pattern_def from current mirror/glide/translate parameters."""
         mirror_def = TransformDef(
             TransformationType.MIRROR,
             ReferenceDef(
@@ -281,10 +417,27 @@ class SpinningSidleDef:
         self.pattern_def = PatternDef([mirror_def, glide_def, trans_def])
 
     def apply(self, design):
+        """Apply this spinning-sidle pattern to ``design``.
+
+        Args:
+            design: Shape or group to transform.
+
+        Returns:
+            The transformed design (pattern result).
+        """
         return self.pattern_def.apply(design)
 
 
 def hop_def(distance: float | ReferenceDef, reps: int = 3) -> PatternDef:
+    """Build a p1 (translation) pattern definition.
+
+    Args:
+        distance: Horizontal translation distance.
+        reps: Number of repetitions.
+
+    Returns:
+        PatternDef: Translation-only pattern definition.
+    """
     t_type = TransformationType.TRANSLATE
     args = (distance, 0)
     trans_def = TransformDef(t_type, None, args, reps=reps)
@@ -299,6 +452,17 @@ def step_def(
     side: Reference = Reference.BOTTOM,
     reps: int = 3,
 ) -> PatternDef:
+    """Build a p11g (glide) pattern definition.
+
+    Args:
+        mirror_offset: Offset of the glide axis from the kernel side.
+        distance: Glide distance.
+        side: Kernel side used for the glide axis.
+        reps: Number of repetitions.
+
+    Returns:
+        PatternDef: Glide pattern definition.
+    """
     t_type = TransformationType.GLIDE
     target = ReferenceTarget.KERNEL
     ref_def = ReferenceDef(side, target, mirror_offset)
@@ -314,6 +478,17 @@ def jump_def(
     side: Reference = Reference.BOTTOM,
     reps: int = 3,
 ) -> PatternDef:
+    """Build a p11m (mirror then translate) pattern definition.
+
+    Args:
+        mirror_offset: Offset of the mirror line from the kernel side.
+        distance: Translation distance after mirroring.
+        side: Kernel side used for the mirror line.
+        reps: Number of translation repetitions.
+
+    Returns:
+        PatternDef: Mirror-then-translate pattern definition.
+    """
     t_type = TransformationType.MIRROR
     target = ReferenceTarget.KERNEL
     ref_def = ReferenceDef(side, target, mirror_offset)
@@ -326,6 +501,16 @@ def jump_def(
 
 
 def sidle_def(mirror_offset, dx, reps: int = 0):
+    """Build a p1m1 (right mirror then translate) pattern definition.
+
+    Args:
+        mirror_offset: Offset of the right-side mirror from the kernel.
+        dx: Horizontal translation after mirroring.
+        reps: Number of translation repetitions.
+
+    Returns:
+        PatternDef: Mirror-then-translate pattern definition.
+    """
     # reflect over right+offset, then translate by pattern width+dx
     mirror_def = TransformDef(
         TransformationType.MIRROR,

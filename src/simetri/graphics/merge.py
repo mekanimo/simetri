@@ -1,3 +1,18 @@
+"""Internal helpers for merging collinear edges and connected shapes in a Group.
+
+Bound onto ``Group`` as ``merge_shapes`` and
+``merge_collinears``. Prefer calling those methods on a group rather than
+importing these private functions directly.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> g = sg.Group([
+    ...     sg.Shape([(0, 0), (10, 0)]),
+    ...     sg.Shape([(10, 0), (20, 0)]),
+    ... ])
+    >>> merged = g.merge_shapes()  # doctest: +SKIP
+"""
+
 from __future__ import annotations
 
 from math import ceil, degrees, log10, pi, sqrt
@@ -22,23 +37,28 @@ def _merge_shapes(
     dist_tol: float | None = None,
     merge_angle_tol: float = 0.1,
     debug: bool = False,
+    remove_duplicate_edges: bool = False,
     **kwargs,
 ) -> Group:
-    """
-    Tries to merge the shapes in the group. Returns a new group
-    with the merged shapes as well as the shapes that could not be merged.
+    """Merge connected shapes in this group into polygons and open polylines.
+
+    Builds a graph from edge endpoints (snapped within ``dist_tol``), merges
+    collinear runs, then reconstructs closed cycles and open walks as
+    ``Shape`` instances.
 
     Args:
-        dist_tol (float, optional): Distance tolerance for merging vertices.
-            Defaults to None.
-        merge_angle_tol (float, optional): Angle tolerance for merging collinear
-            edges. Defaults to 0.1.
-        debug (bool, optional): Print point and angle diagnostics.
-            Defaults to False.
-        **kwargs: Additional keyword arguments passed to the returned group.
+        dist_tol: Distance tolerance for snapping vertices. Defaults to
+            ``defaults["dist_tol"]`` when ``None``.
+        merge_angle_tol: Angle tolerance (radians) for treating edges as
+            collinear. Defaults to 0.1.
+        debug: If True, print point and angle diagnostics.
+        remove_duplicate_edges: If True, drop edges that have a congruent
+            duplicate before merging collinears.
+        **kwargs: Attributes set on the returned group via ``set_attribs``.
 
     Returns:
-        Group: A new group with the merged shapes.
+        Group: A new group of merged shapes. Returns ``self`` unchanged if
+        the group has fewer than two elements.
     """
     from .batch import Group
     from .shape import Shape
@@ -55,7 +75,10 @@ def _merge_shapes(
     )
     edges, segments = self._get_edges_and_segments(n_round=n_round)
     segments = self.merge_collinears(
-        edges, merge_angle_tol=merge_angle_tol, debug=debug
+        edges,
+        merge_angle_tol=merge_angle_tol,
+        debug=debug,
+        remove_duplicate_edges=remove_duplicate_edges,
     )
     d_coord_node = self.d_coord_node
     d_node_coord = self.d_node_coord
@@ -103,7 +126,17 @@ def _merge_shapes(
 
 
 def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
-    """Merge collinear edges in an angle bin."""
+    """Merge connected collinear edges that share an inclination angle bin.
+
+    Args:
+        _bin: List of ``(angle, edge)`` pairs in one angle bucket.
+        d_node_coord: Map from node id to coordinates.
+        d_coord_node: Map from coordinates to node id (unused; kept for callers).
+
+    Returns:
+        list: Merged segments as ``(start, end)`` point pairs, or single points
+        for isolated nodes.
+    """
     incl_angle = degrees(_bin[0][0])
     node_adjacency = {}
     for _, edge in _bin:
@@ -151,12 +184,39 @@ def _merge_collinears(
     edges: list[LineType],
     merge_angle_tol: float = 0.1,
     debug: bool = False,
+    remove_duplicate_edges: bool = False,
 ) -> list[LineType]:
-    """Merge connected collinear edges."""
+    """Merge connected collinear edges into longer segments.
+
+    Args:
+        edges: Edges as node-id pairs.
+        merge_angle_tol: Angle tolerance (radians) for treating edges as
+            collinear.
+        debug: If True, print the smallest rejected angle difference.
+        remove_duplicate_edges: If True, drop edges that have a congruent
+            duplicate (``keep_one=False``) before merging.
+
+    Returns:
+        list[LineType]: Merged segments as coordinate pairs.
+    """
+    from ..geometry.polygon import (
+        remove_duplicate_edges as _remove_duplicate_edges,
+    )
+
     d_node_coord = self.d_node_coord
     d_coord_node = self.d_coord_node
+    if remove_duplicate_edges and edges:
+        coord_edges = [
+            (d_node_coord[edge[0]], d_node_coord[edge[1]]) for edge in edges
+        ]
+        coord_edges = _remove_duplicate_edges(coord_edges, keep_one=False)
+        edges = [
+            (d_coord_node[seg[0]], d_coord_node[seg[1]]) for seg in coord_edges
+        ]
     if len(edges) < 2:
-        return edges
+        return [
+            (d_node_coord[edge[0]], d_node_coord[edge[1]]) for edge in edges
+        ]
 
     angles_edges = []
     for edge in edges:

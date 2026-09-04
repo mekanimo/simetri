@@ -1,4 +1,16 @@
-"""All enumerations."""
+"""String enumerations used across Simetri graphics, canvas, and backends.
+
+Most enums are ``StrEnum`` members whose ``.value`` is the string
+written to SVG/TikZ or used for style resolution. Use ``get_enum_value``
+to accept either an enum member or a case-insensitive name string.
+
+Examples:
+    >>> from simetri.graphics.all_enums import Anchor, get_enum_value
+    >>> get_enum_value(Anchor, "center")
+    'center'
+    >>> Anchor.NORTHWEST.value
+    'northwest'
+"""
 
 from enum import StrEnum
 from typing import TYPE_CHECKING, TypeAlias
@@ -12,7 +24,25 @@ if TYPE_CHECKING:
 
 
 def get_enum_value(enum_class: StrEnum, value: str) -> str:
-    """Get the value of an enumeration."""
+    """Resolve an enum member or name string to its string value.
+
+    Args:
+        enum_class: The ``StrEnum`` subclass to look up.
+        value: An enum member or a case-insensitive member name.
+
+    Returns:
+        str: The enum's ``.value`` string.
+
+    Raises:
+        KeyError: If ``value`` is a string that does not match a member name.
+
+    Examples:
+        >>> from simetri.graphics.all_enums import Types, get_enum_value
+        >>> get_enum_value(Types, Types.SHAPE)
+        'SHAPE'
+        >>> get_enum_value(Types, "circle")
+        'CIRCLE'
+    """
     if isinstance(value, enum_class):
         res = value.value
     else:
@@ -490,6 +520,12 @@ class HeadPos(StrEnum):
 
 
 class ImageMode(StrEnum):
+    """Pillow/image pixel modes used by image helpers.
+
+    Valid values include ``MODE_1``, ``L``, ``RGB``, ``RGBA``, ``CMYK``, and
+    related Pillow mode strings.
+    """
+
     MODE_1 = "1"  # 1 bit per pixel (black and white)
     L = "L"  # 8 bits per pixel (grayscale)
     P = "P"  # 8 bits per pixel, mapped to any other mode using a color palette
@@ -515,6 +551,11 @@ class ImageMode(StrEnum):
 
 
 class IsometryType(StrEnum):
+    """Isometry classification for geometric transforms.
+
+    Valid values are: IDENTITY, TRANSLATION, ROTATION, MIRROR, GLIDE_REFLECTION.
+    """
+
     IDENTITY = "IDENTITY"
     TRANSLATION = "TRANSLATION"
     ROTATION = "ROTATION"
@@ -538,7 +579,10 @@ class IUC(StrEnum):
 
 
 class LatRef(StrEnum):
-    """Lattice references"""
+    """Lattice reference kinds for positioning on a lattice.
+
+    Valid values are: COORD, LERP, AXIS, POINT, VERTEX, EDGE, DISTANCE.
+    """
 
     COORD = "COORD"
     LERP = "LERP"
@@ -550,6 +594,11 @@ class LatRef(StrEnum):
 
 
 class LatType(StrEnum):
+    """Lattice cell types.
+
+    Valid values are: HEX, SQR, RECT, RHOMB, PAR.
+    """
+
     HEX = "HEX"  # Hexagon
     SQR = "SQR"  # Square
     RECT = "RECT"  # Rectangle
@@ -613,6 +662,11 @@ class LineWidth(StrEnum):
 
 
 class InPlace(StrEnum):
+    """In-place operators used with transform ``incr`` arguments.
+
+    Valid values are: ADD, SUB, MUL, TRUE_DIV, FLOOR_DIV, MOD, POW.
+    """
+
     ADD = "ADD"
     SUB = "SUB"
     MUL = "MUL"
@@ -634,7 +688,11 @@ class Extent(StrEnum):
 
 
 class FilterType(StrEnum):
-    """SVG filters."""
+    """SVG filter primitive names.
+
+    Valid values include GAUSSIAN_BLUR, BLEND, COLOR_MATRIX, DROP_SHADOW,
+    and other ``fe*`` filter types.
+    """
 
     GAUSSIAN_BLUR = "feGaussianBlur"
     BLEND = "feBlend"
@@ -902,6 +960,12 @@ class Placement(StrEnum):
 
 
 class PlaitStyle(StrEnum):
+    """Visual styles for lace/plait drawings.
+
+    Valid values are: EMBOSS1, EMBOSS2, DIAMOND, INNERLINES, INNERLOOPS,
+    DOUBLE_LINES.
+    """
+
     EMBOSS1 = "EMBOSS1"
     EMBOSS2 = "EMBOSS2"
     DIAMOND = "DIAMOND"
@@ -941,6 +1005,11 @@ class Reference(StrEnum):
 
 
 class ReferenceTarget(StrEnum):
+    """Which object a dynamic transform reference resolves against.
+
+    Valid values are: KERNEL, PATTERN, ACTIVE.
+    """
+
     KERNEL = "kernel"
     PATTERN = "pattern"
     ACTIVE = "active"

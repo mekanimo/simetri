@@ -22,11 +22,20 @@ from numpy import array, ndarray
 from PIL import ImageFont
 
 from ..graphics.common import LineType, PointType, get_defaults
-from ..settings.settings import _print_options, defaults, issue_warning
+from ..settings.settings import _print_options, defaults, defaults_help, issue_warning
 
 
 @contextmanager
 def print_options(**kwargs):
+    """Temporarily override library print formatting options.
+
+    Args:
+        **kwargs: Options such as ``precision`` and ``suppress`` to apply
+            for the duration of the context.
+
+    Yields:
+        None: Control returns to the caller with options applied.
+    """
     # Save the current state
     old_options = _print_options.copy()
 
@@ -40,6 +49,14 @@ def print_options(**kwargs):
 
 
 def format_data(data):
+    """Format a value using the current print options.
+
+    Args:
+        data: Scalar, sequence, or mapping to format.
+
+    Returns:
+        str: Formatted representation.
+    """
     # Get current formatting options
     precision = _print_options["precision"]
     suppress = _print_options["suppress"]
@@ -70,6 +87,11 @@ def format_data(data):
 
 
 def p_print(*data):
+    """Print values using ``format_data`` and current print options.
+
+    Args:
+        *data: Values to print.
+    """
     output = " ".join(format_data(item) for item in data)
     print(output)
 
@@ -429,7 +451,14 @@ def sort_points(points):
 
 
 def time_it(func):
-    """Decorator to time a function"""
+    """Decorator that prints how long ``func`` takes to run.
+
+    Args:
+        func: Callable to wrap.
+
+    Returns:
+        callable: Wrapped function that reports elapsed time.
+    """
 
     @wraps(func)
     def time_it_wrapper(*args, **kwargs):
@@ -697,7 +726,17 @@ def get_text_dimensions(text, font_path, font_size):
 
 
 def function_module(func):
-    """Given a function, returns the function's module."""
+    """Return the module name associated with a function.
+
+    Args:
+        func: Function whose module is requested.
+
+    Returns:
+        str: Module name string.
+
+    Note:
+        Current implementation inspects ``os.path.join`` rather than ``func``.
+    """
     mod = inspect.getmodule(os.path.join)
 
     return mod.__name__
@@ -732,20 +771,24 @@ def _class_help(cls) -> str:
 def help(obj):
     """Return the documentation string for ``obj``.
 
+    For string keys, returns ``defaults_help[obj]`` (empty string if missing).
     For classes (and instances of Simetri types), returns the constructor
     signature, class docstring, and ``__init__`` docstring. For functions,
     methods, modules, and other objects, returns ``inspect.getdoc(obj)``.
 
     Args:
-        obj: Object to document.
+        obj: Object to document, or a defaults setting name as a string.
 
     Returns:
         Documentation text, or an empty string if none is available.
     """
+    if isinstance(obj, str):
+        return defaults_help.get(obj, "")
+
     if inspect.isclass(obj):
         return _class_help(obj)
 
-    if not isinstance(obj, (str, bytes, int, float, bool, complex)):
+    if not isinstance(obj, (bytes, int, float, bool, complex)):
         cls = type(obj)
         if cls is not type and not inspect.isroutine(obj) and not inspect.ismodule(obj):
             mod = getattr(cls, "__module__", "")
@@ -1184,7 +1227,14 @@ def is_xform_matrix(matrix):
 
 
 def prime_factors(n):
-    """Prime factorization."""
+    """Return the prime factors of ``n``.
+
+    Args:
+        n: Positive integer to factorize.
+
+    Returns:
+        list: Prime factors of ``n`` (with multiplicity).
+    """
     factors = []
     p = 2
     while p * p <= n:
@@ -1306,6 +1356,15 @@ def inv_lerp(start, end, value):
 
 
 def zip_points(points1, points2):
+    """Interleave two point sequences into one flat list.
+
+    Args:
+        points1: First sequence of points.
+        points2: Second sequence of points.
+
+    Returns:
+        list: Alternating points from ``points1`` and ``points2``.
+    """
     res = []
     zipped = list(zip(points1, points2))
     for a, b in zipped:
@@ -1532,7 +1591,18 @@ def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
 
 
 def solve_quadratic_eq(a, b, c, abs_tolerance=1e-5):
-    """Solves a quadratic equation of the form ax^2 + bx + c = 0."""
+    """Solve ``ax^2 + bx + c = 0``.
+
+    Args:
+        a: Quadratic coefficient.
+        b: Linear coefficient.
+        c: Constant term.
+        abs_tolerance (float, optional): Tolerance for treating the
+            discriminant as zero. Defaults to ``1e-5``.
+
+    Returns:
+        list: Real roots (empty, one, or two values).
+    """
 
     discr = b**2 - (4 * a * c)  # discriminant
 
@@ -1603,8 +1673,13 @@ def solve_complex_quadratic_eq(
 
 
 def get_function_dependencies(func):
-    """
-    Extracts dependencies of a function using AST parsing.
+    """Extract called-name dependencies of a function via AST parsing.
+
+    Args:
+        func: Function object whose source is inspected.
+
+    Returns:
+        set: Names of functions/attributes referenced in calls.
     """
     source = inspect.getsource(func)
     tree = ast.parse(source)

@@ -1,4 +1,4 @@
-"""Sinusoidal wave generator"""
+"""Sinusoidal wave shape generator."""
 
 import numpy as np
 
@@ -7,20 +7,25 @@ from ..graphics.all_enums import Types
 
 
 class SineWave(Shape):
-    """Sinusoidal wave generator
+    """A sampled sine wave as a ``Shape`` polyline.
 
-    Args:
-        period (float, optional): Period of the sine wave. Defaults to 40.
-        amplitude (float, optional): Amplitude of the sine wave. Defaults to 20.
-        duration (float, optional): Duration of the sine wave. Defaults to 1.
-        n_points (int, optional): Sampling rate. Defaults to 100.
-        phase_angle (float, optional): Phase angle of the sine wave. Defaults to 0.
-        damping (float, optional): Damping coefficient. .001-.005 is usual. Defaults to 0.
-        rot_angle (float, optional): Rotation angle of the sine wave.. Defaults to 0.
-        xform_matrix (ndarray, optional): Transformation matrix. Defaults to None.
+    Attributes:
+        period: Period of the sine wave.
+        amplitude: Amplitude of the sine wave.
+        duration: Horizontal length of the sampled wave.
+        n_points: Points sampled per period.
+        phase: Phase angle in radians.
+        damping: Exponential damping coefficient (typical range 0.001–0.005).
+        rot_angle: Rotation angle stored with the instance.
 
-    Returns:
-        Shape: _description_
+    Examples:
+        ::
+
+            import simetri.graphics as sg
+
+            wave = sg.SineWave(period=40, amplitude=20, duration=80)
+            canvas = sg.Canvas()
+            canvas.draw(wave)
     """
 
     def __init__(
@@ -35,6 +40,19 @@ class SineWave(Shape):
         xform_matrix: "ndarray" = None,
         **kwargs,
     ) -> Shape:
+        """Create a sine-wave shape from sampled points.
+
+        Args:
+            period: Period of the sine wave. Defaults to 40.
+            amplitude: Amplitude of the sine wave. Defaults to 20.
+            duration: Duration (x-span) of the sine wave. Defaults to 40.
+            n_points: Sampling rate per period. Defaults to 100.
+            phase_angle: Phase angle in radians. Defaults to 0.
+            damping: Damping coefficient; 0.001–0.005 is typical. Defaults to 0.
+            rot_angle: Rotation angle stored on the instance. Defaults to 0.
+            xform_matrix: Optional transformation matrix. Defaults to None.
+            **kwargs: Additional keyword arguments passed to ``Shape``.
+        """
         phase = phase_angle
         freq = 1 / period
         n_cycles = duration / period
@@ -54,10 +72,10 @@ class SineWave(Shape):
         self.rot_angle = (rot_angle,)
 
     def copy_(self):
-        """_description_
+        """Return a new ``SineWave`` with the same parameters.
 
         Returns:
-            SineWave: _description_
+            SineWave: A copy of this sine wave.
         """
         return SineWave(
             self.period,
