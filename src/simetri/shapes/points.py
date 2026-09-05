@@ -18,10 +18,10 @@ from typing import Self
 
 from numpy import allclose, ndarray
 
-from ..geometry.homogenize import homogenize
-from ..settings.settings import defaults
-from ..core.all_enums import Types
-from ..core.common import PointType
+from ..geom.homogenize import homogenize
+from ..config.settings import defaults
+from ..base.all_enums import Types
+from ..base.common import PointType
 
 
 class _GroupUpdateContext:

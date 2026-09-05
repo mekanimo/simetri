@@ -11,7 +11,7 @@ from string import Template
 
 import fitz
 
-from ..settings.settings import issue_warning
+from ..config.settings import issue_warning
 
 
 def validate_filepath(filepath: Path, overwrite: bool):

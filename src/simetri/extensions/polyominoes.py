@@ -1,4 +1,4 @@
-import simetri.geometry.polygons.polygon_utils
+import simetri.geom.polygons.polygon_utils
 import simetri.graphics as sg
 
 
@@ -179,7 +179,7 @@ def iter_polyominoes(n, polyo_type="free", size=20):
 #     if polyo is None:
 #         print(i)
 #         break
-#     if len(polyo) == 2 or not simetri.geometry.polygons.polygon_utils.is_simple(
+#     if len(polyo) == 2 or not simetri.geom.polygons.polygon_utils.is_simple(
 #         polyo[0]
 #     ):
 #         color = sg.red

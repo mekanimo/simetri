@@ -1,0 +1,2272 @@
+"""Settings and default values for the Simetri library.
+
+Do not edit values in this module. Override them in your own code so
+shared scripts stay portable.
+
+Examples:
+    >>> from simetri.config.settings import defaults
+    >>> defaults["line_width"] = 1.5
+"""
+
+__all__ = [
+    "defaults",
+    "issue_warning",
+    "set_defaults",
+    "SimetriWarning",
+    "tikz_defaults",
+    "set_tikz_defaults",
+    "svg_defaults",
+    "set_svg_defaults",
+]
+
+import sys
+import warnings
+from collections import defaultdict
+from collections.abc import Sequence
+from dataclasses import dataclass
+from math import pi
+
+import numpy as np
+
+# This is the alpha testing stage for the Simetri library.
+# These default values may change in the future.
+
+
+class _Void:
+    """Sentinel type whose instances are always falsy.
+
+    Used as ``VOID`` to mean "not initialized" as distinct from ``None``.
+    """
+
+    __slots__ = ()
+
+    def __bool__(self) -> bool:
+        return False
+
+
+VOID = _Void()
+
+# VOID is used for values that are not set yet or
+# to differentiate a value from None.
+# For example shape.b_box = VOID means it is not initialized yet
+# shape.b_box = None means it is changed and needs to be recomputed
+
+
+_print_options = {"precision": 4, "suppress": True}
+
+
+class SimetriWarning(UserWarning):
+    """Project warning category for warning messages emitted by simetri."""
+
+
+def issue_warning(
+    message: str,
+    category: type[Warning] = SimetriWarning,
+    stacklevel: int = 2,
+) -> None:
+    """Emit a warning when the global warning toggle is enabled.
+
+    Args:
+        message: Warning text.
+        category: Warning category class.
+        stacklevel: Stack level passed to ``warn``.
+    """
+    if defaults["show_warnings"]:
+        warnings.warn(message, category, stacklevel=stacklevel)
+
+
+@dataclass
+class Default:
+    """A class to represent a default value.
+
+    Attributes:
+        name (str): The name of the default value.
+        value (any): The default value.
+        type (type): The type of the default value.
+        help (str): A description of the default value.
+        user_value (any): The user-defined value for the default value.
+
+    """
+
+    name: str
+    simetri_value: any
+    type: type
+    help: str
+    user_value: any = None
+
+    @property
+    def value(self):
+        """Return the effective default (user override or library value).
+
+        Returns:
+            The ``user_value`` when set, otherwise ``simetri_value``.
+        """
+        res = self.simetri_value
+        if self.user_value is not None:
+            res = self.user_value
+
+        return res
+
+
+class _Defaults:
+    """A singleton class that behaves like a dictionary.
+
+    It is used to store default values for the Simetri library.
+    It should not be modified directly.
+    """
+
+    _instance = None
+
+    def __init__(self):
+        """Initializes the _Defaults singleton instance."""
+        if _Defaults._instance is not None:
+            raise Exception("This class is a singleton!")
+        self.defaults = {}
+        self.log = set()
+
+    def __getitem__(self, key):
+        """Gets the value associated with the key.
+
+        Args:
+            key: The key to look up.
+
+        Returns:
+            The value associated with the key.
+        """
+        value = self.defaults[key]
+        str_value = str(value)
+        self.log.add((key, str_value))
+        return value
+
+    def __setitem__(self, key, value):
+        """Sets the value for the given key.
+
+        Args:
+            key: The key to set.
+            value: The value to associate with the key.
+        """
+        self.defaults[key] = value
+
+    def get(self, key, default=None):
+        """Gets the value of a key. If the key does not exist, return the default value.
+
+        Args:
+            key: The key to look up.
+            default: The default value to return if the key does not exist.
+
+        Returns:
+            The value associated with the key, or the default value.
+        """
+        if key in self.defaults:
+            res = self.defaults[key]
+        else:
+            res = default
+
+        return res
+
+    def keys(self):
+        """Returns the keys of the dictionary.
+
+        Returns:
+            A view object that displays a list of all the keys.
+        """
+        return self.defaults.keys()
+
+    def items(self):
+        """Returns the items of the dictionary.
+
+        Returns:
+            A view object that displays a list of dictionary's key-value tuple pairs.
+        """
+        return self.defaults.items()
+
+    def values(self):
+        """Returns the values of the dictionary.
+
+        Returns:
+            A view object that displays a list of all the values.
+        """
+        return self.defaults.values()
+
+
+defaults = _Defaults()
+default_types = {}
+defaults_help = {}
+
+
+def set_defaults():
+    """Register the core Simetri default values into ``defaults``.
+
+    Call once at import time; users should prefer assigning through
+    ``defaults[key] = value`` rather than editing this function.
+    """
+    from ..base.all_enums import (
+        Anchor,
+        BackStyle,
+        BlendMode,
+        ColorMatrix,
+        DocumentClass,
+        FillMode,
+        FontFamily,
+        FrameShape,
+        GradientType,
+        LineCap,
+        LineJoin,
+        MarkerType,
+        PageMargins,
+        PageNumberPosition,
+        PageNumbering,
+        PageSize,
+        Compiler,
+        PageOrientation,
+        PatternType,
+        ShadeType,
+        Align,
+    )
+    from ..render.style_map import (
+        ShapeStyle,
+        TagStyle,
+        LineStyle,
+        FillStyle,
+        FrameStyle,
+        MarkerStyle,
+    )
+
+    from ..coloring.palettes import seq_MATTER_256
+    from ..coloring import colors
+
+    global defaults
+    global default_types
+    global defaults_help
+
+    # tol, rel_tol, and rel_tol are used for comparing floats
+    # These are used in numpy.isclose and numpy.allclose
+    # If you are not careful you may get unexpected results
+    # They do not mean that the difference in the compared numbers are within these values
+    # isclose returns abs(a - b) <= (abs_tol + rel_tol * absolute(b))
+    # if you set abs_tol=.1 and rel_tol=.1, it means that the difference between a and b
+    # is within .1 and .1 * b
+    # isclose(721, 800, rel_tol=.1) returns True
+    # isclose(800, 721, rel_tol=.1) returns False
+    # abs_tol makes a bigger difference when comparing values close to zero
+
+    defaults["abs_tol"] = 0.05  # used for comparing floats
+    default_types["abs_tol"] = float
+    defaults_help["abs_tol"] = (
+        "Absolute tolerance. "
+        "Positive float. Length in <points>. "
+        "1in = 72pt."
+        "Used for comparing floats."
+    )
+
+    defaults["active"] = True  # active objects are drawn
+    default_types["active"] = bool
+    defaults_help["active"] = (
+        "Boolean property for drawable objects. "
+        "Currently only used for drawing objects. "
+        "If False, the object is not drawn."
+        "In the future it may be used with modifiers and transformations."
+        "All drawable objects have this property set to True by default."
+        "Example: shape.active = False"
+    )
+
+    defaults["align"] = Align.LEFT
+    default_types["align"] = Align
+    defaults_help["align"] = (
+        "Alignment property for text objects. Align enum. Valid values: BOTTOM, "
+        "CENTER, FLUSH_CENTER, FLUSH_LEFT, FLUSH_RIGHT, HORIZ_CENTER, JUSTIFIED, "
+        "LEFT, NONE, RIGHT, TOP, VERT_CENTER."
+    )
+
+    defaults["all_caps"] = False  # use all caps for text
+    default_types["all_caps"] = bool
+    defaults_help["all_caps"] = (
+        "Boolean property for text objects. If True, the text is displayed in all caps."
+    )
+
+    defaults["allow_consec_dup_points"] = False  # use all caps for text
+    default_types["allow_consec_dup_points"] = bool
+    defaults_help["allow_consec_dup_points"] = (
+        "Boolean property for allowing consecutive duplicate points in Shape objects. "
+        "Do not change this unless you absolutely have to. Likely to cause problems."
+    )
+
+    defaults["alpha"] = VOID  # used for transparency
+    default_types["alpha"] = float
+    defaults_help["alpha"] = (
+        "Alpha value for transparency. "
+        "Float between 0 and 1. "
+        "0 is fully transparent, 1 is fully opaque."
+        "Both line opacity and fill opacity are set with this value."
+    )
+
+    defaults["anchor"] = Anchor.CENTER  # used for text alignment
+    default_types["anchor"] = Anchor
+    defaults_help["anchor"] = (
+        "Specifies text object location. Anchor enum. Valid values: BASE, "
+        "BASE_EAST, BASE_WEST, BOTTOM, CENTER, EAST, LEFT, MID, MIDEAST, MIDWEST, "
+        "MIDPOINT, NORTH, NORTHEAST, NORTHWEST, RIGHT, SOUTH, SOUTHEAST, "
+        "SOUTHWEST, TEXT, TOP, WEST. Example: text.anchor = Anchor.NORTH"
+    )
+
+    defaults["angle_atol"] = 0.001  # used for comparing angles
+    default_types["angle_atol"] = float
+    defaults_help["angle_atol"] = (
+        "Angle absolute tolerance. "
+        "Positive float. Angle in radians. "
+        "Used for comparing angles."
+    )
+
+    defaults["angle_rtol"] = 0.001  # used for comparing angles
+    default_types["angle_rtol"] = float
+    defaults_help["angle_rtol"] = (
+        "Angle relative tolerance. "
+        "Positive float. Angle in radians. "
+        "Used for comparing angles."
+    )
+
+    defaults["angle_tol"] = (
+        0.001  # used for comparing angles in radians .001 rad = .057 degrees
+    )
+    default_types["angle_tol"] = float
+    defaults_help["angle_tol"] = (
+        "Angle tolerance. Positive float. Angle in radians. Used for comparing angles."
+    )
+
+    defaults["area_atol"] = 0.001  # used for comparing areas
+    default_types["area_atol"] = float
+    defaults_help["area_atol"] = (
+        "Area absolute tolerance. Positive float.Used for comparing areas."
+    )
+
+    defaults["area_rtol"] = 0.001  # used for comparing areas
+    default_types["area_rtol"] = float
+    defaults_help["area_rtol"] = (
+        "Area relative tolerance. Positive float.Used for comparing areas."
+    )
+
+    defaults["area_threshold"] = (
+        1  # used for grouping fragments in a lace object
+    )
+    default_types["area_threshold"] = float
+    defaults_help["area_threshold"] = (
+        "Area threshold. Positive float. Used for grouping fragments in a lace object."
+    )
+
+    defaults["area_tol"] = 0.1  # used for comparing areas
+    default_types["area_tol"] = float
+    defaults_help["area_tol"] = (
+        "Area tolerance. Positive float.Used for comparing areas."
+    )
+
+    defaults["arrow_head_length"] = 8
+    default_types["arrow_head_length"] = float
+    defaults_help["arrow_head_length"] = (
+        "Arrow head length. "
+        "Positive float. Length in <points>. "
+        "Length of the arrow head."
+    )
+
+    defaults["arrow_head_width"] = 3
+    default_types["arrow_head_width"] = float
+    defaults_help["arrow_head_width"] = (
+        "Arrow head width. Positive float. Length in <points>. Width of the arrow head."
+    )
+
+    defaults["auto_expand_canvas_for_vertices"] = True
+    default_types["auto_expand_canvas_for_vertices"] = bool
+    defaults_help["auto_expand_canvas_for_vertices"] = (
+        "When True, export adds vertices_canvas_expand padding per side when "
+        "vertex coordinate labels are drawn (vertices=True)."
+    )
+
+    defaults["back_color"] = colors.white  # canvas background color
+    default_types["back_color"] = colors.Color
+    defaults_help["back_color"] = (
+        "Background color. Color object. Background color for the canvas."
+    )
+
+    defaults["back_style"] = (
+        BackStyle.COLOR
+    )  # EMPTY, COLOR, SHADING, PATTERN, GRIDLINES
+    default_types["back_style"] = BackStyle
+    defaults_help["back_style"] = (
+        "Background style for the Canvas. BackStyle enum. Valid values: COLOR, "
+        "COLOR_AND_GRID, EMPTY, GRIDLINES, PATTERN, SHADING, SHADING_AND_GRID."
+    )
+
+    defaults["BB_EPSILON"] = 0.01
+    default_types["BB_EPSILON"] = float
+    defaults_help["BB_EPSILON"] = (
+        "Bounding box epsilon. "
+        "Positive float. Length in <points>. "
+        "This is a small value used for line/point bounding boxes."
+    )
+
+    defaults["begin_doc"] = "\\begin{document}\n"
+    default_types["begin_doc"] = str
+    defaults_help["begin_doc"] = "Used with the generated .tex file."
+
+    defaults["begin_tikz"] = "\\begin{tikzpicture}[x=1pt, y=1pt, scale=1]\n"
+    default_types["begin_tikz"] = str
+    defaults_help["begin_tikz"] = "Used with the generated .tex file."
+
+    defaults["blend_mode"] = BlendMode.NORMAL
+    default_types["blend_mode"] = BlendMode
+    defaults_help["blend_mode"] = (
+        "Blend mode for Canvas or Group objects. BlendMode enum. Valid values: "
+        "COLOR, COLORBURN, COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, "
+        "HUE, LIGHTEN, LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, "
+        "SOFTLIGHT."
+    )
+
+    defaults["bold"] = False  # use bold font if True
+    default_types["bold"] = bool
+    defaults_help["bold"] = (
+        "Boolean property for text objects. If True, the text is displayed in bold."
+    )
+
+    defaults["border"] = 25  # border around canvas
+    default_types["border"] = float
+    defaults_help["border"] = (
+        "Border around the canvas. "
+        "Positive float. Length in <points>. "
+        "Border size for the canvas."
+    )
+
+    defaults["border_size"] = 4  # border size for the canvas
+    default_types["border_size"] = float
+    defaults_help["border_size"] = (
+        "Border size for the canvas. "
+        "Positive float. Length in <points>. "
+        "Border size for the canvas."
+    )
+
+    defaults["canvas_back_color"] = None  # None is transparent
+    default_types["canvas_back_color"] = colors.Color
+    defaults_help["canvas_back_color"] = (
+        "Canvas background color. Color object. "
+        "Background color for the canvas. "
+        "If None, the canvas is transparent."
+    )
+
+    defaults["canvas_back_style"] = BackStyle.EMPTY
+    default_types["canvas_back_style"] = BackStyle
+    defaults_help["canvas_back_style"] = (
+        "Canvas background style. BackStyle enum. Valid values: COLOR, "
+        "COLOR_AND_GRID, EMPTY, GRIDLINES, PATTERN, SHADING, SHADING_AND_GRID."
+    )
+
+    defaults["canvas_border"] = 20
+    default_types["canvas_border"] = float
+    defaults_help["canvas_border"] = (
+        "Canvas margin value for all sides. floating point number in points. 72 pnts = 1 in."
+        "Applied after the canvas size is computed from the drawn entities."
+    )
+
+    defaults["canvas_frame_color"] = colors.black  # frame color for the canvas
+    default_types["canvas_frame_color"] = colors.Color
+    defaults_help["canvas_frame_color"] = (
+        "Frame color for the canvas. Color object."
+    )
+
+    defaults["canvas_frame_margin"] = 15  # margin around the canvas frame
+    default_types["canvas_frame_margin"] = float
+    defaults_help["canvas_frame_margin"] = "Margin around the canvas frame. "
+
+    defaults["canvas_frame_shadow_width"] = (
+        5  # shadow width for the canvas frame
+    )
+    default_types["canvas_frame_shadow_width"] = float
+    defaults_help["canvas_frame_shadow_width"] = (
+        "Shadow width for the canvas frame. "
+    )
+
+    defaults["canvas_frame_width"] = 45  # frame width for the canvas
+    default_types["canvas_frame_width"] = float
+    defaults_help["canvas_frame_width"] = (
+        "Frame width for the canvas. Positive float. Length in <points>."
+    )
+
+    defaults["canvas_mask_scope"] = False  # True only on MaskSketch objects
+    default_types["canvas_mask_scope"] = bool
+    defaults_help["canvas_mask_scope"] = "Canvas mask scope flag. Boolean."
+
+    defaults["canvas_size"] = None  # (width, height) canvas size in points
+    default_types["canvas_size"] = Sequence
+    defaults_help["canvas_size"] = (
+        "Canvas size. "
+        "Tuple of two positive floats. Length in <points>. "
+        "Canvas size in points."
+    )
+
+    defaults["circle_radius"] = 20
+    default_types["circle_radius"] = float
+    defaults_help["circle_radius"] = (
+        "Circle radius. Positive float. Length in <points>. Radius of the circle."
+    )
+
+    defaults["clip"] = False  # clip the outside of the clip_path to the canvas
+    default_types["clip"] = bool
+    defaults_help["clip"] = (
+        "Boolean property for the canvas and Group objects. "
+        "If true, clip the outside of the canvas.mask to the canvas"
+        "or Group elemetns."
+    )
+
+    defaults["color"] = VOID
+    default_types["color"] = colors.Color
+    defaults_help["color"] = "Color. Color object."
+
+    defaults["CS_line_width"] = 2
+    default_types["CS_line_width"] = float
+    defaults_help["CS_line_width"] = (
+        "Line width of the coordinate system axes. Positive float. Length in <points>."
+    )
+
+    defaults["CS_origin_color"] = colors.gray
+    default_types["CS_origin_color"] = colors.Color
+    defaults_help["CS_origin_color"] = (
+        "Color of the circle at the origin of the coordinate system. Color object."
+    )
+
+    defaults["CS_origin_size"] = (
+        2  # size of the circle at the origin of the coordinate system
+    )
+    default_types["CS_origin_size"] = float
+    defaults_help["CS_origin_size"] = (
+        "Size of the circle at the origin of the coordinate system. "
+        "Positive float. Length in <points>."
+    )
+
+    defaults["CS_size"] = (
+        25  # size of the coordinate system axes. Used with canvas.draw_CS
+    )
+    default_types["CS_size"] = float
+    defaults_help["CS_size"] = (
+        "Size of the coordinate system axes. Positive float. Length in <points>."
+    )
+
+    defaults["CS_x_color"] = colors.red
+    default_types["CS_x_color"] = colors.Color
+    defaults_help["CS_x_color"] = (
+        "Color of the x-axis in the coordinate system. Color object."
+    )
+
+    defaults["CS_y_color"] = colors.green
+    default_types["CS_y_color"] = colors.Color
+    defaults_help["CS_y_color"] = (
+        "Color of the y-axis in the coordinate system. Color object."
+    )
+
+    defaults["debug_mode"] = False
+    default_types["debug_mode"] = bool
+    defaults_help["debug_mode"] = (
+        "Boolean property for enabling debug mode. "
+        "If True, debug information is printed."
+    )
+
+    defaults["dist_tol"] = 0.05  # used for comparing points
+    default_types["dist_tol"] = float
+    defaults_help["dist_tol"] = (
+        "Distance tolerance for comparing two points. "
+        "Positive float. Length in <points>."
+    )
+
+    defaults["dist_tol2"] = (
+        0.05  # used for comparing two points to check if they are the
+    )
+    default_types["dist_tol2"] = float
+    defaults_help["dist_tol2"] = (
+        "Distance tolerance for comparing two distances. "
+        "Positive float. Length in <points>."
+    )
+
+    defaults["document_class"] = (
+        DocumentClass.STANDALONE
+    )  # STANDALONE, ARTICLE, BOOK,
+    # REPORT, LETTER, SLIDES, BEAMER,
+    # MINIMAL
+    default_types["document_class"] = DocumentClass
+    defaults_help["document_class"] = (
+        "Document class for the LaTeX document. DocumentClass enum. Valid values: "
+        "ARTICLE, BEAMER, BOOK, IEEETRAN, LETTER, REPORT, SCRARTCL, SLIDES, "
+        "STANDALONE."
+    )
+
+    defaults["document_options"] = ["12pt", "border=25pt"]
+    default_types["document_options"] = Sequence
+    defaults_help["document_options"] = (
+        "Options for the LaTeX document class. List of strings."
+    )
+
+    defaults["dot_color"] = colors.black  # for Dot objects
+    default_types["dot_color"] = colors.Color
+    defaults_help["dot_color"] = "Color for Dot objects. Color object."
+
+    defaults["double_color"] = colors.white
+    default_types["double_color"] = colors.Color
+    defaults_help["double_color"] = "Color between double lines. Color object."
+
+    defaults["double_distance"] = 2
+    default_types["double_distance"] = float
+    defaults_help["double_distance"] = (
+        "Distance between double lines. Positive float. Length in <points>."
+    )
+
+    defaults["draw_double"] = False
+    default_types["draw_double"] = bool
+    defaults_help["draw_double"] = (
+        "Boolean property for using double lines. If True, double lines are used."
+    )
+
+    defaults["draw_fillets"] = False  # draw rounded corners for shapes
+    default_types["draw_fillets"] = bool
+    defaults_help["draw_fillets"] = (
+        "Boolean property for drawing rounded corners for shapes. "
+        "If True, rounded corners are drawn."
+    )
+
+    defaults["draw_frame"] = False  # draw a frame around the Tag objects
+    default_types["draw_frame"] = bool
+    defaults_help["draw_frame"] = (
+        "Boolean property for drawing a frame around Tag objects. "
+        "If True, a frame is drawn."
+    )
+
+    defaults["draw_markers"] = (
+        False  # draw markers at each vertex of a Shape object
+    )
+    default_types["draw_markers"] = bool
+    defaults_help["draw_markers"] = (
+        "Boolean property for drawing markers at each vertex "
+        "of a Shape object. "
+        "If True, markers are drawn."
+    )
+
+    defaults["ellipse_width_height"] = (
+        40,
+        20,
+    )  # width and height of the ellipse
+    default_types["ellipse_width_height"] = Sequence
+    defaults_help["ellipse_width_height"] = (
+        "Width and height of the ellipse. "
+        "Tuple of two positive floats. Length in <points>."
+    )
+
+    defaults["end_doc"] = "\\end{document}\n"
+    default_types["end_doc"] = str
+    defaults_help["end_doc"] = (
+        "End document string for the generated .tex file."
+    )
+
+    defaults["end_tikz"] = "\\end{tikzpicture}\n"
+    default_types["end_tikz"] = str
+    defaults_help["end_tikz"] = (
+        "End TikZ picture string for the generated .tex file."
+    )
+
+    defaults["even_odd"] = (
+        False  # use nonzero winding by default unless explicitly enabled
+    )
+    default_types["even_odd"] = bool
+    defaults_help["even_odd"] = (
+        "Boolean property for using the even-odd rule for filling shapes. "
+        "If True, the even-odd rule is used; default is False (nonzero winding)."
+    )
+
+    defaults["ext_length2"] = 25  # dimension extra extension length
+    default_types["ext_length2"] = float
+    defaults_help["ext_length2"] = (
+        "Dimension extra extension length. Positive float. Length in <points>."
+    )
+
+    defaults["fill"] = True
+    default_types["fill"] = bool
+    defaults_help["fill"] = (
+        "Boolean property for filling shapes. If True, shapes are filled."
+    )
+
+    defaults["fill_alpha"] = 1
+    default_types["fill_alpha"] = float
+    defaults_help["fill_alpha"] = (
+        "Alpha value for fill transparency. Float between 0 and 1."
+    )
+
+    defaults["fill_blend_mode"] = BlendMode.NORMAL
+    default_types["fill_blend_mode"] = BlendMode
+    defaults_help["fill_blend_mode"] = (
+        "Blend mode for fill. BlendMode enum. Valid values: COLOR, COLORBURN, "
+        "COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, HUE, LIGHTEN, "
+        "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
+    )
+
+    defaults["fill_color"] = colors.black
+    default_types["fill_color"] = colors.Color
+    defaults_help["fill_color"] = "Fill color for shapes. Color object."
+
+    defaults["fill_mode"] = FillMode.EVENODD
+    default_types["fill_mode"] = FillMode
+    defaults_help["fill_mode"] = (
+        "Fill mode for shapes. FillMode enum. Valid values: EVENODD, NONZERO."
+    )
+
+    defaults["fillet_radius"] = None
+    default_types["fillet_radius"] = float
+    defaults_help["fillet_radius"] = (
+        "Radius for rounded corners (fillets). Positive float. Length in <points>."
+    )
+
+    defaults["filter_color_matrix_hue_rotate"] = 0.0
+    default_types["filter_color_matrix_hue_rotate"] = float
+    defaults_help["filter_color_matrix_hue_rotate"] = (
+        "Default hue rotation angle for feColorMatrix with HUE_ROTATE type. Float in degrees."
+    )
+
+    defaults["filter_color_matrix_saturate"] = 1.0
+    default_types["filter_color_matrix_saturate"] = float
+    defaults_help["filter_color_matrix_saturate"] = (
+        "Default saturation amount for feColorMatrix with SATURATE type. Float."
+    )
+
+    defaults["filter_color_matrix_type"] = ColorMatrix.MATRIX
+    default_types["filter_color_matrix_type"] = ColorMatrix
+    defaults_help["filter_color_matrix_type"] = (
+        "Default type for feColorMatrix. ColorMatrix enum. Valid values: MATRIX, "
+        "SATURATE, HUE_ROTATE, LUMINANCE_TO_ALPHA."
+    )
+
+    defaults["filter_color_matrix_values"] = None
+    default_types["filter_color_matrix_values"] = object
+    defaults_help["filter_color_matrix_values"] = (
+        "Default values for feColorMatrix. Numeric value or sequence depending on matrix type."
+    )
+
+    defaults["font_alpha"] = 1
+    default_types["font_alpha"] = float
+    defaults_help["font_alpha"] = (
+        "Alpha value for font transparency. Float between 0 and 1."
+    )
+
+    defaults["font_blend_mode"] = BlendMode.NORMAL
+    default_types["font_blend_mode"] = BlendMode
+    defaults_help["font_blend_mode"] = (
+        "Blend mode for font. BlendMode enum. Valid values: COLOR, COLORBURN, "
+        "COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, HUE, LIGHTEN, "
+        "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
+    )
+
+    defaults["font_color"] = (
+        colors.black
+    )  # use the default font color in LaTeX engine
+    default_types["font_color"] = colors.Color
+    defaults_help["font_color"] = (
+        "Font color. Color object. Font color for the text objects."
+    )
+
+    defaults["font_family"] = (
+        FontFamily.SERIF  # use the default font family in LaTeX engine
+    )
+    default_types["font_family"] = str
+    defaults_help["font_family"] = (
+        "Font family. String. Font family for the text objects."
+    )
+
+    defaults["font_size"] = 12
+    default_types["font_size"] = float
+    defaults_help["font_size"] = (
+        "Font size. Positive float. Length in <points>. Font size for the text objects."
+    )
+
+    defaults["font_style"] = ""
+    default_types["font_style"] = str
+    defaults_help["font_style"] = (
+        "Font style. String. Font style for the text objects."
+    )
+
+    defaults["frame_active"] = True
+    default_types["frame_active"] = bool
+    defaults_help["frame_active"] = (
+        "Boolean property for active frames. If True, frames are drawn."
+    )
+
+    defaults["frame_alpha"] = 1
+    default_types["frame_alpha"] = float
+    defaults_help["frame_alpha"] = (
+        "Alpha value for frame transparency. Float between 0 and 1."
+    )
+
+    defaults["frame_back_alpha"] = 1
+    default_types["frame_back_alpha"] = float
+    defaults_help["frame_back_alpha"] = (
+        "Alpha value for frame background transparency. Float between 0 and 1."
+    )
+
+    defaults["frame_back_color"] = colors.white
+    default_types["frame_back_color"] = colors.Color
+    defaults_help["frame_back_color"] = "Frame background color. Color object."
+
+    defaults["frame_blend_mode"] = BlendMode.NORMAL
+    default_types["frame_blend_mode"] = BlendMode
+    defaults_help["frame_blend_mode"] = (
+        "Blend mode for frame. BlendMode enum. Valid values: COLOR, COLORBURN, "
+        "COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, HUE, LIGHTEN, "
+        "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
+    )
+
+    defaults["frame_color"] = colors.black
+    default_types["frame_color"] = colors.Color
+    defaults_help["frame_color"] = "Frame color. Color object."
+
+    defaults["frame_draw_fillets"] = False
+    default_types["frame_draw_fillets"] = bool
+    defaults_help["frame_draw_fillets"] = (
+        "Boolean property for drawing fillets for frames. If True, fillets are drawn."
+    )
+
+    defaults["frame_fill"] = True
+    default_types["frame_fill"] = bool
+    defaults_help["frame_fill"] = (
+        "Boolean property for filling frames. If True, frames are filled."
+    )
+
+    defaults["frame_fillet_radius"] = 3
+    default_types["frame_fillet_radius"] = float
+    defaults_help["frame_fillet_radius"] = (
+        "Fillet radius for frames. Positive float. Length in <points>."
+    )
+
+    defaults["frame_gradient"] = None
+    default_types["frame_gradient"] = (
+        object  # Assuming gradient is a custom object
+    )
+    defaults_help["frame_gradient"] = "Frame gradient. Gradient object."
+
+    defaults["frame_inner_sep"] = 3
+    default_types["frame_inner_sep"] = float
+    defaults_help["frame_inner_sep"] = (
+        "Frame inner separation. Positive float. Length in <points>."
+    )
+
+    defaults["frame_inner_xsep"] = None
+    default_types["frame_inner_xsep"] = float
+    defaults_help["frame_inner_xsep"] = (
+        "Frame inner x separation. Positive float. Length in <points>."
+    )
+
+    defaults["frame_inner_ysep"] = None
+    default_types["frame_inner_ysep"] = float
+    defaults_help["frame_inner_ysep"] = (
+        "Frame inner y separation. Positive float. Length in <points>."
+    )
+
+    defaults["frame_line_cap"] = LineCap.BUTT
+    default_types["frame_line_cap"] = LineCap
+    defaults_help["frame_line_cap"] = (
+        "Line cap for frames. LineCap enum. Valid values: BUTT, ROUND, SQUARE."
+    )
+
+    defaults["frame_line_dash_array"] = []
+    default_types["frame_line_dash_array"] = Sequence
+    defaults_help["frame_line_dash_array"] = (
+        "Line dash array for frames. List of floats."
+    )
+
+    defaults["frame_line_join"] = LineJoin.MITER
+    default_types["frame_line_join"] = LineJoin
+    defaults_help["frame_line_join"] = (
+        "Line join for frames. LineJoin enum. Valid values: BEVEL, MITER, ROUND."
+    )
+
+    defaults["frame_line_width"] = 1
+    default_types["frame_line_width"] = float
+    defaults_help["frame_line_width"] = (
+        "Line width for frames. Positive float. Length in <points>."
+    )
+
+    defaults["frame_min_height"] = 50
+    default_types["frame_min_height"] = float
+    defaults_help["frame_min_height"] = (
+        "Minimum height for frames. Positive float. Length in <points>."
+    )
+
+    defaults["frame_min_size"] = 50
+    default_types["frame_min_size"] = float
+    defaults_help["frame_min_size"] = (
+        "Minimum size for frames. Positive float. Length in <points>."
+    )
+
+    defaults["frame_min_width"] = 50
+    default_types["frame_min_width"] = float
+    defaults_help["frame_min_width"] = (
+        "Minimum width for frames. Positive float. Length in <points>."
+    )
+
+    defaults["frame_outer_sep"] = 0
+    default_types["frame_outer_sep"] = float
+    defaults_help["frame_outer_sep"] = (
+        "Frame outer separation. Positive float. Length in <points>."
+    )
+
+    defaults["frame_pattern"] = None
+    default_types["frame_pattern"] = (
+        object  # Assuming pattern is a custom object
+    )
+    defaults_help["frame_pattern"] = "Frame pattern. Pattern object."
+
+    defaults["frame_rounded_corners"] = False
+    default_types["frame_rounded_corners"] = bool
+    defaults_help["frame_rounded_corners"] = (
+        "Boolean property for rounded corners for frames. "
+        "If True, rounded corners are drawn."
+    )
+
+    defaults["frame_shape"] = FrameShape.RECTANGLE
+    default_types["frame_shape"] = FrameShape
+    defaults_help["frame_shape"] = (
+        "Frame shape. FrameShape enum. Valid values: CIRCLE, DIAMOND, ELLIPSE, "
+        "FORBIDDEN, PARALLELOGRAM, POLYGON, RECTANGLE, RHOMBUS, SPLITCIRCLE, "
+        "SQUARE, STAR, TRAPEZOID."
+    )
+
+    defaults["frame_smooth"] = True
+    default_types["frame_smooth"] = bool
+    defaults_help["frame_smooth"] = (
+        "Boolean property for smooth frames. If True, frames are smooth."
+    )
+
+    defaults["frame_stroke"] = True
+    default_types["frame_stroke"] = bool
+    defaults_help["frame_stroke"] = (
+        "Boolean property for stroke frames. If True, frames are stroked."
+    )
+
+    defaults["frame_visible"] = True
+    default_types["frame_visible"] = bool
+    defaults_help["frame_visible"] = (
+        "Boolean property for visible frames. If True, frames are visible."
+    )
+
+    defaults["gap"] = 5  # dimension extension gap
+    default_types["gap"] = float
+    defaults_help["gap"] = (
+        "Dimension extension gap. Positive float. Length in <points>."
+    )
+
+    # Gradient defaults
+
+    defaults["gradient"] = None
+    default_types["gradient"] = object
+    defaults_help["gradient"] = "Gradient object."
+
+    defaults["gradient_center"] = (0.5, 0.5)  # radial gradient center
+    default_types["gradient_center"] = tuple[float, float]
+    defaults_help[
+        "gradient_center"
+    ] = """Gradient center, tuple[float, float]. Center of the gradient.
+        Must be between (0, 0) and (1.0, 1.0)"""
+
+    defaults["gradient_end"] = (1, 0)  # linear gradient end
+    default_types["gradient_end"] = tuple[float, float]
+    defaults_help["gradient_end"] = (
+        "Gradient end. tuple[float, float]. End for linear gradient."
+    )
+
+    defaults["gradient_focal"] = (0.5, 0.5)  # radial gradient focal pooint
+    default_types["gradient_focal"] = tuple[float, float]
+    defaults_help[
+        "gradient_focal"
+    ] = """Gradient focal, tuple[float, float]. Center of the gradient.
+        Must be between (0, 0) and (1.0, 1.0)"""
+
+    defaults["gradient_radius"] = 0.5  # radial gradient radius
+    default_types["gradient_radius"] = float
+    defaults_help["gradient_radius"] = (
+        "Gradient radius. Positive float. Radius for radial gradient."
+    )
+
+    # Fix this!!! Should not be SVG only!!!
+
+    defaults["gradient_spread_method"] = "pad"  # alias for spread_method
+    default_types["gradient_spread_method"] = str
+    defaults_help["gradient_spread_method"] = (
+        "Gradient spread method (alias). String. 'pad', 'reflect', or 'repeat'. "
+        "How the gradient fills the remaining area."
+    )
+
+    defaults["gradient_start"] = (0, 0)  # linear gradient start
+    default_types["gradient_start"] = tuple[float, float]
+    defaults_help["gradient_start"] = (
+        "Gradient start. tuple[float, float]. Start for linear gradient."
+    )
+
+    defaults["gradient_transform"] = None  # alias for transform
+    default_types["gradient_transform"] = str
+    defaults_help["gradient_transform"] = (
+        "Gradient transform (alias). String or None. "
+        "SVG transform attribute for the gradient."
+    )
+
+    defaults["gradient_type"] = GradientType.LINEAR
+    default_types["gradient_type"] = GradientType
+    defaults_help["gradient_type"] = (
+        "Gradient type. GradientType enum. Valid values: LINEAR, RADIAL."
+    )
+
+    defaults["gradient_units"] = "objectBoundingBox"  # gradient units
+    default_types["gradient_units"] = str
+    defaults_help["gradient_units"] = (
+        "Gradient units. String. 'userSpaceOnUse' or 'objectBoundingBox'. "
+        "SVG gradient units coordinate system."
+    )
+
+    defaults["graph_palette"] = (
+        seq_MATTER_256  # this needs to be a 256 color palette
+    )
+    default_types["graph_palette"] = Sequence
+    defaults_help["graph_palette"] = "Graph palette. List of colors."
+
+    defaults["grid_alpha"] = 0.5
+    default_types["grid_alpha"] = float
+    defaults_help["grid_alpha"] = "Grid alpha value. Float between 0 and 1."
+
+    defaults["grid_back_color"] = colors.white
+    default_types["grid_back_color"] = colors.Color
+    defaults_help["grid_back_color"] = "Grid background color. Color object."
+
+    defaults["grid_line_color"] = colors.gray
+    default_types["grid_line_color"] = colors.Color
+    defaults_help["grid_line_color"] = "Grid line color. Color object."
+
+    defaults["grid_line_dash_array"] = [2, 2]
+    default_types["grid_line_dash_array"] = Sequence
+    defaults_help["grid_line_dash_array"] = (
+        "Grid line dash array. List of floats."
+    )
+
+    defaults["grid_line_width"] = 0.5
+    default_types["grid_line_width"] = float
+    defaults_help["grid_line_width"] = (
+        "Grid line width. Positive float. Length in <points>."
+    )
+
+    defaults["handle_marker_size"] = 3
+    default_types["handle_marker_size"] = float
+    defaults_help["handle_marker_size"] = (
+        "Handle marker size. Positive float. Side length in <points>."
+    )
+
+    defaults["help_lines_height"] = 400
+    default_types["help_lines_height"] = float
+    defaults_help["help_lines_height"] = (
+        "Default height for non-deferred help lines. Positive float. Length in <points>."
+    )
+
+    defaults["help_lines_margin"] = 25
+    default_types["help_lines_margin"] = float
+    defaults_help["help_lines_margin"] = (
+        "Help lines auto-padding around content bbox. Positive float. Length in <points>."
+    )
+
+    defaults["help_lines_spacing"] = 25
+    default_types["help_lines_spacing"] = float
+    defaults_help["help_lines_spacing"] = (
+        "Help lines spacing. Positive float. Length in <points>."
+    )
+
+    defaults["help_lines_width"] = 400
+    default_types["help_lines_width"] = float
+    defaults_help["help_lines_width"] = (
+        "Default width for non-deferred help lines. Positive float. Length in <points>."
+    )
+
+    defaults["image_align"] = Align.CENTER
+    default_types["image_align"] = Align
+    defaults_help["image_align"] = (
+        "Image alignment. Align enum. Valid values: BOTTOM, CENTER, FLUSH_CENTER, "
+        "FLUSH_LEFT, FLUSH_RIGHT, HORIZ_CENTER, JUSTIFIED, LEFT, NONE, RIGHT, "
+        "TOP, VERT_CENTER."
+    )
+
+    defaults["image_alpha"] = 1
+    default_types["image_alpha"] = float
+    defaults_help["image_alpha"] = (
+        "Alpha value for image transparency. Float between 0 and 1."
+    )
+
+    defaults["image_blend_mode"] = BlendMode.NORMAL
+    default_types["image_blend_mode"] = BlendMode
+    defaults_help["image_blend_mode"] = (
+        "Blend mode for image. BlendMode enum. Valid values: COLOR, COLORBURN, "
+        "COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, HUE, LIGHTEN, "
+        "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
+    )
+
+    defaults["index_font_color"] = colors.Color(0.0, 0.42, 0.72)
+    default_types["index_font_color"] = colors.Color
+    defaults_help["index_font_color"] = (
+        "Vertex index label text color. Dark fill with a light halo for contrast."
+    )
+
+    defaults["index_font_size"] = (
+        "footnotesize"  # tiny, scriptsize, footnotesize, small,
+    )
+    # normalsize, large, Large, LARGE, huge, Huge
+    default_types["index_font_size"] = (str, int, float)
+    defaults_help["index_font_size"] = (
+        "Vertex index label font size. LaTeX size name string or point size number."
+    )
+
+    defaults["index_offset"] = 4
+    default_types["index_offset"] = (int, float)
+    defaults_help["index_offset"] = (
+        "Radial offset for vertex index labels from vertices. Scalar in points."
+    )
+
+    defaults["indices_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    default_types["indices_font_family"] = str
+    defaults_help["indices_font_family"] = "Indices font family. String."
+
+    defaults["INF"] = np.inf
+    default_types["INF"] = float
+    defaults_help["INF"] = (
+        "Infinity. Positive integer. "
+        "Used for representing very large numbers. "
+        "Maybe usefull for zero division or comparisons."
+    )
+
+    defaults["italic"] = False
+    default_types["italic"] = bool
+    defaults_help["italic"] = (
+        "Boolean property for italic font. If True, the font is displayed in italic."
+    )
+
+    defaults["job_dir"] = None
+    default_types["job_dir"] = str
+    defaults_help["job_dir"] = (
+        "Job directory. String. Directory for the job files."
+    )
+
+    defaults["keep_aux_files"] = False
+    default_types["keep_aux_files"] = bool
+    defaults_help["keep_aux_files"] = (
+        "Boolean property for keeping auxiliary files. "
+        "If True, auxiliary files are kept."
+    )
+
+    defaults["keep_log_files"] = False
+    default_types["keep_log_files"] = bool
+    defaults_help["keep_log_files"] = (
+        "Boolean property for keeping log files. If True, log files are kept."
+    )
+
+    defaults["keep_tex_files"] = False
+    default_types["keep_tex_files"] = bool
+    defaults_help["keep_tex_files"] = (
+        "Boolean property for keeping TeX files. If True, TeX files are kept."
+    )
+
+    defaults["label_halo_color"] = colors.white
+    default_types["label_halo_color"] = colors.Color
+    defaults_help["label_halo_color"] = (
+        "Halo stroke color behind index and vertex labels for readability."
+    )
+
+    defaults["label_halo_scale"] = 1.14
+    default_types["label_halo_scale"] = (int, float)
+    defaults_help["label_halo_scale"] = (
+        "Legacy setting; TikZ halos use contourlength from label_halo_width_scale."
+    )
+
+    defaults["label_halo_width_scale"] = 0.14
+    default_types["label_halo_width_scale"] = (int, float)
+    defaults_help["label_halo_width_scale"] = (
+        "Halo width as a fraction of label font size (SVG stroke; TikZ contourlength)."
+    )
+
+    defaults["lace_offset"] = 4
+    default_types["lace_offset"] = float
+    defaults_help["lace_offset"] = (
+        "Lace offset. Positive float. Length in <points>."
+    )
+
+    defaults["latex_compiler"] = Compiler.XELATEX  # PDFLATEX, XELATEX, LUALATEX
+    default_types["latex_compiler"] = Compiler
+    defaults_help["latex_compiler"] = (
+        "LaTeX compiler. Compiler enum. Valid values: LATEX, PDFLATEX, XELATEX, LUALATEX."
+    )
+
+    defaults["line_alpha"] = 1
+    default_types["line_alpha"] = float
+    defaults_help["line_alpha"] = (
+        "Alpha value for line transparency. Float between 0 and 1."
+    )
+
+    defaults["line_blend_mode"] = BlendMode.NORMAL
+    default_types["line_blend_mode"] = BlendMode
+    defaults_help["line_blend_mode"] = (
+        "Blend mode for line. BlendMode enum. Valid values: COLOR, COLORBURN, "
+        "COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, HUE, LIGHTEN, "
+        "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
+    )
+
+    defaults["line_cap"] = LineCap.BUTT
+    default_types["line_cap"] = LineCap
+    defaults_help["line_cap"] = (
+        "Line cap for lines. LineCap enum. Valid values: BUTT, ROUND, SQUARE."
+    )
+
+    defaults["line_color"] = colors.black
+    default_types["line_color"] = colors.Color
+    defaults_help["line_color"] = "Line color. Color object."
+
+    defaults["line_dash_array"] = None
+    default_types["line_dash_array"] = Sequence
+    defaults_help["line_dash_array"] = "Line dash array. List of floats."
+
+    defaults["line_dash_phase"] = 0
+    default_types["line_dash_phase"] = float
+    defaults_help["line_dash_phase"] = (
+        "Line dash phase. Positive float. Length in <points>."
+    )
+
+    defaults["line_join"] = LineJoin.MITER
+    default_types["line_join"] = LineJoin
+    defaults_help["line_join"] = (
+        "Line join for lines. LineJoin enum. Valid values: BEVEL, MITER, ROUND."
+    )
+
+    defaults["line_miter_limit"] = 10
+    default_types["line_miter_limit"] = float
+    defaults_help["line_miter_limit"] = "Line miter limit. Positive float."
+
+    defaults["line_width"] = 1
+    default_types["line_width"] = float
+    defaults_help["line_width"] = (
+        "Line width. Positive float. Length in <points>."
+    )
+
+    defaults["lualatex_run_options"] = None
+    default_types["lualatex_run_options"] = str
+    defaults_help["lualatex_run_options"] = "LuaLaTeX run options. String."
+
+    defaults["main_font"] = "Times New Roman"
+    default_types["main_font"] = str
+    defaults_help["main_font"] = "Main font. String."
+
+    defaults["margin"] = 54
+    default_types["margin"] = float
+    defaults_help["margin"] = (
+        "Right margin in recto pages, left margin in verso pages. Positive float. Length in <points>."
+    )
+
+    defaults["margin_bottom"] = 18
+    default_types["margin_bottom"] = float
+    defaults_help["margin_bottom"] = (
+        "Bottom margin. Positive float. Length in <points>."
+    )
+
+    defaults["margin_footer"] = 54
+    default_types["margin_footer"] = float
+    defaults_help["margin_footer"] = (
+        "Footer margin. Positive float. Length in <points>."
+    )
+
+    defaults["margin_gutter"] = 40
+    default_types["margin_gutter"] = float
+    defaults_help["margin_gutter"] = (
+        "Gutter margin. Inner margin in recto and verso pages. Positive float. Length in <points>."
+    )
+
+    defaults["margin_header"] = 54
+    default_types["margin_header"] = float
+    defaults_help["margin_header"] = (
+        "Header margin. Positive float. Length in <points>."
+    )
+
+    defaults["margin_left"] = 18
+    default_types["margin_left"] = float
+    defaults_help["margin_left"] = (
+        "Left margin. Positive float. Length in <points>."
+    )
+
+    defaults["margin_right"] = 18
+    default_types["margin_right"] = float
+    defaults_help["margin_right"] = (
+        "Right margin. Positive float. Length in <points>."
+    )
+
+    defaults["margin_top"] = 18
+    default_types["margin_top"] = float
+    defaults_help["margin_top"] = (
+        "Top margin. Positive float. Length in <points>."
+    )
+
+    defaults["marker"] = None
+    default_types["marker"] = object  # Assuming marker is a custom object
+    defaults_help["marker"] = "Marker. Marker object."
+
+    defaults["marker_alpha"] = 1.0
+    default_types["marker_alpha"] = float
+    defaults_help["marker_alpha"] = "Marker alpha/opacity. Float from 0 to 1."
+
+    defaults["marker_color"] = colors.black
+    default_types["marker_color"] = colors.Color
+    defaults_help["marker_color"] = "Marker color. Color object."
+
+    defaults["marker_line_style"] = "solid"
+    default_types["marker_line_style"] = str
+    defaults_help["marker_line_style"] = "Marker line style. String."
+
+    defaults["marker_line_width"] = 1
+    default_types["marker_line_width"] = float
+    defaults_help["marker_line_width"] = (
+        "Marker line width. Positive float. Length in <points>."
+    )
+
+    defaults["marker_palette"] = seq_MATTER_256  # this needs to be a 256 color
+    # palette
+    default_types["marker_palette"] = Sequence
+    defaults_help["marker_palette"] = "Marker palette. List of colors."
+
+    defaults["marker_radius"] = 3  # Used for MarkerType.CIRCLE, MarkerType.STAR
+    default_types["marker_radius"] = float
+    defaults_help["marker_radius"] = (
+        "Marker radius. Positive float. Length in <points>."
+    )
+
+    defaults["marker_shape"] = None
+    default_types["marker_shape"] = object
+    defaults_help["marker_shape"] = (
+        "Custom shape to use when marker_type is SHAPE. Shape object."
+    )
+
+    defaults["marker_size"] = 3  # To do: find out what the default is
+    default_types["marker_size"] = float
+    defaults_help["marker_size"] = (
+        "Marker size. Positive float. Length in <points>."
+    )
+
+    defaults["marker_type"] = MarkerType.FCIRCLE
+    default_types["marker_type"] = MarkerType
+    defaults_help["marker_type"] = (
+        "Marker type. MarkerType enum. Valid values: ASTERISK, BAR, CIRCLE, "
+        "CROSS, DIAMOND, DIAMOND_F, EMPTY, FCIRCLE, HALF_CIRCLE, HALF_CIRCLE_F, "
+        "HALF_DIAMOND, HALF_DIAMOND_F, HALF_SQUARE, HALF_SQUARE_F, HEXAGON, "
+        "HEXAGON_F, INDICES, MINUS, OPLUS, OPLUS_F, O_TIMES, O_TIMES_F, PENTAGON, "
+        "PENTAGON_F, PLUS, SHAPE, SQUARE, SQUARE_F, STAR, TRIANGLE, TRIANGLE_F."
+    )
+
+    defaults["markers_only"] = False
+    default_types["markers_only"] = bool
+    defaults_help["markers_only"] = (
+        "Boolean property for drawing markers only. If True, only markers are drawn."
+    )
+
+    defaults["mask"] = None
+    default_types["mask"] = object  # Assuming mask is a custom object
+    defaults_help["mask"] = "Mask. Mask object."
+
+    defaults["mask_axis"] = (
+        (0.0, 0.0),
+        (1.0, 0.0),
+    )  # default linear gradient axis
+    default_types["mask_axis"] = tuple
+    defaults_help["mask_axis"] = (
+        "Default mask gradient axis. Tuple ((x1,y1),(x2,y2))."
+    )
+
+    defaults["mask_content_units"] = "userSpaceOnUse"
+    default_types["mask_content_units"] = str
+    defaults_help["mask_content_units"] = (
+        "Mask content units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
+    )
+
+    defaults["mask_opacity"] = 1.0  # fully opaque
+    default_types["mask_opacity"] = float
+    defaults_help["mask_opacity"] = (
+        "Default mask opacity. Float between 0 and 1."
+    )
+
+    defaults["mask_spread_method"] = "pad"
+    default_types["mask_spread_method"] = str
+    defaults_help["mask_spread_method"] = (
+        "Mask spread method. String. 'pad', 'reflect', or 'repeat'."
+    )
+
+    defaults["mask_transform"] = None
+    default_types["mask_transform"] = str
+    defaults_help["mask_transform"] = (
+        "Mask transform. String or None. SVG transform for mask gradient."
+    )
+
+    defaults["mask_type"] = "linear"
+    default_types["mask_type"] = str
+    defaults_help["mask_type"] = "Mask type. String. 'linear' or 'radial'."
+
+    defaults["mask_units"] = "userSpaceOnUse"
+    default_types["mask_units"] = str
+    defaults_help["mask_units"] = (
+        "Mask units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
+    )
+
+    defaults["merge"] = True  # merge transformations with reps > 0
+    default_types["merge"] = bool
+    defaults_help["merge"] = (
+        "Boolean property for merging transformations. "
+        "If True, transformations with reps > 0 are merged."
+    )
+
+    defaults["merge_tol"] = 0.01  # if the distance between two nodes is less
+    # than this value,
+    default_types["merge_tol"] = float
+    defaults_help["merge_tol"] = (
+        "Merge tolerance. Positive float. Length in <points>."
+    )
+    # defaults['min_height'] = 10
+    # defaults['min_width'] = 20
+    # defaults['min_size'] = 50
+
+    defaults["mono_font"] = "Courier New"
+    default_types["mono_font"] = str
+    defaults_help["mono_font"] = "Monospace font. String."
+
+    defaults["msk_cx"] = 0.5
+    default_types["msk_cx"] = float
+    defaults_help["msk_cx"] = "Mask radial gradient cx. Float."
+
+    defaults["msk_cy"] = 0.5
+    default_types["msk_cy"] = float
+    defaults_help["msk_cy"] = "Mask radial gradient cy. Float."
+
+    defaults["msk_fx"] = None
+    default_types["msk_fx"] = float
+    defaults_help["msk_fx"] = "Mask radial gradient focal x. Float or None."
+
+    defaults["msk_fy"] = None
+    default_types["msk_fy"] = float
+    defaults_help["msk_fy"] = "Mask radial gradient focal y. Float or None."
+
+    defaults["msk_r"] = 0.5
+    default_types["msk_r"] = float
+    defaults_help["msk_r"] = "Mask radial gradient radius. Float."
+
+    defaults["msk_stops"] = None
+    default_types["msk_stops"] = object
+    defaults_help["msk_stops"] = (
+        "Mask stops. List of tuples or None. "
+        "Format: [(offset, opacity), ...] or [(offset, color, opacity), ...]."
+    )
+
+    defaults["msk_units"] = "objectBoundingBox"
+    default_types["msk_units"] = str
+    defaults_help["msk_units"] = (
+        "Mask gradient units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
+    )
+
+    defaults["msk_x1"] = 0
+    default_types["msk_x1"] = float
+    defaults_help["msk_x1"] = "Mask gradient x1. Float."
+
+    defaults["msk_x2"] = 1
+    default_types["msk_x2"] = float
+    defaults_help["msk_x2"] = "Mask gradient x2. Float."
+
+    defaults["msk_y1"] = 0
+    default_types["msk_y1"] = float
+    defaults_help["msk_y1"] = "Mask gradient y1. Float."
+
+    defaults["msk_y2"] = 0
+    default_types["msk_y2"] = float
+    defaults_help["msk_y2"] = "Mask gradient y2. Float."
+
+    defaults["n_arc_points"] = 40  # number of proportional points for arcs
+    default_types["n_arc_points"] = int
+    defaults_help["n_arc_points"] = (
+        "Number of points for arcs. Positive integer."
+    )
+
+    defaults["n_bezier_points"] = 40  # number of points for Bezier curves
+    default_types["n_bezier_points"] = int
+    defaults_help["n_bezier_points"] = (
+        "Number of points for Bezier curves. Positive integer."
+    )
+
+    defaults["n_circle_points"] = 30  # number of points for circles
+    default_types["n_circle_points"] = int
+    defaults_help["n_circle_points"] = (
+        "Number of points for circles. Positive integer."
+    )
+
+    defaults["n_ellipse_points"] = 40  # number of points for ellipses
+    default_types["n_ellipse_points"] = int
+    defaults_help["n_ellipse_points"] = (
+        "Number of points for ellipses. Positive integer."
+    )
+
+    defaults["n_hobby_points"] = 40  # number of points for Hobby curves
+    default_types["n_hobby_points"] = int
+    defaults_help["n_hobby_points"] = (
+        "Number of points for Hobby curves. Positive integer."
+    )
+
+    defaults["n_q_bezier_points"] = (
+        30  # number of points for quadratic Bezier curves
+    )
+    default_types["n_q_bezier_points"] = int
+    defaults_help["n_q_bezier_points"] = (
+        "Number of points for quadratic Bezier curves. Positive integer."
+    )
+
+    defaults["n_round"] = 2  # used for rounding floats
+    default_types["n_round"] = int
+    defaults_help["n_round"] = (
+        "Number of decimal places to round floats. Positive integer."
+    )
+
+    defaults["n_vert_digits"] = 1
+    default_types["n_vert_digits"] = int
+    defaults_help["n_vert_digits"] = (
+        "Decimal places for vertex coordinate label text (x, y) values."
+    )
+
+    defaults["old_style_nums"] = False
+    default_types["old_style_nums"] = bool
+    defaults_help["old_style_nums"] = (
+        "Boolean property for old style numbers. If True, old style numbers are used."
+    )
+
+    defaults["orientation"] = PageOrientation.PORTRAIT  # PORTRAIT, LANDSCAPE
+    default_types["orientation"] = PageOrientation
+    defaults_help["orientation"] = (
+        "Page orientation. PageOrientation enum. Valid values: LANDSCAPE, PORTRAIT."
+    )
+
+    defaults["output_dir"] = None  # output directory for TeX files if None, use
+    # the current directory
+    default_types["output_dir"] = str
+    defaults_help["output_dir"] = "Output directory for TeX files. String."
+
+    defaults["overline"] = False
+    default_types["overline"] = bool
+    defaults_help["overline"] = (
+        "Boolean property for overline. If True, overline is used."
+    )
+
+    defaults["overwrite_files"] = False
+    default_types["overwrite_files"] = bool
+    defaults_help["overwrite_files"] = (
+        "Boolean property for overwriting files. If True, files are overwritten."
+    )
+
+    defaults["packages"] = ["tikz", "pgf"]
+    default_types["packages"] = Sequence
+    defaults_help["packages"] = "Packages. List of strings."
+
+    defaults["page_grid_back_color"] = colors.white
+    default_types["page_grid_back_color"] = colors.Color
+    defaults_help["page_grid_back_color"] = (
+        "Page grid background color. Color object."
+    )
+
+    defaults["page_grid_line_color"] = colors.gray
+    default_types["page_grid_line_color"] = colors.Color
+    defaults_help["page_grid_line_color"] = (
+        "Page grid line color. Color object."
+    )
+
+    defaults["page_grid_line_dash_array"] = [2, 2]
+    default_types["page_grid_line_dash_array"] = Sequence
+    defaults_help["page_grid_line_dash_array"] = (
+        "Page grid line dash array. List of floats."
+    )
+
+    defaults["page_grid_line_width"] = 0.5
+    default_types["page_grid_line_width"] = float
+    defaults_help["page_grid_line_width"] = (
+        "Page grid line width. Positive float. Length in <points>."
+    )
+
+    defaults["page_grid_spacing"] = 18
+    default_types["page_grid_spacing"] = float
+    defaults_help["page_grid_spacing"] = (
+        "Page grid spacing. Positive float. Length in <points>."
+    )
+
+    defaults["page_grid_x_shift"] = 0
+    default_types["page_grid_x_shift"] = float
+    defaults_help["page_grid_x_shift"] = (
+        "Page grid x shift. Positive float. Length in <points>."
+    )
+
+    defaults["page_grid_y_shift"] = 0
+    default_types["page_grid_y_shift"] = float
+    defaults_help["page_grid_y_shift"] = (
+        "Page grid y shift. Positive float. Length in <points>."
+    )
+
+    defaults["page_margins"] = PageMargins.CUSTOM
+    default_types["page_margins"] = PageMargins
+    defaults_help["page_margins"] = (
+        "Page margins. PageMargins enum. Valid values: CUSTOM, NARROW, STANDARD, WIDE."
+    )
+
+    defaults["page_number_position"] = PageNumberPosition.BOTTOM_CENTER
+    default_types["page_number_position"] = PageNumberPosition
+    defaults_help["page_number_position"] = (
+        "Page number position. PageNumberPosition enum. Valid values: "
+        "BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT, CUSTOM, TOP_CENTER, TOP_LEFT, "
+        "TOP_RIGHT."
+    )
+
+    defaults["page_numbering"] = PageNumbering.NONE
+    default_types["page_numbering"] = PageNumbering
+    defaults_help["page_numbering"] = (
+        "Page numbering. PageNumbering enum. Valid values: ALPH, ALPHUPPER, "
+        "ARABIC, NONE, ROMAN, ROMAN_UPPER."
+    )
+
+    defaults["page_size"] = (
+        PageSize.A4
+    )  #  A0, A1, A2, A3, A4, A5, A6, B0, B1, B2,
+    # B3, B4, B5, B6, LETTER, LEGAL,
+    # EXECUTIVE, 11X17
+    default_types["page_size"] = PageSize
+    defaults_help["page_size"] = (
+        "Page size. PageSize enum. Valid values: LETTER, LEGAL, EXECUTIVE, A0, "
+        "A1, A2, A3, A4, A5, A6, B0-B13."
+    )
+
+    defaults["pattern_angle"] = 0  # angle of the pattern in radians
+    default_types["pattern_angle"] = float
+    defaults_help["pattern_angle"] = "Pattern angle. Float. Angle in radians."
+
+    defaults["pattern_color"] = colors.black
+    default_types["pattern_color"] = colors.Color
+    defaults_help["pattern_color"] = "Pattern color. Color object."
+
+    defaults["pattern_distance"] = 3  # distance between items
+    default_types["pattern_distance"] = float
+    defaults_help["pattern_distance"] = (
+        "Pattern distance. Positive float. Length in <points>."
+    )
+
+    defaults["pattern_line_width"] = 0  # line width for LINES and HATCH
+    default_types["pattern_line_width"] = float
+    defaults_help["pattern_line_width"] = (
+        "Pattern line width. Positive float. Length in <points>."
+    )
+
+    defaults["pattern_points"] = 5  # number of points for STAR
+    default_types["pattern_points"] = int
+    defaults_help["pattern_points"] = "Pattern points. Positive integer."
+
+    # SVG Tile Pattern defaults (pattern tiles for SVG output)
+
+    defaults["pattern_radius"] = 10  # radius of the circle for STARS
+    default_types["pattern_radius"] = float
+    defaults_help["pattern_radius"] = (
+        "Pattern radius. Positive float. Length in <points>."
+    )
+
+    defaults["pattern_style"] = None
+    default_types["pattern_style"] = (
+        object  # Assuming pattern style is a custom object
+    )
+    defaults_help["pattern_style"] = "Pattern style. PatternStyle object."
+
+    defaults["pattern_type"] = (
+        PatternType.HORIZONTAL_LINES
+    )  #  DOTS, HATCH, STARS
+    default_types["pattern_type"] = PatternType
+    defaults_help["pattern_type"] = (
+        "Pattern type. PatternType enum. Valid values: BRICKS, CHECKERBOARD, "
+        "CROSSHATCH, CROSSHATCH_DOTS, DOTS, FIVE_POINTED_STARS, GRID, "
+        "HORIZONTAL_LINES, NORTHEAST, NORTHWEST, SIX_POINTED_STARS, "
+        "VERTICAL_LINES."
+    )
+
+    defaults["pattern_x_shift"] = 0  # shift in the x direction
+    default_types["pattern_x_shift"] = float
+    defaults_help["pattern_x_shift"] = (
+        "Pattern x shift. Positive float. Length in <points>."
+    )
+
+    defaults["pattern_y_shift"] = 0  # shift in the y direction
+    default_types["pattern_y_shift"] = float
+    defaults_help["pattern_y_shift"] = (
+        "Pattern y shift. Positive float. Length in <points>."
+    )
+
+    defaults["pdflatex_run_options"] = None
+    default_types["pdflatex_run_options"] = str
+    defaults_help["pdflatex_run_options"] = "PDFLaTeX run options. String."
+
+    defaults["plait_color"] = colors.white
+    default_types["plait_color"] = colors.Color
+    defaults_help["plait_color"] = "Plait color. Color object."
+
+    defaults["preamble"] = ""
+    default_types["preamble"] = str
+    defaults_help["preamble"] = "Preamble. String."
+
+    defaults["PRINTTEXOUTPUT"] = True  # Print output from the TeX compiler
+    default_types["PRINTTEXOUTPUT"] = bool
+
+    defaults["radius_threshold"] = (
+        1  # used for grouping fragments in a lace object
+    )
+    default_types["radius_threshold"] = float
+    defaults_help["radius_threshold"] = (
+        "Radius threshold. Positive float. Length in <points>. "
+    )
+
+    defaults["random_marker_colors"] = True
+    default_types["random_marker_colors"] = bool
+    defaults_help["random_marker_colors"] = (
+        "Boolean property for random marker colors. "
+        "If True, random marker colors are used."
+    )
+
+    defaults["random_node_colors"] = True
+    default_types["random_node_colors"] = bool
+    defaults_help["random_node_colors"] = (
+        "Boolean property for random node colors. If True, random node colors are used."
+    )
+
+    defaults["rectangle_width_height"] = (
+        40,
+        20,
+    )  # width and height of the rectangle
+    default_types["rectangle_width_height"] = Sequence
+    defaults_help["rectangle_width_height"] = (
+        "Width and height of the rectangle. "
+        "Tuple of two positive floats. Length in <points>."
+    )
+
+    defaults["rel_tol"] = (
+        0  # used for comparing floats. If this is 0 then only abs_tol is used
+    )
+    default_types["rel_tol"] = float
+    defaults_help["rel_tol"] = (
+        "Relative tolerance. Positive float. Length in <points>. "
+    )
+
+    defaults["render"] = (
+        "SVG"  # Render.TEX, Render.SVG, Render.PNG use string values
+    )
+    default_types["render"] = str
+    defaults_help["render"] = (
+        "Render output format. Render enum. Valid values: EPS, PDF, SVG, TEX."
+    )
+
+    defaults["rev_arrow_length"] = 20  # length of reverse arrow
+    default_types["rev_arrow_length"] = float
+    defaults_help["rev_arrow_length"] = (
+        "Length of reverse arrow. Positive float. Length in <points>."
+    )
+
+    defaults["sans_font"] = str
+    defaults_help["sans_font"] = "Sans font. String."
+
+    defaults["save_with_versions"] = (
+        False  # if the file exists, save with a version number
+    )
+    default_types["save_with_versions"] = bool
+    defaults_help["save_with_versions"] = (
+        "Boolean property for saving with versions. "
+        "If True, files are saved with a version number."
+    )
+
+    defaults["section_color"] = colors.black
+    default_types["section_color"] = colors.Color
+    defaults_help["section_color"] = "Section color. Color object."
+
+    defaults["section_dash_array"] = None
+    default_types["section_dash_array"] = Sequence
+    defaults_help["section_dash_array"] = "Section dash array. List of floats."
+
+    defaults["section_line_cap"] = LineCap.BUTT.value
+    default_types["section_line_cap"] = LineCap
+    defaults_help["section_line_cap"] = (
+        "Section line cap. LineCap enum. Valid values: BUTT, ROUND, SQUARE."
+    )
+
+    defaults["section_line_join"] = LineJoin.MITER.value
+    default_types["section_line_join"] = LineJoin
+    defaults_help["section_line_join"] = (
+        "Section line join. LineJoin enum. Valid values: BEVEL, MITER, ROUND."
+    )
+
+    defaults["section_width"] = 1
+    default_types["section_width"] = float
+    defaults_help["section_width"] = (
+        "Section width. Positive float. Length in <points>."
+    )
+
+    defaults["shade_axis_angle"] = (
+        pi / 4
+    )  # angle from the x-axis for the shading in radians
+    default_types["shade_axis_angle"] = float
+    defaults_help["shade_axis_angle"] = (
+        "Axis angle for shading. Float. Angle in radians."
+    )
+
+    defaults["shade_ball_color"] = colors.black
+    default_types["shade_ball_color"] = colors.Color
+    defaults_help["shade_ball_color"] = "Ball color for shading. Color object."
+
+    defaults["shade_bottom_color"] = colors.white
+    default_types["shade_bottom_color"] = colors.Color
+    defaults_help["shade_bottom_color"] = (
+        "Bottom color for shading. Color object."
+    )
+
+    defaults["shade_color_wheel"] = False
+    default_types["shade_color_wheel"] = bool
+    defaults_help["shade_color_wheel"] = (
+        "Boolean property for the shape objects. "
+        "If True, use the color wheel for shading."
+    )
+
+    defaults["shade_color_wheel_black"] = False
+    default_types["shade_color_wheel_black"] = bool
+    defaults_help["shade_color_wheel_black"] = (
+        "Boolean property for the shape object. "
+        "If True, use the color wheel for shading."
+    )
+
+    defaults["shade_color_wheel_white"] = False
+    default_types["shade_color_wheel_white"] = bool
+    defaults_help["shade_color_wheel_white"] = (
+        "Boolean property for the shape object. "
+        "If True, use the color wheel for shading."
+    )
+
+    defaults["shade_inner_color"] = colors.white
+    default_types["shade_inner_color"] = colors.Color
+    defaults_help["shade_inner_color"] = (
+        "Inner color for shading. Color object."
+    )
+
+    defaults["shade_left_color"] = colors.black
+    default_types["shade_left_color"] = colors.Color
+    defaults_help["shade_left_color"] = "Left color for shading. Color object."
+
+    defaults["shade_lower_left_color"] = colors.black
+    default_types["shade_lower_left_color"] = colors.Color
+    defaults_help["shade_lower_left_color"] = (
+        "Lower left color for shading. Color object."
+    )
+
+    defaults["shade_lower_right_color"] = colors.white
+    default_types["shade_lower_right_color"] = colors.Color
+    defaults_help["shade_lower_right_color"] = (
+        "Lower right color for shading. Color object."
+    )
+
+    defaults["shade_middle_color"] = colors.white
+    default_types["shade_middle_color"] = colors.Color
+    defaults_help["shade_middle_color"] = (
+        "Middle color for shading. Color object."
+    )
+
+    defaults["shade_outer_color"] = colors.white
+    default_types["shade_outer_color"] = colors.Color
+    defaults_help["shade_outer_color"] = (
+        "Outer color for shading. Color object."
+    )
+
+    defaults["shade_right_color"] = colors.white
+    default_types["shade_right_color"] = colors.Color
+    defaults_help["shade_right_color"] = (
+        "Right color for shading. Color object."
+    )
+
+    defaults["shade_top_color"] = colors.black
+    default_types["shade_top_color"] = colors.Color
+    defaults_help["shade_top_color"] = "Top color for shading. Color object."
+
+    defaults["shade_type"] = ShadeType.AXIS_TOP_BOTTOM
+    default_types["shade_type"] = ShadeType
+    defaults_help["shade_type"] = (
+        "Shade type. ShadeType enum. Valid values: AXIS_LEFT_RIGHT, "
+        "AXIS_TOP_BOTTOM, AXIS_LEFT_MIDDLE, AXIS_RIGHT_MIDDLE, AXIS_TOP_MIDDLE, "
+        "AXIS_BOTTOM_MIDDLE, BALL, BILINEAR, COLORWHEEL, COLORWHEEL_BLACK, "
+        "COLORWHEEL_WHITE, RADIAL_INNER, RADIAL_OUTER, RADIAL_INNER_OUTER."
+    )
+
+    defaults["shade_upper_left_color"] = colors.black
+    default_types["shade_upper_left_color"] = colors.Color
+    defaults_help["shade_upper_left_color"] = (
+        "Upper left color for shading. Color object."
+    )
+
+    defaults["shade_upper_right_color"] = colors.white
+    default_types["shade_upper_right_color"] = colors.Color
+    defaults_help["shade_upper_right_color"] = (
+        "Upper right color for shading. Color object."
+    )
+
+    defaults["show_browser"] = True
+    default_types["show_browser"] = bool
+    defaults_help["show_browser"] = (
+        "Boolean property for showing the browser. If True, the browser is shown."
+    )
+
+    defaults["show_log_on_console"] = True  # show log messages on console
+    default_types["show_log_on_console"] = bool
+    defaults_help["show_log_on_console"] = (
+        "Boolean property for showing LateX log messages on console. "
+        "If True, log messages are shown on console."
+    )
+
+    defaults["show_warnings"] = False
+    default_types["show_warnings"] = bool
+    defaults_help["show_warnings"] = (
+        "Boolean property for showing simetri warning messages. "
+        "If True, warnings are emitted."
+    )
+
+    defaults["slanted"] = False
+    default_types["slanted"] = bool
+    defaults_help["slanted"] = (
+        "Boolean property for slanted font. If True, the font is displayed in slanted."
+    )
+
+    defaults["small_caps"] = False
+    default_types["small_caps"] = bool
+    defaults_help["small_caps"] = (
+        "Boolean property for small caps font. "
+        "If True, the font is displayed in small caps."
+    )
+
+    defaults["smooth"] = False
+    default_types["smooth"] = bool
+    defaults_help["smooth"] = (
+        "Boolean property for smooth lines. If True, lines are smooth."
+    )
+
+    defaults["stop_color"] = colors.white  # default gradient stop color
+    default_types["stop_color"] = colors.Color
+    defaults_help["stop_color"] = "Default gradient stop color. Color object."
+
+    defaults["strike_through"] = False
+    default_types["strike_through"] = bool
+    defaults_help["strike_through"] = (
+        "Boolean property for strike through. If True, strike through is used."
+    )
+
+    defaults["stroke"] = True
+    default_types["stroke"] = bool
+    defaults_help["stroke"] = (
+        "Boolean property for stroke. If True, stroke is used."
+    )
+
+    defaults["swatch"] = seq_MATTER_256
+    default_types["swatch"] = Sequence
+    defaults_help["swatch"] = "Swatch. List of colors."
+
+    defaults["tag_align"] = Align.LEFT
+    default_types["tag_align"] = Align
+    defaults_help["tag_align"] = (
+        "Tag text alignment. Align enum. Valid values: BOTTOM, CENTER, "
+        "FLUSH_CENTER, FLUSH_LEFT, FLUSH_RIGHT, HORIZ_CENTER, JUSTIFIED, LEFT, "
+        "NONE, RIGHT, TOP, VERT_CENTER."
+    )
+
+    defaults["tag_alpha"] = 1
+    default_types["tag_alpha"] = float
+    defaults_help["tag_alpha"] = (
+        "Alpha value for tag transparency. Float between 0 and 1."
+    )
+
+    defaults["tag_blend_mode"] = BlendMode.NORMAL
+    default_types["tag_blend_mode"] = BlendMode
+    defaults_help["tag_blend_mode"] = (
+        "Blend mode for tag. BlendMode enum. Valid values: COLOR, COLORBURN, "
+        "COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, HUE, LIGHTEN, "
+        "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
+    )
+
+    defaults["temp_dir"] = "sytem_temp_dir"
+    default_types["temp_dir"] = str
+    defaults_help["temp_dir"] = "Temporary directory. String."
+
+    defaults["text_offset"] = 5  # gap between text and dimension line
+    default_types["text_offset"] = float
+    defaults_help["text_offset"] = (
+        "Text offset. Positive float. Length in <points>."
+    )
+
+    defaults["text_width"] = None  # width of the text box
+    default_types["text_width"] = float
+    defaults_help["text_width"] = (
+        "Text width. Positive float. Length in <points>."
+    )
+
+    defaults["tikz_libraries"] = [
+        "plotmarks",
+        "calc",
+        "shapes.multipart",
+        "arrows",
+        "decorations.pathmorphing",
+        "decorations.markings",
+        "backgrounds",
+        "patterns",
+        "patterns.meta",
+        "shapes",
+        "shadings",
+    ]
+    default_types["tikz_libraries"] = Sequence
+    defaults_help["tikz_libraries"] = "TikZ libraries. List of strings."
+
+    defaults["tikz_nround"] = 3
+    default_types["tikz_nround"] = int
+    defaults_help["tikz_nround"] = (
+        "Number of decimal places to round floats in TikZ. Positive integer."
+    )
+
+    defaults["tikz_scale"] = 1
+    default_types["tikz_scale"] = float
+    defaults_help["tikz_scale"] = "TikZ scale. Positive float."
+
+    defaults["tile_angle"] = 0  # rotation angle of the tile pattern
+    default_types["tile_angle"] = float
+    defaults_help["tile_angle"] = (
+        "Tile angle. Float. Angle in radians. "
+        "Rotation angle of the SVG pattern tile."
+    )
+
+    defaults["tile_height"] = 10  # height of the tile pattern
+    default_types["tile_height"] = float
+    defaults_help["tile_height"] = (
+        "Tile height. Positive float. Length in <points>. "
+        "Height of the SVG pattern tile."
+    )
+
+    defaults["tile_scale_x"] = 1.0  # x-axis scale of the tile pattern
+    default_types["tile_scale_x"] = float
+    defaults_help["tile_scale_x"] = (
+        "Tile x scale. Positive float. Scale factor. "
+        "X-axis scale factor for the SVG pattern tile."
+    )
+
+    defaults["tile_scale_y"] = 1.0  # y-axis scale of the tile pattern
+    default_types["tile_scale_y"] = float
+    defaults_help["tile_scale_y"] = (
+        "Tile y scale. Positive float. Scale factor. "
+        "Y-axis scale factor for the SVG pattern tile."
+    )
+
+    defaults["tile_units"] = "userSpaceOnUse"  # pattern units
+    default_types["tile_units"] = str
+    defaults_help["tile_units"] = (
+        "Tile units. String. 'userSpaceOnUse' or 'objectBoundingBox'. "
+        "SVG pattern units coordinate system."
+    )
+
+    defaults["tile_width"] = 10  # width of the tile pattern
+    default_types["tile_width"] = float
+    defaults_help["tile_width"] = (
+        "Tile width. Positive float. Length in <points>. "
+        "Width of the SVG pattern tile."
+    )
+
+    defaults["tile_x_shift"] = 0  # x-axis shift of the tile pattern
+    default_types["tile_x_shift"] = float
+    defaults_help["tile_x_shift"] = (
+        "Tile x shift. Float. Length in <points>. "
+        "X-axis shift of the SVG pattern tile."
+    )
+
+    defaults["tile_y_shift"] = 0  # y-axis shift of the tile pattern
+    default_types["tile_y_shift"] = float
+    defaults_help["tile_y_shift"] = (
+        "Tile y shift. Float. Length in <points>. "
+        "Y-axis shift of the SVG pattern tile."
+    )
+
+    defaults["tol"] = 0.005  # used for comparing angles and collinearity
+    default_types["tol"] = float
+    defaults_help["tol"] = "Tolerance. Positive float. Length in <points>."
+
+    defaults["turn_angle_digits"] = 2
+    default_types["turn_angle_digits"] = int
+    defaults_help["turn_angle_digits"] = (
+        "Turn angle digits is used for comparing polygons and shapes."
+        "Shapes are compared for geometric congruency, styling is ignored."
+    )
+
+    defaults["underline"] = False
+    default_types["underline"] = bool
+    defaults_help["underline"] = (
+        "Boolean property for underline. If True, underline is used."
+    )
+
+    defaults["use_packages"] = ["tikz", "pgf"]
+    default_types["use_packages"] = Sequence
+    defaults_help["use_packages"] = "Use packages. List of strings."
+
+    defaults["validate"] = False
+    default_types["validate"] = bool
+    defaults_help["validate"] = (
+        "Boolean property for validating. If True, validation is used."
+    )
+
+    defaults["vertex_font_color"] = colors.Color(0.0, 0.50, 0.55)
+    default_types["vertex_font_color"] = colors.Color
+    defaults_help["vertex_font_color"] = (
+        "Vertex coordinate label text color. Dark fill with a light halo for contrast."
+    )
+
+    defaults["vertex_font_size"] = (
+        "footnotesize"  # miniscule, tiny, scriptsize, footnotesize, small,
+    )
+    # normalsize, large, Large, LARGE, huge, Huge
+    default_types["vertex_font_size"] = (str, int, float)
+    defaults_help["vertex_font_size"] = (
+        "Vertex coordinate label font size. LaTeX size name string or point size number."
+    )
+
+    defaults["vertex_offset"] = 8
+    default_types["vertex_offset"] = (int, float)
+    defaults_help["vertex_offset"] = (
+        "Radial offset for vertex coordinate labels from vertices. "
+        "Independent of index labels."
+    )
+
+    defaults["vertices_canvas_expand"] = 40
+    default_types["vertices_canvas_expand"] = (int, float)
+    defaults_help["vertices_canvas_expand"] = (
+        "Extra points added to each side of canvas.border when "
+        "auto_expand_canvas_for_vertices is True and coordinate labels are drawn."
+    )
+
+    defaults["vertices_label_avoid_overlap"] = True
+    default_types["vertices_label_avoid_overlap"] = bool
+    defaults_help["vertices_label_avoid_overlap"] = (
+        "When True, index and vertex coordinate labels are repositioned with "
+        "pairwise MTV overlap resolution before SVG/TikZ export."
+    )
+
+    defaults["vertices_label_bbox_char_width"] = 0.55
+    default_types["vertices_label_bbox_char_width"] = (int, float)
+    defaults_help["vertices_label_bbox_char_width"] = (
+        "Estimated character width as a fraction of font size for overlap boxes."
+    )
+
+    defaults["vertices_label_overlap_bbox_scale"] = 1.0
+    default_types["vertices_label_overlap_bbox_scale"] = (int, float)
+    defaults_help["vertices_label_overlap_bbox_scale"] = (
+        "Scale factor for rule-of-thumb label boxes in overlap tests."
+    )
+
+    defaults["vertices_label_overlap_gap"] = 1.0
+    default_types["vertices_label_overlap_gap"] = (int, float)
+    defaults_help["vertices_label_overlap_gap"] = (
+        "Minimum gap between vertex/index label boxes during MTV overlap resolution."
+    )
+
+    defaults["vertices_label_overlap_max_iters"] = 2
+    default_types["vertices_label_overlap_max_iters"] = int
+    defaults_help["vertices_label_overlap_max_iters"] = (
+        "Maximum pairwise overlap passes for vertex/index label MTV resolution."
+    )
+
+    defaults["visible"] = True
+    default_types["visible"] = bool
+    defaults_help["visible"] = (
+        "Boolean property for visible. If True, visible is used."
+    )
+
+    defaults["x_marker"] = (
+        2  # a circle with radius=2 will be drawn at each intersection
+    )
+    default_types["x_marker"] = float
+    defaults_help["x_marker"] = (
+        "Marker for intersection points. Positive float. Length in <points>."
+    )
+
+    defaults["x_visible"] = False  # do not show intersection points by default
+    default_types["x_visible"] = bool
+    defaults_help["x_visible"] = (
+        "Boolean property for visible intersection points. "
+        "If True, intersection points are visible."
+    )
+
+    defaults["xelatex_run_options"] = None
+    default_types["xelatex_run_options"] = str
+    defaults_help["xelatex_run_options"] = "XeLaTeX run options. String."
+
+    # styles need to be set after the defaults are set
+    defaults["circle_style"] = ShapeStyle()
+    defaults["edge_style"] = LineStyle()
+    defaults["fill_style"] = FillStyle()
+    defaults["line_style"] = LineStyle()
+    defaults["marker_style"] = MarkerStyle()
+    defaults["plait_style"] = ShapeStyle()
+    defaults["section_style"] = LineStyle()
+    defaults["shape_style"] = ShapeStyle()
+    defaults["tag_frame_style"] = FrameStyle()
+    defaults["tag_style"] = TagStyle()
+
+
+tikz_defaults = defaultdict(str)
+svg_defaults = defaultdict(str)
+
+
+def set_tikz_defaults():
+    """Register TikZ-specific default style values in ``tikz_defaults``."""
+    from ..coloring import colors
+    from ..base.all_enums import LineCap, LineJoin, BlendMode
+
+    tikz_defaults.update(
+        {
+            "color": colors.black,
+            "line width": 1,
+            "line cap": LineCap.BUTT,
+            "line join": LineJoin.MITER,
+            "fill": colors.black,
+            "fill opacity": 1,
+            "draw": colors.black,
+            "miter limit": 10,
+            "dash pattern": [],
+            "dash phase": 0,
+            "blend mode": BlendMode.NORMAL,
+            "font": "",
+            "font size": 12,
+            "font color": colors.black,
+            "font opacity": 1,
+            "text opacity": 1,
+            "rotate": 0,
+        }
+    )
+
+
+def set_svg_defaults():
+    """Register SVG-specific default style values in ``svg_defaults``."""
+    from ..coloring import colors
+    from ..base.all_enums import LineCap, LineJoin, BlendMode
+
+    svg_defaults.update(
+        {
+            "stroke": colors.black,
+            "stroke-width": 1,
+            "stroke-linecap": LineCap.BUTT,
+            "stroke-linejoin": LineJoin.MITER,
+            "fill": colors.black,
+            "fill-opacity": 1,
+            "stroke-opacity": 1,
+            "stroke-miterlimit": 4,
+            "stroke-dasharray": [],
+            "fill-rule": "nonzero",
+            "mix-blend-mode": BlendMode.NORMAL,
+            "font-family": "",
+            "font-size": 12,
+            "font-color": colors.black,
+            "font-opacity": 1,
+            "text-opacity": 1,
+            "rotate": 0,
+        }
+    )

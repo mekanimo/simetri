@@ -5,11 +5,11 @@ from dataclasses import dataclass
 
 import networkx as nx
 
-from ..geometry.points.point_utils import distance
-from ..core.all_enums import Types
-from ..core.common import PointType
-from ..geometry.points.point_utils import close_points2
-from ..settings.settings import defaults
+from ..geom.points.point_utils import distance
+from ..base.all_enums import Types
+from ..base.common import PointType
+from ..geom.points.point_utils import close_points2
+from ..config.settings import defaults
 
 
 @dataclass

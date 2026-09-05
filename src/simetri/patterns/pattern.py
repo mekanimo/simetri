@@ -23,12 +23,12 @@ from typing import Any, Self
 
 import numpy as np
 
-from ..canvas.style_map import ShapeStyle, shape_args, shape_style_map
-from ..geometry.points.point_utils import offset_point
-from ..geometry.segments.line_utils import offset_line
+from ..render.style_map import ShapeStyle, shape_args, shape_style_map
+from ..geom.points.point_utils import offset_point
+from ..geom.segments.line_utils import offset_line
 from ..helpers.validation import validate_args
-from ..geometry.affine import *
-from ..core.all_enums import (
+from ..geom.affine import *
+from ..base.all_enums import (
     Anchor,
     InPlace,
     Reference,
@@ -38,9 +38,9 @@ from ..core.all_enums import (
     get_enum_value,
 )
 from ..group.batch import Group
-from ..geometry.bbox import BoundingBox, bounding_box
-from ..core.common import LineType, PointType
-from ..core.core import StyleMixin
+from ..geom.bbox import BoundingBox, bounding_box
+from ..base.common import LineType, PointType
+from ..base.core import StyleMixin
 from ..shapes.shape import Shape
 
 

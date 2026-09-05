@@ -21,8 +21,8 @@ import numpy as np
 from numpy import array, ndarray
 from PIL import ImageFont
 
-from ..core.common import LineType, PointType, get_defaults
-from ..settings.settings import (
+from ..base.common import LineType, PointType, get_defaults
+from ..config.settings import (
     _print_options,
     defaults,
     defaults_help,

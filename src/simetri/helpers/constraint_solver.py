@@ -4,12 +4,12 @@ Uses Sequential Least Squares Programming (SLSQP) to solve the given constraints
 
 from dataclasses import dataclass
 
-from simetri.geometry.nonlinear.circle import Circle_ as Circle
+from simetri.geom.nonlinear.circle import Circle_ as Circle
 
-from ..geometry.points.point_utils import direction, point_to_line_distance
-from ..geometry.segments.line_utils import angle_between_two_lines
-from ..core.all_enums import ConstraintType as ConstType
-from ..geometry.points.point_utils import distance
+from ..geom.points.point_utils import direction, point_to_line_distance
+from ..geom.segments.line_utils import angle_between_two_lines
+from ..base.all_enums import ConstraintType as ConstType
+from ..geom.points.point_utils import distance
 from ..helpers.vector import Vector2D
 from .validation import is_line
 

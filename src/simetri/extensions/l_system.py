@@ -3,7 +3,7 @@
 from math import ceil
 
 from ..group.batch import Group
-from ..graphics.shape import Shape
+from ..shapes.shape import Shape
 from .turtle_sg import Turtle
 
 

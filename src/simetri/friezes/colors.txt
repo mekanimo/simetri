@@ -1,0 +1,299 @@
+# 🎨 Python Script: Generate Pleasant Color Pairs with Good Contrast
+
+Here’s a **standalone Python script** that:
+
+- generates lots of **foreground/background** color pairs
+- keeps only pairs with good **WCAG contrast**
+- prefers pairs with nicer **harmony**:
+  - same hue
+  - analogous
+  - split-complementary
+  - complementary
+- writes the result to a **CSV file**
+
+---
+
+## ✅ What it outputs
+
+Each row includes:
+
+- foreground hex
+- background hex
+- contrast ratio
+- harmony type
+- score
+
+---
+
+## 🧩 Script
+
+```python
+import colorsys
+import csv
+from math import isclose
+
+
+def clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
+def hls_to_rgb255(hue: float, lightness: float, saturation: float) -> tuple[int, int, int]:
+    red, green, blue = colorsys.hls_to_rgb(hue, lightness, saturation)
+    return (
+        round(red * 255),
+        round(green * 255),
+        round(blue * 255),
+    )
+
+
+def rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    red, green, blue = rgb
+    return f"#{red:02X}{green:02X}{blue:02X}"
+
+
+def srgb_channel_to_linear(channel_255: int) -> float:
+    channel = channel_255 / 255.0
+    if channel <= 0.04045:
+        return channel / 12.92
+    return ((channel + 0.055) / 1.055) ** 2.4
+
+
+def relative_luminance(rgb: tuple[int, int, int]) -> float:
+    red, green, blue = rgb
+    linear_red = srgb_channel_to_linear(red)
+    linear_green = srgb_channel_to_linear(green)
+    linear_blue = srgb_channel_to_linear(blue)
+    return 0.2126 * linear_red + 0.7152 * linear_green + 0.0722 * linear_blue
+
+
+def contrast_ratio(foreground_rgb: tuple[int, int, int], background_rgb: tuple[int, int, int]) -> float:
+    luminance_1 = relative_luminance(foreground_rgb)
+    luminance_2 = relative_luminance(background_rgb)
+    lighter = max(luminance_1, luminance_2)
+    darker = min(luminance_1, luminance_2)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def circular_hue_distance(hue_a: float, hue_b: float) -> float:
+    distance = abs(hue_a - hue_b)
+    return min(distance, 1.0 - distance)
+
+
+def classify_harmony(hue_a: float, hue_b: float) -> tuple[str, float]:
+    """
+    Returns (label, score_bonus)
+    hue values are normalized 0..1
+    """
+    distance = circular_hue_distance(hue_a, hue_b)
+
+    if distance <= 0.03:
+        return "same", 1.00
+    if distance <= 0.10:
+        return "analogous", 0.92
+    if 0.38 <= distance <= 0.46:
+        return "split-complementary", 0.88
+    if 0.47 <= distance <= 0.53:
+        return "complementary", 0.84
+    return "other", 0.60
+
+
+def generate_dark_candidates() -> list[dict]:
+    dark_candidates = []
+    for hue_degrees in range(0, 360, 15):
+        hue = hue_degrees / 360.0
+        for saturation in (0.20, 0.30, 0.40, 0.50, 0.60):
+            for lightness in (0.14, 0.18, 0.22, 0.26, 0.30):
+                rgb = hls_to_rgb255(hue, lightness, saturation)
+                dark_candidates.append(
+                    {
+                        "hue": hue,
+                        "saturation": saturation,
+                        "lightness": lightness,
+                        "rgb": rgb,
+                        "hex": rgb_to_hex(rgb),
+                    }
+                )
+    return dark_candidates
+
+
+def generate_light_candidates() -> list[dict]:
+    light_candidates = []
+    for hue_degrees in range(0, 360, 15):
+        hue = hue_degrees / 360.0
+        for saturation in (0.12, 0.20, 0.28, 0.36, 0.44):
+            for lightness in (0.84, 0.88, 0.92, 0.95):
+                rgb = hls_to_rgb255(hue, lightness, saturation)
+                light_candidates.append(
+                    {
+                        "hue": hue,
+                        "saturation": saturation,
+                        "lightness": lightness,
+                        "rgb": rgb,
+                        "hex": rgb_to_hex(rgb),
+                    }
+                )
+    return light_candidates
+
+
+def pair_score(
+    contrast: float,
+    harmony_bonus: float,
+    foreground_saturation: float,
+    background_saturation: float,
+) -> float:
+    """
+    Higher is better.
+    Rewards contrast and harmony.
+    Slightly prefers moderate saturation.
+    """
+    saturation_penalty = abs(foreground_saturation - 0.40) * 0.15 + abs(background_saturation - 0.24) * 0.10
+    return contrast * 0.75 + harmony_bonus * 2.0 - saturation_penalty
+
+
+def generate_color_pairs(
+    min_contrast: float = 4.5,
+    max_results: int = 100
+) -> list[dict]:
+    dark_candidates = generate_dark_candidates()
+    light_candidates = generate_light_candidates()
+
+    pairs = []
+    seen_pairs = set()
+
+    for foreground in dark_candidates:
+        for background in light_candidates:
+            contrast = contrast_ratio(foreground["rgb"], background["rgb"])
+            if contrast < min_contrast:
+                continue
+
+            harmony_label, harmony_bonus = classify_harmony(foreground["hue"], background["hue"])
+            score = pair_score(
+                contrast=contrast,
+                harmony_bonus=harmony_bonus,
+                foreground_saturation=foreground["saturation"],
+                background_saturation=background["saturation"],
+            )
+
+            pair_key = (foreground["hex"], background["hex"])
+            if pair_key in seen_pairs:
+                continue
+            seen_pairs.add(pair_key)
+
+            pairs.append(
+                {
+                    "foreground": foreground["hex"],
+                    "background": background["hex"],
+                    "contrast": round(contrast, 2),
+                    "harmony": harmony_label,
+                    "score": round(score, 3),
+                }
+            )
+
+    pairs.sort(key=lambda pair: (-pair["score"], -pair["contrast"], pair["foreground"], pair["background"]))
+    return pairs[:max_results]
+
+
+def write_pairs_to_csv(path: str, pairs: list[dict]) -> None:
+    with open(path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=["foreground", "background", "contrast", "harmony", "score"]
+        )
+        writer.writeheader()
+        writer.writerows(pairs)
+
+
+def main():
+    output_path = "color_pairs.csv"
+    pairs = generate_color_pairs(min_contrast=4.5, max_results=150)
+    write_pairs_to_csv(output_path, pairs)
+    print(f"Wrote {len(pairs)} color pairs to {output_path}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## ▶️ How to use
+
+Save it as:
+
+```python
+generate_color_pairs.py
+```
+
+Run:
+
+```bash
+python generate_color_pairs.py
+```
+
+It will create:
+
+```text
+color_pairs.csv
+```
+
+---
+
+## 📝 Example CSV output
+
+```csv
+foreground,background,contrast,harmony,score
+#334155,#F8FAFC,11.9,same,10.842
+#264653,#FFF8F0,10.75,analogous,9.916
+...
+```
+
+---
+
+## ⚙️ Easy tuning
+
+You can tweak:
+
+### More contrast
+```python
+pairs = generate_color_pairs(min_contrast=7.0, max_results=150)
+```
+
+### More pairs
+```python
+pairs = generate_color_pairs(min_contrast=4.5, max_results=500)
+```
+
+### Softer / more vivid palettes
+Adjust these in the script:
+
+- dark foreground saturation:
+```python
+(0.20, 0.30, 0.40, 0.50, 0.60)
+```
+
+- light background saturation:
+```python
+(0.12, 0.20, 0.28, 0.36, 0.44)
+```
+
+---
+
+## 💡 Notes
+
+This script is intentionally:
+
+- **simple**
+- **standard library only**
+- **good enough for practical use**
+
+It does **not** try to be a perfect color theory engine.  
+It gives you a **large, usable list** of pleasant, readable pairs quickly.
+
+---
+
+## 🚀 If you want, I can also give you:
+
+- a version that outputs **JSON**
+- a version that produces **triplets** instead of pairs
+- a version for **dark themes only**
+- a version that uses your existing favorite colors as seeds

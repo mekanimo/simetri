@@ -7,10 +7,10 @@ from typing import Any
 
 from numpy import ndarray
 
-from ..core import all_enums
+from ..base import all_enums
 from .. import __version__
-from ..core.all_enums import *
-from ..colors.colors import Color
+from ..base.all_enums import *
+from ..coloring.colors import Color
 
 
 # Validation functions. They return True if the value is valid, False otherwise.
@@ -388,7 +388,7 @@ def is_gradient(value):
         bool: True if ``value`` is a gradient.
     """
     # Fix this import!!!!
-    from ..canvas.mask import Gradient
+    from ..render.mask import Gradient
 
     return isinstance(value, Gradient)
 
@@ -546,7 +546,7 @@ def warn_unknown_kwargs(
     unknown = sorted(k for k in kwargs if k not in valid_keys)
     if not unknown:
         return
-    from ..settings.settings import issue_warning
+    from ..config.settings import issue_warning
 
     issue_warning(
         f"{context}: unrecognized keyword argument(s): {', '.join(unknown)}",

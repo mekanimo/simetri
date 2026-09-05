@@ -20,16 +20,16 @@ from typing import Any
 
 import numpy as np
 
-from ..colors.colors import blue, gray, green, light_gold, navy, purple, red
-from ..geometry.points.point_utils import distance, lerp_point
-from ..geometry.segments.line_utils import clip_line_to_rect
-from ..geometry.vectors import Vector
-from ..core.all_enums import IsometryType, LatRef, LatType, Types
+from ..coloring.colors import blue, gray, green, light_gold, navy, purple, red
+from ..geom.points.point_utils import distance, lerp_point
+from ..geom.segments.line_utils import clip_line_to_rect
+from ..geom.vectors import Vector
+from ..base.all_enums import IsometryType, LatRef, LatType, Types
 from ..group.batch import Group
-from ..core.common import PointType
+from ..base.common import PointType
 from ..shapes.shape import Shape
 from ..helpers.validation import is_number
-from ..shapes.shapes import Line, reg_poly_shape
+from ..shapes.geom_items import Line, reg_poly_shape
 
 r = 8
 triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)

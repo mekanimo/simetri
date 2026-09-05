@@ -1,15 +1,15 @@
 [project]
 name = "simetri"
-version = "0.0.8"
+version = "0.0.9"
 description = "simetri is a Python library for creating and manipulating patterns."
 readme = "README.md"
 authors = [
     { name = "Fahri Basegmez", email = "mangabasi@gmail.com" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "coloraide; python_version >= '3.10'",
-    "colorspace; python_version >= '3.10'",
+    "coloraide; python_version >= '3.11'",
+    "colorspace; python_version >= '3.11'",
     "ipykernel>=6.30.1",
     "ipython>=8.18.1",
     "matplotlib>=3.9.4",
@@ -20,7 +20,6 @@ dependencies = [
     "pypdf>=5.9.0",
     "scipy>=1.13.1",
     "strenum>=0.4.15",
-    "typing-extensions>=4.12.2",
     "urllib3>=2.6.0",
 
 ]
@@ -31,6 +30,18 @@ simetri = "simetri:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/simetri"]
+exclude = [
+    "src/simetri/gui",
+    "src/simetri/ground_rules_files",
+    "src/simetri/tests",
+    "src/simetri/.vscode",
+    "src/simetri/.VSCodeCounter",
+    "**/__pycache__",
+    "**/*.pyc",
+]
 
 classifiers = [
     "Programming Language :: Python :: 3",

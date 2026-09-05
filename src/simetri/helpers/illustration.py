@@ -13,20 +13,20 @@ import fitz
 import numpy as np
 from PIL import ImageFont
 
-from ..canvas.style_map import TagStyle, shape_style_map, tag_style_map
-from ..colors import colors
-from ..colors.swatches import swatches_255
-from ..geometry.geometry import bbox_overlap
-from ..geometry.nonlinear.ellipse import Arc
-from ..geometry.geometry import (
+from ..render.style_map import TagStyle, shape_style_map, tag_style_map
+from ..coloring import colors
+from ..coloring.swatches import swatches_255
+from ..geom.geometry import bbox_overlap
+from ..geom.nonlinear.ellipse import Arc
+from ..geom.geometry import (
     polar_to_cartesian,
 )
-from ..geometry.segments.line_utils import line_by_point_angle_length
-from ..geometry.points.point_utils import distance, midpoint
-from ..geometry.segments.line_utils import extended_line, line_angle
-from ..geometry.vectors import Vector, perp_unit_vector, v_from_points
-from ..geometry.affine import identity_matrix
-from ..core.all_enums import (
+from ..geom.segments.line_utils import line_by_point_angle_length
+from ..geom.points.point_utils import distance, midpoint
+from ..geom.segments.line_utils import extended_line, line_angle
+from ..geom.vectors import Vector, perp_unit_vector, v_from_points
+from ..geom.affine import identity_matrix
+from ..base.all_enums import (
     Align,
     Anchor,
     ArrowLine,
@@ -39,19 +39,19 @@ from ..core.all_enums import (
     Types,
 )
 from ..group.batch import Group
-from ..geometry.bbox import bounding_box
-from ..core.common import (
+from ..geom.bbox import bounding_box
+from ..base.common import (
     PointType,
     _set_Nones,
     get_defaults,
 )
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
-from ..core.core import Base, StyleMixin
+from ..base.core import Base, StyleMixin
 from ..shapes.points import Points
-from ..graphics.shape import Shape
-from ..shapes.shapes import reg_poly_points_side_length
-from ..settings.settings import defaults
+from ..shapes.shape import Shape
+from ..shapes.geom_items import reg_poly_points_side_length
+from ..config.settings import defaults
 from .label_overlap import LabelRect, resolve_all_overlaps
 from .utilities import get_transform
 from .validation import validate_args
@@ -1664,7 +1664,7 @@ class Dimension(Group):
 
 def vert_label_layout(shape, offset):
     """Return label anchor, outward direction, and vertex for each vertex."""
-    from simetri.geometry.polygons.polygon import in_polygon
+    from simetri.geom.polygons.polygon import in_polygon
 
     vertices = list(shape.vertices)
 
@@ -1853,7 +1853,7 @@ def _vertices_on_hull_points(
     hull_pts: Sequence | None = None,
 ) -> list[int]:
     """Return vertex indices that lie on the given or computed convex hull."""
-    from ..geometry.polygons.convex_hull import convex_hull
+    from ..geom.polygons.convex_hull import convex_hull
 
     verts = [tuple(v[:2]) for v in vertices]
     if len(verts) <= 1:
@@ -2112,7 +2112,7 @@ def edge_label_positions(shape, offset):
     Returns:
         list: Label positions for each edge.
     """
-    from simetri.geometry.polygons.polygon import in_polygon
+    from simetri.geom.polygons.polygon import in_polygon
 
     vertices = list(shape.vertices)
     count = len(vertices)
@@ -2147,7 +2147,7 @@ def edge_label_positions(shape, offset):
 def edge_label_pos(shape, index, offset=10):
     """Returns the position of the edge label using the given
     edge index and label offset."""
-    from simetri.geometry.polygons.polygon import in_polygon
+    from simetri.geom.polygons.polygon import in_polygon
 
     vertices = shape.vertices
     count = len(vertices)

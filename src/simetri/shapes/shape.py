@@ -13,16 +13,16 @@ Examples:
 
 from __future__ import annotations
 
-from ..geometry.geometry import connected_pairs, polar_to_cartesian
-from ..geometry.homogenize import homogenize
-from ..geometry.points.point_utils import (
+from ..geom.geometry import connected_pairs, polar_to_cartesian
+from ..geom.homogenize import homogenize
+from ..geom.points.point_utils import (
     close_points2,
     distance,
     midpoint,
     remove_duplicate_points,
 )
-from ..geometry.polygons.polygon_utils import right_handed
-from ..geometry.segments.line_utils import (
+from ..geom.polygons.polygon_utils import right_handed
+from ..geom.segments.line_utils import (
     all_intersections,
     angle_between_lines2,
     multi_split_segment,
@@ -56,9 +56,9 @@ import numpy as np
 from numpy import allclose, around, array
 from numpy.linalg import inv
 
-from ..canvas.style_map import shape_style_map
-from ..colors.colors import Color, black
-from ..core.all_enums import (
+from ..render.style_map import shape_style_map
+from ..coloring.colors import Color, black
+from ..base.all_enums import (
     FillMode,
     InPlace,
     LineCap,
@@ -67,16 +67,16 @@ from ..core.all_enums import (
     Types,
     shape_attributes,
 )
-from ..core.common import LineType, PointType, get_defaults, get_unique_id
-from ..core.core import Base, _update_inplace
-from ..geometry.affine import identity_matrix
-from ..geometry.geometry import (
+from ..base.common import LineType, PointType, get_defaults, get_unique_id
+from ..base.core import Base, _update_inplace
+from ..geom.affine import identity_matrix
+from ..geom.geometry import (
     positive_angle,
 )
-from ..geometry.points.point_utils import (
+from ..geom.points.point_utils import (
     lerp_point,
 )
-from ..geometry.polygons.polygon import (
+from ..geom.polygons.polygon import (
     in_polygon,
     polygon_area,
     polyline_length,
@@ -87,8 +87,8 @@ from ..helpers.utilities import (
     get_transform,
     is_nested_sequence,
 )
-from ..settings.settings import defaults
-from ..geometry.bbox import BoundingBox, bounding_box
+from ..config.settings import defaults
+from ..geom.bbox import BoundingBox, bounding_box
 from .points import Points
 
 

@@ -12,15 +12,15 @@ __all__ = ["Dot", "Dots"]
 
 import numpy as np
 
-from ..canvas.style_map import shape_args
-from ..colors.colors import Color
-from ..geometry.points.point_utils import close_points2
+from ..render.style_map import shape_args
+from ..coloring.colors import Color
+from ..geom.points.point_utils import close_points2
 from ..helpers.validation import validate_args
-from ..settings.settings import defaults
-from ..core.all_enums import Types
+from ..config.settings import defaults
+from ..base.all_enums import Types
 from ..group.batch import Group
-from ..core.common import PointType
-from .shapes import Shape
+from ..base.common import PointType
+from .shape import Shape
 
 
 class Dot(Shape):

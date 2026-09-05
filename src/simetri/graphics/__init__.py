@@ -48,40 +48,40 @@ from functools import lru_cache as memoize
 from numpy import linspace, arange, array, zeros, ones, full, eye, diag
 
 from ..helpers.utilities import *
-from ..core.core import *
-from ..frieze import frieze
-from ..settings.settings import *
-from ..core.common import *
+from ..base.core import *
+from ..friezes import frieze
+from ..config.settings import *
+from ..base.common import *
 
 
 set_defaults()
-from simetri import colors
+from simetri import coloring as colors
 
-from ..canvas.canvas import *
-from ..canvas.grids import *
-from ..canvas.style_map import *
-from ..colors.colors import *
-from ..colors.palettes import *
-from ..colors.pastels import *
-from ..colors.swatches import *
+from ..render.canvas import *
+from ..render.grids import *
+from ..render.style_map import *
+from ..coloring.colors import *
+from ..coloring.palettes import *
+from ..coloring.pastels import *
+from ..coloring.swatches import *
 from ..extensions.easing import *
 from ..extensions.l_system import l_system
 from ..extensions.tree import TreeNode, make_tree
 from ..extensions.turtle_sg import Turtle, spirolateral
-from ..frieze.frieze_patterns import *
-from ..geometry.nonlinear.bezier import *
-from ..geometry.nonlinear.circle import *
-from ..geometry.collection import *
-from ..geometry.polygons.convex_hull import convex_hull
-from ..geometry.nonlinear.ellipse import *
-from ..geometry.geom_utils import *
-from ..geometry.geometry import *
-from ..geometry.nonlinear.hobby import *
+from ..friezes.frieze_patterns import *
+from ..geom.nonlinear.bezier import *
+from ..geom.nonlinear.circle import *
+from ..geom.collection import *
+from ..geom.polygons.convex_hull import convex_hull
+from ..geom.nonlinear.ellipse import *
+from ..geom.geom_utils import *
+from ..geom.geometry import *
+from ..geom.nonlinear.hobby import *
 from ..patterns.lattice import *
-from ..geometry.polygons.polygon import *
-from ..geometry.nonlinear.sine import *
-from ..geometry.vectors import *
-from ..core.all_enums import *
+from ..geom.polygons.polygon import *
+from ..geom.nonlinear.sine import *
+from ..geom.vectors import *
+from ..base.all_enums import *
 from ..shapes.shape import (
     Clipping,
     all_segments,
@@ -91,29 +91,29 @@ from ..shapes.shape import (
     polygon_intersection,
     polygon_xor,
 )
-from ..shapes.shapes import *
+from ..shapes.geom_items import *
 
 # Preserve geometric Line class on public namespace.
-from ..shapes.shapes import Line as Line
-from ..canvas.sketch import *
+from ..shapes.geom_items import Line as Line
+from ..render.sketch import *
 from ..helpers.box_solver import push_boxes_apart, Box
 from ..helpers.constraint_solver import Constraint, solve
 from ..helpers.illustration import *
 from ..helpers.modifiers import *
 from ..helpers.validation import check_version
-from ..image.image import Image, open_img
-from ..lace import Lace
-from ..stars import stars
-from ..stars.stars import Star, rosette
-from ..svg.filters import *
-from ..svg.svg import *
-from ..tikz.tikz import *
-from ..wallpaper import wallpaper
-from ..geometry.affine import *
+from ..images.image import Image, open_img
+from ..interlace import Lace
+from ..star_patterns import stars
+from ..star_patterns.stars import Star, rosette
+from ..svg_export.filters import *
+from ..svg_export.svg import *
+from ..tikz_export.tikz import *
+from ..wallpapers import wallpaper
+from ..geom.affine import *
 from ..group.batch import *
 from ..shapes.dots import *
-from ..canvas.mask import Gradient, Mask, Stop
-from ..geometry.nonlinear.path import Operation, Path2D
+from ..render.mask import Gradient, Mask, Stop
+from ..geom.nonlinear.path import Operation, Path2D
 from ..patterns.pattern import *
 
 

@@ -23,24 +23,24 @@ from typing import TYPE_CHECKING, Any, Self
 from numpy import array
 from numpy.typing import NDArray
 
-from ..geometry.polygons.poly import get_polygons
-from ..geometry.points.point_utils import fix_degen_points, round_point
-from ..geometry.segments.line_utils import round_segment
+from ..geom.polygons.poly import get_polygons
+from ..geom.points.point_utils import fix_degen_points, round_point
+from ..geom.segments.line_utils import round_segment
 from ..helpers.modifiers import Modifier
-from ..settings.settings import defaults, issue_warning
-from ..core.all_enums import (
+from ..config.settings import defaults, issue_warning
+from ..base.all_enums import (
     InPlace,
     TransformationType,
     Types,
     get_enum_value,
 )
-from ..geometry.bbox import bounding_box
-from ..core.common import LineType, PointType, get_unique_id
-from ..core.core import Base, _update_inplace
+from ..geom.bbox import bounding_box
+from ..base.common import LineType, PointType, get_unique_id
+from ..base.core import Base, _update_inplace
 from .merge import _merge_collinears, _merge_shapes
 
 if TYPE_CHECKING:
-    from ..graphics.shape import Shape
+    from ..shapes.shape import Shape
 
 
 class Group(Base):
@@ -383,7 +383,7 @@ class Group(Base):
             dist_tol = defaults["dist_tol"]
         vertices = self.all_vertices
         vertices = [(*v, i) for i, v in enumerate(vertices)]
-        from ..geometry.polygons.polygon import all_close_points
+        from ..geom.polygons.polygon import all_close_points
 
         _, pairs = all_close_points(vertices, dist_tol=dist_tol, with_dist=True)
         return [pair for pair in pairs if pair[2] > 0][:n]
@@ -680,7 +680,7 @@ class Group(Base):
             debug (bool, optional): Print node proximity diagnostics.
                 Defaults to False.
         """
-        from ..geometry.polygons.polygon import node_dictionaries
+        from ..geom.polygons.polygon import node_dictionaries
 
         (
             self.d_node_coord,
@@ -1038,7 +1038,7 @@ def custom_group_attributes(item: Group) -> list[str]:
     Returns:
         list[str]: A list of custom attributes.
     """
-    from ..graphics.shape import Shape
+    from ..shapes.shape import Shape
 
     if isinstance(item, Group):
         dummy_shape = Shape([(0, 0), (1, 0)])

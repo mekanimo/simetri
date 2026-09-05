@@ -2,11 +2,11 @@ from typing import Self
 
 import numpy as np
 
-from ..graphics import Shape
+from ..shapes.shape import Shape
 from ..group.batch import Group
-from ..core.all_enums import Types
-from ..shapes.shapes import reg_poly_points_side_length, snap
-from ..core.common import PointType
+from ..base.all_enums import Types
+from ..shapes.geom_items import reg_poly_points_side_length, snap
+from ..base.common import PointType
 
 
 class UniPoly(Shape):
