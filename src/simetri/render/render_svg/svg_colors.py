@@ -4,8 +4,8 @@ Turns Simetri ``Color`` objects into SVG/CSS
 color strings (``rgb``/``rgba``) and related fill/stroke attributes.
 """
 
-from ..config.settings import defaults
-from ..coloring.colors import check_color
+from ...config.settings import defaults
+from ...coloring.colors import check_color
 
 
 def color_to_matplotlib(color):

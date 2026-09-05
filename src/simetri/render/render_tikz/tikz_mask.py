@@ -10,18 +10,18 @@ from math import atan2, degrees
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
-from ..render import draw as canvas_draw
-from ..coloring.colors import Color
-from ..base.all_enums import TexLoc, Types
-from ..group.batch import Group
-from ..render.mask import Mask, Stop
-from ..shapes.shape import Shape
-from ..render.sketch import MaskSketch
+from .. import draw as canvas_draw
+from ...coloring.colors import Color
+from ...base.all_enums import TexLoc, Types
+from ...group.batch import Group
+from ..mask import Mask, Stop
+from ...shapes.shape import Shape
+from ..sketch import MaskSketch
 from .tikz_sketch import TexSketch
 from .tikz_utils import get_clip_code
 
 if TYPE_CHECKING:
-    from ..render.canvas import Canvas
+    from ..canvas import Canvas
 
 
 def _normalize_mask_inputs(mask, **kwargs):

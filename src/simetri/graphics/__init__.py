@@ -71,7 +71,6 @@ from ..extensions.turtle_sg import Turtle, spirolateral
 from ..friezes.frieze_patterns import *
 from ..geom.nonlinear.bezier import *
 from ..geom.nonlinear.circle import *
-from ..geom.collection import *
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.nonlinear.ellipse import *
 from ..geom.geom_utils import *
@@ -105,9 +104,9 @@ from ..images.image import Image, open_img
 from ..interlace import Lace
 from ..star_patterns import stars
 from ..star_patterns.stars import Star, rosette
-from ..svg_export.filters import *
-from ..svg_export.svg import *
-from ..tikz_export.tikz import *
+from ..render.render_svg.filters import *
+from ..render.render_svg.svg import *
+from ..render.render_tikz.tikz import *
 from ..wallpapers import wallpaper
 from ..geom.affine import *
 from ..group.batch import *

@@ -6,18 +6,18 @@ from typing import List
 import numpy as np
 import simetri.graphics as sg
 
-from ..render.style_map import line_style_map, marker_style_map, shape_style_map
-from ..coloring.colors import Color, check_color
-from ..base.all_enums import (
+from ..style_map import line_style_map, marker_style_map, shape_style_map
+from ...coloring.colors import Color, check_color
+from ...base.all_enums import (
     BackStyle,
     LineDashArray,
     LineWidth,
     ShadeType,
     Types,
 )
-from ..shapes.shape import Shape
-from ..render.sketch import ShapeSketch, TagSketch
-from ..config.settings import defaults, tikz_defaults
+from ...shapes.shape import Shape
+from ..sketch import ShapeSketch, TagSketch
+from ...config.settings import defaults, tikz_defaults
 
 axis_shading_types = [
     ShadeType.AXIS_LEFT_RIGHT,

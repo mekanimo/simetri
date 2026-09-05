@@ -8,16 +8,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..render.style_map import marker_style_map
-from ..coloring.colors import black, check_color, white
-from ..geom.homogenize import homogenize
-from ..base.all_enums import (
+from ..style_map import marker_style_map
+from ...coloring.colors import black, check_color, white
+from ...geom.homogenize import homogenize
+from ...base.all_enums import (
     MarkerType,
     Types,
 )
-from ..geom.bbox import bounding_box
-from ..render.sketch import MaskSketch
-from ..tikz_export.tikz_utils import sg_to_tikz
+from ...geom.bbox import bounding_box
+from ..sketch import MaskSketch
+from ..render_tikz.tikz_utils import sg_to_tikz
 from . import svg_sketch_utils as svg_sketch_utils_module
 from .filters import SVG_Filter
 from .svg_colors import color_to_svg
@@ -27,10 +27,10 @@ from .svg_sketch import *
 from .svg_sketch_utils import *
 from .svg_utils import *
 
-from ..helpers.illustration import resolve_page_vertex_labels
+from ...helpers.illustration import resolve_page_vertex_labels
 
 if TYPE_CHECKING:
-    from ..render.canvas import Canvas
+    from ..canvas import Canvas
 
 
 def append_non_default_style_options(options, sketch, style_map):
@@ -953,7 +953,7 @@ def get_svg_code(canvas):
     Returns:
         str: Full SVG document markup.
     """
-    from ..render.canvas import (
+    from ..canvas import (
         effective_border_for_export,
         warn_vertex_coord_label_sizing,
     )

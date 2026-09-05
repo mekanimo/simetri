@@ -5,9 +5,9 @@ from __future__ import annotations
 from math import atan2, degrees
 from types import SimpleNamespace
 
-from ..geom.bbox import bounding_box
-from ..base.all_enums import Anchor, BackStyle, Extent, Types
-from ..config.settings import defaults
+from ...geom.bbox import bounding_box
+from ...base.all_enums import Anchor, BackStyle, Extent, Types
+from ...config.settings import defaults
 from .tikz_utils import _get_gradient_shading_options, get_clip_code
 
 

@@ -64,9 +64,9 @@ from simetri.helpers.validation import (
 from simetri.images.image import Image, create_image_from_data
 from simetri.notebook import display
 from simetri.config.settings import defaults, issue_warning
-from simetri.tex_export.tex import Tex, remove_aux_files, run_job
-from simetri.tikz_export.tikz import get_tex_code
-from simetri.tikz_export.tikz_sketch import TexSketch
+from simetri.render.tex import Tex, remove_aux_files, run_job
+from simetri.render.render_tikz.tikz import get_tex_code
+from simetri.render.render_tikz.tikz_sketch import TexSketch
 
 
 def _save_renderer(extension: str) -> Renderer:
@@ -1922,7 +1922,7 @@ class Canvas:
         renderer = _save_renderer(extension)
         multi_page_svg = False
         if renderer == Renderer.SVG:
-            from simetri.svg_export.svg import get_svg_code
+            from simetri.render.render_svg.svg import get_svg_code
 
             if extension == ".png":
                 svg_code = get_svg_code(self)

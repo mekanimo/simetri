@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from math import pi, radians, sin
 from typing import TYPE_CHECKING, Self
 
-from ..render.style_map import (
+from .style_map import (
     line_style_map,
     shape_style_map,
 )
@@ -70,7 +70,7 @@ from ..helpers.utilities import (
     group_into_bins,
 )
 from ..config.settings import defaults
-from ..tikz_export.tikz_sketch import TexSketch
+from .render_tikz.tikz_sketch import TexSketch
 
 if TYPE_CHECKING:
     from .canvas import Canvas

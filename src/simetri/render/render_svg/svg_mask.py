@@ -2,10 +2,10 @@
 
 import numpy as np
 
-from ..coloring.colors import Color
-from ..base.all_enums import SvgMaskType, SvgUnits, Types
-from ..geom.bbox import bounding_box
-from ..config.settings import defaults
+from ...coloring.colors import Color
+from ...base.all_enums import SvgMaskType, SvgUnits, Types
+from ...geom.bbox import bounding_box
+from ...config.settings import defaults
 from .svg_colors import color_to_svg
 from .svg_sketch_utils import get_coordinates, get_shape_type, sketch_attrib
 
@@ -23,7 +23,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
     Returns:
         str: SVG <mask> element
     """
-    from ..render.draw import create_sketch  # noqa: PLC0415 — circular import
+    from ..draw import create_sketch  # noqa: PLC0415 — circular import
 
     def get_mask_stop(stop):
         stop_offset = f"{float(stop.offset) * 100}%"

@@ -21,7 +21,7 @@ from simetri.render.pre_render import (
 from simetri.base.all_enums import TexLoc, Types
 from simetri.helpers.utilities import *
 from simetri.config.settings import defaults
-from simetri.tikz_export.tikz import (
+from simetri.render.render_tikz.tikz import (
     color_to_tikz,
     get_canvas_scope,
     get_limits_code,

@@ -3,11 +3,11 @@
 import numpy as np
 from PIL import ImageFont
 
-from ..render.pre_render import set_styles
-from ..coloring.colors import Color
-from ..base.all_enums import FontFamily, MarkerType, Types
-from ..geom.bbox import bounding_box
-from ..config.settings import defaults, issue_warning
+from ..pre_render import set_styles
+from ...coloring.colors import Color
+from ...base.all_enums import FontFamily, MarkerType, Types
+from ...geom.bbox import bounding_box
+from ...config.settings import defaults, issue_warning
 from .svg_colors import color_to_svg
 
 
@@ -18,7 +18,7 @@ def svg_shape(*args, **kwargs):
         RuntimeError: If called before SVG module initialization.
     """
     raise RuntimeError(
-        "svg_shape must be initialized by simetri.svg_export.svg before use."
+        "svg_shape must be initialized by simetri.render.render_svg.svg before use."
     )
 
 
@@ -429,7 +429,7 @@ def generate_marker_def(
         if marker_shape is None:
             marker_type = MarkerType.FCIRCLE
         else:
-            from ..render.draw import create_sketch  # noqa: PLC0415 — circular import
+            from ..draw import create_sketch  # noqa: PLC0415 — circular import
 
             marker_sketch = create_sketch(marker_shape, canvas)
 
@@ -793,7 +793,7 @@ def generate_pattern_def(sketch, pattern_id, canvas, styles_dict):
     )
 
     # Convert tile shape to sketch using canvas
-    from ..render.draw import create_sketch  # noqa: PLC0415 — circular import
+    from ..draw import create_sketch  # noqa: PLC0415 — circular import
 
     if tile.type == Types.GROUP:
         # Handle group - multiple shapes in pattern
@@ -921,7 +921,7 @@ def generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict):
     Returns:
         str: SVG <clipPath> element
     """
-    from ..render.draw import create_sketch  # noqa: PLC0415 — circular import
+    from ..draw import create_sketch  # noqa: PLC0415 — circular import
 
     if isinstance(clip_shape, list):
         clip_contents = []

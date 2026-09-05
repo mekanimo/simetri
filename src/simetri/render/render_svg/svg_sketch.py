@@ -10,17 +10,17 @@ from types import SimpleNamespace
 import matplotlib
 import matplotlib.pyplot as plt
 
-from ..coloring.colors import Color, check_color
-from ..geom.points.point_utils import close_points2
-from ..base.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
-from ..helpers.illustration import (
+from ...coloring.colors import Color, check_color
+from ...geom.points.point_utils import close_points2
+from ...base.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
+from ...helpers.illustration import (
     prepare_shape_index_labels,
     prepare_shape_vertex_coord_labels,
     sketch_label_font_color,
     sketch_label_font_size_pt,
     svg_label_paint_attrs,
 )
-from ..config.settings import defaults
+from ...config.settings import defaults
 from .svg_colors import color_to_matplotlib, color_to_svg
 from .svg_common import _clip_line_to_rect, get_clip_mask_attrs
 from .svg_sketch_utils import (

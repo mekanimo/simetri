@@ -10,8 +10,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-from ..base.all_enums import ColorMatrix, FilterType
-from ..config.settings import defaults
+from ...base.all_enums import ColorMatrix, FilterType
+from ...config.settings import defaults
 
 Number = int | float
 NumOrStr = Number | str

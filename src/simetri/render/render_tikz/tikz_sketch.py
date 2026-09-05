@@ -7,8 +7,8 @@ import numpy as np
 
 import simetri.graphics as sg
 
-from ..geom.points.point_utils import close_points2
-from ..base.all_enums import (
+from ...geom.points.point_utils import close_points2
+from ...base.all_enums import (
     Align,
     Anchor,
     BackStyle,
@@ -21,8 +21,8 @@ from ..base.all_enums import (
     Types,
     get_enum_value,
 )
-from ..geom.points.point_utils import round_point
-from ..helpers.illustration import (
+from ...geom.points.point_utils import round_point
+from ...helpers.illustration import (
     label_halo_color,
     label_halo_stroke_width,
     prepare_shape_index_labels,
@@ -30,8 +30,8 @@ from ..helpers.illustration import (
     sketch_label_font_color,
     sketch_label_font_size_pt,
 )
-from ..helpers.utilities import detokenize
-from ..config.settings import defaults
+from ...helpers.utilities import detokenize
+from ...config.settings import defaults
 from .tikz_common import (
     _clip_line_to_rect,
     _line_limits,

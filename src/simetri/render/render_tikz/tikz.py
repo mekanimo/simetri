@@ -11,13 +11,13 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from ..render.pre_render import (
+from ..pre_render import (
     collect_tikz_preamble_requirements_for_sketch,
     set_styles,
     style_properties,
 )
-from ..geom.homogenize import homogenize
-from ..base.all_enums import (
+from ...geom.homogenize import homogenize
+from ...base.all_enums import (
     Anchor,
     BackStyle,
     Extent,
@@ -26,10 +26,10 @@ from ..base.all_enums import (
     TexLoc,
     Types,
 )
-from ..geom.bbox import bounding_box
-from ..shapes.points import Points
-from ..shapes.shape import Shape
-from ..config.settings import defaults, issue_warning
+from ...geom.bbox import bounding_box
+from ...shapes.points import Points
+from ...shapes.shape import Shape
+from ...config.settings import defaults, issue_warning
 from . import tikz_sketch as tikz_sketch_module
 from .tikz_mask import *
 from .tikz_mask import _effective_alpha_from_stop, _pgf_gray
@@ -38,7 +38,7 @@ from .tikz_sketch import _canvas_mask_scope_sketch
 from .tikz_utils import *
 from .tikz_utils import _get_gradient_shading_options
 
-from ..helpers.illustration import resolve_page_vertex_labels
+from ...helpers.illustration import resolve_page_vertex_labels
 
 NumberOrTex = int | float | str
 
@@ -283,7 +283,7 @@ def get_tex_code(canvas: Canvas) -> str:
     pages = canvas.pages
     has_sketches = any(page.sketches for page in pages)
 
-    from ..render.canvas import warn_vertex_coord_label_sizing
+    from ..canvas import warn_vertex_coord_label_sizing
 
     if canvas.page_size is None:
         warn_vertex_coord_label_sizing(canvas)
