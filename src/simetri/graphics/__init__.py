@@ -14,7 +14,8 @@ Examples:
 # Testing is incomplete.
 # Everything is subject to change till we release a beta version.
 
-__version__ = "0.0.9"
+from .. import __version__
+
 __author__ = "Fahri Basegmez"
 
 from math import (
@@ -81,7 +82,7 @@ from ..geometry.polygons.polygon import *
 from ..geometry.nonlinear.sine import *
 from ..geometry.vectors import *
 from ..core.all_enums import *
-from ..graphics.shape import (
+from ..shapes.shape import (
     Clipping,
     all_segments,
     clip,

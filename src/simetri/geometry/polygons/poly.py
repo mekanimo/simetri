@@ -6,7 +6,7 @@ from simetri.core.all_enums import InPlace, Types
 from numpy.typing import NDArray
 
 from simetri.core.common import PointType
-from simetri.geometry.geom_utils import around
+from numpy import around
 from simetri.geometry.geometry import connected_pairs
 from simetri.geometry.points.point_utils import fix_degen_points
 from simetri.settings.settings import defaults
@@ -15,7 +15,6 @@ from ..segments.line_utils import offset_line
 from ...helpers.utilities import decompose_transformations
 from ..affine import mirror_matrix
 from ...core.all_enums import Anchor, Side, TransformationType
-from ...group.batch import Group
 from ...core.common import LineType, PointType, get_unique_id
 from ...core.core import _update_inplace
 
@@ -195,7 +194,7 @@ class Poly:
         | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ) -> Self | Group:
+    ) -> Self | "Group":
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -230,6 +229,8 @@ class Poly:
 
                 poly._update(xform_matrix)
                 polys.append(poly)
+            from ...group.batch import Group
+
             res = Group(polys)
 
         if merge and reps > 0:

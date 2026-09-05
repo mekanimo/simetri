@@ -28,15 +28,12 @@ import numpy as np
 from numpy import around, array, ndarray
 from numpy.typing import NDArray
 
-from simetri.geometry.nonlinear.circle import circle_circle_intersections
-from simetri.geometry.points.point_utils import remove_duplicate_points
-
 from ..core.common import (
     PointType,
     get_defaults,
 )
 from ..settings.settings import defaults
-from .points.point_utils import close_points2
+from .geom_utils import close_points2, connected_pairs
 from .vectors import *
 
 if TYPE_CHECKING:
@@ -243,6 +240,8 @@ def trim_shape(shape: Shape, trim_func: Callable, value: float):
             else:
                 points.append(p1)
             points.append(p2)
+    from .points.point_utils import remove_duplicate_points
+
     points = remove_duplicate_points(points)
     new_shape[:] = points
     return new_shape
@@ -317,52 +316,6 @@ def ndarray_to_xy_list(arr: NDArray) -> Sequence[PointType]:
         Sequence[PointType]: List of points.
     """
     return arr[:, :2].tolist()
-
-
-def tfl_by_sides(
-    point1: PointType, point2: PointType, side1: float, side2: float
-):
-    """Triangle from line segment and two sides.
-    Returns the points of the triangle given by the two points and the two sides.
-
-        Args:
-            point1 (PointType): First point of the line segment.
-            point2 (PointType): Second point of the line segment.
-            side1 (float): Length of the first side.
-            side2 (float): Length of the second side.
-
-        Returns:
-            list[PointType]: List of points of the triangle.
-
-    """
-    c = sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
-    if c == 0:
-        raise ValueError("Error! Points are coincident.")
-
-    if side1 + side2 < c:
-        raise ValueError(
-            "Error! The sum of the sides is less than the distance between the points."
-        )
-
-    if side1 + c < side2:
-        raise ValueError(
-            "Error! The sum of the first side and the distance between the points is less than the second side."
-        )
-
-    if side2 + c < side1:
-        raise ValueError(
-            "Error! The sum of the second side and the distance between the points is less than the first side."
-        )
-
-    if side1 == 0 or side2 == 0:
-        raise ValueError("Error! One of the sides is zero.")
-
-    if side1 < 0 or side2 < 0:
-        raise ValueError("Error! One of the sides is negative.")
-
-    intersections = circle_circle_intersections(point1, side1, point2, side2)
-
-    return intersections
 
 
 def radius_to_side_len(n: int, radius: float) -> float:
@@ -472,21 +425,6 @@ def triangle_area(a: float, b: float, c: float) -> float:
     return sqrt((a + (b + c)) * (c - (a_b)) * (c + (a_b)) * (a + (b - c))) / 4
 
 
-def r_polar(a, b, theta):
-    """Return the radius (distance between the center and the intersection point)
-    of the ellipse at the given angle.
-
-    Args:
-        a (float): Semi-major axis of the ellipse.
-        b (float): Semi-minor axis of the ellipse.
-        theta (float): Angle in radians.
-
-    Returns:
-        float: Radius of the ellipse at the given angle.
-    """
-    return (a * b) / sqrt((b * cos(theta)) ** 2 + (a * sin(theta)) ** 2)
-
-
 def bbox_overlap(
     min_x1: float,
     min_y1: float,
@@ -571,31 +509,6 @@ def cartesian_to_polar(x, y, center=(0, 0)):
     r = hypot(x, y)
     theta = positive_angle(atan2(y, x))
     return r, theta
-
-
-def connected_pairs(items, closed: bool = False):
-    """Return a list of connected pair tuples corresponding to the items.
-    [a, b, c] -> [(a, b), (b, c)]
-
-    Args:
-        items (list): List of items.
-        closed (bool, optional): If True, also connect the last item to the
-            first. Defaults to False.
-
-    Returns:
-        list[tuple]: List of connected pair tuples.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.connected_pairs(["a", "b", "c"])
-        [('a', 'b'), ('b', 'c')]
-        >>> sg.connected_pairs([1, 2, 3], closed=True)
-        [(1, 2), (2, 3), (3, 1)]
-    """
-    pairs = list(zip(items, items[1:]))
-    if closed and items:
-        pairs.append((items[-1], items[0]))
-    return pairs
 
 
 def area(a, b, c):

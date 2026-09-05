@@ -9,3 +9,5 @@ Examples:
     >>> import simetri.graphics as sg
     >>> shape = sg.Circle(50)
 """
+
+__version__ = "0.0.9"

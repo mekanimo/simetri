@@ -7,9 +7,8 @@ from typing import Any
 
 from numpy import ndarray
 
-from simetri.geometry.points.point_utils import is_point
 from ..core import all_enums
-from ..graphics import __version__
+from .. import __version__
 from ..core.all_enums import *
 from ..colors.colors import Color
 
@@ -573,6 +572,15 @@ def is_number(x: Any) -> bool:
         False
     """
     return isinstance(x, (int, float, complex)) and not isinstance(x, bool)
+
+
+def is_point(pnt: Any) -> bool:
+    """Return True if the input is a point."""
+    try:
+        x, y = pnt[:2]
+        return is_number(x) and is_number(y)
+    except (TypeError, ValueError):
+        return False
 
 
 def is_line(line_: Any) -> bool:
