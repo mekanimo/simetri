@@ -6,9 +6,8 @@ homogeneous coordinates. Public aliases on ``simetri.graphics`` include
 
 Examples:
     >>> import simetri.graphics as sg
-    >>> from math import pi
     >>> M = sg.translation_matrix(10, 20)
-    >>> R = sg.rotation_matrix(pi / 2, about=(0, 0))
+    >>> R = sg.rotation_matrix(sg.pi / 2, about=(0, 0))
 """
 
 from __future__ import annotations
@@ -131,8 +130,7 @@ def rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> from math import pi
-        >>> M = sg.rotation_matrix(pi / 2)
+        >>> M = sg.rotation_matrix(sg.pi / 2)
         >>> round(M[0, 1], 6)
         1.0
     """
@@ -418,8 +416,7 @@ def rotate(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> from math import pi
-        >>> pts = sg.rotate([(1, 0)], pi / 2)
+        >>> pts = sg.rotate([(1, 0)], sg.pi / 2)
         >>> round(float(pts[0, 1]), 6)
         1.0
     """
@@ -593,8 +590,8 @@ def rotate_point(
         PointType: Rotated point as ``(x, y)``.
 
     Examples:
-        >>> from math import pi
-        >>> rotate_point((1, 0), pi / 2)
+        >>> import simetri.graphics as sg
+        >>> rotate_point((1, 0), sg.pi / 2)
         (0.0, 1.0)
     """
     x, y = point[:2]

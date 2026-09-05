@@ -6,9 +6,8 @@ resolves style attribute aliases.
 
 Examples:
     >>> import simetri.graphics as sg
-    >>> from math import pi
     >>> s = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
-    >>> s.translate(5, 0).rotate(pi / 4, about=s.midpoint)
+    >>> s.translate(5, 0).rotate(sg.pi / 4, about=s.midpoint)
 """
 
 __all__ = ["Base", "StyleMixin"]
@@ -385,9 +384,8 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> from math import pi
             >>> s = sg.Shape([(0, 0), (20, 0), (20, 10), (0, 10)], closed=True)
-            >>> s.rotate(pi / 2, about=s.midpoint)
+            >>> s.rotate(sg.pi / 2, about=s.midpoint)
         """
         transform = rotation_matrix(angle, about)
         if self.__class__.__name__ == "Shape":

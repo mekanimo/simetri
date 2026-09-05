@@ -6,7 +6,8 @@ graphics and geometry APIs.
 
 Examples:
     >>> import simetri.graphics as sg
-    >>> from simetri.graphics.common import INCH, CM, phi
+    >>> print(sg.INCH, sg.CM, sg.phi
+    72 28.3464 1.618033988749895
     >>> width_pt = 2 * INCH  # 144 points
 """
 

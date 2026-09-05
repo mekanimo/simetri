@@ -4,8 +4,8 @@ Do not edit values in this module. Override them in your own code so
 shared scripts stay portable.
 
 Examples:
-    >>> from simetri.config.settings import defaults
-    >>> defaults["line_width"] = 1.5
+    >>> import simetri.graphics as sg
+    >>> sg.defaults["line_width"] = 1.5
 """
 
 __all__ = [

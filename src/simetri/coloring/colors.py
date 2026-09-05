@@ -750,10 +750,10 @@ class LinearGradient:
         extend: Whether to extend the gradient beyond its endpoints.
 
     Examples:
-        >>> from simetri.graphics.common import PointType
-        >>> gradient = LinearGradient(0, 0, 100, 100,
+        >>> import simetri.graphics as sg
+        >>> gradient = sg.LinearGradient(0, 0, 100, 100,
         ...                          [Color(1, 0, 0), Color(0, 0, 1)],
-        ...                          [PointType(0, 0), PointType(100, 100)])
+        ...                          [(0, 0), (100, 100)])
     """
 
     x1: float = 0.0
@@ -785,10 +785,10 @@ class RadialGradient:
         extend: Whether to extend the gradient beyond its defined radius.
 
     Examples:
-        >>> from simetri.graphics.common import PointType
-        >>> gradient = RadialGradient(50, 50, 30,
+        >>> import simetri.graphics as sg
+        >>> gradient = sg.RadialGradient(50, 50, 30,
         ...                         [Color(1, 1, 1), Color(0, 0, 0)],
-        ...                         [PointType(50, 50), PointType(80, 50)])
+        ...                         [(50, 50), (80, 50)])
     """
 
     x: float = 0.0

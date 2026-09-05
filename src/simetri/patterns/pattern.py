@@ -7,10 +7,9 @@ appends transforms rather than baking them into the kernel.
 
 Examples:
     >>> import simetri.graphics as sg
-    >>> from math import pi
     >>> kernel = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
     >>> p = sg.Pattern(kernel)
-    >>> p.rotate(pi / 3, about=(0, 0), reps=5)
+    >>> p.rotate(sg.pi / 3, about=(0, 0), reps=5)
 """
 
 from collections.abc import Callable
