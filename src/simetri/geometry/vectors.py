@@ -766,7 +766,7 @@ def vec_along_line(line: LineType, magnitude: float) -> VecType:
     Returns:
         VecType: Vector along the line with the given magnitude.
     """
-    from .geom_utils import line_angle
+    from .segments.line_utils import line_angle
 
     if line == axis_x:
         dx, dy = magnitude, 0

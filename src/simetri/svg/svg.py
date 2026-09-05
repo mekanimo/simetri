@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from ..canvas.style_map import marker_style_map
 from ..colors.colors import black, check_color, white
-from ..geometry.geom_utils import homogenize
+from ..geometry.homogenize import homogenize
 from ..core.all_enums import (
     MarkerType,
     Types,

@@ -6,6 +6,8 @@ from strenum import enum
 from typing import Any
 
 from numpy import ndarray
+
+from simetri.geometry.points.point_utils import is_point
 from ..core import all_enums
 from ..graphics import __version__
 from ..core.all_enums import *
@@ -551,3 +553,46 @@ def warn_unknown_kwargs(
         f"{context}: unrecognized keyword argument(s): {', '.join(unknown)}",
         stacklevel=stacklevel,
     )
+
+
+def is_number(x: Any) -> bool:
+    """
+    Return True if x is a number.
+
+    Args:
+        x (Any): The input value to check.
+
+    Returns:
+        bool: True if x is a number, False otherwise.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.is_number(3.5)
+        True
+        >>> sg.is_number(True)
+        False
+    """
+    return isinstance(x, (int, float, complex)) and not isinstance(x, bool)
+
+
+def is_line(line_: Any) -> bool:
+    """Return True if the input is a line.
+
+    Args:
+        line_ (Any): Input value.
+
+    Returns:
+        bool: True if the input is a line, False otherwise.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.is_line([(0, 0), (1, 1)])
+        True
+        >>> sg.is_line((0, 0))
+        False
+    """
+    try:
+        p1, p2 = line_
+        return is_point(p1) and is_point(p2)
+    except:
+        return False

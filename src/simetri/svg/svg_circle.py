@@ -6,6 +6,10 @@ SVG ``A`` path commands.
 
 import math
 
+from simetri.geometry.vectors import distance
+
+import numpy as np
+
 
 def circle_intersections(circ1, circ2):
     """Return intersection points of two circles.
@@ -353,3 +357,22 @@ arcs = [
 ]
 for arc in arcs:
     print(f' <path d="{arc}" style="fill: none; stroke:black"/>')
+
+
+def invert(p, center, radius):
+    """Inverts p about a circle at the given center and radius
+
+    Args:
+        p (PointType): PointType to invert.
+        center (PointType): Center of the circle.
+        radius (float): Radius of the circle.
+
+    Returns:
+        PointType: Inverted point.
+    """
+    dist = distance(p, center)
+    if dist == 0:
+        return p
+    p = np.array(p)
+    center = np.array(center)
+    return center + (radius**2 / dist**2) * (p - center)

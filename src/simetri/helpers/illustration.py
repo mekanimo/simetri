@@ -16,15 +16,14 @@ from PIL import ImageFont
 from ..canvas.style_map import TagStyle, shape_style_map, tag_style_map
 from ..colors import colors
 from ..colors.swatches import swatches_255
+from ..geometry.geometry import bbox_overlap
 from ..geometry.nonlinear.ellipse import Arc
-from ..geometry.geom_utils import (
-    bbox_overlap,
-    distance,
-    line_angle,
-    midpoint,
+from ..geometry.geometry import (
     polar_to_cartesian,
 )
-from ..geometry.geometry import extended_line, line_by_point_angle_length
+from ..geometry.segments.line_utils import line_by_point_angle_length
+from ..geometry.points.point_utils import distance, midpoint
+from ..geometry.segments.line_utils import extended_line, line_angle
 from ..geometry.vectors import Vector, perp_unit_vector, v_from_points
 from ..geometry.affine import identity_matrix
 from ..core.all_enums import (

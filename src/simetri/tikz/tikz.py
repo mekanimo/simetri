@@ -16,7 +16,7 @@ from ..canvas.pre_render import (
     set_styles,
     style_properties,
 )
-from ..geometry.geom_utils import homogenize
+from ..geometry.homogenize import homogenize
 from ..core.all_enums import (
     Anchor,
     BackStyle,

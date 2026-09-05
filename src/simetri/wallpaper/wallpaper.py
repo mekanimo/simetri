@@ -15,8 +15,8 @@ Examples:
 
 from math import cos, pi, sqrt
 
-from ..geometry.geom_utils import midpoint
-from ..geometry.geometry import line_through_point_and_angle
+from ..geometry.points.point_utils import midpoint
+from ..geometry.segments.line_utils import line_through_point_and_angle
 from ..group.batch import Group
 from ..core.common import LineType, PointType, VecType
 from ..graphics.shape import Shape

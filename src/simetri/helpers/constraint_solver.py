@@ -6,10 +6,12 @@ from dataclasses import dataclass
 
 from simetri.geometry.nonlinear.circle import Circle_ as Circle
 
-from ..geometry.geom_utils import distance, is_line, direction
-from ..geometry.geometry import angle_between_two_lines, point_to_line_distance
+from ..geometry.points.point_utils import direction, point_to_line_distance
+from ..geometry.segments.line_utils import angle_between_two_lines
 from ..core.all_enums import ConstraintType as ConstType
+from ..geometry.points.point_utils import distance
 from ..helpers.vector import Vector2D
+from .validation import is_line
 
 
 @dataclass

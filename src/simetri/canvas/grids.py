@@ -5,15 +5,15 @@ from math import cos, isclose, pi, sin, sqrt
 from typing import Sequence
 
 from ..colors.colors import gray
+from ..geometry.geometry import polar_to_cartesian
 from ..geometry.nonlinear.circle import Circle
-from ..geometry.geom_utils import (
+from ..geometry.geometry import (
     cartesian_to_polar,
-    distance,
-    intersect,
-    polar_to_cartesian,
 )
-from ..geometry.geometry import lerp_point
+from ..geometry.points.point_utils import lerp_point
 from ..core.all_enums import GridType, Types
+from ..geometry.points.point_utils import distance
+from ..geometry.segments.line_utils import intersect
 from ..group.batch import Group
 from ..core.common import PointType
 from ..graphics.shape import Shape

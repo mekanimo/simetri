@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from ..group.batch import Group
 
-from ..geometry.geometry import line_by_point_angle_length as get_pos
+from ..geometry.segments.line_utils import line_by_point_angle_length as get_pos
 
 
 @dataclass

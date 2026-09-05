@@ -9,8 +9,9 @@ Examples:
 
 from math import cos, pi, sin, sqrt, tan
 
-from ..geometry.geom_utils import distance, intersect
+from ..geometry.segments.line_utils import intersect
 from ..core.all_enums import Types
+from ..geometry.points.point_utils import distance
 from ..group.batch import Group
 from ..core.common import LineType, axis_x
 from ..graphics.shape import Shape

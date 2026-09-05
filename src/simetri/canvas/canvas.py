@@ -23,7 +23,7 @@ import numpy as np
 from simetri.canvas import draw
 from simetri.canvas.style_map import canvas_args, get_draw_valid_kwargs
 from simetri.colors.colors import Color
-from simetri.geometry.geom_utils import homogenize
+from simetri.geometry.homogenize import homogenize
 from simetri.geometry.affine import (
     identity_matrix,
     rotation_matrix,

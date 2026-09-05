@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from ..colors.colors import Color, check_color
-from ..geometry.geom_utils import close_points2
+from ..geometry.points.point_utils import close_points2
 from ..core.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
 from ..helpers.illustration import (
     prepare_shape_index_labels,

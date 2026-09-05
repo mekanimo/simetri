@@ -7,7 +7,7 @@ import numpy as np
 
 import simetri.graphics as sg
 
-from ..geometry.geom_utils import close_points2, round_point
+from ..geometry.points.point_utils import close_points2
 from ..core.all_enums import (
     Align,
     Anchor,
@@ -21,6 +21,7 @@ from ..core.all_enums import (
     Types,
     get_enum_value,
 )
+from ..geometry.points.point_utils import round_point
 from ..helpers.illustration import (
     label_halo_color,
     label_halo_stroke_width,

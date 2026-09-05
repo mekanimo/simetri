@@ -20,17 +20,13 @@ from numpy import isclose
 
 from ..canvas.style_map import shape_style_map
 from ..colors import colors
+from ..geometry.points.point_utils import close_points2, distance, round_point
 from ..geometry.polygons.convex_hull import convex_hull
-from ..geometry.geom_utils import (
-    close_points2,
+from ..geometry.geometry import (
     connected_pairs,
-    distance,
-    get_polygons,
-    intersection2,
-    right_handed,
-    round_point,
 )
-from ..geometry.geometry import equal_lines, lerp_point
+from ..geometry.points.point_utils import lerp_point
+from ..geometry.polygons.poly import get_polygons
 from ..geometry.polygons.polygon import (
     double_offset_polygons,
     double_offset_polylines,
@@ -42,6 +38,8 @@ from ..geometry.polygons.polygon import (
     polygon_internal_angles,
 )
 from ..core.all_enums import Connection, Types
+from ..geometry.polygons.polygon_utils import right_handed
+from ..geometry.segments.line_utils import equal_lines, intersection2
 from ..group.batch import Group
 from ..core.common import d_id_obj, get_defaults
 from ..graphics.shape import Shape, custom_attributes

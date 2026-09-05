@@ -13,16 +13,15 @@ from ..canvas.style_map import (
 from ..colors import colors
 from ..colors.colors import Color, change_lightness
 from ..colors.palettes import d_name_palette
+from ..geometry.homogenize import homogenize
 from ..geometry.nonlinear.bezier import bezier_points
+from ..geometry.points.point_utils import midpoint
 from ..geometry.polygons.convex_hull import convex_hull
 from ..geometry.nonlinear.ellipse import elliptic_arc_points
-from ..geometry.geom_utils import (
-    homogenize,
+from ..geometry.segments.line_utils import (
     inclination_angle,
-    intersect,
-    midpoint,
 )
-from ..geometry.geometry import intersection
+from ..geometry.segments.line_utils import intersection
 from ..geometry.polygons.polygon import offset_polygon
 from ..geometry.affine import (
     identity_matrix,
@@ -41,6 +40,7 @@ from ..core.all_enums import (
     Types,
     drawable_types,
 )
+from ..geometry.segments.line_utils import intersect
 from ..group.batch import Group
 from ..core.common import PointType, d_id_obj
 from ..geometry.nonlinear.path import lin_path_svg
