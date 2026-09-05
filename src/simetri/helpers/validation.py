@@ -6,8 +6,9 @@ from strenum import enum
 from typing import Any
 
 from numpy import ndarray
-from ..graphics import all_enums, __version__
-from ..graphics.all_enums import *
+from ..core import all_enums
+from ..graphics import __version__
+from ..core.all_enums import *
 from ..colors.colors import Color
 
 
@@ -386,7 +387,7 @@ def is_gradient(value):
         bool: True if ``value`` is a gradient.
     """
     # Fix this import!!!!
-    from ..graphics.mask import Gradient
+    from ..canvas.mask import Gradient
 
     return isinstance(value, Gradient)
 

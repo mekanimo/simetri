@@ -1,6 +1,6 @@
 """Shared helper utilities for SVG rendering modules."""
 
-from ..graphics.all_enums import Extent
+from ..core.all_enums import Extent
 from .svg_mask import has_mask_style
 from .svg_sketch_utils import sketch_attrib
 

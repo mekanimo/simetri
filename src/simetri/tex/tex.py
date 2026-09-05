@@ -18,7 +18,7 @@ from simetri.canvas.pre_render import (
     collect_tikz_preamble_requirements,
     label_halo_preamble_line,
 )
-from simetri.graphics.all_enums import TexLoc, Types
+from simetri.core.all_enums import TexLoc, Types
 from simetri.helpers.utilities import *
 from simetri.settings.settings import defaults
 from simetri.tikz.tikz import (
@@ -368,9 +368,7 @@ class Tex:
             font_size = defaults["index_font_size"]
             if isinstance(font_size, (int, float)):
                 baseline = ceil(float(font_size) * 1.2)
-                font_spec = (
-                    f"\\{font_family}\\fontsize{{{font_size}}}{{{baseline}}}\\selectfont"
-                )
+                font_spec = f"\\{font_family}\\fontsize{{{font_size}}}{{{baseline}}}\\selectfont"
             else:
                 font_spec = f"\\{font_family}\\{font_size}"
             count = 0

@@ -21,8 +21,13 @@ import numpy as np
 from numpy import array, ndarray
 from PIL import ImageFont
 
-from ..graphics.common import LineType, PointType, get_defaults
-from ..settings.settings import _print_options, defaults, defaults_help, issue_warning
+from ..core.common import LineType, PointType, get_defaults
+from ..settings.settings import (
+    _print_options,
+    defaults,
+    defaults_help,
+    issue_warning,
+)
 
 
 @contextmanager
@@ -790,7 +795,11 @@ def help(obj):
 
     if not isinstance(obj, (bytes, int, float, bool, complex)):
         cls = type(obj)
-        if cls is not type and not inspect.isroutine(obj) and not inspect.ismodule(obj):
+        if (
+            cls is not type
+            and not inspect.isroutine(obj)
+            and not inspect.ismodule(obj)
+        ):
             mod = getattr(cls, "__module__", "")
             if mod != "builtins":
                 return _class_help(cls)

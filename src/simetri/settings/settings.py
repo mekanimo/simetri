@@ -200,7 +200,7 @@ def set_defaults():
     Call once at import time; users should prefer assigning through
     ``defaults[key] = value`` rather than editing this function.
     """
-    from ..graphics.all_enums import (
+    from ..core.all_enums import (
         Anchor,
         BackStyle,
         BlendMode,
@@ -2219,7 +2219,7 @@ svg_defaults = defaultdict(str)
 def set_tikz_defaults():
     """Register TikZ-specific default style values in ``tikz_defaults``."""
     from ..colors import colors
-    from ..graphics.all_enums import LineCap, LineJoin, BlendMode
+    from ..core.all_enums import LineCap, LineJoin, BlendMode
 
     tikz_defaults.update(
         {
@@ -2247,7 +2247,7 @@ def set_tikz_defaults():
 def set_svg_defaults():
     """Register SVG-specific default style values in ``svg_defaults``."""
     from ..colors import colors
-    from ..graphics.all_enums import LineCap, LineJoin, BlendMode
+    from ..core.all_enums import LineCap, LineJoin, BlendMode
 
     svg_defaults.update(
         {

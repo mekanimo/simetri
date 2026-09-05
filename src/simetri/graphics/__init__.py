@@ -47,10 +47,10 @@ from functools import lru_cache as memoize
 from numpy import linspace, arange, array, zeros, ones, full, eye, diag
 
 from ..helpers.utilities import *
-from .core import *
+from ..core.core import *
 from ..frieze import frieze
 from ..settings.settings import *
-from ..graphics.common import *
+from ..core.common import *
 
 
 set_defaults()
@@ -68,19 +68,19 @@ from ..extensions.l_system import l_system
 from ..extensions.tree import TreeNode, make_tree
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..frieze.frieze_patterns import *
-from ..geometry.bezier import *
-from ..geometry.circle import *
+from ..geometry.nonlinear.bezier import *
+from ..geometry.nonlinear.circle import *
 from ..geometry.collection import *
-from ..geometry.convex_hull import convex_hull
-from ..geometry.ellipse import *
+from ..geometry.polygons.convex_hull import convex_hull
+from ..geometry.nonlinear.ellipse import *
 from ..geometry.geom_utils import *
 from ..geometry.geometry import *
-from ..geometry.hobby import *
-from ..geometry.lattice import *
-from ..geometry.polygon import *
-from ..geometry.sine import *
+from ..geometry.nonlinear.hobby import *
+from ..patterns.lattice import *
+from ..geometry.polygons.polygon import *
+from ..geometry.nonlinear.sine import *
 from ..geometry.vectors import *
-from ..graphics.all_enums import *
+from ..core.all_enums import *
 from ..graphics.shape import (
     Clipping,
     all_segments,
@@ -90,11 +90,11 @@ from ..graphics.shape import (
     polygon_intersection,
     polygon_xor,
 )
-from ..graphics.shapes import *
+from ..shapes.shapes import *
 
 # Preserve geometric Line class on public namespace.
-from ..graphics.shapes import Line as Line
-from ..graphics.sketch import *
+from ..shapes.shapes import Line as Line
+from ..canvas.sketch import *
 from ..helpers.box_solver import push_boxes_apart, Box
 from ..helpers.constraint_solver import Constraint, solve
 from ..helpers.illustration import *
@@ -108,12 +108,12 @@ from ..svg.filters import *
 from ..svg.svg import *
 from ..tikz.tikz import *
 from ..wallpaper import wallpaper
-from .affine import *
-from .batch import *
-from .dots import *
-from .mask import Gradient, Mask, Stop
-from .path import Operation, Path2D
-from .pattern import *
+from ..geometry.affine import *
+from ..group.batch import *
+from ..shapes.dots import *
+from ..canvas.mask import Gradient, Mask, Stop
+from ..geometry.nonlinear.path import Operation, Path2D
+from ..patterns.pattern import *
 
 
 set_tikz_defaults()

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 from ..colors.colors import Color, check_color
 from ..geometry.geom_utils import close_points2
-from ..graphics.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
+from ..core.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
 from ..helpers.illustration import (
     prepare_shape_index_labels,
     prepare_shape_vertex_coord_labels,

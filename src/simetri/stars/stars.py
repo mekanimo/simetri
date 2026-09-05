@@ -10,9 +10,9 @@ Examples:
 from math import cos, pi, sin, sqrt, tan
 
 from ..geometry.geom_utils import distance, intersect
-from ..graphics.all_enums import Types
-from ..graphics.batch import Group
-from ..graphics.common import LineType, axis_x
+from ..core.all_enums import Types
+from ..group.batch import Group
+from ..core.common import LineType, axis_x
 from ..graphics.shape import Shape
 
 

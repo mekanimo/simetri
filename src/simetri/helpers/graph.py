@@ -6,8 +6,8 @@ from dataclasses import dataclass
 import networkx as nx
 
 from ..geometry.geom_utils import close_points2, distance
-from ..graphics.all_enums import Types
-from ..graphics.common import PointType
+from ..core.all_enums import Types
+from ..core.common import PointType
 from ..settings.settings import defaults
 
 

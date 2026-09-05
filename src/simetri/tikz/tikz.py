@@ -17,7 +17,7 @@ from ..canvas.pre_render import (
     style_properties,
 )
 from ..geometry.geom_utils import homogenize
-from ..graphics.all_enums import (
+from ..core.all_enums import (
     Anchor,
     BackStyle,
     Extent,
@@ -26,8 +26,8 @@ from ..graphics.all_enums import (
     TexLoc,
     Types,
 )
-from ..graphics.bbox import bounding_box
-from ..graphics.points import Points
+from ..geometry.bbox import bounding_box
+from ..shapes.points import Points
 from ..graphics.shape import Shape
 from ..settings.settings import defaults, issue_warning
 from . import tikz_sketch as tikz_sketch_module

@@ -16,9 +16,9 @@ from dataclasses import dataclass
 import enum
 
 from ..settings.settings import defaults, default_types
-from ..graphics.common import VOID
-from ..graphics.mask import Gradient
-from ..graphics.all_enums import (
+from ..core.common import VOID
+from .mask import Gradient
+from ..core.all_enums import (
     Align,
     Anchor,
     BackStyle,

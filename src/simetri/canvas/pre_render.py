@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import copy
 
-from simetri.graphics.all_enums import (
+from simetri.core.all_enums import (
     BackStyle,
     FrameShape,
     MarkerType,
@@ -37,8 +37,8 @@ from simetri.graphics.all_enums import (
     LineCap,
     LineJoin,
 )
-from simetri.graphics.sketch import ScopeGroup
-from simetri.graphics.common import d_id_obj
+from simetri.canvas.sketch import ScopeGroup
+from simetri.core.common import d_id_obj
 from simetri.colors.colors import black, white
 
 

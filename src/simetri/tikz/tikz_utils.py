@@ -8,7 +8,7 @@ import simetri.graphics as sg
 
 from ..canvas.style_map import line_style_map, marker_style_map, shape_style_map
 from ..colors.colors import Color, check_color
-from ..graphics.all_enums import (
+from ..core.all_enums import (
     BackStyle,
     LineDashArray,
     LineWidth,
@@ -16,7 +16,7 @@ from ..graphics.all_enums import (
     Types,
 )
 from ..graphics.shape import Shape
-from ..graphics.sketch import ShapeSketch, TagSketch
+from ..canvas.sketch import ShapeSketch, TagSketch
 from ..settings.settings import defaults, tikz_defaults
 
 axis_shading_types = [

@@ -8,7 +8,7 @@ import numpy as np
 import simetri.graphics as sg
 
 from ..geometry.geom_utils import close_points2, round_point
-from ..graphics.all_enums import (
+from ..core.all_enums import (
     Align,
     Anchor,
     BackStyle,
@@ -853,11 +853,13 @@ def draw_shape_sketch(sketch, ind=None, canvas=None, exceptions=None):
     elif sketch.subtype in d_subtype_draw:
         res = d_subtype_draw[sketch.subtype](sketch, exceptions=exceptions)
     elif (
-        hasattr(sketch, "draw_markers")
-        and sketch.draw_markers
-        and sketch.marker_type == MarkerType.INDICES
-    ) or (hasattr(sketch, "indices") and sketch.indices) or (
-        hasattr(sketch, "show_vertex_coords") and sketch.show_vertex_coords
+        (
+            hasattr(sketch, "draw_markers")
+            and sketch.draw_markers
+            and sketch.marker_type == MarkerType.INDICES
+        )
+        or (hasattr(sketch, "indices") and sketch.indices)
+        or (hasattr(sketch, "show_vertex_coords") and sketch.show_vertex_coords)
     ):
         res = draw_shape_sketch_with_indices(sketch, ind, exceptions=exceptions)
     elif (

@@ -1,5 +1,4 @@
-"""Low-level SVG path utilities (rounding, offsets, Path2D conversion).
-"""
+"""Low-level SVG path utilities (rounding, offsets, Path2D conversion)."""
 
 import math
 import re
@@ -7,13 +6,13 @@ from math import acos, cos, degrees, pi, radians, sin, sqrt
 
 import numpy as np
 
-from ..geometry.polygon import (
+from ..geometry.polygons.polygon import (
     double_offset_polygons,
 )
-from ..geometry.polygon import double_offset_polylines, offset_polygon
-from ..graphics.all_enums import PathOperation as PathOps
-from ..graphics.common import PointType
-from ..graphics.path import Path2D
+from ..geometry.polygons.polygon import double_offset_polylines, offset_polygon
+from ..core.all_enums import PathOperation as PathOps
+from ..core.common import PointType
+from ..geometry.nonlinear.path import Path2D
 
 
 # Helper to format floats to avoid excessive precision in SVG
@@ -384,7 +383,7 @@ def convert_svg_arc(
 
 def svg_path_to_linpath(svg_path: str) -> "Path2D":
     """Given an SVG path returns the equivalent Path2D object."""
-    from ..graphics.path import Path2D
+    from ..geometry.nonlinear.path import Path2D
 
     if not svg_path:
         return Path2D()

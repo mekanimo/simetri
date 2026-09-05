@@ -2,13 +2,18 @@
 
 from math import ceil
 
-from ..graphics.batch import Group
+from ..group.batch import Group
 from ..graphics.shape import Shape
 from .turtle_sg import Turtle
 
 
 def l_system(
-    rules: dict, axiom: str, angle: float, dist: float, n: int, d_actions: dict = None
+    rules: dict,
+    axiom: str,
+    angle: float,
+    dist: float,
+    n: int,
+    d_actions: dict = None,
 ):
     """Generate a Lindenmayer system (L-system) using the given rules.
 

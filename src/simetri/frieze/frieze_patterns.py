@@ -15,14 +15,14 @@ Examples:
 from math import pi
 from dataclasses import dataclass
 
-from ..graphics.pattern import ReferenceDef, PatternDef, TransformDef
-from ..graphics.all_enums import (
+from ..patterns.pattern import ReferenceDef, PatternDef, TransformDef
+from ..core.all_enums import (
     TransformationType,
     ReferenceTarget,
     Reference,
     Types,
 )
-from ..graphics.common import PointType
+from ..core.common import PointType
 
 
 @dataclass

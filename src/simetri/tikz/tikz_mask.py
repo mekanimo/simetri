@@ -12,11 +12,11 @@ from typing import TYPE_CHECKING
 
 from ..canvas import draw as canvas_draw
 from ..colors.colors import Color
-from ..graphics.all_enums import TexLoc, Types
-from ..graphics.batch import Group
-from ..graphics.mask import Mask, Stop
+from ..core.all_enums import TexLoc, Types
+from ..group.batch import Group
+from ..canvas.mask import Mask, Stop
 from ..graphics.shape import Shape
-from ..graphics.sketch import MaskSketch
+from ..canvas.sketch import MaskSketch
 from .tikz_sketch import TexSketch
 from .tikz_utils import get_clip_code
 

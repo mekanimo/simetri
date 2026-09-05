@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-from ..graphics.all_enums import ColorMatrix, FilterType
+from ..core.all_enums import ColorMatrix, FilterType
 from ..settings.settings import defaults
 
 Number = int | float
@@ -239,6 +239,7 @@ class FilterPrimitive(SVGElement):
 @dataclass
 class feBlend(FilterPrimitive):
     """SVG ``<feBlend>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.BLEND
     in2: str | None = None
     mode: str | None = None  # normal|multiply|screen|darken|lighten|...
@@ -262,6 +263,7 @@ class feBlend(FilterPrimitive):
 @dataclass
 class feColorMatrix(FilterPrimitive):
     """SVG ``<feColorMatrix>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.COLOR_MATRIX
     matrix_type: ColorMatrix | None = None
     values: MaybeSeq | None = None
@@ -329,30 +331,35 @@ class feFunc(SVGElement):
 @dataclass
 class feFuncR(feFunc):
     """Transfer function for the red channel (``<feFuncR>``)."""
+
     TAG: str = "feFuncR"
 
 
 @dataclass
 class feFuncG(feFunc):
     """Transfer function for the green channel (``<feFuncG>``)."""
+
     TAG: str = "feFuncG"
 
 
 @dataclass
 class feFuncB(feFunc):
     """Transfer function for the blue channel (``<feFuncB>``)."""
+
     TAG: str = "feFuncB"
 
 
 @dataclass
 class feFuncA(feFunc):
     """Transfer function for the alpha channel (``<feFuncA>``)."""
+
     TAG: str = "feFuncA"
 
 
 @dataclass
 class feComponentTransfer(FilterPrimitive):
     """SVG ``<feComponentTransfer>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.COMPONENT_TRANSFER
     funcR: feFuncR | None = None
     funcG: feFuncG | None = None
@@ -379,6 +386,7 @@ class feComponentTransfer(FilterPrimitive):
 @dataclass
 class feComposite(FilterPrimitive):
     """SVG ``<feComposite>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.COMPOSITE
     in2: str | None = None
     operator: str | None = None  # over|in|out|atop|xor|arithmetic
@@ -410,6 +418,7 @@ class feComposite(FilterPrimitive):
 @dataclass
 class feConvolveMatrix(FilterPrimitive):
     """SVG ``<feConvolveMatrix>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.CONVOLVE_MATRIX
     order: int | tuple[int, int] | None = None
     kernelMatrix: MaybeSeq | None = None
@@ -461,6 +470,7 @@ class feConvolveMatrix(FilterPrimitive):
 @dataclass
 class feDistantLight(SVGElement):
     """SVG ``<feDistantLight>`` light source."""
+
     azimuth: Number | None = None
     elevation: Number | None = None
 
@@ -480,6 +490,7 @@ class feDistantLight(SVGElement):
 @dataclass
 class fePointLight(SVGElement):
     """SVG ``<fePointLight>`` light source."""
+
     x: Number | None = None
     y: Number | None = None
     z: Number | None = None
@@ -501,6 +512,7 @@ class fePointLight(SVGElement):
 @dataclass
 class feSpotLight(SVGElement):
     """SVG ``<feSpotLight>`` light source."""
+
     x: Number | None = None
     y: Number | None = None
     z: Number | None = None
@@ -535,6 +547,7 @@ class feSpotLight(SVGElement):
 @dataclass
 class feDiffuseLighting(FilterPrimitive):
     """SVG ``<feDiffuseLighting>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.DIFFUSE_LIGHTING
     surfaceScale: Number | None = None
     diffuseConstant: Number | None = None
@@ -577,6 +590,7 @@ class feDiffuseLighting(FilterPrimitive):
 @dataclass
 class feDisplacementMap(FilterPrimitive):
     """SVG ``<feDisplacementMap>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.DISPLACEMENT_MAP
     in2: str | None = None
     scale: Number | None = None
@@ -604,6 +618,7 @@ class feDisplacementMap(FilterPrimitive):
 @dataclass
 class feDropShadow(FilterPrimitive):
     """SVG ``<feDropShadow>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.DROP_SHADOW
     dx: Number | None = None
     dy: Number | None = None
@@ -640,6 +655,7 @@ class feDropShadow(FilterPrimitive):
 @dataclass
 class feFlood(FilterPrimitive):
     """SVG ``<feFlood>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.FLOOD
     flood_color: str | None = None
     flood_opacity: Number | None = None
@@ -664,6 +680,7 @@ class feFlood(FilterPrimitive):
 @dataclass
 class feGaussianBlur(FilterPrimitive):
     """SVG ``<feGaussianBlur>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.GAUSSIAN_BLUR
     stdDeviation: Number | tuple[Number, Number] | None = None
     edgeMode: str | None = None  # duplicate|wrap|none
@@ -694,6 +711,7 @@ class feGaussianBlur(FilterPrimitive):
 @dataclass
 class feImage(FilterPrimitive):
     """SVG ``<feImage>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.IMAGE
     href: str | None = None  # SVG2
     xlink_href: str | None = None  # legacy
@@ -722,6 +740,7 @@ class feImage(FilterPrimitive):
 @dataclass
 class feMergeNode(SVGElement):
     """SVG ``<feMergeNode>`` child of ``<feMerge>``."""
+
     in_: str | None = None
 
     def to_element(self) -> ET.Element:
@@ -739,6 +758,7 @@ class feMergeNode(SVGElement):
 @dataclass
 class feMerge(FilterPrimitive):
     """SVG ``<feMerge>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.MERGE
     nodes: list[feMergeNode] = field(default_factory=list)
 
@@ -773,6 +793,7 @@ class feMerge(FilterPrimitive):
 @dataclass
 class feMorphology(FilterPrimitive):
     """SVG ``<feMorphology>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.MORPHOLOGY
     operator: str | None = None  # erode|dilate
     radius: Number | tuple[Number, Number] | None = None
@@ -799,6 +820,7 @@ class feMorphology(FilterPrimitive):
 @dataclass
 class feOffset(FilterPrimitive):
     """SVG ``<feOffset>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.OFFSET
     dx: Number | None = None
     dy: Number | None = None
@@ -822,6 +844,7 @@ class feOffset(FilterPrimitive):
 @dataclass
 class feSpecularLighting(FilterPrimitive):
     """SVG ``<feSpecularLighting>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.SPECULAR_LIGHTING
     surfaceScale: Number | None = None
     specularConstant: Number | None = None
@@ -866,6 +889,7 @@ class feSpecularLighting(FilterPrimitive):
 @dataclass
 class feTile(FilterPrimitive):
     """SVG ``<feTile>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.TILE
 
     def to_element(self) -> ET.Element:
@@ -885,6 +909,7 @@ class feTile(FilterPrimitive):
 @dataclass
 class feTurbulence(FilterPrimitive):
     """SVG ``<feTurbulence>`` filter primitive."""
+
     primitive_type: ClassVar[FilterType] = FilterType.TURBULENCE
     baseFrequency: Number | tuple[Number, Number] | None = None
     numOctaves: int | None = None

@@ -17,8 +17,8 @@ from math import cos, pi, sqrt
 
 from ..geometry.geom_utils import midpoint
 from ..geometry.geometry import line_through_point_and_angle
-from ..graphics.batch import Group
-from ..graphics.common import LineType, PointType, VecType
+from ..group.batch import Group
+from ..core.common import LineType, PointType, VecType
 from ..graphics.shape import Shape
 from ..helpers.illustration import Tag
 

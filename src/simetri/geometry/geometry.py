@@ -44,9 +44,9 @@ from ..geometry.geom_utils import (
     midpoint,
     positive_angle,
 )
-from ..graphics.affine import rotate_point
-from ..graphics.all_enums import Connection, Types
-from ..graphics.common import (
+from .affine import rotate_point
+from ..core.all_enums import Connection, Types
+from ..core.common import (
     LineType,
     PointType,
     VecType,
@@ -257,6 +257,7 @@ def sorted_edges(polygon):
     Returns:
         list: Oriented and sorted edges ``[(p1, p2), ...]``.
     """
+
     # order the edges:increasing x coordinates then increasing y coordinates for the start points
     # this is used for line sweep algorithm to check if the polygon is simple
     def get_edges(polygon):
@@ -289,7 +290,9 @@ def sorted_edges(polygon):
     edges = get_edges(polygon)
     oriented_edges = []
     for edge in edges:
-        if edge[0][0] > edge[1][0]:
+        start_x, start_y = edge[0][:2]
+        end_x, end_y = edge[1][:2]
+        if start_x > end_x or (start_x == end_x and start_y > end_y):
             oriented_edges.append((edge[1], edge[0]))
         else:
             oriented_edges.append(edge)
@@ -360,7 +363,7 @@ def is_simple(polygon):
                         continue
                     res = intersection(e, edge)
 
-                    if res == Connection.INTERSECT:
+                    if res[0] == Connection.INTERSECT:
                         return False
                 queue.append(edge)
             elif p == tuple(edge[1]):
@@ -1424,6 +1427,7 @@ def on_segment(a, b, p, eps=1e-12):
     Returns:
         bool: True if ``p`` is collinear with ``ab`` and inside its bbox.
     """
+
     # check collinear + within bbox
     def cross(ax, ay, bx, by):
         return ax * by - ay * bx

@@ -30,11 +30,11 @@ from typing import Sequence
 
 import numpy as np
 
-from ..graphics.common import PointType
-from ..graphics.all_enums import ColorSpace, Types
+from ..core.common import PointType
+from ..core.all_enums import ColorSpace, Types
 
 
-def get_lighter(rgb255_color1:Sequence, rgb255_color2:Sequence):
+def get_lighter(rgb255_color1: Sequence, rgb255_color2: Sequence):
     """Return the lighter of two RGB-255 colors.
 
     Args:
@@ -51,7 +51,8 @@ def get_lighter(rgb255_color1:Sequence, rgb255_color2:Sequence):
 
     return rgb255_color1
 
-def get_lightest(rgb255_palette:Sequence):
+
+def get_lightest(rgb255_palette: Sequence):
     """Return the lightest color in an RGB-255 palette.
 
     Args:
@@ -65,6 +66,7 @@ def get_lightest(rgb255_palette:Sequence):
         lightest = get_lighter(color, lightest)
 
     return lightest
+
 
 def change_hue(color: "Color", delta: float) -> "Color":
     """Changes the hue of a color by a specified delta value.
@@ -248,12 +250,12 @@ class Color:
     green: int = 0
     blue: int = 0
     alpha: int = 1
-    hex_val: str = ''
+    hex_val: str = ""
     space: ColorSpace = "rgb"  # for future use
 
     def __post_init__(self):
         """Post-initialization to ensure color values are in the correct range."""
-        if self.hex_val != '':
+        if self.hex_val != "":
             r, g, b = hex_to_rgb(self.hex_val)
             self.red = r
             self.green = g
@@ -730,6 +732,7 @@ def show_swatch(rgb255_palette, name="", size=None):
         hex_palette.swatchplot(figsize=size)
     else:
         hex_palette.swatchplot()
+
 
 @dataclass
 class LinearGradient:
@@ -1675,7 +1678,11 @@ sienna = Color(0.663, 0.337, 0.118)
 silver = Color(0.773, 0.788, 0.78)
 sky = Color(0.51, 0.792, 0.988)
 
-_named_colors = {k: v for k, v in globals().items() if isinstance(v, Color) and not k.startswith("_")}
+_named_colors = {
+    k: v
+    for k, v in globals().items()
+    if isinstance(v, Color) and not k.startswith("_")
+}
 sky_blue = Color(0.459, 0.733, 0.992)
 slate = Color(0.318, 0.396, 0.447)
 slate_blue = Color(0.357, 0.486, 0.6)

@@ -5,7 +5,7 @@ from math import cos, isclose, pi, sin, sqrt
 from typing import Sequence
 
 from ..colors.colors import gray
-from ..geometry.circle import Circle
+from ..geometry.nonlinear.circle import Circle
 from ..geometry.geom_utils import (
     cartesian_to_polar,
     distance,
@@ -13,9 +13,9 @@ from ..geometry.geom_utils import (
     polar_to_cartesian,
 )
 from ..geometry.geometry import lerp_point
-from ..graphics.all_enums import GridType, Types
-from ..graphics.batch import Group
-from ..graphics.common import PointType
+from ..core.all_enums import GridType, Types
+from ..group.batch import Group
+from ..core.common import PointType
 from ..graphics.shape import Shape
 from ..helpers.utilities import reg_poly_points
 

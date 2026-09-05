@@ -13,9 +13,9 @@ from ..canvas.style_map import (
 from ..colors import colors
 from ..colors.colors import Color, change_lightness
 from ..colors.palettes import d_name_palette
-from ..geometry.bezier import bezier_points
-from ..geometry.convex_hull import convex_hull
-from ..geometry.ellipse import elliptic_arc_points
+from ..geometry.nonlinear.bezier import bezier_points
+from ..geometry.polygons.convex_hull import convex_hull
+from ..geometry.nonlinear.ellipse import elliptic_arc_points
 from ..geometry.geom_utils import (
     homogenize,
     inclination_angle,
@@ -23,13 +23,13 @@ from ..geometry.geom_utils import (
     midpoint,
 )
 from ..geometry.geometry import intersection
-from ..geometry.polygon import offset_polygon
-from ..graphics.affine import (
+from ..geometry.polygons.polygon import offset_polygon
+from ..geometry.affine import (
     identity_matrix,
     rotation_matrix,
     translation_matrix,
 )
-from ..graphics.all_enums import (
+from ..core.all_enums import (
     Anchor,
     BackStyle,
     Connection,
@@ -41,11 +41,11 @@ from ..graphics.all_enums import (
     Types,
     drawable_types,
 )
-from ..graphics.batch import Group
-from ..graphics.common import PointType, d_id_obj
-from ..graphics.path import lin_path_svg
+from ..group.batch import Group
+from ..core.common import PointType, d_id_obj
+from ..geometry.nonlinear.path import lin_path_svg
 from ..graphics.shape import Shape, all_segments
-from ..graphics.sketch import (
+from .sketch import (
     ArcSketch,
     BezierSketch,
     CircleSketch,

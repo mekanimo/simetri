@@ -12,16 +12,16 @@ from typing import Any
 
 from PIL import Image as PIL_Image
 
-from ..graphics.affine import (
+from ..geometry.affine import (
     identity_matrix,
     rotation_matrix,
     scale_in_place_matrix,
     translation_matrix,
 )
-from ..graphics.all_enums import Anchor, ImageMode, Types
-from ..graphics.batch import Group
-from ..graphics.common import PointType
-from ..graphics.shapes import Rectangle
+from ..core.all_enums import Anchor, ImageMode, Types
+from ..group.batch import Group
+from ..core.common import PointType
+from ..shapes.shapes import Rectangle
 from ..helpers.utilities import decompose_transformations
 
 

@@ -14,8 +14,8 @@ from collections.abc import Sequence
 from math import pi
 
 from ..geometry.vectors import point_to_line_vec, vec_along_line
-from ..graphics.batch import Group
-from ..graphics.common import LineType, PointType, VecType
+from ..group.batch import Group
+from ..core.common import LineType, PointType, VecType
 from ..graphics.shape import Shape
 
 

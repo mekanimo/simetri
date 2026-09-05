@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from math import acos, atan2, cos, hypot, sin, sqrt
 from numbers import Real
 
-from ..graphics.common import LineType, PointType, VecType, axis_x, axis_y
+from ..core.common import LineType, PointType, VecType, axis_x, axis_y
 from ..helpers.validation import check_position
 from ..settings.settings import issue_warning
 

@@ -9,7 +9,7 @@ from math import pi, radians
 from typing import Sequence, Any
 from dataclasses import dataclass
 
-from ..graphics.batch import Group
+from ..group.batch import Group
 
 from ..geometry.geometry import line_by_point_angle_length as get_pos
 
@@ -45,7 +45,9 @@ class Turtle(Group):
         >>> t.forward(40)
     """
 
-    def __init__(self, *args: Any, in_degrees: bool = False, **kwargs: Any) -> None:
+    def __init__(
+        self, *args: Any, in_degrees: bool = False, **kwargs: Any
+    ) -> None:
         self.pos = (0, 0)
         self.stack = []
         self.lists = []

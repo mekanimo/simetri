@@ -24,14 +24,14 @@ from simetri.canvas import draw
 from simetri.canvas.style_map import canvas_args, get_draw_valid_kwargs
 from simetri.colors.colors import Color
 from simetri.geometry.geom_utils import homogenize
-from simetri.graphics.affine import (
+from simetri.geometry.affine import (
     identity_matrix,
     rotation_matrix,
     scale_in_place_matrix,
     scale_matrix,
     translation_matrix,
 )
-from simetri.graphics.all_enums import (
+from simetri.core.all_enums import (
     Align,
     Anchor,
     Axis,
@@ -40,16 +40,16 @@ from simetri.graphics.all_enums import (
     TexLoc,
     Types,
 )
-from simetri.graphics.batch import Group
-from simetri.graphics.bbox import bounding_box
-from simetri.graphics.common import (
+from simetri.group.batch import Group
+from simetri.geometry.bbox import bounding_box
+from simetri.core.common import (
     VOID,
     PointType,
     VecType,
     _set_Nones,
 )
 from simetri.graphics.shape import Shape
-from simetri.graphics.sketch import MaskedSketch
+from simetri.canvas.sketch import MaskedSketch
 from simetri.helpers.file_operations import validate_filepath
 from simetri.helpers.illustration import logo
 from simetri.helpers.utilities import (

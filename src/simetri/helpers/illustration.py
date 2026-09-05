@@ -16,7 +16,7 @@ from PIL import ImageFont
 from ..canvas.style_map import TagStyle, shape_style_map, tag_style_map
 from ..colors import colors
 from ..colors.swatches import swatches_255
-from ..geometry.ellipse import Arc
+from ..geometry.nonlinear.ellipse import Arc
 from ..geometry.geom_utils import (
     bbox_overlap,
     distance,
@@ -26,8 +26,8 @@ from ..geometry.geom_utils import (
 )
 from ..geometry.geometry import extended_line, line_by_point_angle_length
 from ..geometry.vectors import Vector, perp_unit_vector, v_from_points
-from ..graphics.affine import identity_matrix
-from ..graphics.all_enums import (
+from ..geometry.affine import identity_matrix
+from ..core.all_enums import (
     Align,
     Anchor,
     ArrowLine,
@@ -39,19 +39,19 @@ from ..graphics.all_enums import (
     Placement,
     Types,
 )
-from ..graphics.batch import Group
-from ..graphics.bbox import bounding_box
-from ..graphics.common import (
+from ..group.batch import Group
+from ..geometry.bbox import bounding_box
+from ..core.common import (
     PointType,
     _set_Nones,
     get_defaults,
 )
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
-from ..graphics.core import Base, StyleMixin
-from ..graphics.points import Points
+from ..core.core import Base, StyleMixin
+from ..shapes.points import Points
 from ..graphics.shape import Shape
-from ..graphics.shapes import reg_poly_points_side_length
+from ..shapes.shapes import reg_poly_points_side_length
 from ..settings.settings import defaults
 from .label_overlap import LabelRect, resolve_all_overlaps
 from .utilities import get_transform
@@ -1665,7 +1665,7 @@ class Dimension(Group):
 
 def vert_label_layout(shape, offset):
     """Return label anchor, outward direction, and vertex for each vertex."""
-    from simetri.geometry.polygon import in_polygon
+    from simetri.geometry.polygons.polygon import in_polygon
 
     vertices = list(shape.vertices)
 
@@ -1854,7 +1854,7 @@ def _vertices_on_hull_points(
     hull_pts: Sequence | None = None,
 ) -> list[int]:
     """Return vertex indices that lie on the given or computed convex hull."""
-    from ..geometry.convex_hull import convex_hull
+    from ..geometry.polygons.convex_hull import convex_hull
 
     verts = [tuple(v[:2]) for v in vertices]
     if len(verts) <= 1:
@@ -2113,7 +2113,7 @@ def edge_label_positions(shape, offset):
     Returns:
         list: Label positions for each edge.
     """
-    from simetri.geometry.polygon import in_polygon
+    from simetri.geometry.polygons.polygon import in_polygon
 
     vertices = list(shape.vertices)
     count = len(vertices)
@@ -2148,7 +2148,7 @@ def edge_label_positions(shape, offset):
 def edge_label_pos(shape, index, offset=10):
     """Returns the position of the edge label using the given
     edge index and label offset."""
-    from simetri.geometry.polygon import in_polygon
+    from simetri.geometry.polygons.polygon import in_polygon
 
     vertices = shape.vertices
     count = len(vertices)

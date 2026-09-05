@@ -11,12 +11,12 @@ from typing import TYPE_CHECKING
 from ..canvas.style_map import marker_style_map
 from ..colors.colors import black, check_color, white
 from ..geometry.geom_utils import homogenize
-from ..graphics.all_enums import (
+from ..core.all_enums import (
     MarkerType,
     Types,
 )
-from ..graphics.bbox import bounding_box
-from ..graphics.sketch import MaskSketch
+from ..geometry.bbox import bounding_box
+from ..canvas.sketch import MaskSketch
 from ..tikz.tikz_utils import sg_to_tikz
 from . import svg_sketch_utils as svg_sketch_utils_module
 from .filters import SVG_Filter
@@ -200,9 +200,13 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
         elif subtype == Types.PATH_SKETCH:
             code = draw_path_sketch(sketch, exceptions=suppressed_style_keys)
         elif (
-            draw_markers
-            and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
-        ) or indices or show_vertex_coords:
+            (
+                draw_markers
+                and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
+            )
+            or indices
+            or show_vertex_coords
+        ):
             code = draw_shape_sketch_with_indices(
                 sketch, exceptions=suppressed_style_keys
             )

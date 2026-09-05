@@ -5,8 +5,8 @@ from PIL import ImageFont
 
 from ..canvas.pre_render import set_styles
 from ..colors.colors import Color
-from ..graphics.all_enums import FontFamily, MarkerType, Types
-from ..graphics.bbox import bounding_box
+from ..core.all_enums import FontFamily, MarkerType, Types
+from ..geometry.bbox import bounding_box
 from ..settings.settings import defaults, issue_warning
 from .svg_colors import color_to_svg
 

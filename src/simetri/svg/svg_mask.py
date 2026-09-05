@@ -3,8 +3,8 @@
 import numpy as np
 
 from ..colors.colors import Color
-from ..graphics.all_enums import SvgMaskType, SvgUnits, Types
-from ..graphics.bbox import bounding_box
+from ..core.all_enums import SvgMaskType, SvgUnits, Types
+from ..geometry.bbox import bounding_box
 from ..settings.settings import defaults
 from .svg_colors import color_to_svg
 from .svg_sketch_utils import get_coordinates, get_shape_type, sketch_attrib

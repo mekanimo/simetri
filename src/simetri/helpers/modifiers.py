@@ -8,7 +8,7 @@ Examples:
 import inspect
 from random import choice, random
 
-from ..graphics.all_enums import Control, State
+from ..core.all_enums import Control, State
 
 
 class Modifier:

@@ -20,7 +20,7 @@ from numpy import isclose
 
 from ..canvas.style_map import shape_style_map
 from ..colors import colors
-from ..geometry.convex_hull import convex_hull
+from ..geometry.polygons.convex_hull import convex_hull
 from ..geometry.geom_utils import (
     close_points2,
     connected_pairs,
@@ -31,7 +31,7 @@ from ..geometry.geom_utils import (
     round_point,
 )
 from ..geometry.geometry import equal_lines, lerp_point
-from ..geometry.polygon import (
+from ..geometry.polygons.polygon import (
     double_offset_polygons,
     double_offset_polylines,
     offset_polygon,
@@ -41,11 +41,11 @@ from ..geometry.polygon import (
     polygon_cg,
     polygon_internal_angles,
 )
-from ..graphics.all_enums import Connection, Types
-from ..graphics.batch import Group
-from ..graphics.common import d_id_obj, get_defaults
+from ..core.all_enums import Connection, Types
+from ..group.batch import Group
+from ..core.common import d_id_obj, get_defaults
 from ..graphics.shape import Shape, custom_attributes
-from ..graphics.shapes import fillet_shape_corners
+from ..shapes.shapes import fillet_shape_corners
 from ..helpers.graph import get_cycles
 from ..helpers.utilities import flatten, group_into_bins
 from ..helpers.validation import validate_args
