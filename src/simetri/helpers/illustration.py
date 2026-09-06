@@ -260,13 +260,13 @@ def label_halo_color():
 
 def label_halo_stroke_width(font_size_pt: float) -> float:
     """SVG halo stroke width / TikZ ``\\contourlength`` in points."""
-    scale = float(defaults.get("label_halo_width_scale", 0.14))
+    scale = float(defaults["label_halo_width_scale"])
     return max(0.2, font_size_pt * scale)
 
 
 def label_halo_scale() -> float:
     """Legacy scale factor (SVG/TikZ use stroke width / contour length instead)."""
-    return float(defaults.get("label_halo_scale", 1.14))
+    return float(defaults["label_halo_scale"])
 
 
 def svg_label_paint_attrs(fill_color, font_size_pt: float) -> str:
@@ -780,8 +780,13 @@ class Tag(Base, StyleMixin):
     def b_box(self):
         """Returns the bounding box of the text.
 
+        Horizontal placement matches SVG/TikZ tag framing: west/east anchors
+        first, otherwise ``align`` (default LEFT is left-edged at ``pos``),
+        otherwise centered on ``pos``. Vertical extent is centered on ``pos``
+        (``dominant-baseline="middle"``).
+
         Returns:
-            tuple: The bounding box of the text.
+            BoundingBox: Axis-aligned box including ``frame.inner_sep``.
         """
         xmin, ymin, xmax, ymax = self.text_bounds()
         text_width = xmax - xmin
@@ -793,26 +798,31 @@ class Tag(Base, StyleMixin):
         h2 = text_height / 2
         x, y = self.pos[:2]
         inner_sep = self.frame.inner_sep
+        effective_anchor = (
+            self.anchor if self.anchor is not None else defaults["anchor"]
+        )
         effective_align = (
             self.align if self.align is not None else defaults["tag_align"]
         )
 
-        if self.anchor in (Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST):
+        if effective_anchor in (
+            Anchor.WEST,
+            Anchor.SOUTHWEST,
+            Anchor.NORTHWEST,
+        ):
             xmin = x - inner_sep
             xmax = x + text_width + inner_sep
-        elif self.anchor in [Anchor.EAST, Anchor.SOUTHEAST, Anchor.NORTHEAST]:
+        elif effective_anchor in (
+            Anchor.EAST,
+            Anchor.SOUTHEAST,
+            Anchor.NORTHEAST,
+        ):
             xmin = x - text_width - inner_sep
             xmax = x + inner_sep
-        elif self.anchor in (None, defaults["anchor"]) and effective_align in (
-            Align.LEFT,
-            Align.FLUSH_LEFT,
-        ):
+        elif effective_align in (Align.LEFT, Align.FLUSH_LEFT):
             xmin = x - inner_sep
             xmax = x + text_width + inner_sep
-        elif self.anchor in (None, defaults["anchor"]) and effective_align in (
-            Align.RIGHT,
-            Align.FLUSH_RIGHT,
-        ):
+        elif effective_align in (Align.RIGHT, Align.FLUSH_RIGHT):
             xmin = x - text_width - inner_sep
             xmax = x + inner_sep
         else:
@@ -1710,46 +1720,32 @@ def vert_label_layout(shape, offset):
     return layout
 
 
-# Rule-of-thumb centered label boxes (width, height) in pt at reference font size.
-_INDEX_LABEL_BBOX_TIERS = {
-    1: (6, 7),
-    2: (9, 7),
-    3: (12, 8),
-}
-_INDEX_LABEL_BBOX_DEFAULT = (8, 7)
-
-_VERTEX_COORD_LABEL_BBOX_TIERS = {
-    14: (22, 7),
-    20: (30, 7),
-    26: (38, 8),
-    32: (46, 8),
-}
-_VERTEX_COORD_LABEL_BBOX_DEFAULT = (52, 9)
+# Rule-of-thumb tiers replaced by Tag.text_bounds (Pillow glyph bbox).
 
 
-def _tier_label_bbox(
-    text: str,
-    tiers: dict[int, tuple[float, float]],
-    default_size: tuple[float, float],
-    font_size_pt: float,
-    ref_font_pt: float,
+def _label_size_from_tag_text_bounds(
+    text: str, font_size_pt: float
 ) -> tuple[float, float]:
-    length = len(text)
-    width, height = default_size
-    for max_len, size in sorted(tiers.items()):
-        if length <= max_len:
-            width, height = size
-            break
-    if ref_font_pt <= 0:
-        return width, height
-    scale = font_size_pt / ref_font_pt
-    return width * scale, height * scale
+    """Return ``(width, height)`` from ``Tag.text_bounds`` (no frame padding).
+
+    Uses a centered Tag with ``inner_sep=0`` so the size matches the Pillow
+    ink box used by successful overlap resolution experiments.
+    """
+    tag = Tag(
+        str(text),
+        pos=(0.0, 0.0),
+        font_size=font_size_pt,
+        align=Align.CENTER,
+    )
+    tag.frame.inner_sep = 0
+    xmin, ymin, xmax, ymax = tag.text_bounds()
+    return xmax - xmin, ymax - ymin
 
 
 def estimate_index_label_bbox(
     label, font_size_pt: float
 ) -> tuple[float, float]:
-    """Estimate width/height for an index label including halo padding.
+    """Width/height for an index label from ``Tag.text_bounds``.
 
     Args:
         label: Index label value (converted with ``str``).
@@ -1758,22 +1754,13 @@ def estimate_index_label_bbox(
     Returns:
         tuple[float, float]: ``(width, height)`` of the label box.
     """
-    ref = default_font_size_pt("index_font_size")
-    width, height = _tier_label_bbox(
-        str(label),
-        _INDEX_LABEL_BBOX_TIERS,
-        _INDEX_LABEL_BBOX_DEFAULT,
-        font_size_pt,
-        ref,
-    )
-    halo = label_halo_stroke_width(font_size_pt)
-    return width + 2 * halo, height + 2 * halo
+    return _label_size_from_tag_text_bounds(str(label), font_size_pt)
 
 
 def estimate_vertex_coord_label_bbox(
     text: str, font_size_pt: float
 ) -> tuple[float, float]:
-    """Estimate width/height for a vertex coordinate label including halo.
+    """Width/height for a vertex coordinate label from ``Tag.text_bounds``.
 
     Args:
         text (str): Coordinate label text.
@@ -1782,19 +1769,7 @@ def estimate_vertex_coord_label_bbox(
     Returns:
         tuple[float, float]: ``(width, height)`` of the label box.
     """
-    ref = default_font_size_pt("vertex_font_size")
-    tier_w, tier_h = _tier_label_bbox(
-        text,
-        _VERTEX_COORD_LABEL_BBOX_TIERS,
-        _VERTEX_COORD_LABEL_BBOX_DEFAULT,
-        font_size_pt,
-        ref,
-    )
-    char_w = float(defaults.get("vertices_label_bbox_char_width", 0.55))
-    width = max(tier_w, len(text) * font_size_pt * char_w)
-    height = max(tier_h, font_size_pt * 1.15)
-    halo = label_halo_stroke_width(font_size_pt)
-    return width + 2 * halo, height + 2 * halo
+    return _label_size_from_tag_text_bounds(text, font_size_pt)
 
 
 def _centered_label_bbox(
@@ -1864,7 +1839,7 @@ def _vertices_on_hull_points(
     else:
         hull_pts = [tuple(p[:2]) for p in hull_pts]
 
-    ndigits = int(defaults.get("n_vert_digits", 1))
+    ndigits = int(defaults["n_vert_digits"])
     tol = 1e-6
     indices: list[int] = []
     for i, (vx, vy) in enumerate(verts):
@@ -2036,12 +2011,9 @@ def resolve_page_vertex_labels(sketches) -> None:
     for sketch in label_sketches:
         all_rects.extend(_build_shape_label_rects(sketch))
 
-    if (
-        defaults.get("vertices_label_avoid_overlap", True)
-        and len(all_rects) > 1
-    ):
-        gap = float(defaults.get("vertices_label_overlap_gap", 1.0))
-        max_iters = int(defaults.get("vertices_label_overlap_max_iters", 2))
+    if defaults["vertices_label_avoid_overlap"] and len(all_rects) > 1:
+        gap = float(defaults["vertices_label_overlap_gap"])
+        max_iters = int(defaults["vertices_label_overlap_max_iters"])
         debug = any(bool(getattr(s, "debug", False)) for s in label_sketches)
         if debug:
             print(

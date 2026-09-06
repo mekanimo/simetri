@@ -313,13 +313,21 @@ def draw_tag_sketch(sketch):
     font_style = "italic" if sketch_attrib(sketch, "italic") else "normal"
     text_anchor = "middle"  # Default for centered text
 
-    # Handle anchor positioning
+    # Resolve text-anchor from anchor, then align (align wins), before framing.
     anchor = sketch_attrib(sketch, "anchor")
     if anchor:
         if anchor in (Anchor.WEST, Anchor.SOUTHWEST, Anchor.NORTHWEST):
             text_anchor = "start"
         elif anchor in [Anchor.EAST, Anchor.SOUTHEAST, Anchor.NORTHEAST]:
             text_anchor = "end"
+
+    align = sketch_attrib(sketch, "align")
+    if align in (Align.LEFT, Align.FLUSH_LEFT):
+        text_anchor = "start"
+    elif align in (Align.RIGHT, Align.FLUSH_RIGHT):
+        text_anchor = "end"
+    elif align in (Align.CENTER, Align.FLUSH_CENTER):
+        text_anchor = "middle"
 
     # Draw frame if needed
     if sketch_attrib(sketch, "draw_frame"):
@@ -344,11 +352,20 @@ def draw_tag_sketch(sketch):
         if minimum_width and text_width < minimum_width:
             text_width = minimum_width
 
-        # Add padding
+        # Add padding; place frame to match text-anchor (same rule as Tag.b_box).
         bbox_width = text_width + 2 * inner_sep
         bbox_height = text_height + 2 * inner_sep
-        bbox_x = x - bbox_width / 2
+        if text_anchor == "start":
+            bbox_x = x - inner_sep
+            frame_cx = bbox_x + bbox_width / 2
+        elif text_anchor == "end":
+            bbox_x = x - text_width - inner_sep
+            frame_cx = bbox_x + bbox_width / 2
+        else:
+            bbox_x = x - bbox_width / 2
+            frame_cx = x
         bbox_y = y - bbox_height / 2
+        frame_cy = y
 
         if isinstance(fill_color, Color):
             fill_color = color_to_svg(fill_color)
@@ -359,14 +376,14 @@ def draw_tag_sketch(sketch):
         if frame_shape == FrameShape.CIRCLE:
             radius = max(bbox_width, bbox_height) / 2
             elements.append(
-                f'<circle cx="{x}" cy="{y}" r="{radius}" '
+                f'<circle cx="{frame_cx}" cy="{frame_cy}" r="{radius}" '
                 f'fill="{fill_color}" stroke="{stroke_color}" stroke-width="{stroke_width}" />'
             )
         elif frame_shape == FrameShape.ELLIPSE:
             rx = bbox_width / 2
             ry = bbox_height / 2
             elements.append(
-                f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="{ry}" '
+                f'<ellipse cx="{frame_cx}" cy="{frame_cy}" rx="{rx}" ry="{ry}" '
                 f'fill="{fill_color}" stroke="{stroke_color}" stroke-width="{stroke_width}" />'
             )
         else:  # RECTANGLE or other shapes default to rectangle
@@ -384,16 +401,8 @@ def draw_tag_sketch(sketch):
     if sketch_attrib(sketch, "small_caps"):
         text_decoration = 'font-variant="small-caps" '
 
-    align = sketch_attrib(sketch, "align")
-    if align in (Align.LEFT, Align.FLUSH_LEFT):
-        text_anchor = "start"
-    elif align in (Align.RIGHT, Align.FLUSH_RIGHT):
-        text_anchor = "end"
-    elif align in (Align.CENTER, Align.FLUSH_CENTER):
-        text_anchor = "middle"
-
-    text_width = sketch_attrib(sketch, "text_width")
     text_width_attr = ""
+    text_width = sketch_attrib(sketch, "text_width")
     if text_width:
         text_width_attr = f'textLength="{text_width}" '
 

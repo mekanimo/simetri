@@ -1482,6 +1482,11 @@ def extend_vertices(canvas, item):
     elif item.subtype == Types.GROUP:
         for element in item:
             extend_vertices(canvas, element)
+    elif item.subtype == Types.FIGURE:
+        if getattr(item, "draw_geometry", True) and item.geometry is not None:
+            extend_vertices(canvas, item.geometry)
+        if getattr(item, "draw_skin", True) and item.skin is not None:
+            extend_vertices(canvas, item.skin)
     else:
         corners = [
             x[:2]
@@ -1561,6 +1566,11 @@ def draw(self, item: Shape | Group, **kwargs) -> Self:
         active_sketches.append(create_sketch(item.line, self, **kwargs))
     elif subtype == Types.LACE:
         self.draw_lace(item, **kwargs)
+    elif subtype == Types.FIGURE:
+        if getattr(item, "draw_geometry", True) and item.geometry is not None:
+            draw(self, item.geometry, **kwargs)
+        if getattr(item, "draw_skin", True) and item.skin is not None:
+            draw(self, item.skin)
     elif subtype == Types.BOUNDING_BOX:
         draw_bbox(self, item, **kwargs)
     elif subtype == Types.CLIPPING:
