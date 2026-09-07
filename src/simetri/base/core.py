@@ -18,7 +18,7 @@ from math import hypot
 from typing import Any, Self
 
 import numpy as np
-from numpy import ndarray
+from numpy.typing import NDArray
 
 from ..render.style_map import shape_args
 from ..geom.affine import (
@@ -51,7 +51,7 @@ STYLE_ATTRIBUTES = set(shape_args)
 
 
 def _update_inplace(
-    xform_matrix: "ndarray",
+    xform_matrix: NDArray,
     xform_type: TransformationType,
     incr: float
     | tuple[float, float]
@@ -594,7 +594,7 @@ class Base:
 
     def transform(
         self,
-        transform_matrix: ndarray,
+        transform_matrix: NDArray,
         reps: int = 0,
         take: slice | None = None,
         merge: bool = False,

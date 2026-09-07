@@ -39,6 +39,20 @@ class Lines:
         start_points: Points | Sequence[PointType] = None,
         end_points: Points | Sequence[PointType] = None,
     ) -> Self:
+        """Initialize lines from pairs, interleaved points, or start/end sequences.
+
+        Provide exactly one of ``point_pairs``, ``points``, or both
+        ``start_points`` and ``end_points``.
+
+        Args:
+            point_pairs: Sequence of ``(start, end)`` point pairs.
+            points: Interleaved endpoints ``[s0, e0, s1, e1, ...]``.
+            start_points: Segment start points (with ``end_points``).
+            end_points: Segment end points (with ``start_points``).
+
+        Raises:
+            ValueError: If start and end sequences differ in length.
+        """
         if point_pairs:
             self.start_points = Points([p[0] for p in point_pairs])
             self.end_points = Points([p[1] for p in point_pairs])
@@ -191,6 +205,11 @@ class Lines:
         return homogenize(self.points)
 
     def homogenize(self):
+        """Return homogeneous coordinate arrays for starts and ends.
+
+        Returns:
+            Tuple of ``(start_homogen_coords, end_homogen_coords)``.
+        """
         return (
             self.start_points.homogen_coords,
             self.end_points.homogen_coords,

@@ -1,9 +1,24 @@
+"""Generate free, fixed, and chiral polyominoes as cell centers or Figures."""
+
 import simetri.geom.polygons.polygon_utils
 import simetri.graphics as sg
 from simetri.shapes.figure import Figure
 
 
 def generate_centers(n, polyo_type="free"):
+    """Return all n-omino cell-center sets for the given equivalence type.
+
+    Args:
+        n: Number of unit squares in each polyomino.
+        polyo_type: One of ``"fixed"``, ``"free"``, or ``"chiral"``.
+
+    Returns:
+        List of polyominoes, each a list of ``(x, y)`` integer cell centers
+        normalized so the minimum coordinates are at the origin.
+
+    Raises:
+        ValueError: If ``polyo_type`` is not a supported value.
+    """
     if n <= 0:
         return []
 
@@ -81,6 +96,18 @@ def generate_centers(n, polyo_type="free"):
 
 
 def iter_centers(n, polyo_type="free"):
+    """Yield n-omino cell-center sets one at a time.
+
+    Args:
+        n: Number of unit squares in each polyomino.
+        polyo_type: One of ``"fixed"``, ``"free"``, or ``"chiral"``.
+
+    Yields:
+        Lists of ``(x, y)`` integer cell centers for each distinct n-omino.
+
+    Raises:
+        ValueError: If ``polyo_type`` is not a supported value.
+    """
     if n <= 0:
         return
 
@@ -149,6 +176,19 @@ def iter_centers(n, polyo_type="free"):
 
 
 def iter_polyominoes(n, polyo_type="free", size=20):
+    """Yield ``Figure`` objects for each distinct n-omino.
+
+    Each figure has merged-outline ``geometry`` and a non-filled unit-square
+    ``skin``.
+
+    Args:
+        n: Number of unit squares in each polyomino.
+        polyo_type: One of ``"fixed"``, ``"free"``, or ``"chiral"``.
+        size: Side length of each unit square in points.
+
+    Yields:
+        ``Figure`` instances positioned with cells on a ``size`` grid.
+    """
     res = iter_centers(n=n, polyo_type=polyo_type)
 
     unit = sg.square((0, 0), size)

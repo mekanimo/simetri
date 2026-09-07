@@ -1,4 +1,4 @@
-"""Polygon related utility functions."""
+"""Polygon utilities: area, winding, simplicity, and related helpers."""
 
 from collections.abc import Sequence
 from math import isclose, pi, sin

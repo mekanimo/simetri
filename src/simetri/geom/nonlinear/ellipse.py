@@ -5,6 +5,7 @@ from copy import deepcopy
 from math import atan2, ceil, cos, isclose, pi, sin, sqrt
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ...render.style_map import shape_style_map
 from ..affine import rotate_point, rotation_matrix
@@ -52,7 +53,7 @@ class Arc(Shape):
         span_angle: float = pi / 2,
         rot_angle: float = 0,
         n_points: int = None,
-        xform_matrix: "ndarray" = None,
+        xform_matrix: NDArray = None,
         **kwargs,
     ):
         """Create a circular or elliptic arc.
@@ -242,7 +243,7 @@ class Ellipse(Shape):
         width: float,
         height: float,
         angle: float = 0,
-        xform_matrix: "ndarray" = None,
+        xform_matrix: NDArray = None,
         **kwargs,
     ) -> None:
         """Create an ellipse.
@@ -487,7 +488,7 @@ def ellipse_points(
     b: float,
     angle: float,
     n_points: int = None,
-) -> np.ndarray:
+) -> NDArray:
     """Generate points on an ellipse.
     These are generated from the parametric equations of the ellipse.
     They are not evenly spaced.

@@ -21,6 +21,7 @@ from types import FunctionType
 from typing import Any, Self
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ..render.style_map import ShapeStyle, shape_args, shape_style_map
 from ..geom.points.point_utils import offset_point
@@ -56,7 +57,7 @@ class Transform:
         take: Optional slice for selective application.
     """
 
-    xform_matrix: "ndarray"
+    xform_matrix: NDArray
     reps: int = 0
     incr: (
         float
@@ -124,10 +125,11 @@ class Transform:
         self._partitions = partition_list
 
     def update(self):
+        """Recompute ``partitions`` and ``composite`` from the current matrix."""
         self._update()
 
     @property
-    def xform_matrix(self) -> "ndarray":
+    def xform_matrix(self) -> NDArray:
         """
         Returns the transformation matrix.
 
@@ -138,7 +140,15 @@ class Transform:
         return self._xform_matrix
 
     @xform_matrix.setter
-    def xform_matrix(self, value: "ndarray"):
+    def xform_matrix(self, value: NDArray):
+        """Set the base transform matrix and refresh partitions.
+
+        Args:
+            value: 3x3 affine matrix as a NumPy array.
+
+        Raises:
+            ValueError: If ``value`` is not a NumPy array.
+        """
         if not isinstance(value, np.ndarray):
             raise ValueError("xform_matrix must be a numpy array")
         self._xform_matrix = value
@@ -159,6 +169,11 @@ class Transform:
 
     @partitions.setter
     def partitions(self, value: list):
+        """Reject direct assignment; partitions are derived via ``update``.
+
+        Raises:
+            AttributeError: Always, to prevent direct setting.
+        """
         raise AttributeError(
             (
                 "Cannot set partitions directly. "
@@ -167,7 +182,7 @@ class Transform:
         )
 
     @property
-    def composite(self) -> "ndarray":
+    def composite(self) -> NDArray:
         """
         Returns the compound transformation matrix.
 
@@ -180,7 +195,12 @@ class Transform:
         return self._composite
 
     @composite.setter
-    def composite(self, value: "ndarray"):
+    def composite(self, value: NDArray):
+        """Reject direct assignment; composite is derived via ``update``.
+
+        Raises:
+            AttributeError: Always, to prevent direct setting.
+        """
         raise AttributeError(
             (
                 "Cannot set composition directly. "
@@ -297,7 +317,12 @@ class Transformation:
         return np.concatenate(res, axis=1)
 
     @composite.setter
-    def composite(self, value: "ndarray"):
+    def composite(self, value: NDArray):
+        """Reject direct assignment; composite is derived from components.
+
+        Raises:
+            AttributeError: Always, to prevent direct setting.
+        """
         raise AttributeError(
             (
                 "Cannot set composition directly. "
@@ -388,14 +413,15 @@ class Pattern(Group, StyleMixin):
         self.kernel.closed = value
 
     @property
-    def composite(self) -> "ndarray":
+    def composite(self) -> NDArray:
+        """Return the pattern's composite transform from ``transformation``."""
         return self.transformation.composite
 
     def __bool__(self):
         return bool(self.kernel)
 
     @property
-    def all_vertices(self) -> "ndarray":
+    def all_vertices(self) -> NDArray:
         """
         Returns flat (x, y) coordinates for all shapes in the pattern.
 
@@ -593,7 +619,7 @@ class Pattern(Group, StyleMixin):
 
         return self
 
-    def transform(self, transform_matrix: "ndarray", reps: int = 0) -> Self:
+    def transform(self, transform_matrix: NDArray, reps: int = 0) -> Self:
         """
         Transforms the pattern by the given transformation matrix.
 
@@ -656,6 +682,17 @@ class Pattern(Group, StyleMixin):
 
 @dataclass
 class ReferenceDef:
+    """Deferred reference to a kernel/pattern anchor for pattern transforms.
+
+    Attributes:
+        reference: Bounding-box or named reference (e.g. ``Reference.BOTTOM``).
+        target: Whether the reference is taken from kernel, pattern, or default.
+        offset: Scalar offset for lines or ``(dx, dy)`` for points.
+        multiplier: Optional scale applied to the resolved value.
+        modifier: Optional callable applied after resolution.
+        kwargs: Extra keyword arguments for modifiers.
+    """
+
     reference: Reference  # Bounding-box references
     target: ReferenceTarget | None = None  # kernel, pattern, or None
     offset: PointType | float = (
@@ -666,6 +703,7 @@ class ReferenceDef:
     kwargs: dict | None = None
 
     def copy(self):
+        """Return a shallow copy of this reference definition."""
         return ReferenceDef(
             reference=self.reference,
             target=self.target,
@@ -678,6 +716,18 @@ class ReferenceDef:
 
 @dataclass
 class TransformDef:
+    """Deferred transform step used by ``PatternDef.apply``.
+
+    Attributes:
+        type: Transformation kind (translate, rotate, mirror, glide, ...).
+        ref: Optional ``ReferenceDef`` for pivot/axis resolution.
+        args: Transform arguments (angle, distance, ``(dx, dy)``, etc.).
+        take: Optional slice selecting which elements to transform.
+        incr: Optional increment between repetitions.
+        reps: Number of repetitions.
+        modifier: Optional callable applied to the transform.
+    """
+
     type: TransformationType  # translation, rotation, ...
     ref: ReferenceDef
     args: ReferenceDef | PointType | float = None
@@ -687,6 +737,7 @@ class TransformDef:
     modifier: Callable = None
 
     def copy(self):
+        """Return a copy of this transform definition."""
         return TransformDef(
             type=self.type,
             ref=self.ref.copy() if self.ref is not None else None,
@@ -702,10 +753,25 @@ class TransformDef:
 
 @dataclass
 class PatternDef:
+    """Sequence of ``TransformDef`` steps that build a pattern ``Group``.
+
+    Attributes:
+        transform_defs: Ordered list of deferred transform steps.
+        modifier: Optional callable applied to the finished pattern.
+    """
+
     transform_defs: list[TransformDef]
     modifier: Callable = None
 
     def apply(self, kernel) -> Group:
+        """Apply transform defs to ``kernel`` and return a pattern ``Group``.
+
+        Args:
+            kernel: Seed shape or group to transform.
+
+        Returns:
+            Group containing the transformed copies.
+        """
         pattern = Group(kernel)
         for t_def in self.transform_defs:
             take = t_def.take
@@ -737,6 +803,16 @@ class PatternDef:
         return pattern
 
     def resolve_reference(self, reference_def, kernel, pattern):
+        """Resolve a ``ReferenceDef`` against ``kernel`` / ``pattern``.
+
+        Args:
+            reference_def: Reference definition or already-resolved value.
+            kernel: Seed object for ``ReferenceTarget.KERNEL``.
+            pattern: Growing pattern group for ``ReferenceTarget.PATTERN``.
+
+        Returns:
+            Resolved point, line, or numeric value.
+        """
         if not isinstance(reference_def, ReferenceDef):
             return reference_def
 
@@ -786,6 +862,16 @@ class PatternDef:
         return res
 
     def resolve_tuple(self, args, kernel, pattern):
+        """Resolve a 2-tuple argument (or ``ReferenceDef``) for transforms.
+
+        Args:
+            args: ``ReferenceDef``, ``(x, y)``, or callable pair.
+            kernel: Seed object used for nested resolution.
+            pattern: Pattern group used for nested resolution.
+
+        Returns:
+            Resolved ``(x, y)`` or other 2-value result.
+        """
         if isinstance(args, ReferenceDef):
             res = self.resolve_reference(args, kernel, pattern)
         elif isinstance(args, (tuple, List)):
@@ -800,6 +886,16 @@ class PatternDef:
         return res
 
     def resolve_value(self, value, kernel, pattern):
+        """Resolve a scalar/reference argument for a transform.
+
+        Args:
+            value: ``ReferenceDef``, callable, or literal value.
+            kernel: Seed object used for nested resolution.
+            pattern: Pattern group used for nested resolution.
+
+        Returns:
+            Resolved numeric or geometric value.
+        """
         if isinstance(value, ReferenceDef):
             res = self.resolve_reference(value, kernel, pattern)
         elif isinstance(value, FunctionType):
@@ -810,6 +906,7 @@ class PatternDef:
         return res
 
     def copy(self):
+        """Return a deep-enough copy of transform defs and modifier."""
         return PatternDef(
             transform_defs=[t_def.copy() for t_def in self.transform_defs],
             modifier=self.modifier,

@@ -1,23 +1,52 @@
-"""
-Doubly Connected Edge List (DCEL)
-Half-Edge Data Structure
-"""
+"""Doubly connected edge list (DCEL) / half-edge data structure helpers."""
 
 
 class Vertex:
+    """A 2D vertex in a DCEL, with one outgoing half-edge.
+
+    Attributes:
+        x: X coordinate.
+        y: Y coordinate.
+        half_edge: One outgoing half-edge from this vertex.
+    """
+
     def __init__(self, x, y):
+        """Create a vertex at ``(x, y)``.
+
+        Args:
+            x: X coordinate.
+            y: Y coordinate.
+        """
         self.x = x
         self.y = y
         self.half_edge = None  # One outgoing half-edge
 
 
 class Face:
+    """A face in a DCEL, referenced by one bounding half-edge.
+
+    Attributes:
+        half_edge: One half-edge on the face boundary.
+    """
+
     def __init__(self):
+        """Create an empty face with no half-edge yet."""
         self.half_edge = None  # One half-edge bounding this face
 
 
 class HalfEdge:
+    """Directed half-edge linking vertices, opposite edge, and face.
+
+    Attributes:
+        vertex: Destination vertex of this half-edge.
+        pair: Opposite half-edge.
+        next: Next half-edge around the face.
+        prev: Previous half-edge around the face.
+        face: Face on the left side of this half-edge.
+    """
+
     def __init__(self):
+        """Create an unlinked half-edge."""
         self.vertex = None  # Destination vertex
         self.pair = None  # Opposite half-edge
         self.next = None  # Next half-edge around the face
@@ -26,6 +55,14 @@ class HalfEdge:
 
 
 def get_face_vertices(face):
+    """Return origin coordinates walking around ``face``.
+
+    Args:
+        face: A ``Face`` whose ``half_edge`` cycle is complete.
+
+    Returns:
+        List of ``(x, y)`` origin vertices in boundary order.
+    """
     coords = []
     start_he = face.half_edge
     he = start_he
@@ -41,6 +78,11 @@ def get_face_vertices(face):
 
 
 def create_square_patch():
+    """Build a unit-square DCEL face for testing / illustration.
+
+    Returns:
+        Tuple ``(face, vertices)`` for the square ``[0,1] x [0,1]``.
+    """
     # 1. Create vertices
     v0 = Vertex(0.0, 0.0)
     v1 = Vertex(1.0, 0.0)

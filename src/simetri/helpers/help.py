@@ -1,4 +1,4 @@
-"""Help strings for sg.help(topic)."""
+"""Topic help text used by ``sg.help(topic)``."""
 
 # d_help_topic = {
 #     "help": """

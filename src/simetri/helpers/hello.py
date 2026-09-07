@@ -1,3 +1,5 @@
+"""Installation smoke-check helper that draws a short SVG greeting."""
+
 import tempfile
 import os
 
@@ -5,13 +7,12 @@ import simetri.graphics as sg
 
 
 def hello():
-    """Hello world function.
-    To check if the installation is successful, start a Python interpreter
-    in a terminal, then run:
-    >> import simetri.graphics as sg
-    >> sg.hello()
-    >>
-    You should see an svg file with a message.
+    """Draw a greeting SVG to verify the Simetri install works.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> # Opens a temporary SVG with a greeting (side-effecting).
+        >>> # sg.hello()
     """
 
     canvas = sg.Canvas()

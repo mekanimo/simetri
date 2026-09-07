@@ -1,6 +1,4 @@
-"""
-File operation utilities for the GUI.
-"""
+"""File-path and I/O helpers used by the GUI and exporters."""
 
 import os
 import subprocess

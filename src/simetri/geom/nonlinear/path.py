@@ -16,6 +16,7 @@ from math import acos, atan2, cos, degrees, pi, radians, sin, sqrt
 from typing import Any, Self
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ...coloring.colors import Color, black
 from ..homogenize import homogenize
@@ -1495,7 +1496,7 @@ class Path2D(Group):
 
     def _update(
         self,
-        xform_matrix: np.ndarray,
+        xform_matrix: NDArray,
         reps: int = 0,
         take: slice = None,
         incr: float = None,
@@ -1557,19 +1558,19 @@ class Path2D(Group):
         return res
 
 
-def _transform_path_point(point, xform_matrix: np.ndarray) -> PointType:
+def _transform_path_point(point, xform_matrix: NDArray) -> PointType:
     """Return ``point`` transformed by ``xform_matrix``."""
     transformed_point = homogenize([point]) @ xform_matrix
     return tuple(transformed_point[0][:2])
 
 
-def _transform_path_points(points, xform_matrix: np.ndarray):
+def _transform_path_points(points, xform_matrix: NDArray):
     """Return ``points`` transformed by ``xform_matrix``."""
     transformed_points = homogenize(points) @ xform_matrix
     return [tuple(point[:2]) for point in transformed_points.tolist()]
 
 
-def _transform_arc_data(data, xform_matrix: np.ndarray) -> tuple:
+def _transform_arc_data(data, xform_matrix: NDArray) -> tuple:
     """Return arc operation data transformed by ``xform_matrix``."""
     pos, _, rx, ry, start_angle, span_angle, rot_angle, points = data
     transformed_points = _transform_path_points(points, xform_matrix)
@@ -1614,7 +1615,7 @@ def _transform_arc_data(data, xform_matrix: np.ndarray) -> tuple:
 
 
 def _transform_path_operation(
-    operation: Operation | tuple, xform_matrix: np.ndarray
+    operation: Operation | tuple, xform_matrix: NDArray
 ):
     """Return a path operation with geometry transformed by ``xform_matrix``."""
     if isinstance(operation, tuple):

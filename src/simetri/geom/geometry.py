@@ -25,7 +25,7 @@ from math import (
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from numpy import around, array, ndarray
+from numpy import around, array
 from numpy.typing import NDArray
 
 from ..base.common import (

@@ -1,4 +1,4 @@
-"""Renderer-neutral style-pass helpers."""
+"""Renderer-neutral style-pass helpers for sketch styling."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Create and render tree structures."""
+"""Create hierarchical tree structures and render them as graphics."""
 
 import enum
 import os

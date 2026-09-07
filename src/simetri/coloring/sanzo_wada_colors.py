@@ -1,4 +1,4 @@
-"""Sanzo Wada Dictionary of Colors"""
+"""Sanzo Wada Dictionary of Color entries as ``Color`` dataclasses."""
 
 from dataclasses import dataclass
 from random import choice
@@ -6,6 +6,18 @@ from random import choice
 
 @dataclass
 class Color:
+    """One Sanzo Wada dictionary color with swatch and color-space fields.
+
+    Attributes:
+        name: Color name.
+        combinations: Related swatch/combination indices.
+        swatch: Swatch index.
+        cmyk: CMYK components.
+        lab: CIELAB components.
+        rgb: RGB components.
+        hex: Hex color string.
+    """
+
     name: str
     combinations: list
     swatch: int
@@ -1942,6 +1954,17 @@ for i in range(3):
 
 
 def randomSwatch2(nColors=4):
+    """Return a random Sanzo Wada swatch with ``nColors`` colors.
+
+    Args:
+        nColors: Number of colors in the swatch (2–4 inclusive).
+
+    Returns:
+        Selected swatch entry from the ``colored`` tables.
+
+    Raises:
+        ValueError: If ``nColors`` is outside 2–4.
+    """
     if 1 < nColors < 5:
         randSwatchIndexes = colored[nColors - 2].keys()
     else:

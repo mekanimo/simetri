@@ -209,6 +209,7 @@ class Intersection(Shape):
         endpoint: bool = False,
         **kwargs,
     ) -> None:
+        """Create an intersection at ``point`` between one or two divisions."""
         super().__init__(
             [point], xform_matrix=None, subtype=Types.INTERSECTION, **kwargs
         )
@@ -310,6 +311,7 @@ class Partition(Shape):
     """
 
     def __init__(self, points, **kwargs):
+        """Create a partition polygon from ``points`` (see class docstring)."""
         super().__init__(points, **kwargs)
         self.subtype = Types.PART
         self.area = polygon_area(self.vertices)
@@ -344,6 +346,7 @@ class Fragment(Shape):
     """
 
     def __init__(self, points, **kwargs):
+        """Create a fragment from ``points`` (see class docstring)."""
         super().__init__(points, **kwargs)
         self.subtype = Types.FRAGMENT
         self.sections = []
@@ -471,6 +474,7 @@ class Section(Shape):
         fragment: "Fragment" = None,
         **kwargs,
     ):
+        """Create a section between ``start`` and ``end`` intersections."""
         super().__init__(
             [start.point, end.point], subtype=Types.SECTION, **kwargs
         )
@@ -559,6 +563,7 @@ class Overlap(Group):
         drawable=True,
         **kwargs,
     ):
+        """Create an overlap group from intersections and sections."""
         self.intersections = intersections
         self.sections = sections
         super().__init__(sections, **kwargs)
@@ -596,6 +601,7 @@ class Division(Shape):
     """
 
     def __init__(self, p1, p2, xform_matrix=None, **kwargs):
+        """Create a division segment from ``p1`` to ``p2``."""
         super().__init__([p1, p2], subtype=Types.DIVISION, **kwargs)
         self.p1 = p1
         self.p2 = p2
@@ -765,6 +771,7 @@ class Polyline(Shape):
     """
 
     def __init__(self, points, closed=True, xform_matrix=None, **kwargs):
+        """Create a lace polyline and initialize its divisions."""
         self.closed = closed
 
         super().__init__(
@@ -926,6 +933,7 @@ class ParallelPolyline(Group):
         dist_tol=None,
         **kwargs,
     ):
+        """Build parallel offset polylines around ``polyline`` for a lace."""
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
         self.polyline = polyline

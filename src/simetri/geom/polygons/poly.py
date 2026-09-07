@@ -1,3 +1,5 @@
+"""Lightweight NumPy-backed polygon/polyline geometry (no style)."""
+
 from collections.abc import Sequence
 from typing import Any, Self
 
@@ -20,6 +22,8 @@ from ...base.core import _update_inplace
 
 
 class TrackedArray(np.ndarray):
+    """NumPy array subclass that clears a parent cache on item assignment."""
+
     def __setitem__(self, key, value):
         # print(# Here is your trigger event
         #     f"Alert: Index {key} is changing from {self[key]} to {value}!"
@@ -29,6 +33,14 @@ class TrackedArray(np.ndarray):
 
 
 def to_array(points: list | tuple | NDArray):
+    """Convert points to a homogeneous NumPy array.
+
+    Args:
+        points: Sequence of ``(x, y)`` or already-homogeneous rows.
+
+    Returns:
+        NumPy array with shape ``(n, 3)``.
+    """
     # convert points to a numpy array
     res = points
     if not isinstance(points, np.ndarray):
@@ -92,6 +104,12 @@ class Poly:
     __slots__ = ["_vertices", "closed", "id", "primary_points", "xform_matrix"]
 
     def __init__(self, points: list | tuple | NDArray, closed: bool = False):
+        """Create a lightweight polygon/polyline from ``points``.
+
+        Args:
+            points: Vertex sequence or array (Cartesian or homogeneous).
+            closed: If True, treat the polyline as a closed polygon.
+        """
         self.primary_points = to_array(points).view(TrackedArray)
         self.xform_matrix = np.array([[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]])
         self.closed = closed
@@ -127,6 +145,7 @@ class Poly:
 
     @vertices.setter
     def vertices(self, value):
+        """No-op setter; vertices are derived from ``primary_points``."""
         pass
 
     def __getattr__(self, name):
@@ -286,6 +305,11 @@ class PolyBBox:
     def __init__(
         self, corners: tuple[float, float, float, float] | None = None
     ):
+        """Create an empty or corner-initialized axis-aligned bbox cache.
+
+        Args:
+            corners: Optional ``(min_x, min_y, max_x, max_y)`` extents.
+        """
         if corners:
             self._reset(corners)
         else:

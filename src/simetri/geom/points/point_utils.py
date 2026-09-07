@@ -1,4 +1,4 @@
-"""Point related utility functions."""
+"""Point utilities: distance, rounding, midpoints, and related helpers."""
 
 from collections.abc import Sequence
 from math import atan2, hypot, isclose, sqrt
@@ -755,6 +755,13 @@ class Vertex(list):
     """A 3D vertex."""
 
     def __init__(self, x, y, z=0):
+        """Create a vertex at ``(x, y, z)``.
+
+        Args:
+            x: X coordinate.
+            y: Y coordinate.
+            z: Z coordinate. Defaults to 0.
+        """
         self.x = x
         self.y = y
         self.z = z

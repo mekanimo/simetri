@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Any, TypeAlias
 
 import numpy as np
-from numpy import ndarray
+from numpy.typing import NDArray
 
 from ..coloring import colors
 from ..geom.homogenize import homogenize
@@ -58,7 +58,7 @@ class CircleSketch:
 
     center: tuple
     radius: float
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Bake transform into ``center`` and set type metadata."""
@@ -91,7 +91,7 @@ class EllipseSketch:
     x_radius: float
     y_radius: float
     angle: float = 0  # orientation angle
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the EllipseSketch object."""
@@ -125,7 +125,7 @@ class RectangleSketch:
     width: float
     height: float
     angle: float = 0  # orientation angle
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Set type metadata and default transform."""
@@ -149,7 +149,7 @@ class LinesSketch:
     """
 
     lines: Sequence[tuple[float, float]]
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Set type metadata."""
@@ -170,7 +170,7 @@ class LineSketch:
     """
 
     vertices: list
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the LineSketch object."""
@@ -300,7 +300,7 @@ class PatternSketch:
     """
 
     pattern: Pattern = None
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the PatternSketch object."""
@@ -331,7 +331,7 @@ class ImageSketch:
     size: tuple = None
     file_path: str = None
     anchor: Anchor | None = None
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the ImageSketch object."""
@@ -381,7 +381,7 @@ class LatexSketch:
     font_color: object = None
     bold: bool = False
     anchor: Anchor = None
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
     formula_size: tuple = None  # (W, H) in points, filled by draw_latex
 
     def __post_init__(self):
@@ -438,7 +438,7 @@ class ShapeSketch:
     """
 
     vertices: list = None
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the ShapeSketch object."""
@@ -466,7 +466,7 @@ class BezierSketch:
     """
 
     control_points: list
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
     mode: CurveMode = CurveMode.OPEN
 
     def __post_init__(self):
@@ -496,7 +496,7 @@ class ArcSketch:
     """
 
     vertices: list = None
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
     mode: CurveMode = CurveMode.OPEN
 
     def __post_init__(self):
@@ -539,7 +539,7 @@ class ClippedSketch:
 
     sketches: list[Types.SKETCH]
     clipper: ShapeSketch
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the Clippedketch object."""
@@ -556,7 +556,7 @@ class MaskedSketch:
 
     sketches: list[Types.SKETCH]
     mask: Any
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the Clippedketch object."""
@@ -593,7 +593,7 @@ class PathSketch:
     """
 
     sketches: list[Types.SKETCH]
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the PathSketch object."""
@@ -616,7 +616,7 @@ class LaceSketch:
 
     fragment_sketches: list[ShapeSketch]
     plait_sketches: list[ShapeSketch]
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the LaceSketch object."""
@@ -710,7 +710,7 @@ class TagSketch:
     font_family: str = None
     font_size: float = None
     minimum_width: float = None
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the TagSketch object."""
@@ -743,7 +743,7 @@ class PDFSketch:
     angle: float = 0
     size: tuple = None
     anchor: Anchor = Anchor.CENTER
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the PDFSketch object."""
@@ -766,7 +766,7 @@ class RectSketch:
     pos: PointType
     width: float
     height: float
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the RectSketch object.
@@ -800,6 +800,13 @@ class RectSketch:
 
 @dataclass
 class HelpLinesSketch:
+    """Sketch metadata for canvas help/grid lines.
+
+    Attributes:
+        spacing: Grid spacing; ``None``/``0`` uses the default spacing.
+        cs_size: Coordinate-system indicator size.
+    """
+
     spacing: float
     cs_size: float
 
@@ -810,6 +817,11 @@ class HelpLinesSketch:
         self.id = get_unique_id(self)
 
     def populate(self, canvas):
+        """Compute help-line extents from the canvas content bounding box.
+
+        Args:
+            canvas: Canvas whose vertices define the help-line region.
+        """
         bbox = bounding_box(canvas._all_vertices)
         x, y = bbox.southwest
         width = bbox.width
@@ -831,8 +843,15 @@ class HelpLinesSketch:
 
 @dataclass
 class CompositeSketch:
+    """Container sketch that groups child sketches under one matrix.
+
+    Attributes:
+        sketches: Child sketch objects.
+        xform_matrix: Optional affine matrix applied to the composite.
+    """
+
     sketches: list[Types.SKETCH]
-    xform_matrix: ndarray = None
+    xform_matrix: NDArray = None
 
     def __post_init__(self):
         """Initialize the Clippedketch object."""

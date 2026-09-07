@@ -19,6 +19,7 @@ from typing import Any, Self
 import fitz
 import networkx as nx
 import numpy as np
+from numpy.typing import NDArray
 
 from simetri.render import draw
 from simetri.render.style_map import canvas_args, get_draw_valid_kwargs
@@ -1388,7 +1389,7 @@ class Canvas:
         )
 
     @property
-    def xform_matrix(self) -> "np.ndarray":
+    def xform_matrix(self) -> NDArray:
         """
         The transformation matrix of the canvas.
 
@@ -1397,7 +1398,7 @@ class Canvas:
         """
         return self._xform_matrix.copy()
 
-    def transform(self, transform_matrix: "np.ndarray") -> Self:
+    def transform(self, transform_matrix: NDArray) -> Self:
         """
         Transforms the canvas by the given transformation matrix.
 

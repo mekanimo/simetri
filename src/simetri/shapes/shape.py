@@ -55,6 +55,7 @@ import networkx as nx
 import numpy as np
 from numpy import allclose, around, array
 from numpy.linalg import inv
+from numpy.typing import NDArray
 
 from ..render.style_map import shape_style_map
 from ..coloring.colors import Color, black
@@ -191,7 +192,7 @@ class Shape(Base):
         markers_only: bool = False,
         smooth: bool = False,
         subtype: Types = Types.SHAPE,
-        xform_matrix: np.ndarray | None = None,
+        xform_matrix: NDArray | None = None,
     ) -> None:
         """Initialize a Shape.
 
@@ -833,7 +834,7 @@ class Shape(Base):
             vertices[0][:2], vertices[-1][:2], dist2=defaults["dist_tol2"]
         )
 
-    def as_array(self, homogeneous=False) -> np.ndarray:
+    def as_array(self, homogeneous=False) -> NDArray:
         """Return the vertices as an array.
 
         Args:
@@ -858,7 +859,7 @@ class Shape(Base):
         return list(self.vertices)
 
     @property
-    def final_coords(self) -> np.ndarray:
+    def final_coords(self) -> NDArray:
         """The final coordinates of the shape. primary_points @ xform_matrix.
 
         Returns:
@@ -922,7 +923,7 @@ class Shape(Base):
         return connected_pairs(vertices)
 
     @property
-    def orig_coords(self) -> np.ndarray:
+    def orig_coords(self) -> NDArray:
         """The primary points in homogeneous coordinates.
 
         Returns:

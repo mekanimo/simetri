@@ -1,3 +1,5 @@
+"""Convert Cartesian points to homogeneous coordinates."""
+
 from simetri.base.common import PointType
 
 

@@ -1,3 +1,5 @@
+"""Polygon partition helpers via edge intersections and cycle extraction."""
+
 import time
 from collections import defaultdict
 
@@ -8,6 +10,14 @@ import simetri.graphics as sg
 
 
 def to_numpy_array(ip_edge_list):
+    """Convert intersection/edge tuples to an object NumPy array.
+
+    Args:
+        ip_edge_list: Sequence of ``((x, y), (i1, i2))`` records.
+
+    Returns:
+        NumPy object array with columns point, ``i1``, ``i2``.
+    """
     rows = []
     for (x, y), (i1, i2) in ip_edge_list:
         rows.append([(x, y), i1, i2])
@@ -15,6 +25,15 @@ def to_numpy_array(ip_edge_list):
 
 
 def filter_by_edge(arr, edge_id):
+    """Return rows of ``arr`` that touch ``edge_id`` in either edge column.
+
+    Args:
+        arr: Object array from ``to_numpy_array``.
+        edge_id: Edge index to match against columns 1 and 2.
+
+    Returns:
+        Filtered NumPy array.
+    """
     # i1 is column 1, i2 is column 2
     i1 = arr[:, 1]
     i2 = arr[:, 2]
@@ -319,6 +338,15 @@ def segment_cycles(segments, length_bound=10):
 
 
 def get_partitions(shapes, length_bound=10):
+    """Partition overlapping shapes into cycles from edge intersections.
+
+    Args:
+        shapes: Sequence of closed shapes whose edges may intersect.
+        length_bound: Maximum cycle length retained by ``segment_cycles``.
+
+    Returns:
+        Result of the partition pipeline (cycles / sorted cycles as implemented).
+    """
     n_rows = sum([len(shp.vertices) for shp in shapes])
     intersections = all_polygon_intersections(shapes)
     start = time.perf_counter_ns()

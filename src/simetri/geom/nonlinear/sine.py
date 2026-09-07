@@ -1,4 +1,4 @@
-"""Sinusoidal wave shape generator."""
+"""Build sinusoidal wave polylines as Simetri shapes."""
 
 from math import exp
 
@@ -40,7 +40,7 @@ class SineWave(Shape):
         phase_angle: float = 0,
         damping: float = 0,
         rot_angle: float = 0,
-        xform_matrix: "ndarray" = None,
+        xform_matrix: NDArray = None,
         **kwargs,
     ) -> Shape:
         """Create a sine-wave shape from sampled points.

@@ -1,3 +1,9 @@
+"""Segment intersection experiments and polygon boolean helpers.
+
+Includes bbox candidate filtering, line-sweep utilities, and symmetric
+difference helpers used by partition workflows.
+"""
+
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import reduce
@@ -18,6 +24,15 @@ rel_tol, abs_tol = sg.get_defaults(["rel_tol", "abs_tol"], [None, None])
 
 
 def rp(min_val=-200, max_val=200):
+    """Return a random ``(x, y)`` point with integer coords in the given range.
+
+    Args:
+        min_val: Inclusive lower bound for each coordinate.
+        max_val: Inclusive upper bound for each coordinate.
+
+    Returns:
+        Tuple of two floats sampled uniformly from the integer range.
+    """
     return (
         float(random.randint(min_val, max_val)),
         float(random.randint(min_val, max_val)),
@@ -123,19 +138,33 @@ def point_in_polygon_np(point, polygon):
 
 
 def cross(ax, ay, bx, by):
+    """Return the 2D cross product of vectors ``(ax, ay)`` and ``(bx, by)``."""
     return ax * by - ay * bx
 
 
 def orient(a, b, c):
+    """Return orientation of triangle ``(a, b, c)`` via cross product sign.
+
+    Positive/negative indicate left/right turns; near-zero means collinear.
+    """
     # cross((b-a),(c-a))
     return cross(b[0] - a[0], b[1] - a[1], c[0] - a[0], c[1] - a[1])
 
 
 def dot(ax, ay, bx, by):
+    """Return the 2D dot product of vectors ``(ax, ay)`` and ``(bx, by)``."""
     return ax * bx + ay * by
 
 
 def on_segment(a, b, p, eps=1e-12):
+    """Return True if ``p`` lies on segment ``ab`` within ``eps``.
+
+    Args:
+        a: Segment start point.
+        b: Segment end point.
+        p: Query point.
+        eps: Collinearity / bbox tolerance.
+    """
     # check collinear + within bbox
     if abs(orient(a, b, p)) > eps:
         return False
@@ -146,6 +175,16 @@ def on_segment(a, b, p, eps=1e-12):
 
 
 def get_edge_candidates(i, i_xmin, i_ymin, i_xmax, i_ymax, edge_array):
+    """Return edge ``i`` and later edges whose bboxes overlap it.
+
+    Args:
+        i: Index of the query edge in ``edge_array``.
+        i_xmin, i_ymin, i_xmax, i_ymax: Column indices for bbox fields.
+        edge_array: Array of edges with bbox columns.
+
+    Returns:
+        Tuple ``(segment_xy, edge_id, candidate_rows)``.
+    """
     start = i + 1
 
     (
@@ -180,6 +219,17 @@ def get_edge_candidates(i, i_xmin, i_ymin, i_xmax, i_ymax, edge_array):
 def get_poly_candidates(
     start, x, y, i_pxmin, i_pymin, i_pxmax, i_pymax, edge_array
 ):
+    """Return edge rows whose polygon bboxes contain point ``(x, y)``.
+
+    Args:
+        start: Row index to start searching from.
+        x, y: Query point coordinates.
+        i_pxmin, i_pymin, i_pxmax, i_pymax: Polygon bbox column indices.
+        edge_array: Edge/polygon candidate array.
+
+    Returns:
+        Filtered rows of ``edge_array``.
+    """
     poly_candidates = edge_array[start:, :][
         (
             (
@@ -196,6 +246,15 @@ def get_poly_candidates(
 
 
 def filter_by_edge(arr, edge_id):
+    """Return rows whose edge-id columns include ``edge_id``.
+
+    Args:
+        arr: Object array with edge ids in columns 1 and 2.
+        edge_id: Edge index to keep.
+
+    Returns:
+        Filtered NumPy array.
+    """
     # i1 is column 1, i2 is column 2
     i1 = arr[:, 1]
     i2 = arr[:, 2]
@@ -435,6 +494,14 @@ def any_point_in_polygon_strict(points, polygon, eps=1e-12):
 
 
 def to_numpy_array(ip_edge_poly_list):
+    """Convert intersection/edge/poly records to an object NumPy array.
+
+    Args:
+        ip_edge_poly_list: Sequence of ``((x, y), (i1, i2), poly_ids)``.
+
+    Returns:
+        Object array with point, edge ids, and polygon-id tuple columns.
+    """
     rows = []
     for (x, y), (i1, i2), plist in ip_edge_poly_list:
         rows.append([(x, y), i1, i2, tuple(plist)])
@@ -788,6 +855,15 @@ def all_intersections_bbox(edges):
 
 
 def set_fills(partitions, d_edge_part):
+    """Assign alternating fill flags to adjacent partition polygons.
+
+    Starts from an outermost partition (edge shared by one partition) and
+    propagates ``fill`` through neighbors via ``d_edge_part``.
+
+    Args:
+        partitions: Partition shapes (unused directly; uses ``sg.d_id_obj``).
+        d_edge_part: Mapping frozenset(edge) -> set of partition ids.
+    """
     # find an edge with a single partition
     # add the partition to the queue
     # this means this is one of the outermost partitions
@@ -826,6 +902,16 @@ def set_fills(partitions, d_edge_part):
 
 
 def symmetric_difference(shapes, dist_tol, debug=False):
+    """Compute a segment-based symmetric difference of ``shapes``.
+
+    Args:
+        shapes: Sequence of closed shapes.
+        dist_tol: Distance tolerance for point/segment rounding.
+        debug: If True, print diagnostics.
+
+    Returns:
+        Partition/result structure produced by the intersection pipeline.
+    """
     n_rows = sum([len(shp.vertices) for shp in shapes])
     ips_edges = all_ips_edges(shapes)
 
@@ -934,6 +1020,7 @@ def symmetric_difference(shapes, dist_tol, debug=False):
 
 
 def symm_diff():
+    """Demo/driver that draws symmetric-difference examples on a canvas."""
     dist_tol = sg.get_defaults(["dist_tol"], [None])[0]
     sqr1 = sg.reg_poly_shape(4, 100)
     sqr2 = sg.reg_poly_shape(4, 100, (40, 0))
@@ -1026,6 +1113,7 @@ import random
 
 
 def time_test():
+    """Benchmark ``all_ips_edges`` timing for random polygons of growing size."""
     for n in [2, 10, 20, 50, 100, 200, 300, 400]:
         shapes = []
         for i in range(n):
@@ -1067,6 +1155,8 @@ def time_test():
 
 @dataclass
 class Poly:
+    """Minimal polygon stand-in holding an ``edges`` tuple."""
+
     edges: tuple
 
 
@@ -1396,6 +1486,7 @@ def segments_intersections_to_list(arr, eps=1e-12):
 
 
 def tests():
+    """Compare intersection algorithms on random segment sets."""
     # for n in [100, 200, 500, 1000, 2000, 3000, 4000]:
     for n in [10, 20, 40, 80, 160, 320, 640, 1280, 2560]:
         edges = []
@@ -1491,6 +1582,7 @@ from SweepIntersectorLib.SweepIntersector import SweepIntersector
 # plt.gca().axis('equal')
 # plt.show()
 def test2():
+    """Quick timing smoke test for ``all_intersections`` on random edges."""
     n = 1000
     edges = []
     for i in range(n):
@@ -1531,12 +1623,21 @@ import bisect
 
 
 class Segment:
+    """Axis-endpoint segment used by the simple line-sweep demo."""
+
     def __init__(self, x1, y1, x2, y2):
+        """Store segment endpoints ``(x1, y1)``–``(x2, y2)``."""
         self.x1, self.y1 = x1, y1
         self.x2, self.y2 = x2, y2
 
 
 def intersect(s1, s2):
+    """Return True if segments ``s1`` and ``s2`` properly or improperly intersect.
+
+    Args:
+        s1: First ``Segment``.
+        s2: Second ``Segment``.
+    """
     def orientation(p, q, r):
         val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
         if val == 0:
@@ -1572,6 +1673,14 @@ def intersect(s1, s2):
 
 
 def line_sweep(segments):
+    """Find intersecting segment pairs with a basic left-to-right sweep.
+
+    Args:
+        segments: Sequence of ``Segment`` objects.
+
+    Returns:
+        List of intersection points (and related results as implemented).
+    """
     events = []
     for s in segments:
         events.append((min(s.x1, s.x2), "L", s))
@@ -1614,6 +1723,7 @@ def line_sweep(segments):
 
 
 def bharadwaj():
+    """Benchmark/demo comparing ``line_sweep`` against ``all_intersections``."""
 
     n = 100
     segments = []
@@ -1669,6 +1779,14 @@ def bharadwaj():
 
 
 def oparin():
+    """Sweep-line any-intersection demo adapted from Eugen Sławomir Oparin.
+
+    # from https://every-algorithm.github.io/2024/10/23/sweep_line_algorithm.html
+    # byEugen Sławomir Oparin
+    # Sweep Line Algorithm for detecting any intersection among line segments
+    # The algorithm sweeps a vertical line from left to right, maintaining an
+    # active set of segments ordered by their y-coordinate at the sweep line.
+    """
     # from https://every-algorithm.github.io/2024/10/23/sweep_line_algorithm.html
     # byEugen Sławomir Oparin
     # Sweep Line Algorithm for detecting any intersection among line segments

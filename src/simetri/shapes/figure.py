@@ -27,6 +27,12 @@ class Figure(Group):
         geometry: Shape | Group,
         skin: Any = None,
     ) -> None:
+        """Create a figure from geometry and optional skin.
+
+        Args:
+            geometry: Underlying geometric object (first element).
+            skin: Optional drawable overlay (second element).
+        """
         if skin is not None and isinstance(skin, (list, tuple)):
             skin = Group(list(skin))
         elements = [geometry] if skin is None else [geometry, skin]
@@ -41,6 +47,7 @@ class Figure(Group):
 
     @geometry.setter
     def geometry(self, value: Shape | Group) -> None:
+        """Replace the underlying geometry (first group element)."""
         if self.elements:
             self.elements[0] = value
         else:
@@ -53,6 +60,14 @@ class Figure(Group):
 
     @skin.setter
     def skin(self, value: Any) -> None:
+        """Set or clear the optional skin (second group element).
+
+        Args:
+            value: Drawable overlay, or ``None`` to remove the skin.
+
+        Raises:
+            ValueError: If the figure has no geometry yet.
+        """
         if value is not None and isinstance(value, (list, tuple)):
             value = Group(list(value))
         if not self.elements:

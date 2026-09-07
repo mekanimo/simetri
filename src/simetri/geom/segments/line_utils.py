@@ -1,4 +1,4 @@
-"""Line/Segment related utilities."""
+"""Line and segment utilities: intersections, offsets, fillets, and angles."""
 
 from collections.abc import Sequence
 from functools import cmp_to_key
@@ -1969,6 +1969,15 @@ class Edge:
         start_point: PointType | Vertex,
         end_point: PointType | Vertex,
     ):
+        """Create an edge from ``start_point`` to ``end_point``.
+
+        Args:
+            start_point: Start as ``PointType`` or ``Vertex``.
+            end_point: End as ``PointType`` or ``Vertex``.
+
+        Raises:
+            TypeError: If either endpoint is not a point or ``Vertex``.
+        """
         if isinstance(start_point, PointType):
             start = Vertex(*start_point)
         elif isinstance(end_point, Vertex):

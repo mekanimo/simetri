@@ -48,6 +48,13 @@ class Turtle(Group):
     def __init__(
         self, *args: Any, in_degrees: bool = False, **kwargs: Any
     ) -> None:
+        """Create a turtle at the origin facing north.
+
+        Args:
+            *args: Forwarded to ``Group``.
+            in_degrees: If True, angles are degrees; otherwise radians.
+            **kwargs: Forwarded to ``Group``.
+        """
         self.pos = (0, 0)
         self.stack = []
         self.lists = []

@@ -28,6 +28,11 @@ class _GroupUpdateContext:
     """Context manager for batch operations on Points to avoid redundant cache invalidations."""
 
     def __init__(self, points_obj):
+        """Bind to a ``Points`` instance for deferred cache invalidation.
+
+        Args:
+            points_obj: The ``Points`` object whose cache invalidation is deferred.
+        """
         self.points_obj = points_obj
         self.original_invalidate = None
 

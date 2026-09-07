@@ -312,6 +312,11 @@ class Color:
 
     @property
     def name(self):
+        """Look up a conventional name for this RGB color (stub).
+
+        Returns:
+            Currently always ``None``; lookup is not implemented yet.
+        """
         # search for the color in the named colors
         pass
 

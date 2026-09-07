@@ -68,6 +68,11 @@ class Star(Group):
         circumradius: float = None,
         **kwargs,
     ):
+        """Create an n-pointed star (see class docstring for radius args).
+
+        Raises:
+            ValueError: If both ``circumradius`` and ``inner_radius`` are set.
+        """
         if circumradius is not None and inner_radius is not None:
             raise ValueError(
                 "Only one of circumradius or inner_radius can be specified."

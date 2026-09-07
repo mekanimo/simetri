@@ -1,4 +1,4 @@
-"""Helpers for SVG sketch operations."""
+"""Helpers that assemble and update SVG sketch elements."""
 
 import numpy as np
 from PIL import ImageFont

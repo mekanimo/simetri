@@ -1,4 +1,4 @@
-"""Lindenmayer system (L-system) module."""
+"""Lindenmayer system (L-system) rewriting and drawing helpers."""
 
 from math import ceil
 

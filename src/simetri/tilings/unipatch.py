@@ -1,3 +1,5 @@
+"""Regular polygons and patches for k-uniform tiling construction."""
+
 from typing import Self
 
 import numpy as np
@@ -22,6 +24,15 @@ class UniPoly(Shape):
         xform_matrix: np.array = None,
         **kwargs,
     ):
+        """Create a regular n-gon at ``pos`` with the given side length.
+
+        Args:
+            n_sides: Number of sides.
+            pos: Placement position.
+            side_length: Edge length in points. Defaults to 100.
+            xform_matrix: Optional initial affine matrix.
+            **kwargs: Passed to ``Shape``.
+        """
         points = reg_poly_points_side_length(
             pos=post, n=n, side_len=side_length
         )
@@ -59,12 +70,26 @@ class UniPatch(Group):
     def __init__(
         self, signature: str | int | list[int], pos: PointType = (0, 0)
     ):
+        """Create a patch from a tiling signature at ``pos``.
+
+        Args:
+            signature: Patch identity (string, int, or list of ints).
+            pos: Placement position. Defaults to ``(0, 0)``.
+        """
 
         elements = self.init(signature)
         super().__init__(elements)
         self.subtype = Types.UNIPATCH
 
     def init(self, signature):
+        """Build element list for ``signature`` (stub).
+
+        Args:
+            signature: Patch identity.
+
+        Returns:
+            Elements used to initialize the group (currently ``None``/pass).
+        """
         pass
 
     def snap(
@@ -74,11 +99,33 @@ class UniPatch(Group):
         ref2: int | float,
         angle: float = 0,
     ) -> Self:
+        """Snap ``free_shape`` onto ``fixed_shape`` at matching refs (stub).
+
+        Args:
+            free_shape: Polygon to move.
+            ref1: Reference on ``free_shape``.
+            fixed_shape: Anchored polygon.
+            ref2: Reference on ``fixed_shape``.
+            angle: Optional rotation after snap.
+
+        Returns:
+            Self after snapping (stub).
+        """
         pass
 
     def connect(uni_patch: UniPatch, indices: List | None = None) -> Self:
+        """Connect this patch to another along shared indices (stub).
+
+        Args:
+            uni_patch: Other patch to connect.
+            indices: Optional edge/vertex indices to join.
+
+        Returns:
+            Self after connecting (stub).
+        """
         pass
 
     @property
     def free_boundary(self) -> list[pointType]:
+        """Return free boundary points of the patch (stub)."""
         pass

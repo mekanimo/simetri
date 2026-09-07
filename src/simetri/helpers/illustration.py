@@ -11,6 +11,7 @@ from math import atan2, hypot, pi
 
 import fitz
 import numpy as np
+from numpy.typing import NDArray
 from PIL import ImageFont
 
 from ..render.style_map import TagStyle, shape_style_map, tag_style_map
@@ -58,7 +59,6 @@ from .validation import validate_args
 
 Color = colors.Color
 array = np.array
-NDArray = np.ndarray
 
 
 def logo(scale=1):

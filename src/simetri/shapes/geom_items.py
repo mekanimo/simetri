@@ -205,6 +205,7 @@ class Line(Shape):
 
     @draw_type.setter
     def draw_type(self, value: Extent):
+        """Set the draw extent (alias for ``extent``)."""
         self.extent = value
 
     @property
@@ -214,6 +215,7 @@ class Line(Shape):
 
     @start.setter
     def start(self, point: PointType):
+        """Set the start point of the line."""
         self[0] = point[:2]
 
     @property
@@ -223,6 +225,7 @@ class Line(Shape):
 
     @end.setter
     def end(self, point: PointType):
+        """Set the end point of the line."""
         self[1] = point[:2]
 
     @property
@@ -572,6 +575,7 @@ class Circle(Shape):
 
     @closed.setter
     def closed(self, value: bool):
+        """No-op setter; circles are always closed."""
         pass
 
     @property
