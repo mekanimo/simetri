@@ -17,7 +17,6 @@ from collections.abc import Iterator, Sequence
 from math import cos, pi, sin
 from typing import TYPE_CHECKING, Union
 
-from ..helpers.vector import Vector2D
 from ..config.settings import VOID, defaults
 
 if TYPE_CHECKING:
@@ -105,8 +104,6 @@ axis_hex = (
     (cos(pi / 3), sin(pi / 3)),
 )  # used for 3 and 6 rotation symmetries
 
-i_vec = Vector2D(1.0, 0.0)  # x direction unit vector
-j_vec = Vector2D(0.0, 1.0)  # y direction unit vector
 
 
 def _set_Nones(obj, args, values):

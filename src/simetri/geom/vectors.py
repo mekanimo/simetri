@@ -1,15 +1,34 @@
 """Vector objects and vector operations.
-Any array/list can be used as arguments to the vector operations. This is the
-most light-weight way to operate on high number of vectors.
-Vector object instances can be used in a similar fashion. Some of the Vector
-methods can be chained together.
-This module borrows ideas from both PiScript by Bill Casselman and
-VPython by Bruce Sherwood.
+
+Any array or list can be passed to the vector operations. ``Vector`` is the
+object form of the same operations; many methods return a new ``Vector`` and
+can be chained. Inputs are not changed unless a docstring marks an argument
+``(mutated)``.
+
+A unit vector has length 1. The zero vector has no direction, so
+``normalize``, ``v_normalize``, and ``Vector.normalize`` raise
+``ZeroDivisionError`` instead of returning another zero vector.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> sg.normalize([0, 5])
+    [0.0, 1.0]
+    >>> v = sg.Vector(3, 4)
+    >>> v.normalize()
+    Vector(0.6, 0.8)
+    >>> v
+    Vector(3, 4)
+    >>> sg.normalize([0, 0])
+    Traceback (most recent call last):
+        ...
+    ZeroDivisionError: float division by zero
 """
 
 from collections.abc import Sequence
 from math import acos, atan2, cos, hypot, sin, sqrt
 from numbers import Real
+
+import numpy as np
 
 from ..base.common import LineType, PointType, VecType, axis_x, axis_y
 from ..helpers.validation import check_position
@@ -23,13 +42,14 @@ class Vector:
     instances and can be chained.
 
     Examples:
-        ::
-
-            from simetri.geom.vectors import Vector
-
-            v = Vector(3, 4)
-            v.mag()  # 5.0
-            (v + Vector(1, 0)).normalize()
+        >>> import simetri.graphics as sg
+        >>> v = sg.Vector(3, 4)
+        >>> v.mag()
+        5.0
+        >>> v.normalize()
+        Vector(0.6, 0.8)
+        >>> v
+        Vector(3, 4)
     """
 
     def __init__(self, *args):
@@ -230,11 +250,29 @@ class Vector:
         return sum(x * x for x in self.data)
 
     def normalize(self) -> "Vector":
-        """Return a normalized copy of the vector."""
-        mag = self.mag()
-        if mag == 0:
-            return Vector(self.data)
-        return self / mag
+        """Return a unit-length copy. Does not change ``self``.
+
+        Uses :func:`normalize`. A zero vector has no direction.
+
+        Returns:
+            Vector: Unit vector in the same direction.
+
+        Raises:
+            ZeroDivisionError: If this vector has length 0.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> v = sg.Vector(0, 5)
+            >>> v.normalize()
+            Vector(0.0, 1.0)
+            >>> v
+            Vector(0, 5)
+            >>> sg.Vector(0, 0).normalize()
+            Traceback (most recent call last):
+                ...
+            ZeroDivisionError: float division by zero
+        """
+        return Vector(normalize(self.data))
 
     def dot(self, other: "Vector | Sequence[float]") -> float:
         """Return the dot product with ``other``.
@@ -388,6 +426,10 @@ class Vector:
     __abs__ = mag
 
 
+i_vec = Vector(1.0, 0.0)  # x direction unit vector
+j_vec = Vector(0.0, 1.0)  # y direction unit vector
+
+
 Vec = Sequence[float] | Vector
 
 
@@ -403,36 +445,111 @@ def _result_like(vec: Vec, values: Sequence[float]) -> Vec:
 
 
 def v_bisector(vec1: Vec, vec2: Vec) -> Vec:
-    """Returns the bisector of the given vectors.
-    Vector sum of vec1 unit-vector and vec2 unit-vector.
+    """Return the sum of the two unit vectors. Does not change the inputs.
+
+    A zero vector has no direction, so this raises ``ZeroDivisionError``.
+
+    Args:
+        vec1 (Vec): First vector. Not mutated.
+        vec2 (Vec): Second vector. Not mutated.
+
+    Returns:
+        Vector: ``normalize(vec1) + normalize(vec2)``.
+
+    Raises:
+        ZeroDivisionError: If either vector has length 0.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_bisector([1, 0], [0, 1])
+        Vector(1.0, 1.0)
+        >>> sg.v_bisector([0, 0], [1, 0])
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: float division by zero
     """
     return Vector(vec1).bisector(vec2)
 
 
 def v_copy(vec: Vec) -> Vec:
-    """Return a shallow copy of the vector preserving output type."""
+    """Return a copy. Does not change ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+
+    Returns:
+        Vec: A list if ``vec`` is a sequence, otherwise a ``Vector``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [1, 2]
+        >>> copied = sg.v_copy(raw)
+        >>> copied
+        [1, 2]
+        >>> copied is raw
+        False
+        >>> sg.v_copy(sg.Vector(1, 2))
+        Vector(1, 2)
+    """
     return _result_like(vec, _as_data(vec))
 
 
 def v_minus(vec: Vec) -> Vec:
-    """Return the additive inverse of the vector."""
+    """Return the additive inverse. Does not change ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+
+    Returns:
+        Vec: Negated components. Type matches ``vec``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [1, -2]
+        >>> sg.v_minus(raw)
+        [-1, 2]
+        >>> raw
+        [1, -2]
+        >>> sg.v_minus(sg.Vector(0, 0))
+        Vector(0, 0)
+    """
     return _result_like(vec, (-x for x in _as_data(vec)))
 
 
 def v_neg(vec: Vec) -> Vec:
-    """Alias for v_minus."""
+    """Alias for :func:`v_minus`. Does not change ``vec``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_neg([1, -2])
+        [-1, 2]
+    """
     return v_minus(vec)
 
 
 def v_mul(vec1: Vec, vec2: Vec | float) -> float | Vec:
     """Return the dot product, or scale ``vec1`` by a scalar.
 
+    Does not change either argument.
+
     Args:
-        vec1: First vector.
-        vec2: Second vector (dot) or scalar (scale).
+        vec1 (Vec): First vector. Not mutated.
+        vec2 (Vec | float): Second vector (dot) or scalar (scale). Not mutated.
 
     Returns:
-        float | Vec: Dot product or scaled vector (type matches ``vec1``).
+        float | Vec: Dot product, or a scaled vector whose type matches ``vec1``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [1, 2]
+        >>> sg.v_mul(raw, [3, 4])
+        11
+        >>> sg.v_mul(raw, 3)
+        [3, 6]
+        >>> raw
+        [1, 2]
+        >>> sg.v_mul(sg.Vector(1, 2), 3)
+        Vector(3, 6)
     """
     v1 = _as_data(vec1)
     if isarray(vec2):
@@ -442,36 +559,132 @@ def v_mul(vec1: Vec, vec2: Vec | float) -> float | Vec:
 
 
 def v_dot(vec1: Vec, vec2: Vec | float) -> float | Vec:
-    """Alias for v_mul."""
+    """Alias for :func:`v_mul`. Does not change either argument.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_dot([1, 2], [3, 4])
+        11
+    """
     return v_mul(vec1, vec2)
 
 
 def v_div(vec: Vec, c: float) -> Vec:
-    """Divide a vector by scalar c and preserve output type."""
+    """Divide a vector by a scalar. Does not change ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+        c (float): Divisor.
+
+    Returns:
+        Vec: Scaled vector. Type matches ``vec``.
+
+    Raises:
+        ZeroDivisionError: If ``c`` is 0.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [4, 2]
+        >>> sg.v_div(raw, 2)
+        [2.0, 1.0]
+        >>> raw
+        [4, 2]
+        >>> sg.v_div([1, 0], 0)
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: division by zero
+    """
     return _result_like(vec, (x / c for x in _as_data(vec)))
 
 
 def v_sum(vec1: Vec, vec2: Vec) -> Vec:
-    """Return element-wise sum of two vectors."""
+    """Return the element-wise sum. Does not change either argument.
+
+    Args:
+        vec1 (Vec): First vector. Not mutated.
+        vec2 (Vec): Second vector. Not mutated.
+
+    Returns:
+        Vec: Sum. Type matches ``vec1``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_sum([1, 2], [3, 4])
+        [4, 6]
+        >>> sg.v_sum(sg.Vector(1, 2), [3, 4])
+        Vector(4, 6)
+    """
     v1 = _as_data(vec1)
     v2 = _as_data(vec2)
     return _result_like(vec1, (x + y for x, y in zip(v1, v2)))
 
 
 def v_diff(vec1: Vec, vec2: Vec) -> Vec:
-    """Return element-wise difference vec1 - vec2."""
+    """Return ``vec1 - vec2``. Does not change either argument.
+
+    Args:
+        vec1 (Vec): First vector. Not mutated.
+        vec2 (Vec): Second vector. Not mutated.
+
+    Returns:
+        Vec: Difference. Type matches ``vec1``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_diff([5, 3], [1, 1])
+        [4, 2]
+    """
     v1 = _as_data(vec1)
     v2 = _as_data(vec2)
     return _result_like(vec1, (x - y for x, y in zip(v1, v2)))
 
 
 def v_equals(vec1: Vec, vec2: Vec) -> bool:
-    """Return True when both vectors have equal components in order."""
+    """Return whether both vectors have the same components.
+
+    Args:
+        vec1 (Vec): First vector. Not mutated.
+        vec2 (Vec): Second vector. Not mutated.
+
+    Returns:
+        bool: True when the component lists are equal.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_equals([1, 2], sg.Vector(1, 2))
+        True
+        >>> sg.v_equals([1, 2], [1, 3])
+        False
+    """
     return list(_as_data(vec1)) == list(_as_data(vec2))
 
 
 def v_cross(vec1: Vec, vec2: Vec) -> Vec | float:
-    """Return 3D cross product vector or 2D scalar cross value."""
+    """Return the 2D scalar cross product or a 3D cross-product vector.
+
+    Does not change either argument. Mixed dimensions are an error.
+
+    Args:
+        vec1 (Vec): First vector. Not mutated.
+        vec2 (Vec): Second vector. Not mutated.
+
+    Returns:
+        Vec | float: A float in 2D, or a vector whose type matches ``vec1`` in 3D.
+
+    Raises:
+        ValueError: If the vectors are not both 2D or both 3D.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_cross([1, 0], [0, 1])
+        1
+        >>> sg.v_cross([1, 0, 0], [0, 1, 0])
+        [0, 0, 1]
+        >>> sg.v_cross([1, 0], [0, 1, 0])
+        Traceback (most recent call last):
+            ...
+        ValueError: Vectors must be both 2D or both 3D for cross product.
+    """
     v1 = _as_data(vec1)
     v2 = _as_data(vec2)
     if len(v1) == 3 and len(v2) == 3:
@@ -487,12 +700,80 @@ def v_cross(vec1: Vec, vec2: Vec) -> Vec | float:
 
 
 def v_length(vec: Vec) -> float:
-    """Return Euclidean norm of the vector."""
+    """Return Euclidean norm of the vector.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+
+    Returns:
+        float: Euclidean length.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_length([3, 4])
+        5.0
+        >>> sg.v_length(sg.Vector(0, 0))
+        0.0
+    """
     return hypot(*_as_data(vec))
 
 
+def v_normalize(vec: Vec) -> Vec:
+    """Return a unit vector. Does not change ``vec``.
+
+    Same rule as :func:`normalize`: a zero vector raises
+    ``ZeroDivisionError``. A ``Vector`` input returns a ``Vector``; a
+    sequence input returns a list.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+
+    Returns:
+        Vec: Unit vector. Type matches ``vec``.
+
+    Raises:
+        ZeroDivisionError: If ``vec`` has length 0.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [6, 8]
+        >>> sg.v_normalize(raw)
+        [0.6, 0.8]
+        >>> raw
+        [6, 8]
+        >>> vec = sg.Vector(0, 5)
+        >>> sg.v_normalize(vec)
+        Vector(0.0, 1.0)
+        >>> vec
+        Vector(0, 5)
+        >>> sg.v_normalize([0, 0])
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: float division by zero
+    """
+    return _result_like(vec, normalize(_as_data(vec)))
+
+
 def v_angle_between(vec1: Vec, vec2: Vec) -> float:
-    """Return angle in radians between vec1 and vec2."""
+    """Return the angle in radians between two vectors.
+
+    Does not change either argument. A zero vector has no direction, so
+    the result is ``0.0``.
+
+    Args:
+        vec1 (Vec): First vector. Not mutated.
+        vec2 (Vec): Second vector. Not mutated.
+
+    Returns:
+        float: Angle in radians, in ``[0, pi]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_angle_between([1, 0], [0, 1])
+        1.5707963267948966
+        >>> sg.v_angle_between([0, 0], [1, 0])
+        0.0
+    """
     ru = v_length(vec1)
     rv = v_length(vec2)
     if ru == 0 or rv == 0:
@@ -503,7 +784,28 @@ def v_angle_between(vec1: Vec, vec2: Vec) -> float:
 
 
 def v_arg(vec: Vec) -> float:
-    """Return polar argument (atan2) of a 2D vector."""
+    """Return the polar argument of a 2D vector. Does not change ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+
+    Returns:
+        float: ``atan2(y, x)`` in radians.
+
+    Raises:
+        ValueError: If ``vec`` is not 2D.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_arg([1, 0])
+        0.0
+        >>> sg.v_arg([0, 0])
+        0.0
+        >>> sg.v_arg([1, 0, 0])
+        Traceback (most recent call last):
+            ...
+        ValueError: v_arg is only defined for 2D vectors.
+    """
     v = _as_data(vec)
     if len(v) != 2:
         raise ValueError("v_arg is only defined for 2D vectors.")
@@ -511,7 +813,31 @@ def v_arg(vec: Vec) -> float:
 
 
 def v_perp(vec: Vec) -> Vec:
-    """Return a 2D vector rotated 90 degrees counterclockwise."""
+    """Return a 2D vector rotated 90 degrees counterclockwise.
+
+    Does not change ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+
+    Returns:
+        Vec: ``(-y, x)``. Type matches ``vec``.
+
+    Raises:
+        ValueError: If ``vec`` is not 2D.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [1, 0]
+        >>> sg.v_perp(raw)
+        [0, 1]
+        >>> raw
+        [1, 0]
+        >>> sg.v_perp([1, 0, 0])
+        Traceback (most recent call last):
+            ...
+        ValueError: v_perp is only defined for 2D vectors.
+    """
     v = _as_data(vec)
     if len(v) != 2:
         raise ValueError("v_perp is only defined for 2D vectors.")
@@ -519,7 +845,34 @@ def v_perp(vec: Vec) -> Vec:
 
 
 def v_rotated(vec: Vec, angle: float, axis: Vec | None = None) -> Vec:
-    """Return rotated vector (2D) or axis-angle rotation result (3D)."""
+    """Return a rotated copy. Does not change ``vec`` or ``axis``.
+
+    With no axis, ``vec`` must be 2D. A zero 3D axis returns a copy of
+    ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+        angle (float): Rotation in radians, counterclockwise.
+        axis (Vec | None): Optional 3D axis. Not mutated.
+
+    Returns:
+        Vec: Rotated vector. Type matches ``vec``.
+
+    Raises:
+        ValueError: If the dimensions do not match the rotation.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [1, 0]
+        >>> sg.v_rotated(raw, 0)
+        [1.0, 0.0]
+        >>> raw
+        [1, 0]
+        >>> sg.v_rotated([1, 0, 0], 0)
+        Traceback (most recent call last):
+            ...
+        ValueError: 2D rotation requires a 2D vector.
+    """
     c = cos(angle)
     s = sin(angle)
     v = _as_data(vec)
@@ -550,7 +903,29 @@ def v_rotated(vec: Vec, angle: float, axis: Vec | None = None) -> Vec:
 
 
 def v_reflect(f: Vec, vec1: Vec, vec2: Vec) -> Vec:
-    """Reflect vec2 using line/plane parameters derived from f and vec1."""
+    """Reflect ``vec2`` using coefficients ``f`` and direction ``vec1``.
+
+    Does not change the inputs. If ``f[0] * vec1[0] + f[1] * vec1[1]``
+    is 0, a copy of ``vec2`` is returned.
+
+    Args:
+        f (Vec): Coefficients ``[A, B, C]``. Not mutated.
+        vec1 (Vec): Direction used to reflect. Not mutated.
+        vec2 (Vec): Vector to reflect. Not mutated.
+
+    Returns:
+        Vec: Reflected vector. Type matches ``vec2``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_reflect([1, 0, 0], [1, 0], [1, 1])
+        [-1.0, 1.0]
+        >>> raw = [3, 4]
+        >>> sg.v_reflect([0, 0, 0], [1, 0], raw)
+        [3, 4]
+        >>> raw
+        [3, 4]
+    """
     f_ = _as_data(f)
     v1 = _as_data(vec1)
     v2 = _as_data(vec2)
@@ -564,14 +939,48 @@ def v_reflect(f: Vec, vec1: Vec, vec2: Vec) -> Vec:
 
 
 def v_evaluate(line: Vec, point: Vec) -> float:
-    """Evaluate implicit line coefficients [A, B, C] at a 2D point."""
+    """Evaluate implicit line ``[A, B, C]`` at a 2D point.
+
+    Does not change either argument. A point on the line gives 0.
+
+    Args:
+        line (Vec): Line coefficients. Not mutated.
+        point (Vec): Point ``(x, y)``. Not mutated.
+
+    Returns:
+        float: ``A x + B y + C``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_evaluate([1, 0, -2], [2, 5])
+        0
+        >>> sg.v_evaluate([1, 0, -2], [0, 0])
+        -2
+    """
     ln = _as_data(line)
     p = _as_data(point)
     return ln[0] * p[0] + ln[1] * p[1] + ln[2]
 
 
 def v_line_through(point1: Vec, point2: Vec) -> list[float]:
-    """Return normalized line coefficients [A, B, C] through two points."""
+    """Return normalized line coefficients ``[A, B, C]`` through two points.
+
+    Does not change either point. Coincident points return ``[0, 0, 0]``.
+
+    Args:
+        point1 (Vec): First point. Not mutated.
+        point2 (Vec): Second point. Not mutated.
+
+    Returns:
+        list[float]: Line coefficients, or zeros if the points coincide.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_line_through([0, 0], [1, 0])
+        [0.0, 1.0, 0.0]
+        >>> sg.v_line_through([1, 1], [1, 1])
+        [0.0, 0.0, 0.0]
+    """
     p1 = _as_data(point1)
     p2 = _as_data(point2)
     A = -(p2[1] - p1[1])
@@ -584,7 +993,29 @@ def v_line_through(point1: Vec, point2: Vec) -> list[float]:
 
 
 def v_intersection(line1: Vec, line2: Vec) -> list[float]:
-    """Return intersection point [x, y] of two implicit lines."""
+    """Return the intersection of two implicit lines ``[A, B, C]``.
+
+    Does not change either argument. Parallel lines are an error.
+
+    Args:
+        line1 (Vec): First line. Not mutated.
+        line2 (Vec): Second line. Not mutated.
+
+    Returns:
+        list[float]: Intersection point ``[x, y]``.
+
+    Raises:
+        ValueError: If the lines are parallel.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_intersection([1, 0, -1], [0, 1, -2])
+        [1.0, 2.0]
+        >>> sg.v_intersection([1, 0, 0], [2, 0, -1])
+        Traceback (most recent call last):
+            ...
+        ValueError: Lines are parallel
+    """
     l1 = _as_data(line1)
     l2 = _as_data(line2)
     det = l1[0] * l2[1] - l2[0] * l1[1]
@@ -597,7 +1028,24 @@ def v_intersection(line1: Vec, line2: Vec) -> list[float]:
 
 
 def v_linethrough(point1: Vec, point2: Vec) -> list[float]:
-    """Compatibility variant that returns [A, B, C] for a line through points."""
+    """Return ``[A, B, C]`` for the line through two points.
+
+    Does not change either point. Coincident points return ``[0, 0, 0]``.
+
+    Args:
+        point1 (Vec): First point. Not mutated.
+        point2 (Vec): Second point. Not mutated.
+
+    Returns:
+        list[float]: Line coefficients.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_linethrough([0, 0], [0, 1])
+        [-1.0, 0.0, -0.0]
+        >>> sg.v_linethrough([2, 2], [2, 2])
+        [0.0, 0.0, 0.0]
+    """
     p1 = _as_data(point1)
     p2 = _as_data(point2)
     v = [p2[0] - p1[0], p2[1] - p1[1]]
@@ -611,22 +1059,89 @@ def v_linethrough(point1: Vec, point2: Vec) -> list[float]:
 
 
 def v_scale(vec: Vec, k: float) -> Vec:
-    """Scale vector by factor k preserving output type."""
+    """Scale a vector by ``k``. Does not change ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+        k (float): Scale factor.
+
+    Returns:
+        Vec: Scaled vector. Type matches ``vec``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [2, 3]
+        >>> sg.v_scale(raw, 2)
+        [4, 6]
+        >>> raw
+        [2, 3]
+    """
     return v_mul(vec, k)
 
 
 def v_string(vec: Vec) -> str:
-    """Return vector formatted as a bracketed comma-separated string."""
+    """Return a bracketed component string. Does not change ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+
+    Returns:
+        str: Components inside brackets.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_string([1, 2])
+        '[ 1, 2 ]'
+    """
     return "[ " + ", ".join(str(x) for x in _as_data(vec)) + " ]"
 
 
 def v_dim(vec: Vec) -> int:
-    """Return number of components in the vector."""
+    """Return the number of components. Does not change ``vec``.
+
+    Args:
+        vec (Vec): Input vector. Not mutated.
+
+    Returns:
+        int: Component count.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_dim([1, 2, 3])
+        3
+        >>> sg.v_dim(sg.Vector(1, 2))
+        2
+    """
     return len(_as_data(vec))
 
 
 def v_rotate(vec: Vec, angle: float) -> Vec:
-    """Rotate a 2D vector in place for sequences, or return rotated Vector."""
+    """Rotate a 2D vector by ``angle`` radians.
+
+    A sequence is rotated in place. A ``Vector`` is not changed; a new
+    ``Vector`` is returned.
+
+    Args:
+        vec (Vec): Input vector (mutated if it is a list or other
+            mutable sequence). A ``Vector`` is not changed.
+        angle (float): Rotation in radians, counterclockwise.
+
+    Returns:
+        Vec: The rotated vector. Same object when ``vec`` is a sequence.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [1.0, 0.0]
+        >>> sg.v_rotate(raw, sg.pi / 2)
+        [6.123233995736766e-17, 1.0]
+        >>> raw[1]
+        1.0
+        >>> vec = sg.Vector(1, 0)
+        >>> sg.v_rotate(vec, sg.pi / 2)
+        Vector(6.123233995736766e-17, 1.0)
+        >>> vec
+        Vector(1, 0)
+    """
     if isinstance(vec, Vector):
         return v_rotated(vec, angle)
 
@@ -642,7 +1157,25 @@ def v_rotate(vec: Vec, angle: float) -> Vec:
 
 
 def v_interpolated(vec1: Vec, vec2: Vec, t: float) -> Vec:
-    """Return linear interpolation between vec1 and vec2 at parameter t."""
+    """Return the point ``(1 - t) * vec1 + t * vec2``.
+
+    Does not change either vector. ``t`` is not clamped.
+
+    Args:
+        vec1 (Vec): Start vector. Not mutated.
+        vec2 (Vec): End vector. Not mutated.
+        t (float): Blend parameter. ``0`` is ``vec1``, ``1`` is ``vec2``.
+
+    Returns:
+        Vec: Interpolated vector. Type matches ``vec1``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_interpolated([0, 0], [10, 0], 0.5)
+        [5.0, 0.0]
+        >>> sg.v_interpolated([0, 0], [10, 0], 0)
+        [0, 0]
+    """
     v1 = _as_data(vec1)
     v2 = _as_data(vec2)
     s = 1 - t
@@ -650,7 +1183,22 @@ def v_interpolated(vec1: Vec, vec2: Vec, t: float) -> Vec:
 
 
 def v_from_points(start: PointType, end: PointType) -> Vec:
-    """Returns the vector defined by the start and end points."""
+    """Return the vector from ``start`` to ``end``. Does not change either point.
+
+    Args:
+        start (PointType): Start point. Not mutated.
+        end (PointType): End point. Not mutated.
+
+    Returns:
+        Vector: ``end - start`` in 2D.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.v_from_points((0, 0), (3, 4))
+        Vector(3, 4)
+        >>> sg.v_from_points((1, 1), (1, 1))
+        Vector(0, 0)
+    """
     dx = end[0] - start[0]
     dy = end[1] - start[1]
 
@@ -658,29 +1206,63 @@ def v_from_points(start: PointType, end: PointType) -> Vec:
 
 
 def isarray(a) -> bool:
-    """Check if object is array-like (has __getitem__)."""
+    """Return whether ``a`` supports indexing.
+
+    Args:
+        a: Object to test.
+
+    Returns:
+        bool: True when ``a`` has ``__getitem__``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.isarray([1, 2])
+        True
+        >>> sg.isarray(3)
+        False
+    """
     return hasattr(a, "__getitem__")
 
 
 def distance(point1: Vec, point2: Vec) -> float:
-    """Return Euclidean distance between two points/vectors."""
+    """Return the Euclidean distance between two points. Inputs are not changed.
+
+    Args:
+        point1 (Vec): First point. Not mutated.
+        point2 (Vec): Second point. Not mutated.
+
+    Returns:
+        float: Distance. ``0.0`` if the points are the same.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.distance([0, 0], [3, 4])
+        5.0
+        >>> sg.distance([1, 1], [1, 1])
+        0.0
+    """
     p1 = _as_data(point1)
     p2 = _as_data(point2)
     return hypot(*(q - p for p, q in zip(p1, p2)))
 
 
 def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
-    """Dot product of two vectors. BA and BC
+    """Return ``(a - b) · (c - b)``. Does not change the points.
+
     Args:
-        a (PointType): First point, creating vector BA
-        b (PointType): Second point, common point for both vectors
-        c (PointType): Third point, creating vector BC
+        a (PointType): First point, forming vector ``BA``. Not mutated.
+        b (PointType): Common point. Not mutated.
+        c (PointType): Third point, forming vector ``BC``. Not mutated.
 
     Returns:
-        float: The dot product of vectors BA and BC
-    Note:
-        The function calculates (a-b)·(c-b) which is the dot product of vectors BA and BC.
-        This is useful for finding angles between segments that share a common point.
+        float: Dot product of ``BA`` and ``BC``. ``0`` if they are perpendicular.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.dot_product2((2, 0), (0, 0), (0, 3))
+        0
+        >>> sg.dot_product2((2, 0), (0, 0), (1, 0))
+        2
     """
     a_x, a_y = a[:2]
     b_x, b_y = b[:2]
@@ -693,24 +1275,25 @@ def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
 
 
 def cross_product2(a: PointType, b: PointType, c: PointType) -> float:
-    """
-    Return the cross product of two vectors: BA and BC.
+    """Return the z-component of ``(a - b) × (c - b)``.
+
+    Does not change the points. Positive means ``c`` is to the left of
+    the direction from ``b`` to ``a``.
 
     Args:
-        a (PointType): First point, creating vector BA
-        b (PointType): Second point, common point for both vectors
-        c (PointType): Third point, creating vector BC
+        a (PointType): First point, forming vector ``BA``. Not mutated.
+        b (PointType): Common point. Not mutated.
+        c (PointType): Third point, forming vector ``BC``. Not mutated.
 
     Returns:
-        float: The z-component of cross product between vectors BA and BC
+        float: Signed cross product. ``0`` if the points are collinear.
 
-    Note:
-        This gives the signed area of the parallelogram formed by the vectors BA and BC.
-        The sign indicates the orientation (positive for counter-clockwise, negative for clockwise).
-        It is useful for determining the orientation of three points and calculating angles.
-
-    vec1 = b - a
-    vec2 = c - b
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.cross_product2((1, 0), (0, 0), (0, 1))
+        1
+        >>> sg.cross_product2((1, 0), (0, 0), (2, 0))
+        0
     """
     a_x, a_y = a[:2]
     b_x, b_y = b[:2]
@@ -723,13 +1306,26 @@ def cross_product2(a: PointType, b: PointType, c: PointType) -> float:
 
 
 def unit_vector(line: LineType) -> VecType:
-    """Return the unit vector of a line
+    """Return a unit vector along a line. Does not change ``line``.
+
+    The body calls ``length``, which is not defined in this module, so
+    a call currently raises ``NameError``.
 
     Args:
-        line (LineType): Input line.
+        line (LineType): Input line. Not mutated.
 
     Returns:
-        VecType: Unit vector of the line.
+        VecType: Intended unit vector from the first point toward the second.
+
+    Raises:
+        NameError: ``length`` is not defined here.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.unit_vector(((0, 0), (0, 5)))
+        Traceback (most recent call last):
+            ...
+        NameError: name 'length' is not defined
     """
     norm_ = length(line)
     p1, p2 = line
@@ -739,14 +1335,27 @@ def unit_vector(line: LineType) -> VecType:
 
 
 def unit_vector_(line: LineType) -> Sequence[VecType]:
-    """Return the cartesian unit vector of a line
-    with the given line's start and end points
+    """Return a unit vector along a line. Does not change ``line``.
+
+    A zero-length line has no direction.
 
     Args:
-        line (LineType): Input line.
+        line (LineType): Input line. Not mutated.
 
     Returns:
-        Sequence[VecType]: Cartesian unit vector of the line.
+        Sequence[VecType]: Unit vector ``[dx / length, dy / length]``.
+
+    Raises:
+        ZeroDivisionError: If the line has length 0.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.unit_vector_(((0, 0), (0, 5)))
+        [0.0, 1.0]
+        >>> sg.unit_vector_(((1, 1), (1, 1)))
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: float division by zero
     """
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -757,14 +1366,24 @@ def unit_vector_(line: LineType) -> Sequence[VecType]:
 
 
 def vec_along_line(line: LineType, magnitude: float) -> VecType:
-    """Return a vector along a line with the given magnitude.
+    """Return a vector of the given length along a line.
+
+    Does not change ``line``. The axes ``sg.axis_x`` and ``sg.axis_y``
+    are handled directly.
 
     Args:
-        line (LineType): Input line.
-        magnitude (float): Magnitude of the vector.
+        line (LineType): Input line. Not mutated.
+        magnitude (float): Signed length of the result.
 
     Returns:
-        VecType: Vector along the line with the given magnitude.
+        VecType: ``(dx, dy)`` along the line.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.vec_along_line(sg.axis_x, 3)
+        (3, 0)
+        >>> sg.vec_along_line(sg.axis_y, -2)
+        (0, -2)
     """
     from .segments.line_utils import line_angle
 
@@ -781,27 +1400,47 @@ def vec_along_line(line: LineType, magnitude: float) -> VecType:
 
 
 def vec_dir_angle(vec: Sequence[float]) -> float:
-    """Return the direction angle of a vector
+    """Return the direction angle of a 2D vector. Does not change ``vec``.
 
     Args:
-        vec (Sequence[float]): Input vector.
+        vec (Sequence[float]): Input vector. Not mutated.
 
     Returns:
-        float: Direction angle of the vector.
+        float: ``atan2(y, x)`` in radians. ``0.0`` for the zero vector.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.vec_dir_angle([1, 0])
+        0.0
+        >>> sg.vec_dir_angle([0, 0])
+        0.0
     """
     return atan2(vec[1], vec[0])
 
 
 def cross_product_sense(a: PointType, b: PointType, c: PointType) -> int:
-    """Return the cross product sense of vectors a and b.
+    """Return the sign of ``(a - b) × (c - b)``.
+
+    Does not change the points. Collinear points return ``1``. A non-zero
+    cross product currently raises ``NameError`` because the body calls
+    ``abs(length)`` rather than ``abs`` of the computed value.
 
     Args:
-        a (PointType): First point.
-        b (PointType): Second point.
-        c (PointType): Third point.
+        a (PointType): First point. Not mutated.
+        b (PointType): Common point. Not mutated.
+        c (PointType): Third point. Not mutated.
 
     Returns:
-        int: Cross product sense.
+        int: ``1`` or ``-1``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.cross_product_sense((2, 0), (0, 0), (1, 0))
+        1
+        >>> sg.cross_product_sense((1, 0), (0, 0), (0, 1))
+        Traceback (most recent call last):
+            ...
+        NameError: name 'length' is not defined
     """
     length_ = cross_product2(a, b, c)
     if length_ == 0:
@@ -823,43 +1462,68 @@ def cross_product_sense(a: PointType, b: PointType, c: PointType) -> int:
 
 
 def right_turn(p1, p2, p3):
-    """Return True if p1, p2, p3 make a right turn.
+    """Return whether ``p1``, ``p2``, ``p3`` make a right turn.
+
+    Does not change the points. Collinear points are not a right turn.
 
     Args:
-        p1 (PointType): First point.
-        p2 (PointType): Second point.
-        p3 (PointType): Third point.
+        p1 (PointType): First point. Not mutated.
+        p2 (PointType): Second point. Not mutated.
+        p3 (PointType): Third point. Not mutated.
 
     Returns:
-        bool: True if the points make a right turn, False otherwise.
+        bool: True for a clockwise turn.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.right_turn((0, 0), (1, 0), (1, -1))
+        True
+        >>> sg.right_turn((0, 0), (1, 0), (2, 0))
+        False
     """
     return cross(p1, p2, p3) < 0
 
 
 def left_turn(p1, p2, p3):
-    """Return True if p1, p2, p3 make a left turn.
+    """Return whether ``p1``, ``p2``, ``p3`` make a left turn.
+
+    Does not change the points. Collinear points are not a left turn.
 
     Args:
-        p1 (PointType): First point.
-        p2 (PointType): Second point.
-        p3 (PointType): Third point.
+        p1 (PointType): First point. Not mutated.
+        p2 (PointType): Second point. Not mutated.
+        p3 (PointType): Third point. Not mutated.
 
     Returns:
-        bool: True if the points make a left turn, False otherwise.
+        bool: True for a counterclockwise turn.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.left_turn((0, 0), (1, 0), (0, 1))
+        True
+        >>> sg.left_turn((0, 0), (1, 0), (2, 0))
+        False
     """
     return cross(p1, p2, p3) > 0
 
 
 def cross(p1, p2, p3):
-    """Return the cross product of vectors p1p2 and p1p3.
+    """Return the z-component of ``p1p2 × p1p3``. Does not change the points.
 
     Args:
-        p1 (PointType): First point.
-        p2 (PointType): Second point.
-        p3 (PointType): Third point.
+        p1 (PointType): Common start point. Not mutated.
+        p2 (PointType): End of the first vector. Not mutated.
+        p3 (PointType): End of the second vector. Not mutated.
 
     Returns:
-        float: Cross product of the vectors.
+        float: Signed cross product. ``0`` if the points are collinear.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.cross((0, 0), (1, 0), (0, 1))
+        1
+        >>> sg.cross((0, 0), (1, 0), (2, 0))
+        0
     """
     x1, y1 = p2[0] - p1[0], p2[1] - p1[1]
     x2, y2 = p3[0] - p1[0], p3[1] - p1[1]
@@ -867,13 +1531,20 @@ def cross(p1, p2, p3):
 
 
 def line_to_vector(line: LineType) -> VecType:
-    """Return the vector representation of a line
+    """Return the 2D vector from the first point of a line to the second.
+
+    Does not change ``line``.
 
     Args:
-        line (LineType): Input line.
+        line (LineType): Input line. Not mutated.
 
     Returns:
-        VecType: Vector representation of the line.
+        VecType: ``[dx, dy]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.line_to_vector(((0, 0), (3, 4)))
+        [3, 4]
     """
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -883,13 +1554,20 @@ def line_to_vector(line: LineType) -> VecType:
 
 
 def line_vector(line: LineType) -> VecType:
-    """Return the vector representation of a line.
+    """Return a ``Vector`` from the first point of a line to the second.
+
+    Does not change ``line``.
 
     Args:
-        line (LineType): Input line.
+        line (LineType): Input line. Not mutated.
 
     Returns:
-        VecType: Vector representation of the line.
+        Vector: ``end - start``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.line_vector(((0, 0), (3, 4)))
+        Vector(3, 4)
     """
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -897,51 +1575,97 @@ def line_vector(line: LineType) -> VecType:
 
 
 def angled_vector(angle_: float) -> Sequence[float]:
-    """
-    Return a vector with the given angle
+    """Return a unit vector at the given angle. Does not change ``angle_``.
 
     Args:
         angle_ (float): Angle in radians.
 
     Returns:
-        Sequence[float]: Vector with the given angle.
+        Sequence[float]: ``[cos(angle), sin(angle)]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.angled_vector(0)
+        [1.0, 0.0]
     """
     return [cos(angle_), sin(angle_)]
 
 
 def norm(vec: VecType) -> float:
-    """Return the norm (vector length) of a vector.
+    """Return the 2D length of a vector. Does not change ``vec``.
+
+    Uses the first two components only.
 
     Args:
-        vec (VecType): Input vector.
+        vec (VecType): Input vector. Not mutated.
 
     Returns:
-        float: Norm of the vector.
+        float: Euclidean length. ``0.0`` for the zero vector.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.norm([3, 4])
+        5.0
+        >>> sg.norm([0, 0])
+        0.0
     """
     return hypot(vec[0], vec[1])
 
 
 def normalize(vec: VecType) -> VecType:
-    """Return the normalized vector.
+    """Return a new 2D unit vector. Does not change ``vec``.
+
+    Uses the first two components only. A zero vector has no direction.
 
     Args:
-        vec (VecType): Input vector.
+        vec (VecType): Input vector. Not mutated.
 
     Returns:
-        VecType: Normalized vector.
+        VecType: New list ``[x / length, y / length]``.
+
+    Raises:
+        ZeroDivisionError: If the first two components are both 0.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [3, 4]
+        >>> sg.normalize(raw)
+        [0.6, 0.8]
+        >>> raw
+        [3, 4]
+        >>> sg.normalize([0, 5])
+        [0.0, 1.0]
+        >>> sg.normalize([0, 0])
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: float division by zero
     """
     norm_ = norm(vec)
     return [vec[0] / norm_, vec[1] / norm_]
 
 
 def perp_unit_vector(line: LineType) -> VecType:
-    """Return the perpendicular unit vector to a line
+    """Return a unit vector perpendicular to a line. Does not change ``line``.
+
+    A zero-length line has no direction.
 
     Args:
-        line (LineType): Input line.
+        line (LineType): Input line. Not mutated.
 
     Returns:
-        VecType: Perpendicular unit vector.
+        VecType: Unit vector ``[-dy, dx] / length``.
+
+    Raises:
+        ZeroDivisionError: If the line has length 0.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.perp_unit_vector(((0, 0), (1, 0)))
+        [0.0, 1.0]
+        >>> sg.perp_unit_vector(((1, 1), (1, 1)))
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: float division by zero
     """
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -954,15 +1678,33 @@ def perp_unit_vector(line: LineType) -> VecType:
 def point_to_line_vec(
     point: PointType, line: LineType, unit: bool = False
 ) -> VecType:
-    """Return the perpendicular vector from a point to a line
+    """Return the perpendicular from a point to a line.
+
+    Does not change ``point`` or ``line``. A zero-length line has no
+    direction. ``unit=False`` scales the perpendicular by the signed
+    distance.
 
     Args:
-        point (PointType): Input point.
-        line (LineType): Input line.
-        unit (bool, optional): Whether to return a unit vector. Defaults to False.
+        point (PointType): Input point. Not mutated.
+        line (LineType): Input line. Not mutated.
+        unit (bool): If True, return a unit perpendicular. Defaults to False.
 
     Returns:
-        VecType: Perpendicular vector from the point to the line.
+        VecType: Perpendicular vector from the point toward the line.
+
+    Raises:
+        ZeroDivisionError: If the line has length 0.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.point_to_line_vec((0, 1), ((0, 0), (1, 0)))
+        [-0.0, -1.0]
+        >>> sg.point_to_line_vec((0, 1), ((0, 0), (1, 0)), unit=True)
+        [-0.0, -1.0]
+        >>> sg.point_to_line_vec((0, 1), ((1, 1), (1, 1)))
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: float division by zero
     """
     x0, y0 = point
     x1, y1 = line[0][:2]
@@ -984,16 +1726,23 @@ def point_to_line_vec(
 
 
 def surface_normal(p1: PointType, p2: PointType, p3: PointType) -> VecType:
-    """
-    Calculates the surface normal of a triangle given its vertices.
+    """Return a unit normal of the triangle ``p1``, ``p2``, ``p3``.
+
+    Does not change the vertices. Collinear vertices have no direction,
+    so the result is a vector of NaNs.
 
     Args:
-        p1 (PointType): First vertex.
-        p2 (PointType): Second vertex.
-        p3 (PointType): Third vertex.
+        p1 (PointType): First vertex. Not mutated.
+        p2 (PointType): Second vertex. Not mutated.
+        p3 (PointType): Third vertex. Not mutated.
 
     Returns:
-        VecType: Surface normal vector.
+        VecType: Unit surface normal.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.surface_normal((0, 0, 0), (1, 0, 0), (0, 1, 0))
+        array([0., 0., 1.])
     """
     v1 = np.array(p1)
     v2 = np.array(p2)
@@ -1012,14 +1761,28 @@ def surface_normal(p1: PointType, p2: PointType, p3: PointType) -> VecType:
 
 
 def normal(point1, point2):
-    """Return the normal vector of a line.
+    """Return a unit normal of the segment from ``point1`` to ``point2``.
+
+    Does not change either point. A zero-length segment has no direction.
 
     Args:
-        point1 (PointType): First point of the line.
-        point2 (PointType): Second point of the line.
+        point1 (PointType): First point. Not mutated.
+        point2 (PointType): Second point. Not mutated.
 
     Returns:
-        VecType: Normal vector of the line.
+        VecType: Unit vector ``[-dy, dx] / length``.
+
+    Raises:
+        ZeroDivisionError: If the two points are the same.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.normal((0, 0), (1, 0))
+        [0.0, 1.0]
+        >>> sg.normal((1, 1), (1, 1))
+        Traceback (most recent call last):
+            ...
+        ZeroDivisionError: float division by zero
     """
     x1, y1 = point1[:2]
     x2, y2 = point2[:2]

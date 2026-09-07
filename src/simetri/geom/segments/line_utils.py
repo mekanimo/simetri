@@ -8,7 +8,7 @@ import numpy as np
 from numpy import array
 
 from simetri.base.all_enums import Connection, Types
-from simetri.base.common import LineType, PointType, get_defaults, i_vec, j_vec
+from simetri.base.common import LineType, PointType, get_defaults
 from simetri.geom.geometry import (
     positive_angle,
 )
@@ -34,6 +34,8 @@ from simetri.geom.vectors import (
     PointType,
     Sequence,
     Vector,
+    i_vec,
+    j_vec,
     acos,
     atan2,
     cos,

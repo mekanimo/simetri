@@ -10,7 +10,7 @@ from ..geom.points.point_utils import direction, point_to_line_distance
 from ..geom.segments.line_utils import angle_between_two_lines
 from ..base.all_enums import ConstraintType as ConstType
 from ..geom.points.point_utils import distance
-from ..helpers.vector import Vector2D
+from ..geom.vectors import Vector
 from .validation import is_line
 
 
@@ -97,8 +97,8 @@ def parallel_eq(constraint):
     dir1 = [seg1[1][0] - seg1[0][0], seg1[1][1] - seg1[0][1]]  # [x2-x1, y2-y1]
     dir2 = [seg2[1][0] - seg2[0][0], seg2[1][1] - seg2[0][1]]  # [x4-x3, y4-y3]
 
-    vec1 = Vector2D(*dir1)
-    vec2 = Vector2D(*dir2)
+    vec1 = Vector(*dir1)
+    vec2 = Vector(*dir2)
 
     return vec1.cross(vec2)
 
@@ -121,8 +121,8 @@ def perpendicular_eq(constraint):
     dir1 = [seg1[1][0] - seg1[0][0], seg1[1][1] - seg1[0][1]]  # [x2-x1, y2-y1]
     dir2 = [seg2[1][0] - seg2[0][0], seg2[1][1] - seg2[0][1]]  # [x4-x3, y4-y3]
 
-    vec1 = Vector2D(*dir1)
-    vec2 = Vector2D(*dir2)
+    vec1 = Vector(*dir1)
+    vec2 = Vector(*dir2)
 
     return vec1.dot(vec2)
 
