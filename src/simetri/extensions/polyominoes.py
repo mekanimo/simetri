@@ -1,5 +1,6 @@
 import simetri.geom.polygons.polygon_utils
 import simetri.graphics as sg
+from simetri.shapes.figure import Figure
 
 
 def generate_centers(n, polyo_type="free"):
@@ -155,7 +156,11 @@ def iter_polyominoes(n, polyo_type="free", size=20):
         units = sg.Group()
         for x, y in polyo:
             units.append(unit.copy().move_to((x * size, y * size)))
-        yield (units.merge_shapes(remove_duplicate_edges=True))
+        skin = units.copy()
+        skin.set_attribs("fill", False)
+        geometry = units.merge_shapes(remove_duplicate_edges=True)[0]
+        figure = Figure(geometry, skin)
+        yield (figure)
 
 
 # Example:

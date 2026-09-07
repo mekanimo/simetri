@@ -39,7 +39,7 @@ def segments_from_points(points):
     return res
 
 
-def node_dictionaries(coords:  n_round: int = 2) -> list[dict]:
+def node_dictionaries(coords: list, n_round: int = 2) -> list[dict]:
     """Set dictionaries for nodes and coordinates.
     d_node_coord: Dictionary of node id to coordinates.
     d_coord_node: Dictionary of coordinates to node id.

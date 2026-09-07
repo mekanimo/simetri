@@ -13,7 +13,7 @@ from simetri.geom.geometry import (
     positive_angle,
 )
 from simetri.geom.geom_utils import connected_pairs
-from simetri.geom.geometry import area, bbox_overlap
+from simetri.geom.geometry import double_area, bbox_overlap
 from simetri.geom.geom_utils import (
     close_points2,
     midpoint,
@@ -306,7 +306,7 @@ def collinear(a, b, c, area_tol=None):
     if area_tol is None:
         area_tol = defaults["area_tol"]
 
-    return abs(area(a, b, c)) <= area_tol
+    return abs(double_area(a, b, c)) <= area_tol
 
 
 def merge_consecutive_collinear_edges(

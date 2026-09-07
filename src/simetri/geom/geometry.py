@@ -511,8 +511,19 @@ def cartesian_to_polar(x, y, center=(0, 0)):
     return r, theta
 
 
-def area(a, b, c):
-    """Return the area of a triangle given its vertices.
+def double_area(a, b, c):
+    """Return twice the signed area of triangle ``abc``.
+
+    Computes the 2D cross product of ``AB`` and ``AC``:
+
+    ``(b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)``.
+
+    That value is the signed area of the parallelogram spanned by those
+    vectors, i.e. **twice** the signed triangle area. Positive when
+    ``a → b → c`` is counterclockwise, negative when clockwise, and near
+    zero when the points are collinear. Kept as ``2 * area`` so orientation
+    and collinearity tests can compare against ``area_tol`` without an
+    extra multiply/divide.
 
     Args:
         a (PointType): First vertex.
@@ -520,11 +531,13 @@ def area(a, b, c):
         c (PointType): Third vertex.
 
     Returns:
-        float: Area of the triangle.
+        float: Twice the signed triangle area (parallelogram cross product).
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.area((0, 0), (1, 0), (0, 1))
+        >>> sg.double_area((0, 0), (1, 0), (0, 1))
         1
+        >>> sg.double_area((0, 0), (1, 0), (0, 1)) / 2  # geometric triangle area
+        0.5
     """
     return (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])

@@ -51,7 +51,7 @@ Note: First row from the bottom, second image from left is from Jannis Maroschec
 - Sound interface using external libraries.
 
 ## Installation
-If you have a Python version >= 3.9 installed, execute the following command in the terminal:
+If you have a Python version >= 3.11 installed, execute the following command in the terminal:
 
 ```pip install simetri```
 
@@ -64,7 +64,7 @@ This will not install a LaTeX distribution, so you will need to install one sepa
 
 ```>>> import simetri.graphics as sg```
 
-```>>> sg.__version__ # this should return '0.0.6'```
+```>>> sg.__version__ # this should return '0.0.9'```
 
 ```>>> sg.hello()```
 
@@ -95,22 +95,27 @@ See https://jupyter.org/install
 
 ## Requirements
 
-- Python version 3.9 or later.
-- A LaTeX distribution with XeLaTeX engine is required for rendering the output. Miktex is the recommended distribution since it handles installation of required packages automatically.
+- Python version 3.11 or later.
+- A LaTeX distribution with XeLaTeX engine is required for rendering PDF output. MikTeX is the recommended distribution since it handles installation of required packages automatically.
 
-The library requires the following Python packages:
+The library requires the following Python packages (installed automatically with pip or uv):
 
-- `numpy`
-- `networkx`
-- `matplotlib`
-- `Pillow`
+- `coloraide`
+- `colorspace`
+- `ipykernel`
 - `IPython`
+- `matplotlib`
+- `networkx`
+- `numpy`
+- `Pillow`
+- `pyan3`
 - `pymupdf`
-- `strenum`
-- `typing-extensions`
+- `pypdf`
+- `pyvis`
 - `scipy`
+- `urllib3`
 
-These extensions are installed automatically when you install the library using pip or uv.
+Dev extras (optional): `pytest`, `twine`.
 
 ## Example
 ```python

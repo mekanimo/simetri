@@ -95,7 +95,6 @@ from ..shapes.geom_items import *
 # Preserve geometric Line class on public namespace.
 from ..shapes.geom_items import Line as Line
 from ..render.sketch import *
-from ..helpers.box_solver import push_boxes_apart, Box
 from ..helpers.constraint_solver import Constraint, solve
 from ..helpers.illustration import *
 from ..helpers.modifiers import *

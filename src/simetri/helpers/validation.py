@@ -1,8 +1,8 @@
 """Validation functions for the user entered argument values and kwargs."""
 
+import enum
 import re
 import numbers
-from strenum import enum
 from typing import Any
 
 from numpy import ndarray

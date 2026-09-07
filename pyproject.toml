@@ -8,24 +8,35 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "coloraide; python_version >= '3.11'",
-    "colorspace; python_version >= '3.11'",
+    "coloraide",
+    "colorspace",
     "ipykernel>=6.30.1",
     "ipython>=8.18.1",
     "matplotlib>=3.9.4",
     "networkx>=3.2.1",
     "numpy>=2.0.2",
     "pillow>=12.1.1",
+    "pyan3>=2.8.1",
     "pymupdf>=1.25.1",
     "pypdf>=5.9.0",
+    "pyvis>=0.3.2",
     "scipy>=1.13.1",
-    "strenum>=0.4.15",
     "urllib3>=2.6.0",
-
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Mathematics",
 ]
 
-[project.scripts]
-simetri = "simetri:main"
+[project.urls]
+Homepage = "https://github.com/mekanimo/simetri.graphics"
 
 [build-system]
 requires = ["hatchling"]
@@ -43,17 +54,6 @@ exclude = [
     "**/*.pyc",
 ]
 
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GPLv2 License",
-    "Operating System :: OS Independent",
-    "Development Status :: 3 - Alpha",
-    "Topic :: Computational Geometry :: 2D Symmetry :: Pattern Design",
-]
-
-[project.urls]
-Homepage = "https://github.com/mekanimo/simetri.graphics"
-
 [tool.ruff]
 line-length = 80
 
@@ -62,7 +62,6 @@ ignore = ["F405", "F403", "F401", "F821"]
 
 [tool.ruff.format]
 line-ending = "auto"
-
 
 [dependency-groups]
 dev = [
