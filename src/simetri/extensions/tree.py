@@ -216,7 +216,7 @@ def make_tree(
             x -= dx
         p1 = (x, y)
         p2 = (x2, y2)
-        if not simetri.geom.points.point_utils.close_points2(p1, p2):
+        if not simetri.geom.points.point_utils.close_points_square(p1, p2):
             canvas.line(
                 p1,
                 p2,

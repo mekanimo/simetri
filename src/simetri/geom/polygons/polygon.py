@@ -14,7 +14,6 @@ Examples:
 
 from __future__ import annotations
 
-import time
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -36,16 +35,16 @@ from ...base.common import (
 )
 from ...config.settings import defaults, issue_warning
 from ..points.point_utils import (
-    close_points2,
+    close_points_square,
     distance,
-    left,
+    left3,
     midpoint,
     on_segment,
     round_point,
 )
 from ..segments.line_utils import (
     all_intersections,
-    angle_between_lines2,
+    angle_between_lines3,
     equal_edges,
     offset_line,
     round_segment,
@@ -66,12 +65,40 @@ from ..points.point_utils import (
 
 
 def _shape(*args: Any, **kwargs: Any) -> Shape:
+    """Build a ``Shape`` without importing it at module import time.
+
+    Args:
+        *args: Positional arguments for ``Shape``.
+        **kwargs: Keyword arguments for ``Shape``.
+
+    Returns:
+        Shape: The constructed shape.
+
+    Examples:
+        >>> from simetri.geom.polygons.polygon import _shape
+        >>> _shape([(0, 0), (1, 0)]).vertices
+        [(0, 0), (1, 0)]
+    """
     from simetri.shapes.shape import Shape
 
     return Shape(*args, **kwargs)
 
 
 def _group(*args: Any, **kwargs: Any) -> Group:
+    """Build a ``Group`` without importing it at module import time.
+
+    Args:
+        *args: Positional arguments for ``Group``.
+        **kwargs: Keyword arguments for ``Group``.
+
+    Returns:
+        Group: The constructed group.
+
+    Examples:
+        >>> from simetri.geom.polygons.polygon import _group
+        >>> len(_group([]))
+        0
+    """
     from simetri.group.batch import Group
 
     return Group(*args, **kwargs)
@@ -233,19 +260,32 @@ class Polyline:
 def polygon_area(
     polygon: Sequence[PointType], dist_tol: float | None = None
 ) -> float:
-    """Calculate the area of a polygon.
+    """Return the signed area of a polygon.
+
+    A counter-clockwise walk is positive. A clockwise walk is negative.
+    An unclosed ring is closed for the calculation only.
 
     Args:
-        polygon (Sequence[PointType]): Sequence of points representing the polygon.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        polygon (Sequence[PointType]): Vertices in walk order.
+        dist_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["dist_tol"]``.
 
     Returns:
-        float: Area of the polygon.
+        float: Signed area.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1)])
+        1.0
+        >>> sg.polygon_area([(0, 0), (0, 1), (1, 1), (1, 0)])
+        -1.0
+        >>> sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
+        1.0
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     dist_tol2 = dist_tol * dist_tol
-    if not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
+    if not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
         polygon = list(polygon[:])
         polygon.append(polygon[0])
     area_ = 0
@@ -260,17 +300,22 @@ def polygon_area(
 def ccw_positive_vertices(
     vertices: Sequence[PointType],
 ) -> list[tuple[float, float]]:
-    """Return a CCW+ vertex copy without mutating the input.
+    """Return a counter-clockwise copy of ``vertices``.
 
-    Vertices are copied. If the signed area is negative (clockwise walk),
-    the copy is reversed so the walk is counter-clockwise with positive
-    signed area.
+    A clockwise walk is reversed so the signed area is positive.
 
     Args:
-        vertices: Polygon vertices in order.
+        vertices (Sequence[PointType]): Polygon vertices in order.
 
     Returns:
-        list[tuple[float, float]]: CCW-ordered vertex copy.
+        list[tuple[float, float]]: Counter-clockwise vertex copy.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.ccw_positive_vertices([(0, 0), (1, 0), (1, 1)])
+        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+        >>> sg.ccw_positive_vertices([(0, 0), (0, 1), (1, 0)])
+        [(1.0, 0.0), (0.0, 1.0), (0.0, 0.0)]
     """
     verts = [(float(x), float(y)) for x, y in vertices]
     if polygon_area(verts) < 0:
@@ -573,7 +618,21 @@ def _segment_containment_counts(
     midpoints: Sequence[PointType],
     shape_vertices: Sequence[Sequence[PointType]],
 ) -> NDArray[np.int16]:
-    """Count how many input polygons contain each segment midpoint."""
+    """Count how many polygons contain each segment midpoint.
+
+    Args:
+        midpoints (Sequence[PointType]): Points to test.
+        shape_vertices (Sequence[Sequence[PointType]]): Polygon vertex rings.
+
+    Returns:
+        NDArray[np.int16]: One count per midpoint.
+
+    Examples:
+        >>> from simetri.geom.polygons.polygon import _segment_containment_counts
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> list(_segment_containment_counts([(0.5, 0.5), (2, 2)], [square]))
+        [1, 0]
+    """
     counts = np.zeros(len(midpoints), dtype=np.int16)
     for vertices in shape_vertices:
         for index, midpoint in enumerate(midpoints):
@@ -590,12 +649,22 @@ def point_inside_polygon(
     Points on the boundary return False.
 
     Args:
-        p: Query point ``(x, y)``.
-        poly: Ordered polygon vertices.
-        eps: Tolerance for on-segment tests. Defaults to ``1e-5``.
+        p (PointType): Query point ``(x, y)``.
+        poly (Sequence[PointType]): Ordered polygon vertices.
+        eps (float): Tolerance for on-segment tests. Defaults to ``1e-5``.
 
     Returns:
-        bool: True if strictly inside; False on boundary or outside.
+        bool: True if strictly inside; False on the boundary or outside.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.point_inside_polygon((0.5, 0.5), square)
+        True
+        >>> sg.point_inside_polygon((0.5, 0), square)
+        False
+        >>> sg.point_inside_polygon((2, 2), square)
+        False
     """
     x, y = p
     n = len(poly)
@@ -629,22 +698,38 @@ def polygons_union(
     all_midpoints: Sequence[PointType],
     min_seg_len: float = 0.001,
 ) -> tuple[Shape, Group]:
-    """Compute polygon union from a pre-built segment arrangement.
+    """Return the union boundary of polygon shapes from a segment arrangement.
 
-    Uses an XOR boundary rule on the full segment arrangement instead of
-    repeated pairwise ``polygon_union`` calls.
+    A single shape is returned unchanged, with an empty hole group.
+    Shared interior edges are dropped. The midpoint of a kept segment
+    lies in exactly one input polygon.
 
     Args:
-        shapes: Input polygon shapes.
-        all_segments: Arrangement segments covering the union problem.
-        all_midpoints: Midpoints parallel to ``all_segments``.
-        min_seg_len: Drop segments shorter than this. Defaults to 0.001.
+        shapes (Sequence[Shape]): Input polygon shapes.
+        all_segments (Sequence[LineType]): Arrangement segments.
+        all_midpoints (Sequence[PointType]): Midpoints parallel to
+            ``all_segments``.
+        min_seg_len (float): Drop segments shorter than this. Defaults
+            to ``0.001``.
 
     Returns:
         tuple[Shape, Group]: Outer union boundary and a group of holes.
 
     Raises:
         ValueError: If ``shapes`` is empty.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> outer, holes = sg.polygons_union([square], [], [])
+        >>> len(outer.vertices)
+        4
+        >>> len(holes)
+        0
+        >>> sg.polygons_union([], [], [])
+        Traceback (most recent call last):
+            ...
+        ValueError: polygons_union requires at least one polygon
     """
     if len(shapes) == 0:
         raise ValueError("polygons_union requires at least one polygon")
@@ -676,27 +761,6 @@ def polygons_union(
     return outer, _group(holes)
 
 
-def get_time(start: int, end: int) -> str:
-    """Format an elapsed ``perf_counter_ns`` interval as text.
-
-    Args:
-        start: Start time from ``time.perf_counter_ns()``.
-        end: End time from ``time.perf_counter_ns()``.
-
-    Returns:
-        str: Human-readable duration, e.g. ``\"12.34 milliseconds\"``.
-    """
-
-    if ms < 900:
-        elapsed = ms
-        units = "milliseconds"
-    else:
-        elapsed = ms / 1000
-        units = "seconds"
-
-    return f"{elapsed:.2f} {units}"
-
-
 def all_close_points(
     points: Sequence[Sequence[float]],
     dist_tol: float | None = None,
@@ -705,16 +769,32 @@ def all_close_points(
     dict[int, Sequence[int]],
     Sequence[tuple[int, int] | tuple[int, int, float]],
 ]:
-    """
-    Find all close points in a sequence of points along with their ids.
+    """Return close point ids, and the pairs that produced them.
+
+    Each input row is ``[x, y, id]``. Nearby points are linked in both
+    directions.
 
     Args:
-        points (Sequence[Sequence]): Sequence of points with ids [[x1, y1, id1], [x2, y2, id2], ...].
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-        with_dist (bool, optional): Whether to include distances in the result. Defaults to False.
+        points (Sequence[Sequence[float]]): Rows ``[x, y, id]``.
+        dist_tol (float | None): Distance tolerance. Defaults to
+            ``defaults["dist_tol"]``.
+        with_dist (bool): If True, each pair is ``(id1, id2, distance)``.
+            Defaults to False.
 
     Returns:
-        dict: Dictionary of the form {id1: [id2, id3, ...], ...}.
+        tuple: ``({id: [nearby ids], ...}, pairs)``. Ids with no neighbor
+        are omitted from the dictionary.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> rows = [[0, 0, 1], [0.01, 0, 2], [5, 5, 3]]
+        >>> sg.all_close_points(rows, dist_tol=0.05)
+        ({1: [2], 2: [1]}, [(1, 2)])
+        >>> links, pairs = sg.all_close_points(rows, dist_tol=0.05, with_dist=True)
+        >>> links
+        {1: [2], 2: [1]}
+        >>> round(pairs[0][2], 2)
+        0.01
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -752,7 +832,7 @@ def all_close_points(
         for cand in candidates:
             id2 = int(cand[i_id])
             point2 = cand[:2]
-            if close_points2(point, point2, dist2=dist_tol2):
+            if close_points_square(point, point2, dist2=dist_tol2):
                 d_connections[id1].append(id2)
                 d_connections[id2].append(id1)
                 if with_dist:
@@ -775,15 +855,31 @@ def node_dictionaries(
     dict[tuple[float, ...], int],
     dict[tuple[float, ...], PointType],
 ]:
-    """Set dictionaries for nodes and coordinates.
-    d_node_coord: Dictionary of node id to coordinates.
-    d_coord_node: Dictionary of coordinates to node id.
+    """Return node maps for coordinates that fall within ``dist_tol``.
+
+    Nearby coordinates share one node id. The third map keeps the original
+    coordinate for each rounded key.
 
     Args:
-        coords (Sequence[PointType]): Sequence of vertices.
-        dist_tol (float): Distance tolerance for grouping coordinates.
-        debug (bool, optional): Print node proximity diagnostics.
+        coords (Sequence[PointType]): Vertices to index.
+        dist_tol (float): Distance used to merge nearby coordinates.
+        debug (bool): If True, print the closest unmerged pair.
             Defaults to False.
+
+    Returns:
+        tuple: ``(node_to_coord, coord_to_node, rounded_to_original)``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> nodes, coord_node, rounded = sg.node_dictionaries(
+        ...     [(0, 0), (0.01, 0), (5, 5)], 0.05
+        ... )
+        >>> nodes
+        {0: (0, 0), 1: (5, 5)}
+        >>> coord_node[(0, 0)] == coord_node[(0.01, 0)]
+        True
+        >>> rounded[(5, 5)]
+        (5, 5)
     """
     n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
     d_rounded_coord = {}
@@ -858,17 +954,31 @@ def node_dictionaries(
 def segment_cycles(
     segments, length_bound: int = 10, cycle_basis=False, dist_tol=None
 ):
-    """Return cycles (closed walks) formed by a set of line segments.
+    """Return closed walks formed by line segments.
 
     Args:
-        segments: Sequence of line segments ``[(p1, p2), ...]``.
-        length_bound: Maximum cycle length considered. Defaults to 10.
-        cycle_basis: If True, use a cycle-basis extraction. Defaults to False.
-        dist_tol: Distance tolerance for merging nearby endpoints.
-            Defaults to ``defaults[\"dist_tol\"]``.
+        segments (Sequence[LineType]): Segments ``[(p1, p2), ...]``.
+        length_bound (int): Maximum cycle length. Defaults to 10.
+        cycle_basis (bool): If True, use a cycle basis. Defaults to False.
+        dist_tol (float | None): Distance for merging nearby endpoints.
+            Defaults to ``defaults["dist_tol"]``.
 
     Returns:
-        list: Cycles found among the segments.
+        tuple: ``(coordinate_cycles, node_id_cycles)``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [
+        ...     ((0, 0), (1, 0)),
+        ...     ((1, 0), (1, 1)),
+        ...     ((1, 1), (0, 1)),
+        ...     ((0, 1), (0, 0)),
+        ... ]
+        >>> coords, nodes = sg.segment_cycles(square)
+        >>> coords
+        [[(0, 0), (1, 0), (1, 1), (0, 1)]]
+        >>> len(nodes[0])
+        4
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -903,7 +1013,24 @@ def segment_cycles(
 def segments_from_points(
     points: Sequence[PointType],
 ) -> tuple[PointType, PointType] | None:
-    """Given a sequence of collinear points (in any order), returns the connected segments."""
+    """Return consecutive segments after sorting collinear points.
+
+    Args:
+        points (Sequence[PointType]): Collinear points in any order.
+
+    Returns:
+        list[tuple[PointType, PointType]] | None: Sorted segments, or
+        ``None`` if fewer than two points are given.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.segments_from_points([(2, 0), (0, 0), (1, 0)])
+        [((0, 0), (1, 0)), ((1, 0), (2, 0))]
+        >>> sg.segments_from_points([(0, 0), (1, 0)])
+        [((0, 0), (1, 0))]
+        >>> sg.segments_from_points([(0, 0)]) is None
+        True
+    """
     n = len(points)
     if n < 2:
         res = None
@@ -920,19 +1047,25 @@ def segments_from_points(
 def set_fills(
     partitions: Sequence[Shape], d_edge_part: dict[frozenset, set[int]]
 ) -> None:
-    """
-        Set the partitions' fill property according to their symmetric difference.
-        Used for creating a symmetric-difference of multiple polygons.
-        This function mutates the input partitions!
-        Modifies the partitions's fill properties.
+    """Set each partition's fill from the symmetric-difference rule.
+
+    An outer partition, one that owns an edge alone, is filled. Across a
+    shared edge the neighboring fill is the opposite value.
 
     Args:
-        partitions (Sequence[Shape]): A list or array of polygons (closed Shape objects).
-        d_edge_part (dict[Sequence[LineType, Shape]]): A dictionary with LineType keys
-                                                       and closed Shape values.
+        partitions (Sequence[Shape]): Closed partition shapes (mutated).
+        d_edge_part (dict[frozenset, set[int]]): Edge to partition-id map.
 
     Returns:
-        Sequence[Shape]: The modified input polygons.
+        None: Fills are written onto the partition objects.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> outer = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+        >>> edges = {frozenset(edge): {outer.id} for edge in outer.edges}
+        >>> sg.set_fills([outer], edges)
+        >>> outer.fill
+        True
     """
 
     # To start, find an edge with a single partition.
@@ -979,18 +1112,27 @@ def any_point_inside_polygon(
     polygon: Shape | NDArray,
     eps: float = 1e-12,
 ) -> bool:
-    """
-    Returns True if ANY point is strictly inside the polygon.
+    """Return True if any point is strictly inside the polygon.
+
     Boundary points are treated as outside.
 
     Args:
-        points (Sequence[PointType]): A list or numpy array of (x, y) coordinates.
-        polygon (Shape): A closed Shape object.
-        eps (float, optional): _description_. Defaults to 1e-12.
+        points (Sequence[PointType]): Query points ``(x, y)``.
+        polygon (Shape | NDArray): Closed vertex ring, or a closed ``Shape``.
+        eps (float): Tolerance for on-edge tests. Defaults to ``1e-12``.
 
     Returns:
-        bool: If any of the input points is in the polygon returns True,
-              False otherwise.
+        bool: True if at least one point is inside and not on the boundary.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.any_point_inside_polygon([(2, 2), (0.2, 0.2)], square)
+        True
+        >>> sg.any_point_inside_polygon([(2, 2), (3, 3)], square)
+        False
+        >>> sg.any_point_inside_polygon([(0.5, 0)], square)
+        False
     """
 
     pts = np.asarray(points, dtype=float)
@@ -1039,13 +1181,22 @@ def get_partitions(
 ) -> tuple[Sequence[Shape], defaultdict[frozenset, set[int]], Shape]:
     """Partition overlapping shapes into face regions from their arrangement.
 
+    Prints cycle and hole counts while it runs.
+
     Args:
-        shapes: Group whose segments define the arrangement.
-        length_bound: Maximum cycle length when enumerating faces.
+        shapes (Group): Group whose segments define the arrangement.
+        length_bound (int): Maximum cycle length when enumerating faces.
             Defaults to 10.
 
     Returns:
         tuple: ``(partition_shapes, membership_map, merged_outline)``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> group = sg.Group([square])
+        >>> len(group.all_segments)
+        4
     """
     n_edges = len(shapes.all_segments)
     intersections = all_intersections(
@@ -1078,11 +1229,9 @@ def get_partitions(
     midpoint_order = midpoint_array[:, 0].argsort()
     midpoint_array = midpoint_array[midpoint_order]
 
-    c_start = time.perf_counter_ns()
     cycles, cycles_nodes = segment_cycles(
         all_segments, length_bound=length_bound
     )
-    c_end = time.perf_counter_ns()
 
     print(
         f"Number of total cycles with less than {length_bound} nodes: {len(cycles)}"
@@ -1104,7 +1253,6 @@ def get_partitions(
     partitions = []
     d_edge_partition = defaultdict(set)
     done = False
-    start = time.perf_counter_ns()
     for poly in cycles:
         if done:
             break
@@ -1162,15 +1310,11 @@ def get_partitions(
                     f"Total partition-area: {area:.2f}, Union-area: {union_area:.2f}"
                 )
                 done = True
-    end = time.perf_counter_ns()
-    print(
-        f"Computing cycles with length_bounde={length_bound} took {get_time(c_start, c_end)}."
-    )
+
     print(f"{len(partitions)} partitions.")
     n = max((len(p) for p in partitions), default=0)
     print(f"Largest* partition has {n} edges.")
     print(f"Used {count} cycles.")
-    print(f"Computing partitions took {get_time(start, end)}.")
 
     return partitions, d_edge_partition, union
 
@@ -1183,12 +1327,29 @@ def equal_sorted_arrays(
     """Return True if two same-shaped point arrays match within ``dist_tol``.
 
     Args:
-        array1: First ``(n, 2)`` point array.
-        array2: Second ``(n, 2)`` point array (same order).
-        dist_tol: Maximum allowed per-point distance.
+        array1 (NDArray[np.float64]): First ``(n, 2)`` point array.
+        array2 (NDArray[np.float64]): Second ``(n, 2)`` point array.
+        dist_tol (float): Maximum allowed per-point distance.
 
     Returns:
         bool: True if every corresponding pair is within tolerance.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> same = [(1, 1), (0, 1), (0, 0), (1, 0)]
+        >>> sg.equal_sorted_arrays(
+        ...     sg.sorted_polygon_xy_array(square),
+        ...     sg.sorted_polygon_xy_array(same),
+        ...     0.05,
+        ... )
+        True
+        >>> sg.equal_sorted_arrays(
+        ...     sg.sorted_polygon_xy_array(square),
+        ...     sg.sorted_polygon_xy_array([(0, 0), (2, 0), (0, 2)]),
+        ...     0.05,
+        ... )
+        False
     """
     if array1.shape != array2.shape:
         return False
@@ -1211,13 +1372,19 @@ def equal_sorted_arrays(
 def _build_hole_index(
     holes: Sequence[Shape],
 ) -> tuple[NDArray[Any], Sequence[NDArray[np.float64]], NDArray[np.bool_]]:
-    """Build a bbox / sorted-vertex index for hole lookup.
+    """Build a bbox and sorted-vertex index for hole lookup.
 
     Args:
-        holes: Hole shapes to index.
+        holes (Sequence[Shape]): Hole shapes to index.
 
     Returns:
         tuple: ``(hole_index, sorted_hole_arrays, unused_mask)``.
+
+    Examples:
+        >>> from simetri.geom.polygons.polygon import _build_hole_index
+        >>> index, arrays, unused = _build_hole_index([])
+        >>> len(index), arrays, list(unused)
+        (0, [], [])
     """
     n_holes = len(holes)
     hole_dtype = [
@@ -1257,7 +1424,29 @@ def _candidate_hole_ids(
     ymax: float,
     dist_tol: float,
 ) -> NDArray[np.int_]:
-    """Return hole ids whose bbox matches the given bounds within dist_tol."""
+    """Return hole ids whose bbox matches the given bounds within dist_tol.
+
+    Args:
+        hole_index (NDArray[Any]): Index from :func:`_build_hole_index`.
+        hole_processed (NDArray[np.bool_]): Holes already claimed.
+        xmin (float): Candidate minimum x.
+        ymin (float): Candidate minimum y.
+        xmax (float): Candidate maximum x.
+        ymax (float): Candidate maximum y.
+        dist_tol (float): Absolute tolerance for bbox matching.
+
+    Returns:
+        NDArray[np.int_]: Matching hole ids.
+
+    Examples:
+        >>> from simetri.geom.polygons.polygon import (
+        ...     _build_hole_index,
+        ...     _candidate_hole_ids,
+        ... )
+        >>> index, _, unused = _build_hole_index([])
+        >>> list(_candidate_hole_ids(index, unused, 0, 0, 1, 1, 0.05))
+        []
+    """
     if len(hole_index) == 0:
         return np.array([], dtype=int)
     mask = (
@@ -1277,10 +1466,19 @@ def polygon_xy_array(
     """Return an ``(n, 2)`` float array of polygon xy coordinates.
 
     Args:
-        polygon: A ``Shape``, point sequence, or array-like.
+        polygon (Shape | Sequence[PointType] | NDArray[Any]): A ``Shape``,
+            point sequence, or array-like.
 
     Returns:
-        NDArray[np.float64]: XY coordinates (uses ``final_coords`` for shapes).
+        NDArray[np.float64]: XY coordinates. A ``Shape`` uses
+        ``final_coords``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> [tuple(row) for row in sg.polygon_xy_array([(0, 0), (1, 0), (1, 1)])]
+        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+        >>> sg.polygon_xy_array([(3, 4)]).shape
+        (1, 2)
     """
     from simetri.shapes.shape import Shape
 
@@ -1300,10 +1498,16 @@ def sorted_polygon_xy_array(
     """Return polygon xy coordinates sorted by ``x`` then ``y``.
 
     Args:
-        polygon: A ``Shape``, point sequence, or array-like.
+        polygon (Shape | Sequence[PointType] | NDArray[Any]): A ``Shape``,
+            point sequence, or array-like.
 
     Returns:
         NDArray[np.float64]: Lexicographically sorted XY coordinates.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> [tuple(row) for row in sg.sorted_polygon_xy_array([(1, 1), (0, 0), (0, 1)])]
+        [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
     """
     array = polygon_xy_array(polygon)
     order = np.lexsort((array[:, 1], array[:, 0]))
@@ -1312,14 +1516,22 @@ def sorted_polygon_xy_array(
 
 
 def polygon_vertices(polygon: PolygonLike) -> Sequence[PointType]:
-    """Extract vertices from a Shape or return a vertex sequence as-is.
+    """Return vertices from a ``Shape``, or the point sequence itself.
 
     Args:
-        polygon: A ``Shape`` or a sequence of points. Groups are not accepted;
-            the caller must unwrap them first.
+        polygon (PolygonLike): A ``Shape`` or a sequence of points. Groups
+            are not accepted.
 
     Returns:
-        Vertex coordinates of the polygon.
+        Sequence[PointType]: Vertex coordinates.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_vertices([(0, 0), (1, 0), (1, 1), (0, 1)])
+        [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> shape = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
+        >>> len(sg.polygon_vertices(shape))
+        3
     """
     from ...shapes.shape import Shape
 
@@ -1334,17 +1546,23 @@ def polygon_vertices(polygon: PolygonLike) -> Sequence[PointType]:
 def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
     """Return the signed turn sequence of a polygon.
 
-    For each vertex ``i``, records the length of the edge from ``i`` to
-    ``i + 1`` and the signed turn angle at ``i + 1`` between that edge and
-    the next (via ``angle_between_lines2``). Angles are rounded to
-    ``defaults["turn_angle_digits"]``. Convex and reflex corners keep opposite signs.
+    For each vertex, records the outgoing edge length and the signed turn
+    angle at the next vertex. Angles are rounded to
+    ``defaults["turn_angle_digits"]``.
 
     Args:
-        vertices: Polygon vertices in walk order (closed; first vertex is
-            not repeated).
+        vertices (Sequence[PointType]): Polygon vertices in walk order.
+            The first vertex is not repeated.
 
     Returns:
-        A list with alternating side-length and angle values.
+        list[float]: Alternating side lengths and turn angles.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_turns([(0, 0), (1, 0), (1, 1), (0, 1)])
+        [1.0, -1.57, 1.0, -1.57, 1.0, -1.57, 1.0, -1.57]
+        >>> len(sg.polygon_turns([(0, 0), (2, 0), (0, 1)]))
+        6
     """
     n = len(vertices)
     res = []
@@ -1354,7 +1572,7 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
         next_vert = vertices[(i + 1) % n]
         next_seg = (next_vert, vertices[(i + 2) % n])
         seg = (vert, next_vert)
-        angle = angle_between_lines2(vert, *next_seg)
+        angle = angle_between_lines3(vert, *next_seg)
         res.append(distance(*seg))
         res.append(round(angle, TURN_ANGLE_DIGITS))
 
@@ -1362,13 +1580,20 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
 
 
 def rotate_turns_to_min_edge(turns: Sequence[float]) -> list[float]:
-    """Rotate a flat ``[length, angle, ...]`` cycle to start at a min edge.
+    """Rotate a flat ``[length, angle, ...]`` cycle to start at a shortest edge.
 
     Args:
-        turns: Alternating edge lengths and turn angles.
+        turns (Sequence[float]): Alternating edge lengths and turn angles.
 
     Returns:
-        list[float]: Rotated cycle starting at the shortest edge.
+        list[float]: Cycle starting at the shortest edge.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rotate_turns_to_min_edge([3.0, 1.57, 1.0, 1.57, 2.0, 1.57])
+        [1.0, 1.57, 2.0, 1.57, 3.0, 1.57]
+        >>> sg.rotate_turns_to_min_edge([1.0])
+        [1.0]
     """
     if len(turns) < 2:
         return list(turns)
@@ -1386,15 +1611,23 @@ def congruent_polygons(
     """Return True if ``polygon1`` and ``polygon2`` are congruent.
 
     Congruence ignores translation and rotation. Signed turn sequences are
-    compared cyclically so convex and reflex corners remain distinct.
+    compared cyclically so convex and reflex corners stay distinct.
 
     Args:
-        polygon1: First polygon as a ``Shape`` or a sequence of points.
-        polygon2: Second polygon as a ``Shape`` or a sequence of points.
-        mirror: If True, also treat reflection (mirror image) as congruent.
+        polygon1 (PolygonLike): First polygon as a ``Shape`` or points.
+        polygon2 (PolygonLike): Second polygon as a ``Shape`` or points.
+        mirror (bool): If True, a reflection also counts as congruent.
 
     Returns:
-        True if the polygons are congruent; False otherwise.
+        bool: True if the polygons are congruent.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.congruent_polygons(square, [(1, 1), (2, 1), (2, 2), (1, 2)])
+        True
+        >>> sg.congruent_polygons(square, [(0, 0), (2, 0), (0, 2)])
+        False
     """
     from ...helpers.utilities import equal_cycles
 
@@ -1423,15 +1656,25 @@ def equal_polygons(
     polygon2: PolygonLike,
     mirror: bool = False,
 ) -> bool:
-    """Return True if two polygons are congruent (alias of ``congruent_polygons``).
+    """Return True if two polygons are congruent.
+
+    This is an alias of :func:`congruent_polygons`.
 
     Args:
-        polygon1: First polygon.
-        polygon2: Second polygon.
-        mirror: If True, allow mirror congruence. Defaults to False.
+        polygon1 (PolygonLike): First polygon.
+        polygon2 (PolygonLike): Second polygon.
+        mirror (bool): If True, a reflection also counts. Defaults to False.
 
     Returns:
         bool: True when the polygons match under congruence.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.equal_polygons(square, [(1, 0), (1, 1), (0, 1), (0, 0)])
+        True
+        >>> sg.equal_polygons(square, [(0, 0), (2, 0), (0, 2)])
+        False
     """
     return congruent_polygons(polygon1, polygon2, mirror)
 
@@ -1444,12 +1687,22 @@ def congruent_shapes(
     """Return True if ``shape1`` and ``shape2`` are congruent.
 
     Args:
-        shape1: First shape as a ``Shape`` object.
-        shape2: Second shape as a ``Shape`` object.
-        mirror: If True, also treat reflection (mirror image) as congruent.
+        shape1 (Shape): First shape.
+        shape2 (Shape): Second shape.
+        mirror (bool): If True, a reflection also counts as congruent.
 
     Returns:
-        True if the shapes are congruent; False otherwise.
+        bool: True if the shapes are congruent.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> left = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> right = sg.Shape([(10, 0), (11, 0), (11, 1), (10, 1)], closed=True)
+        >>> sg.congruent_shapes(left, right)
+        True
+        >>> other = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
+        >>> sg.congruent_shapes(left, other)
+        False
     """
     return congruent_polygons(shape1, shape2, mirror=mirror)
 
@@ -1460,17 +1713,24 @@ def remove_duplicate_edges(
 ) -> list[LineType]:
     """Return edges with congruent duplicates handled.
 
-    Candidates are filtered with axis-aligned bounding-box overlap before
-    calling ``equal_edges``.
+    Candidates are filtered by axis-aligned bounding-box overlap before
+    ``equal_edges``.
 
     Args:
-        edges: List of line segments ``(point1, point2)``.
-        keep_one: If True, keep the first occurrence of each congruent edge.
-            If False, drop every edge that has a congruent duplicate (shared
-            internal edges of a polyomino are removed).
+        edges (Sequence[LineType]): Segments ``(point1, point2)``.
+        keep_one (bool): If True, keep the first copy of each congruent
+            edge. If False, drop every edge that has a congruent duplicate.
 
     Returns:
-        A new list of edges. The input list is not modified.
+        list[LineType]: Selected edges.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> edges = [((0, 0), (1, 0)), ((1, 0), (0, 0)), ((0, 1), (1, 1))]
+        >>> sg.remove_duplicate_edges(edges)
+        [((0, 1), (1, 1))]
+        >>> sg.remove_duplicate_edges(edges, keep_one=True)
+        [((0, 0), (1, 0)), ((0, 1), (1, 1))]
     """
     dist_tol = defaults["dist_tol"]
 
@@ -1559,18 +1819,27 @@ def remove_duplicate_edges(
 def polygon_verts_and_bbox(
     poly: PolygonLike,
 ) -> tuple[Sequence[PointType], float, float, float, float]:
-    """Extract comparison vertices and axis-aligned bbox for a polygon.
+    """Return comparison vertices and an axis-aligned bounding box.
 
-    For a ``Group`` of squares, shared edges are removed, the boundary is
-    merged, and the largest closed outline is used. If no closed outline is
-    found, falls back to ``all_vertices``.
+    For a ``Group``, shared edges are removed and the largest closed
+    outline is used. If no closed outline is found, ``all_vertices`` is
+    used instead.
 
     Args:
-        poly: A ``Shape``, a ``Group``, or a sequence of polygon vertices.
+        poly (PolygonLike): A ``Shape``, a ``Group``, or vertex sequence.
 
     Returns:
-        ``(vertices, min_x, min_y, max_x, max_y)`` for congruence filtering
-        and comparison. Does not modify ``poly``.
+        tuple: ``(vertices, min_x, min_y, max_x, max_y)``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> verts, min_x, min_y, max_x, max_y = sg.polygon_verts_and_bbox(
+        ...     [(0, 0), (1, 0), (1, 1), (0, 1)]
+        ... )
+        >>> verts
+        [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> (min_x, min_y, max_x, max_y)
+        (0, 0, 1, 1)
     """
     from ...group.batch import Group
     from ...shapes.shape import Shape
@@ -1617,22 +1886,28 @@ def remove_duplicate_polygons(
 ) -> list[PolygonLike]:
     """Return polygons with congruent duplicates removed.
 
-    Algorithm:
-        1. Group polygons by vertex count.
-        2. Build ``polygon_turns`` for each polygon.
-        3. Rotate each turn cycle so it starts at a smallest edge length.
-        4. Within each vertex-count group, only compare polygons whose
-           starting edge lengths match; use ``congruent_polygons`` there.
+    Polygons are grouped by vertex count. Only polygons whose shortest
+    edge lengths match are compared with :func:`congruent_polygons`.
 
     Args:
-        polygons: Sequence of ``Shape`` objects or vertex sequences.
-            Groups are not accepted; unwrap them first.
-        mirror: If True, treat reflections as duplicates.
-        keep_one: If True, keep the first of each congruent class.
+        polygons (Sequence[PolygonLike]): ``Shape`` objects or vertex
+            sequences. Groups are not accepted.
+        mirror (bool): If True, treat reflections as duplicates.
+        keep_one (bool): If True, keep the first of each congruent class.
             If False, drop every polygon that has a congruent partner.
 
     Returns:
-        A new list of polygon references (same objects as in ``polygons``).
+        list[PolygonLike]: Selected polygon objects from ``polygons``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> same = [(1, 0), (1, 1), (0, 1), (0, 0)]
+        >>> tri = [(0, 0), (2, 0), (0, 2)]
+        >>> sg.remove_duplicate_polygons([square, same, tri])
+        [[(0, 0), (1, 0), (1, 1), (0, 1)], [(0, 0), (2, 0), (0, 2)]]
+        >>> sg.remove_duplicate_polygons([square, same], keep_one=False)
+        []
     """
     dist_tol = defaults["dist_tol"]
     entries = []
@@ -1698,20 +1973,28 @@ def remove_duplicate_polygons(
 def symmetric_difference(
     shapes: Group, length_bound: int = 10
 ) -> tuple[Sequence[Shape], Shape]:
-    """Partition overlapping shapes and return the XOR (symmetric difference) faces.
+    """Return the filled faces of the symmetric difference of overlapping shapes.
+
+    This calls :func:`get_partitions` and :func:`set_fills`.
 
     Args:
-        shapes: Group of overlapping polygon shapes.
-        length_bound: Maximum cycle length for face enumeration. Defaults to 10.
+        shapes (Group): Overlapping polygon shapes.
+        length_bound (int): Maximum cycle length for face enumeration.
+            Defaults to 10.
 
     Returns:
-        tuple[Sequence[Shape], Shape]: Filled partitions and their union outline.
+        tuple[Sequence[Shape], Shape]: Filled partitions and their union
+        outline.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> group = sg.Group([square])
+        >>> group.closed
+        True
     """
-    start = time.perf_counter_ns()
     partitions, d_edge_part, union = get_partitions(shapes, length_bound)
     set_fills(partitions, d_edge_part)
-    end = time.perf_counter_ns()
-    print(f"Total elapsed time was {get_time(start, end)}.")
     print(
         f"* Largest partition that can be computed with length_bound = {length_bound}."
     )
@@ -1723,25 +2006,31 @@ def in_polygon(
     polygon_vertices: Sequence[PointType],
     exclude_border: bool = False,
 ) -> bool:
-    """Return whether a point lies inside a polygon (winding number).
+    """Return whether a point lies inside a polygon.
+
+    Uses the winding number. A point on an edge is inside unless
+    ``exclude_border`` is True.
 
     Args:
-        point: Point ``(x, y)`` to test.
-        polygon_vertices: Ordered polygon vertices (clockwise or
-            counter-clockwise).
-        exclude_border: If True, points on an edge return False. If False
-            (default), border points are treated as inside.
+        point (PointType): Point ``(x, y)`` to test.
+        polygon_vertices (Sequence[PointType]): Ordered polygon vertices.
+        exclude_border (bool): If True, points on an edge return False.
+            Defaults to False.
 
     Returns:
-        bool: True if inside (subject to ``exclude_border``), else False.
+        bool: True if inside, else False.
 
     Examples:
-        ::
-
-            import simetri.graphics as sg
-
-            square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-            sg.in_polygon((0.5, 0.5), square)  # True
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.in_polygon((0.5, 0.5), square)
+        True
+        >>> sg.in_polygon((0.5, 0), square)
+        True
+        >>> sg.in_polygon((0.5, 0), square, exclude_border=True)
+        False
+        >>> sg.in_polygon((2, 2), square)
+        False
     """
     _, y = point[:2]
     n_winding = 0  # Initialize the winding number
@@ -1755,9 +2044,9 @@ def in_polygon(
         if point_on_line_segment(point, [p1, p2]):
             return not exclude_border
         if y1 <= y:  # Start y <= P.y
-            if y2 > y and left(p1, p2, point):  # An upward crossing
+            if y2 > y and left3(p1, p2, point):  # An upward crossing
                 n_winding += 1  # P left of edge
-        elif y2 <= y and not left(p1, p2, point):  # A downward crossing
+        elif y2 <= y and not left3(p1, p2, point):  # A downward crossing
             n_winding -= 1  # P right of edge
 
     return n_winding != 0
@@ -1766,15 +2055,20 @@ def in_polygon(
 def double_offset_lines(
     line: LineType, offset: float = 1
 ) -> tuple[LineType, LineType]:
-    """
-    Return two offset lines to a given line segment with the given offset amount.
+    """Return the two lines offset on either side of a segment.
 
     Args:
-        line (LineType): Input line segment.
-        offset (float, optional): Offset distance. Defaults to 1.
+        line (LineType): Input segment.
+        offset (float): Offset distance. Defaults to 1.
 
     Returns:
-        tuple[LineType, LineType]: Two offset lines.
+        tuple[LineType, LineType]: The positive-offset line and the
+        negative-offset line.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.double_offset_lines(((0, 0), (2, 0)), 1)
+        ([[0.0, 1.0], [2.0, 1.0]], [[0.0, -1.0], [2.0, -1.0]])
     """
     line1 = offset_line(line, offset)
     line2 = offset_line(line, -offset)
@@ -1788,17 +2082,23 @@ def double_offset_polylines(
     rel_tol: float | None = None,
     abs_tol: float | None = None,
 ) -> Sequence[Sequence[PointType]]:
-    """
-    Return a sequence of double offset lines from a sequence of lines.
+    """Return both offset polylines of an open chain of points.
 
     Args:
-        lines (Sequence[PointType]): Sequence of points representing the lines.
-        offset (float, optional): Offset distance. Defaults to 1.
-        rel_tol (float, optional): Relative tolerance. Defaults to None.
-        abs_tol (float, optional): Absolute tolerance. Defaults to None.
+        lines (Sequence[PointType]): Polyline vertices.
+        offset (float): Offset distance. Defaults to 1.
+        rel_tol (float | None): Relative stitch tolerance. Defaults to
+            ``defaults["rel_tol"]``.
+        abs_tol (float | None): Absolute stitch tolerance. Defaults to
+            ``defaults["abs_tol"]``.
 
     Returns:
-        Sequence[PointType]: Sequence of double offset lines.
+        list: ``[positive_offset, negative_offset]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.double_offset_polylines([(0, 0), (2, 0), (2, 2)], 1)
+        [[[0.0, 1.0], (1.0, 1.0), [1.0, 2.0]], [[0.0, -1.0], (3.0, -1.0), [3.0, 2.0]]]
     """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     lines1 = []
@@ -1814,14 +2114,25 @@ def double_offset_polylines(
 
 
 def polygon_cg(points: Sequence[PointType]) -> PointType | None:
-    """
-    Given a sequence of points that define a polygon, return the center point.
+    """Return the area center of a polygon.
+
+    This is the center of gravity of the filled polygon, not the average
+    of the vertices. A zero-area ring returns ``None``.
 
     Args:
-        points (Sequence[PointType]): Sequence of points representing the polygon.
+        points (Sequence[PointType]): Vertices in walk order.
 
     Returns:
-        PointType: Center point of the polygon.
+        PointType | None: Area center, or ``None`` if the area is zero.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_cg([(0, 0), (1, 0), (1, 1), (0, 1)])
+        [0.5, 0.5]
+        >>> sg.polygon_cg([(0, 0), (2, 0), (0, 2)])
+        [0.6666666666666666, 0.6666666666666666]
+        >>> sg.polygon_cg([(0, 0), (1, 0), (2, 0)]) is None
+        True
     """
     cx = cy = 0
     n_points = len(points)
@@ -1843,61 +2154,30 @@ def polygon_cg(points: Sequence[PointType]) -> PointType | None:
     return res
 
 
-def polygon_center2(polygon_points: Sequence[PointType]) -> PointType:
-    """
-    Given a sequence of points that define a polygon, return the center point.
-
-    Args:
-        polygon_points (Sequence[PointType]): Sequence of points representing the polygon.
-
-    Returns:
-        PointType: Center point of the polygon.
-    """
-    n = len(polygon_points)
-    x = 0
-    y = 0
-    for point in polygon_points:
-        x += point[0]
-        y += point[1]
-    x = x / n
-    y = y / n
-    return [x, y]
-
-
-def polygon_center(polygon_points: Sequence[PointType]) -> PointType:
-    """
-    Given a sequence of points that define a polygon, return the center point.
-
-    Args:
-        polygon_points (Sequence[PointType]): Sequence of points representing the polygon.
-
-    Returns:
-        PointType: Center point of the polygon.
-    """
-    x = 0
-    y = 0
-    for i, point in enumerate(polygon_points[:-1]):
-        x += point[0] * (polygon_points[i - 1][1] - polygon_points[i + 1][1])
-        y += point[1] * (polygon_points[i - 1][0] - polygon_points[i + 1][0])
-    area_ = polygon_area(polygon_points)
-    return (x / (6 * area_), y / (6 * area_))
-
-
 def offset_polygon(
     polygon: Sequence[PointType],
     offset: float = -1,
     dist_tol: float | None = None,
 ) -> Sequence[PointType]:
-    """
-    Return a sequence of offset lines from a sequence of lines.
+    """Return a closed polygon offset from ``polygon``.
+
+    The result is a stitched closed ring. A positive ``offset`` is inward
+    after the walk is made right-handed; the default ``-1`` therefore
+    offsets outward.
 
     Args:
-        polygon (Sequence[PointType]): Sequence of points representing the polygon.
-        offset (float, optional): Offset distance. Defaults to -1.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        polygon (Sequence[PointType]): Polygon vertices.
+        offset (float): Offset distance. Defaults to -1.
+        dist_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["dist_tol"]``.
 
     Returns:
-        Sequence[PointType]: Sequence of offset lines.
+        Sequence[PointType]: Closed offset ring.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.offset_polygon([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
+        [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -1905,7 +2185,7 @@ def offset_polygon(
     dist_tol2 = dist_tol * dist_tol
     if not right_handed(polygon):
         polygon.reverse()
-    if not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
+    if not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
         polygon.append(polygon[0])
     poly = []
     for i, point in enumerate(polygon[:-1]):
@@ -1923,23 +2203,36 @@ def double_offset_polygons(
     dist_tol: float | None = None,
     **kwargs: Any,
 ) -> Sequence[Sequence[PointType]]:
-    """
-    Return a sequence of double offset lines from a sequence of lines.
+    """Return both offset polygons of a vertex ring.
 
     Args:
-        polygon (Sequence[PointType]): Sequence of points representing the polygon.
-        offset (float, optional): Offset distance. Defaults to 1.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        polygon (Sequence[PointType]): Polygon vertices (mutated). An
+            unclosed list is closed, and a clockwise list is reversed.
+        offset (float): Offset distance. Defaults to 1.
+        dist_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["dist_tol"]``.
+        **kwargs (Any): If ``canvas`` is a canvas, both offsets are drawn.
 
     Returns:
-        Sequence[PointType]: Sequence of double offset lines.
+        list: ``[positive_offset, negative_offset]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [(0, 0), (2, 0), (2, 1)]
+        >>> offsets = sg.double_offset_polygons(raw, 0.5)
+        >>> raw
+        [(0, 0), (2, 0), (2, 1), (0, 0)]
+        >>> offsets[0][0]
+        (2.118033988749895, 0.5)
+        >>> offsets[1][1]
+        (2.5, -0.5)
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     dist_tol2 = dist_tol * dist_tol
 
     # helper to ensure polygon is closed
-    if not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
+    if not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
         polygon.append(polygon[0])
 
     if not right_handed(polygon):
@@ -1957,9 +2250,9 @@ def double_offset_polygons(
         canvas = kwargs["canvas"]
         if canvas:
             canvas.new_page()
-            closed = close_points2(poly1[0], poly1[-1])
+            closed = close_points_square(poly1[0], poly1[-1])
             canvas.draw(_shape(poly1, closed=closed), fill=False)
-            closed = close_points2(poly2[0], poly2[-1])
+            closed = close_points_square(poly2[0], poly2[-1])
             canvas.draw(_shape(poly2, closed=closed), fill=False)
     return [poly1, poly2]
 
@@ -1969,22 +2262,27 @@ def offset_polygon_points(
     offset: float = 1,
     dist_tol: float | None = None,
 ) -> Sequence[PointType]:
-    """
-    Return a sequence of double offset lines from a sequence of lines.
+    """Return a stitched offset polygon.
 
     Args:
-        polygon (Sequence[PointType]): Sequence of points representing the polygon.
-        offset (float, optional): Offset distance. Defaults to 1.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        polygon (Sequence[PointType]): Polygon vertices.
+        offset (float): Offset distance. Defaults to 1.
+        dist_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["dist_tol"]``.
 
     Returns:
-        Sequence[PointType]: Sequence of double offset lines.
+        Sequence[PointType]: Offset ring. A clockwise result is reversed.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.offset_polygon_points([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
+        [(0.5, 0.5), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5)]
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     dist_tol2 = dist_tol * dist_tol
     polygon = list(polygon)
-    if not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
+    if not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
         polygon.append(polygon[0])
     poly = []
     for i, point in enumerate(polygon[:-1]):
@@ -2003,20 +2301,29 @@ def polyline_length(
     closed: bool = False,
     dist_tol: float | None = None,
 ) -> float:
-    """Calculate the perimeter of a polygon.
+    """Return the length of a polyline, or the perimeter if it is closed.
 
     Args:
-        polygon (Sequence[PointType]): Sequence of points representing the polygon.
-        closed (bool, optional): Whether the polygon is closed. Defaults to False.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        polygon (Sequence[PointType]): Vertices in order.
+        closed (bool): If True, include the closing edge when it is missing.
+            Defaults to False.
+        dist_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["dist_tol"]``.
 
     Returns:
-        float: Perimeter of the polygon.
+        float: Path length.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polyline_length([(0, 0), (3, 0), (3, 4)])
+        7.0
+        >>> sg.polyline_length([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        4.0
     """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     dist_tol2 = dist_tol * dist_tol
-    if closed and not close_points2(polygon[0], polygon[-1], dist2=dist_tol2):
+    if closed and not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
         polygon = polygon[:]
         polygon.append(polygon[0])
     perimeter = 0
@@ -2026,18 +2333,24 @@ def polyline_length(
 
 
 def polygon_internal_angles(vertices: Sequence[PointType]) -> Sequence[float]:
-    """
-    Computes internal angles for a polygon given as a sequence of (x, y) tuples.
-    Works for both convex and concave polygons.
+    """Return the interior angle at each vertex.
 
-    Vertices are expected to be in counterclockwise positive order. If not
-    they are reversed and the result is for the reversed order.
+    Vertices are expected in counter-clockwise order. A clockwise ring is
+    reversed first, and a warning is issued. Each value is in radians.
 
     Args:
-        vertices (Sequence[PointType]): Sequence of points representing the polygon.
+        vertices (Sequence[PointType]): Polygon vertices.
 
     Returns:
-        Sequence[float]: Sequence of internal angles of the polygon.
+        Sequence[float]: Interior angles, or an empty list if fewer than
+        three vertices are given.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_internal_angles([(0, 0), (1, 0), (1, 1), (0, 1)])
+        [1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966]
+        >>> sg.polygon_internal_angles([(0, 0), (1, 0)])
+        []
     """
     n = len(vertices)
     if n < 3:

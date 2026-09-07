@@ -16,7 +16,7 @@ from __future__ import annotations
 from ..geom.geometry import connected_pairs, polar_to_cartesian
 from ..geom.homogenize import homogenize
 from ..geom.points.point_utils import (
-    close_points2,
+    close_points_square,
     distance,
     midpoint,
     remove_duplicate_points,
@@ -24,7 +24,7 @@ from ..geom.points.point_utils import (
 from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import (
     all_intersections,
-    angle_between_lines2,
+    angle_between_lines3,
     multi_split_segment,
 )
 
@@ -751,7 +751,7 @@ class Shape(Base):
                 self.as_list(), other.as_list(), dist_tol=dist_tol
             )
             if vertices:
-                closed = close_points2(
+                closed = close_points_square(
                     vertices[0], vertices[-1], dist2=defaults["dist_tol2"]
                 )
                 res = Shape(vertices, closed=closed)
@@ -789,13 +789,13 @@ class Shape(Base):
         dist_tol2 = dist_tol * dist_tol
         start1, end1 = verts1[0], verts1[-1]
         start2, end2 = verts2[0], verts2[-1]
-        same_starts = close_points2(start1, start2, dist2=dist_tol2)
-        same_ends = close_points2(end1, end2, dist2=dist_tol2)
+        same_starts = close_points_square(start1, start2, dist2=dist_tol2)
+        same_ends = close_points_square(end1, end2, dist2=dist_tol2)
         if same_starts and same_ends:
             res = verts1
-        elif close_points2(end1, start2, dist2=dist_tol2):
+        elif close_points_square(end1, start2, dist2=dist_tol2):
             verts2.pop(0)
-        elif close_points2(start1, end2, dist2=dist_tol2):
+        elif close_points_square(start1, end2, dist2=dist_tol2):
             verts2.reverse()
             verts1.reverse()
             verts2.pop(0)
@@ -830,7 +830,7 @@ class Shape(Base):
         Returns:
             bool: True if the vertices form a polygon, False otherwise.
         """
-        return close_points2(
+        return close_points_square(
             vertices[0][:2], vertices[-1][:2], dist2=defaults["dist_tol2"]
         )
 
@@ -953,7 +953,7 @@ class Shape(Base):
         """
         if self.closed:
             vertices = self.vertices[:]
-            if not close_points2(
+            if not close_points_square(
                 vertices[0], vertices[-1], dist2=defaults["dist_tol2"]
             ):
                 vertices = list(vertices) + [vertices[0]]
@@ -2150,7 +2150,7 @@ def get_loop(edges: Sequence[LineType], start_edge: LineType, ccw: bool = True):
             if edge[1] == start_node:
                 open_ = False
                 break
-            angle = angle_between_lines2(*cur_edge, edge[1])
+            angle = angle_between_lines3(*cur_edge, edge[1])
             angle = positive_angle(angle)
             pi_ = round(pi, 2)
             if round(angle, 2) not in (0, -pi_, pi_, 2 * pi_):

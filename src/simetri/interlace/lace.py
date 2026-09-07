@@ -20,7 +20,7 @@ from numpy import isclose
 
 from ..render.style_map import shape_style_map
 from ..coloring import colors
-from ..geom.points.point_utils import close_points2, distance, round_point
+from ..geom.points.point_utils import close_points_square, distance, round_point
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.geometry import (
     connected_pairs,
@@ -33,13 +33,12 @@ from ..geom.polygons.polygon import (
     offset_polygon,
     offset_polygon_points,
     polygon_area,
-    polygon_center,
     polygon_cg,
     polygon_internal_angles,
 )
 from ..base.all_enums import Connection, Types
 from ..geom.polygons.polygon_utils import right_handed
-from ..geom.segments.line_utils import equal_lines, intersection2
+from ..geom.segments.line_utils import equal_lines, segment_connection
 from ..group.batch import Group
 from ..base.common import d_id_obj, get_defaults
 from ..shapes.shape import Shape, custom_attributes
@@ -296,7 +295,7 @@ class Intersection(Shape):
         Returns:
             bool: True if equal, False otherwise.
         """
-        return close_points2(
+        return close_points_square(
             self.point, other.point, dist2=defaults["dist_tol"] ** 2
         )
 
@@ -412,13 +411,13 @@ class Fragment(Shape):
             division.fragment = self
             start_point = round_point(division.section.start.point)
             end_point = round_point(division.section.end.point)
-            if close_points2(start_point, (x1, y1), dist2=dist_tol2):
+            if close_points_square(start_point, (x1, y1), dist2=dist_tol2):
                 division.intersections = [
                     division.section.start,
                     division.section.end,
                 ]
                 division.section.start.division = division
-            elif close_points2(end_point, (x1, y1), dist2=dist_tol2):
+            elif close_points_square(end_point, (x1, y1), dist2=dist_tol2):
                 division.intersections = [
                     division.section.end,
                     division.section.start,
@@ -1406,7 +1405,7 @@ class Lace(Group):
 
         radii = []
         for i, partition in enumerate(self.partitions):
-            CG = polygon_center(partition.vertices)
+            CG = polygon_cg(partition.vertices)
             radii.append((distance(self.center, CG), i))
         radii.sort()
         bins = group_into_bins(radii, self.radius_threshold)
@@ -1598,13 +1597,13 @@ class Lace(Group):
                     rad = r2
 
                 if sec.end.overlap is not None:
-                    if close_points2(edge[1], end):
+                    if close_points_square(edge[1], end):
                         d_vert_radius.pop(i + 1, None)
                     else:
                         d_vert_radius.pop(i, None)
 
                 if sec.start.overlap is not None:
-                    if close_points2(edge[1], start):
+                    if close_points_square(edge[1], start):
                         d_vert_radius.pop(i + 1, None)
                     else:
                         d_vert_radius.pop(i, None)
@@ -2499,7 +2498,7 @@ def all_intersections(
                 x2, y2 = division2_vertices[:2]
                 if x1 == x2 or y1 == y2:
                     continue
-            connection_type, x_point = intersection2(
+            connection_type, x_point = segment_connection(
                 *division1_vertices, *division2_vertices
             )
             if connection_type not in [
@@ -2624,7 +2623,7 @@ def merge_nodes(
                 x2, y2 = division2_vertices[:2]
                 if x1 == x2 or y1 == y2:
                     continue
-            connection_type, x_point = intersection2(
+            connection_type, x_point = segment_connection(
                 *division1_vertices, *division2_vertices
             )
             if connection_type not in [

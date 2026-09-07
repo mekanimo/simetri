@@ -1743,3 +1743,36 @@ def get_local_variables_info(func, *args, **kwargs):
     result = func(*args, **kwargs)
     inspect.settrace(None)
     return tracer(inspect.currentframe(), "return", result)
+
+
+def best_fit_exponent(pairs):
+    """Return the best-fit exponent ``p`` in ``T(n) = k * n^p``.
+
+    Fits a line to ``log(time)`` versus ``log(n)``. Pairs with a time of
+    zero or less are dropped so the logarithm is defined.
+
+    Args:
+        pairs: Sequence of ``(n, time)`` pairs.
+
+    Returns:
+        float: Slope of the log-log fit.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.best_fit_exponent([(10, 1.0), (100, 100.0)])
+        2.0
+    """
+    pairs = np.array(pairs, dtype=float)
+    n = pairs[:, 0]
+    t = pairs[:, 1]
+
+    mask = t > 0
+    n = n[mask]
+    t = t[mask]
+
+    logn = np.log(n)
+    logt = np.log(t)
+
+    exponent, _ = np.polyfit(logn, logt, 1)
+
+    return exponent

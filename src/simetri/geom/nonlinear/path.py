@@ -30,7 +30,7 @@ from ..geometry import (
     polar_to_cartesian,
     positive_angle,
 )
-from ..points.point_utils import close_points2
+from ..points.point_utils import close_points_square
 from ..segments.line_utils import extended_line
 from .hobby import hobby_shape
 from ...config.settings import defaults
@@ -1464,7 +1464,7 @@ class Path2D(Group):
             if obj is not None and obj.vertices:
                 obj_verts = obj.vertices
                 if last_vert:
-                    if close_points2(last_vert, obj_verts[0], dist_tol2):
+                    if close_points_square(last_vert, obj_verts[0], dist_tol2):
                         vertices.extend(obj_verts[1:])
                     else:
                         vertices.extend(obj_verts)

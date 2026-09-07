@@ -1227,7 +1227,7 @@ def distance(point1: Vec, point2: Vec) -> float:
     return hypot(*(q - p for p, q in zip(p1, p2)))
 
 
-def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
+def dot_product3(a: PointType, b: PointType, c: PointType) -> float:
     """Return ``(a - b) · (c - b)``.
 
     Args:
@@ -1240,9 +1240,9 @@ def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.dot_product2((2, 0), (0, 0), (0, 3))
+        >>> sg.dot_product3((2, 0), (0, 0), (0, 3))
         0
-        >>> sg.dot_product2((2, 0), (0, 0), (1, 0))
+        >>> sg.dot_product3((2, 0), (0, 0), (1, 0))
         2
     """
     a_x, a_y = a[:2]
@@ -1255,7 +1255,7 @@ def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
     return b_a_x * b_c_x + b_a_y * b_c_y
 
 
-def cross_product2(a: PointType, b: PointType, c: PointType) -> float:
+def cross_product3(a: PointType, b: PointType, c: PointType) -> float:
     """Return the z-component of ``(a - b) × (c - b)``.
 
     Positive means ``c`` is to the left of the direction from ``b`` to ``a``.
@@ -1270,9 +1270,9 @@ def cross_product2(a: PointType, b: PointType, c: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.cross_product2((1, 0), (0, 0), (0, 1))
+        >>> sg.cross_product3((1, 0), (0, 0), (0, 1))
         1
-        >>> sg.cross_product2((1, 0), (0, 0), (2, 0))
+        >>> sg.cross_product3((1, 0), (0, 0), (2, 0))
         0
     """
     a_x, a_y = a[:2]
@@ -1397,7 +1397,7 @@ def vec_dir_angle(vec: Sequence[float]) -> float:
     return atan2(vec[1], vec[0])
 
 
-def cross_product_sense(a: PointType, b: PointType, c: PointType) -> int:
+def cross_product_sense3(a: PointType, b: PointType, c: PointType) -> int:
     """Return the sign of ``(a - b) × (c - b)``.
 
     Collinear points return ``1``. A non-zero
@@ -1414,14 +1414,14 @@ def cross_product_sense(a: PointType, b: PointType, c: PointType) -> int:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.cross_product_sense((2, 0), (0, 0), (1, 0))
+        >>> sg.cross_product_sense3((2, 0), (0, 0), (1, 0))
         1
-        >>> sg.cross_product_sense((1, 0), (0, 0), (0, 1))
+        >>> sg.cross_product_sense3((1, 0), (0, 0), (0, 1))
         Traceback (most recent call last):
             ...
         NameError: name 'length' is not defined
     """
-    length_ = cross_product2(a, b, c)
+    length_ = cross_product3(a, b, c)
     if length_ == 0:
         res = 1
     else:
@@ -1440,7 +1440,7 @@ def cross_product_sense(a: PointType, b: PointType, c: PointType) -> int:
 #       C
 
 
-def right_turn(p1, p2, p3):
+def right_turn3(p1, p2, p3):
     """Return whether ``p1``, ``p2``, ``p3`` make a right turn.
 
     Collinear points are not a right turn.
@@ -1455,15 +1455,15 @@ def right_turn(p1, p2, p3):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.right_turn((0, 0), (1, 0), (1, -1))
+        >>> sg.right_turn3((0, 0), (1, 0), (1, -1))
         True
-        >>> sg.right_turn((0, 0), (1, 0), (2, 0))
+        >>> sg.right_turn3((0, 0), (1, 0), (2, 0))
         False
     """
-    return cross(p1, p2, p3) < 0
+    return cross3(p1, p2, p3) < 0
 
 
-def left_turn(p1, p2, p3):
+def left_turn3(p1, p2, p3):
     """Return whether ``p1``, ``p2``, ``p3`` make a left turn.
 
     Collinear points are not a left turn.
@@ -1478,15 +1478,15 @@ def left_turn(p1, p2, p3):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.left_turn((0, 0), (1, 0), (0, 1))
+        >>> sg.left_turn3((0, 0), (1, 0), (0, 1))
         True
-        >>> sg.left_turn((0, 0), (1, 0), (2, 0))
+        >>> sg.left_turn3((0, 0), (1, 0), (2, 0))
         False
     """
-    return cross(p1, p2, p3) > 0
+    return cross3(p1, p2, p3) > 0
 
 
-def cross(p1, p2, p3):
+def cross3(p1, p2, p3):
     """Return the z-component of ``p1p2 × p1p3``.
 
     Args:
@@ -1499,9 +1499,9 @@ def cross(p1, p2, p3):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.cross((0, 0), (1, 0), (0, 1))
+        >>> sg.cross3((0, 0), (1, 0), (0, 1))
         1
-        >>> sg.cross((0, 0), (1, 0), (2, 0))
+        >>> sg.cross3((0, 0), (1, 0), (2, 0))
         0
     """
     x1, y1 = p2[0] - p1[0], p2[1] - p1[1]
@@ -1699,7 +1699,7 @@ def point_to_line_vec(
     return res
 
 
-def surface_normal(p1: PointType, p2: PointType, p3: PointType) -> VecType:
+def surface_normal3(p1: PointType, p2: PointType, p3: PointType) -> VecType:
     """Return a unit normal of the triangle ``p1``, ``p2``, ``p3``.
 
     Collinear vertices have no direction, so the result is a vector of NaNs.
@@ -1714,7 +1714,7 @@ def surface_normal(p1: PointType, p2: PointType, p3: PointType) -> VecType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.surface_normal((0, 0, 0), (1, 0, 0), (0, 1, 0))
+        >>> sg.surface_normal3((0, 0, 0), (1, 0, 0), (0, 1, 0))
         array([0., 0., 1.])
     """
     v1 = np.array(p1)

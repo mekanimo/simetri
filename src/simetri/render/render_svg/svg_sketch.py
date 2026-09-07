@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from ...coloring.colors import Color, check_color
-from ...geom.points.point_utils import close_points2
+from ...geom.points.point_utils import close_points_square
 from ...base.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
 from ...helpers.illustration import (
     prepare_shape_index_labels,
@@ -110,7 +110,7 @@ def draw_arc_sketch(sketch, exceptions=None):
     """Draw an arc sketch as an SVG path."""
     vertices = sketch_attrib(sketch, "vertices")
     closed = sketch_attrib(sketch, "closed")
-    if closed and not close_points2(vertices[0], vertices[-1]):
+    if closed and not close_points_square(vertices[0], vertices[-1]):
         vertices = list(vertices) + [vertices[0]]
 
     path_parts = [f"M {vertices[0][0]},{vertices[0][1]}"]
@@ -790,7 +790,7 @@ def draw_shape_sketch_with_markers(sketch, exceptions=None):
     # Get vertices
     vertices = sketch_attrib(sketch, "vertices")
     closed = sketch_attrib(sketch, "closed")
-    if closed and not close_points2(vertices[0], vertices[-1]):
+    if closed and not close_points_square(vertices[0], vertices[-1]):
         vertices = list(vertices) + [vertices[0]]
 
     # Get marker type

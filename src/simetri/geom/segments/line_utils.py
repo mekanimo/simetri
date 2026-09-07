@@ -13,17 +13,17 @@ from simetri.geom.geometry import (
     positive_angle,
 )
 from simetri.geom.geom_utils import connected_pairs
-from simetri.geom.geometry import double_area, bbox_overlap
+from simetri.geom.geometry import double_area3, bbox_overlap
 from simetri.geom.geom_utils import (
-    close_points2,
+    close_points_square,
     midpoint,
     offset_point_from_start,
 )
 from simetri.geom.points.point_utils import (
     Vertex,
-    between,
-    clockwise,
-    direction,
+    between3,
+    clockwise3,
+    direction3,
     distance,
     equal_points,
     point_on_line_segment,
@@ -285,7 +285,7 @@ def perp_bisector(line: LineType) -> LineType:
     return [mid, [mid[0] - dy, mid[1] + dx]]
 
 
-def collinear(a, b, c, area_tol=None):
+def collinear3(a, b, c, area_tol=None):
     """Return True if a, b, and c are collinear.
 
     Args:
@@ -300,15 +300,15 @@ def collinear(a, b, c, area_tol=None):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.collinear((0, 0), (1, 1), (2, 2))
+        >>> sg.collinear3((0, 0), (1, 1), (2, 2))
         True
-        >>> sg.collinear((0, 0), (1, 0), (0, 1))
+        >>> sg.collinear3((0, 0), (1, 0), (0, 1))
         False
     """
     if area_tol is None:
         area_tol = defaults["area_tol"]
 
-    return abs(double_area(a, b, c)) <= area_tol
+    return abs(double_area3(a, b, c)) <= area_tol
 
 
 def merge_consecutive_collinear_edges(
@@ -341,7 +341,7 @@ def merge_consecutive_collinear_edges(
             n += 1
         discarded = []
         for _ in range(n - 1):
-            if collinear(a, b, c, area_rtol=area_rtol, area_atol=area_atol):
+            if collinear3(a, b, c, area_rtol=area_rtol, area_atol=area_atol):
                 discarded.append(b)
                 looping = True
                 break
@@ -510,8 +510,8 @@ def intersect(line1: LineType, line2: LineType) -> PointType:
     return intersect2(x1, y1, x2, y2, x3, y3, x4, y4)
 
 
-def intersection2(x1, y1, x2, y2, x3, y3, x4, y4, rel_tol=None, abs_tol=None):
-    """Check the intersection of two line segments. See the documentation
+def segment_connection(x1, y1, x2, y2, x3, y3, x4, y4, rel_tol=None, abs_tol=None):
+    """Return the connection kind and crossing point of two segments.
 
     Args:
         x1 (float): x-coordinate of the first point of the first line segment.
@@ -530,10 +530,10 @@ def intersection2(x1, y1, x2, y2, x3, y3, x4, y4, rel_tol=None, abs_tol=None):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> kind, point = sg.intersection2(0, 0, 2, 2, 0, 2, 2, 0)
+        >>> kind, point = sg.segment_connection(0, 0, 2, 2, 0, 2, 2, 0)
         >>> kind == sg.Connection.INTERSECT, point
         (True, (1.0, 1.0))
-        >>> kind, _ = sg.intersection2(0, 0, 1, 0, 0, 1, 1, 1)
+        >>> kind, _ = sg.segment_connection(0, 0, 1, 0, 0, 1, 1, 1)
         >>> kind == sg.Connection.PARALLEL
         True
     """
@@ -583,11 +583,11 @@ def collinear_segments(segment1, segment2, rel_tol=None, abs_tol=None):
     a2, b2 = segment2
 
     return isclose(
-        direction(a1, b1, a2), 0, rel_tol=rel_tol, abs_tol=abs_tol
-    ) and isclose(direction(a1, b1, b2), 0, rel_tol=rel_tol, abs_tol=abs_tol)
+        direction3(a1, b1, a2), 0, rel_tol=rel_tol, abs_tol=abs_tol
+    ) and isclose(direction3(a1, b1, b2), 0, rel_tol=rel_tol, abs_tol=abs_tol)
 
 
-def intersection3(
+def check_intersection(
     x1: float,
     y1: float,
     x2: float,
@@ -601,8 +601,11 @@ def intersection3(
     dist_tol: float | None = None,
     area_atol: float | None = None,
 ) -> tuple[Connection, list]:
-    """Check the intersection of two line segments. See the documentation
-    for more details.
+    """Return a fine-grained classification of how two line segments meet.
+
+    The result names the relationship, not only whether a crossing exists.
+    It distinguishes a proper intersection from endpoint chains, collinear
+    overlap, containment, congruent segments, and Y-joints.
 
     Args:
         x1 (float): x-coordinate of the first point of the first line segment.
@@ -619,11 +622,14 @@ def intersection3(
         area_atol (float, optional): Absolute tolerance for area. Defaults to None.
 
     Returns:
-        tuple: Connection type and intersection result.
+        tuple[Connection, PointType | Sequence | None]: A ``Connection``
+        kind and the geometry for that kind. The second value is a point
+        for a crossing or joint, a segment for overlap or containment,
+        or ``None`` when the segments are disjoint or parallel and do not meet.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> kind, point = sg.intersection3(0, 0, 2, 2, 0, 2, 2, 0)
+        >>> kind, point = sg.check_intersection(0, 0, 2, 2, 0, 2, 2, 0)
         >>> kind == sg.Connection.INTERSECT, point
         (True, (1.0, 1.0))
     """
@@ -666,10 +672,10 @@ def intersection3(
 
     # Coincident end points
     dist_tol2 = dist_tol * dist_tol
-    s1s2 = close_points2(s1, s2, dist2=dist_tol2)
-    s1e2 = close_points2(s1, e2, dist2=dist_tol2)
-    e1s2 = close_points2(e1, s2, dist2=dist_tol2)
-    e1e2 = close_points2(e1, e2, dist2=dist_tol2)
+    s1s2 = close_points_square(s1, s2, dist2=dist_tol2)
+    s1e2 = close_points_square(s1, e2, dist2=dist_tol2)
+    e1s2 = close_points_square(e1, s2, dist2=dist_tol2)
+    e1e2 = close_points_square(e1, e2, dist2=dist_tol2)
     connected = s1s2 or s1e2 or e1s2 or e1e2
     if parallel:
         length1 = distance((x1, y1), (x2, y2))
@@ -718,7 +724,7 @@ def intersection3(
                 seg = [p1, p2]
                 return Connection.OVERLAPS, seg
 
-            return intersection2(
+            return segment_connection(
                 x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol
             )
     else:
@@ -732,16 +738,16 @@ def intersection3(
             if e1e2:
                 return Connection.CHAIN, (s1, e1, s2)
         else:
-            if between(s1, e1, e2):
+            if between3(s1, e1, e2):
                 return Connection.YJOINT, e1
-            if between(s1, e1, s2):
+            if between3(s1, e1, s2):
                 return Connection.YJOINT, s1
-            if between(s2, e2, e1):
+            if between3(s2, e2, e1):
                 return Connection.YJOINT, e2
-            if between(s2, e2, s1):
+            if between3(s2, e2, s1):
                 return Connection.YJOINT, s2
 
-            return intersection2(
+            return segment_connection(
                 x1, y1, x2, y2, x3, y3, x4, y4, rel_tol, abs_tol
             )
     return (Connection.DISJOINT, None)
@@ -1061,7 +1067,7 @@ def all_segments_sorted(
     return sorted_segments
 
 
-def angle_between_lines2(
+def angle_between_lines3(
     point1: PointType, point2: PointType, point3: PointType
 ) -> float:
     """
@@ -1291,11 +1297,11 @@ def equal_lines(
     p1, p2 = line1
     p3, p4 = line2
     return (
-        close_points2(p1, p3, dist2=dist_tol2)
-        and close_points2(p2, p4, dist2=dist_tol2)
+        close_points_square(p1, p3, dist2=dist_tol2)
+        and close_points_square(p2, p4, dist2=dist_tol2)
     ) or (
-        close_points2(p1, p4, dist2=dist_tol2)
-        and close_points2(p2, p3, dist2=dist_tol2)
+        close_points_square(p1, p4, dist2=dist_tol2)
+        and close_points_square(p2, p3, dist2=dist_tol2)
     )
 
 
@@ -1387,7 +1393,7 @@ def split_segment(segment: LineType, point: PointType):
         is an endpoint or not on the segment.
     """
     p1, p2 = segment
-    if close_points2(point, p1) or close_points2(point, p2):
+    if close_points_square(point, p1) or close_points_square(point, p2):
         return None
     if not point_on_line_segment(point, segment):
         return None
@@ -1417,13 +1423,13 @@ def multi_split_segment(segment: LineType, points: Sequence, dist_tol=0.1):
     points = [points[ind] for (_, ind) in distances]
 
     if len(points) == 2:
-        close_p1 = close_points2(points[0], p1)
-        close_p2 = close_points2(points[1], p2)
+        close_p1 = close_points_square(points[0], p1)
+        close_p2 = close_points_square(points[1], p2)
         if close_p1 and close_p2:
             return [segment]
 
     for i, pnt in enumerate(points):
-        if close_points2(p1, pnt):
+        if close_points_square(p1, pnt):
             continue
         if not point_on_line_segment(pnt, segment):
             print("point not on line")
@@ -1454,21 +1460,21 @@ def intersects(seg1, seg2):
     """
     p1, q1 = seg1
     p2, q2 = seg2
-    o1 = clockwise(p1, q1, p2)
-    o2 = clockwise(p1, q1, q2)
-    o3 = clockwise(p2, q2, p1)
-    o4 = clockwise(p2, q2, q1)
+    o1 = clockwise3(p1, q1, p2)
+    o2 = clockwise3(p1, q1, q2)
+    o3 = clockwise3(p2, q2, p1)
+    o4 = clockwise3(p2, q2, q1)
 
     if o1 != o2 and o3 != o4:
         return True
 
-    if o1 == 0 and between(p1, p2, q1):
+    if o1 == 0 and between3(p1, p2, q1):
         return True
-    if o2 == 0 and between(p1, q2, q1):
+    if o2 == 0 and between3(p1, q2, q1):
         return True
-    if o3 == 0 and between(p2, p1, q2):
+    if o3 == 0 and between3(p2, p1, q2):
         return True
-    return bool(o4 == 0 and between(p2, q1, q2))
+    return bool(o4 == 0 and between3(p2, q1, q2))
 
 
 def is_chained(seg1, seg2):
@@ -1484,10 +1490,10 @@ def is_chained(seg1, seg2):
     p1, q1 = seg1
     p2, q2 = seg2
     return bool(
-        close_points2(p1, p2)
-        or close_points2(p1, q2)
-        or close_points2(q1, p2)
-        or close_points2(q1, q2)
+        close_points_square(p1, p2)
+        or close_points_square(p1, q2)
+        or close_points_square(q1, p2)
+        or close_points_square(q1, q2)
     )
 
 
@@ -1537,7 +1543,7 @@ def intersection(
     x2, y2 = line1[1][:2]
     x3, y3 = line2[0][:2]
     x4, y4 = line2[1][:2]
-    return intersection2(x1, y1, x2, y2, x3, y3, x4, y4)
+    return segment_connection(x1, y1, x2, y2, x3, y3, x4, y4)
 
 
 def merge_segments(
@@ -1724,7 +1730,7 @@ def angle_between_two_lines(line1, line2):
     return abs(alpha1 - alpha2)
 
 
-def bisector_line(a: PointType, b: PointType, c: PointType) -> LineType:
+def bisector_line3(a: PointType, b: PointType, c: PointType) -> LineType:
     """
     Given three points that form two lines [a, b] and [b, c]
     return the bisector line between them.
@@ -1742,7 +1748,7 @@ def bisector_line(a: PointType, b: PointType, c: PointType) -> LineType:
     return [d, b]
 
 
-def fillet(
+def fillet3(
     a: PointType, b: PointType, c: PointType, radius: float
 ) -> tuple[LineType, LineType, PointType]:
     """
@@ -1760,7 +1766,7 @@ def fillet(
     Returns:
         tuple: Clipped lines [a, d], [e, c], center point of the radius circle, and the arc angle.
     """
-    alpha2 = angle_between_lines2(a, b, c) / 2
+    alpha2 = angle_between_lines3(a, b, c) / 2
     sin_alpha2 = sin(alpha2)
     cos_alpha2 = cos(alpha2)
     clip_length = radius * cos_alpha2 / sin_alpha2
@@ -1768,7 +1774,7 @@ def fillet(
     e = offset_point_from_start(b, c, clip_length)
     mp = midpoint(a, c)  # [b, mp] is the bisector line
     center = offset_point_from_start(b, mp, radius / sin_alpha2)
-    arc_angle = angle_between_lines2(e, center, d)
+    arc_angle = angle_between_lines3(e, center, d)
 
     return [a, d], [e, c], center, arc_angle
 

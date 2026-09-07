@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from simetri.geom.nonlinear.circle import Circle_ as Circle
 
-from ..geom.points.point_utils import direction, point_to_line_distance
+from ..geom.points.point_utils import direction3, point_to_line_distance
 from ..geom.segments.line_utils import angle_between_two_lines
 from ..base.all_enums import ConstraintType as ConstType
 from ..geom.points.point_utils import distance
@@ -213,7 +213,7 @@ def collinear_eq(constraint):
     a1, b1 = constraint.item1
     a2, b2 = constraint.item2
 
-    return direction(a1, b1, a2) - direction(a1, b1, b2)
+    return direction3(a1, b1, a2) - direction3(a1, b1, b2)
 
 
 def equal_value_eq(constraint):

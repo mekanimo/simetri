@@ -7,7 +7,7 @@ import numpy as np
 
 import simetri.graphics as sg
 
-from ...geom.points.point_utils import close_points2
+from ...geom.points.point_utils import close_points_square
 from ...base.all_enums import (
     Align,
     Anchor,
@@ -578,7 +578,7 @@ def draw_shape_sketch_with_markers(sketch, exceptions=None):
     else:
         marker_options = ""
 
-    if sketch.closed and not close_points2(
+    if sketch.closed and not close_points_square(
         sketch.vertices[0], sketch.vertices[-1]
     ):
         vertices = [str(x) for x in sketch.vertices + [sketch.vertices[0]]]

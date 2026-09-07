@@ -25,7 +25,7 @@ def r_polar(a: float, b: float, theta: float) -> float:
     return (a * b) / sqrt((b * cos(theta)) ** 2 + (a * sin(theta)) ** 2)
 
 
-def distance2(p1: PointType, p2: PointType) -> float:
+def distance_square(p1: PointType, p2: PointType) -> float:
     """Return the squared distance between two points.
 
     Args:
@@ -38,7 +38,7 @@ def distance2(p1: PointType, p2: PointType) -> float:
     return (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2
 
 
-def close_points2(p1: PointType, p2: PointType, dist2: float = 0.01) -> bool:
+def close_points_square(p1: PointType, p2: PointType, dist2: float = 0.01) -> bool:
     """Return True if two points are within squared distance ``dist2``.
 
     Args:
@@ -49,7 +49,7 @@ def close_points2(p1: PointType, p2: PointType, dist2: float = 0.01) -> bool:
     Returns:
         True if the points are close enough.
     """
-    return distance2(p1, p2) <= dist2
+    return distance_square(p1, p2) <= dist2
 
 
 def offset_point_from_start(

@@ -14,7 +14,7 @@ import numpy as np
 
 from ..render.style_map import shape_args
 from ..coloring.colors import Color
-from ..geom.points.point_utils import close_points2
+from ..geom.points.point_utils import close_points_square
 from ..helpers.validation import validate_args
 from ..config.settings import defaults
 from ..base.all_enums import Types
@@ -125,7 +125,7 @@ class Dot(Shape):
         Returns:
             bool: True when types match and positions are within tolerance.
         """
-        return other.type == Types.DOT and close_points2(
+        return other.type == Types.DOT and close_points_square(
             self.pos, other.pos, self.dtol2
         )
 

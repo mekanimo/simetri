@@ -12,8 +12,8 @@ from simetri.base.all_enums import Types
 from simetri.base.common import LineType, PointType, get_defaults
 from simetri.geom.affine import rotate_point
 from simetri.geom.geom_utils import (
-    close_points2,
-    distance2,
+    close_points_square,
+    distance_square,
     midpoint,
     offset_point,
     offset_point_from_start,
@@ -23,7 +23,7 @@ from simetri.geom.vectors import (
     PointType,
     Sequence,
     atan2,
-    cross_product_sense,
+    cross_product_sense3,
     distance,
     perp_unit_vector,
     sqrt,
@@ -222,9 +222,9 @@ def fix_degen_points(
         if i == 0:
             new_points.append(point)
         else:
-            if not close_points2(point, new_points[-1], dist2=dist_tol2):
+            if not close_points_square(point, new_points[-1], dist2=dist_tol2):
                 new_points.append(point)
-    if loop and close_points2(new_points[0], new_points[-1], dist2=dist_tol2):
+    if loop and close_points_square(new_points[0], new_points[-1], dist2=dist_tol2):
         new_points.pop(-1)
 
     if check_collinear:
@@ -282,7 +282,7 @@ def round_points(points: list[PointType], n_digits: int = 2) -> list[PointType]:
     return [round_point(p, n_digits) for p in points]
 
 
-def direction(p, q, r):
+def direction3(p, q, r):
     """
     Checks the orientation of three points (p, q, r).
 
@@ -296,15 +296,15 @@ def direction(p, q, r):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.direction((0, 0), (1, 0), (1, 1))
+        >>> sg.direction3((0, 0), (1, 0), (1, 1))
         -1
-        >>> sg.direction((0, 0), (1, 0), (1, -1))
+        >>> sg.direction3((0, 0), (1, 0), (1, -1))
         1
     """
     return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
 
 
-def between(a, b, c):
+def between3(a, b, c):
     """Return True if c is between a and b.
 
     Args:
@@ -317,14 +317,14 @@ def between(a, b, c):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.between((0, 0), (2, 0), (1, 0))
+        >>> sg.between3((0, 0), (2, 0), (1, 0))
         True
-        >>> sg.between((0, 0), (2, 0), (3, 0))
+        >>> sg.between3((0, 0), (2, 0), (3, 0))
         False
     """
-    from simetri.geom.segments.line_utils import collinear
+    from simetri.geom.segments.line_utils import collinear3
 
-    if not collinear(a, b, c):
+    if not collinear3(a, b, c):
         res = False
     elif a[0] != b[0]:
         res = ((a[0] <= c[0]) and (c[0] <= b[0])) or (
@@ -365,7 +365,7 @@ def check_consecutive_duplicates(points, rel_tol=0, abs_tol=None) -> bool:
     return False
 
 
-def left(a: PointType, b: PointType, c: PointType) -> bool:
+def left3(a: PointType, b: PointType, c: PointType) -> bool:
     """
     Check if point c is left of line ab.
     Args:
@@ -403,7 +403,7 @@ def remove_duplicate_points(
             new_points.append(point)
         else:
             dist_tol2 = dist_tol * dist_tol
-            if not close_points2(point, new_points[-1], dist2=dist_tol2):
+            if not close_points_square(point, new_points[-1], dist2=dist_tol2):
                 new_points.append(point)
     return new_points
 
@@ -424,7 +424,7 @@ def remove_collinear_points(
     Returns:
         list[PointType]: List of points with collinear points removed.
     """
-    from simetri.geom.segments.line_utils import collinear
+    from simetri.geom.segments.line_utils import collinear3
 
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     new_points = []
@@ -432,7 +432,7 @@ def remove_collinear_points(
         if i == 0:
             new_points.append(point)
         else:
-            if not collinear(
+            if not collinear3(
                 new_points[-1],
                 point,
                 points[(i + 1) % len(points)],
@@ -443,7 +443,7 @@ def remove_collinear_points(
     return new_points
 
 
-def clockwise(p: PointType, q: PointType, r: PointType) -> bool:
+def clockwise3(p: PointType, q: PointType, r: PointType) -> bool:
     """Return 1 if the points p, q, and r are in clockwise order,
     return -1 if the points are in counter-clockwise order,
     return 0 if the points are collinear
@@ -509,11 +509,11 @@ def on_segment(a, b, p, eps=1e-12):
     def cross(ax, ay, bx, by):
         return ax * by - ay * bx
 
-    def orient(a, b, c):
+    def orient3(a, b, c):
         # cross((b-a),(c-a))
         return cross(b[0] - a[0], b[1] - a[1], c[0] - a[0], c[1] - a[1])
 
-    if abs(orient(a, b, p)) > eps:
+    if abs(orient3(a, b, p)) > eps:
         return False
     return (
         min(a[0], b[0]) - eps <= p[0] <= max(a[0], b[0]) + eps
@@ -853,7 +853,7 @@ def set_vertices(points):
         else:
             p.prev = points[i - 1]
             p.next = points[i + 1]
-        p.angle = cross_product_sense(p.prev, p, p.next)
+        p.angle = cross_product_sense3(p.prev, p, p.next)
 
 
 def get_interior_points(start, end, n_points):

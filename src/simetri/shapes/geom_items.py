@@ -29,9 +29,9 @@ from ..geom.points.point_utils import distance
 from ..geom.geometry import (
     side_len_to_radius,
 )
-from ..geom.points.point_utils import close_points2, midpoint
+from ..geom.points.point_utils import close_points_square, midpoint
 from ..geom.polygons.polygon import offset_polygon_points
-from ..geom.segments.line_utils import angle_between_lines2, fillet_corners
+from ..geom.segments.line_utils import angle_between_lines3, fillet_corners
 from ..geom.vectors import v_diff, v_scale, v_sum
 from ..base.all_enums import Extent, Types
 from ..group.batch import Group
@@ -180,7 +180,7 @@ class Line(Shape):
             ValueError: If start and end points are the same.
         """
         dist_tol2 = defaults["dist_tol"] ** 2
-        if close_points2(start, end, dist2=dist_tol2):
+        if close_points_square(start, end, dist2=dist_tol2):
             raise ValueError("Line: start and end points are the same!")
 
         if draw_type is not None:
@@ -673,7 +673,7 @@ class Segment(Shape):
             ValueError: If the start and end points are the same.
         """
         dist_tol2 = defaults["dist_tol"] ** 2
-        if close_points2(start, end, dist2=dist_tol2):
+        if close_points_square(start, end, dist2=dist_tol2):
             raise ValueError("Segment: start and end points are the same!")
         points = [start, end]
         super().__init__(points, **kwargs)
@@ -1393,7 +1393,7 @@ def snap(
 
     # Calculate the current angle between the edges
     # The angle is measured from the fixed edge (incoming) to the free edge (outgoing) at ref1_point
-    current_angle = angle_between_lines2(fixed_prev, ref1_point, free_next)
+    current_angle = angle_between_lines3(fixed_prev, ref1_point, free_next)
 
     # Calculate rotation needed to achieve the desired angle
     rotation_needed = angle - current_angle

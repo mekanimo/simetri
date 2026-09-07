@@ -8,7 +8,7 @@ import networkx as nx
 from ..geom.points.point_utils import distance
 from ..base.all_enums import Types
 from ..base.common import PointType
-from ..geom.points.point_utils import close_points2
+from ..geom.points.point_utils import close_points_square
 from ..config.settings import defaults
 
 
@@ -270,7 +270,7 @@ class Node:
         Returns:
             bool: True if the nodes are equal, False otherwise.
         """
-        return close_points2(
+        return close_points_square(
             self.pos, other.pos, dist2=defaults["dist_tol"] ** 2
         )
 

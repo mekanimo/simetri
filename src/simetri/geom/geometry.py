@@ -33,7 +33,7 @@ from ..base.common import (
     get_defaults,
 )
 from ..config.settings import defaults
-from .geom_utils import close_points2, connected_pairs
+from .geom_utils import close_points_square, connected_pairs
 from .vectors import *
 
 if TYPE_CHECKING:
@@ -103,7 +103,7 @@ def equal_angles(
     return isclose(angle1, angle2, rel_tol=rel_tol, abs_tol=abs_tol)
 
 
-def triangle_centroid(p1, p2, p3):
+def triangle_centroid3(p1, p2, p3):
     """Return the centroid of a triangle given its three vertices.
 
     Args:
@@ -190,18 +190,18 @@ def connect2(
     pp1 = poly_point1[:]
     pp2 = poly_point2[:]
     points = []
-    if close_points2(end1, start2, dist2=dist_tol2):
+    if close_points_square(end1, start2, dist2=dist_tol2):
         points.extend(pp1)
         points.extend(pp2[1:])
-    elif close_points2(end1, end2, dist2=dist_tol2):
+    elif close_points_square(end1, end2, dist2=dist_tol2):
         points.extend(pp1)
         pp2.reverse()
         points.extend(pp2[1:])
-    elif close_points2(start1, start2, dist2=dist_tol2):
+    elif close_points_square(start1, start2, dist2=dist_tol2):
         pp1.reverse()
         points.extend(pp1)
         points.extend(pp2[1:])
-    elif close_points2(start1, end2, dist2=dist_tol2):
+    elif close_points_square(start1, end2, dist2=dist_tol2):
         pp1.reverse()
         points.extend(pp1)
         pp2.reverse()
@@ -511,7 +511,7 @@ def cartesian_to_polar(x, y, center=(0, 0)):
     return r, theta
 
 
-def double_area(a, b, c):
+def double_area3(a, b, c):
     """Return twice the signed area of triangle ``abc``.
 
     Computes the 2D cross product of ``AB`` and ``AC``:
@@ -535,9 +535,9 @@ def double_area(a, b, c):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.double_area((0, 0), (1, 0), (0, 1))
+        >>> sg.double_area3((0, 0), (1, 0), (0, 1))
         1
-        >>> sg.double_area((0, 0), (1, 0), (0, 1)) / 2  # geometric triangle area
+        >>> sg.double_area3((0, 0), (1, 0), (0, 1)) / 2  # geometric triangle area
         0.5
     """
     return (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])

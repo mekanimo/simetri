@@ -15,7 +15,7 @@ from ..geom_utils import offset_point_from_start, r_polar
 from ..geometry import side_len_to_radius
 from ..homogenize import homogenize
 from ..points.point_utils import distance
-from ..segments.line_utils import angle_between_lines2, angle_between_two_lines
+from ..segments.line_utils import angle_between_lines3, angle_between_two_lines
 
 array = np.array
 dot = np.dot
@@ -454,7 +454,7 @@ def tangent_points(center1, radius, center2, radius2, cross=False):
     p1 = [pos[0], y]
     p2 = [pos[0] + x, y]
     points = homogenize([p1, p2])
-    alpha = angle_between_lines2((pos[0] + x, pos[1] + dr), pos, c2.center)
+    alpha = angle_between_lines3((pos[0] + x, pos[1] + dr), pos, c2.center)
     tp1w, tp2w = rotate(points, alpha, pos)
 
     if x == 0:
@@ -743,28 +743,6 @@ def circle_segment_intersection(circle, p1, p2):
             res = True
 
     return res  # p is not between lp1 and lp2
-
-
-def ellipse_line_intersection(a, b, point):
-    """Return the intersection points of an ellipse and a line segment
-    connecting the given point to the ellipse center at (0, 0).
-
-    Args:
-        a (float): Semi-major axis of the ellipse.
-        b (float): Semi-minor axis of the ellipse.
-        point (PointType): PointType on the line segment.
-
-    Returns:
-        list[PointType]: Intersection points of the ellipse and the line segment.
-    """
-    # adapted from http://mathworld.wolfram.com/Ellipse-LineIntersection.html
-    # a, b is the ellipse width/2 and height/2 and (x_0, y_0) is the point
-
-    x_0, y_0 = point[:2]
-    x = ((a * b) / (sqrt(a**2 * y_0**2 + b**2 * x_0**2))) * x_0
-    y = ((a * b) / (sqrt(a**2 * y_0**2 + b**2 * x_0**2))) * y_0
-
-    return [(x, y), (-x, -y)]
 
 
 def ellipse_tangent(a, b, x, y, tol=0.001):
