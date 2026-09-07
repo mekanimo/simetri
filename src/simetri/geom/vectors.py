@@ -2,8 +2,7 @@
 
 Any array or list can be passed to the vector operations. ``Vector`` is the
 object form of the same operations; many methods return a new ``Vector`` and
-can be chained. Inputs are not changed unless a docstring marks an argument
-``(mutated)``.
+can be chained.
 
 A unit vector has length 1. The zero vector has no direction, so
 ``normalize``, ``v_normalize``, and ``Vector.normalize`` raise
@@ -250,7 +249,7 @@ class Vector:
         return sum(x * x for x in self.data)
 
     def normalize(self) -> "Vector":
-        """Return a unit-length copy. Does not change ``self``.
+        """Return a unit-length copy.
 
         Uses :func:`normalize`. A zero vector has no direction.
 
@@ -445,13 +444,13 @@ def _result_like(vec: Vec, values: Sequence[float]) -> Vec:
 
 
 def v_bisector(vec1: Vec, vec2: Vec) -> Vec:
-    """Return the sum of the two unit vectors. Does not change the inputs.
+    """Return the sum of the two unit vectors.
 
     A zero vector has no direction, so this raises ``ZeroDivisionError``.
 
     Args:
-        vec1 (Vec): First vector. Not mutated.
-        vec2 (Vec): Second vector. Not mutated.
+        vec1 (Vec): First vector.
+        vec2 (Vec): Second vector.
 
     Returns:
         Vector: ``normalize(vec1) + normalize(vec2)``.
@@ -472,10 +471,10 @@ def v_bisector(vec1: Vec, vec2: Vec) -> Vec:
 
 
 def v_copy(vec: Vec) -> Vec:
-    """Return a copy. Does not change ``vec``.
+    """Return a copy.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
 
     Returns:
         Vec: A list if ``vec`` is a sequence, otherwise a ``Vector``.
@@ -495,10 +494,10 @@ def v_copy(vec: Vec) -> Vec:
 
 
 def v_minus(vec: Vec) -> Vec:
-    """Return the additive inverse. Does not change ``vec``.
+    """Return the additive inverse.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
 
     Returns:
         Vec: Negated components. Type matches ``vec``.
@@ -517,7 +516,7 @@ def v_minus(vec: Vec) -> Vec:
 
 
 def v_neg(vec: Vec) -> Vec:
-    """Alias for :func:`v_minus`. Does not change ``vec``.
+    """Alias for :func:`v_minus`.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -530,11 +529,9 @@ def v_neg(vec: Vec) -> Vec:
 def v_mul(vec1: Vec, vec2: Vec | float) -> float | Vec:
     """Return the dot product, or scale ``vec1`` by a scalar.
 
-    Does not change either argument.
-
     Args:
-        vec1 (Vec): First vector. Not mutated.
-        vec2 (Vec | float): Second vector (dot) or scalar (scale). Not mutated.
+        vec1 (Vec): First vector.
+        vec2 (Vec | float): Second vector (dot) or scalar (scale).
 
     Returns:
         float | Vec: Dot product, or a scaled vector whose type matches ``vec1``.
@@ -559,7 +556,7 @@ def v_mul(vec1: Vec, vec2: Vec | float) -> float | Vec:
 
 
 def v_dot(vec1: Vec, vec2: Vec | float) -> float | Vec:
-    """Alias for :func:`v_mul`. Does not change either argument.
+    """Alias for :func:`v_mul`.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -570,10 +567,10 @@ def v_dot(vec1: Vec, vec2: Vec | float) -> float | Vec:
 
 
 def v_div(vec: Vec, c: float) -> Vec:
-    """Divide a vector by a scalar. Does not change ``vec``.
+    """Divide a vector by a scalar.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
         c (float): Divisor.
 
     Returns:
@@ -598,11 +595,11 @@ def v_div(vec: Vec, c: float) -> Vec:
 
 
 def v_sum(vec1: Vec, vec2: Vec) -> Vec:
-    """Return the element-wise sum. Does not change either argument.
+    """Return the element-wise sum.
 
     Args:
-        vec1 (Vec): First vector. Not mutated.
-        vec2 (Vec): Second vector. Not mutated.
+        vec1 (Vec): First vector.
+        vec2 (Vec): Second vector.
 
     Returns:
         Vec: Sum. Type matches ``vec1``.
@@ -620,11 +617,11 @@ def v_sum(vec1: Vec, vec2: Vec) -> Vec:
 
 
 def v_diff(vec1: Vec, vec2: Vec) -> Vec:
-    """Return ``vec1 - vec2``. Does not change either argument.
+    """Return ``vec1 - vec2``.
 
     Args:
-        vec1 (Vec): First vector. Not mutated.
-        vec2 (Vec): Second vector. Not mutated.
+        vec1 (Vec): First vector.
+        vec2 (Vec): Second vector.
 
     Returns:
         Vec: Difference. Type matches ``vec1``.
@@ -643,8 +640,8 @@ def v_equals(vec1: Vec, vec2: Vec) -> bool:
     """Return whether both vectors have the same components.
 
     Args:
-        vec1 (Vec): First vector. Not mutated.
-        vec2 (Vec): Second vector. Not mutated.
+        vec1 (Vec): First vector.
+        vec2 (Vec): Second vector.
 
     Returns:
         bool: True when the component lists are equal.
@@ -662,11 +659,11 @@ def v_equals(vec1: Vec, vec2: Vec) -> bool:
 def v_cross(vec1: Vec, vec2: Vec) -> Vec | float:
     """Return the 2D scalar cross product or a 3D cross-product vector.
 
-    Does not change either argument. Mixed dimensions are an error.
+    Mixed dimensions are an error.
 
     Args:
-        vec1 (Vec): First vector. Not mutated.
-        vec2 (Vec): Second vector. Not mutated.
+        vec1 (Vec): First vector.
+        vec2 (Vec): Second vector.
 
     Returns:
         Vec | float: A float in 2D, or a vector whose type matches ``vec1`` in 3D.
@@ -703,7 +700,7 @@ def v_length(vec: Vec) -> float:
     """Return Euclidean norm of the vector.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
 
     Returns:
         float: Euclidean length.
@@ -719,14 +716,14 @@ def v_length(vec: Vec) -> float:
 
 
 def v_normalize(vec: Vec) -> Vec:
-    """Return a unit vector. Does not change ``vec``.
+    """Return a unit vector.
 
     Same rule as :func:`normalize`: a zero vector raises
     ``ZeroDivisionError``. A ``Vector`` input returns a ``Vector``; a
     sequence input returns a list.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
 
     Returns:
         Vec: Unit vector. Type matches ``vec``.
@@ -757,12 +754,11 @@ def v_normalize(vec: Vec) -> Vec:
 def v_angle_between(vec1: Vec, vec2: Vec) -> float:
     """Return the angle in radians between two vectors.
 
-    Does not change either argument. A zero vector has no direction, so
-    the result is ``0.0``.
+    A zero vector has no direction, so the result is ``0.0``.
 
     Args:
-        vec1 (Vec): First vector. Not mutated.
-        vec2 (Vec): Second vector. Not mutated.
+        vec1 (Vec): First vector.
+        vec2 (Vec): Second vector.
 
     Returns:
         float: Angle in radians, in ``[0, pi]``.
@@ -784,10 +780,10 @@ def v_angle_between(vec1: Vec, vec2: Vec) -> float:
 
 
 def v_arg(vec: Vec) -> float:
-    """Return the polar argument of a 2D vector. Does not change ``vec``.
+    """Return the polar argument of a 2D vector.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
 
     Returns:
         float: ``atan2(y, x)`` in radians.
@@ -815,10 +811,8 @@ def v_arg(vec: Vec) -> float:
 def v_perp(vec: Vec) -> Vec:
     """Return a 2D vector rotated 90 degrees counterclockwise.
 
-    Does not change ``vec``.
-
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
 
     Returns:
         Vec: ``(-y, x)``. Type matches ``vec``.
@@ -845,15 +839,15 @@ def v_perp(vec: Vec) -> Vec:
 
 
 def v_rotated(vec: Vec, angle: float, axis: Vec | None = None) -> Vec:
-    """Return a rotated copy. Does not change ``vec`` or ``axis``.
+    """Return a rotated copy.
 
     With no axis, ``vec`` must be 2D. A zero 3D axis returns a copy of
     ``vec``.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
         angle (float): Rotation in radians, counterclockwise.
-        axis (Vec | None): Optional 3D axis. Not mutated.
+        axis (Vec | None): Optional 3D axis.
 
     Returns:
         Vec: Rotated vector. Type matches ``vec``.
@@ -905,13 +899,12 @@ def v_rotated(vec: Vec, angle: float, axis: Vec | None = None) -> Vec:
 def v_reflect(f: Vec, vec1: Vec, vec2: Vec) -> Vec:
     """Reflect ``vec2`` using coefficients ``f`` and direction ``vec1``.
 
-    Does not change the inputs. If ``f[0] * vec1[0] + f[1] * vec1[1]``
-    is 0, a copy of ``vec2`` is returned.
+    If ``f[0] * vec1[0] + f[1] * vec1[1]`` is 0, a copy of ``vec2`` is returned.
 
     Args:
-        f (Vec): Coefficients ``[A, B, C]``. Not mutated.
-        vec1 (Vec): Direction used to reflect. Not mutated.
-        vec2 (Vec): Vector to reflect. Not mutated.
+        f (Vec): Coefficients ``[A, B, C]``.
+        vec1 (Vec): Direction used to reflect.
+        vec2 (Vec): Vector to reflect.
 
     Returns:
         Vec: Reflected vector. Type matches ``vec2``.
@@ -941,11 +934,11 @@ def v_reflect(f: Vec, vec1: Vec, vec2: Vec) -> Vec:
 def v_evaluate(line: Vec, point: Vec) -> float:
     """Evaluate implicit line ``[A, B, C]`` at a 2D point.
 
-    Does not change either argument. A point on the line gives 0.
+    A point on the line gives 0.
 
     Args:
-        line (Vec): Line coefficients. Not mutated.
-        point (Vec): Point ``(x, y)``. Not mutated.
+        line (Vec): Line coefficients.
+        point (Vec): Point ``(x, y)``.
 
     Returns:
         float: ``A x + B y + C``.
@@ -965,11 +958,11 @@ def v_evaluate(line: Vec, point: Vec) -> float:
 def v_line_through(point1: Vec, point2: Vec) -> list[float]:
     """Return normalized line coefficients ``[A, B, C]`` through two points.
 
-    Does not change either point. Coincident points return ``[0, 0, 0]``.
+    Coincident points return ``[0, 0, 0]``.
 
     Args:
-        point1 (Vec): First point. Not mutated.
-        point2 (Vec): Second point. Not mutated.
+        point1 (Vec): First point.
+        point2 (Vec): Second point.
 
     Returns:
         list[float]: Line coefficients, or zeros if the points coincide.
@@ -995,11 +988,11 @@ def v_line_through(point1: Vec, point2: Vec) -> list[float]:
 def v_intersection(line1: Vec, line2: Vec) -> list[float]:
     """Return the intersection of two implicit lines ``[A, B, C]``.
 
-    Does not change either argument. Parallel lines are an error.
+    Parallel lines are an error.
 
     Args:
-        line1 (Vec): First line. Not mutated.
-        line2 (Vec): Second line. Not mutated.
+        line1 (Vec): First line.
+        line2 (Vec): Second line.
 
     Returns:
         list[float]: Intersection point ``[x, y]``.
@@ -1030,11 +1023,11 @@ def v_intersection(line1: Vec, line2: Vec) -> list[float]:
 def v_linethrough(point1: Vec, point2: Vec) -> list[float]:
     """Return ``[A, B, C]`` for the line through two points.
 
-    Does not change either point. Coincident points return ``[0, 0, 0]``.
+    Coincident points return ``[0, 0, 0]``.
 
     Args:
-        point1 (Vec): First point. Not mutated.
-        point2 (Vec): Second point. Not mutated.
+        point1 (Vec): First point.
+        point2 (Vec): Second point.
 
     Returns:
         list[float]: Line coefficients.
@@ -1059,10 +1052,10 @@ def v_linethrough(point1: Vec, point2: Vec) -> list[float]:
 
 
 def v_scale(vec: Vec, k: float) -> Vec:
-    """Scale a vector by ``k``. Does not change ``vec``.
+    """Scale a vector by ``k``.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
         k (float): Scale factor.
 
     Returns:
@@ -1080,10 +1073,10 @@ def v_scale(vec: Vec, k: float) -> Vec:
 
 
 def v_string(vec: Vec) -> str:
-    """Return a bracketed component string. Does not change ``vec``.
+    """Return a bracketed component string.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
 
     Returns:
         str: Components inside brackets.
@@ -1097,10 +1090,10 @@ def v_string(vec: Vec) -> str:
 
 
 def v_dim(vec: Vec) -> int:
-    """Return the number of components. Does not change ``vec``.
+    """Return the number of components.
 
     Args:
-        vec (Vec): Input vector. Not mutated.
+        vec (Vec): Input vector.
 
     Returns:
         int: Component count.
@@ -1118,52 +1111,40 @@ def v_dim(vec: Vec) -> int:
 def v_rotate(vec: Vec, angle: float) -> Vec:
     """Rotate a 2D vector by ``angle`` radians.
 
-    A sequence is rotated in place. A ``Vector`` is not changed; a new
-    ``Vector`` is returned.
-
     Args:
-        vec (Vec): Input vector (mutated if it is a list or other
-            mutable sequence). A ``Vector`` is not changed.
+        vec (Vec): Input vector.
         angle (float): Rotation in radians, counterclockwise.
 
     Returns:
-        Vec: The rotated vector. Same object when ``vec`` is a sequence.
+        Vec: Rotated vector. Type matches ``vec``.
+
+    Raises:
+        ValueError: If ``vec`` is not 2D.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> raw = [1.0, 0.0]
         >>> sg.v_rotate(raw, sg.pi / 2)
         [6.123233995736766e-17, 1.0]
-        >>> raw[1]
-        1.0
+        >>> raw
+        [1.0, 0.0]
         >>> vec = sg.Vector(1, 0)
         >>> sg.v_rotate(vec, sg.pi / 2)
         Vector(6.123233995736766e-17, 1.0)
         >>> vec
         Vector(1, 0)
     """
-    if isinstance(vec, Vector):
-        return v_rotated(vec, angle)
-
-    if len(vec) != 2:
-        raise ValueError("v_rotate is only defined for 2D vectors.")
-    c = cos(angle)
-    s = sin(angle)
-    x = c * vec[0] - s * vec[1]
-    y = s * vec[0] + c * vec[1]
-    vec[0] = x
-    vec[1] = y
-    return vec
+    return v_rotated(vec, angle)
 
 
 def v_interpolated(vec1: Vec, vec2: Vec, t: float) -> Vec:
     """Return the point ``(1 - t) * vec1 + t * vec2``.
 
-    Does not change either vector. ``t`` is not clamped.
+    ``t`` is not clamped.
 
     Args:
-        vec1 (Vec): Start vector. Not mutated.
-        vec2 (Vec): End vector. Not mutated.
+        vec1 (Vec): Start vector.
+        vec2 (Vec): End vector.
         t (float): Blend parameter. ``0`` is ``vec1``, ``1`` is ``vec2``.
 
     Returns:
@@ -1183,11 +1164,11 @@ def v_interpolated(vec1: Vec, vec2: Vec, t: float) -> Vec:
 
 
 def v_from_points(start: PointType, end: PointType) -> Vec:
-    """Return the vector from ``start`` to ``end``. Does not change either point.
+    """Return the vector from ``start`` to ``end``.
 
     Args:
-        start (PointType): Start point. Not mutated.
-        end (PointType): End point. Not mutated.
+        start (PointType): Start point.
+        end (PointType): End point.
 
     Returns:
         Vector: ``end - start`` in 2D.
@@ -1225,11 +1206,11 @@ def isarray(a) -> bool:
 
 
 def distance(point1: Vec, point2: Vec) -> float:
-    """Return the Euclidean distance between two points. Inputs are not changed.
+    """Return the Euclidean distance between two points.
 
     Args:
-        point1 (Vec): First point. Not mutated.
-        point2 (Vec): Second point. Not mutated.
+        point1 (Vec): First point.
+        point2 (Vec): Second point.
 
     Returns:
         float: Distance. ``0.0`` if the points are the same.
@@ -1247,12 +1228,12 @@ def distance(point1: Vec, point2: Vec) -> float:
 
 
 def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
-    """Return ``(a - b) · (c - b)``. Does not change the points.
+    """Return ``(a - b) · (c - b)``.
 
     Args:
-        a (PointType): First point, forming vector ``BA``. Not mutated.
-        b (PointType): Common point. Not mutated.
-        c (PointType): Third point, forming vector ``BC``. Not mutated.
+        a (PointType): First point, forming vector ``BA``.
+        b (PointType): Common point.
+        c (PointType): Third point, forming vector ``BC``.
 
     Returns:
         float: Dot product of ``BA`` and ``BC``. ``0`` if they are perpendicular.
@@ -1277,13 +1258,12 @@ def dot_product2(a: PointType, b: PointType, c: PointType) -> float:
 def cross_product2(a: PointType, b: PointType, c: PointType) -> float:
     """Return the z-component of ``(a - b) × (c - b)``.
 
-    Does not change the points. Positive means ``c`` is to the left of
-    the direction from ``b`` to ``a``.
+    Positive means ``c`` is to the left of the direction from ``b`` to ``a``.
 
     Args:
-        a (PointType): First point, forming vector ``BA``. Not mutated.
-        b (PointType): Common point. Not mutated.
-        c (PointType): Third point, forming vector ``BC``. Not mutated.
+        a (PointType): First point, forming vector ``BA``.
+        b (PointType): Common point.
+        c (PointType): Third point, forming vector ``BC``.
 
     Returns:
         float: Signed cross product. ``0`` if the points are collinear.
@@ -1306,13 +1286,13 @@ def cross_product2(a: PointType, b: PointType, c: PointType) -> float:
 
 
 def unit_vector(line: LineType) -> VecType:
-    """Return a unit vector along a line. Does not change ``line``.
+    """Return a unit vector along a line.
 
     The body calls ``length``, which is not defined in this module, so
     a call currently raises ``NameError``.
 
     Args:
-        line (LineType): Input line. Not mutated.
+        line (LineType): Input line.
 
     Returns:
         VecType: Intended unit vector from the first point toward the second.
@@ -1335,12 +1315,12 @@ def unit_vector(line: LineType) -> VecType:
 
 
 def unit_vector_(line: LineType) -> Sequence[VecType]:
-    """Return a unit vector along a line. Does not change ``line``.
+    """Return a unit vector along a line.
 
     A zero-length line has no direction.
 
     Args:
-        line (LineType): Input line. Not mutated.
+        line (LineType): Input line.
 
     Returns:
         Sequence[VecType]: Unit vector ``[dx / length, dy / length]``.
@@ -1368,11 +1348,10 @@ def unit_vector_(line: LineType) -> Sequence[VecType]:
 def vec_along_line(line: LineType, magnitude: float) -> VecType:
     """Return a vector of the given length along a line.
 
-    Does not change ``line``. The axes ``sg.axis_x`` and ``sg.axis_y``
-    are handled directly.
+    The axes ``sg.axis_x`` and ``sg.axis_y`` are handled directly.
 
     Args:
-        line (LineType): Input line. Not mutated.
+        line (LineType): Input line.
         magnitude (float): Signed length of the result.
 
     Returns:
@@ -1400,10 +1379,10 @@ def vec_along_line(line: LineType, magnitude: float) -> VecType:
 
 
 def vec_dir_angle(vec: Sequence[float]) -> float:
-    """Return the direction angle of a 2D vector. Does not change ``vec``.
+    """Return the direction angle of a 2D vector.
 
     Args:
-        vec (Sequence[float]): Input vector. Not mutated.
+        vec (Sequence[float]): Input vector.
 
     Returns:
         float: ``atan2(y, x)`` in radians. ``0.0`` for the zero vector.
@@ -1421,14 +1400,14 @@ def vec_dir_angle(vec: Sequence[float]) -> float:
 def cross_product_sense(a: PointType, b: PointType, c: PointType) -> int:
     """Return the sign of ``(a - b) × (c - b)``.
 
-    Does not change the points. Collinear points return ``1``. A non-zero
+    Collinear points return ``1``. A non-zero
     cross product currently raises ``NameError`` because the body calls
     ``abs(length)`` rather than ``abs`` of the computed value.
 
     Args:
-        a (PointType): First point. Not mutated.
-        b (PointType): Common point. Not mutated.
-        c (PointType): Third point. Not mutated.
+        a (PointType): First point.
+        b (PointType): Common point.
+        c (PointType): Third point.
 
     Returns:
         int: ``1`` or ``-1``.
@@ -1464,12 +1443,12 @@ def cross_product_sense(a: PointType, b: PointType, c: PointType) -> int:
 def right_turn(p1, p2, p3):
     """Return whether ``p1``, ``p2``, ``p3`` make a right turn.
 
-    Does not change the points. Collinear points are not a right turn.
+    Collinear points are not a right turn.
 
     Args:
-        p1 (PointType): First point. Not mutated.
-        p2 (PointType): Second point. Not mutated.
-        p3 (PointType): Third point. Not mutated.
+        p1 (PointType): First point.
+        p2 (PointType): Second point.
+        p3 (PointType): Third point.
 
     Returns:
         bool: True for a clockwise turn.
@@ -1487,12 +1466,12 @@ def right_turn(p1, p2, p3):
 def left_turn(p1, p2, p3):
     """Return whether ``p1``, ``p2``, ``p3`` make a left turn.
 
-    Does not change the points. Collinear points are not a left turn.
+    Collinear points are not a left turn.
 
     Args:
-        p1 (PointType): First point. Not mutated.
-        p2 (PointType): Second point. Not mutated.
-        p3 (PointType): Third point. Not mutated.
+        p1 (PointType): First point.
+        p2 (PointType): Second point.
+        p3 (PointType): Third point.
 
     Returns:
         bool: True for a counterclockwise turn.
@@ -1508,12 +1487,12 @@ def left_turn(p1, p2, p3):
 
 
 def cross(p1, p2, p3):
-    """Return the z-component of ``p1p2 × p1p3``. Does not change the points.
+    """Return the z-component of ``p1p2 × p1p3``.
 
     Args:
-        p1 (PointType): Common start point. Not mutated.
-        p2 (PointType): End of the first vector. Not mutated.
-        p3 (PointType): End of the second vector. Not mutated.
+        p1 (PointType): Common start point.
+        p2 (PointType): End of the first vector.
+        p3 (PointType): End of the second vector.
 
     Returns:
         float: Signed cross product. ``0`` if the points are collinear.
@@ -1533,10 +1512,8 @@ def cross(p1, p2, p3):
 def line_to_vector(line: LineType) -> VecType:
     """Return the 2D vector from the first point of a line to the second.
 
-    Does not change ``line``.
-
     Args:
-        line (LineType): Input line. Not mutated.
+        line (LineType): Input line.
 
     Returns:
         VecType: ``[dx, dy]``.
@@ -1556,10 +1533,8 @@ def line_to_vector(line: LineType) -> VecType:
 def line_vector(line: LineType) -> VecType:
     """Return a ``Vector`` from the first point of a line to the second.
 
-    Does not change ``line``.
-
     Args:
-        line (LineType): Input line. Not mutated.
+        line (LineType): Input line.
 
     Returns:
         Vector: ``end - start``.
@@ -1575,7 +1550,7 @@ def line_vector(line: LineType) -> VecType:
 
 
 def angled_vector(angle_: float) -> Sequence[float]:
-    """Return a unit vector at the given angle. Does not change ``angle_``.
+    """Return a unit vector at the given angle.
 
     Args:
         angle_ (float): Angle in radians.
@@ -1592,12 +1567,12 @@ def angled_vector(angle_: float) -> Sequence[float]:
 
 
 def norm(vec: VecType) -> float:
-    """Return the 2D length of a vector. Does not change ``vec``.
+    """Return the 2D length of a vector.
 
     Uses the first two components only.
 
     Args:
-        vec (VecType): Input vector. Not mutated.
+        vec (VecType): Input vector.
 
     Returns:
         float: Euclidean length. ``0.0`` for the zero vector.
@@ -1613,12 +1588,12 @@ def norm(vec: VecType) -> float:
 
 
 def normalize(vec: VecType) -> VecType:
-    """Return a new 2D unit vector. Does not change ``vec``.
+    """Return a new 2D unit vector.
 
     Uses the first two components only. A zero vector has no direction.
 
     Args:
-        vec (VecType): Input vector. Not mutated.
+        vec (VecType): Input vector.
 
     Returns:
         VecType: New list ``[x / length, y / length]``.
@@ -1645,12 +1620,12 @@ def normalize(vec: VecType) -> VecType:
 
 
 def perp_unit_vector(line: LineType) -> VecType:
-    """Return a unit vector perpendicular to a line. Does not change ``line``.
+    """Return a unit vector perpendicular to a line.
 
     A zero-length line has no direction.
 
     Args:
-        line (LineType): Input line. Not mutated.
+        line (LineType): Input line.
 
     Returns:
         VecType: Unit vector ``[-dy, dx] / length``.
@@ -1680,13 +1655,12 @@ def point_to_line_vec(
 ) -> VecType:
     """Return the perpendicular from a point to a line.
 
-    Does not change ``point`` or ``line``. A zero-length line has no
-    direction. ``unit=False`` scales the perpendicular by the signed
+    A zero-length line has no direction. ``unit=False`` scales the perpendicular by the signed
     distance.
 
     Args:
-        point (PointType): Input point. Not mutated.
-        line (LineType): Input line. Not mutated.
+        point (PointType): Input point.
+        line (LineType): Input line.
         unit (bool): If True, return a unit perpendicular. Defaults to False.
 
     Returns:
@@ -1728,13 +1702,12 @@ def point_to_line_vec(
 def surface_normal(p1: PointType, p2: PointType, p3: PointType) -> VecType:
     """Return a unit normal of the triangle ``p1``, ``p2``, ``p3``.
 
-    Does not change the vertices. Collinear vertices have no direction,
-    so the result is a vector of NaNs.
+    Collinear vertices have no direction, so the result is a vector of NaNs.
 
     Args:
-        p1 (PointType): First vertex. Not mutated.
-        p2 (PointType): Second vertex. Not mutated.
-        p3 (PointType): Third vertex. Not mutated.
+        p1 (PointType): First vertex.
+        p2 (PointType): Second vertex.
+        p3 (PointType): Third vertex.
 
     Returns:
         VecType: Unit surface normal.
@@ -1763,11 +1736,11 @@ def surface_normal(p1: PointType, p2: PointType, p3: PointType) -> VecType:
 def normal(point1, point2):
     """Return a unit normal of the segment from ``point1`` to ``point2``.
 
-    Does not change either point. A zero-length segment has no direction.
+    A zero-length segment has no direction.
 
     Args:
-        point1 (PointType): First point. Not mutated.
-        point2 (PointType): Second point. Not mutated.
+        point1 (PointType): First point.
+        point2 (PointType): Second point.
 
     Returns:
         VecType: Unit vector ``[-dy, dx] / length``.
