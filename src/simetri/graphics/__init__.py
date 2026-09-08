@@ -121,6 +121,9 @@ from ..wallpapers import wallpaper
 set_tikz_defaults()
 set_svg_defaults()
 
+# Restore public enum symbols that are shadowed by later star imports.
+from ..base.all_enums import Side as Side
+
 # aliases
 is_close = isclose
 Batch = Group
