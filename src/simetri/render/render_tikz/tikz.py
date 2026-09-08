@@ -11,12 +11,6 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from ..pre_render import (
-    collect_tikz_preamble_requirements_for_sketch,
-    set_styles,
-    style_properties,
-)
-from ...geom.homogenize import homogenize
 from ...base.all_enums import (
     Anchor,
     BackStyle,
@@ -26,10 +20,17 @@ from ...base.all_enums import (
     TexLoc,
     Types,
 )
+from ...config.settings import defaults, issue_warning
 from ...geom.bbox import bounding_box
+from ...geom.homogenize import homogenize
+from ...helpers.illustration import resolve_page_vertex_labels
 from ...shapes.points import Points
 from ...shapes.shape import Shape
-from ...config.settings import defaults, issue_warning
+from ..pre_render import (
+    collect_tikz_preamble_requirements_for_sketch,
+    set_styles,
+    style_properties,
+)
 from . import tikz_sketch as tikz_sketch_module
 from .tikz_mask import *
 from .tikz_mask import _effective_alpha_from_stop, _pgf_gray
@@ -37,8 +38,6 @@ from .tikz_sketch import *
 from .tikz_sketch import _canvas_mask_scope_sketch
 from .tikz_utils import *
 from .tikz_utils import _get_gradient_shading_options
-
-from ...helpers.illustration import resolve_page_vertex_labels
 
 NumberOrTex = int | float | str
 

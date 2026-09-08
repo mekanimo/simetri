@@ -11,15 +11,16 @@ from numpy import array
 from simetri.base.all_enums import Connection, Types
 from simetri.base.common import LineType, PointType, get_defaults
 from simetri.config.settings import defaults
-from simetri.geom.geometry import (
-    positive_angle,
-)
-from simetri.geom.geom_utils import connected_pairs
-from simetri.geom.geometry import double_area3, bbox_overlap
 from simetri.geom.geom_utils import (
     close_points_square,
+    connected_pairs,
     midpoint,
     offset_point_from_start,
+)
+from simetri.geom.geometry import (
+    bbox_overlap,
+    double_area3,
+    positive_angle,
 )
 from simetri.geom.points.point_utils import (
     Vertex,

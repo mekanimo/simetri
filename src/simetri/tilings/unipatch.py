@@ -4,11 +4,11 @@ from typing import Self
 
 import numpy as np
 
-from ..shapes.shape import Shape
-from ..group.batch import Group
 from ..base.all_enums import Types
-from ..shapes.geom_items import reg_poly_points_side_length, snap
 from ..base.common import PointType
+from ..group.batch import Group
+from ..shapes.geom_items import reg_poly_points_side_length, snap
+from ..shapes.shape import Shape
 
 
 class UniPoly(Shape):
@@ -48,8 +48,8 @@ class UniPoly(Shape):
 
     def _snap(
         free_shape: UniPoly,
-        ref1: int | float,
-        ref2: int | float,
+        ref1: float,
+        ref2: float,
         angle: float = 0,
     ):
         snap(
@@ -90,13 +90,12 @@ class UniPatch(Group):
         Returns:
             Elements used to initialize the group (currently ``None``/pass).
         """
-        pass
 
     def snap(
         free_shape: UniPoly,
-        ref1: int | float,
+        ref1: float,
         fixed_shape: UniPoly,
-        ref2: int | float,
+        ref2: float,
         angle: float = 0,
     ) -> Self:
         """Snap ``free_shape`` onto ``fixed_shape`` at matching refs (stub).
@@ -111,7 +110,6 @@ class UniPatch(Group):
         Returns:
             Self after snapping (stub).
         """
-        pass
 
     def connect(uni_patch: UniPatch, indices: List | None = None) -> Self:
         """Connect this patch to another along shared indices (stub).
@@ -123,9 +121,7 @@ class UniPatch(Group):
         Returns:
             Self after connecting (stub).
         """
-        pass
 
     @property
     def free_boundary(self) -> list[pointType]:
         """Return free boundary points of the patch (stub)."""
-        pass

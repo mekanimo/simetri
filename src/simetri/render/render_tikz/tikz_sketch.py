@@ -7,7 +7,6 @@ import numpy as np
 
 import simetri.graphics as sg
 
-from ...geom.geom_utils import close_points_square
 from ...base.all_enums import (
     Align,
     Anchor,
@@ -21,6 +20,8 @@ from ...base.all_enums import (
     Types,
     get_enum_value,
 )
+from ...config.settings import defaults
+from ...geom.geom_utils import close_points_square
 from ...geom.points.point_utils import round_point
 from ...helpers.illustration import (
     label_halo_color,
@@ -31,7 +32,6 @@ from ...helpers.illustration import (
     sketch_label_font_size_pt,
 )
 from ...helpers.utilities import detokenize
-from ...config.settings import defaults
 from .tikz_common import (
     _clip_line_to_rect,
     _line_limits,
@@ -498,9 +498,6 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
     else:
         body = ""
     vertex_coords = sketch.vertices
-
-    vertex_font_size = sketch_label_font_size_pt(sketch, "vertex")
-    index_font_size = sketch_label_font_size_pt(sketch, "index")
 
     vertices = [str(x) for x in vertex_coords]
     str_lines = [vertices[0]]

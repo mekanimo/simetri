@@ -18,13 +18,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .geometry import polar_to_cartesian, positive_angle
-from .geom_utils import midpoint
-from .points.point_utils import distance
-from .segments.line_utils import intersect, line_angle, offset_line
-from ..config.settings import VOID, issue_warning
 from ..base.all_enums import Anchor, Side, Types
 from ..base.common import PointType, defaults, get_unique_id
+from ..config.settings import VOID, issue_warning
+from .geom_utils import midpoint
+from .geometry import polar_to_cartesian, positive_angle
+from .points.point_utils import distance
+from .segments.line_utils import intersect, line_angle, offset_line
 
 if TYPE_CHECKING:
     from ..group.batch import Group

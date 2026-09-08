@@ -8,9 +8,9 @@ Examples:
     >>> colors = get_swatch(0)
 """
 
-from random import randint
+from datetime import UTC, datetime
 from itertools import cycle
-from datetime import datetime
+from random import randint
 
 from simetri.coloring.colors import Color
 
@@ -965,7 +965,7 @@ def random_swatch():
 
     i = randint(0, 83)
     try:
-        current_datetime = datetime.now()
+        current_datetime = datetime.now(UTC)
         formatted = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
         with open(r"C:\tmp\rand_swatch_indices\swatches.txt", "a") as file:
             file.write(f"{formatted}, swatch index: {i}\n")

@@ -10,12 +10,13 @@ from math import atan2, degrees
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
-from .. import draw as canvas_draw
-from ...coloring.colors import Color
 from ...base.all_enums import TexLoc, Types
+from ...coloring.colors import Color
 from ...group.batch import Group
-from ..mask import Mask, Stop
 from ...shapes.shape import Shape
+from .. import draw as canvas_draw
+from ..gradient import Stop
+from ..mask import Mask
 from ..sketch import MaskSketch
 from .tikz_sketch import TexSketch
 from .tikz_utils import get_clip_code
@@ -157,15 +158,15 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
     color_stops = []
     for offset, alpha in parsed:
         offset = max(0.0, min(1.0, float(offset)))
-        pos = int(round(offset * 100))
-        transparency = int(round((1.0 - float(alpha)) * 100))
+        pos = round(offset * 100)
+        transparency = round((1.0 - float(alpha)) * 100)
         color_stops.append(f"color({pos}bp)=({_pgf_gray(transparency)})")
 
     if parsed[0][0] > 0.0:
-        first_t = int(round((1.0 - float(parsed[0][1])) * 100))
+        first_t = round((1.0 - float(parsed[0][1])) * 100)
         color_stops.insert(0, f"color(0bp)=({_pgf_gray(first_t)})")
     if parsed[-1][0] < 1.0:
-        last_t = int(round((1.0 - float(parsed[-1][1])) * 100))
+        last_t = round((1.0 - float(parsed[-1][1])) * 100)
         color_stops.append(f"color(100bp)=({_pgf_gray(last_t)})")
 
     shading_decl = "; ".join(color_stops)

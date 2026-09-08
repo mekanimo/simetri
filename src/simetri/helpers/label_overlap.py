@@ -16,7 +16,7 @@ class LabelRect:
         height (float): Box height.
     """
 
-    __slots__ = ("sketch", "kind", "vertex_index", "x", "y", "width", "height")
+    __slots__ = ("height", "kind", "sketch", "vertex_index", "width", "x", "y")
 
     def __init__(
         self,

@@ -1,3 +1,5 @@
+from itertools import pairwise
+
 """Dependency-free geometry primitives.
 
 This module is intentionally a **leaf**: it must not import from
@@ -153,7 +155,7 @@ def connected_pairs(items: Sequence, closed: bool = False) -> list[tuple]:
     Returns:
         List of adjacent pairs.
     """
-    pairs = list(zip(items, items[1:]))
+    pairs = list(pairwise(items))
     if closed and items:
         pairs.append((items[-1], items[0]))
     return pairs

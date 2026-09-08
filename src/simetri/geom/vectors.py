@@ -30,8 +30,8 @@ from numbers import Real
 import numpy as np
 
 from ..base.common import LineType, PointType, VecType, axis_x, axis_y
-from ..helpers.validation import check_position
 from ..config.settings import issue_warning
+from ..helpers.validation import check_position
 
 
 class Vector:

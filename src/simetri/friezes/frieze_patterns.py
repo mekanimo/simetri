@@ -12,17 +12,17 @@ Examples:
     >>> HopDef(dx=40, reps=4).apply(motif)
 """
 
-from math import pi
 from dataclasses import dataclass
+from math import pi
 
-from ..patterns.pattern import ReferenceDef, PatternDef, TransformDef
 from ..base.all_enums import (
-    TransformationType,
-    ReferenceTarget,
     Reference,
+    ReferenceTarget,
+    TransformationType,
     Types,
 )
 from ..base.common import PointType
+from ..patterns.pattern import PatternDef, ReferenceDef, TransformDef
 
 
 @dataclass

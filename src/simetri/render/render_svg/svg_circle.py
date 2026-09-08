@@ -6,9 +6,9 @@ SVG ``A`` path commands.
 
 import math
 
-from simetri.geom.vectors import distance
-
 import numpy as np
+
+from simetri.geom.vectors import distance
 
 
 def circle_intersections(circ1, circ2):

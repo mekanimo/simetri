@@ -9,11 +9,11 @@ Examples:
 
 from math import cos, pi, sin, sqrt, tan
 
-from ..geom.segments.line_utils import intersect
 from ..base.all_enums import Types
-from ..geom.points.point_utils import distance
-from ..group.batch import Group
 from ..base.common import LineType, axis_x
+from ..geom.points.point_utils import distance
+from ..geom.segments.line_utils import intersect
+from ..group.batch import Group
 from ..shapes.shape import Shape
 
 

@@ -1,11 +1,13 @@
 """Point utilities: distance, rounding, midpoints, and related helpers."""
 
 from math import atan2, hypot, isclose, sqrt
+
 import numpy as np
 from numpy import array
 
 from simetri.base.all_enums import Types
 from simetri.base.common import LineType, PointType, get_defaults
+from simetri.config.settings import defaults
 from simetri.geom.affine import rotate_point
 from simetri.geom.geom_utils import close_points_square
 from simetri.geom.vectors import (
@@ -13,7 +15,6 @@ from simetri.geom.vectors import (
     perp_unit_vector,
 )
 from simetri.helpers.utilities import lerp
-from simetri.config.settings import defaults
 
 
 def distance(p1: PointType, p2: PointType) -> float:

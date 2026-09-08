@@ -5,19 +5,16 @@ https://pomax.github.io/bezierinfo is a good resource for understanding Bezier c
 from collections.abc import Sequence
 
 import numpy as np
-
 from numpy import array
 
 from ...base.all_enums import Types
 from ...base.common import PointType
-from ...shapes.shape import Shape
-from ...helpers.utilities import find_closest_value
 from ...config.settings import defaults
+from ...helpers.utilities import find_closest_value
+from ...shapes.shape import Shape
 from ..points.point_utils import distance
-from ..segments.line_utils import line_by_point_angle_length
-from ..segments.line_utils import line_angle
+from ..segments.line_utils import line_angle, line_by_point_angle_length
 from ..vectors import norm, normal, normalize
-
 
 cubic_poly_matrix = array(
     [[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]]

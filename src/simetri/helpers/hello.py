@@ -1,7 +1,7 @@
 """Installation smoke-check helper that draws a short SVG greeting."""
 
-import tempfile
 import os
+import tempfile
 
 import simetri.graphics as sg
 

@@ -20,16 +20,16 @@ from typing import Any
 
 import numpy as np
 
+from ..base.all_enums import IsometryType, LatRef, LatType, Types
+from ..base.common import PointType
 from ..coloring.colors import blue, gray, green, light_gold, navy, purple, red
 from ..geom.points.point_utils import distance, lerp_point
 from ..geom.segments.line_utils import clip_line_to_rect
 from ..geom.vectors import Vector
-from ..base.all_enums import IsometryType, LatRef, LatType, Types
 from ..group.batch import Group
-from ..base.common import PointType
-from ..shapes.shape import Shape
 from ..helpers.validation import is_number
 from ..shapes.geom_items import Line, reg_poly_shape
+from ..shapes.shape import Shape
 
 r = 8
 triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)
@@ -404,7 +404,6 @@ class Lattice:
         Returns:
             Group: Cell structure visualization (when implemented).
         """
-        pass
 
     def cartesian_to_basis(self, point: PointType) -> PointType:
         """Convert a Cartesian point to this lattice's basis coordinates.
@@ -1212,7 +1211,6 @@ def lattice_p1(
         Lattice: Lattice with p1 isometries and unit cell.
     """
     lat = Lattice(lat_type, a=a, b=b, theta=theta)
-    unit = lat.unit
     # p1 = unit.edge_midpoint(0)
     # p2 = unit.edge_midpoint(3)
     isom1 = Isometry(

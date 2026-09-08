@@ -6,10 +6,13 @@ from dataclasses import dataclass
 
 from simetri.geom.nonlinear.circle import Circle_ as Circle
 
-from ..geom.points.point_utils import direction3, point_to_line_distance
-from ..geom.segments.line_utils import angle_between_two_lines
 from ..base.all_enums import ConstraintType as ConstType
-from ..geom.points.point_utils import distance
+from ..geom.points.point_utils import (
+    direction3,
+    distance,
+    point_to_line_distance,
+)
+from ..geom.segments.line_utils import angle_between_two_lines
 from ..geom.vectors import Vector
 from .validation import is_line
 
@@ -281,7 +284,7 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
         """
         update_func(x)
 
-        return sum((constr.check() for constr in constraints))
+        return sum(constr.check() for constr in constraints)
 
     def check_constraints(x):
         """Return constraint results.

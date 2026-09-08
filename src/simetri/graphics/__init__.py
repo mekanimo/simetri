@@ -92,8 +92,9 @@ from ..interlace import Lace
 from ..patterns.lattice import *
 from ..patterns.pattern import *
 from ..render.canvas import *
+from ..render.gradient import Gradient, Stop
 from ..render.grids import *
-from ..render.mask import Gradient, Mask, Stop
+from ..render.mask import Mask
 from ..render.render_svg.filters import *
 from ..render.render_svg.svg import *
 from ..render.render_tikz.tikz import *

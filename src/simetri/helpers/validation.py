@@ -1,17 +1,16 @@
 """Validation functions for the user entered argument values and kwargs."""
 
 import enum
-import re
 import numbers
+import re
 from typing import Any
 
 from numpy import ndarray
 
-from ..base import all_enums
 from .. import __version__
+from ..base import all_enums
 from ..base.all_enums import *
 from ..coloring.colors import Color
-
 
 # Validation functions. They return True if the value is valid, False otherwise.
 
@@ -183,7 +182,7 @@ def check_dash_array(dash_array: Any) -> bool:
     if dash_array is None:
         res = True
     elif isinstance(dash_array, (list, tuple, ndarray)):
-        res = all([isinstance(x, (int, float)) for x in dash_array])
+        res = all(isinstance(x, (int, float)) for x in dash_array)
     elif isinstance(dash_array, LineDashArray):
         res = True
     else:
@@ -589,7 +588,7 @@ def is_gradient(value):
         False
     """
     # Fix this import!!!!
-    from ..render.mask import Gradient
+    from ..render.gradient import Gradient
 
     return isinstance(value, Gradient)
 
@@ -839,5 +838,5 @@ def is_line(line_: Any) -> bool:
     try:
         p1, p2 = line_
         return is_point(p1) and is_point(p2)
-    except:
+    except (TypeError, ValueError):
         return False

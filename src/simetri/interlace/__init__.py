@@ -4,4 +4,4 @@ Exports ``Lace``, ``Polyline``,
 and ``ParallelPolyline``.
 """
 
-from .lace import Lace, Polyline, ParallelPolyline
+from .lace import Lace, ParallelPolyline, Polyline

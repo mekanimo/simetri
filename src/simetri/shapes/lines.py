@@ -12,9 +12,9 @@ Examples:
 from collections.abc import Sequence
 from typing import Self
 
-from ..geom.homogenize import homogenize
 from ..base.all_enums import Types
 from ..base.common import PointType
+from ..geom.homogenize import homogenize
 from .points import Points
 
 
@@ -34,10 +34,10 @@ class Lines:
 
     def __init__(
         self,
-        point_pairs: Sequence[tuple[PointType, PointType]] = None,
-        points: Points | Sequence[PointType] = None,
-        start_points: Points | Sequence[PointType] = None,
-        end_points: Points | Sequence[PointType] = None,
+        point_pairs: Sequence[tuple[PointType, PointType]] | None = None,
+        points: Points | Sequence[PointType] | None = None,
+        start_points: Points | Sequence[PointType] | None = None,
+        end_points: Points | Sequence[PointType] | None = None,
     ) -> Self:
         """Initialize lines from pairs, interleaved points, or start/end sequences.
 

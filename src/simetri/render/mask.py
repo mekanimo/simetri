@@ -1,12 +1,8 @@
-"""Gradient and Mask objects for SVG and TikZ backends.
+"""Mask objects for SVG and TikZ backends.
 
 Masks wrap a shape used for clipping or luminance/opacity masking.
-Gradients describe linear or radial fills with color/opacity stops.
-
-Examples:
-    >>> from simetri.graphics.mask import Gradient
-    >>> from simetri.coloring.colors import gray, white
-    >>> g = Gradient(stops=((0, gray), (1, white)))
+Gradient and Stop types live in ``simetri.render.gradient`` and are
+re-exported from ``simetri.graphics``.
 """
 
 from __future__ import annotations
@@ -16,16 +12,15 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ..coloring.colors import Color, gray, white
-from ..geom.affine import identity_matrix
-from ..base.all_enums import Axis, GradientType, SvgUnits, Types
-from ..helpers.validation import check_color, check_percent
+from ..base.all_enums import Axis, SvgUnits, Types
 from ..config.settings import defaults
+from ..geom.matrices import identity_matrix
+from ..group.batch import Group
+from ..shapes.shape import Shape
+from .gradient import Stop, normalize_stops
 
 if TYPE_CHECKING:
     from .canvas import Canvas
-    from ..group.batch import Group
-    from ..shapes.shape import Shape
     from .sketch import Sketch
 
 
@@ -71,172 +66,18 @@ class Mask:
             raise ValueError("mask opacity must be between 0 and 1.")
 
 
-@dataclass(init=False)
-class Stop:
-    """A gradient stop (offset with color and/or opacity).
-
-    Attributes:
-        offset: Position along the gradient in ``[0, 1]``.
-        color: Optional stop color.
-        opacity: Optional stop opacity in ``[0, 1]``.
-        type: Always ``Types.STOP``.
-        subtype: Always ``Types.STOP``.
-
-    Raises:
-        ValueError: If offset/opacity are out of range, or neither color nor
-            opacity is given, or color is invalid.
-    """
-
-    offset: float
-    color: Color | None = None
-    opacity: float | None = None
-
-    def __init__(
-        self,
-        offset: float,
-        color: Color | None = None,
-        opacity: float | None = None,
-    ):
-        """Create a gradient stop.
-
-        Args:
-            offset: Stop position in ``[0, 1]``.
-            color: Optional color at this stop.
-            opacity: Optional opacity at this stop.
-
-        Raises:
-            ValueError: If validation of offset, color, or opacity fails.
-        """
-        if not check_percent(offset):
-            raise ValueError("Stop offset must be between 0 and 1.0")
-        if color is None and opacity is None:
-            raise ValueError("Specify a color, opacity, or both.")
-        if color is not None and not check_color(color):
-            raise ValueError("Incorrect color value.")
-        if opacity is not None and not check_percent(opacity):
-            raise ValueError("Stop opacity must be between 0 and 1.0")
-        self.offset = offset
-        self.color = color
-        self.opacity = opacity
-        self.__post_init__()
-
-    def __post_init__(self):
-        self.type = Types.STOP
-        self.subtype = Types.STOP
-
-
-def _resolve_stops(stops):
-    """Normalize stop sequences to a list of ``Stop`` instances.
+def normalize_axis(axis):
+    """Return a usable mask axis.
 
     Args:
-        stops: Either a sequence of ``Stop`` objects or tuples of
-            ``(offset, color)``, ``(offset, opacity)``, or
-            ``(offset, opacity, color)``.
+        axis: Explicit axis value or ``None``.
 
     Returns:
-        list[Stop]: Validated stop list.
-
-    Raises:
-        ValueError: If fewer than two stops are given or values are invalid.
-        TypeError: If stop types are mixed inconsistently.
+        tuple | object: Axis value for downstream renderers.
     """
-    if not isinstance(stops, (list, tuple)) or len(stops) < 2:
-        raise ValueError("Invalid stop values.")
-    if isinstance(stops[0], Stop):
-        for stop in stops[1:]:
-            if not isinstance(stop, Stop):
-                raise TypeError("All stops must have the same type.")
-        return stops
-    else:
-        stops_list = []
-        for stop in stops:
-            offset = stop[0]
-            if not check_percent(offset):
-                raise ValueError("Offset must be between 0 and 1")
-            color = None
-            opacity = None
-            if isinstance(stop[1], float):
-                opacity = stop[1]
-                if not check_percent(opacity):
-                    raise ValueError("Offset must be between 0 and 1")
-            elif isinstance(stop[1], Color):
-                color = stop[1]
-            if len(stop) > 2:
-                color = stop[2]
-                if not check_color(color):
-                    raise ValueError("Invalid color.")
-            stops_list.append(Stop(offset, color, opacity))
-
-        return stops_list
-
-
-@dataclass
-class Gradient:
-    """Linear or radial gradient for shape fills.
-
-    ``stops`` may be a list of ``Stop`` objects or tuples:
-
-    - ``[(offset, color), ...]``
-    - ``[(offset, opacity), ...]``
-    - ``[(offset, opacity, color), ...]``
-
-    Attributes:
-        gradient_type: ``GradientType.LINEAR`` or ``GradientType.RADIAL``.
-        stops: Color/opacity stops (normalized in ``__post_init__``).
-        axis: Line for linear gradients (start, end). Unused for radial.
-        center: Radial center. Unused for linear.
-        focal: Radial focal point. Unused for linear.
-        radius: Radial radius (must be positive). Unused for linear.
-        units: SVG gradient units.
-        spread_method: SVG spread method string.
-        transform: Optional SVG transform string.
-        subtype: ``Types.LINEAR`` or ``Types.RADIAL`` after init.
-
-    Raises:
-        ValueError: If radial ``radius`` is not positive, or stops are invalid.
-
-    Examples:
-        >>> from simetri.graphics.mask import Gradient
-        >>> from simetri.graphics.all_enums import GradientType
-        >>> from simetri.coloring.colors import gray, white
-        >>> g = Gradient(stops=((0, gray), (1, white)))
-        >>> g.subtype.name
-        'LINEAR'
-    """
-
-    gradient_type: GradientType = GradientType.LINEAR
-    stops: tuple = ((0, gray), (1, white))
-    axis: tuple | None = ((0, 0), (1, 0))
-    center: tuple[float, float] | None = None
-    focal: tuple[float, float] | None = None
-    radius: float | None = None
-    units: SvgUnits = None
-    spread_method: str | None = None
-    transform: str | None = None
-    subtype: Types = None
-
-    def __post_init__(self):
-        self.type = Types.GRADIENT
-
-        if self.spread_method is None:
-            self.spread_method = defaults["gradient_spread_method"]
-        self.stops = _resolve_stops(self.stops)
-        if self.gradient_type == GradientType.LINEAR:
-            self.center = None
-            self.focal = None
-            self.radius = None
-            self.subtype = Types.LINEAR
-        else:
-            self.axis = None
-            if self.center is None:
-                self.center = defaults["gradient_center"]
-            if self.focal is None:
-                self.focal = defaults["gradient_focal"]
-            if self.radius is None:
-                self.radius = defaults["gradient_radius"]
-            if self.radius <= 0.0:
-                raise ValueError("gradient radius must be positive.")
-            self.subtype = Types.RADIAL
+    if axis is None:
+        return defaults["mask_axis"]
+    return axis
 
 
 def _normalize_units(value: str | SvgUnits | None, field_name: str) -> SvgUnits:

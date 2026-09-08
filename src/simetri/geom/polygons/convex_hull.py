@@ -88,10 +88,7 @@ def convex_hull(points: Sequence, on_edge: bool = False) -> list[Point]:
                 n_idx = i
                 dist = d
             elif cross == 0:
-                if on_edge and d < dist:
-                    dist = d
-                    n_idx = i
-                elif not on_edge and d > dist:
+                if on_edge and d < dist or not on_edge and d > dist:
                     dist = d
                     n_idx = i
 

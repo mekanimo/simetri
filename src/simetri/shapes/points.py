@@ -18,10 +18,10 @@ from typing import Self
 
 from numpy import allclose, ndarray
 
-from ..geom.homogenize import homogenize
-from ..config.settings import defaults
 from ..base.all_enums import Types
 from ..base.common import PointType
+from ..config.settings import defaults
+from ..geom.homogenize import homogenize
 
 
 class _GroupUpdateContext:
@@ -67,7 +67,7 @@ class Points:
         [(0, 0), (10, 0), (10, 10)]
     """
 
-    def __init__(self, coords: Sequence[PointType] = None) -> None:
+    def __init__(self, coords: Sequence[PointType] | None = None) -> None:
         """Initialize a Points container.
 
         Args:

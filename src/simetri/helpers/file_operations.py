@@ -276,7 +276,7 @@ def wait_for_file_availability(filepath, timeout=None, check_interval=1):
             with open(filepath, "a", encoding="utf-8"):
                 # If the file was successfully opened, it's available.
                 return True
-        except IOError:
+        except OSError:
             # The file is likely in use.
             if (
                 timeout is not None
@@ -285,7 +285,7 @@ def wait_for_file_availability(filepath, timeout=None, check_interval=1):
                 # Timeout period elapsed.
                 return False  # Or raise a TimeoutError if you prefer
             time.sleep(check_interval)
-        except Exception as e:
+        except (TypeError, ValueError) as e:
             # Handle other potential exceptions (e.g., file not found) as needed
             print(f"An error occurred: {e}")
             return False
@@ -311,12 +311,13 @@ def remove_aux_files(filepath):
         else:
             os.remove(aux_filepath)
     log_filepath = path_join(folder, stem + ".log")
-    if os.path.exists(log_filepath):
-        if not wait_for_file_availability(log_filepath, time_out):
-            print(
-                f"File '{log_filepath}' is not available after waiting for "
-                f"{time_out} seconds."
-            )
+    if os.path.exists(log_filepath) and not wait_for_file_availability(
+        log_filepath, time_out
+    ):
+        print(
+            f"File '{log_filepath}' is not available after waiting for "
+            f"{time_out} seconds."
+        )
         # else:
         #     if not defaults["keep_log_files"]:
         #         os.remove(log_file)

@@ -1,13 +1,11 @@
 """TikZ helper functions for styles, colors, paths, and shading."""
 
 from math import degrees
-from typing import List
 
 import numpy as np
+
 import simetri.graphics as sg
 
-from ..style_map import line_style_map, marker_style_map, shape_style_map
-from ...coloring.colors import Color, check_color
 from ...base.all_enums import (
     BackStyle,
     LineDashArray,
@@ -15,9 +13,11 @@ from ...base.all_enums import (
     ShadeType,
     Types,
 )
+from ...coloring.colors import Color, check_color
+from ...config.settings import defaults, tikz_defaults
 from ...shapes.shape import Shape
 from ..sketch import ShapeSketch, TagSketch
-from ...config.settings import defaults, tikz_defaults
+from ..style_map import line_style_map, marker_style_map, shape_style_map
 
 axis_shading_types = [
     ShadeType.AXIS_LEFT_RIGHT,
@@ -328,12 +328,12 @@ def _extract_gradient_stop_offset(stop):
     if isinstance(offset, str) and offset.endswith("%"):
         try:
             return float(offset[:-1]) / 100.0
-        except Exception:
+        except ValueError:
             return 0.0
 
     try:
         return float(offset)
-    except Exception:
+    except (TypeError, ValueError):
         return 0.0
 
 
@@ -349,7 +349,7 @@ def _resolve_color_token(color_value):
                 g = int(name[3:5], 16)
                 b = int(name[5:7], 16)
                 return Color(r, g, b)
-            except Exception:
+            except ValueError:
                 return None
 
         named = getattr(sg, name, None)
@@ -573,11 +573,11 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
             attribs.remove(style_key)
     if "fill_alpha" in attribs and sketch.fill_alpha in (None, 1):
         attribs.remove("fill_alpha")
-    if sketch.fill and not sketch.back_style == BackStyle.PATTERN:
+    if sketch.fill and sketch.back_style != BackStyle.PATTERN:
         res = sg_to_tikz(sketch, attribs, attrib_map, exceptions=exceptions)
         if frame:
             res = [
-                f"fill = {color_to_tikz(getattr(sketch, 'back_color'), 'back_color')}"
+                f"fill = {color_to_tikz(sketch.back_color, 'back_color')}"
             ] + res
     else:
         res = []
@@ -737,8 +737,7 @@ def get_pattern_options(sketch):
                 if points:
                     options += f"points={points}, "
         options = options.strip()
-        if options.endswith(","):
-            options = options[:-1]
+        options = options.removesuffix(",")
         options += "]"
         color = sketch.pattern_color
         if color and color != sg.black:
@@ -921,7 +920,7 @@ def _get_gradient_shading_options(sketch):
             if isinstance(last_color, Color)
             else str(last_color)
         )
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         left, right = "black", "white"
 
     axis = gradient.axis
@@ -932,7 +931,7 @@ def _get_gradient_shading_options(sketch):
         angle = degrees(
             np.arctan2(float(y2) - float(y1), float(x2) - float(x1))
         )
-    except Exception:
+    except (TypeError, ValueError):
         angle = 0.0
 
     options = [f"left color={left}", f"right color={right}"]

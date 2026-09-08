@@ -14,10 +14,11 @@ from typing import TYPE_CHECKING
 import matplotlib
 import matplotlib.pyplot as plt
 
+from ...base.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
 from ...base.common import get_unique_id
 from ...coloring.colors import Color, check_color
+from ...config.settings import defaults
 from ...geom.geom_utils import close_points_square
-from ...base.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
 from ...helpers.illustration import (
     prepare_shape_index_labels,
     prepare_shape_vertex_coord_labels,
@@ -25,7 +26,6 @@ from ...helpers.illustration import (
     sketch_label_font_size_pt,
     svg_label_paint_attrs,
 )
-from ...config.settings import defaults
 from .svg_colors import color_to_matplotlib, color_to_svg
 from .svg_common import _clip_line_to_rect, get_clip_mask_attrs
 from .svg_sketch_utils import (

@@ -8,16 +8,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..style_map import marker_style_map
-from ...coloring.colors import black, check_color, white
-from ...geom.homogenize import homogenize
 from ...base.all_enums import (
     MarkerType,
     Types,
 )
+from ...coloring.colors import black, check_color, white
 from ...geom.bbox import bounding_box
-from ..sketch import MaskSketch
+from ...geom.homogenize import homogenize
+from ...helpers.illustration import resolve_page_vertex_labels
 from ..render_tikz.tikz_utils import sg_to_tikz
+from ..sketch import MaskSketch
+from ..style_map import marker_style_map
 from . import svg_sketch_utils as svg_sketch_utils_module
 from .filters import SVG_Filter
 from .svg_colors import color_to_svg
@@ -26,8 +27,6 @@ from .svg_mask import _canvas_mask_scope_sketch
 from .svg_sketch import *
 from .svg_sketch_utils import *
 from .svg_utils import *
-
-from ...helpers.illustration import resolve_page_vertex_labels
 
 if TYPE_CHECKING:
     from ..canvas import Canvas

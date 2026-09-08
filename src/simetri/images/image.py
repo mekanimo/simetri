@@ -12,17 +12,16 @@ from typing import Any
 
 from PIL import Image as PIL_Image
 
+from ..base.all_enums import Anchor, ImageMode, Types
+from ..base.common import PointType
 from ..geom.affine import (
-    identity_matrix,
     rotation_matrix,
     scale_in_place_matrix,
     translation_matrix,
 )
-from ..base.all_enums import Anchor, ImageMode, Types
+from ..geom.matrices import identity_matrix
 from ..group.batch import Group
-from ..base.common import PointType
 from ..shapes.geom_items import Rectangle
-from ..helpers.utilities import decompose_transformations
 
 
 class PDF(Rectangle):
@@ -34,7 +33,7 @@ class PDF(Rectangle):
         self,
         pdf_path: str,
         pos: PointType = (0, 0),
-        size: Sequence[int] = None,
+        size: Sequence[int] | None = None,
         **kwargs,
     ):
         """
@@ -97,7 +96,7 @@ class Image(Rectangle):
         self,
         img: str | None = None,
         pos: PointType = (0, 0),
-        size: Sequence[int] = None,
+        size: Sequence[int] | None = None,
         mode=ImageMode.RGB,
         **kwargs,
     ):
@@ -245,7 +244,6 @@ class Image(Rectangle):
         Returns:
             PIL_Image.Image: The PIL Image object.
         """
-        _, rotation, scale = decompose_transformations(self.xform_matrix)
         return self.__dict__["pil_img"]
 
     @property
@@ -779,9 +777,7 @@ def convert_png_to_ico(png_path, ico_path, sizes=None):
 
     img = Image.open(png_path)
 
-    icon_sizes = []
-    for size in sizes:
-        icon_sizes.append(size)
+    icon_sizes = list(sizes)
 
     img.save(ico_path, sizes=icon_sizes)
 
@@ -824,6 +820,6 @@ def create_image_from_data(image_path):
     except FileNotFoundError:
         print(f"Error: Image file not found at {image_path}")
         return None
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"An error occurred: {e}")
         return None

@@ -23,27 +23,11 @@ from numpy.typing import NDArray
 
 from ..helpers.validation import is_line, is_point
 from .homogenize import homogenize
+from .matrices import identity_matrix
 from .vectors import vec_along_line
 
 LineType = Sequence[Sequence]
 PointType = Sequence[float]
-
-
-def identity_matrix() -> NDArray:
-    """Return the 3×3 identity matrix.
-
-    Returns:
-        np.ndarray: ``[[1, 0, 0], [0, 1, 0], [0, 0, 1]]``.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> M = sg.identity_matrix()
-        >>> points = sg.homogenize([[1, 2], [3, 4]])
-        >>> print(points @ M)
-        [[1. 2. 1.]
-         [3. 4. 1.]]
-    """
-    return np.identity(3)
 
 
 def xform_matrix(

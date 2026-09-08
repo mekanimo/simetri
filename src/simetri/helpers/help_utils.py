@@ -249,7 +249,9 @@ def help(obj) -> str:
         return _HELP_ABOUT_HELP
 
     if isinstance(obj, str):
-        topic = _TOPIC_ALIASES[obj] if obj in _TOPIC_ALIASES else obj
+        topic = obj
+        if obj in _TOPIC_ALIASES:
+            topic = _TOPIC_ALIASES[obj]
         if topic == "topics":
             return _format_topics()
         if topic in d_help_topic:

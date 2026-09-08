@@ -7,7 +7,6 @@ from math import acos, atan, atan2, cos, pi, sin, sqrt
 import numpy as np
 
 from simetri.geom.affine import rotate_point
-from simetri.geom.vectors import atan2, cos, distance, sin, sqrt
 
 from ...shapes.geom_items import Circle
 from ..affine import rotate, rotation_matrix, scale_matrix

@@ -6,28 +6,6 @@ from collections.abc import Sequence
 from math import pi, radians, sin
 from typing import TYPE_CHECKING, Self
 
-from .style_map import (
-    line_style_map,
-    shape_style_map,
-)
-from ..coloring import colors
-from ..coloring.colors import Color, change_lightness
-from ..coloring.palettes import d_name_palette
-from ..geom.homogenize import homogenize
-from ..geom.nonlinear.bezier import bezier_points
-from ..geom.geom_utils import midpoint
-from ..geom.polygons.convex_hull import convex_hull
-from ..geom.nonlinear.ellipse import elliptic_arc_points
-from ..geom.segments.line_utils import (
-    inclination_angle,
-)
-from ..geom.segments.line_utils import intersection
-from ..geom.polygons.polygon import offset_polygon
-from ..geom.affine import (
-    identity_matrix,
-    rotation_matrix,
-    translation_matrix,
-)
 from ..base.all_enums import (
     Align,
     Anchor,
@@ -41,11 +19,36 @@ from ..base.all_enums import (
     Types,
     drawable_types,
 )
-from ..geom.segments.line_utils import intersect
-from ..group.batch import Group
 from ..base.common import PointType, d_id_obj
+from ..coloring import colors
+from ..coloring.colors import Color, change_lightness
+from ..coloring.palettes import d_name_palette
+from ..config.settings import defaults
+from ..geom.affine import (
+    rotation_matrix,
+    translation_matrix,
+)
+from ..geom.geom_utils import midpoint
+from ..geom.homogenize import homogenize
+from ..geom.matrices import identity_matrix
+from ..geom.nonlinear.bezier import bezier_points
+from ..geom.nonlinear.ellipse import elliptic_arc_points
 from ..geom.nonlinear.path import lin_path_svg
+from ..geom.polygons.convex_hull import convex_hull
+from ..geom.polygons.polygon import offset_polygon
+from ..geom.segments.line_utils import (
+    inclination_angle,
+    intersect,
+    intersection,
+)
+from ..group.batch import Group
+from ..helpers.illustration import Tag
+from ..helpers.utilities import (
+    decompose_transformations,
+    group_into_bins,
+)
 from ..shapes.shape import Shape, all_segments
+from .render_tikz.tikz_sketch import TexSketch
 from .sketch import (
     ArcSketch,
     BezierSketch,
@@ -65,22 +68,19 @@ from .sketch import (
     Sketch,
     TagSketch,
 )
-from ..helpers.illustration import Tag
-from ..helpers.utilities import (
-    decompose_transformations,
-    group_into_bins,
+from .style_map import (
+    line_style_map,
+    shape_style_map,
 )
-from ..config.settings import defaults
-from .render_tikz.tikz_sketch import TexSketch
 
 if TYPE_CHECKING:
-    from .canvas import Canvas
     from ..geom.bbox import BoundingBox
     from ..helpers.illustration import Dimension
-    from ..images.image import Image, PDF
+    from ..images.image import PDF, Image
     from ..interlace.lace import Lace
     from ..patterns.pattern import Pattern
     from ..shapes.shape import Clipping
+    from .canvas import Canvas
 
 
 def help_lines(
@@ -553,6 +553,7 @@ def _measure_latex_formula(
     """
     import io
     import re
+
     import matplotlib
 
     _FONTSET_MAP = {
@@ -917,7 +918,7 @@ def plait_emboss1(self, lace: Lace, **kwargs) -> None:
         quads = plait.emboss_quads
         (_, ind1), (p_2, ind2), mp_1 = ep[0]
         (_, _), (p_4, ind4), mp_2 = ep[1]
-        (p5, ind5), (p5, ind5), mp3 = ep[2]
+        (_, _), (p5, ind5), mp3 = ep[2]
         p6 = vertices[(ind2 + 1) % n]
         p7 = vertices[(ind5 + 1) % n]
         quad1 = (mp_1, p_2, p6, mp3)
@@ -1978,11 +1979,7 @@ def set_shape_sketch_style(
     elif "index_font_size" in item.__dict__:
         sketch.index_font_size = item.index_font_size
 
-    if kwargs.get("vertices"):
-        sketch.show_vertex_coords = True
-    elif kwargs.get("vertex_on_hull"):
-        sketch.show_vertex_coords = True
-    elif getattr(item, "vertex_on_hull", False):
+    if kwargs.get("vertices") or kwargs.get("vertex_on_hull") or getattr(item, "vertex_on_hull", False):
         sketch.show_vertex_coords = True
     elif "show_vertex_coords" in item.__dict__:
         sketch.show_vertex_coords = item.show_vertex_coords
@@ -2020,9 +2017,12 @@ def set_shape_sketch_style(
     if "debug" in kwargs:
         sketch.debug = kwargs["debug"]
 
-    if sketch.marker_type == MarkerType.INDICES:
-        if "indices" not in kwargs and "indices" not in item.__dict__:
-            sketch.indices = True
+    if (
+        sketch.marker_type == MarkerType.INDICES
+        and "indices" not in kwargs
+        and "indices" not in item.__dict__
+    ):
+        sketch.indices = True
 
 
 def get_verts_in_new_pos(item: Shape, **kwargs) -> list[PointType]:
@@ -2173,10 +2173,11 @@ def create_sketch(
         Returns:
             CircleSketch: Created CircleSketch.
         """
-        if "pos" in kwargs:
+        center = item.center
+        try:
             center = kwargs["pos"]
-        else:
-            center = item.center
+        except KeyError:
+            pass
         sketch = CircleSketch(
             center, item.radius, xform_matrix=canvas.xform_matrix
         )
@@ -2256,8 +2257,8 @@ def create_sketch(
         """Create a sketch for composite items like arrows, grids,
         parallel_polylines, dimensions, etc."""
         sketches = []
-        for item in items:
-            sketch = create_sketch(item, canvas, **kwargs)
+        for component in items:
+            sketch = create_sketch(component, canvas, **kwargs)
             sketches.append(sketch)
         return sketches
 
@@ -2282,7 +2283,7 @@ def create_sketch(
         set_shape_sketch_style(path_sketch, item, canvas, **kwargs)
 
         handle_sketches = []
-        if "handles" in kwargs and kwargs["handles"]:
+        if kwargs.get("handles"):
             del kwargs["handles"]
             for handle in item.handles:
                 shape = Shape(handle)

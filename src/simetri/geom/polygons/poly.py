@@ -1,24 +1,28 @@
+from __future__ import annotations
+
 """Lightweight NumPy-backed polygon/polyline geometry (no style)."""
 
 from collections.abc import Sequence
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import numpy as np
-from simetri.base.all_enums import InPlace, Types
+from numpy import around
 from numpy.typing import NDArray
 
-from simetri.base.common import PointType
-from numpy import around
+from simetri.base.all_enums import InPlace, Types
+from simetri.config.settings import defaults
 from simetri.geom.geom_utils import connected_pairs
 from simetri.geom.points.point_utils import fix_degen_points
-from simetri.config.settings import defaults
 
-from ..segments.line_utils import offset_line
-from ...helpers.utilities import decompose_transformations
-from ..affine import mirror_matrix
 from ...base.all_enums import Anchor, Side, TransformationType
 from ...base.common import LineType, PointType, get_unique_id
 from ...base.core import _update_inplace
+from ...helpers.utilities import decompose_transformations
+from ..affine import mirror_matrix
+from ..segments.line_utils import offset_line
+
+if TYPE_CHECKING:
+    from ...group.batch import Group
 
 
 class TrackedArray(np.ndarray):
@@ -146,7 +150,6 @@ class Poly:
     @vertices.setter
     def vertices(self, value):
         """No-op setter; vertices are derived from ``primary_points``."""
-        pass
 
     def __getattr__(self, name):
         try:
@@ -213,7 +216,7 @@ class Poly:
         | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ) -> Self | "Group":
+    ) -> Self | Group:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -287,6 +290,8 @@ class Poly:
             merge=merge,
             xform_type=TransformationType.MIRROR,
         )
+
+        return res
 
 
 """Bounding box class. Shape, Group, and Poly objects have a bounding box.

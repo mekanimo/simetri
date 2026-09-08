@@ -6,15 +6,15 @@ import cmath
 import collections
 import inspect
 import os
-import sys
 import random
 import re
 import string
+import sys
 from bisect import bisect_left
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from functools import cmp_to_key, reduce, wraps
-from math import atan2, ceil, cos, factorial, floor, sin, sqrt, isclose
+from math import atan2, ceil, cos, factorial, floor, isclose, sin, sqrt
 from pathlib import Path
 from time import monotonic, perf_counter, sleep, time
 
@@ -99,7 +99,7 @@ def format_data(data):
 
     # Handle dictionaries
     if isinstance(data, dict):
-        items = [f"{repr(k)}: {format_data(v)}" for k, v in data.items()]
+        items = [f"{k!r}: {format_data(v)}" for k, v in data.items()]
         return f"{{{', '.join(items)}}}"
 
     # Return everything else (ints, strings, etc.) as their default string
@@ -672,13 +672,13 @@ def wait_for_file_availability(file_path, timeout=None, check_interval=1):
             with open(file_path, "a", encoding="utf-8"):
                 # If the file was successfully opened, it's available.
                 return True
-        except IOError:
+        except OSError:
             # The file is likely in use.
             if timeout is not None and (monotonic() - start_time) > timeout:
                 # Timeout period elapsed.
                 return False  # Or raise a TimeoutError if you prefer
             sleep(check_interval)
-        except Exception as e:
+        except (TypeError, ValueError) as e:
             # Handle other potential exceptions (e.g., file not found) as needed
             print(f"An error occurred: {e}")
             return False
@@ -1073,7 +1073,9 @@ def analyze_path(file_path, overwrite):
 
         return res
     except (
-        Exception
+        OSError,
+        TypeError,
+        ValueError,
     ) as e:  # Million other ways a file path is not valid but life is short!
         return False, f"Path Error! {e}", ""
 
@@ -1099,7 +1101,7 @@ def can_be_xform_matrix(seq):
     try:
         arr = array(seq)
         return is_xform_matrix(arr)
-    except Exception:
+    except (TypeError, ValueError):
         return False
 
 
@@ -1981,9 +1983,12 @@ def analyze_function_dependencies(func):
             arguments.extend([arg.arg for arg in node.args.args])
         elif isinstance(node, ast.Call):
             function_calls.append(ast.unparse(node.func))
-        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-            if node.id not in arguments:  # Avoid listing arguments as variables
-                variables.append(node.id)
+        elif (
+            isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Load)
+            and node.id not in arguments
+        ):
+            variables.append(node.id)
     # frame = None
     # try:
     #     # Use inspect.trace to get the frame of the function execution

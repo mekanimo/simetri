@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from ..config.settings import defaults
 
-
 NON_SCOPABLE_SCOPE_KEYS = frozenset(
     ["draw_double", "double_color", "double_distance"]
 )
@@ -19,7 +18,7 @@ def resolve_style_value(sketch_dict: dict, style_key: str):
 
     if style_key in sketch_dict:
         return sketch_dict[style_key]
-    if style_key in defaults.keys():
+    if style_key in defaults:
         return defaults[style_key]
     raise KeyError(f"Missing style key '{style_key}' in sketch and defaults")
 
@@ -93,8 +92,8 @@ def build_sketch_style_ids(style_sketch_dict: dict[str, list[int]]) -> dict[int,
     """Build reverse style mapping as {sketch_id: [style_id, ...]}."""
 
     sketch_style_ids = {}
-    for style_id in style_sketch_dict:
-        for sketch_id in style_sketch_dict[style_id]:
+    for style_id, sketch_ids in style_sketch_dict.items():
+        for sketch_id in sketch_ids:
             if sketch_id not in sketch_style_ids:
                 sketch_style_ids[sketch_id] = []
             sketch_style_ids[sketch_id].append(style_id)

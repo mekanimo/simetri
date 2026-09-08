@@ -30,17 +30,16 @@ import copy
 
 from simetri.base.all_enums import (
     BackStyle,
-    FrameShape,
-    MarkerType,
-    Types,
     FillMode,
+    FrameShape,
     LineCap,
     LineJoin,
+    MarkerType,
+    Types,
 )
-from simetri.render.sketch import ScopeGroup
 from simetri.base.common import d_id_obj
 from simetri.coloring.colors import black, white
-
+from simetri.render.sketch import ScopeGroup
 
 style_properties = [
     "draw_double",
@@ -105,9 +104,12 @@ def set_styles(sketches):
         sketch_dict = sketch.__dict__
         if "tile_svg" in sketch_dict and sketch.tile_svg is not None:
             special_fill_sketch_ids.add(sketch.id)
-        if "gradient" in sketch_dict and sketch.gradient is not None:
-            if sketch.gradient.stops is not None:
-                special_fill_sketch_ids.add(sketch.id)
+        if (
+            "gradient" in sketch_dict
+            and sketch.gradient is not None
+            and sketch.gradient.stops is not None
+        ):
+            special_fill_sketch_ids.add(sketch.id)
         style = {}
         signature = []
 
@@ -204,61 +206,82 @@ def collect_tikz_preamble_requirements_for_sketch(
     """
     sketch_dict = sketch.__dict__
 
-    if sketch.subtype == Types.PATH_SKETCH:
-        if "svg.path" not in tikz_libraries:
-            tikz_libraries.append("svg.path")
-    if "library" in sketch_dict and sketch.library == "fadings":
-        if "fadings" not in tikz_libraries:
-            tikz_libraries.append("fadings")
-    if sketch.subtype == Types.MASK_SKETCH and sketch.mask_stops is not None:
-        if "fadings" not in tikz_libraries:
-            tikz_libraries.append("fadings")
-    if "mask" in sketch_dict and sketch.mask is not None:
-        if sketch.mask.type == Types.MASK and sketch.mask.stops is not None:
-            if "fadings" not in tikz_libraries:
-                tikz_libraries.append("fadings")
-    if "draw_frame" in sketch_dict and sketch.draw_frame:
+    if sketch.subtype == Types.PATH_SKETCH and "svg.path" not in tikz_libraries:
+        tikz_libraries.append("svg.path")
+    if (
+        "library" in sketch_dict
+        and sketch.library == "fadings"
+        and "fadings" not in tikz_libraries
+    ):
+        tikz_libraries.append("fadings")
+    if (
+        sketch.subtype == Types.MASK_SKETCH
+        and sketch.mask_stops is not None
+        and "fadings" not in tikz_libraries
+    ):
+        tikz_libraries.append("fadings")
+    if (
+        "mask" in sketch_dict
+        and sketch.mask is not None
+        and sketch.mask.type == Types.MASK
+        and sketch.mask.stops is not None
+        and "fadings" not in tikz_libraries
+    ):
+        tikz_libraries.append("fadings")
+    if (
+        "draw_frame" in sketch_dict
+        and sketch.draw_frame
+        and "frame_shape" in sketch_dict
+        and sketch.frame_shape != FrameShape.RECTANGLE
+        and "shapes.geometric" not in tikz_libraries
+    ):
+        tikz_libraries.append("shapes.geometric")
+    if (
+        "draw_markers" in sketch_dict
+        and sketch.draw_markers
+        and "patterns" not in tikz_libraries
+    ):
+        tikz_libraries.append("patterns")
+        tikz_libraries.append("patterns.meta")
+        tikz_libraries.append("backgrounds")
+        tikz_libraries.append("shadings")
+        tikz_libraries.append("plotmarks")
+    if (
+        "line_dash_array" in sketch_dict
+        and sketch.line_dash_array
+        and "patterns" not in tikz_libraries
+    ):
+        tikz_libraries.append("patterns")
+    if (
+        sketch.subtype == Types.TAG_SKETCH
+        or (
+            "marker_type" in sketch_dict
+            and sketch.marker_type == MarkerType.INDICES
+        )
+    ) and "fontspec" not in tikz_packages:
+        tikz_packages.append("fontspec")
+    if "back_style" in sketch_dict:
         if (
-            "frame_shape" in sketch_dict
-            and sketch.frame_shape != FrameShape.RECTANGLE
+            sketch.back_style == BackStyle.COLOR
+            and "xcolor" not in tikz_packages
         ):
-            if "shapes.geometric" not in tikz_libraries:
-                tikz_libraries.append("shapes.geometric")
-    if "draw_markers" in sketch_dict and sketch.draw_markers:
-        if "patterns" not in tikz_libraries:
+            tikz_packages.append("xcolor")
+        if (
+            sketch.back_style == BackStyle.SHADING
+            and "shadings" not in tikz_libraries
+        ):
+            tikz_libraries.append("shadings")
+        if (
+            sketch.back_style == BackStyle.PATTERN
+            and "patterns" not in tikz_libraries
+        ):
             tikz_libraries.append("patterns")
             tikz_libraries.append("patterns.meta")
-            tikz_libraries.append("backgrounds")
-            tikz_libraries.append("shadings")
-            tikz_libraries.append("plotmarks")
-    if "line_dash_array" in sketch_dict and sketch.line_dash_array:
-        if "patterns" not in tikz_libraries:
-            tikz_libraries.append("patterns")
-    if sketch.subtype == Types.TAG_SKETCH:
-        if "fontspec" not in tikz_packages:
-            tikz_packages.append("fontspec")
-    elif (
-        "marker_type" in sketch_dict
-        and sketch.marker_type == MarkerType.INDICES
-    ):
-        if "fontspec" not in tikz_packages:
-            tikz_packages.append("fontspec")
-    if "back_style" in sketch_dict:
-        if sketch.back_style == BackStyle.COLOR:
-            if "xcolor" not in tikz_packages:
-                tikz_packages.append("xcolor")
-        if sketch.back_style == BackStyle.SHADING:
-            if "shadings" not in tikz_libraries:
-                tikz_libraries.append("shadings")
-        if sketch.back_style == BackStyle.PATTERN:
-            if "patterns" not in tikz_libraries:
-                tikz_libraries.append("patterns")
-                tikz_libraries.append("patterns.meta")
-    if getattr(sketch, "indices", False) or getattr(
-        sketch, "show_vertex_coords", False
-    ):
-        if "xcolor" not in tikz_packages:
-            tikz_packages.append("xcolor")
+    if (
+        ("indices" in sketch_dict and sketch.indices)
+        or ("show_vertex_coords" in sketch_dict and sketch.show_vertex_coords)
+    ) and "xcolor" not in tikz_packages:
+        tikz_packages.append("xcolor")
 
 
 def canvas_uses_label_halos(canvas) -> bool:

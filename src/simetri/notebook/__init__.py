@@ -4,11 +4,11 @@ Renders the canvas to a temporary SVG or PNG file and shows it with
 IPython display helpers.
 """
 
-import tempfile
 import os
+import tempfile
 from pathlib import Path
 
-from IPython.display import Image, SVG
+from IPython.display import SVG, Image
 from IPython.display import display as ipy_display
 
 

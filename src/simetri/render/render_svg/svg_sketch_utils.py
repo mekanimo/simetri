@@ -3,11 +3,11 @@
 import numpy as np
 from PIL import ImageFont
 
-from ..pre_render import set_styles
-from ...coloring.colors import Color
 from ...base.all_enums import FontFamily, MarkerType, Types
-from ...geom.bbox import bounding_box
+from ...coloring.colors import Color
 from ...config.settings import defaults, issue_warning
+from ...geom.bbox import bounding_box
+from ..pre_render import set_styles
 from .svg_colors import color_to_svg
 
 
@@ -147,10 +147,7 @@ def get_line_style_options(sketch, exceptions=None):
         list: The line style options as a list.
     """
 
-    merged_exceptions = []
-    if exceptions is not None:
-        for exception in exceptions:
-            merged_exceptions.append(exception)
+    merged_exceptions = [] if exceptions is None else exceptions
     sketch_dict = sketch_attrib(sketch, "__dict__")
 
     options = []
@@ -209,10 +206,7 @@ def get_fill_style_options(sketch, shape_type, exceptions=None, frame=False):
         list: The fill style options as a list.
     """
 
-    merged_exceptions = []
-    if exceptions is not None:
-        for exception in exceptions:
-            merged_exceptions.append(exception)
+    merged_exceptions = [] if exceptions is None else exceptions
 
     options = []
     if "fill" not in merged_exceptions:
@@ -429,7 +423,7 @@ def generate_marker_def(
         if marker_shape is None:
             marker_type = MarkerType.FCIRCLE
         else:
-            from ..draw import create_sketch  # noqa: PLC0415 — circular import
+            from ..draw import create_sketch
 
             marker_sketch = create_sketch(marker_shape, canvas)
 
@@ -793,7 +787,7 @@ def generate_pattern_def(sketch, pattern_id, canvas, styles_dict):
     )
 
     # Convert tile shape to sketch using canvas
-    from ..draw import create_sketch  # noqa: PLC0415 — circular import
+    from ..draw import create_sketch
 
     if tile.type == Types.GROUP:
         # Handle group - multiple shapes in pattern
@@ -921,7 +915,7 @@ def generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict):
     Returns:
         str: SVG <clipPath> element
     """
-    from ..draw import create_sketch  # noqa: PLC0415 — circular import
+    from ..draw import create_sketch
 
     if isinstance(clip_shape, list):
         clip_contents = []

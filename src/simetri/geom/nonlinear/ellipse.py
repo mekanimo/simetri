@@ -7,15 +7,15 @@ from math import atan2, ceil, cos, isclose, pi, sin, sqrt
 import numpy as np
 from numpy.typing import NDArray
 
-from ...render.style_map import shape_style_map
-from ..affine import rotate_point, rotation_matrix
 from ...base.all_enums import Types
-from ...group.batch import Group
 from ...base.common import PointType
+from ...config.settings import defaults
+from ...group.batch import Group
+from ...helpers.utilities import solve_quadratic_eq
+from ...render.style_map import shape_style_map
 from ...shapes.points import Points
 from ...shapes.shape import Shape, custom_attributes
-from ...helpers.utilities import solve_quadratic_eq
-from ...config.settings import defaults
+from ..affine import rotate_point, rotation_matrix
 from ..geometry import positive_angle
 from ..homogenize import homogenize
 from ..points.point_utils import distance
@@ -52,8 +52,8 @@ class Arc(Shape):
         start_angle: float = 0,
         span_angle: float = pi / 2,
         rot_angle: float = 0,
-        n_points: int = None,
-        xform_matrix: NDArray = None,
+        n_points: int | None = None,
+        xform_matrix: NDArray | None = None,
         **kwargs,
     ):
         """Create a circular or elliptic arc.
@@ -294,7 +294,6 @@ class Ellipse(Shape):
         Args:
             value: Ignored closed flag.
         """
-        pass
 
     def _update(
         self, xform_matrix: np.array, reps: int = 0, merge: bool = False
@@ -487,7 +486,7 @@ def ellipse_points(
     a: float,
     b: float,
     angle: float,
-    n_points: int = None,
+    n_points: int | None = None,
 ) -> NDArray:
     """Generate points on an ellipse.
     These are generated from the parametric equations of the ellipse.

@@ -14,20 +14,6 @@ import numpy as np
 from numpy.typing import NDArray
 from PIL import ImageFont
 
-from ..render.style_map import TagStyle, shape_style_map, tag_style_map
-from ..coloring import colors
-from ..coloring.swatches import swatches_255
-from ..geom.geometry import bbox_overlap
-from ..geom.nonlinear.ellipse import Arc
-from ..geom.geometry import (
-    polar_to_cartesian,
-)
-from ..geom.segments.line_utils import line_by_point_angle_length
-from ..geom.geom_utils import midpoint
-from ..geom.points.point_utils import distance
-from ..geom.segments.line_utils import extended_line, line_angle
-from ..geom.vectors import Vector, perp_unit_vector, v_from_points
-from ..geom.affine import identity_matrix
 from ..base.all_enums import (
     Align,
     Anchor,
@@ -40,8 +26,6 @@ from ..base.all_enums import (
     Placement,
     Types,
 )
-from ..group.batch import Group
-from ..geom.bbox import bounding_box
 from ..base.common import (
     PointType,
     _set_Nones,
@@ -50,10 +34,29 @@ from ..base.common import (
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
 from ..base.core import Base, StyleMixin
+from ..coloring import colors
+from ..coloring.swatches import swatches_255
+from ..config.settings import defaults
+from ..geom.bbox import bounding_box
+from ..geom.geom_utils import midpoint
+from ..geom.geometry import (
+    bbox_overlap,
+    polar_to_cartesian,
+)
+from ..geom.matrices import identity_matrix
+from ..geom.nonlinear.ellipse import Arc
+from ..geom.points.point_utils import distance
+from ..geom.segments.line_utils import (
+    extended_line,
+    line_angle,
+    line_by_point_angle_length,
+)
+from ..geom.vectors import Vector, perp_unit_vector, v_from_points
+from ..group.batch import Group
+from ..render.style_map import TagStyle, shape_style_map, tag_style_map
+from ..shapes.geom_items import reg_poly_points_side_length
 from ..shapes.points import Points
 from ..shapes.shape import Shape
-from ..shapes.geom_items import reg_poly_points_side_length
-from ..config.settings import defaults
 from .label_overlap import LabelRect, resolve_all_overlaps
 from .utilities import get_transform
 from .validation import validate_args
@@ -368,7 +371,7 @@ def get_pdf_dimensions(pdf_path):
     except fitz.FileNotFoundError:
         print(f"Error: PDF file not found at {pdf_path}")
         return None
-    except Exception as e:
+    except (fitz.FileDataError, RuntimeError, ValueError) as e:
         print(f"An error occurred: {e}")
         return None
 
@@ -404,7 +407,7 @@ def get_image_dimensions_from_pdf_pages(pdf_path):
                 images.append((width, height))
         doc.close()
         return pages
-    except Exception as e:
+    except (fitz.FileDataError, RuntimeError, ValueError) as e:
         print(f"An error occurred: {e}")
 
 
@@ -1838,12 +1841,11 @@ def _vertices_on_hull_points(
             if hypot(vx - hx, vy - hy) <= tol:
                 indices.append(i)
                 break
-            if ndigits >= 0:
-                if round(vx, ndigits) == round(hx, ndigits) and round(
-                    vy, ndigits
-                ) == round(hy, ndigits):
-                    indices.append(i)
-                    break
+            if ndigits >= 0 and round(vx, ndigits) == round(
+                hx, ndigits
+            ) and round(vy, ndigits) == round(hy, ndigits):
+                indices.append(i)
+                break
     return indices
 
 

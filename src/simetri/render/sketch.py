@@ -21,13 +21,6 @@ from typing import Any, TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 
-from ..coloring import colors
-from ..geom.homogenize import homogenize
-from ..geom.bbox import bounding_box
-from ..helpers.utilities import decompose_transformations, round_symmetric
-from ..images.image import Image
-from ..config.settings import defaults
-from ..geom.affine import identity_matrix
 from ..base.all_enums import (
     Anchor,
     CurveMode,
@@ -37,6 +30,13 @@ from ..base.all_enums import (
     Types,
 )
 from ..base.common import PointType, get_unique_id
+from ..coloring import colors
+from ..config.settings import defaults
+from ..geom.bbox import bounding_box
+from ..geom.homogenize import homogenize
+from ..geom.matrices import identity_matrix
+from ..helpers.utilities import decompose_transformations, round_symmetric
+from ..images.image import Image
 from ..patterns.pattern import Pattern
 
 Color = colors.Color

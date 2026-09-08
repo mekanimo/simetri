@@ -5,9 +5,9 @@ from __future__ import annotations
 from math import atan2, degrees
 from types import SimpleNamespace
 
-from ...geom.bbox import bounding_box
 from ...base.all_enums import Anchor, BackStyle, Extent, Types
 from ...config.settings import defaults
+from ...geom.bbox import bounding_box
 from .tikz_utils import _get_gradient_shading_options, get_clip_code
 
 
@@ -84,15 +84,15 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
     color_stops = []
     for offset, alpha in parsed_stops:
         offset = max(0.0, min(1.0, float(offset)))
-        position = int(round(offset * 100))
-        transparency = int(round((1.0 - float(alpha)) * 100))
+        position = round(offset * 100)
+        transparency = round((1.0 - float(alpha)) * 100)
         color_stops.append(f"color({position}bp)=({_pgf_gray(transparency)})")
 
     if parsed_stops[0][0] > 0.0:
-        first_transparency = int(round((1.0 - float(parsed_stops[0][1])) * 100))
+        first_transparency = round((1.0 - float(parsed_stops[0][1])) * 100)
         color_stops.insert(0, f"color(0bp)=({_pgf_gray(first_transparency)})")
     if parsed_stops[-1][0] < 1.0:
-        last_transparency = int(round((1.0 - float(parsed_stops[-1][1])) * 100))
+        last_transparency = round((1.0 - float(parsed_stops[-1][1])) * 100)
         color_stops.append(f"color(100bp)=({_pgf_gray(last_transparency)})")
 
     shading_decl = "; ".join(color_stops)

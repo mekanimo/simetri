@@ -1,3 +1,5 @@
+from typing import Self
+
 """John Hobby's cubic Bezier spline algorithm (METAFONT-style).
 
 Implementation details follow Knuth's METAFONT: The Program (pp. 112–113).
@@ -8,9 +10,9 @@ import cmath
 
 import numpy as np
 
-from .bezier import bezier_points
 from ...config.settings import defaults
 from ...shapes.shape import Shape
+from .bezier import bezier_points
 
 
 class HobbyPoint(complex):
@@ -29,7 +31,7 @@ class HobbyPoint(complex):
         psi (float): Another offset angle.
     """
 
-    def __new__(cls, x: float, y: float, tension: float) -> "HobbyPoint":
+    def __new__(cls, x: float, y: float, tension: float) -> Self:
         """Create a new instance of HobbyPoint.
 
         Args:
@@ -342,8 +344,7 @@ def hobby_ctrl_points(
             1 if abs(x) <= 0.1 else int(np.ceil(np.log10(abs(x)))) + 1,
             1 if abs(y) <= 0.1 else int(np.ceil(np.log10(abs(y)))) + 1,
         )
-        if max_pad < padding:
-            max_pad = padding
+        max_pad = max(max_pad, padding)
 
     if debug:
         # Pretty print control points.

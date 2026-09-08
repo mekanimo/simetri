@@ -21,10 +21,10 @@ from typing import TYPE_CHECKING
 import networkx as nx
 
 from ..base.common import LineType
+from ..config.settings import defaults
 from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import inclination_angle
 from ..helpers.graph import edges_to_nodes, get_cycles, is_cycle, is_open_walk
-from ..config.settings import defaults
 
 if TYPE_CHECKING:
     from .batch import Group
@@ -58,8 +58,8 @@ def _merge_shapes(
         Group: A new group of merged shapes. Returns ``self`` unchanged if
         the group has fewer than two elements.
     """
-    from .batch import Group
     from ..shapes.shape import Shape
+    from .batch import Group
 
     if len(self) < 2:
         return self

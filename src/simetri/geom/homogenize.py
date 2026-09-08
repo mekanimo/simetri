@@ -1,13 +1,11 @@
 """Convert Cartesian points to homogeneous coordinates."""
 
-from simetri.base.common import PointType
-
+from collections.abc import Sequence
 
 import numpy as np
 from numpy.typing import NDArray
 
-
-from collections.abc import Sequence
+from simetri.base.common import PointType
 
 
 def homogenize(points: Sequence[PointType]) -> NDArray:

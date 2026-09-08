@@ -10,13 +10,11 @@ Documentation list all aliases for each style class.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Union
-from dataclasses import dataclass
 import enum
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Union
 
-from ..config.settings import defaults, default_types, VOID
-from .mask import Gradient
 from ..base.all_enums import (
     Align,
     Anchor,
@@ -34,6 +32,10 @@ from ..base.all_enums import (
     Types,
 )
 from ..coloring.colors import Color
+from ..config.settings import VOID, default_types, defaults
+
+if TYPE_CHECKING:
+    from .gradient import Gradient
 
 
 def _set_style_args(obj, attribs, exact=None, prefix=None, values=None):
@@ -65,8 +67,8 @@ def _set_style_args(obj, attribs, exact=None, prefix=None, values=None):
 def _get_style_attribs(
     style: Types.STYLE,
     prefix: str | None = None,
-    exact: list = None,
-    exclude: list = None,
+    exact: list | None = None,
+    exclude: list | None = None,
 ) -> list[str]:
     """Get the list of attributes from the given Style object.
 
@@ -1810,7 +1812,7 @@ class StyleObj:
         object.__setattr__(self, "_validate_types", validate_types)
 
         # Initialize all attributes to None
-        for attr in style_map.keys():
+        for attr in style_map:
             object.__setattr__(self, attr, None)
 
         # Set any provided values (with validation)
@@ -1896,11 +1898,12 @@ class StyleObj:
         # Additional validation for specific types
         if expected_type is float:
             # Check for special float constraints (e.g., alpha should be 0-1)
-            if name.endswith("_alpha") or name == "alpha":
-                if not (0 <= value <= 1):
-                    raise ValueError(
-                        f"Alpha attribute '{name}' must be between 0 and 1, got {value}"
-                    )
+            if (name.endswith("_alpha") or name == "alpha") and not (
+                0 <= value <= 1
+            ):
+                raise ValueError(
+                    f"Alpha attribute '{name}' must be between 0 and 1, got {value}"
+                )
 
             # Check for positive values where appropriate
             if any(
@@ -1915,11 +1918,10 @@ class StyleObj:
                     "sep",
                     "length",
                 ]
-            ):
-                if value < 0:
-                    raise ValueError(
-                        f"Attribute '{name}' must be non-negative, got {value}"
-                    )
+            ) and value < 0:
+                raise ValueError(
+                    f"Attribute '{name}' must be non-negative, got {value}"
+                )
 
     def __setattr__(self, name, value):
         """Override attribute setting to prevent adding new attributes and validate values."""

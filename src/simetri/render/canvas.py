@@ -21,17 +21,6 @@ import networkx as nx
 import numpy as np
 from numpy.typing import NDArray
 
-from simetri.render import draw
-from simetri.render.style_map import canvas_args, get_draw_valid_kwargs
-from simetri.coloring.colors import Color
-from simetri.geom.homogenize import homogenize
-from simetri.geom.affine import (
-    identity_matrix,
-    rotation_matrix,
-    scale_in_place_matrix,
-    scale_matrix,
-    translation_matrix,
-)
 from simetri.base.all_enums import (
     Align,
     Anchor,
@@ -41,16 +30,23 @@ from simetri.base.all_enums import (
     TexLoc,
     Types,
 )
-from simetri.group.batch import Group
-from simetri.geom.bbox import bounding_box
 from simetri.base.common import (
     PointType,
     VecType,
     _set_Nones,
 )
-from simetri.config.settings import VOID
-from simetri.shapes.shape import Shape
-from simetri.render.sketch import MaskedSketch
+from simetri.coloring.colors import Color
+from simetri.config.settings import VOID, defaults, issue_warning
+from simetri.geom.affine import (
+    rotation_matrix,
+    scale_in_place_matrix,
+    scale_matrix,
+    translation_matrix,
+)
+from simetri.geom.bbox import bounding_box
+from simetri.geom.homogenize import homogenize
+from simetri.geom.matrices import identity_matrix
+from simetri.group.batch import Group
 from simetri.helpers.file_operations import validate_filepath
 from simetri.helpers.illustration import logo
 from simetri.helpers.utilities import (
@@ -64,10 +60,13 @@ from simetri.helpers.validation import (
 )
 from simetri.images.image import Image, create_image_from_data
 from simetri.notebook import display
-from simetri.config.settings import defaults, issue_warning
-from simetri.render.tex import Tex, remove_aux_files, run_job
+from simetri.render import draw
 from simetri.render.render_tikz.tikz import get_tex_code
 from simetri.render.render_tikz.tikz_sketch import TexSketch
+from simetri.render.sketch import MaskedSketch
+from simetri.render.style_map import canvas_args, get_draw_valid_kwargs
+from simetri.render.tex import Tex, remove_aux_files, run_job
+from simetri.shapes.shape import Shape
 
 
 def _save_renderer(extension: str) -> Renderer:

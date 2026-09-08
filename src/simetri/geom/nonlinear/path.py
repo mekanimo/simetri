@@ -18,23 +18,6 @@ from typing import Any, Self
 import numpy as np
 from numpy.typing import NDArray
 
-from ...coloring.colors import Color, black
-from ..homogenize import homogenize
-from ..segments.line_utils import line_angle, line_by_point_angle_length
-from .bezier import Bezier
-from .ellipse import (
-    ellipse_tangent,
-    elliptic_arc_points,
-)
-from ..geometry import (
-    polar_to_cartesian,
-    positive_angle,
-)
-from ..geom_utils import close_points_square
-from ..segments.line_utils import extended_line
-from .hobby import hobby_shape
-from ...config.settings import defaults
-from ..affine import rotation_matrix, translation_matrix
 from ...base.all_enums import (
     Anchor,
     FillMode,
@@ -45,11 +28,30 @@ from ...base.all_enums import (
     get_enum_value,
 )
 from ...base.all_enums import PathOperation as PathOps
-from ...group.batch import Group
-from ..bbox import bounding_box
 from ...base.common import PointType
+from ...coloring.colors import Color, black
+from ...config.settings import defaults
+from ...group.batch import Group
 from ...shapes.shape import Shape
-
+from ..affine import rotation_matrix, translation_matrix
+from ..bbox import bounding_box
+from ..geom_utils import close_points_square
+from ..geometry import (
+    polar_to_cartesian,
+    positive_angle,
+)
+from ..homogenize import homogenize
+from ..segments.line_utils import (
+    extended_line,
+    line_angle,
+    line_by_point_angle_length,
+)
+from .bezier import Bezier
+from .ellipse import (
+    ellipse_tangent,
+    elliptic_arc_points,
+)
+from .hobby import hobby_shape
 from .sine import sine_points
 
 array = np.array
@@ -1510,7 +1512,7 @@ class Path2D(Group):
         self,
         xform_matrix: NDArray,
         reps: int = 0,
-        take: slice = None,
+        take: slice | None = None,
         incr: float | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
@@ -1656,11 +1658,7 @@ def _transform_path_operation(
             _transform_path_point(data[0], xform_matrix),
             _transform_path_points(data[1], xform_matrix),
         )
-    elif subtype in [PathOps.CUBIC_TO, PathOps.BLEND_CUBIC]:
-        transformed_data = tuple(
-            _transform_path_point(point, xform_matrix) for point in data
-        )
-    elif subtype in [PathOps.QUAD_TO, PathOps.BLEND_QUAD]:
+    elif subtype in [PathOps.CUBIC_TO, PathOps.BLEND_CUBIC] or subtype in [PathOps.QUAD_TO, PathOps.BLEND_QUAD]:
         transformed_data = tuple(
             _transform_path_point(point, xform_matrix) for point in data
         )
@@ -1787,15 +1785,11 @@ def lin_path_svg(lin_path):
             for p in data[0]:
                 parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
 
-        elif st == PO.HOBBY_TO:
-            # Use the resolved shape vertices from objects
-            if current_obj:
-                # Skip the first point since it should match current pos
-                verts = current_obj.vertices
-                # HOBBY curve usually connects smoothly.
-                # current_obj is a Shape.
-                for p in verts[1:]:
-                    parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
+        elif st == PO.HOBBY_TO and current_obj:
+            # Skip the first point since it should match current pos.
+            verts = current_obj.vertices
+            for p in verts[1:]:
+                parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
 
         obj_idx += 1
 

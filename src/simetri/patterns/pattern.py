@@ -23,11 +23,6 @@ from typing import Any, Self
 import numpy as np
 from numpy.typing import NDArray
 
-from ..render.style_map import ShapeStyle, shape_args, shape_style_map
-from ..geom.geom_utils import offset_point
-from ..geom.segments.line_utils import offset_line
-from ..helpers.validation import validate_args
-from ..geom.affine import *
 from ..base.all_enums import (
     Anchor,
     InPlace,
@@ -37,10 +32,15 @@ from ..base.all_enums import (
     Types,
     get_enum_value,
 )
-from ..group.batch import Group
-from ..geom.bbox import BoundingBox, bounding_box
 from ..base.common import LineType, PointType
 from ..base.core import StyleMixin
+from ..geom.affine import *
+from ..geom.bbox import BoundingBox, bounding_box
+from ..geom.geom_utils import offset_point
+from ..geom.segments.line_utils import offset_line
+from ..group.batch import Group
+from ..helpers.validation import validate_args
+from ..render.style_map import ShapeStyle, shape_args, shape_style_map
 from ..shapes.shape import Shape
 
 
@@ -150,7 +150,7 @@ class Transform:
             ValueError: If ``value`` is not a NumPy array.
         """
         if not isinstance(value, np.ndarray):
-            raise ValueError("xform_matrix must be a numpy array")
+            raise TypeError("xform_matrix must be a numpy array")
         self._xform_matrix = value
 
     @property

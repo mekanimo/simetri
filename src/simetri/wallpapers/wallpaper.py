@@ -15,12 +15,12 @@ Examples:
 
 from math import cos, pi, sqrt
 
+from ..base.common import LineType, PointType, VecType
 from ..geom.geom_utils import midpoint
 from ..geom.segments.line_utils import line_through_point_and_angle
 from ..group.batch import Group
-from ..base.common import LineType, PointType, VecType
-from ..shapes.shape import Shape
 from ..helpers.illustration import Tag
+from ..shapes.shape import Shape
 
 cos60 = cos(pi / 3)
 cos30 = cos(pi / 6)

@@ -68,11 +68,11 @@ from ..base.common import LineType, PointType, get_defaults, get_unique_id
 from ..base.core import Base, _update_inplace
 from ..coloring.colors import Color, black
 from ..config.settings import defaults
-from ..geom.affine import identity_matrix
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.geometry import (
     positive_angle,
 )
+from ..geom.matrices import identity_matrix
 from ..geom.points.point_utils import (
     lerp_point,
 )

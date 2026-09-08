@@ -12,14 +12,14 @@ __all__ = ["Dot", "Dots"]
 
 import numpy as np
 
-from ..render.style_map import shape_args
-from ..coloring.colors import Color
-from ..geom.geom_utils import close_points_square
-from ..helpers.validation import validate_args
-from ..config.settings import defaults
 from ..base.all_enums import Types
-from ..group.batch import Group
 from ..base.common import PointType
+from ..coloring.colors import Color
+from ..config.settings import defaults
+from ..geom.geom_utils import close_points_square
+from ..group.batch import Group
+from ..helpers.validation import validate_args
+from ..render.style_map import shape_args
 from .shape import Shape
 
 

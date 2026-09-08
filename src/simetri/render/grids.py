@@ -1,23 +1,22 @@
 """Provides facilities for working with grids of cells."""
 
+from collections.abc import Sequence
 from itertools import product
 from math import cos, isclose, pi, sin, sqrt
-from typing import Sequence
 
+from ..base.all_enums import GridType, Types
+from ..base.common import PointType
 from ..coloring.colors import gray
-from ..geom.geometry import polar_to_cartesian
-from ..geom.nonlinear.circle import Circle
+from ..geom.geom_utils import reg_poly_points
 from ..geom.geometry import (
     cartesian_to_polar,
+    polar_to_cartesian,
 )
-from ..geom.points.point_utils import lerp_point
-from ..base.all_enums import GridType, Types
-from ..geom.points.point_utils import distance
+from ..geom.nonlinear.circle import Circle
+from ..geom.points.point_utils import distance, lerp_point
 from ..geom.segments.line_utils import intersect
 from ..group.batch import Group
-from ..base.common import PointType
 from ..shapes.shape import Shape
-from ..geom.geom_utils import reg_poly_points
 
 d_grid_types = {
     GridType.CIRCULAR: Types.CIRCULAR_GRID,
@@ -36,7 +35,7 @@ class Grid(Group):
         center: PointType = (0, 0),
         n: int = 9,
         radius: float = 100,
-        points: Sequence[PointType] = None,
+        points: Sequence[PointType] | None = None,
         n_circles=1,
     ):
         """Initialize a geometric grid of points and connecting lines.

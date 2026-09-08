@@ -20,27 +20,29 @@ import numpy as np
 
 from simetri.coloring import colors
 
-from ..geom.homogenize import homogenize
-from ..geom.nonlinear.ellipse import ellipse_points
-from ..geom.points.point_utils import distance
-from ..geom.geometry import (
-    side_len_to_radius,
-)
+from ..base.all_enums import Extent, Types
+from ..base.common import PointType, axis_x, get_defaults
+from ..config.settings import defaults
+from ..geom.affine import rotation_matrix
+from ..geom.bbox import BoundingBox
 from ..geom.geom_utils import (
     close_points_square,
     midpoint,
+)
+from ..geom.geom_utils import (
     reg_poly_points as regular_polygon_points,
 )
+from ..geom.geometry import (
+    side_len_to_radius,
+)
+from ..geom.homogenize import homogenize
+from ..geom.nonlinear.ellipse import ellipse_points
+from ..geom.points.point_utils import distance
 from ..geom.polygons.polygon import offset_polygon_points
 from ..geom.segments.line_utils import angle_between_lines3, fillet_corners
 from ..geom.vectors import v_diff, v_scale, v_sum
-from ..base.all_enums import Extent, Types
 from ..group.batch import Group
-from ..geom.bbox import BoundingBox
-from ..base.common import PointType, axis_x, get_defaults
 from .shape import Shape
-from ..config.settings import defaults
-from ..geom.affine import rotation_matrix
 
 Color = colors.Color
 
@@ -600,7 +602,6 @@ class Circle(Shape):
     @closed.setter
     def closed(self, value: bool) -> None:
         """No-op setter; circles are always closed."""
-        pass
 
     @property
     def center(self) -> PointType:
@@ -1482,9 +1483,9 @@ def offset_polygon_shape(
 
 def snap(
     free_shape: Shape,
-    ref1: int | float,
+    ref1: float,
     fixed_shape: Shape,
-    ref2: int | float,
+    ref2: float,
     angle: float = 0,
 ) -> Shape:
     """Snap ``free_shape`` to ``fixed_shape`` at the given references.
@@ -1522,7 +1523,7 @@ def snap(
         The transformed ``free_shape`` (same object, mutated in place).
     """
 
-    def get_edge_indices(shape: Shape, ref: int | float) -> tuple[int, int]:
+    def get_edge_indices(shape: Shape, ref: float) -> tuple[int, int]:
         """Get the edge indices for alignment.
 
         For a vertex index, returns (prev_vertex, vertex).
