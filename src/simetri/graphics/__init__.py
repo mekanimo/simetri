@@ -18,48 +18,46 @@ from .. import __version__
 
 __author__ = "Fahri Basegmez"
 
+from functools import lru_cache as memoize
+from itertools import combinations, cycle, permutations, product
 from math import (
-    cos,
-    sin,
-    pi,
     atan,
     atan2,
-    sqrt,
+    ceil,
+    comb,
+    cos,
     degrees,
-    radians,
+    e,
     exp,
+    factorial,
+    floor,
+    gcd,
+    hypot,
     log,
     log10,
-    e,
-    tau,
-    ceil,
-    floor,
-    trunc,
-    hypot,
-    gcd,
-    factorial,
-    comb,
     perm,
+    pi,
     prod,
+    radians,
+    sin,
+    sqrt,
+    tau,
+    trunc,
 )
-from itertools import cycle, combinations, permutations, product
-from random import choice, choices, randint, random, uniform, shuffle
-from functools import lru_cache as memoize
-from numpy import linspace, arange, array, zeros, ones, full, eye, diag
+from random import choice, choices, randint, random, shuffle, uniform
 
-from ..helpers.utilities import *
-from ..base.core import *
-from ..friezes import frieze
-from ..config.settings import *
+from numpy import arange, array, diag, eye, full, linspace, ones, zeros
+
 from ..base.common import *
-
+from ..base.core import *
+from ..config.settings import *
+from ..friezes import frieze
+from ..helpers.utilities import *
 
 set_defaults()
 from simetri import coloring as colors
 
-from ..render.canvas import *
-from ..render.grids import *
-from ..render.style_map import *
+from ..base.all_enums import *
 from ..coloring.colors import *
 from ..coloring.palettes import *
 from ..coloring.pastels import *
@@ -69,18 +67,43 @@ from ..extensions.l_system import l_system
 from ..extensions.tree import TreeNode, make_tree
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..friezes.frieze_patterns import *
-from ..geom.nonlinear.bezier import *
-from ..geom.nonlinear.circle import *
-from ..geom.polygons.convex_hull import convex_hull
-from ..geom.nonlinear.ellipse import *
+from ..geom.affine import *
 from ..geom.geom_utils import *
 from ..geom.geometry import *
+from ..geom.nonlinear.bezier import *
+from ..geom.nonlinear.circle import *
+from ..geom.nonlinear.ellipse import *
 from ..geom.nonlinear.hobby import *
-from ..patterns.lattice import *
-from ..geom.polygons.polygon import *
+from ..geom.nonlinear.path import Operation, Path2D
 from ..geom.nonlinear.sine import *
+from ..geom.points.point_utils import *
+from ..geom.polygons.convex_hull import convex_hull
+from ..geom.polygons.polygon import *
+from ..geom.polygons.polygon_utils import *
+from ..geom.segments.line_utils import *
 from ..geom.vectors import *
-from ..base.all_enums import *
+from ..group.batch import *
+from ..helpers.constraint_solver import Constraint, solve
+from ..helpers.illustration import *
+from ..helpers.modifiers import *
+from ..helpers.validation import check_version
+from ..images.image import Image, open_img
+from ..interlace import Lace
+from ..patterns.lattice import *
+from ..patterns.pattern import *
+from ..render.canvas import *
+from ..render.grids import *
+from ..render.mask import Gradient, Mask, Stop
+from ..render.render_svg.filters import *
+from ..render.render_svg.svg import *
+from ..render.render_tikz.tikz import *
+from ..render.sketch import *
+from ..render.style_map import *
+from ..shapes.dots import *
+from ..shapes.geom_items import *
+
+# Preserve geometric Line class on public namespace.
+from ..shapes.geom_items import Line as Line
 from ..shapes.shape import (
     Clipping,
     all_segments,
@@ -90,30 +113,9 @@ from ..shapes.shape import (
     polygon_intersection,
     polygon_xor,
 )
-from ..shapes.geom_items import *
-
-# Preserve geometric Line class on public namespace.
-from ..shapes.geom_items import Line as Line
-from ..render.sketch import *
-from ..helpers.constraint_solver import Constraint, solve
-from ..helpers.illustration import *
-from ..helpers.modifiers import *
-from ..helpers.validation import check_version
-from ..images.image import Image, open_img
-from ..interlace import Lace
 from ..star_patterns import stars
 from ..star_patterns.stars import Star, rosette
-from ..render.render_svg.filters import *
-from ..render.render_svg.svg import *
-from ..render.render_tikz.tikz import *
 from ..wallpapers import wallpaper
-from ..geom.affine import *
-from ..group.batch import *
-from ..shapes.dots import *
-from ..render.mask import Gradient, Mask, Stop
-from ..geom.nonlinear.path import Operation, Path2D
-from ..patterns.pattern import *
-
 
 set_tikz_defaults()
 set_svg_defaults()
