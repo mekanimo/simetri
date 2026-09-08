@@ -11,54 +11,13 @@ from numpy.typing import NDArray
 from simetri.base.all_enums import Types
 from simetri.base.common import LineType, PointType, get_defaults
 from simetri.geom.affine import rotate_point
-from simetri.geom.geom_utils import (
-    close_points_square,
-    distance_square,
-    midpoint,
-    offset_point,
-    offset_point_from_start,
-)
+from simetri.geom.geom_utils import close_points_square
 from simetri.geom.vectors import (
-    LineType,
-    PointType,
-    Sequence,
-    atan2,
     cross_product_sense3,
-    distance,
     perp_unit_vector,
-    sqrt,
 )
 from simetri.helpers.utilities import lerp
-from simetri.helpers.validation import is_number, is_point
 from simetri.config.settings import defaults
-
-
-def homogenize(points: Sequence[PointType]) -> NDArray:
-    """Convert a list of points to homogeneous coordinates.
-
-    Args:
-        points: Sequence of ``(x, y)`` points (extra coords ignored).
-
-    Returns:
-        NDArray: Homogeneous coordinates with a trailing 1 column.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.homogenize([(1, 2), (3, 4)])
-        array([[1., 2., 1.],
-               [3., 4., 1.]])
-    """
-    try:
-        xy_array = np.array(points, dtype=float)
-    except ValueError:
-        xy_array = np.array([p[:2] for p in points], dtype=float)
-    n_rows, n_cols = xy_array.shape
-    if n_cols > 2:
-        xy_array = xy_array[:, :2]
-    ones = np.ones((n_rows, 1), dtype=float)
-    homogeneous_array = np.append(xy_array, ones, axis=1)
-
-    return homogeneous_array
 
 
 def distance(p1: PointType, p2: PointType) -> float:
@@ -224,7 +183,9 @@ def fix_degen_points(
         else:
             if not close_points_square(point, new_points[-1], dist2=dist_tol2):
                 new_points.append(point)
-    if loop and close_points_square(new_points[0], new_points[-1], dist2=dist_tol2):
+    if loop and close_points_square(
+        new_points[0], new_points[-1], dist2=dist_tol2
+    ):
         new_points.pop(-1)
 
     if check_collinear:
@@ -357,9 +318,9 @@ def check_consecutive_duplicates(points, rel_tol=0, abs_tol=None) -> bool:
             next_pnt = points[i + 1]
             val1 = pnt[0] + pnt[1]
             val2 = next_pnt[0] + next_pnt[1]
-            if isclose(val1, val2, rel_tol=0, abs_tol=abs_tol) and np.allclose(
-                pnt, next_pnt, rtol=0, atol=abs_tol
-            ):
+            if isclose(
+                val1, val2, rel_tol=rel_tol, abs_tol=abs_tol
+            ) and np.allclose(pnt, next_pnt, rtol=0, atol=abs_tol):
                 return True
 
     return False
@@ -468,28 +429,6 @@ def clockwise3(p: PointType, q: PointType, r: PointType) -> bool:
         res = 0
 
     return res
-
-
-def _homogenize(coordinates: Sequence[float]) -> NDArray:
-    """Internal use only. API provides a homogenize function.
-    Given a sequence of coordinates(x1, y1, x2, y2, ... xn, yn),
-    return a numpy array of points array(((x1, y1, 1.),
-    (x2, y2, 1.), ... (xn, yn, 1.))).
-
-    Args:
-        coordinates (Sequence[float]): Sequence of coordinates.
-
-    Returns:
-        np.ndarray: Homogeneous coordinates.
-    """
-    xy_array = np.array(
-        list(zip(coordinates[0::2], coordinates[1::2])), dtype=float
-    )
-    n_rows = xy_array.shape[0]
-    ones = np.ones((n_rows, 1), dtype=float)
-    homogeneous_array = np.append(xy_array, ones, axis=1)
-
-    return homogeneous_array
 
 
 def on_segment(a, b, p, eps=1e-12):
@@ -883,7 +822,7 @@ def get_interior_points(start, end, n_points):
     return points
 
 
-def project_point_on_line(point: "Vertex", line: "Edge"):
+def project_point_on_line(point: PointType, line: LineType):
     """Given a point and a line, returns the projection of the point on the line
 
     Args:

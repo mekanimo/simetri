@@ -3,11 +3,9 @@ https://pomax.github.io/bezierinfo is a good resource for understanding Bezier c
 """
 
 from collections.abc import Sequence
-from functools import lru_cache as memoize
 
 import numpy as np
 
-from simetri.geom.vectors import Sequence
 from numpy import array
 
 from ...base.all_enums import Types
@@ -20,13 +18,12 @@ from ..segments.line_utils import line_by_point_angle_length
 from ..segments.line_utils import line_angle
 from ..vectors import norm, normal, normalize
 
-array = np.array
 
-cubic_poly_matrix = np.array(
+cubic_poly_matrix = array(
     [[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]]
 )
 
-quad_poly_matrix = np.array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
+quad_poly_matrix = array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
 
 
 class Bezier(Shape):
@@ -153,23 +150,6 @@ class Bezier(Shape):
         return copy_
 
     def point(self, t: float):
-        """Return the point on the Bezier curve at parameter ``t``.
-
-        Note:
-            This method is currently a stub; use ``point2`` instead.
-
-        Args:
-            t: Parameter in ``[0, 1]``.
-
-        Returns:
-            PointType: Point on the curve at ``t`` (when implemented).
-        """
-        # if self.cubic:
-        #     np.array([t**3, t**2, t, 1]) @ self.matrix
-        # else:
-        #     np.array([t**2, t, 1]) @ self.matrix
-
-    def point2(self, t: float):
         """Return the point on the Bezier curve at t.
 
         Args:

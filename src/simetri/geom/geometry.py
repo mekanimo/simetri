@@ -22,10 +22,10 @@ from math import (
     sin,
     sqrt,
 )
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
-from numpy import around, array
+from numpy import array
 from numpy.typing import NDArray
 
 from ..base.common import (
@@ -33,7 +33,7 @@ from ..base.common import (
     get_defaults,
 )
 from ..config.settings import defaults
-from .geom_utils import close_points_square, connected_pairs
+from .geom_utils import close_points_square
 from .vectors import *
 
 if TYPE_CHECKING:

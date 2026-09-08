@@ -1288,29 +1288,30 @@ def cross_product3(a: PointType, b: PointType, c: PointType) -> float:
 def unit_vector(line: LineType) -> VecType:
     """Return a unit vector along a line.
 
-    The body calls ``length``, which is not defined in this module, so
-    a call currently raises ``NameError``.
+    A zero-length line has no direction.
 
     Args:
         line (LineType): Input line.
 
     Returns:
-        VecType: Intended unit vector from the first point toward the second.
+        VecType: Unit vector from the first point toward the second.
 
     Raises:
-        NameError: ``length`` is not defined here.
+        ZeroDivisionError: If the line has length 0.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.unit_vector(((0, 0), (0, 5)))
+        [0.0, 1.0]
+        >>> sg.unit_vector(((1, 1), (1, 1)))
         Traceback (most recent call last):
             ...
-        NameError: name 'length' is not defined
+        ZeroDivisionError: float division by zero
     """
-    norm_ = length(line)
     p1, p2 = line
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
+    norm_ = hypot(x2 - x1, y2 - y1)
     return [(x2 - x1) / norm_, (y2 - y1) / norm_]
 
 
@@ -1400,9 +1401,8 @@ def vec_dir_angle(vec: Sequence[float]) -> float:
 def cross_product_sense3(a: PointType, b: PointType, c: PointType) -> int:
     """Return the sign of ``(a - b) × (c - b)``.
 
-    Collinear points return ``1``. A non-zero
-    cross product currently raises ``NameError`` because the body calls
-    ``abs(length)`` rather than ``abs`` of the computed value.
+    Collinear points return ``1``. A positive cross product returns
+    ``1``; a negative cross product returns ``-1``.
 
     Args:
         a (PointType): First point.
@@ -1417,9 +1417,9 @@ def cross_product_sense3(a: PointType, b: PointType, c: PointType) -> int:
         >>> sg.cross_product_sense3((2, 0), (0, 0), (1, 0))
         1
         >>> sg.cross_product_sense3((1, 0), (0, 0), (0, 1))
-        Traceback (most recent call last):
-            ...
-        NameError: name 'length' is not defined
+        1
+        >>> sg.cross_product_sense3((0, 1), (0, 0), (1, 0))
+        -1
     """
     length_ = cross_product3(a, b, c)
     if length_ == 0:

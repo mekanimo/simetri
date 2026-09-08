@@ -59,13 +59,21 @@ def _update_inplace(
     | tuple[InPlace, Any]
     | None = None,
 ):
-    """Update a transformation matrix in-place for repeated transformations.
+    """Update a transformation matrix for one more repetition.
 
     Supported ``incr`` forms:
-    - ``float``: additive increment for rotation/glide
-    - ``(x, y)``: additive increment for translate/scale/shear
+    - ``float``: additive increment for rotation or glide
+    - ``(x, y)``: additive increment for translate, scale, or shear
     - ``(callable, arg)``: callable returns one of the above increment values
-    - ``(InPlace.OP, value)``: applies operation to current transform parameter(s)
+    - ``(InPlace.OP, value)``: applies that operation to the current parameter
+
+    Args:
+        xform_matrix (NDArray): Affine matrix to update (mutated).
+        xform_type (TransformationType): Kind of transform stored in the matrix.
+        incr: Increment or operator pair. Defaults to None.
+
+    Returns:
+        NDArray: The same matrix after the update.
     """
 
     def _is_number(value: Any) -> bool:
@@ -180,6 +188,15 @@ def _update_inplace(
 
 
 def _resolve_reference(target, reference):
+    """Return a point or line resolved from a named reference on ``target``.
+
+    Args:
+        target: Object whose attributes supply the reference.
+        reference: A reference name, or ``(name, value)``.
+
+    Returns:
+        The resolved point, line, or length.
+    """
     if isinstance(reference, [tuple, list]):
         ref, value = reference
         if isinstance(value, Reference):
@@ -224,10 +241,19 @@ class Base:
             name: Attribute or anchor name (also accepts ``bbox_`` prefix).
 
         Returns:
-            Any: Anchor geometry or stored attribute value.
+            Any: Anchor geometry, a stored attribute, or ``None`` for an
+            unset style name.
 
         Raises:
             AttributeError: If the name is unknown and not a style attribute.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> square = sg.Shape([(0, 0), (2, 0), (2, 2)], closed=True)
+            >>> square.southwest
+            (0.0, 0.0)
+            >>> square.midpoint
+            (1.0, 1.0)
         """
         if name in anchors:
             if name.startswith("bbox_"):
@@ -264,21 +290,28 @@ class Base:
     ) -> Self:
         """Translate the object by ``dx`` and ``dy``.
 
+        This object is updated.
+
         Args:
             dx: Translation along the x-axis.
             dy: Translation along the y-axis.
             take: Optional slice selecting which group elements to transform.
-            reps: Extra repetitions (copies) of the transform. Defaults to 0.
+            reps: Extra repetitions of the transform. Defaults to 0.
             incr: Optional increment applied between repetitions.
             merge: If True, merge results where supported.
 
         Returns:
-            Self: The transformed object (often ``self`` after in-place update).
+            Self: This object after the translation is applied.
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> s = sg.Shape([(0, 0), (1, 0)])
-            >>> s.translate(10, 5)
+            >>> square = sg.Shape([(0, 0), (1, 0)])
+            >>> square.translate(10, 5) is square
+            True
+            >>> square.vertices
+            ((10.0, 5.0), (11.0, 5.0))
+            >>> square.translate(0, -5).vertices[0]
+            (10.0, 0.0)
         """
         transform = translation_matrix(dx, dy)
         if self.type == Types.SHAPE:
@@ -315,23 +348,40 @@ class Base:
         | None = None,
         merge: bool = False,
     ) -> Self:
-        # This is not up to date anymore!!!
-        """
-        Translates the object along the given curve.
-        Every n-th point is used to calculate the translation vector.
-        If align_tangent is True, the object is rotated to align with the tangent at each point.
-        scale is the scale factor applied at each point.
-        rotate is the angle in radians applied at each point.
+        """Place copies of this object at points along ``path``.
+
+        The first path point is used as the new position of this object.
+        Later points, taken every ``step``, are appended as copies.
 
         Args:
-            path (Sequence[PointType]): The path to translate along.
-            step (int, optional): The step size. Defaults to 1.
-            align_tangent (bool, optional): Whether to align the object with the tangent. Defaults to False.
-            scale (float, optional): The scale factor. Defaults to 1.
-            rotate (float, optional): The rotation angle in radians. Defaults to 0.
+            path (Sequence[PointType]): Points to place the object on.
+            step (int, optional): Use every ``step``-th point after the first.
+                Defaults to 1.
+            align_tangent (bool, optional): Rotate to the path direction.
+                Defaults to False.
+            scale (float, optional): Scale applied at each placed copy.
+                Defaults to 1.
+            rotate (float, optional): Extra rotation in radians at each copy.
+                Defaults to 0.
+            incr: Extra translation accumulated between copies, in the
+                same forms as ``translate``. The first copy is not shifted.
+                Later copies add this increment to their path position.
+                Defaults to None.
+            merge (bool, optional): If True and copies were appended, replace
+                this object's elements with ``merge_shapes()``. Defaults to False.
 
         Returns:
-            Self: The transformed object.
+            Self: This object, with the extra placements appended.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> path = [(0, 0), (5, 0), (10, 0)]
+            >>> mark = sg.Shape([(0, 0), (1, 0)])
+            >>> result = mark.translate_along(path, step=1, incr=(1, 0))
+            >>> result is mark
+            True
+            >>> path
+            [(0, 0), (5, 0), (10, 0)]
         """
         x, y = path[0][:2]
         self.move_to((x, y))
@@ -340,20 +390,29 @@ class Base:
             tangent = line_angle(path[-1], path[0])
             self.rotate(tangent, about=path[0], reps=0)
         dup2 = dup.copy()
+        offset = translation_matrix(0, 0)
         for i, point in enumerate(path[1::step]):
             dup2 = dup2.copy()
             px, py = point[:2]
+            if incr is not None and i > 0:
+                offset = _update_inplace(
+                    offset, TransformationType.TRANSLATE, incr
+                )
+                ox, oy = offset[2, :2]
+                px += float(ox)
+                py += float(oy)
             dup2.move_to((px, py))
             if scale != 1:
-                dup2.scale(scale, about=point)
+                dup2.scale(scale, about=(px, py))
             if rotate != 0:
-                dup2.rotate(rotate, about=point)
+                dup2.rotate(rotate, about=(px, py))
             self.append(dup2)
             if align_tangent:
                 tangent = line_angle(path[i - 1], path[i])
-                dup2.rotate(tangent, about=point, reps=0)
-            # scale *= scale
-            # rotate += rotate
+                dup2.rotate(tangent, about=(px, py), reps=0)
+        if merge and len(path[1::step]) > 0:
+            merged = self.merge_shapes()
+            self[:] = merged.elements[:]
         return self
 
     def rotate(
@@ -371,21 +430,28 @@ class Base:
     ) -> Self:
         """Rotate by ``angle`` radians about a point.
 
+        This object is updated.
+
         Args:
-            angle: Rotation angle in radians (counterclockwise).
+            angle: Rotation angle in radians, counterclockwise.
             about: Center of rotation. Defaults to ``(0, 0)``.
             reps: Extra repetitions of the transform. Defaults to 0.
             take: Optional slice of group elements to transform.
-            incr: Optional angle (or operator) increment between reps.
+            incr: Optional angle or operator increment between repetitions.
             merge: If True, merge results where supported.
 
         Returns:
-            Self: The rotated object.
+            Self: This object after the rotation is applied.
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> s = sg.Shape([(0, 0), (20, 0), (20, 10), (0, 10)], closed=True)
-            >>> s.rotate(sg.pi / 2, about=s.midpoint)
+            >>> arm = sg.Shape([(1, 0)])
+            >>> arm.rotate(sg.pi / 2) is arm
+            True
+            >>> abs(arm.vertices[0][0]) < 1e-9 and abs(arm.vertices[0][1] - 1) < 1e-9
+            True
+            >>> arm.rotate(-sg.pi / 2).vertices[0][0]
+            1.0
         """
         transform = rotation_matrix(angle, about)
         if self.__class__.__name__ == "Shape":
@@ -420,15 +486,32 @@ class Base:
         | None = None,
         merge: bool = False,
     ) -> Self:
-        """
-        Mirrors the object about the given line or point.
+        """Mirror this object about a line or a point.
+
+        This object is updated.
 
         Args:
-            about (LineType | PointType): The line or point to mirror about.
-            reps (int, optional): The number of repetitions. Defaults to 0.
+            about (LineType | PointType): Mirror line, or a point treated as
+                the mirror origin.
+            reps (int, optional): Extra repetitions. Defaults to 0.
+            take: Optional slice of group elements to transform.
+            incr: Optional increment between repetitions. Defaults to None.
+            merge (bool, optional): Merge results where supported.
+                Defaults to False.
 
         Returns:
-            Self: The mirrored object.
+            Self: This object after the mirror is applied.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 1)])
+            >>> axis = [(0, 0), (1, 0)]
+            >>> mark.mirror(axis) is mark
+            True
+            >>> abs(mark.vertices[0][1] + 1) < 1e-9
+            True
+            >>> axis
+            [(0, 0), (1, 0)]
         """
         transform = mirror_matrix(about)
         if self.__class__.__name__ == "Shape":
@@ -464,17 +547,35 @@ class Base:
         | None = None,
         merge: bool = False,
     ) -> Self:
-        """
-        Glides (first mirror then translate) the object along the given line
-        by the given glide_dist.
+        """Mirror this object across ``glide_line``, then slide it.
+
+        This object is updated.
 
         Args:
-            glide_line (LineType): The line to glide along.
-            glide_dist (float): The distance to glide.
-            reps (int, optional): The number of repetitions. Defaults to 0.
+            glide_line (LineType): Line to mirror across and travel along.
+            glide_dist (float): Distance to travel along that line after
+                the mirror.
+            reps (int, optional): Extra repetitions. Defaults to 0.
+            take: Optional slice of group elements to transform.
+            incr: Optional increment between repetitions. Defaults to None.
+            merge (bool, optional): Merge results where supported.
+                Defaults to False.
 
         Returns:
-            Self: The glided object.
+            Self: This object after the glide is applied.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 1)])
+            >>> line = [(0, 0), (1, 0)]
+            >>> mark.glide(line, 2) is mark
+            True
+            >>> abs(mark.vertices[0][0] - 2) < 1e-9
+            True
+            >>> abs(mark.vertices[0][1] + 1) < 1e-9
+            True
+            >>> line
+            [(0, 0), (1, 0)]
         """
         transform = glide_matrix(glide_line, glide_dist)
         if self.__class__.__name__ == "Shape":
@@ -511,17 +612,34 @@ class Base:
         | None = None,
         merge: bool = False,
     ) -> Self:
-        """
-        Scales the object by the given scale factors about the given point.
+        """Scale this object about a point.
+
+        This object is updated. If ``scale_y`` is
+        omitted, both axes use ``scale_x``.
 
         Args:
-            scale_x (float): The scale factor in the x direction.
-            scale_y (float, optional): The scale factor in the y direction. Defaults to None.
-            about (PointType, optional): The point to scale about. Defaults to (0, 0).
-            reps (int, optional): The number of repetitions. Defaults to 0.
+            scale_x (float): Scale factor on x.
+            scale_y (float, optional): Scale factor on y. Defaults to
+                ``scale_x``.
+            about (PointType, optional): Fixed point. Defaults to ``(0, 0)``.
+            reps (int, optional): Extra repetitions. Defaults to 0.
+            take: Optional slice of group elements to transform.
+            incr: Optional increment between repetitions. Defaults to None.
+            merge (bool, optional): Merge results where supported.
+                Defaults to False.
 
         Returns:
-            Self: The scaled object.
+            Self: This object after the scale is applied.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> bar = sg.Shape([(1, 0)])
+            >>> bar.scale(2) is bar
+            True
+            >>> bar.vertices
+            ((2.0, 0.0),)
+            >>> bar.scale(1, 3).vertices[0][1]
+            0.0
         """
         if scale_y is None:
             scale_y = scale_x
@@ -550,16 +668,29 @@ class Base:
         | None = None,
         merge: bool = False,
     ) -> Self:
-        """
-        Shears the object by the given angles.
+        """Shear this object by the given angles.
+
+        This object is updated. A zero pair leaves the coordinates unchanged.
 
         Args:
-            theta_x (float): The shear angle in the x direction.
-            theta_y (float): The shear angle in the y direction.
-            reps (int, optional): The number of repetitions. Defaults to 0.
+            theta_x (float): Shear angle for the x direction, in radians.
+            theta_y (float): Shear angle for the y direction, in radians.
+            reps (int, optional): Extra repetitions. Defaults to 0.
+            take: Optional slice of group elements to transform.
+            incr: Optional increment between repetitions. Defaults to None.
+            merge (bool, optional): Merge results where supported.
+                Defaults to False.
 
         Returns:
-            Self: The sheared object.
+            Self: This object after the shear is applied.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(1, 1)])
+            >>> mark.shear(0, 0) is mark
+            True
+            >>> mark.vertices
+            ((1.0, 1.0),)
         """
         transform = shear_matrix(theta_x, theta_y)
         if self.__class__.__name__ == "Shape":
@@ -583,11 +714,22 @@ class Base:
         return res
 
     def reset_xform_matrix(self) -> Self:
-        """
-        Resets the transformation matrix to the identity matrix.
+        """Set this object's transform matrix back to the identity.
+
+        This object is updated. Later reads of the vertices use the
+        original points.
 
         Returns:
-            Self: The object with the reset transformation matrix.
+            Self: This object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (1, 0)])
+            >>> mark.translate(3, 0)
+            >>> mark.reset_xform_matrix() is mark
+            True
+            >>> mark.vertices
+            ((0.0, 0.0), (1.0, 0.0))
         """
         self.__dict__["xform_matrix"] = np.identity(3)
         return self
@@ -599,15 +741,27 @@ class Base:
         take: slice | None = None,
         merge: bool = False,
     ) -> Self:
-        """
-        Transforms the object by the given transformation matrix.
+        """Apply an affine matrix to this object.
+
+        This object is updated.
 
         Args:
-            transform_matrix (ndarray): The transformation matrix.
-            reps (int, optional): The number of repetitions. Defaults to 0.
+            transform_matrix (NDArray): Affine matrix to apply.
+            reps (int, optional): Extra repetitions. Defaults to 0.
+            take: Optional slice of group elements to transform.
+            merge (bool, optional): Merge results where supported.
+                Defaults to False.
 
         Returns:
-            Self: The transformed object.
+            Self: This object after the matrix is applied.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (1, 0)])
+            >>> mark.transform(mark.xform_matrix) is mark
+            True
+            >>> mark.vertices
+            ((0.0, 0.0), (1.0, 0.0))
         """
         if self.__class__.__name__ == "Shape":
             res = self._update(
@@ -630,30 +784,56 @@ class Base:
     def move(
         self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs
     ) -> Self:
-        """
-        Moves the object to the given position by using its midpoint.
+        """Move this object so the chosen anchor lands on ``pos``.
+
+        This is the same as :meth:`move_to`. This object is updated.
 
         Args:
-            pos (PointType): The position to move to.
-            anchor (Anchor, optional): The anchor point. Defaults to Anchor.CENTER.
+            pos (PointType): Target position of the anchor.
+            anchor (Anchor, optional): Anchor to place on ``pos``.
+                Defaults to ``Anchor.CENTER``.
+            **kwargs: Extra attributes assigned on this object.
 
         Returns:
-            Self: The moved object.
+            Self: This object after the move.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (2, 0)])
+            >>> mark.move((10, 0)) is mark
+            True
+            >>> mark.midpoint
+            (10.0, 0.0)
         """
         return self.move_to(pos, anchor, **kwargs)
 
     def move_to(
         self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs
     ) -> Self:
-        """
-        Moves the object to the given position by using its midpoint.
+        """Move this object so the chosen anchor lands on ``pos``.
+
+        This object is updated. Keyword arguments are assigned onto this
+        object before the translation.
 
         Args:
-            pos (PointType): The position to move to.
-            anchor (Anchor, optional): The anchor point. Defaults to Anchor.CENTER.
+            pos (PointType): Target position of the anchor.
+            anchor (Anchor, optional): Anchor to place on ``pos``.
+                Defaults to ``Anchor.CENTER``.
+            **kwargs: Extra attributes assigned on this object.
 
         Returns:
-            Self: The moved object.
+            Self: This object after the move.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (2, 0)])
+            >>> target = (10, 4)
+            >>> mark.move_to(target, anchor=sg.Anchor.SOUTHWEST) is mark
+            True
+            >>> mark.southwest
+            (10.0, 4.0)
+            >>> target
+            (10, 4)
         """
         x, y = pos[:2]
         anchor = get_enum_value(Anchor, anchor)
@@ -666,17 +846,20 @@ class Base:
         return res
 
     def offset_line(self, side: Side, offset: float) -> LineType:
-        """
-        Offset the line by the given side and offset distance.
-        side can be Side.LEFT, Side.RIGHT, Side.TOP, or Side.BOTTOM.
-        offset is applied outwards.
+        """        Return a bounding-box side shifted outward by ``offset``.
 
         Args:
-            side (Side): The side to offset.
-            offset (float): The offset distance.
+            side (Side): ``LEFT``, ``RIGHT``, ``TOP``, or ``BOTTOM``.
+            offset (float): Outward distance.
 
         Returns:
-            LineType: The offset line.
+            LineType: The shifted side.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
+            >>> box.offset_line(sg.Side.BOTTOM, 1)[0][1]
+            -1.0
         """
         side = get_enum_value(Side, side)
         return self.b_box.offset_line(side, offset)
@@ -684,19 +867,23 @@ class Base:
     def offset_point(
         self, anchor: Anchor, dx: float, dy: float = 0
     ) -> PointType:
-        """
-        Offset the point by the given anchor and offset distances.
-        anchor can be Anchor.MIDPOINT, Anchor.SOUTHWEST, Anchor.SOUTHEAST,
-        Anchor.NORTHWEST, Anchor.NORTHEAST, Anchor.SOUTH, Anchor.WEST,
-        Anchor.EAST, or Anchor.NORTH.
+        """        Return an anchor point shifted by ``dx`` and ``dy``.
 
         Args:
-            anchor (Anchor): The anchor point.
-            dx (float): The x offset.
-            dy (float, optional): The y offset. Defaults to 0.
+            anchor (Anchor): Anchor on the bounding box.
+            dx (float): Shift along x.
+            dy (float, optional): Shift along y. Defaults to 0.
 
         Returns:
-            PointType: The offset point.
+            PointType: The shifted anchor.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
+            >>> box.offset_point(sg.Anchor.SOUTHWEST, 1, 2)
+            (1.0, 2.0)
+            >>> box.offset_point(sg.Anchor.NORTHEAST, -1)
+            (3.0, 2.0)
         """
         anchor = get_enum_value(Anchor, anchor)
         return self.b_box.offset_point(anchor, dx, dy)
@@ -713,11 +900,21 @@ class StyleMixin:
     """
 
     def __setattr__(self, name, value):
-        """Set a style alias or ordinary instance attribute.
+        """Set a style alias or an ordinary instance attribute.
+
+        A style alias is written onto the nested style object. Other
+        names are stored on this object.
 
         Args:
-            name: Attribute name (may be a style alias).
+            name: Attribute name, which may be a style alias.
             value: Value to assign.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (1, 0)])
+            >>> mark.line_width = 2
+            >>> mark.line_width
+            2
         """
         # Handle case where _aliases might not be set up yet
         aliases = self.__dict__.get("_aliases", {})
@@ -730,16 +927,24 @@ class StyleMixin:
             self.__dict__[name] = value
 
     def __getattr__(self, name):
-        """Retrieve an attribute of the shape.
+        """Return a style alias or an ordinary instance attribute.
 
         Args:
-            name (str): The attribute name to return.
+            name (str): Attribute name to return.
 
         Returns:
-            Any: The value of the attribute.
+            Any: The stored value, or the value on the nested style object.
 
         Raises:
-            AttributeError: If the attribute cannot be found.
+            AttributeError: If the name is neither a style alias nor a
+            stored attribute.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (1, 0)])
+            >>> mark.line_width = 3
+            >>> mark.line_width
+            3
         """
         aliases = self.__dict__.get("_aliases", {})
         obj, attrib = aliases.get(name, (None, None))
@@ -754,7 +959,10 @@ class StyleMixin:
             )
 
     def _set_aliases(self):
-        """Set aliases for style attributes based on the style map."""
+        """Rebuild the style-alias map on this object.
+
+        This object is updated. The map is stored as ``_aliases``.
+        """
         _aliases = {}
         for alias, path_attrib in self._style_map.items():
             style_path, attrib = path_attrib

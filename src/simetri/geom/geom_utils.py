@@ -8,6 +8,8 @@ Other geometry modules may import from here to avoid circular imports.
 from collections.abc import Sequence
 from math import cos, sin, sqrt
 
+import numpy as np
+
 from simetri.base.common import PointType
 
 
@@ -38,7 +40,9 @@ def distance_square(p1: PointType, p2: PointType) -> float:
     return (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2
 
 
-def close_points_square(p1: PointType, p2: PointType, dist2: float = 0.01) -> bool:
+def close_points_square(
+    p1: PointType, p2: PointType, dist2: float = 0.01
+) -> bool:
     """Return True if two points are within squared distance ``dist2``.
 
     Args:

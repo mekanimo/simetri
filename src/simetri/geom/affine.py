@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from math import atan2, cos, sin, tan
-from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
@@ -26,10 +25,6 @@ from ..helpers.validation import is_line, is_point
 from .homogenize import homogenize
 from .vectors import vec_along_line
 from ..base.common import LineType, PointType
-
-if TYPE_CHECKING:
-    from ..group.batch import Group
-    from ..shapes.shape import Shape
 
 
 def identity_matrix() -> NDArray:

@@ -541,7 +541,7 @@ class Path2D(Group):
             >>> p.pos
             (10, 0)
         """
-        self._add(point, PathOps.LINE_TO, (self.pos, point))
+        self._add(point, PathOps.LINE_TO, (self.pos, point), **kwargs)
 
         return self
 
@@ -563,7 +563,7 @@ class Path2D(Group):
         """
 
         x, y = line_by_point_angle_length(self.pos, self.angle, length)[1][:2]
-        self._add((x, y), PathOps.FORWARD, (self.pos, (x, y)))
+        self._add((x, y), PathOps.FORWARD, (self.pos, (x, y)), **kwargs)
 
         return self
 
@@ -677,7 +677,7 @@ class Path2D(Group):
             (4, 5)
         """
         point = self.pos[0] + dx, self.pos[1] + dy
-        self._add(point, PathOps.R_LINE, (self.pos, point))
+        self._add(point, PathOps.R_LINE, (self.pos, point), **kwargs)
 
         return self
 
@@ -700,7 +700,7 @@ class Path2D(Group):
         """
         x, y = self.pos[:2]
         point = (x + dx, y + dy)
-        self._add(point, PathOps.R_MOVE, point)
+        self._add(point, PathOps.R_MOVE, point, **kwargs)
         return self
 
     def h_line_to(self, x: float, **kwargs) -> Self:
@@ -720,7 +720,7 @@ class Path2D(Group):
             (8, 2)
         """
         y = self.pos[1]
-        self._add((x, y), PathOps.H_LINE_TO, (self.pos, (x, y)))
+        self._add((x, y), PathOps.H_LINE_TO, (self.pos, (x, y)), **kwargs)
         return self
 
     def r_h_line(self, length: float, **kwargs) -> Self:
@@ -740,7 +740,7 @@ class Path2D(Group):
             (5, 0)
         """
         x, y = self.pos[0] + length, self.pos[1]
-        self._add((x, y), PathOps.R_H_LINE, (self.pos, (x, y)))
+        self._add((x, y), PathOps.R_H_LINE, (self.pos, (x, y)), **kwargs)
         return self
 
     def v_line_to(self, y: float, **kwargs) -> Self:
@@ -760,7 +760,7 @@ class Path2D(Group):
             (3, 7)
         """
         x = self.pos[0]
-        self._add((x, y), PathOps.V_LINE_TO, (self.pos, (x, y)))
+        self._add((x, y), PathOps.V_LINE_TO, (self.pos, (x, y)), **kwargs)
         return self
 
     def r_v_line(self, length: float, **kwargs) -> Self:
@@ -780,7 +780,7 @@ class Path2D(Group):
             (0, 4)
         """
         x, y = self.pos[0], self.pos[1] + length
-        self._add((x, y), PathOps.R_V_LINE, (self.pos, (x, y)))
+        self._add((x, y), PathOps.R_V_LINE, (self.pos, (x, y)), **kwargs)
         return self
 
     def segments(self, points, **kwargs) -> Self:
@@ -814,7 +814,6 @@ class Path2D(Group):
         control1: PointType,
         control2: PointType,
         end: PointType,
-        *args,
         **kwargs,
     ) -> Self:
         """Append a cubic Bézier from the current position to ``end``.
@@ -823,7 +822,6 @@ class Path2D(Group):
             control1: First control point.
             control2: Second control point.
             end: Curve end point.
-            *args: Additional blended cubic specifications.
             **kwargs: Reserved for future style overrides.
 
         Returns:
@@ -893,7 +891,7 @@ class Path2D(Group):
             >>> p.pos  # doctest: +SKIP
             (20, 0)
         """
-        self._add(points[-1], PathOps.HOBBY_TO, (self.pos, points))
+        self._add(points[-1], PathOps.HOBBY_TO, (self.pos, points), **kwargs)
         return self
 
     def quad_to(
@@ -1214,6 +1212,7 @@ class Path2D(Group):
                 rot_angle,
                 points,
             ),
+            **kwargs,
         )
         return self
 
@@ -1337,6 +1336,7 @@ class Path2D(Group):
                 rot_angle,
                 points,
             ),
+            kwargs,
         )
         return self
 
@@ -1380,7 +1380,7 @@ class Path2D(Group):
             points = homogenize(points) @ rotation_matrix(rot_angle, points[0])
         points = homogenize(points) @ translation_matrix(*self.pos[:2])
         angle = line_angle(points[-2], points[-1])
-        self._add(points[-1], PathOps.SINE, (points, angle))
+        self._add(points[-1], PathOps.SINE, (points, angle), **kwargs)
         return self
 
     def blend_sine(
@@ -1422,7 +1422,7 @@ class Path2D(Group):
         points = homogenize(points) @ rotation_matrix(rot_angle, points[0])
         points = homogenize(points) @ translation_matrix(*self.pos[:2])
         angle = line_angle(points[-2], points[-1])
-        self._add(points[-1], PathOps.SINE, (points, angle))
+        self._add(points[-1], PathOps.SINE, (points, angle), **kwargs)
         return self
 
     def close(self, **kwargs) -> Self:
@@ -1572,7 +1572,7 @@ def _transform_path_points(points, xform_matrix: NDArray):
 
 def _transform_arc_data(data, xform_matrix: NDArray) -> tuple:
     """Return arc operation data transformed by ``xform_matrix``."""
-    pos, _, rx, ry, start_angle, span_angle, rot_angle, points = data
+    _, _, rx, ry, start_angle, span_angle, rot_angle, points = data
     transformed_points = _transform_path_points(points, xform_matrix)
     end_point = tuple(transformed_points[-1])
 

@@ -30,19 +30,11 @@ from simetri.geom.points.point_utils import (
     round_point,
 )
 from simetri.geom.vectors import (
-    LineType,
-    PointType,
-    Sequence,
     Vector,
     i_vec,
     j_vec,
-    acos,
-    atan2,
-    cos,
-    distance,
     line_vector,
     perp_unit_vector,
-    sin,
     v_cross,
     v_from_points,
     v_mul,
@@ -510,7 +502,9 @@ def intersect(line1: LineType, line2: LineType) -> PointType:
     return intersect2(x1, y1, x2, y2, x3, y3, x4, y4)
 
 
-def segment_connection(x1, y1, x2, y2, x3, y3, x4, y4, rel_tol=None, abs_tol=None):
+def segment_connection(
+    x1, y1, x2, y2, x3, y3, x4, y4, rel_tol=None, abs_tol=None
+):
     """Return the connection kind and crossing point of two segments.
 
     Args:

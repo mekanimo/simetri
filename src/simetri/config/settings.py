@@ -19,7 +19,6 @@ __all__ = [
     "set_svg_defaults",
 ]
 
-import sys
 import warnings
 from collections import defaultdict
 from collections.abc import Sequence

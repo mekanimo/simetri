@@ -635,8 +635,8 @@ def _segment_containment_counts(
     """
     counts = np.zeros(len(midpoints), dtype=np.int16)
     for vertices in shape_vertices:
-        for index, midpoint in enumerate(midpoints):
-            if in_polygon(midpoint, vertices):
+        for index, midpoint_ in enumerate(midpoints):
+            if in_polygon(midpoint_, vertices):
                 counts[index] += 1
     return counts
 
@@ -743,7 +743,7 @@ def polygons_union(
     # Shared interior edges (count >= 2) and exterior void edges (count == 0)
     # are dropped; count == 1 is the union-boundary (XOR) rule.
     union_segments = []
-    for segment, midpoint, count in zip(all_segments, all_midpoints, counts):
+    for segment, _, count in zip(all_segments, all_midpoints, counts):
         if distance(*segment) < min_seg_len:
             continue
         if count == 1:
@@ -2323,7 +2323,9 @@ def polyline_length(
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     dist_tol2 = dist_tol * dist_tol
-    if closed and not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
+    if closed and not close_points_square(
+        polygon[0], polygon[-1], dist2=dist_tol2
+    ):
         polygon = polygon[:]
         polygon.append(polygon[0])
     perimeter = 0

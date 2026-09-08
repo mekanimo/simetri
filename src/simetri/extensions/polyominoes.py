@@ -1,6 +1,5 @@
 """Generate free, fixed, and chiral polyominoes as cell centers or Figures."""
 
-import simetri.geom.polygons.polygon_utils
 import simetri.graphics as sg
 from simetri.shapes.figure import Figure
 
@@ -29,8 +28,8 @@ def generate_centers(n, polyo_type="free"):
 
     def canonical(poly):
         # Shift coordinates to start at the origin (0, 0)
-        min_x = min(x for x, y in poly)
-        min_y = min(y for x, y in poly)
+        min_x = min(x for x, _ in poly)
+        min_y = min(y for _, y in poly)
         normalized = tuple(sorted((x - min_x, y - min_y) for x, y in poly))
 
         # Track all valid variations based on the polyomino type
@@ -50,8 +49,8 @@ def generate_centers(n, polyo_type="free"):
 
         # Helper to re-normalize a transformed shape back to the origin
         def normalize_variant(p_set):
-            mx = min(x for x, y in p_set)
-            my = min(y for x, y in p_set)
+            mx = min(x for x, _ in p_set)
+            my = min(y for _, y in p_set)
             return tuple(sorted((x - mx, y - my) for x, y in p_set))
 
         # 2. Chiral: 4 rotations allowed, no reflections
@@ -116,8 +115,8 @@ def iter_centers(n, polyo_type="free"):
         raise ValueError(f"polyo_type must be one of {valid_types}")
 
     def canonical(poly):
-        min_x = min(x for x, y in poly)
-        min_y = min(y for x, y in poly)
+        min_x = min(x for x, _ in poly)
+        min_y = min(y for _, y in poly)
         normalized = tuple(sorted((x - min_x, y - min_y) for x, y in poly))
 
         variants = [normalized]
@@ -132,8 +131,8 @@ def iter_centers(n, polyo_type="free"):
             return tuple((-x, y) for x, y in p_set)
 
         def normalize_variant(p_set):
-            min_x = min(x for x, y in p_set)
-            min_y = min(y for x, y in p_set)
+            min_x = min(x for x, _ in p_set)
+            min_y = min(y for _, y in p_set)
             return tuple(sorted((x - min_x, y - min_y) for x, y in p_set))
 
         current = normalized

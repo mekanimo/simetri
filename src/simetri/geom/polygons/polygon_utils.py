@@ -7,12 +7,15 @@ import numpy as np
 
 from simetri.base.all_enums import Connection
 from simetri.base.common import PointType, get_defaults
-from simetri.geom.points.point_utils import close_points_square, remove_bad_points
+from simetri.geom.points.point_utils import (
+    close_points_square,
+    remove_bad_points,
+)
 from simetri.geom.segments.line_utils import (
     intersection,
     check_intersection,
 )
-from simetri.geom.vectors import cross_product_sense3, distance, sin
+from simetri.geom.vectors import cross_product_sense3, distance
 from simetri.helpers.utilities import reg_poly_points
 from simetri.config.settings import defaults
 
@@ -165,28 +168,23 @@ def get_polygon_grid_point(n, line1, line2, circumradius=100):
     """Return the intersection of two chords of a regular polygon.
 
     ``line1`` and ``line2`` are index pairs into the polygon vertices.
-    The body calls ``reg_poly_points`` with four arguments, so a call
-    currently raises ``TypeError``.
+    The polygon is centered at the origin with the given circumradius.
 
     Args:
         n (int): Number of sides.
         line1: ``(start_index, end_index)`` of the first chord.
         line2: ``(start_index, end_index)`` of the second chord.
-        circumradius (float, optional): Intended circumradius. Defaults to 100.
+        circumradius (float, optional): Circumradius. Defaults to 100.
 
     Returns:
-        PointType: Intersection of the two chords. Not reached.
-
-    Raises:
-        TypeError: ``reg_poly_points`` does not accept the arguments passed.
+        PointType: Intersection of the two chords.
 
     Examples:
-        >>> import simetri.graphics as sg
         >>> from simetri.geom.polygons.polygon_utils import get_polygon_grid_point
-        >>> get_polygon_grid_point(4, (0, 1), (1, 2))
-        Traceback (most recent call last):
-            ...
-        TypeError: reg_poly_points() takes 3 positional arguments but 4 were given
+        >>> get_polygon_grid_point(4, (0, 2), (1, 3))
+        (0.0, 0.0)
+        >>> get_polygon_grid_point(4, (0, 1), (1, 2), circumradius=100)[1]
+        100.0
     """
     s = circumradius * 2 * sin(pi / n)  # side length
     points = reg_poly_points(0, 0, n, s)[:-1]
@@ -274,26 +272,21 @@ def is_convex(points):
     """Return True if the polygon is convex.
 
     This calls ``remove_bad_points``, which removes collinear and
-    repeated points from ``points`` in place. A non-collinear turn
-    currently raises ``NameError`` because ``cross_product_sense3``
-    refers to undefined ``length``.
+    repeated points from ``points`` in place. The polygon is convex when
+    every turn has the same sense.
 
     Args:
         points (list[PointType]): Polygon vertices (mutated).
 
     Returns:
-        bool: True if every turn has the same sense. Not reached for a
-        polygon with a real turn.
-
-    Raises:
-        NameError: ``length`` is not defined in ``cross_product_sense3``.
+        bool: True if every turn has the same sense.
 
     Examples:
         >>> from simetri.geom.polygons.polygon_utils import is_convex
         >>> is_convex([(0, 0), (1, 0), (1, 1), (0, 1)])
-        Traceback (most recent call last):
-            ...
-        NameError: name 'length' is not defined
+        True
+        >>> is_convex([(0, 0), (3, 0), (1, 1), (0, 3)])
+        False
     """
     points = remove_bad_points(points)
     n_checks = len(points)
