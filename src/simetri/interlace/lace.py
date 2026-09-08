@@ -1878,7 +1878,6 @@ class Lace(Group):
                     ParallelPolyline(
                         polyline,
                         self.offset,
-                        lace=self,
                         closed=polyline.closed,
                         dist_tol=defaults["dist_tol"],
                     )
