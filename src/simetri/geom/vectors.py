@@ -1421,13 +1421,8 @@ def cross_product_sense3(a: PointType, b: PointType, c: PointType) -> int:
         >>> sg.cross_product_sense3((0, 1), (0, 0), (1, 0))
         -1
     """
-    length_ = cross_product3(a, b, c)
-    if length_ == 0:
-        res = 1
-    else:
-        res = length_ / abs(length)
-
-    return res
+    cross_product = cross_product3(a, b, c)
+    return 1 if cross_product >= 0 else -1
 
 
 #      A

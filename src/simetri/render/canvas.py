@@ -44,11 +44,11 @@ from simetri.base.all_enums import (
 from simetri.group.batch import Group
 from simetri.geom.bbox import bounding_box
 from simetri.base.common import (
-    VOID,
     PointType,
     VecType,
     _set_Nones,
 )
+from simetri.config.settings import VOID
 from simetri.shapes.shape import Shape
 from simetri.render.sketch import MaskedSketch
 from simetri.helpers.file_operations import validate_filepath

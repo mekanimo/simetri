@@ -34,11 +34,10 @@ from ...base.common import (
     get_unique_id,
 )
 from ...config.settings import defaults, issue_warning
+from ..geom_utils import close_points_square, midpoint
 from ..points.point_utils import (
-    close_points_square,
     distance,
     left3,
-    midpoint,
     on_segment,
     round_point,
 )

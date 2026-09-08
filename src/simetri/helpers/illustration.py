@@ -23,7 +23,8 @@ from ..geom.geometry import (
     polar_to_cartesian,
 )
 from ..geom.segments.line_utils import line_by_point_angle_length
-from ..geom.points.point_utils import distance, midpoint
+from ..geom.geom_utils import midpoint
+from ..geom.points.point_utils import distance
 from ..geom.segments.line_utils import extended_line, line_angle
 from ..geom.vectors import Vector, perp_unit_vector, v_from_points
 from ..geom.affine import identity_matrix
@@ -393,7 +394,7 @@ def get_image_dimensions_from_pdf_pages(pdf_path):
             page = doc.load_page(page_num)
             image_list = page.get_images(full=True)
 
-            for img_index, img_info in enumerate(image_list):
+            for _, img_info in enumerate(image_list):
                 xref = img_info[0]
                 base_image = doc.extract_image(xref)
 
@@ -715,16 +716,6 @@ class Tag(Base, StyleMixin):
         Returns:
             tuple: The bounds of the text (xmin, ymin, xmax, ymax).
         """
-        d_font_size = {
-            FontSize.TINY: 5,
-            FontSize.SMALL: 7,
-            FontSize.NORMAL: 10,
-            FontSize.LARGE: 12,
-            FontSize.LARGE2: 14,
-            FontSize.LARGE3: 17,
-            FontSize.HUGE: 20,
-            FontSize.HUGE2: 25,
-        }
         if self.font_size is None:
             font_size = defaults["font_size"]
         elif type(self.font_size) in [int, float]:

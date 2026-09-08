@@ -14,7 +14,7 @@ import numpy as np
 
 from ..render.style_map import shape_args
 from ..coloring.colors import Color
-from ..geom.points.point_utils import close_points_square
+from ..geom.geom_utils import close_points_square
 from ..helpers.validation import validate_args
 from ..config.settings import defaults
 from ..base.all_enums import Types

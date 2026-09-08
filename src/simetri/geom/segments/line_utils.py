@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from functools import cmp_to_key
+from itertools import cycle
 from math import acos, atan2, cos, isclose, pi, sin, tan
 
 import numpy as np
@@ -9,6 +10,7 @@ from numpy import array
 
 from simetri.base.all_enums import Connection, Types
 from simetri.base.common import LineType, PointType, get_defaults
+from simetri.config.settings import defaults
 from simetri.geom.geometry import (
     positive_angle,
 )
@@ -39,7 +41,7 @@ from simetri.geom.vectors import (
     v_from_points,
     v_mul,
 )
-from simetri.config.settings import defaults
+from simetri.helpers.validation import is_point
 
 
 def equal_edges(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
@@ -1980,19 +1982,15 @@ class Edge:
         Raises:
             TypeError: If either endpoint is not a point or ``Vertex``.
         """
-        if isinstance(start_point, PointType):
+        if is_point(start_point):
             start = Vertex(*start_point)
-        elif isinstance(end_point, Vertex):
-            start = start_point
         else:
             raise TypeError(
                 "Start point should be a PointType or Vertex instance."
             )
 
-        if isinstance(end_point, PointType):
+        if is_point(end_point):
             end = Vertex(*end_point)
-        elif isinstance(end_point, Vertex):
-            end = end_point
         else:
             raise TypeError(
                 "End point should be a PointType or Vertex instance."

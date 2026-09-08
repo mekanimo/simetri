@@ -7,7 +7,7 @@ import numpy as np
 
 import simetri.graphics as sg
 
-from ...geom.points.point_utils import close_points_square
+from ...geom.geom_utils import close_points_square
 from ...base.all_enums import (
     Align,
     Anchor,

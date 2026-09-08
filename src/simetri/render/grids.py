@@ -17,7 +17,7 @@ from ..geom.segments.line_utils import intersect
 from ..group.batch import Group
 from ..base.common import PointType
 from ..shapes.shape import Shape
-from ..helpers.utilities import reg_poly_points
+from ..geom.geom_utils import reg_poly_points
 
 d_grid_types = {
     GridType.CIRCULAR: Types.CIRCULAR_GRID,

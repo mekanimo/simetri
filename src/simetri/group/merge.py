@@ -129,7 +129,8 @@ def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
     Args:
         _bin: List of ``(angle, edge)`` pairs in one angle bucket.
         d_node_coord: Map from node id to coordinates.
-        d_coord_node: Map from coordinates to node id (unused; kept for callers).
+        d_coord_node: Map from coordinates to node id. Result points are the
+            coordinates stored for those nodes.
 
     Returns:
         list: Merged segments as ``(start, end)`` point pairs, or single points
@@ -141,6 +142,10 @@ def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
         start, end = edge
         node_adjacency.setdefault(start, set()).add(end)
         node_adjacency.setdefault(end, set()).add(start)
+
+    def _coord(node):
+        coord = d_node_coord[node]
+        return d_node_coord[d_coord_node[coord]]
 
     res = []
     unvisited_nodes = set(node_adjacency)
@@ -158,7 +163,7 @@ def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
 
         if len(component_nodes) == 1:
             node = component_nodes.pop()
-            res.append(d_node_coord[node])
+            res.append(_coord(node))
         elif 45 < incl_angle < 135:
             start_node = min(
                 component_nodes, key=lambda node: d_node_coord[node][1]
@@ -166,13 +171,13 @@ def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
             end_node = max(
                 component_nodes, key=lambda node: d_node_coord[node][1]
             )
-            res.append((d_node_coord[start_node], d_node_coord[end_node]))
+            res.append((_coord(start_node), _coord(end_node)))
         else:
             start_node = min(
                 component_nodes, key=lambda node: d_node_coord[node]
             )
             end_node = max(component_nodes, key=lambda node: d_node_coord[node])
-            res.append((d_node_coord[start_node], d_node_coord[end_node]))
+            res.append((_coord(start_node), _coord(end_node)))
 
     return res
 

@@ -20,11 +20,10 @@ from numpy import isclose
 
 from ..render.style_map import shape_style_map
 from ..coloring import colors
-from ..geom.points.point_utils import close_points_square, distance, round_point
+from ..geom.geom_utils import close_points_square
+from ..geom.points.point_utils import distance, round_point
 from ..geom.polygons.convex_hull import convex_hull
-from ..geom.geometry import (
-    connected_pairs,
-)
+from ..geom.geom_utils import connected_pairs
 from ..geom.points.point_utils import lerp_point
 from ..geom.polygons.poly import get_polygons
 from ..geom.polygons.polygon import (
@@ -1469,19 +1468,19 @@ class Lace(Group):
         """Return a lightweight Group copy of plaits and fragments.
 
         Args:
-            **kwargs: Accepted for API compatibility; unused.
+            **kwargs: Attribute overrides applied to the copy.
 
         Returns:
             Group: Group containing copies of plaits and fragments.
         """
-        # class Dummy(Lace):
-        #     pass
-
-        # we need to copy the polyline_list and parallel_poly_list
         plaits = self.plaits[:]
         fragments = self.fragments[:]
+        group = Group(plaits + fragments)
+        for key, value in kwargs.items():
+            setattr(group, key, value)
+            group.set_attribs(key, value)
 
-        return Group(plaits + fragments)
+        return group
 
     def get_sketch(self):
         """

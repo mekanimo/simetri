@@ -1,12 +1,8 @@
 """Point utilities: distance, rounding, midpoints, and related helpers."""
 
-from collections.abc import Sequence
 from math import atan2, hypot, isclose, sqrt
-from typing import Any
-
 import numpy as np
 from numpy import array
-from numpy.typing import NDArray
 
 from simetri.base.all_enums import Types
 from simetri.base.common import LineType, PointType, get_defaults

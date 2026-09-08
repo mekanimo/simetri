@@ -15,7 +15,7 @@ Examples:
 
 from math import cos, pi, sqrt
 
-from ..geom.points.point_utils import midpoint
+from ..geom.geom_utils import midpoint
 from ..geom.segments.line_utils import line_through_point_and_angle
 from ..group.batch import Group
 from ..base.common import LineType, PointType, VecType

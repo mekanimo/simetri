@@ -6,6 +6,7 @@ import cmath
 import collections
 import inspect
 import os
+import sys
 import random
 import re
 import string
@@ -13,7 +14,7 @@ from bisect import bisect_left
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from functools import cmp_to_key, reduce, wraps
-from math import atan2, ceil, cos, factorial, floor, pi, sin, sqrt, isclose
+from math import atan2, ceil, cos, factorial, floor, sin, sqrt, isclose
 from pathlib import Path
 from time import monotonic, perf_counter, sleep, time
 
@@ -21,7 +22,7 @@ import numpy as np
 from numpy import array, ndarray
 from PIL import ImageFont
 
-from ..base.common import LineType, PointType, get_defaults
+from ..base.common import LineType, PointType
 from ..config.settings import (
     _print_options,
     defaults,
@@ -39,6 +40,14 @@ def print_options(**kwargs):
 
     Yields:
         None: Control returns to the caller with options applied.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> with sg.print_options(precision=2):
+        ...     sg.format_data(1 / 3)
+        '0.33'
+        >>> sg.format_data(1 / 3)
+        '0.3333'
     """
     # Save the current state
     old_options = _print_options.copy()
@@ -60,6 +69,13 @@ def format_data(data):
 
     Returns:
         str: Formatted representation.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.format_data(1 / 3)
+        '0.3333'
+        >>> sg.format_data((1.0, 2.5))
+        '(1.0000, 2.5000)'
     """
     # Get current formatting options
     precision = _print_options["precision"]
@@ -95,6 +111,11 @@ def p_print(*data):
 
     Args:
         *data: Values to print.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.p_print(1 / 3)
+        0.3333
     """
     output = " ".join(format_data(item) for item in data)
     print(output)
@@ -141,8 +162,8 @@ def get_cell_pos(
             when not given.
         bot_margin: Offset of the grid from the bottom when
             ``from_bottom_left=True``. Defaults to ``margin`` when not given.
-        right_margin: Offset of the grid from the right. Defaults to ``margin``
-            when not given (not used for cell-center placement).
+        right_margin: Right inset. With the other side margins, rejects
+            ``margin`` together with all four per-side margins.
         top_margin: Offset of the grid from the top when
             ``from_bottom_left=False``. Defaults to ``margin`` when not given.
         from_bottom_left: If True, index 0 is the bottom-left cell and rows
@@ -156,6 +177,13 @@ def get_cell_pos(
         ValueError: If ``gap`` is passed together with ``horiz_gap`` or
             ``vert_gap``, or if ``margin`` is passed together with all four
             per-side margins.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.get_cell_pos(0, 3, 10, 20)
+        (5.0, 10.0)
+        >>> sg.get_cell_pos(1, 2, 10, 10)
+        (15.0, 5.0)
     """
 
     return get_cell_position(
@@ -215,8 +243,8 @@ def get_cell_position(
             when not given.
         bot_margin: Offset of the grid from the bottom when
             ``from_bottom_left=True``. Defaults to ``margin`` when not given.
-        right_margin: Offset of the grid from the right. Defaults to ``margin``
-            when not given (not used for cell-center placement).
+        right_margin: Right inset. With the other side margins, rejects
+            ``margin`` together with all four per-side margins.
         top_margin: Offset of the grid from the top when
             ``from_bottom_left=False``. Defaults to ``margin`` when not given.
         from_bottom_left: If True, index 0 is the bottom-left cell and rows
@@ -230,6 +258,15 @@ def get_cell_position(
         ValueError: If ``gap`` is passed together with ``horiz_gap`` or
             ``vert_gap``, or if ``margin`` is passed together with all four
             per-side margins.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.get_cell_position(0, 3, 10, 20)
+        (5.0, 10.0)
+        >>> sg.get_cell_position(3, 3, 10, 20)
+        (5.0, 30.0)
+        >>> sg.get_cell_position(0, 3, 10, 20, from_bottom_left=False)
+        (5.0, -10.0)
     """
 
     row = index // n_columns
@@ -265,8 +302,6 @@ def get_cell_position(
         left_margin = margin
     if bot_margin is None:
         bot_margin = margin
-    if right_margin is None:
-        right_margin = margin
     if top_margin is None:
         top_margin = margin
 
@@ -302,6 +337,13 @@ def all_cells_connected(
         True when all given cells form a single connected component (including
         when the set is empty or has one cell); False when the cells form two
         or more separate groups.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.all_cells_connected(range(9), 3, 3, diagonal_neighbors=False)
+        True
+        >>> sg.all_cells_connected([0, 1, 8], 3, 3, diagonal_neighbors=False)
+        False
     """
 
     def connected(
@@ -349,15 +391,12 @@ def get_island_cells(
     all_cells: Sequence[Sequence],
     empty=None,
     diagonal_neighbors: bool = True,
-    from_bottom_left: bool = True,
 ) -> tuple[tuple, tuple]:
     """Return values and indices of non-empty cells connected to the start cell.
 
-    ``all_cells`` is a rectangular grid stored row by row. With
-    ``from_bottom_left=True``, ``all_cells[0]`` is the bottom row and index 0
-    is the bottom-left cell. With ``from_bottom_left=False``, ``all_cells[0]``
-    is the top row and index 0 is the top-left cell. Indexing is row-major in
-    both cases.
+    ``all_cells`` is a rectangular grid stored row by row. Index 0 is
+    ``all_cells[0][0]``. Whether that row is the bottom or the top is
+    decided by how the caller builds the grid.
 
     Args:
         starting_cell_index: Linear index of the cell to grow the island from.
@@ -366,8 +405,6 @@ def get_island_cells(
             is empty. Pass a collection to mark several values as empty.
         diagonal_neighbors: If True, cells sharing a corner are neighbors. If
             False, only edge-adjacent cells are neighbors.
-        from_bottom_left: If True, row 0 is the bottom row; if False, row 0
-            is the top row (see above).
 
     Returns:
         ``(values, indices)`` — parallel tuples of connected non-empty cell
@@ -375,17 +412,14 @@ def get_island_cells(
         empty, both tuples are empty.
 
     Examples:
-        Grid ``((2, 3, None), (5, None, 6), (7, None, 4))`` with bottom row
-        ``(2, 3, None)`` and edge-only neighbors::
-
-            get_island_cells(0, grid, diagonal_neighbors=False)
-            # ((2, 3, 5, 7), (0, 1, 3, 6))
-            get_island_cells(8, grid, diagonal_neighbors=False)
-            # ((4, 6), (8, 5))
-            get_island_cells(7, grid)  # ((), ())  — start cell is empty
-
-        With ``diagonal_neighbors=True``, corner-adjacent cells are included
-        and this example grid becomes one connected island.
+        >>> import simetri.graphics as sg
+        >>> grid = ((2, 3, None), (5, None, 6), (7, None, 4))
+        >>> sg.get_island_cells(0, grid, diagonal_neighbors=False)
+        ((2, 5, 7, 3), (0, 3, 6, 1))
+        >>> sg.get_island_cells(8, grid, diagonal_neighbors=False)
+        ((4, 6), (8, 5))
+        >>> sg.get_island_cells(7, grid)
+        ((), ())
     """
     n_rows = len(all_cells)
     if n_rows == 0:
@@ -449,8 +483,24 @@ def get_island_cells(
 
 
 def sort_points(points):
-    """Given a list of points returns sorted points by their
-    x and y coords."""
+    """Return a new list of points sorted by x, then y.
+
+    Args:
+        points: Points to sort.
+
+    Returns:
+        list: Points in sorted order.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.sort_points([(2, 1), (1, 0), (1, 2)])
+        [(1, 0), (1, 2), (2, 1)]
+        >>> pts = [(2, 1), (0, 0)]
+        >>> sg.sort_points(pts)
+        [(0, 0), (2, 1)]
+        >>> pts
+        [(2, 1), (0, 0)]
+    """
     return sorted(points, key=lambda p: (p[0], p[1]))
 
 
@@ -477,9 +527,25 @@ def time_it(func):
 
 
 def round_symmetric(n, inc):
-    """Rounds the given number to the given increment.
-    For positive numbers the number is rounded up and for negative
-    numbers the number is rounded down."""
+    """Round ``n`` to a multiple of ``inc``.
+
+    Positive numbers round away from zero. Negative numbers round
+    away from zero.
+
+    Args:
+        n: Number to round.
+        inc: Increment.
+
+    Returns:
+        The rounded number.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.round_symmetric(3.1, 2)
+        4
+        >>> sg.round_symmetric(-3.1, 2)
+        -4
+    """
     if n >= 0:
         return ceil(n / inc) * inc
     else:
@@ -490,7 +556,7 @@ def close_logger(logger):
     """Close the logger and remove all handlers.
 
     Args:
-        logger: The logger instance to close.
+        logger (mutated): Logger whose handlers are closed and removed.
     """
     for handler in logger.handlers:
         handler.close()
@@ -545,8 +611,8 @@ def remove_file_handler(logger, handler):
     """Remove a handler from a logger.
 
     Args:
-        logger: The logger instance.
-        handler: The handler to remove.
+        logger (mutated): Logger to remove the handler from.
+        handler: Handler to close and remove.
     """
     logger.removeHandler(handler)
     handler.close()
@@ -560,6 +626,13 @@ def pretty_print_coords(coords: Sequence[PointType]) -> str:
 
     Returns:
         A string representation of the coordinates.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.pretty_print_coords([(1, 2), (3.14159, 0)])
+        '((1.00, 2.00), (3.14, 0.00))'
+        >>> sg.pretty_print_coords([(0, 0)])
+        '((0.00, 0.00))'
     """
     return (
         "("
@@ -614,8 +687,9 @@ def wait_for_file_availability(file_path, timeout=None, check_interval=1):
 def random_characters(
     n=4, lower=True, upper=True, digit=False, exclude_chars=None
 ):
-    """Returns n random letters/digits as a string.
-    Default is all letters and digits.
+    """Return ``n`` random letters or digits as a string.
+
+    Defaults are lowercase and uppercase letters, no digits.
     exclude_chars is a list of characters to be excluded.
     Usually l, 0, O are not desirable in variable names.
     Usually used for creating unique names.
@@ -637,6 +711,16 @@ def random_characters(
     n = 6: 2176782336 unique lowercase or uppercase words and digits
     n = 6: 56800235584 unique mixed-case words and digits
 
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> excluded = ["l"]
+        >>> token = sg.random_characters(
+        ...     4, lower=True, upper=False, digit=False, exclude_chars=excluded
+        ... )
+        >>> len(token) == 4 and token.isalpha() and token.islower() and "l" not in token
+        True
+        >>> excluded
+        ['l']
     """
     letters = string.ascii_letters
     uppers = string.ascii_uppercase
@@ -679,6 +763,13 @@ def detokenize(text: str) -> str:
 
     Returns:
         The detokenized text.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.detokenize("a_b & c") == "a\\_b \\& c"
+        True
+        >>> sg.detokenize("a $b_c$ d")
+        'a $b_c$ d'
     """
     replacements = {
         "\\": r"\textbackslash ",
@@ -730,20 +821,20 @@ def get_text_dimensions(text, font_path, font_size):
 
 
 def function_module(func):
-    """Return the module name associated with a function.
+    """Return the module name of ``func``.
 
     Args:
         func: Function whose module is requested.
 
     Returns:
-        str: Module name string.
+        str: Module name of ``func``.
 
-    Note:
-        Current implementation inspects ``os.path.join`` rather than ``func``.
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.function_module(sg.function_module)
+        'simetri.helpers.utilities'
     """
-    mod = inspect.getmodule(os.path.join)
-
-    return mod.__name__
+    return inspect.getmodule(func).__name__
 
 
 def timing(func):
@@ -781,7 +872,13 @@ def grid_positions(
 ) -> Generator[PointType]:
     """Given number of rows and columns and row height and
     column width and an origin point, returns a generator of grid positions. If from_top_left is False then it starts from
-    bottom right."""
+    bottom right.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> list(sg.grid_positions(2, 2, 10, 10, (0, 0), page_height=100))
+        [(0, 100), (10, 100), (0, 90), (10, 90)]
+    """
 
     width, height = cell_width, cell_height
     x, y = pos[:2]
@@ -819,6 +916,11 @@ def find_nearest_value(values: array, value: float) -> float:
 
     Returns:
         The closest value in the array to the given number.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.find_nearest_value([1, 4, 9], 5)
+        4
     """
     arr = np.asarray(values)
     idx = (np.abs(arr - value)).argmin()
@@ -834,6 +936,11 @@ def nested_count(nested_sequence):
 
     Returns:
         The total number of items in the nested sequence.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.nested_count([1, [2, 3], (4,)])
+        4
     """
     return sum(
         nested_count(item) if isinstance(item, (list, tuple, ndarray)) else 1
@@ -849,6 +956,14 @@ def decompose_transformations(transformation_matrix):
 
     Returns:
         A tuple containing the translation, rotation, and scale components.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> matrix = np.array([[1.0, 0, 0], [0, 1.0, 0], [3.0, 4.0, 1.0]])
+        >>> translation, rotation, scale = sg.decompose_transformations(matrix)
+        >>> list(translation), float(rotation), (float(scale[0]), float(scale[1]))
+        ([3.0, 4.0], 0.0, (1.0, 1.0))
     """
     xform = transformation_matrix
     translation = xform[2, :2]
@@ -900,6 +1015,11 @@ def analyze_path(file_path, overwrite):
 
     Returns:
         A tuple containing a boolean indicating validity, the file extension, and an error message.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.analyze_path("notes.txt", True)
+        (False, 'Error! Only .pdf, .svg, .ps, .eps, .tex supported.', '')
     """
     supported_types = (".pdf", ".svg", ".ps", ".eps", ".tex")
     error_msg = ""
@@ -966,6 +1086,13 @@ def can_be_xform_matrix(seq):
 
     Returns:
         True if the sequence can be converted to a transformation matrix, False otherwise.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.can_be_xform_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        True
+        >>> sg.can_be_xform_matrix([1, 2, 3])
+        False
     """
     # check if it is a sequence that can be
     # converted to a transformation matrix
@@ -984,8 +1111,18 @@ def is_sequence(value):
 
     Returns:
         True if the value is a sequence, False otherwise.
+        Strings are not sequences for this check.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.is_sequence([1, 2])
+        True
+        >>> sg.is_sequence((1, 2))
+        True
+        >>> sg.is_sequence("ab")
+        False
     """
-    return isinstance(value, (list, tuple, array))
+    return isinstance(value, (list, tuple, ndarray))
 
 
 def rel_coord(dx: float, dy: float, center: PointType) -> PointType:
@@ -998,6 +1135,11 @@ def rel_coord(dx: float, dy: float, center: PointType) -> PointType:
 
     Returns:
         The relative coordinates.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rel_coord(2, 3, (10, 20))
+        (12, 23)
     """
     return dx + center[0], dy + center[1]
 
@@ -1012,6 +1154,11 @@ def rel_polar(r: float, angle: float, center: PointType) -> PointType:
 
     Returns:
         The coordinates.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rel_polar(2, 0, (1, 1))
+        (3.0, 1.0)
     """
     x, y = center[:2]
     x1 = x + r * cos(angle)
@@ -1033,6 +1180,11 @@ def axis(angle: float, length: float = 10) -> LineType:
 
     Returns:
         A line represented as a tuple of two points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.axis(0, 10)
+        ((5.0, 0.0), (-5.0, -0.0))
     """
     length2 = length / 2
     x1 = cos(angle) * length2
@@ -1051,6 +1203,11 @@ def flatten(points):
 
     Returns:
         A flattened list of points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.flatten([(1, 2), (3, 4)])
+        [1, 2, 3, 4]
     """
     if isinstance(points, set):
         points = list(points)
@@ -1078,14 +1235,23 @@ def find_closest_value(a_sorted_list, value):
 
     Returns:
         A tuple containing the closest value and its index.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.find_closest_value([1, 3, 8], 4)
+        (3, 1)
+        >>> sg.find_closest_value([1, 3, 8], 0)
+        (1, 0)
+        >>> sg.find_closest_value([1, 3, 8], 9)
+        (8, 2)
     """
     ind = bisect_left(a_sorted_list, value)
 
     if ind == 0:
-        return a_sorted_list[0]
+        return a_sorted_list[0], 0
 
     if ind == len(a_sorted_list):
-        return a_sorted_list[-1]
+        return a_sorted_list[-1], len(a_sorted_list) - 1
 
     left = a_sorted_list[ind - 1]
     right = a_sorted_list[ind]
@@ -1104,6 +1270,11 @@ def value_from_intervals(value, values, intervals):
         intervals: The intervals to search.
     Returns:
         The value from the intervals.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.value_from_intervals(2.5, ["a", "b", "c"], [1, 3, 5])
+        'b'
     """
 
     return values[bisect_left(intervals, value)]
@@ -1117,6 +1288,11 @@ def get_transform(transform):
 
     Returns:
         The transformation matrix.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.get_transform(None).tolist()
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
     """
     if transform is None:
         # return identity
@@ -1139,6 +1315,14 @@ def is_numeric_numpy_array(array_):
 
     Returns:
         True if the array is numeric, False otherwise.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> sg.is_numeric_numpy_array(np.array([1.0, 2.0]))
+        True
+        >>> sg.is_numeric_numpy_array([1, 2])
+        False
     """
     if not isinstance(array_, np.ndarray):
         return False
@@ -1163,6 +1347,14 @@ def is_xform_matrix(matrix):
 
     Returns:
         True if the matrix is a 3x3 transformation matrix, False otherwise.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> sg.is_xform_matrix(np.eye(3))
+        True
+        >>> sg.is_xform_matrix(np.eye(2))
+        False
     """
     return (
         is_numeric_numpy_array(matrix)
@@ -1179,6 +1371,13 @@ def prime_factors(n):
 
     Returns:
         list: Prime factors of ``n`` (with multiplicity).
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.prime_factors(12)
+        [2, 2, 3]
+        >>> sg.prime_factors(1)
+        []
     """
     factors = []
     p = 2
@@ -1201,6 +1400,11 @@ def random_id():
 
     Returns:
         A random ID string.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> isinstance(sg.random_id(), str) and len(sg.random_id()) > 0
+        True
     """
     return base64.b64encode(os.urandom(6)).decode("ascii")
 
@@ -1213,6 +1417,11 @@ def decompose_svg_transform(transform):
 
     Returns:
         A tuple containing the decomposed transformation components.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.decompose_svg_transform((1, 0, 0, 1, 3, 4))
+        (3, 4, 1.0, 1.0, 0.0)
     """
     a, b, c, d, e, f = transform
     # [[a, c, e],
@@ -1237,6 +1446,12 @@ def abcdef_svg(transform_matrix):
 
     Returns:
         A tuple containing the a, b, c, d, e, f components.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> sg.abcdef_svg(np.eye(3))
+        (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
     """
     # [[a, c, e],
     #  [b, d, f],
@@ -1253,6 +1468,13 @@ def abcdef_pil(xform_matrix):
 
     Returns:
         A tuple containing the a, b, c, d, e, f components.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> matrix = np.array([[1.0, 0, 0], [0, 1.0, 0], [3.0, 4.0, 1.0]])
+        >>> sg.abcdef_pil(matrix)
+        (1.0, 0.0, 3.0, 0.0, 1.0, 4.0)
     """
     a, d, _, b, e, _, c, f, _ = list(xform_matrix.flat)
     return (a, b, c, d, e, f)
@@ -1266,6 +1488,13 @@ def abcdef_reportlab(xform_matrix):
 
     Returns:
         A tuple containing the a, b, c, d, e, f components.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> matrix = np.array([[1.0, 0, 0], [0, 1.0, 0], [3.0, 4.0, 1.0]])
+        >>> sg.abcdef_reportlab(matrix)
+        (1.0, 0.0, 0.0, 1.0, 3.0, 4.0)
     """
     # a, b, _, c, d, _, e, f, _ = list(np.transpose(xform_matrix).flat)
     a, b, _, c, d, _, e, f, _ = list(xform_matrix.flat)
@@ -1282,6 +1511,11 @@ def lerp(start, end, t):
 
     Returns:
         The interpolated value.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.lerp(0, 10, 0.5)
+        5.0
     """
     return start + t * (end - start)
 
@@ -1296,6 +1530,11 @@ def inv_lerp(start, end, value):
 
     Returns:
         The interpolation factor (0 <= t <= 1).
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.inv_lerp(0, 10, 4)
+        0.4
     """
     return (value - start) / (end - start)
 
@@ -1309,6 +1548,11 @@ def zip_points(points1, points2):
 
     Returns:
         list: Alternating points from ``points1`` and ``points2``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.zip_points([(0, 0)], [(1, 1)])
+        [(0, 0), (1, 1)]
     """
     res = []
     zipped = list(zip(points1, points2))
@@ -1327,6 +1571,11 @@ def flatten2(nested_list):
 
     Yields:
         The flattened elements.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> list(sg.flatten2([1, [2, (3, 4)]]))
+        [1, 2, 3, 4]
     """
     for i in nested_list:
         if isinstance(i, (list, tuple)):
@@ -1344,6 +1593,13 @@ def round2(n: float, cutoff: int = 25) -> int:
 
     Returns:
         The rounded number.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.round2(30)
+        25
+        >>> sg.round2(10)
+        0
     """
     return cutoff * round(n / cutoff)
 
@@ -1356,6 +1612,13 @@ def is_nested_sequence(value):
 
     Returns:
         True if the value is a nested sequence, False otherwise.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.is_nested_sequence([(1, 2), [3, 4]])
+        True
+        >>> sg.is_nested_sequence([1, 2])
+        False
     """
     if not isinstance(value, (list, tuple, ndarray)):
         return False  # Not a sequence
@@ -1377,6 +1640,16 @@ def group_into_bins(values, delta, compare_function=None, with_objects=True):
 
     Returns:
         A list of bins.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> values = [10, 1, 2]
+        >>> sg.group_into_bins(values, 2, with_objects=False)
+        [[1, 2], [10]]
+        >>> values
+        [10, 1, 2]
+        >>> sg.group_into_bins([(1, "a"), (2, "b"), (10, "c")], 2)
+        [[(1, 'a'), (2, 'b')], [(10, 'c')]]
     """
     if compare_function:
         values = sorted(values, key=cmp_to_key(compare_function))
@@ -1417,6 +1690,18 @@ def equal_cycles(
 
     Returns:
         True if the cycles are circularly equal, False otherwise.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> cycle = [1.0, 2.0, 3.0]
+        >>> sg.equal_cycles(cycle, [3.0, 1.0, 2.0], rel_tol=0, abs_tol=1e-9)
+        True
+        >>> cycle
+        [1.0, 2.0, 3.0]
+        >>> sg.equal_cycles([1.0, 2.0], [1.0, 3.0], rel_tol=0, abs_tol=1e-9)
+        False
+        >>> sg.equal_cycles([1.0, 2.0, 3.0], [3.0, 1.0, 2.0])
+        True
     """
     if rel_tol is None:
         rel_tol = defaults["rel_tol"]
@@ -1461,6 +1746,11 @@ def map_ranges(
 
     Returns:
         The mapped value.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.map_ranges(5, 0, 10, 0, 100)
+        50.0
     """
     delta1 = range1_max - range1_min
     delta2 = range2_max - range2_min
@@ -1476,6 +1766,11 @@ def binomial(n: int, k: int) -> int:
 
     Returns:
         The binomial coefficient.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.binomial(5, 2)
+        10
     """
     if k == 0:
         res = 1
@@ -1494,6 +1789,11 @@ def n_permutations(n: int, k: int) -> int:
 
     Returns:
         The number of nPk permutations.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.n_permutations(5, 2)
+        20
     """
 
     return int(factorial(n) / factorial(n - k))
@@ -1507,32 +1807,19 @@ def catalan(n):
 
     Returns:
         The nth Catalan number.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.catalan(0)
+        1
+        >>> sg.catalan(3)
+        5.0
     """
     if n <= 1:
         res = 1
     else:
         res = factorial(2 * n) / (factorial(n + 1) * factorial(n))
     return res
-
-
-def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
-    """Return a regular polygon points list with n sides, r radius, and pos center.
-
-    Args:
-        pos: The center position of the polygon.
-        n: The number of sides.
-        r: The radius.
-
-    Returns:
-        A sequence of points representing the polygon.
-    """
-    angle = 2 * pi / n
-    x, y = pos[:2]
-    points = [
-        [cos(angle * i) * r + x, sin(angle * i) * r + y] for i in range(n)
-    ]
-    points.append(points[0])
-    return points
 
 
 def solve_quadratic_eq(a, b, c, abs_tolerance=1e-5):
@@ -1547,6 +1834,13 @@ def solve_quadratic_eq(a, b, c, abs_tolerance=1e-5):
 
     Returns:
         list: Real roots (empty, one, or two values).
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.solve_quadratic_eq(1, -3, 2)
+        [2.0, 1.0]
+        >>> sg.solve_quadratic_eq(1, 0, 1)
+        []
     """
 
     discr = b**2 - (4 * a * c)  # discriminant
@@ -1581,6 +1875,11 @@ def solve_quartic_eq(
 
     Returns:
         A numpy array containing the four roots of the equation.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sorted(round(float(root), 10) for root in sg.solve_quartic_eq(1, 0, -5, 0, 4))
+        [-2.0, -1.0, 1.0, 2.0]
     """
 
     return np.roots((a, b, c, d, e)).tolist()
@@ -1597,24 +1896,23 @@ def solve_complex_quadratic_eq(
         b: The complex coefficient of x.
         c: The complex constant term.
         tolerance: The tolerance for floating-point comparisons.
+
+    Returns:
+        list: The two roots. A repeated root is returned once.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.solve_complex_quadratic_eq(1 + 0j, -3 + 0j, 2 + 0j)
+        [(1+0j), (2+0j)]
     """
     discr = (b**2) - 4 * (a * c)  # discriminant
     a2 = a * 2
-    if isclose(discr, 0, rel_tol=0, abs_tol=tolerance):
-        x1 = -b / a2
-        res = [x1]
-    elif discr > 0:
-        sqrt_discr = sqrt(discr)
-        x1 = (-b - sqrt_discr) / a2
-        x2 = (-b + sqrt_discr) / a2
-        res = [x1, x2]
+    if abs(discr) <= tolerance:
+        roots = [-b / a2]
     else:
         sqrt_discr = cmath.sqrt(discr)
-        x1 = (-b - sqrt_discr) / a2
-        x2 = (-b + sqrt_discr) / a2
-        res = [x1, x2]
-
-    return res
+        roots = [(-b - sqrt_discr) / a2, (-b + sqrt_discr) / a2]
+    return [complex(root.real + 0.0, root.imag + 0.0) for root in roots]
 
 
 def get_function_dependencies(func):
@@ -1625,6 +1923,11 @@ def get_function_dependencies(func):
 
     Returns:
         set: Names of functions/attributes referenced in calls.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sorted(sg.get_function_dependencies(sg.prime_factors))
+        [('ctx', 'factors'), ('ctx', 'n'), ('ctx', 'p')]
     """
     source = inspect.getsource(func)
     tree = ast.parse(source)
@@ -1656,6 +1959,14 @@ def analyze_function_dependencies(func):
 
     Returns:
         A dictionary containing lists of arguments, function calls, and variables.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> info = sg.analyze_function_dependencies(sg.prime_factors)
+        >>> info["arguments"]
+        ['n']
+        >>> info["function_calls"]
+        ['factors.append', 'factors.append']
     """
 
     source_code = inspect.getsource(func)
@@ -1726,23 +2037,38 @@ def get_local_variables_info(func, *args, **kwargs):
 
     Returns:
         A dictionary where keys are local variable names and values are their types.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> def add(x, y):
+        ...     total = x + y
+        ...     return total
+        >>> sg.get_local_variables_info(add, 2, 3)
+        {'x': 'int', 'y': 'int', 'total': 'int', 'return': 'int'}
     """
 
-    def tracer(frame, event, arg):
-        if event == "call":
-            frame.f_trace = None
-            return tracer
-        elif event == "return":
-            local_vars = frame.f_locals
-            return {
-                name: type(value).__name__ for name, value in local_vars.items()
-            }
-        return None
+    captured = {}
 
-    inspect.settrace(tracer)
-    result = func(*args, **kwargs)
-    inspect.settrace(None)
-    return tracer(inspect.currentframe(), "return", result)
+    def tracer(frame, event, arg):
+        if frame.f_code is not func.__code__:
+            return tracer
+        if event == "return":
+            captured.clear()
+            captured.update(
+                {
+                    name: type(value).__name__
+                    for name, value in frame.f_locals.items()
+                }
+            )
+            captured["return"] = type(arg).__name__
+        return tracer
+
+    sys.settrace(tracer)
+    try:
+        func(*args, **kwargs)
+    finally:
+        sys.settrace(None)
+    return captured
 
 
 def best_fit_exponent(pairs):
@@ -1759,7 +2085,7 @@ def best_fit_exponent(pairs):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.best_fit_exponent([(10, 1.0), (100, 100.0)])
+        >>> round(sg.best_fit_exponent([(10, 1.0), (100, 100.0)]), 10)
         2.0
     """
     pairs = np.array(pairs, dtype=float)

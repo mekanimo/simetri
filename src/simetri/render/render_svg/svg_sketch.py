@@ -1,17 +1,22 @@
 """Draw individual sketch types as SVG element markup."""
 
+from __future__ import annotations
+
 import html
 import io
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from math import degrees
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import matplotlib
 import matplotlib.pyplot as plt
 
+from ...base.common import get_unique_id
 from ...coloring.colors import Color, check_color
-from ...geom.points.point_utils import close_points_square
+from ...geom.geom_utils import close_points_square
 from ...base.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
 from ...helpers.illustration import (
     prepare_shape_index_labels,
@@ -33,6 +38,19 @@ from .svg_sketch_utils import (
     sketch_attrib,
 )
 
+if TYPE_CHECKING:
+    from ..canvas import Canvas
+    from ..sketch import (
+        ArcSketch,
+        HelpLinesSketch,
+        ImageSketch,
+        LatexSketch,
+        LineSketch,
+        PathSketch,
+        Sketch,
+        TagSketch,
+    )
+
 
 @dataclass
 class SVG_Mask:
@@ -41,33 +59,42 @@ class SVG_Mask:
     Attributes mirror SVG gradient-style masks for alpha/luminance masking.
     """
 
-    mask_type: str = None  # 'linear' or 'radial'
-    x1: float = None
-    y1: float = None
-    x2: float = None
-    y2: float = None
-    cx: float = None
-    cy: float = None
-    r: float = None
-    fx: float = None
-    fy: float = None
-    units: str = None  # gradient units
-    spread_method: str = None
-    transform: str = None
-    stops: object = (
+    mask_type: str | None = None  # 'linear' or 'radial'
+    x1: float | None = None
+    y1: float | None = None
+    x2: float | None = None
+    y2: float | None = None
+    cx: float | None = None
+    cy: float | None = None
+    r: float | None = None
+    fx: float | None = None
+    fy: float | None = None
+    units: str | None = None  # gradient units
+    spread_method: str | None = None
+    transform: str | None = None
+    stops: list[tuple] | None = (
         None  # mask stops: [(offset, opacity)] or [(offset, color, opacity)]
     )
-    mask_units: str = None  # maskUnits
-    mask_content_units: str = None  # maskContentUnits
+    mask_units: str | None = None  # maskUnits
+    mask_content_units: str | None = None  # maskContentUnits
+    id: int | None = None
 
-    def __str__(self):
+    def __post_init__(self) -> None:
+        if self.id is None:
+            self.id = get_unique_id(self)
+
+    def __str__(self) -> str:
         return f"SVG_Mask: {self.id}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"SVG_Mask: {self.id}"
 
 
-def draw_line_sketch(sketch, canvas, exceptions=None):
+def draw_line_sketch(
+    sketch: LineSketch,
+    canvas: Canvas,
+    exceptions: Collection[str] | None = None,
+) -> str:
     """Serialize a line sketch to an SVG ``<line>`` element.
 
     Args:
@@ -106,7 +133,10 @@ def draw_line_sketch(sketch, canvas, exceptions=None):
     )
 
 
-def draw_arc_sketch(sketch, exceptions=None):
+def draw_arc_sketch(
+    sketch: ArcSketch,
+    exceptions: Collection[str] | None = None,
+) -> str:
     """Draw an arc sketch as an SVG path."""
     vertices = sketch_attrib(sketch, "vertices")
     closed = sketch_attrib(sketch, "closed")
@@ -163,7 +193,10 @@ def draw_arc_sketch(sketch, exceptions=None):
     )
 
 
-def draw_path_sketch(sketch, exceptions=None):
+def draw_path_sketch(
+    sketch: PathSketch,
+    exceptions: Collection[str] | None = None,
+) -> str:
     """Draw a Path2D sketch as an SVG path without geometry conversion."""
     path_data = sketch_attrib(sketch, "path_data")
 
@@ -209,20 +242,40 @@ def draw_path_sketch(sketch, exceptions=None):
     )
 
 
-def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
+def draw_shape_sketch_with_indices(
+    sketch: Sketch,
+    index: int | None = 0,
+    exceptions: Collection[str] | None = None,
+) -> str:
     """Draw a shape sketch with optional vertex indices and coordinate labels.
 
     When ``sketch.indices`` is truthy, index numbers are drawn at offset
     label positions. When ``sketch.show_vertex_coords`` is True, ``(x, y)``
     coordinate labels are drawn similarly.
 
+    The drawing is wrapped in a group whose class is ``nodestyle{index}``,
+    matching the TikZ ``nodestyle`` scope. ``index`` is ``None`` only when
+    no numbered node style applies.
+
     Args:
         sketch: The shape sketch object.
-        index: The index.
+        index: Node-style scope index written as ``class="nodestyle{index}"``.
         exceptions: Style keys to omit from inline SVG styling.
 
     Returns:
         str: The SVG code for the shape sketch with vertex labels.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.render.render_svg.svg_sketch import (
+        ...     draw_shape_sketch_with_indices,
+        ... )
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(sg.Shape([(0, 0), (1, 0), (1, 1)])) is canvas
+        True
+        >>> sketch = canvas.active_page.sketches[-1]
+        >>> "nodestyle3" in draw_shape_sketch_with_indices(sketch, index=3)
+        True
     """
     vertices = sketch_attrib(sketch, "vertices")
 
@@ -279,12 +332,14 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
 
     content = "\n".join(elements)
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)
-    if clip_attr or mask_attr:
-        return f"<g{clip_attr}{mask_attr}>\n{content}\n</g>"
-    return content
+    if index is None:
+        scope_attr = ""
+    else:
+        scope_attr = f' class="nodestyle{index}"'
+    return f"<g{scope_attr}{clip_attr}{mask_attr}>\n{content}\n</g>"
 
 
-def draw_tag_sketch(sketch):
+def draw_tag_sketch(sketch: TagSketch) -> str:
     """Converts a TagSketch to SVG code.
 
     Args:
@@ -430,7 +485,7 @@ def draw_tag_sketch(sketch):
     return content
 
 
-def draw_helplines_sketch(sketch):
+def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
     """Serialize help-line / grid sketch geometry to SVG markup.
 
     Args:
@@ -473,13 +528,22 @@ def draw_helplines_sketch(sketch):
     line_join = kwargs["line_join"]
     line_miter_limit = kwargs["line_miter_limit"]
 
-    def _line_style(line_color, line_width, line_dash_array=None, alpha=None):
+    def _line_style(
+        line_color: Color | str,
+        line_width: float,
+        line_dash_array: Collection | None = None,
+        alpha: float | None = None,
+    ) -> str:
+        if alpha is None:
+            style_alpha = defaults["line_alpha"]
+        else:
+            style_alpha = alpha
         style_obj = SimpleNamespace(
             stroke=True,
             line_color=line_color,
             line_width=line_width,
             line_dash_array=line_dash_array,
-            line_alpha=line_alpha,
+            line_alpha=style_alpha,
             line_cap=line_cap,
             line_join=line_join,
             miter_limit=line_miter_limit,
@@ -492,7 +556,7 @@ def draw_helplines_sketch(sketch):
     n_h = int(height / spacing)
     n_v = int(width / spacing)
     grid_style = _line_style(
-        grid_line_color, grid_line_width, grid_line_dash_array
+        grid_line_color, grid_line_width, grid_line_dash_array, line_alpha
     )
 
     for i in range(n_h + 1):
@@ -518,10 +582,10 @@ def draw_helplines_sketch(sketch):
         cs_line_width = kwargs["line_width"]
 
         x_axis_style = _line_style(
-            x_color, cs_line_width, kwargs["line_dash_array"]
+            x_color, cs_line_width, kwargs["line_dash_array"], line_alpha
         )
         y_axis_style = _line_style(
-            y_color, cs_line_width, kwargs["line_dash_array"]
+            y_color, cs_line_width, kwargs["line_dash_array"], line_alpha
         )
 
         elements.append(
@@ -549,7 +613,7 @@ def draw_helplines_sketch(sketch):
     return content
 
 
-def draw_image_sketch(sketch):
+def draw_image_sketch(sketch: ImageSketch) -> str:
     """Converts an ImageSketch to SVG code.
 
     Args:
@@ -615,7 +679,7 @@ def draw_image_sketch(sketch):
     return f'<image x="0" y="0" width="{width}" height="{height}" href="{file_path}"{transform_attr}{clip_attr}{mask_attr} />'
 
 
-def draw_latex_sketch(sketch):
+def draw_latex_sketch(sketch: LatexSketch) -> str:
     """Renders a LaTeX math formula to inline SVG using matplotlib mathtext.
 
     No TeX compiler required — uses matplotlib's built-in mathtext engine.
@@ -778,7 +842,10 @@ def draw_latex_sketch(sketch):
     )
 
 
-def draw_shape_sketch_with_markers(sketch, exceptions=None):
+def draw_shape_sketch_with_markers(
+    sketch: Sketch,
+    exceptions: Collection[str] | None = None,
+) -> str:
     """Draws a shape sketch with markers for SVG.
 
     Args:

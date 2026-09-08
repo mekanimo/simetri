@@ -232,14 +232,14 @@ def convert_svg_arc(
 ):
     """Convert SVG endpoint arc parameters to center parameterization.
 
-    Assumes a circular arc (``rx == ry``).
+    ``x_axis_rotation`` is the SVG x-axis rotation in degrees.
 
     Args:
         start_point: Arc start ``(x, y)``.
         end_point: Arc end ``(x, y)``.
         rx: X radius.
-        ry: Y radius (treated as circular with ``rx``).
-        x_axis_rotation: Unused for circular arcs; kept for SVG parity.
+        ry: Y radius.
+        x_axis_rotation: Ellipse x-axis rotation in degrees.
         large_arc_flag: SVG large-arc flag.
         sweep_flag: SVG sweep flag.
 
@@ -248,34 +248,40 @@ def convert_svg_arc(
     """
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
-    r = rx  # Assume circular arc
-
-    # If start and end points are the same, no arc
     if math.hypot(x2 - x1, y2 - y1) < 1e-10:
         return ((x1, y1), 0, 0)
 
-    # Calculate the center point
-    # Midpoint between start and end
-    mx = (x1 + x2) / 2
-    my = (y1 + y2) / 2
+    phi = math.radians(x_axis_rotation)
+    cos_phi = math.cos(phi)
+    sin_phi = math.sin(phi)
+    dx = (x1 - x2) / 2
+    dy = (y1 - y2) / 2
+    x1p = cos_phi * dx + sin_phi * dy
+    y1p = -sin_phi * dx + cos_phi * dy
 
-    # Distance from midpoint to start
-    d = math.hypot(x2 - x1, y2 - y1) / 2
+    rx_abs = abs(rx)
+    ry_abs = abs(ry)
+    if rx_abs == 0 or ry_abs == 0:
+        raise ValueError("rx and ry must be non-zero")
 
-    # If radius is too small, adjust it
-    if d > r:
-        r = d
+    lam = (x1p * x1p) / (rx_abs * rx_abs) + (y1p * y1p) / (ry_abs * ry_abs)
+    if lam > 1:
+        scale = math.sqrt(lam)
+        rx_abs *= scale
+        ry_abs *= scale
 
-    # Distance from midpoint to center
-    h = math.sqrt(r * r - d * d)
-
-    # Perpendicular direction from midpoint
-    if sweep_flag == large_arc_flag:
-        cx = mx - h * (y2 - y1) / (2 * d)
-        cy = my + h * (x2 - x1) / (2 * d)
-    else:
-        cx = mx + h * (y2 - y1) / (2 * d)
-        cy = my - h * (x2 - x1) / (2 * d)
+    sign = -1 if large_arc_flag == sweep_flag else 1
+    num = (
+        rx_abs * rx_abs * ry_abs * ry_abs
+        - rx_abs * rx_abs * y1p * y1p
+        - ry_abs * ry_abs * x1p * x1p
+    )
+    den = rx_abs * rx_abs * y1p * y1p + ry_abs * ry_abs * x1p * x1p
+    coef = 0 if den == 0 or num < 0 else sign * math.sqrt(num / den)
+    cxp = coef * rx_abs * y1p / ry_abs
+    cyp = coef * -ry_abs * x1p / rx_abs
+    cx = cos_phi * cxp - sin_phi * cyp + (x1 + x2) / 2
+    cy = sin_phi * cxp + cos_phi * cyp + (y1 + y2) / 2
 
     # Calculate start and end angles
     start_angle = math.atan2(y1 - cy, x1 - cx)

@@ -208,7 +208,7 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
             or show_vertex_coords
         ):
             code = draw_shape_sketch_with_indices(
-                sketch, exceptions=suppressed_style_keys
+                sketch, ind, exceptions=suppressed_style_keys
             )
         elif draw_markers:
             # Use marker rendering for shapes with markers enabled
@@ -325,7 +325,7 @@ def svg_shape(sketch, styles_dict, exceptions=None):
     clip_attr = ""
     clip = sketch_attrib(sketch, "clip")
     mask = sketch_attrib(sketch, "mask")
-    if clip is True and mask is not None:
+    if clip and mask is not None:
         clippath_id = f"clippath_{id(sketch)}"
         clip_attr = f' clip-path="url(#{clippath_id})"'
 
@@ -333,9 +333,9 @@ def svg_shape(sketch, styles_dict, exceptions=None):
     mask_attr = ""
     if (
         mask is not None
-        and (clip is not True)
+        and not clip
         or has_mask_style(sketch)
-        and (clip is not True)
+        and not clip
     ):
         mask_id = f"mask_{sketch.id}"
         mask_attr = f' mask="url(#{mask_id})"'
@@ -505,7 +505,7 @@ def collect_clip_paths(canvas):
                     sketches.extend(sketch.sketches)
                     continue
                 mask = sketch_attrib(sketch, "mask")
-                if sketch_attrib(sketch, "clip") is True and mask is not None:
+                if sketch_attrib(sketch, "clip") and mask is not None:
                     clip_paths[id(sketch)] = (sketch, mask)
 
     return clip_paths
@@ -536,7 +536,7 @@ def collect_masks(canvas):
                     continue
                 mask = sketch_attrib(sketch, "mask")
                 clip = sketch_attrib(sketch, "clip")
-                if mask is not None and (clip is not True):
+                if mask is not None and not clip:
                     mask_key = f"mask_{sketch.id}"
                     if mask_key not in masks:
                         masks[mask_key] = (sketch, mask)
@@ -922,15 +922,18 @@ def get_styles(canvas, styles_dict):
     """Build a ``<style>`` block from CSS class dictionaries.
 
     Args:
-        canvas: Canvas (unused; kept for call-site symmetry).
+        canvas: Canvas whose user fonts are declared in the style block.
         styles_dict: Mapping of CSS class name to property dict.
 
     Returns:
         str: SVG ``<style>…</style>`` markup.
     """
     styles_lines = []
+    fonts = canvas.get_fonts_list()
+    if fonts:
+        family = ", ".join(fonts)
+        styles_lines.append(f"text {{ font-family: {family}; }}")
     for key, value_dict in styles_dict.items():
-        # Convert dictionary to CSS string
         css_properties = "; ".join(
             [f"{prop}: {val}" for prop, val in value_dict.items()]
         )

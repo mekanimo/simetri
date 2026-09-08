@@ -15,8 +15,7 @@ from typing import Union
 from dataclasses import dataclass
 import enum
 
-from ..config.settings import defaults, default_types
-from ..base.common import VOID
+from ..config.settings import defaults, default_types, VOID
 from .mask import Gradient
 from ..base.all_enums import (
     Align,
@@ -1760,7 +1759,7 @@ def get_draw_valid_kwargs() -> frozenset[str]:
     return _draw_valid_kwargs_cache
 
 
-def _set_shape_args(debug=False):
+def _set_shape_args():
     shape_args.extend(list(shape_style_map.keys()))
     shape_args.extend(["subtype", "xform_matrix", "points"])
 

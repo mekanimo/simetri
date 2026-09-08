@@ -9,6 +9,7 @@ import cmath
 import numpy as np
 
 from .bezier import bezier_points
+from ...config.settings import defaults
 from ...shapes.shape import Shape
 
 
@@ -399,8 +400,8 @@ def hobby_shape(
         tension: Controls curve tightness (lower is tighter). Defaults to 1.
         begin_curl: Curl at the start of an open curve. Defaults to 1.
         end_curl: Curl at the end of an open curve. Defaults to 1.
-        n_points: Reserved for future use; currently ignored (fixed sample
-            counts are used per segment).
+        n_points: Samples per Bezier segment. Defaults to
+            ``defaults["n_hobby_points"]``.
 
     Returns:
         Shape: Polyline vertices along the smooth Hobby curve.
@@ -413,7 +414,14 @@ def hobby_shape(
             shape = sg.hobby_shape([(0, 0), (40, 30), (80, 0)], tension=1)
             canvas = sg.Canvas()
             canvas.draw(shape)
+
+        >>> import simetri.graphics as sg
+        >>> from simetri.geom.nonlinear.hobby import hobby_shape
+        >>> len(hobby_shape([(0, 0), (10, 5), (20, 0)], n_points=5).vertices)
+        10
     """
+    if n_points is None:
+        n_points = defaults["n_hobby_points"]
     controls = hobby_ctrl_points(
         points,
         tension=tension,
@@ -430,7 +438,7 @@ def hobby_shape(
             p1 = controls[ind]
             p2 = controls[ind + 1]
             p3 = points[(i + 1) % n]
-            bez_pnts = bezier_points(p0, p1, p2, p3, 10)
+            bez_pnts = bezier_points(p0, p1, p2, p3, n_points)
             res.extend(bez_pnts)
     else:
         for i in range(n - 1):
@@ -439,6 +447,6 @@ def hobby_shape(
             p1 = controls[ind]
             p2 = controls[ind + 1]
             p3 = points[(i + 1)]
-            bez_pnts = bezier_points(p0, p1, p2, p3, 20)
+            bez_pnts = bezier_points(p0, p1, p2, p3, n_points)
             res.extend(bez_pnts)
     return Shape(res)

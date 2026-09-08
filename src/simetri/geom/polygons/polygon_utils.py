@@ -1,14 +1,14 @@
 """Polygon utilities: area, winding, simplicity, and related helpers."""
 
 from collections.abc import Sequence
-from math import isclose, pi, sin
+from math import isclose
 
 import numpy as np
 
 from simetri.base.all_enums import Connection
 from simetri.base.common import PointType, get_defaults
+from simetri.geom.geom_utils import close_points_square, reg_poly_points
 from simetri.geom.points.point_utils import (
-    close_points_square,
     remove_bad_points,
 )
 from simetri.geom.segments.line_utils import (
@@ -16,7 +16,6 @@ from simetri.geom.segments.line_utils import (
     check_intersection,
 )
 from simetri.geom.vectors import cross_product_sense3, distance
-from simetri.helpers.utilities import reg_poly_points
 from simetri.config.settings import defaults
 
 
@@ -186,8 +185,7 @@ def get_polygon_grid_point(n, line1, line2, circumradius=100):
         >>> get_polygon_grid_point(4, (0, 1), (1, 2), circumradius=100)[1]
         100.0
     """
-    s = circumradius * 2 * sin(pi / n)  # side length
-    points = reg_poly_points(0, 0, n, s)[:-1]
+    points = reg_poly_points((0, 0), n, circumradius)[:-1]
     p1 = points[line1[0]]
     p2 = points[line1[1]]
     p3 = points[line2[0]]
@@ -199,15 +197,15 @@ def get_polygon_grid_point(n, line1, line2, circumradius=100):
 def is_ccw(vertices, *, eps=0.0):
     """Return True if polygon vertices are in counter-clockwise order.
 
-    The test is the sign of the shoelace sum. ``eps`` is accepted and
-    not used.
+    The test is the shoelace sum. The walk is counter-clockwise only
+    when that sum is greater than ``eps``.
 
     Args:
         vertices: Vertices in walk order.
-        eps: Accepted and not used.
+        eps: Minimum shoelace sum required. Defaults to 0.0.
 
     Returns:
-        bool: True if the shoelace sum is positive.
+        bool: True if the shoelace sum is greater than ``eps``.
 
     Raises:
         ValueError: If fewer than 3 vertices are provided.
@@ -217,6 +215,8 @@ def is_ccw(vertices, *, eps=0.0):
         >>> is_ccw([(0, 0), (1, 0), (1, 1), (0, 1)])
         True
         >>> is_ccw([(0, 0), (0, 1), (1, 1), (1, 0)])
+        False
+        >>> is_ccw([(0, 0), (1, 0), (2, 1e-12)], eps=1.0)
         False
         >>> is_ccw([(0, 0), (1, 0)])
         Traceback (most recent call last):
@@ -233,14 +233,13 @@ def is_ccw(vertices, *, eps=0.0):
         x2, y2 = vertices[(i + 1) % n]
         area += x1 * y2 - x2 * y1  # 2 * signed area
 
-    return area > 0
+    return area > eps
 
 
 def calc_area(points):
     """Return the absolute area and whether the walk is counter-clockwise.
 
-    The second value is True when the shoelace sum is positive. That is
-    a counter-clockwise walk, not a clockwise one.
+    The second value is True when the shoelace sum is positive.
 
     Args:
         points: Vertices in walk order. The ring need not repeat the first
@@ -263,9 +262,9 @@ def calc_area(points):
         v = points[i]
         vnext = points[(i + 1) % n_points]
         area_ += v[0] * vnext[1] - vnext[0] * v[1]
-    clockwise = area_ > 0
+    counter_clockwise = area_ > 0
 
-    return (abs(area_ / 2.0), clockwise)
+    return (abs(area_ / 2.0), counter_clockwise)
 
 
 def is_convex(points):

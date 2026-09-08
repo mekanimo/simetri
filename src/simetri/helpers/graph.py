@@ -8,7 +8,7 @@ import networkx as nx
 from ..geom.points.point_utils import distance
 from ..base.all_enums import Types
 from ..base.common import PointType
-from ..geom.points.point_utils import close_points_square
+from ..geom.geom_utils import close_points_square
 from ..config.settings import defaults
 
 

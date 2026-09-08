@@ -24,7 +24,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ..render.style_map import ShapeStyle, shape_args, shape_style_map
-from ..geom.points.point_utils import offset_point
+from ..geom.geom_utils import offset_point
 from ..geom.segments.line_utils import offset_line
 from ..helpers.validation import validate_args
 from ..geom.affine import *
@@ -140,8 +140,8 @@ class Transform:
         return self._xform_matrix
 
     @xform_matrix.setter
-    def xform_matrix(self, value: NDArray):
-        """Set the base transform matrix and refresh partitions.
+    def xform_matrix(self, value: object):
+        """Set the base transform matrix.
 
         Args:
             value: 3x3 affine matrix as a NumPy array.
@@ -152,7 +152,6 @@ class Transform:
         if not isinstance(value, np.ndarray):
             raise ValueError("xform_matrix must be a numpy array")
         self._xform_matrix = value
-        self._update()
 
     @property
     def partitions(self) -> list:
@@ -167,20 +166,6 @@ class Transform:
 
         return self._partitions
 
-    @partitions.setter
-    def partitions(self, value: list):
-        """Reject direct assignment; partitions are derived via ``update``.
-
-        Raises:
-            AttributeError: Always, to prevent direct setting.
-        """
-        raise AttributeError(
-            (
-                "Cannot set partitions directly. "
-                "Use the update method to update the partitions."
-            )
-        )
-
     @property
     def composite(self) -> NDArray:
         """
@@ -194,21 +179,7 @@ class Transform:
 
         return self._composite
 
-    @composite.setter
-    def composite(self, value: NDArray):
-        """Reject direct assignment; composite is derived via ``update``.
-
-        Raises:
-            AttributeError: Always, to prevent direct setting.
-        """
-        raise AttributeError(
-            (
-                "Cannot set composition directly. "
-                "Use the update method to update the composition."
-            )
-        )
-
-    def copy(self) -> "Tranform":
+    def copy(self) -> "Transform":
         """
         Creates a copy of the Transform instance.
 
@@ -292,7 +263,7 @@ class Transformation:
         return partitions
 
     @property
-    def composite(self) -> "array":
+    def composite(self) -> NDArray:
         """
         Returns the compound transformation matrix.
 
@@ -315,20 +286,6 @@ class Transformation:
                 res.append(np.linalg.multi_dot(mats))
 
         return np.concatenate(res, axis=1)
-
-    @composite.setter
-    def composite(self, value: NDArray):
-        """Reject direct assignment; composite is derived from components.
-
-        Raises:
-            AttributeError: Always, to prevent direct setting.
-        """
-        raise AttributeError(
-            (
-                "Cannot set composition directly. "
-                "Use the update method to update the composition."
-            )
-        )
 
     def copy(self) -> "Transformation":
         """
@@ -819,7 +776,7 @@ class PatternDef:
         def apply_offset(value, offset):
             if isinstance(offset, ReferenceDef):
                 offset = self.resolve_reference(offset, kernel, pattern)
-            elif isinstance(offset, (tuple, List)):
+            elif isinstance(offset, (tuple, list)):
                 offset = tuple(
                     self.resolve_value(item, kernel, pattern) for item in offset
                 )
@@ -827,7 +784,7 @@ class PatternDef:
             if isinstance(value, (float, int)):
                 # number
                 offset_val = value + offset
-            elif isinstance(value, (tuple, List)):
+            elif isinstance(value, (tuple, list)):
                 x, y = value
                 if isinstance(x, (tuple, list)):
                     # line
@@ -874,7 +831,7 @@ class PatternDef:
         """
         if isinstance(args, ReferenceDef):
             res = self.resolve_reference(args, kernel, pattern)
-        elif isinstance(args, (tuple, List)):
+        elif isinstance(args, (tuple, list)):
             x, y = args
             if callable(x):
                 res = x(**y)

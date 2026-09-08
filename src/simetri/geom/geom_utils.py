@@ -6,11 +6,45 @@ Other geometry modules may import from here to avoid circular imports.
 """
 
 from collections.abc import Sequence
-from math import cos, sin, sqrt
+from math import cos, pi, sin, sqrt
 
 import numpy as np
 
 from simetri.base.common import PointType
+
+
+def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
+    """Return closed vertices of a regular polygon.
+
+    No rotation. ``sg.reg_poly_points`` is the shapes function and adds
+    the angle.
+
+    Args:
+        pos: Center of the polygon.
+        n: Number of sides.
+        r: Circumradius.
+
+    Returns:
+        Sequence[PointType]: Vertices, with the first vertex repeated at
+        the end.
+
+    Examples:
+        >>> from simetri.geom.geom_utils import reg_poly_points
+        >>> points = reg_poly_points((0, 0), 4, 1)
+        >>> len(points)
+        5
+        >>> points[0] == points[-1]
+        True
+        >>> [round(coord, 10) for coord in points[0]]
+        [1.0, 0.0]
+    """
+    step = 2 * pi / n
+    x, y = pos[:2]
+    points = [
+        [cos(step * i) * r + x, sin(step * i) * r + y] for i in range(n)
+    ]
+    points.append(points[0])
+    return points
 
 
 def r_polar(a: float, b: float, theta: float) -> float:

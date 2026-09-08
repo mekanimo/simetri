@@ -13,12 +13,11 @@ Examples:
 
 from __future__ import annotations
 
-from ..geom.geometry import connected_pairs, polar_to_cartesian
+from ..geom.geom_utils import close_points_square, connected_pairs, midpoint
+from ..geom.geometry import polar_to_cartesian
 from ..geom.homogenize import homogenize
 from ..geom.points.point_utils import (
-    close_points_square,
     distance,
-    midpoint,
     remove_duplicate_points,
 )
 from ..geom.polygons.polygon_utils import right_handed
@@ -49,7 +48,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from math import floor, isclose, pi
-from typing import TYPE_CHECKING, Any, Self
+from typing import Any, Self
 
 import networkx as nx
 import numpy as np
@@ -88,6 +87,7 @@ from ..helpers.utilities import (
     get_transform,
     is_nested_sequence,
 )
+from ..helpers.validation import check_subtype
 from ..config.settings import defaults
 from ..geom.bbox import BoundingBox, bounding_box
 from .points import Points
@@ -99,6 +99,7 @@ class Shape(Base):
     Constructed from a sequence of points. When ``closed`` is True (or the
     first and last points coincide), the shape is treated as a polygon for
     fill and boolean operations.
+    If the first and last points coincide then the last point is removed.
 
     Attributes:
         primary_points: ``Points`` storage.
@@ -219,7 +220,7 @@ class Shape(Base):
             xform_matrix: Optional initial transform.
 
         Raises:
-            ValueError: If ``subtype`` is invalid (when validated by callers).
+            ValueError: If ``subtype`` is not a ``Types`` member.
         """
 
         self.id = get_unique_id(self)
@@ -265,6 +266,8 @@ class Shape(Base):
         self.markers_only = markers_only
         self.smooth = smooth
         self.stroke = stroke
+        if not check_subtype(subtype):
+            raise ValueError(f"Invalid value for subtype: {subtype}")
         self.subtype = subtype
         self.visible = True
 
@@ -1663,8 +1666,6 @@ class Shape(Base):
         Returns:
             Shape: A new shape with the adjusted vertices.
         """
-        if not isinstance(index, int):
-            raise TypeError("Index must be an integer")
 
         if not isinstance(value, Sequence) or len(value) < 2:
             raise TypeError("Value must be a [x, y] sequence")
@@ -1786,8 +1787,6 @@ def clip(
             clipped_item = clipped_item.merge_shapes()
 
         return clipped_item
-    else:
-        raise TypeError("Invalid item type")
 
 
 def _clip_group(
@@ -1913,14 +1912,8 @@ def custom_attributes(item: Shape) -> list[str]:
         item (Shape): The Shape or Group instanc
     Returns:
         list[str]: A list of custom attribute names.
-
-    Raises:
-        TypeError: If the item is not a Shape instance.
     """
-    if isinstance(item, Shape):
-        dummy = Shape([(0, 0), (1, 0)])
-    else:
-        raise TypeError("Invalid item type")
+    dummy = Shape([(0, 0), (1, 0)])
     native_attribs = set(dir(dummy))
     known_shape_attribs = set(shape_attributes)
     custom_attribs = set(dir(item)) - native_attribs - known_shape_attribs
@@ -2027,7 +2020,7 @@ def polygon_difference(
     Returns:
         Group: Difference result.
     """
-    return polygon_diff(shape1, shape2, exclude_clipper=False)
+    return polygon_diff(shape1, shape2, dist_tol=dist_tol, merge=merge)
 
 
 def polygon_intersection(shape1: Shape, shape2: Shape, merge: bool = True):
@@ -2069,7 +2062,7 @@ def polygon_xor(
     res = Group([res1, res2])
 
     if merge:
-        res = res.merge_shapes()
+        res = res.merge_shapes(dist_tol=dist_tol)
 
     return res
 

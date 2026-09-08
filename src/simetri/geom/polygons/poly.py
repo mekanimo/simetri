@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 
 from simetri.base.common import PointType
 from numpy import around
-from simetri.geom.geometry import connected_pairs
+from simetri.geom.geom_utils import connected_pairs
 from simetri.geom.points.point_utils import fix_degen_points
 from simetri.config.settings import defaults
 

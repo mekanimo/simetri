@@ -30,7 +30,7 @@ from ..geometry import (
     polar_to_cartesian,
     positive_angle,
 )
-from ..points.point_utils import close_points_square
+from ..geom_utils import close_points_square
 from ..segments.line_utils import extended_line
 from .hobby import hobby_shape
 from ...config.settings import defaults
@@ -378,7 +378,8 @@ class Path2D(Group):
             op: Path operation kind.
             data: Operation payload.
             pnt2: Optional point used to update heading. Defaults to None.
-            **kwargs: May include ``name`` for the operation.
+            **kwargs: ``name`` labels the operation. Other keys are style
+                overrides applied to the segment.
         """
         self.operations.append(Operation(op, data))
         if op in [
@@ -394,8 +395,19 @@ class Path2D(Group):
             else:
                 self.angle = line_angle(self.pos, pos)
         self._create_object()
-        if "name" in kwargs:
-            setattr(self, kwargs["name"], self.operations[-1])
+        style = dict(kwargs)
+        if "name" in style:
+            setattr(self, style["name"], self.operations[-1])
+            del style["name"]
+        targets = []
+        segment = self.objects[-1]
+        if segment is not None:
+            targets.append(segment)
+        if self.cur_shape is not None and self.cur_shape is not segment:
+            targets.append(self.cur_shape)
+        for target in targets:
+            for key, value in style.items():
+                setattr(target, key, value)
         list(pos)[:2]
         self.pos = pos
 
@@ -530,7 +542,7 @@ class Path2D(Group):
 
         Args:
             point: Absolute end point.
-            **kwargs: Reserved for future style overrides on the segment.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path (for chaining).
@@ -550,7 +562,7 @@ class Path2D(Group):
 
         Args:
             length: Distance to travel.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path (for chaining).
@@ -644,7 +656,7 @@ class Path2D(Group):
 
         Args:
             point: Absolute destination.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -665,7 +677,7 @@ class Path2D(Group):
         Args:
             dx: X offset.
             dy: Y offset.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -687,7 +699,7 @@ class Path2D(Group):
         Args:
             dx: X offset. Defaults to 0.
             dy: Y offset. Defaults to 0.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -708,7 +720,7 @@ class Path2D(Group):
 
         Args:
             x: Absolute x coordinate of the end point.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -728,7 +740,7 @@ class Path2D(Group):
 
         Args:
             length: Signed horizontal distance.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -748,7 +760,7 @@ class Path2D(Group):
 
         Args:
             y: Absolute y coordinate of the end point.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -768,7 +780,7 @@ class Path2D(Group):
 
         Args:
             length: Signed vertical distance.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -788,7 +800,7 @@ class Path2D(Group):
 
         Args:
             points: Sequence of absolute points.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -822,7 +834,7 @@ class Path2D(Group):
             control1: First control point.
             control2: Second control point.
             end: Curve end point.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -847,7 +859,7 @@ class Path2D(Group):
 
         Args:
             r_points: Sequence of relative offsets.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -880,7 +892,7 @@ class Path2D(Group):
 
         Args:
             points: Curve points after the current position.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -905,7 +917,7 @@ class Path2D(Group):
             control: Control point.
             end: Curve end point.
             *args: Either ``(length, end)`` or ``(control, end)`` pairs.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -960,7 +972,7 @@ class Path2D(Group):
         Args:
             control2: Second control point.
             end: Curve end point.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1008,7 +1020,7 @@ class Path2D(Group):
         Args:
             r_control2: Relative second control point ``(dx, dy)``.
             r_end: Relative end point ``(dx, dy)``.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1033,7 +1045,7 @@ class Path2D(Group):
 
         Args:
             end: Curve end point.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1071,7 +1083,7 @@ class Path2D(Group):
 
         Args:
             r_end: Relative end point ``(dx, dy)``.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1095,7 +1107,7 @@ class Path2D(Group):
             control1_length: Distance from the pen to the first control point.
             control2: Second control point.
             end: Curve end point.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1124,7 +1136,7 @@ class Path2D(Group):
         Args:
             control_length: Distance from the pen to the control point.
             end: Curve end point.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1161,7 +1173,7 @@ class Path2D(Group):
             span_angle: Signed sweep in radians.
             rot_angle: Ellipse rotation in radians. Defaults to 0.
             n_points: Sample count; defaults to ``defaults['n_arc_points']``.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1235,7 +1247,7 @@ class Path2D(Group):
             large_arc_flag: Use the large arc if True.
             sweep_flag: SVG sweep flag.
             end: Absolute end point.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1282,7 +1294,7 @@ class Path2D(Group):
             span_angle: Signed sweep in radians.
             sharp: Flip the blend orientation if True. Defaults to False.
             n_points: Sample count; defaults to ``defaults['n_arc_points']``.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1361,7 +1373,7 @@ class Path2D(Group):
             rot_angle: Rotation of the wave in radians. Defaults to 0.
             damping: Exponential damping factor. Defaults to 0.
             n_points: Number of samples. Defaults to 100.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1402,7 +1414,7 @@ class Path2D(Group):
             phase_angle: Phase offset in radians. Defaults to 0.
             damping: Exponential damping factor. Defaults to 0.
             n_points: Number of samples. Defaults to 100.
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
@@ -1429,7 +1441,7 @@ class Path2D(Group):
         """Close the current subpath back to its start.
 
         Args:
-            **kwargs: Reserved for future style overrides.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
             Self: This path.
