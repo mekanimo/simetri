@@ -13,7 +13,7 @@ def l_system(
     angle: float,
     dist: float,
     n: int,
-    d_actions: dict = None,
+    d_actions: dict | None = None,
 ):
     """Generate a Lindenmayer system (L-system) using the given rules.
 

@@ -1229,7 +1229,7 @@ def lattice_p1(
 
 def lattice_pm(
     a: float = 40,
-    b: float = None,
+    b: float | None = None,
     lat_type=LatType.SQR,
     vertical=False,
 ) -> Lattice:
@@ -1275,7 +1275,7 @@ def lattice_pm(
 
 
 def lattice_pmm(
-    a: float = 40, b: float = None, lat_type=LatType.SQR
+    a: float = 40, b: float | None = None, lat_type=LatType.SQR
 ) -> Lattice:
     """Return a lattice configured for wallpaper group pmm.
 
@@ -1308,7 +1308,7 @@ def lattice_pmm(
 
 def lattice_p2(
     a: float = 40,
-    b: float = None,
+    b: float | None = None,
     theta: float = 2 * pi / 5,
     lat_type=LatType.SQR,
 ) -> Lattice:
@@ -1430,7 +1430,7 @@ def lattice_pgg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
 
 
 def lattice_cm(
-    a: float = 100, theta: float = 2 * pi / 5, glide_dist: float = None
+    a: float = 100, theta: float = 2 * pi / 5, glide_dist: float | None = None
 ) -> Lattice:
     """Return a rhombic lattice configured for wallpaper group cm.
 

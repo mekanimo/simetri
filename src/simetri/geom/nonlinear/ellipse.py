@@ -48,7 +48,7 @@ class Arc(Shape):
         self,
         center: PointType,
         radius_x: float,
-        radius_y: float = None,
+        radius_y: float | None = None,
         start_angle: float = 0,
         span_angle: float = pi / 2,
         rot_angle: float = 0,

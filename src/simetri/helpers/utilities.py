@@ -867,7 +867,7 @@ def grid_positions(
     cell_height: float,
     pos: PointType,
     offset: PointType = (0, 0),
-    page_height: float = None,
+    page_height: float | None = None,
     from_top_left=True,
 ) -> Generator[PointType]:
     """Given number of rows and columns and row height and

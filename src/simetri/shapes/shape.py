@@ -27,7 +27,6 @@ from ..geom.segments.line_utils import (
     multi_split_segment,
 )
 
-
 __all__ = [
     "Clipping",
     "Shape",
@@ -56,8 +55,6 @@ from numpy import allclose, around, array
 from numpy.linalg import inv
 from numpy.typing import NDArray
 
-from ..render.style_map import shape_style_map
-from ..coloring.colors import Color, black
 from ..base.all_enums import (
     FillMode,
     InPlace,
@@ -69,7 +66,10 @@ from ..base.all_enums import (
 )
 from ..base.common import LineType, PointType, get_defaults, get_unique_id
 from ..base.core import Base, _update_inplace
+from ..coloring.colors import Color, black
+from ..config.settings import defaults
 from ..geom.affine import identity_matrix
+from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.geometry import (
     positive_angle,
 )
@@ -88,8 +88,7 @@ from ..helpers.utilities import (
     is_nested_sequence,
 )
 from ..helpers.validation import check_subtype
-from ..config.settings import defaults
-from ..geom.bbox import BoundingBox, bounding_box
+from ..render.style_map import shape_style_map
 from .points import Points
 
 
@@ -616,22 +615,13 @@ class Shape(Base):
             # dict -> dict
             if isinstance(obj, dict):
                 return {k: _to_jsonable(v) for k, v in obj.items()}
-            # Fallbacks
             try:
                 return float(obj)
-            except Exception:
-                try:
-                    return str(obj)
-                except Exception:
-                    return None
+            except (TypeError, ValueError):
+                return str(obj)
 
         # Original points (primary points before transform)
-        try:
-            prim_points = (
-                list(self.primary_points) if self.primary_points else []
-            )
-        except Exception:
-            prim_points = []
+        prim_points = list(self.primary_points) if self.primary_points else []
 
         data = {
             "type": getattr(self.type, "value", str(self.type)),
@@ -1021,7 +1011,7 @@ class Shape(Base):
 
         return np.count_nonzero(distances <= defaults["dist_tol2"])
 
-    def copy(self) -> "Shape":
+    def copy(self) -> Shape:
         """Return a copy of the shape.
 
         Returns:
@@ -1650,7 +1640,7 @@ class Shape(Base):
 
     def reorder_vertices(
         self, value: PointType, index: int = 0, tol: float | None = None
-    ) -> "Shape | None":
+    ) -> Shape | None:
         """If index is not given, the vertex with the given value will be
         the first index.
         If index is given, the vertex with the given value will be

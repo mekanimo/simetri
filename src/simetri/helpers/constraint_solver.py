@@ -21,8 +21,8 @@ class Constraint:
     item1: object
     item2: object
     type: ConstType
-    value: float = None
-    value2: float = None  # used for equal_value_eq
+    value: float | None = None
+    value2: float | None = None  # used for equal_value_eq
 
     def __post_init__(self):
         """Set item sizes for circles and segments."""

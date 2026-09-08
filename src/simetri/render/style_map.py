@@ -64,7 +64,7 @@ def _set_style_args(obj, attribs, exact=None, prefix=None, values=None):
 
 def _get_style_attribs(
     style: Types.STYLE,
-    prefix: str = None,
+    prefix: str | None = None,
     exact: list = None,
     exclude: list = None,
 ) -> list[str]:
@@ -111,19 +111,19 @@ class FontStyle:
         alpha (float): The alpha value of the font.
     """
 
-    font_family: str = None
+    font_family: str | None = None
     color: Color = None
-    family: FontFamily | str = None
-    size: FontSize | float = None
-    bold: bool = None
-    italic: bool = None
-    small_caps: bool = None
-    old_style_nums: bool = None
-    overline: bool = None
-    strike_through: bool = None
-    underline: bool = None
+    family: FontFamily | str | None = None
+    size: FontSize | float | None = None
+    bold: bool | None = None
+    italic: bool | None = None
+    small_caps: bool | None = None
+    old_style_nums: bool | None = None
+    overline: bool | None = None
+    strike_through: bool | None = None
+    underline: bool | None = None
     blend_mode: BlendMode = None
-    alpha: float = None
+    alpha: float | None = None
 
     def __post_init__(self):
         """Initialize the FontStyle object."""
@@ -163,10 +163,10 @@ class GridStyle:
     """
 
     line_color: Color = None
-    line_width: float = None
-    alpha: float = None
-    # width: float = None
-    # height: float = None
+    line_width: float | None = None
+    alpha: float | None = None
+    # width: float | None = None
+    # height: float | None = None
     back_color: Color = None
 
     def __post_init__(self):
@@ -217,10 +217,10 @@ class MarkerStyle:
     """
 
     marker_type: MarkerType = None
-    size: float = None
+    size: float | None = None
     color: Color = None
-    radius: float = None
-    alpha: float = None
+    radius: float | None = None
+    alpha: float | None = None
     shape = None
 
     def __post_init__(self):
@@ -269,23 +269,23 @@ class LineStyle:
 
     # To do: Add support for arrows
     color: Color = None
-    alpha: float = None
+    alpha: float | None = None
     width: int = None
     dash_array: Sequence[float] | None = None
-    dash_phase: float = None
+    dash_phase: float | None = None
     cap: LineCap = None
     join: LineJoin = None
-    miter_limit: float = None
-    fillet_radius: float = None
+    miter_limit: float | None = None
+    fillet_radius: float | None = None
     marker_style: MarkerStyle = None
-    smooth: bool = None
-    stroke: bool = None
-    draw_markers: bool = None
-    draw_fillets: bool = None
-    markers_only: bool = None
-    draw_double: bool = None
+    smooth: bool | None = None
+    stroke: bool | None = None
+    draw_markers: bool | None = None
+    draw_fillets: bool | None = None
+    markers_only: bool | None = None
+    draw_double: bool | None = None
     double_color: Color = None
-    double_distance: float = None
+    double_distance: float | None = None
 
     def __post_init__(self):
         """Initialize the LineStyle object."""
@@ -355,12 +355,12 @@ class PatternStyle:
 
     pattern_type: PatternType = None  # LINES, HATCH, DOTS, STARS
     color: Color = None
-    distance: float = None
-    angle: float = None
-    x_shift: float = None
-    y_shift: float = None
-    line_width: float = None
-    radius: float = None  # used for dots, stars
+    distance: float | None = None
+    angle: float | None = None
+    x_shift: float | None = None
+    y_shift: float | None = None
+    line_width: float | None = None
+    radius: float | None = None  # used for dots, stars
     points: int = None  # number of petals. Used for stars
 
     def __post_init__(self):
@@ -408,12 +408,12 @@ class ShadeStyle:
     """
 
     shade_type: ShadeType = None
-    axis_angle: float = None
+    axis_angle: float | None = None
     ball_color: Color = None
     bottom_color: Color = None
     color_wheel: Color = None
-    color_wheel_black: bool = None
-    color_wheel_white: bool = None
+    color_wheel_black: bool | None = None
+    color_wheel_white: bool | None = None
     inner_color: Color = None
     left_color: Color = None
     lower_left_color: Color = None
@@ -476,14 +476,14 @@ class SVG_TileStyle:
         units (str): Pattern units ('userSpaceOnUse' or 'objectBoundingBox').
     """
 
-    width: float = None
-    height: float = None
-    angle: float = None
-    x_shift: float = None
-    y_shift: float = None
-    scale_x: float = None
-    scale_y: float = None
-    units: str = None  # 'userSpaceOnUse' or 'objectBoundingBox'
+    width: float | None = None
+    height: float | None = None
+    angle: float | None = None
+    x_shift: float | None = None
+    y_shift: float | None = None
+    scale_x: float | None = None
+    scale_y: float | None = None
+    units: str | None = None  # 'userSpaceOnUse' or 'objectBoundingBox'
 
     def __post_init__(self):
         """Initialize the SVG_TileStyle object."""
@@ -526,8 +526,8 @@ class FillStyle:
     """
 
     color: Color = None
-    alpha: float = None
-    fill: bool = None
+    alpha: float | None = None
+    fill: bool | None = None
     back_style: BackStyle = None
     mode: FillMode = None
     pattern_style: PatternStyle = None
@@ -588,7 +588,7 @@ class ShapeStyle:
 
     line_style: LineStyle = None
     fill_style: FillStyle = None
-    alpha: float = None
+    alpha: float | None = None
     color: Color = None
     gradient: Gradient = None
 
@@ -639,14 +639,14 @@ class FrameStyle:
     shape: FrameShape = None
     line_style: LineStyle = None
     fill_style: FillStyle = None
-    inner_sep: float = None
-    inner_xsep: float = None
-    inner_ysep: float = None
-    outer_sep: float = None
-    min_width: float = None
-    min_height: float = None
-    min_size: float = None
-    alpha: float = None
+    inner_sep: float | None = None
+    inner_xsep: float | None = None
+    inner_ysep: float | None = None
+    outer_sep: float | None = None
+    min_width: float | None = None
+    min_height: float | None = None
+    min_size: float | None = None
+    alpha: float | None = None
 
     def __post_init__(self):
         """Initialize the FrameStyle object."""
@@ -679,12 +679,12 @@ class ImageStyle:
     """
 
     align: Align = None
-    alpha: float = None
+    alpha: float | None = None
     anchor: Anchor = None
     blend_mode: BlendMode = None
-    draw_frame: bool = None
+    draw_frame: bool | None = None
     frame_style: FrameStyle = None
-    text_width: float = None
+    text_width: float | None = None
 
     def __post_init__(self):
         """Initialize the ImageStyle object."""
@@ -740,15 +740,15 @@ class TagStyle:
     """
 
     align: Align = None
-    alpha: float = None
-    bold: bool = None
-    italic: bool = None
+    alpha: float | None = None
+    bold: bool | None = None
+    italic: bool | None = None
     anchor: Anchor = None
     blend_mode: BlendMode = None
-    draw_frame: bool = None
+    draw_frame: bool | None = None
     font_style: FontStyle = None
     frame_style: FrameStyle = None
-    text_width: float = None
+    text_width: float | None = None
 
     def __post_init__(self):
         """Initialize the TagStyle object."""

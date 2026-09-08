@@ -20,7 +20,6 @@ from typing import Any, Self
 import numpy as np
 from numpy.typing import NDArray
 
-from ..render.style_map import shape_args
 from ..geom.affine import (
     glide_matrix,
     mirror_matrix,
@@ -30,6 +29,7 @@ from ..geom.affine import (
     translation_matrix,
 )
 from ..geom.segments.line_utils import angled_line, line_angle, offset_line
+from ..render.style_map import shape_args
 from .all_enums import (
     Anchor,
     InPlace,
@@ -846,7 +846,7 @@ class Base:
         return res
 
     def offset_line(self, side: Side, offset: float) -> LineType:
-        """        Return a bounding-box side shifted outward by ``offset``.
+        """Return a bounding-box side shifted outward by ``offset``.
 
         Args:
             side (Side): ``LEFT``, ``RIGHT``, ``TOP``, or ``BOTTOM``.
@@ -867,7 +867,7 @@ class Base:
     def offset_point(
         self, anchor: Anchor, dx: float, dy: float = 0
     ) -> PointType:
-        """        Return an anchor point shifted by ``dx`` and ``dy``.
+        """Return an anchor point shifted by ``dx`` and ``dy``.
 
         Args:
             anchor (Anchor): Anchor on the bounding box.

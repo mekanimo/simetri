@@ -5,13 +5,13 @@ records polylines as shapes. Also includes helpers such as ``spirolateral``
 and ``spiral``.
 """
 
-from math import pi, radians
-from typing import Sequence, Any
+from collections.abc import Sequence
 from dataclasses import dataclass
-
-from ..group.batch import Group
+from math import pi, radians
+from typing import Any
 
 from ..geom.segments.line_utils import line_by_point_angle_length as get_pos
+from ..group.batch import Group
 
 
 @dataclass
@@ -100,7 +100,7 @@ class Turtle(Group):
         """
         self._angle = value
 
-    def _forward_pos(self, dist: float = None) -> tuple:
+    def _forward_pos(self, dist: float | None = None) -> tuple:
         """Calculate the position after moving forward by the given distance.
 
         Args:
@@ -119,7 +119,7 @@ class Turtle(Group):
 
         return get_pos(self.pos, angle, dist)[1]
 
-    def forward(self, dist: float = None) -> None:
+    def forward(self, dist: float | None = None) -> None:
         """Move the turtle forward by the given distance.
 
         Moves the turtle and draws a line if the pen is down.
@@ -132,7 +132,7 @@ class Turtle(Group):
         if self.pen_is_down:
             self.current_list.append(self.pos)
 
-    def go(self, dist: float = None) -> None:
+    def go(self, dist: float | None = None) -> None:
         """Move the turtle forward without drawing.
 
         Moves the turtle regardless of the pen state, and doesn't draw.
@@ -146,7 +146,7 @@ class Turtle(Group):
         self.lists.append(self.current_list)
         self.current_list = [self.pos]
 
-    def backward(self, dist: float = None) -> None:
+    def backward(self, dist: float | None = None) -> None:
         """Move the turtle backward by the given distance.
 
         Args:
@@ -156,7 +156,7 @@ class Turtle(Group):
             dist = self.def_dist
         self.forward(-dist)
 
-    def left(self, angle: float = None) -> None:
+    def left(self, angle: float | None = None) -> None:
         """Turn the turtle left by the given angle.
 
         Args:
@@ -166,7 +166,7 @@ class Turtle(Group):
             angle = self.def_angle
         self._angle += angle
 
-    def right(self, angle: float = None) -> None:
+    def right(self, angle: float | None = None) -> None:
         """Turn the turtle right by the given angle.
 
         Args:
@@ -281,7 +281,7 @@ def add_digits(n: int) -> int:
         >>> add_digits(123)
         6
     """
-    return sum((int(x) for x in str(n)))
+    return sum(int(x) for x in str(n))
 
 
 def spirolateral(

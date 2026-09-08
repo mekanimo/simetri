@@ -655,7 +655,7 @@ class ReferenceDef:
     offset: PointType | float = (
         None  # float for line, <dx, dy> for point offset
     )
-    multiplier: float = None
+    multiplier: float | None = None
     modifier: Callable = None
     kwargs: dict | None = None
 
@@ -687,7 +687,7 @@ class TransformDef:
 
     type: TransformationType  # translation, rotation, ...
     ref: ReferenceDef
-    args: ReferenceDef | PointType | float = None
+    args: ReferenceDef | PointType | float | None = None
     take: slice = None
     incr: Any = None
     reps: int = 0

@@ -1,10 +1,11 @@
 """Create hierarchical tree structures and render them as graphics."""
 
 import enum
-import os
-from typing import Sequence, Any
 import inspect
+import os
 import re
+from collections.abc import Sequence
+from typing import Any
 
 import simetri.geom.points.point_utils
 import simetri.graphics as sg
@@ -35,7 +36,7 @@ class TreeNode:
     def __init__(
         self,
         tag: str = "",
-        children: Sequence["TreeNode"] = None,
+        children: Sequence["TreeNode"] | None = None,
         extra: Any = None,
         font_size=12,
         font_color=sg.black,
@@ -94,7 +95,7 @@ class TreeNode:
 def make_tree(
     node,
     canvas: Any = None,
-    file_path: str = None,
+    file_path: str | None = None,
     overwrite: bool = False,
     dx: float = 10,
     dy: float = 18,
@@ -155,7 +156,6 @@ def make_tree(
     _rd2 = sg.Shape([(3, 4), (6, 0), (3, -4), (0, 0)], closed=True)
     _rd1.fill_color = _rd2.fill_color = sg.red
     _rd1.stroke = _rd2.stroke = False
-    double_red_diamond = sg.Group([_rd1, _rd2])
 
     count = 0
     if icons is None:
@@ -163,7 +163,6 @@ def make_tree(
 
     icon1, icon2, icon3, icon4 = icons
     icon5 = red_diamond  # enum value / enum class
-    icon6 = double_red_diamond  # (unused, kept for reference)
     icon7 = sg.Group(
         [
             sg.reg_poly_shape(6, 4, (0, 0), fill_color=sg.teal, stroke=False),

@@ -132,4 +132,4 @@ SHM = shear_matrix
 LinPath = Path2D
 
 # Explicit public re-exports (star-imports can drop or shadow these).
-from ..helpers.help_utils import help  # noqa: E402, F401
+from ..helpers.help_utils import help

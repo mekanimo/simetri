@@ -1511,7 +1511,7 @@ class Path2D(Group):
         xform_matrix: NDArray,
         reps: int = 0,
         take: slice = None,
-        incr: float = None,
+        incr: float | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Group:

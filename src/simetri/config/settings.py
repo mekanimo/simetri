@@ -9,14 +9,14 @@ Examples:
 """
 
 __all__ = [
+    "SimetriWarning",
     "defaults",
     "issue_warning",
     "set_defaults",
-    "SimetriWarning",
-    "tikz_defaults",
+    "set_svg_defaults",
     "set_tikz_defaults",
     "svg_defaults",
-    "set_svg_defaults",
+    "tikz_defaults",
 ]
 
 import warnings
@@ -26,6 +26,32 @@ from dataclasses import dataclass
 from math import pi
 
 import numpy as np
+
+from ..base.all_enums import (
+    Align,
+    Anchor,
+    BackStyle,
+    BlendMode,
+    ColorMatrix,
+    Compiler,
+    DocumentClass,
+    FillMode,
+    FontFamily,
+    FrameShape,
+    GradientType,
+    LineCap,
+    LineJoin,
+    MarkerType,
+    PageMargins,
+    PageNumbering,
+    PageNumberPosition,
+    PageOrientation,
+    PageSize,
+    PatternType,
+    ShadeType,
+)
+from ..coloring import colors
+from ..coloring.palettes import seq_MATTER_256
 
 # This is the alpha testing stage for the Simetri library.
 # These default values may change in the future.
@@ -56,6 +82,10 @@ _print_options = {"precision": 4, "suppress": True}
 
 class SimetriWarning(UserWarning):
     """Project warning category for warning messages emitted by simetri."""
+
+
+class SettingsSingletonError(RuntimeError):
+    """Raised when the settings singleton is instantiated more than once."""
 
 
 def issue_warning(
@@ -119,7 +149,7 @@ class _Defaults:
     def __init__(self):
         """Initializes the _Defaults singleton instance."""
         if _Defaults._instance is not None:
-            raise Exception("This class is a singleton!")
+            raise SettingsSingletonError("This class is a singleton!")
         self.defaults = {}
         self.log = set()
 
@@ -192,6 +222,15 @@ defaults = _Defaults()
 default_types = {}
 defaults_help = {}
 
+from ..render.style_map import (
+    FillStyle,
+    FrameStyle,
+    LineStyle,
+    MarkerStyle,
+    ShapeStyle,
+    TagStyle,
+)
+
 
 def set_defaults():
     """Register the core Simetri default values into ``defaults``.
@@ -199,45 +238,6 @@ def set_defaults():
     Call once at import time; users should prefer assigning through
     ``defaults[key] = value`` rather than editing this function.
     """
-    from ..base.all_enums import (
-        Anchor,
-        BackStyle,
-        BlendMode,
-        ColorMatrix,
-        DocumentClass,
-        FillMode,
-        FontFamily,
-        FrameShape,
-        GradientType,
-        LineCap,
-        LineJoin,
-        MarkerType,
-        PageMargins,
-        PageNumberPosition,
-        PageNumbering,
-        PageSize,
-        Compiler,
-        PageOrientation,
-        PatternType,
-        ShadeType,
-        Align,
-    )
-    from ..render.style_map import (
-        ShapeStyle,
-        TagStyle,
-        LineStyle,
-        FillStyle,
-        FrameStyle,
-        MarkerStyle,
-    )
-
-    from ..coloring.palettes import seq_MATTER_256
-    from ..coloring import colors
-
-    global defaults
-    global default_types
-    global defaults_help
-
     # tol, rel_tol, and rel_tol are used for comparing floats
     # These are used in numpy.isclose and numpy.allclose
     # If you are not careful you may get unexpected results
@@ -2217,9 +2217,6 @@ svg_defaults = defaultdict(str)
 
 def set_tikz_defaults():
     """Register TikZ-specific default style values in ``tikz_defaults``."""
-    from ..coloring import colors
-    from ..base.all_enums import LineCap, LineJoin, BlendMode
-
     tikz_defaults.update(
         {
             "color": colors.black,
@@ -2245,9 +2242,6 @@ def set_tikz_defaults():
 
 def set_svg_defaults():
     """Register SVG-specific default style values in ``svg_defaults``."""
-    from ..coloring import colors
-    from ..base.all_enums import LineCap, LineJoin, BlendMode
-
     svg_defaults.update(
         {
             "stroke": colors.black,

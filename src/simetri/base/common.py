@@ -17,8 +17,6 @@ from collections.abc import Iterator, Sequence
 from math import cos, pi, sin
 from typing import TYPE_CHECKING, Union
 
-from ..config.settings import defaults
-
 if TYPE_CHECKING:
     from ..shapes.shape import Shape
 
@@ -103,6 +101,8 @@ axis_hex = (
     (0.0, 0.0),
     (cos(pi / 3), sin(pi / 3)),
 )  # used for 3 and 6 rotation symmetries
+
+from ..config.settings import defaults
 
 
 def _set_Nones(obj, args, values):

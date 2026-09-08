@@ -9,7 +9,7 @@ Examples:
 """
 
 from collections import OrderedDict
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from itertools import combinations
 from math import ceil, log10, pi, sqrt
 from typing import Any
@@ -18,13 +18,13 @@ import networkx as nx
 import numpy as np
 from numpy import isclose
 
-from ..render.style_map import shape_style_map
+from ..base.all_enums import Connection, Types
+from ..base.common import PointType, d_id_obj, get_defaults
 from ..coloring import colors
-from ..geom.geom_utils import close_points_square
-from ..geom.points.point_utils import distance, round_point
+from ..config.settings import defaults
+from ..geom.geom_utils import close_points_square, connected_pairs
+from ..geom.points.point_utils import distance, lerp_point, round_point
 from ..geom.polygons.convex_hull import convex_hull
-from ..geom.geom_utils import connected_pairs
-from ..geom.points.point_utils import lerp_point
 from ..geom.polygons.poly import get_polygons
 from ..geom.polygons.polygon import (
     double_offset_polygons,
@@ -35,20 +35,24 @@ from ..geom.polygons.polygon import (
     polygon_cg,
     polygon_internal_angles,
 )
-from ..base.all_enums import Connection, Types
 from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import equal_lines, segment_connection
 from ..group.batch import Group
-from ..base.common import d_id_obj, get_defaults
-from ..shapes.shape import Shape, custom_attributes
-from ..shapes.geom_items import fillet_shape_corners
 from ..helpers.graph import get_cycles
 from ..helpers.utilities import flatten, group_into_bins
 from ..helpers.validation import validate_args
-from ..config.settings import defaults
+from ..render.style_map import shape_style_map
+from ..shapes.geom_items import fillet_shape_corners
+from ..shapes.shape import Shape, custom_attributes
 
 
-def _set_style(obj: Any, attribs):
+def _set_style(obj: Any, attribs: Sequence[str]) -> None:
+    """Copy default style attributes onto an object.
+
+    Args:
+        obj: Object receiving the attributes.
+        attribs: Style attribute names copied from ``defaults["style"]``.
+    """
     for attr in attribs:
         setattr(obj, attr, getattr(defaults["style"], attr))
 
@@ -308,7 +312,7 @@ class Partition(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
-    def __init__(self, points, **kwargs):
+    def __init__(self, points: Sequence[PointType], **kwargs: Any):
         """Create a partition polygon from ``points`` (see class docstring)."""
         super().__init__(points, **kwargs)
         self.subtype = Types.PART
@@ -343,7 +347,7 @@ class Fragment(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
-    def __init__(self, points, **kwargs):
+    def __init__(self, points: Sequence[PointType], **kwargs: Any):
         """Create a fragment from ``points`` (see class docstring)."""
         super().__init__(points, **kwargs)
         self.subtype = Types.FRAGMENT
@@ -387,7 +391,15 @@ class Fragment(Shape):
         """
         return self.CG
 
-    def _set_divisions(self, dist_tol=None):
+    def _set_divisions(self, dist_tol: float | None = None) -> None:
+        """Build fragment divisions from the fragment sections.
+
+        Args:
+            dist_tol: Distance tolerance used when matching section endpoints.
+
+        Raises:
+            ValueError: If a generated division cannot be matched to a section.
+        """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
         dist_tol2 = dist_tol * dist_tol  # squared distance tolerance
@@ -430,7 +442,8 @@ class Fragment(Shape):
             division.prev = self._divisions[i - 1]
             division.next = self._divisions[(i + 1) % n]
 
-    def _set_twin_divisions(self):
+    def _set_twin_divisions(self) -> None:
+        """Assign the closest twin division from each section's twin fragment."""
         for division in self.divisions:
             section = division.section
             if section.twin and section.twin.fragment:
@@ -598,7 +611,13 @@ class Division(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
-    def __init__(self, p1, p2, xform_matrix=None, **kwargs):
+    def __init__(
+        self,
+        p1: PointType,
+        p2: PointType,
+        xform_matrix: np.ndarray | None = None,
+        **kwargs: Any,
+    ):
         """Create a division segment from ``p1`` to ``p2``."""
         super().__init__([p1, p2], subtype=Types.DIVISION, **kwargs)
         self.p1 = p1
@@ -665,9 +684,9 @@ class Division(Shape):
 
     def copy(
         self,
-        section: Section = None,
-        twin: Section = None,
-    ):
+        section: Section | None = None,
+        twin: "Division | None" = None,
+    ) -> "Division":
         """Create a copy of the division.
 
         Args:
@@ -768,7 +787,13 @@ class Polyline(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
     """
 
-    def __init__(self, points, closed=True, xform_matrix=None, **kwargs):
+    def __init__(
+        self,
+        points: Sequence[PointType],
+        closed: bool = True,
+        xform_matrix: np.ndarray | None = None,
+        **kwargs: Any,
+    ):
         """Create a lace polyline and initialize its divisions."""
         self.closed = closed
 
@@ -834,7 +859,7 @@ class Polyline(Shape):
         for division in self.divisions:
             yield from division.sections
 
-    def iter_intersections(self):
+    def iter_intersections(self) -> Iterator[Intersection]:
         """Iterate over the intersections of the polyline.
 
         Yields:
@@ -844,7 +869,7 @@ class Polyline(Shape):
             yield from division.intersections
 
     @property
-    def intersections(self):
+    def intersections(self) -> list[Intersection]:
         """Return the intersections of the polyline.
 
         Returns:
@@ -865,7 +890,7 @@ class Polyline(Shape):
         return polygon_area(self.vertices)
 
     @property
-    def sections(self):
+    def sections(self) -> list[Section]:
         """Return the sections of the polyline.
 
         Returns:
@@ -877,7 +902,7 @@ class Polyline(Shape):
         return sections
 
     @property
-    def divisions(self):
+    def divisions(self) -> list[Division]:
         """Return the divisions of the polyline.
 
         Returns:
@@ -885,7 +910,8 @@ class Polyline(Shape):
         """
         return self.__dict__["divisions"]
 
-    def _set_divisions(self):
+    def _set_divisions(self) -> None:
+        """Create division objects for each consecutive polyline edge."""
         vertices = self.vertices
         if self.closed:
             vertices = list(vertices) + [vertices[0]]
@@ -893,8 +919,8 @@ class Polyline(Shape):
         divisions = [Division(p1, p2) for p1, p2 in pairs]
         self.__dict__["divisions"] = divisions
 
-    def _set_intersections(self):
-        """Fake intersections for open lines."""
+    def _set_intersections(self) -> None:
+        """Create endpoint intersections for an open polyline."""
         division1 = self.divisions[0]
         division2 = self.divisions[-1]
         x1 = Intersection(division1.p1, division1, None, True)
@@ -914,7 +940,6 @@ class ParallelPolyline(Group):
     Args:
         polyline (Polyline): Main polyline.
         offset (float): Offset value.
-        lace (Lace): Lace object.
         under (bool, optional): If the polyline is under. Defaults to False.
         closed (bool, optional): If the polyline is closed. Defaults to True.
         dist_tol (float, optional): Distance tolerance. Defaults to None.
@@ -923,14 +948,13 @@ class ParallelPolyline(Group):
 
     def __init__(
         self,
-        polyline,
-        offset,
-        lace,
-        under=False,
-        closed=True,
-        dist_tol=None,
-        **kwargs,
-    ):
+        polyline: Polyline,
+        offset: float,
+        under: bool = False,
+        closed: bool = True,
+        dist_tol: float | None = None,
+        **kwargs: Any,
+    ) -> None:
         """Build parallel offset polylines around ``polyline`` for a lace."""
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
@@ -956,7 +980,8 @@ class ParallelPolyline(Group):
             sects.extend(polyline.sections)
         return sects
 
-    def _set_offset_polylines(self):
+    def _set_offset_polylines(self) -> None:
+        """Construct the two offset polylines or polygons around the source."""
         polyline = self.polyline
         if self.closed:
             vertices = list(polyline.vertices)
@@ -1314,7 +1339,8 @@ class Lace(Group):
 
             return res
 
-    def _set_twin_sections(self):
+    def _set_twin_sections(self) -> None:
+        """Pair corresponding sections across each offset-polyline pair."""
         for par_poly in self.parallel_poly_list:
             poly1, poly2 = par_poly.offset_poly_list
             for i, sec in enumerate(poly1.iter_sections()):
@@ -1323,7 +1349,8 @@ class Lace(Group):
                 sec1.twin = sec2
                 sec2.twin = sec1
 
-    def _set_partitions(self):
+    def _set_partitions(self) -> None:
+        """Populate partition shapes by offsetting each fragment polygon."""
         for fragment in self.fragments:
             self.partitions = []
             for fragment in self.fragments:
@@ -1418,7 +1445,8 @@ class Lace(Group):
                     partitions.append(self.partitions[ind])
             self.partitions_by_radius[key] = partitions
 
-    def _set_fragments(self):
+    def _set_fragments(self) -> None:
+        """Build fragment polygons from non-overlap offset-section cycles."""
         G = nx.Graph()
         for section in self.iter_offset_sections():
             if section.is_overlap:
@@ -1482,36 +1510,15 @@ class Lace(Group):
 
         return group
 
-    def get_sketch(self):
-        """
-        Create and return a Sketch object. Sketch is a Group object
-        with Shape elements corresponding to the vertices of the plaits
-        and fragments of the Lace instance. They have 'plaits' and
-        'fragments' attributes to hold lists of Shape objects populated
-        with plait and fragment vertices of the Lace instance
-        respectively. They are used for drawing multiple copies of the
-        original lace pattern. They are light-weight compared to the
-        Lace objects since they only contain sufficient data to draw the
-        lace objects. Hundreds of these objects can be used to create
-        wallpaper patterns or other patterns without having to contain
-        unnecessary data. They do not share points with the original
-        Lace object.
+    def get_sketch(self) -> Group:
+        """Create a lightweight drawable copy of the lace geometry.
 
-        Arguments:
-        ----------
-            None
+        The returned group contains shape copies for the current fragments
+        and plaits and is intended for repeated drawing without the heavier
+        construction data stored on ``Lace``.
 
-        Prerequisites:
-        --------------
-            * A lace object to be copied.
-
-        Side effects:
-        -------------
-            None
-
-        Return:
-        --------
-            A Sketch object.
+        Returns:
+            Group: Sketch group containing fragment and plait shapes.
         """
         fragments = []
         for fragment in self.fragments:
@@ -1611,7 +1618,11 @@ class Lace(Group):
 
         return res
 
-    def group_fragments(self, rel_tol=None, abs_tol=None):
+    def group_fragments(
+        self,
+        rel_tol: float | None = None,
+        abs_tol: float | None = None,
+    ):
         """Group the fragments by the number of vertices and the area.
 
         Args:
@@ -1647,15 +1658,11 @@ class Lace(Group):
 
         return groups
 
-    def get_fragment_cycles(self):
-        """
-        Iterate over the offset sections and create a graph of the
-        intersections (start and end of the sections). Then find the
-        cycles in the graph. self.d_intersections is used to map
-        the graph nodes to the actual intersection points.
+    def get_fragment_cycles(self) -> list[list[int]]:
+        """Return graph cycles formed by non-overlap offset sections.
 
         Returns:
-            list: List of fragment cycles.
+            list[list[int]]: Cycles of intersection ids.
         """
         graph_edges = []
         for section in self.iter_offset_sections():
@@ -1838,25 +1845,12 @@ class Lace(Group):
                 res.extend(polyline.intersections)
         return res
 
-    def _set_polyline_list(self):
-        """
-        Populate the self.polyline_list list with Polyline objects.
+    def _set_polyline_list(self) -> None:
+        """Populate ``self.polyline_list`` from polygon and polyline shapes.
 
-        * Internal use only.
-
-        Arguments:
-        ----------
-            None
-
-        Return:
-        --------
-            None
-
-        Prerequisites:
-        --------------
-
-            * self.polygon_shapes and/or self.polyline_shapes must be
-              established.
+        Notes:
+            This is an internal construction step used by ``Lace.__init__``
+            after ``self.polygon_shapes`` and ``self.polyline_shapes`` are set.
         """
         self.polyline_list = []
         if self.polygon_shapes:
@@ -1870,32 +1864,12 @@ class Lace(Group):
                     Polyline(polyline.vertices, closed=False)
                 )
 
-    def _set_parallel_poly_list(self):
-        """
-        Populate the self.parallel_poly_list list with ParallelPolyline
-        objects.
-
-        Arguments:
-        ----------
-            None
-
-        Return:
-        --------
-            None
-
-        Prerequisites:
-        --------------
-            * self.polygon_shapes and/or self.polyline_shapes must be
-              established prior to this.
-            * Parallel polylines are created by offsetting the original
-              polygon and polyline shapes in two directions using the
-              self.offset value.
+    def _set_parallel_poly_list(self) -> None:
+        """Populate ``self.parallel_poly_list`` with offset polyline pairs.
 
         Notes:
-        ------
-            This method is called by the Lace constructor.  It is not
-            for users to call directly. Without this method, the Lace
-            object cannot be created.
+            This is an internal construction step used by ``Lace.__init__``
+            after ``self.polyline_list`` has been created.
         """
         self.parallel_poly_list = []
         if self.polyline_list:
@@ -1910,38 +1884,13 @@ class Lace(Group):
                     )
                 )
 
-    def _set_overlaps(self):
-        """
-        Populate the self.overlaps list with Overlap objects. Side
-        effects listed below.
-
-        Arguments:
-        ----------
-            None
-
-        Return:
-        --------
-            None
-
-        Side Effects:
-        -------------
-            * self.overlaps is populated with Overlap objects.
-            * Section objects' overlap attribute is populated with the
-              corresponding Overlap object that they are a part of. Not
-              all sections will have an overlap.
-
-        Prerequisites:
-        --------------
-            self.polyline and self.parallel_poly_list must be populated.
-            self.main_intersections, self.offset_sections and
-            self.d_intersections must be populated prior to creating
-            the overlaps.
+    def _set_overlaps(self) -> None:
+        """Populate ``self.overlaps`` from cycles of overlapping sections.
 
         Notes:
-        ------
-            This method is called by the Lace constructor.  It is not
-            for users to call directly.
-            Without this method, the Lace object cannot be created.
+            This is an internal construction step used by ``Lace.__init__``.
+            It mutates ``self.overlaps`` and assigns each participating
+            section and intersection to its corresponding overlap region.
         """
         G = nx.Graph()
         for section in self.iter_offset_sections():
@@ -1966,11 +1915,12 @@ class Lace(Group):
                 section.end.overlap = overlap
             self.overlaps.append(overlap)
 
-    def _set_plait_ends(self):
+    def _set_plait_ends(self) -> None:
+        """Match plait edge indices with overlap sections at the same edge."""
         plaits = self.plaits
         dist_tol = defaults["dist_tol"]
 
-        def edge_cell_key(start, end):
+        def edge_cell_key(start: PointType, end: PointType):
             start_x, start_y = start[:2]
             end_x, end_y = end[:2]
             start_cell = (
@@ -2049,7 +1999,8 @@ class Lace(Group):
                                                 (edge_index, sect.overlap)
                                             )
 
-    def _set_plait_connections(self):
+    def _set_plait_connections(self) -> None:
+        """Create the index pairs used to draw interior plait connectors."""
         for plait in self.plaits:
             s = min(plait.ends) + 1
             n = len(plait)
@@ -2060,7 +2011,17 @@ class Lace(Group):
                 connections.append((j, k))
             plait.connections = connections
 
-    def _set_plait_inner_lines(self, percent_offsets=(0.5,), line_widths=(1,)):
+    def _set_plait_inner_lines(
+        self,
+        percent_offsets: tuple[float, ...] = (0.5,),
+        line_widths: tuple[float, ...] = (1,),
+    ) -> None:
+        """Store interpolated inner-line points for each plait.
+
+        Args:
+            percent_offsets: Relative positions along each plait connection.
+            line_widths: Widths associated with the generated inner lines.
+        """
         self._set_plait_ends()
         self._set_plait_connections()
         for plait in self.plaits:
@@ -2075,46 +2036,14 @@ class Lace(Group):
                 lerps.append(offsets)
             plait.lerp_points = lerps
 
-    def set_plaits(self):
-        """
-        Populate the self.plaits list with Plait objects. Plaits are
-        optional for drawing. They form the under/over interlacing. They
-        are created if the "with_plaits" argument is set to be True in
-        the constructor. with_plaits is True by default but this can be
-        changed by setting the auto_plaits value to False in the
-        settings.py This method can be called by the user to create the
-        plaits after the creation of the Lace object if they were not
-        created initally.
-
-        * Can be called by users.
-
-        Arguments:
-        ----------
-            None
-
-        Return:
-        --------
-            None
-
-        Side Effects:
-        -------------
-            * self.plaits is populated with Plait objects.
-
-        Prerequisites:
-        --------------
-            self.polyline and self.parallel_poly_list must be populated.
-            self.divisions and self.intersections must be populated.
-            self.overlaps must be populated.
-
-        Where used:
-        -----------
-            Lace.__init__
+    def set_plaits(self) -> None:
+        """Populate ``self.plaits`` with the lace's over/under plait shapes.
 
         Notes:
-        ------
-            This method is called by the Lace constructor.  It is not
-            for users to call directly. Without this method, the Lace
-            object cannot be created.
+            This method mutates ``self.plaits`` and depends on intersections,
+            overlaps, and offset divisions already being populated. It is used
+            during ``Lace`` construction but can also be called later when
+            plaits were not created initially.
         """
 
         if self.plaits:
@@ -2144,7 +2073,6 @@ class Lace(Group):
         graph_edges = [(r[0].id, r[1].id) for r in plait_sections]
         cycles = get_cycles(graph_edges)
         plaits = []
-        count = 0
         for cycle in cycles:
             cycle = connected_pairs(cycle)
             dup = cycle[1:]
@@ -2161,7 +2089,6 @@ class Lace(Group):
                         dup.remove(edge)
                         break
             plaits.append(plait)
-            count += 1
         d_x = self.d_intersections
         for plait in plaits:
             intersections = [d_x[x] for x in plait]
@@ -2183,51 +2110,13 @@ class Lace(Group):
         # set the plait_connections
         self._set_plait_connections()
 
-    def _set_intersections(self):
-        """
-        Compute all intersection points (by calling all_intersections)
-        among the divisions of the polylines (both main and offset).
-        Populate the self.main_intersections and
-        self.offset_intersections lists with Intersection objects. This
-        method is called by the Lace constructor and customized to be
-        used with Lace objects only. Without this method, the Lace
-        object cannot be created.
-
-        * Internal use only!
-
-        Arguments:
-        ----------
-            None
-
-        Return:
-        --------
-            None
-
-        Side Effects:
-        -------------
-            * self.main_intersections are populated.
-            * self.offset_intersections are populated.
-            * "sections" attribute of the divisions are populated.
-            * "is_overlap" attribute of the sections are populated.
-            * "intersections" attribute of the divisions are populated.
-            * "endpoint" attribute of the intersections are populated.
-
-        Where used:
-        -----------
-            Lace.__init__
-
-        Prerequisites:
-        --------------
-            * self.main_divisions must be populated.
-            * self.offset_divisions must be populated.
-            * Two endpoint intersections of the divisions must be set.
+    def _set_intersections(self) -> None:
+        """Compute intersections and sections for main and offset divisions.
 
         Notes:
-        ------
-            This method is called by the Lace constructor.  It is not
-            for users to call directly. Without this method, the Lace
-            object cannot be created.
-            Works only for regular under/over interlacing.
+            This is an internal construction step used by ``Lace.__init__``.
+            It populates main and offset intersection lists, marks endpoint
+            intersections, and splits each division into sections.
         """
         # set intersections for the main polylines
         main_divisions = self.main_divisions
@@ -2269,23 +2158,27 @@ class Lace(Group):
                 division.sections.append(section)
                 self.offset_sections.append(section)
 
-    def _all_polygons(self, polylines, rel_tol=None):
-        """Return a list of polygons from a list of lists of points.
-        polylines: [[(x1, y1), (x2, y2)], [(x3, y3), (x4, y4)], ...]
-        return [[(x1, y1), (x2, y2), (x3, y3), ...], ...]
+    def _all_polygons(
+        self,
+        polylines: list[list[PointType]],
+        rel_tol: float | None = None,
+    ) -> list[list[PointType]]:
+        """Convert connected polyline point lists into polygon cycles.
 
         Args:
-            polylines (list): List of lists of points.
-            rel_tol (float, optional): Relative tolerance. Defaults to None.
+            polylines: Polyline vertex lists.
+            rel_tol: Relative tolerance used when linking segments.
 
         Returns:
-            list: List of polygons.
+            list[list[PointType]]: Polygon cycles recovered from the polylines.
         """
         if rel_tol is None:
             rel_tol = self.rel_tol
         return get_polygons(polylines, rel_tol)
 
-    def _set_over_under(self):
+    def _set_over_under(self) -> None:
+        """Assign which overlapping offset sections pass over or under."""
+
         def next_poly(exclude):
             for ppoly in self.parallel_poly_list:
                 poly1, poly2 = ppoly.offset_poly_list
@@ -2402,36 +2295,25 @@ def all_intersections(
     division_list: list[Division],
     d_intersections: dict[int, Intersection],
     d_connections: dict[frozenset, Intersection],
-    loom=False,
+    loom: bool = False,
 ) -> list[Intersection]:
-    """
-    Find all intersections of the given divisions. Sweep-line algorithm
-    without a self-balancing tree. Instead of a self-balancing tree,
-    it uses a numpy array to sort and filter the divisions. For the
-    number of divisions that are commonly needed in a lace, this is
-    sufficiently fast. It is also more robust and much easier to
-    understand and debug. Tested with tens of thousands of divisions but
-    not millions. The book has a section on this algorithm.
-    simetri.geom.py has another version (called
-    all_intersections) for finding intersections among a given
-    list of divisions.
+    """Find intersections among divisions using a sweep-line style pass.
 
-    Arguments:
-    ----------
-        division_list: list of Division objects.
+    The scan uses a NumPy array for bounding-box filtering instead of a
+    self-balancing tree. Each discovered intersection is registered on the
+    participating divisions and in the supplied lookup dictionaries.
 
-    Side Effects:
-    -------------
-        * Modifies the given division objects (in the division_list) in place
-            by adding the intersections to the divisions' "intersections"
-            attribute.
-        * Updates the d_intersections
-        * Updates the d_connections
+    Args:
+        division_list: Divisions to test for pairwise intersections.
+        d_intersections: Mapping updated with discovered intersections keyed
+            by intersection id.
+        d_connections: Mapping updated with discovered intersections keyed by
+            division-id pairs.
+        loom: Whether to skip candidate pairs aligned on the same x or y start
+            coordinates.
 
-    Return:
-    --------
-        A list of all intersection objects among the given division
-        list.
+    Returns:
+        list[Intersection]: Intersections found among the divisions.
     """
     # register fake intersections at the endpoints of the open lines
     for division in division_list:
@@ -2527,36 +2409,21 @@ def merge_nodes(
     division_list: list[Division],
     d_intersections: dict[int, Intersection],
     d_connections: dict[frozenset, Intersection],
-    loom=False,
+    loom: bool = False,
 ) -> list[Intersection]:
-    """
-    Find all intersections of the given divisions. Sweep-line algorithm
-    without a self-balancing tree. Instead of a self-balancing tree,
-    it uses a numpy array to sort and filter the divisions. For the
-    number of divisions that are commonly needed in a lace, this is
-    sufficiently fast. It is also more robust and much easier to
-    understand and debug. Tested with tens of thousands of divisions but
-    not millions. The book has a section on this algorithm.
-    simetri.geom.py has another version (called
-    all_intersections) for finding intersections among a given
-    list of divisions.
+    """Find and register intersections for the supplied divisions.
 
-    Arguments:
-    ----------
-        division_list: list of division objects.
+    Args:
+        division_list: Divisions to test for pairwise intersections.
+        d_intersections: Mapping updated with discovered intersections keyed
+            by intersection id.
+        d_connections: Mapping updated with discovered intersections keyed by
+            division-id pairs.
+        loom: Whether to skip candidate pairs aligned on the same x or y start
+            coordinates.
 
-    Side Effects:
-    -------------
-        * Modifies the given division objects (in the division_list) in place
-            by adding the intersections to the divisions' "intersections"
-            attribute.
-        * Updates the d_intersections
-        * Updates the d_connections
-
-    Return:
-    --------
-        A list of all intersection objects among the given division
-        list.
+    Returns:
+        list[Intersection]: Intersections found among the divisions.
     """
     # register fake intersections at the endpoints of the open lines
     for division in division_list:

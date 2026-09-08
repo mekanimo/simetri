@@ -95,7 +95,7 @@ class Image(Rectangle):
 
     def __init__(
         self,
-        img: str = None,
+        img: str | None = None,
         pos: PointType = (0, 0),
         size: Sequence[int] = None,
         mode=ImageMode.RGB,

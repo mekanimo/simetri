@@ -24,7 +24,9 @@ from numpy.typing import NDArray
 from ..helpers.validation import is_line, is_point
 from .homogenize import homogenize
 from .vectors import vec_along_line
-from ..base.common import LineType, PointType
+
+LineType = Sequence[Sequence]
+PointType = Sequence[float]
 
 
 def identity_matrix() -> NDArray:

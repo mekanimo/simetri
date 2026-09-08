@@ -23,20 +23,20 @@ from typing import TYPE_CHECKING, Any, Self
 from numpy import array
 from numpy.typing import NDArray
 
-from ..geom.polygons.poly import get_polygons
-from ..geom.points.point_utils import fix_degen_points, round_point
-from ..geom.segments.line_utils import round_segment
-from ..helpers.modifiers import Modifier
-from ..config.settings import defaults, issue_warning
 from ..base.all_enums import (
     InPlace,
     TransformationType,
     Types,
     get_enum_value,
 )
-from ..geom.bbox import bounding_box
 from ..base.common import LineType, PointType, get_unique_id
 from ..base.core import Base, _update_inplace
+from ..config.settings import defaults, issue_warning
+from ..geom.bbox import bounding_box
+from ..geom.points.point_utils import fix_degen_points, round_point
+from ..geom.polygons.poly import get_polygons
+from ..geom.segments.line_utils import round_segment
+from ..helpers.modifiers import Modifier
 from .merge import _merge_collinears, _merge_shapes
 
 if TYPE_CHECKING:
@@ -320,21 +320,15 @@ class Group(Base):
                 return [_to_jsonable(x) for x in obj]
             try:
                 return float(obj)
-            except Exception:
-                try:
-                    return str(obj)
-                except Exception:
-                    return None
+            except (TypeError, ValueError):
+                return str(obj)
 
         # Elements
         elems = []
         for elem in self.elements or []:
             if hasattr(elem, "to_json") and callable(elem.to_json):
-                try:
-                    elems.append(json.loads(elem.to_json()))
-                    continue
-                except Exception:
-                    pass
+                elems.append(json.loads(elem.to_json()))
+                continue
             # Fallback summary for unknown elements
             summary = {
                 "type": _to_jsonable(

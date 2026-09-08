@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Color related operations.
 
 Provides the ``Color`` class, conversion helpers, blend utilities, and
@@ -11,27 +13,25 @@ Examples:
 """
 
 import colorsys
-
-from colorspace import palette
-from coloraide import Color as Color_aide
-
+from collections.abc import Sequence
 from colorsys import (
-    rgb_to_hls,
     hls_to_rgb,
-    rgb_to_hsv,
     hsv_to_rgb,
+    rgb_to_hls,
+    rgb_to_hsv,
     rgb_to_yiq,
     yiq_to_rgb,
 )
-
-from random import random
 from dataclasses import dataclass
-from typing import Sequence
+from random import random
 
 import numpy as np
+from coloraide import Color as Color_aide
+from colorspace import palette
 
-from ..base.common import PointType
 from ..base.all_enums import ColorSpace, Types
+
+PointType = Sequence[float]
 
 
 def get_lighter(rgb255_color1: Sequence, rgb255_color2: Sequence):
@@ -82,7 +82,7 @@ def get_lightest(rgb255_palette: Sequence):
     return lightest
 
 
-def change_hue(color: "Color", delta: float) -> "Color":
+def change_hue(color: Color, delta: float) -> Color:
     """Changes the hue of a color by a specified delta value.
 
     Args:
@@ -108,7 +108,7 @@ def change_hue(color: "Color", delta: float) -> "Color":
     return Color(r, g, b, a)
 
 
-def change_lightness(color: "Color", delta: float) -> "Color":
+def change_lightness(color: Color, delta: float) -> Color:
     """Changes the lightness of a color by a specified delta value.
 
     Args:
@@ -133,7 +133,7 @@ def change_lightness(color: "Color", delta: float) -> "Color":
     return Color(r, g, b, a)
 
 
-def change_saturation(color: "Color", delta: float) -> "Color":
+def change_saturation(color: Color, delta: float) -> Color:
     """Changes the saturation of a color by a specified delta value.
 
     Args:
@@ -466,7 +466,6 @@ class Color:
             True
         """
         # search for the color in the named colors
-        pass
 
     def __eq__(self, other):
         """Compare two colors by RGB components.
@@ -715,7 +714,7 @@ def check_color(color):
     elif isinstance(color, (tuple, list)):
         return Color(*color)
     else:
-        raise ValueError(
+        raise TypeError(
             f"Color must be a Color instance, a string, a tuple or a list. Got {color}"
         )
 
@@ -921,9 +920,9 @@ def cmyk2rgb(c, m, y, k, cmyk_scale=100, rgb_scale=255):
     b = rgb_scale * (1.0 - y_norm) * (1.0 - k_norm)
 
     # Ensure values are within the valid RGB range (0-255)
-    r = max(0, min(rgb_scale, int(round(r))))
-    g = max(0, min(rgb_scale, int(round(g))))
-    b = max(0, min(rgb_scale, int(round(b))))
+    r = max(0, min(rgb_scale, round(r)))
+    g = max(0, min(rgb_scale, round(g)))
+    b = max(0, min(rgb_scale, round(b)))
 
     return r, g, b
 
@@ -1091,8 +1090,8 @@ class LinearGradient:
     y1: float = 0.0
     x2: float = 0.0
     y2: float = 0.0
-    colors: Sequence[Color] = None
-    positions: Sequence[PointType] = None
+    colors: Sequence[Color] | None = None
+    positions: Sequence[PointType] | None = None
     extend: bool = False
 
     def __post_init__(self):
@@ -1131,8 +1130,8 @@ class RadialGradient:
     x: float = 0.0
     y: float = 0.0
     radius: float = 0.0
-    colors: Sequence[Color] = None
-    positions: Sequence[PointType] = None
+    colors: Sequence[Color] | None = None
+    positions: Sequence[PointType] | None = None
     extend: bool = False
 
     def __post_init__(self):

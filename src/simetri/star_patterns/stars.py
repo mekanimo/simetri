@@ -64,8 +64,8 @@ class Star(Group):
     def __init__(
         self,
         n: int,
-        inner_radius: float = None,
-        circumradius: float = None,
+        inner_radius: float | None = None,
+        circumradius: float | None = None,
         **kwargs,
     ):
         """Create an n-pointed star (see class docstring for radius args).

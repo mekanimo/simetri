@@ -326,10 +326,10 @@ class ImageSketch:
 
     image: Image
     pos: PointType = None
-    angle: float = None
-    scale: tuple | float = None
-    size: tuple = None
-    file_path: str = None
+    angle: float | None = None
+    scale: tuple | float | None = None
+    size: tuple | None = None
+    file_path: str | None = None
     anchor: Anchor | None = None
     xform_matrix: NDArray = None
 
@@ -377,12 +377,12 @@ class LatexSketch:
     formula: str
     pos: PointType
     font_size: int = 14
-    font_family: str = None
+    font_family: str | None = None
     font_color: object = None
     bold: bool = False
     anchor: Anchor = None
     xform_matrix: NDArray = None
-    formula_size: tuple = None  # (W, H) in points, filled by draw_latex
+    formula_size: tuple | None = None  # (W, H) in points, filled by draw_latex
 
     def __post_init__(self):
         """Initialize the LatexSketch object."""
@@ -675,9 +675,9 @@ class FrameSketch:
     rounded_corners: bool = False
     fillet_radius: float = 10
     draw_fillets: bool = False
-    blend_mode: str = None
-    gradient: str = None
-    pattern: str = None
+    blend_mode: str | None = None
+    gradient: str | None = None
+    pattern: str | None = None
     visible: bool = True
     min_width: float = 0
     min_height: float = 0
@@ -704,12 +704,12 @@ class TagSketch:
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     """
 
-    text: str = None
+    text: str | None = None
     pos: PointType = None
     anchor: Anchor = None
-    font_family: str = None
-    font_size: float = None
-    minimum_width: float = None
+    font_family: str | None = None
+    font_size: float | None = None
+    minimum_width: float | None = None
     xform_matrix: NDArray = None
 
     def __post_init__(self):
@@ -741,7 +741,7 @@ class PDFSketch:
     pos: PointType = None
     scale: float = 1
     angle: float = 0
-    size: tuple = None
+    size: tuple | None = None
     anchor: Anchor = Anchor.CENTER
     xform_matrix: NDArray = None
 

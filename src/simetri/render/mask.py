@@ -51,7 +51,7 @@ class Mask:
     """
 
     shape: Shape
-    opacity: float = None
+    opacity: float | None = None
     stops: list[Stop] = None
     axis: Axis | None = None
     subtype: Types = None
@@ -211,7 +211,7 @@ class Gradient:
     focal: tuple[float, float] | None = None
     radius: float | None = None
     units: SvgUnits = None
-    spread_method: str = None
+    spread_method: str | None = None
     transform: str | None = None
     subtype: Types = None
 

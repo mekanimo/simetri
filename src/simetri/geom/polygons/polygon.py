@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from itertools import combinations
+from itertools import combinations, pairwise
 from math import atan2, ceil, isclose, log10, pi, sqrt
 from typing import TYPE_CHECKING, Any
 
@@ -39,6 +39,7 @@ from ..points.point_utils import (
     distance,
     left3,
     on_segment,
+    point_on_line_segment,
     round_point,
 )
 from ..segments.line_utils import (
@@ -55,12 +56,7 @@ if TYPE_CHECKING:
     from simetri.group.batch import Group
     from simetri.shapes.shape import Shape
 
-from .polygon_utils import (
-    right_handed,
-)
-from ..points.point_utils import (
-    point_on_line_segment,
-)
+from .polygon_utils import right_handed
 
 
 def _shape(*args: Any, **kwargs: Any) -> Shape:
@@ -518,7 +514,6 @@ class Polyset:
         Returns:
             Any: Not yet implemented.
         """
-        pass
 
     @property
     def intersection(self) -> Any:
@@ -527,7 +522,6 @@ class Polyset:
         Returns:
             Any: Not yet implemented.
         """
-        pass
 
     @property
     def symmetric_difference(self) -> Any:
@@ -536,7 +530,6 @@ class Polyset:
         Returns:
             Any: Not yet implemented.
         """
-        pass
 
     @property
     def partitions(self) -> Any:
@@ -545,72 +538,58 @@ class Polyset:
         Returns:
             Any: Not yet implemented.
         """
-        pass
 
     @property
     def d_node_poly(self) -> Any:
         """Node-to-polygon relation dictionary (stub)."""
-        pass
 
     @property
     def d_node_edge(self) -> Any:
         """Node-to-edge relation dictionary (stub)."""
-        pass
 
     @property
     def d_node_side(self) -> Any:
         """Node-to-side relation dictionary (stub)."""
-        pass
 
     @property
     def d_node_part(self) -> Any:
         """Node-to-partition relation dictionary (stub)."""
-        pass
 
     @property
     def d_edge_poly(self) -> Any:
         """Edge-to-polygon relation dictionary (stub)."""
-        pass
 
     @property
     def d_edge_part(self) -> Any:
         """Edge-to-partition relation dictionary (stub)."""
-        pass
 
     @property
     def d_edge_side(self) -> Any:
         """Edge-to-side relation dictionary (stub)."""
-        pass
 
     @property
     def d_edge_node(self) -> Any:
         """Edge-to-node relation dictionary (stub)."""
-        pass
 
     @property
     def d_part_poly(self) -> Any:
         """Partition-to-polygon relation dictionary (stub)."""
-        pass
 
     @property
     def d_part_edge(self) -> Any:
         """Partition-to-edge relation dictionary (stub)."""
-        pass
 
     @property
     def d_side_edge(self) -> Any:
         """Side-to-edge relation dictionary (stub)."""
-        pass
 
     @property
     def d_side_part(self) -> Any:
         """Side-to-partition relation dictionary (stub)."""
-        pass
 
     @property
     def d_side_poly(self) -> Any:
         """Side-to-polygon relation dictionary (stub)."""
-        pass
 
 
 def _segment_containment_counts(
@@ -1037,7 +1016,7 @@ def segments_from_points(
         res = [tuple(points)]
     else:
         sorted_points = sorted(points, key=lambda p: (p[0], p[1]))
-        segments = list(zip(sorted_points, sorted_points[1:]))
+        segments = list(pairwise(sorted_points))
         res = segments
 
     return res

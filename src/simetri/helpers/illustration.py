@@ -506,12 +506,12 @@ class TagFrame:
     rounded_corners: bool = False
     fillet_radius: float = 10
     draw_fillets: bool = False
-    blend_mode: str = None
-    gradient: str = None
-    pattern: str = None
-    min_width: float = None
-    min_height: float = None
-    min_size: float = None
+    blend_mode: str | None = None
+    gradient: str | None = None
+    pattern: str | None = None
+    min_width: float | None = None
+    min_height: float | None = None
+    min_size: float | None = None
 
     def __post_init__(self):
         """Set frame type metadata after dataclass initialization."""

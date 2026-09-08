@@ -13,9 +13,9 @@ Examples:
 from collections.abc import Sequence
 from math import pi
 
+from ..base.common import LineType, PointType, VecType
 from ..geom.vectors import point_to_line_vec, vec_along_line
 from ..group.batch import Group
-from ..base.common import LineType, PointType, VecType
 from ..shapes.shape import Shape
 
 
@@ -116,9 +116,7 @@ def sidle(
     Returns:
         Group: A Group of Shapes with the sidle symmetry.
     """
-    x, y = point_to_line_vec(design.midpoint, mirror_line, unit=True)[:2]
-    dx = x * dist
-    dy = y * dist
+
     return design.mirror(mirror_line, reps=1).translate(dist, 0, reps)
 
 
@@ -140,7 +138,7 @@ def sidle_along(
     Returns:
         Group: A Group of shapes with the sidle along symmetry.
     """
-    x, y = point_to_line_vec(design.midpoint, mirror_line, unit=True)[:2]
+
     design.mirror(mirror_line, reps=1)
     return design.translate_along(path, reps)
 
@@ -198,8 +196,8 @@ def spinning_sidle(
     design: Group,
     mirror_line: LineType = None,
     glide_line: LineType = None,
-    glide_dist: float = None,
-    trans_dist: float = None,
+    glide_dist: float | None = None,
+    trans_dist: float | None = None,
     reps: int = 3,
 ) -> Group:
     """
@@ -226,7 +224,7 @@ def spinning_sidle(
 def step(
     design: Group,
     glide_line: LineType = None,
-    glide_dist: float = None,
+    glide_dist: float | None = None,
     reps: int = 3,
 ) -> Group:
     """
@@ -251,8 +249,8 @@ def step(
 def step_along(
     design: Group,
     glide_line: LineType = None,
-    glide_dist: float = None,
-    path: Sequence[PointType] = None,
+    glide_dist: float | None = None,
+    path: Sequence[PointType] | None = None,
     reps: int = 3,
 ) -> Group:
     """

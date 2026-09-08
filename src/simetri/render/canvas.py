@@ -2020,13 +2020,13 @@ class PageGrid:
         y_shift (float, optional): The y-axis shift of the grid.
     """
 
-    spacing: float = None
+    spacing: float | None = None
     back_color: "Color" = None
     line_color: "Color" = None
-    line_width: float = None
+    line_width: float | None = None
     line_dash_array: Sequence[float] = None
-    x_shift: float = None
-    y_shift: float = None
+    x_shift: float | None = None
+    y_shift: float | None = None
 
     def __post_init__(self):
         """Initialize page-grid defaults from settings."""
@@ -2065,7 +2065,7 @@ class Page:
     book_margins: Any = None  # gutter, footer, margin, header
     recto: bool = True  # True if page is recto, False if verso
     grid: PageGrid = None
-    kwargs: dict = None
+    kwargs: dict | None = None
 
     def __post_init__(self):
         """Initialize page metadata and an empty sketch list."""

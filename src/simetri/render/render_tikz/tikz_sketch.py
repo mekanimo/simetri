@@ -66,7 +66,7 @@ class TexSketch:
         None
     """
 
-    code: str = None
+    code: str | None = None
     location: TexLoc = TexLoc.NONE
 
     def __post_init__(self):

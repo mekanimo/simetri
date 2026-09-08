@@ -16,11 +16,11 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, TypeAlias
 
 if TYPE_CHECKING:
+    from simetri.base.core import Base
     from simetri.geom.segments.line_utils import Edge
     from simetri.group.batch import Group
-    from simetri.base.core import Base
-    from simetri.shapes.shape import Shape
     from simetri.helpers.illustration import Tag
+    from simetri.shapes.shape import Shape
 
 
 def get_enum_value(enum_class: StrEnum, value: str) -> str:
