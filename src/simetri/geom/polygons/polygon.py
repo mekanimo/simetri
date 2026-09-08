@@ -2205,8 +2205,9 @@ def double_offset_polygons(
     """Return both offset polygons of a vertex ring.
 
     Args:
-        polygon (Sequence[PointType]): Polygon vertices (mutated). An
-            unclosed list is closed, and a clockwise list is reversed.
+        polygon (Sequence[PointType]): Polygon vertices. An unclosed ring
+            is treated as closed, and a clockwise ring is reversed for
+            the offset calculation.
         offset (float): Offset distance. Defaults to 1.
         dist_tol (float | None): Distance used to decide whether the ring
             is already closed. Defaults to ``defaults["dist_tol"]``.
@@ -2220,7 +2221,7 @@ def double_offset_polygons(
         >>> raw = [(0, 0), (2, 0), (2, 1)]
         >>> offsets = sg.double_offset_polygons(raw, 0.5)
         >>> raw
-        [(0, 0), (2, 0), (2, 1), (0, 0)]
+        [(0, 0), (2, 0), (2, 1)]
         >>> offsets[0][0]
         (2.118033988749895, 0.5)
         >>> offsets[1][1]
@@ -2230,16 +2231,16 @@ def double_offset_polygons(
         dist_tol = defaults["dist_tol"]
     dist_tol2 = dist_tol * dist_tol
 
-    # helper to ensure polygon is closed
-    if not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
-        polygon.append(polygon[0])
+    ring = list(polygon)
+    if not close_points_square(ring[0], ring[-1], dist2=dist_tol2):
+        ring.append(ring[0])
 
-    if not right_handed(polygon):
-        polygon.reverse()
+    if not right_handed(ring):
+        ring.reverse()
     poly1 = []
     poly2 = []
-    for i, point in enumerate(polygon[:-1]):
-        line = [point, polygon[i + 1]]
+    for i, point in enumerate(ring[:-1]):
+        line = [point, ring[i + 1]]
         line1, line2 = double_offset_lines(line, offset)
         poly1.append(line1)
         poly2.append(line2)

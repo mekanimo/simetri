@@ -179,9 +179,11 @@ def get_polygon_grid_point(n, line1, line2, circumradius=100):
         PointType: Intersection of the two chords.
 
     Examples:
+        >>> from math import isclose
         >>> from simetri.geom.polygons.polygon_utils import get_polygon_grid_point
-        >>> get_polygon_grid_point(4, (0, 2), (1, 3))
-        (0.0, 0.0)
+        >>> x, y = get_polygon_grid_point(4, (0, 2), (1, 3))[:2]
+        >>> isclose(x, 0.0, abs_tol=1e-9) and isclose(y, 0.0, abs_tol=1e-9)
+        True
         >>> get_polygon_grid_point(4, (0, 1), (1, 2), circumradius=100)[1]
         100.0
     """
@@ -275,7 +277,7 @@ def is_convex(points):
     every turn has the same sense.
 
     Args:
-        points (list[PointType]): Polygon vertices (mutated).
+        points (list[PointType]): Polygon vertices.
 
     Returns:
         bool: True if every turn has the same sense.
@@ -287,6 +289,7 @@ def is_convex(points):
         >>> is_convex([(0, 0), (3, 0), (1, 1), (0, 3)])
         False
     """
+    points = points.copy()
     points = remove_bad_points(points)
     n_checks = len(points)
     points = points + [points[0]]
