@@ -605,7 +605,7 @@ class Group(Base):
         dist_tol: float | None = None,
         merge_angle_tol: float = 0.1,
         debug: bool = False,
-        remove_duplicate_edges: bool = False,
+        remove_duplicate_edges: bool = True,
     ) -> Self:
         """Merge connected shapes into polygons and open polylines.
 
