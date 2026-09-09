@@ -133,7 +133,63 @@ def get_defaults(args, values):
         list: The default values.
     """
     res = len(args) * [None]
+    tolerance_indices = set()
+
+    for prefix in ("dist", "area", "angle"):
+        tol_name = f"{prefix}_tol"
+        rel_name = f"{prefix}_rel_tol"
+        abs_name = f"{prefix}_abs_tol"
+        index_by_name = {}
+
+        for name in (tol_name, rel_name, abs_name):
+            if name in args:
+                index_by_name[name] = args.index(name)
+
+        if not index_by_name:
+            continue
+
+        tolerance_indices.update(index_by_name.values())
+        tol_value = values[index_by_name[tol_name]] if tol_name in index_by_name else None
+        rel_value = values[index_by_name[rel_name]] if rel_name in index_by_name else None
+        abs_value = values[index_by_name[abs_name]] if abs_name in index_by_name else None
+
+        if tol_value is not None:
+            if rel_value is not None or abs_value is not None:
+                if rel_value != 0 or abs_value != tol_value:
+                    raise ValueError(
+                        f"Use either {tol_name} or both {rel_name} and {abs_name}."
+                    )
+            res[index_by_name[tol_name]] = tol_value
+            if rel_name in index_by_name:
+                res[index_by_name[rel_name]] = 0
+            if abs_name in index_by_name:
+                res[index_by_name[abs_name]] = tol_value
+            continue
+
+        if rel_name in index_by_name or abs_name in index_by_name:
+            if rel_name not in index_by_name or abs_name not in index_by_name:
+                raise ValueError(
+                    f"Both {rel_name} and {abs_name} must be requested together."
+                )
+            if (rel_value is None) != (abs_value is None):
+                raise ValueError(
+                    f"Both {rel_name} and {abs_name} must be provided together."
+                )
+            if rel_value is None:
+                res[index_by_name[rel_name]] = defaults[rel_name]
+                res[index_by_name[abs_name]] = defaults[abs_name]
+            else:
+                res[index_by_name[rel_name]] = rel_value
+                res[index_by_name[abs_name]] = abs_value
+            if tol_name in index_by_name:
+                res[index_by_name[tol_name]] = None
+            continue
+
+        res[index_by_name[tol_name]] = defaults[tol_name]
+
     for i, arg in enumerate(args):
+        if i in tolerance_indices:
+            continue
         if values[i] is None:
             res[i] = defaults[arg]
         else:

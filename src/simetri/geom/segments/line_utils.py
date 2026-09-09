@@ -280,15 +280,23 @@ def perp_bisector(line: LineType) -> LineType:
     return [mid, [mid[0] - dy, mid[1] + dx]]
 
 
-def collinear3(a, b, c, area_tol=None):
+def collinear3(
+    a,
+    b,
+    c,
+    area_tol: float | None = None,
+    area_rel_tol: float | None = None,
+    area_abs_tol: float | None = None,
+):
     """Return True if a, b, and c are collinear.
 
     Args:
         a (PointType): First point.
         b (PointType): Second point.
         c (PointType): Third point.
-        area_rtol (float, optional): Relative tolerance for area. Defaults to None.
-        area_atol (float, optional): Absolute tolerance for area. Defaults to None.
+        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
+        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
+        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
 
     Returns:
         bool: True if the points are collinear, False otherwise.
@@ -300,28 +308,36 @@ def collinear3(a, b, c, area_tol=None):
         >>> sg.collinear3((0, 0), (1, 0), (0, 1))
         False
     """
-    if area_tol is None:
-        area_tol = defaults["area_tol"]
+    area_tol, area_rel_tol, area_abs_tol = get_defaults(
+        ["area_tol", "area_rel_tol", "area_abs_tol"],
+        [area_tol, area_rel_tol, area_abs_tol],
+    )
 
-    return abs(double_area3(a, b, c)) <= area_tol
+    return abs(double_area3(a, b, c)) <= area_abs_tol
 
 
 def merge_consecutive_collinear_edges(
-    points, closed=False, area_rtol=None, area_atol=None
+    points,
+    closed=False,
+    area_tol: float | None = None,
+    area_rel_tol: float | None = None,
+    area_abs_tol: float | None = None,
 ):
     """Remove the middle points from collinear edges.
 
     Args:
         points (list[PointType]): List of points.
         closed (bool, optional): Whether the points form a closed shape. Defaults to False.
-        area_rtol (float, optional): Relative tolerance for area. Defaults to None.
-        area_atol (float, optional): Absolute tolerance for area. Defaults to None.
+        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
+        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
+        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
 
     Returns:
         list[PointType]: List of points with collinear points removed.
     """
-    area_rtol, area_atol = get_defaults(
-        ["area_rtol", "area_atol"], [area_rtol, area_atol]
+    area_tol, area_rel_tol, area_abs_tol = get_defaults(
+        ["area_tol", "area_rel_tol", "area_abs_tol"],
+        [area_tol, area_rel_tol, area_abs_tol],
     )
     points = points[:]
 
@@ -336,7 +352,14 @@ def merge_consecutive_collinear_edges(
             n += 1
         discarded = []
         for _ in range(n - 1):
-            if collinear3(a, b, c, area_rtol=area_rtol, area_atol=area_atol):
+            if collinear3(
+                a,
+                b,
+                c,
+                area_tol=area_tol,
+                area_rel_tol=area_rel_tol,
+                area_abs_tol=area_abs_tol,
+            ):
                 discarded.append(b)
                 looping = True
                 break
@@ -555,15 +578,22 @@ def segment_connection(
     return Connection.INTERSECT, (x, y)
 
 
-def collinear_segments(segment1, segment2, rel_tol=None, abs_tol=None):
+def collinear_segments(
+    segment1,
+    segment2,
+    area_tol: float | None = None,
+    area_rel_tol: float | None = None,
+    area_abs_tol: float | None = None,
+):
     """
     Checks if two line segments (a1, b1) and (a2, b2) are collinear.
 
     Args:
         segment1 (LineType): First line segment.
         segment2 (LineType): Second line segment.
-        rel_tol (float, optional): Relative tolerance. Defaults to None.
-        abs_tol (float, optional): Absolute tolerance. Defaults to None.
+        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
+        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
+        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
 
     Returns:
         bool: True if the segments are collinear, False otherwise.
@@ -575,13 +605,24 @@ def collinear_segments(segment1, segment2, rel_tol=None, abs_tol=None):
         >>> sg.collinear_segments([(0, 0), (2, 0)], [(0, 1), (2, 1)])
         False
     """
-    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
+    area_tol, area_rel_tol, area_abs_tol = get_defaults(
+        ["area_tol", "area_rel_tol", "area_abs_tol"],
+        [area_tol, area_rel_tol, area_abs_tol],
+    )
     a1, b1 = segment1
     a2, b2 = segment2
 
     return isclose(
-        direction3(a1, b1, a2), 0, rel_tol=rel_tol, abs_tol=abs_tol
-    ) and isclose(direction3(a1, b1, b2), 0, rel_tol=rel_tol, abs_tol=abs_tol)
+        direction3(a1, b1, a2),
+        0,
+        rel_tol=area_rel_tol,
+        abs_tol=area_abs_tol,
+    ) and isclose(
+        direction3(a1, b1, b2),
+        0,
+        rel_tol=area_rel_tol,
+        abs_tol=area_abs_tol,
+    )
 
 
 def check_intersection(
@@ -596,7 +637,11 @@ def check_intersection(
     rel_tol: float | None = None,
     abs_tol: float | None = None,
     dist_tol: float | None = None,
-    area_atol: float | None = None,
+    dist_rel_tol: float | None = None,
+    dist_abs_tol: float | None = None,
+    area_tol: float | None = None,
+    area_rel_tol: float | None = None,
+    area_abs_tol: float | None = None,
 ) -> tuple[Connection, list]:
     """Return a fine-grained classification of how two line segments meet.
 
@@ -615,8 +660,12 @@ def check_intersection(
         y4 (float): y-coordinate of the second point of the second line segment.
         rel_tol (float, optional): Relative tolerance. Defaults to None.
         abs_tol (float, optional): Absolute tolerance. Defaults to None.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-        area_atol (float, optional): Absolute tolerance for area. Defaults to None.
+        dist_tol (float, optional): Distance tolerance shorthand. Defaults to None.
+        dist_rel_tol (float, optional): Relative distance tolerance. Defaults to None.
+        dist_abs_tol (float, optional): Absolute distance tolerance. Defaults to None.
+        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
+        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
+        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
 
     Returns:
         tuple[Connection, PointType | Sequence | None]: A ``Connection``
@@ -630,7 +679,7 @@ def check_intersection(
         >>> kind == sg.Connection.INTERSECT, point
         (True, (1.0, 1.0))
     """
-    # collinear check uses area_atol
+    # collinear check uses area tolerances
 
     # s1: start1 = (x1, y1)
     # e1: end1 = (x2, y2)
@@ -640,9 +689,27 @@ def check_intersection(
     # s1e2: start1 and end2 is connected
     # e1s2: end1 and start2 is connected
     # e1e2: end1 and end2 is connected
-    rel_tol, abs_tol, dist_tol, area_atol = get_defaults(
-        ["rel_tol", "abs_tol", "dist_tol", "area_atol"],
-        [rel_tol, abs_tol, dist_tol, area_atol],
+    rel_tol, abs_tol, dist_tol, dist_rel_tol, dist_abs_tol, area_tol, area_rel_tol, area_abs_tol = get_defaults(
+        [
+            "rel_tol",
+            "abs_tol",
+            "dist_tol",
+            "dist_rel_tol",
+            "dist_abs_tol",
+            "area_tol",
+            "area_rel_tol",
+            "area_abs_tol",
+        ],
+        [
+            rel_tol,
+            abs_tol,
+            dist_tol,
+            dist_rel_tol,
+            dist_abs_tol,
+            area_tol,
+            area_rel_tol,
+            area_abs_tol,
+        ],
     )
 
     s1 = (x1, y1)
@@ -668,7 +735,7 @@ def check_intersection(
     # parallel = close_angles(angle1, angle2, angtol=defaults['angtol'])
 
     # Coincident end points
-    dist_tol2 = dist_tol * dist_tol
+    dist_tol2 = dist_abs_tol * dist_abs_tol
     s1s2 = close_points_square(s1, s2, dist2=dist_tol2)
     s1e2 = close_points_square(s1, e2, dist2=dist_tol2)
     e1s2 = close_points_square(e1, s2, dist2=dist_tol2)
@@ -714,7 +781,11 @@ def check_intersection(
                     return Connection.COLL_CHAIN, (s1, e1, s2)
         else:
             if total_length < length1 + length2 and collinear_segments(
-                segment1, segment2, abs_tol
+                segment1,
+                segment2,
+                area_tol=area_tol,
+                area_rel_tol=area_rel_tol,
+                area_abs_tol=area_abs_tol,
             ):
                 p1 = (min_x, min_y)
                 p2 = (max_x, max_y)

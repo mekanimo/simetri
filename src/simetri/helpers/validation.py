@@ -595,6 +595,12 @@ def is_gradient(value):
 
 d_validators = {
     "alpha": check_number,
+    "angle_abs_tol": is_positive,
+    "angle_rel_tol": is_positive,
+    "angle_tol": is_positive,
+    "area_abs_tol": is_positive,
+    "area_rel_tol": is_positive,
+    "area_tol": is_positive,
     "book_margins": lambda value: (
         value is None
         or (
@@ -607,8 +613,9 @@ d_validators = {
     ),
     "clip": check_truthiness,
     "color": check_color,
+    "dist_abs_tol": is_positive,
+    "dist_rel_tol": is_positive,
     "dist_tol": is_positive,
-    "dist_tol2": is_positive,
     "double_distance": is_positive,
     "draw_double": check_truthiness,
     "double_color": check_color,

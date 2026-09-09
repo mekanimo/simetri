@@ -725,6 +725,7 @@ class Shape(Base):
         """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
+        dist_tol2 = dist_tol * dist_tol
 
         if self.closed or other.closed or self.is_polygon or other.is_polygon:
             res = None
@@ -734,7 +735,7 @@ class Shape(Base):
             )
             if vertices:
                 closed = close_points_square(
-                    vertices[0], vertices[-1], dist2=defaults["dist_tol2"]
+                    vertices[0], vertices[-1], dist2=dist_tol2
                 )
                 res = Shape(vertices, closed=closed)
             else:
@@ -812,8 +813,9 @@ class Shape(Base):
         Returns:
             bool: True if the vertices form a polygon, False otherwise.
         """
+        dist_tol2 = defaults["dist_tol"] ** 2
         return close_points_square(
-            vertices[0][:2], vertices[-1][:2], dist2=defaults["dist_tol2"]
+            vertices[0][:2], vertices[-1][:2], dist2=dist_tol2
         )
 
     def as_array(self, homogeneous=False) -> NDArray:
@@ -935,8 +937,9 @@ class Shape(Base):
         """
         if self.closed:
             vertices = self.vertices[:]
+            dist_tol2 = defaults["dist_tol"] ** 2
             if not close_points_square(
-                vertices[0], vertices[-1], dist2=defaults["dist_tol2"]
+                vertices[0], vertices[-1], dist2=dist_tol2
             ):
                 vertices = list(vertices) + [vertices[0]]
             res = polygon_area(vertices)
@@ -997,8 +1000,9 @@ class Shape(Base):
         col1 = (verts[:, 0] - values[:, 0]) ** 2
         col2 = (verts[:, 1] - values[:, 1]) ** 2
         distances = col1 + col2
+        dist_tol2 = defaults["dist_tol"] ** 2
 
-        return np.count_nonzero(distances <= defaults["dist_tol2"])
+        return np.count_nonzero(distances <= dist_tol2)
 
     def copy(self) -> Shape:
         """Return a copy of the shape.

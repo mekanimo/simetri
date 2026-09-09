@@ -308,17 +308,17 @@ def set_defaults():
         "SOUTHWEST, TEXT, TOP, WEST. Example: text.anchor = Anchor.NORTH"
     )
 
-    defaults["angle_atol"] = 0.001  # used for comparing angles
-    default_types["angle_atol"] = float
-    defaults_help["angle_atol"] = (
+    defaults["angle_abs_tol"] = 0.001  # used for comparing angles
+    default_types["angle_abs_tol"] = float
+    defaults_help["angle_abs_tol"] = (
         "Angle absolute tolerance. "
         "Positive float. Angle in radians. "
         "Used for comparing angles."
     )
 
-    defaults["angle_rtol"] = 0.001  # used for comparing angles
-    default_types["angle_rtol"] = float
-    defaults_help["angle_rtol"] = (
+    defaults["angle_rel_tol"] = 0.001  # used for comparing angles
+    default_types["angle_rel_tol"] = float
+    defaults_help["angle_rel_tol"] = (
         "Angle relative tolerance. "
         "Positive float. Angle in radians. "
         "Used for comparing angles."
@@ -332,15 +332,15 @@ def set_defaults():
         "Angle tolerance. Positive float. Angle in radians. Used for comparing angles."
     )
 
-    defaults["area_atol"] = 0.001  # used for comparing areas
-    default_types["area_atol"] = float
-    defaults_help["area_atol"] = (
+    defaults["area_abs_tol"] = 0.001  # used for comparing areas
+    default_types["area_abs_tol"] = float
+    defaults_help["area_abs_tol"] = (
         "Area absolute tolerance. Positive float.Used for comparing areas."
     )
 
-    defaults["area_rtol"] = 0.001  # used for comparing areas
-    default_types["area_rtol"] = float
-    defaults_help["area_rtol"] = (
+    defaults["area_rel_tol"] = 0.001  # used for comparing areas
+    default_types["area_rel_tol"] = float
+    defaults_help["area_rel_tol"] = (
         "Area relative tolerance. Positive float.Used for comparing areas."
     )
 
@@ -565,19 +565,22 @@ def set_defaults():
         "If True, debug information is printed."
     )
 
+    defaults["dist_abs_tol"] = 0.05  # used for comparing distances
+    default_types["dist_abs_tol"] = float
+    defaults_help["dist_abs_tol"] = (
+        "Distance absolute tolerance. Positive float. Length in <points>."
+    )
+
+    defaults["dist_rel_tol"] = 0  # used for comparing distances
+    default_types["dist_rel_tol"] = float
+    defaults_help["dist_rel_tol"] = (
+        "Distance relative tolerance. Positive float. Used for comparing distances."
+    )
+
     defaults["dist_tol"] = 0.05  # used for comparing points
     default_types["dist_tol"] = float
     defaults_help["dist_tol"] = (
         "Distance tolerance for comparing two points. "
-        "Positive float. Length in <points>."
-    )
-
-    defaults["dist_tol2"] = (
-        0.05  # used for comparing two points to check if they are the
-    )
-    default_types["dist_tol2"] = float
-    defaults_help["dist_tol2"] = (
-        "Distance tolerance for comparing two distances. "
         "Positive float. Length in <points>."
     )
 

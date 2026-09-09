@@ -71,36 +71,39 @@ def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
 
     return angle
 
-
 def equal_angles(
     angle1: float,
     angle2: float,
-    rel_tol: float | None = None,
-    abs_tol: float | None = None,
+    angle_tol: float | None = None,
+    angle_rel_tol: float | None = None,
+    angle_abs_tol: float | None = None,
 ) -> bool:
     """Return True if two angles are equal within tolerance.
-
-    Negative angles are converted to positive values before comparison.
 
     Args:
         angle1: First angle in radians.
         angle2: Second angle in radians.
-        rel_tol: Relative tolerance. Defaults to ``defaults[\"rel_tol\"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults[\"abs_tol\"]``.
+        angle_tol: Angle tolerance shorthand. Defaults to None.
+        angle_rel_tol: Relative angle tolerance. Defaults to None.
+        angle_abs_tol: Absolute angle tolerance. Defaults to None.
 
     Returns:
         bool: True if the angles match within tolerance.
     """
-    if rel_tol is None:
-        rel_tol = defaults["rel_tol"]
-
-    if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+    angle_tol, angle_rel_tol, angle_abs_tol = get_defaults(
+        ["angle_tol", "angle_rel_tol", "angle_abs_tol"],
+        [angle_tol, angle_rel_tol, angle_abs_tol],
+    )
 
     angle1 = positive_angle(angle1)
     angle2 = positive_angle(angle2)
 
-    return isclose(angle1, angle2, rel_tol=rel_tol, abs_tol=abs_tol)
+    return isclose(
+        angle1,
+        angle2,
+        rel_tol=angle_rel_tol,
+        abs_tol=angle_abs_tol,
+    )
 
 
 def triangle_centroid3(p1, p2, p3):
@@ -167,7 +170,8 @@ def connect2(
     poly_point1: list[PointType],
     poly_point2: list[PointType],
     dist_tol: float | None = None,
-    rel_tol: float | None = None,
+    dist_rel_tol: float | None = None,
+    dist_abs_tol: float | None = None,
 ) -> list[PointType]:
     """
     Connect two polypoints together.
@@ -176,15 +180,17 @@ def connect2(
         poly_point1 (list[PointType]): First list of points.
         poly_point2 (list[PointType]): Second list of points.
         dist_tol (float, optional): Distance tolerance. Defaults to None.
-        rel_tol (float, optional): Relative tolerance. Defaults to None.
+        dist_rel_tol (float, optional): Relative distance tolerance. Defaults to None.
+        dist_abs_tol (float, optional): Absolute distance tolerance. Defaults to None.
 
     Returns:
         list[PointType]: Connected list of points.
     """
-    rel_tol, dist_tol = get_defaults(
-        ["rel_tol", "dist_tol"], [rel_tol, dist_tol]
+    dist_tol, dist_rel_tol, dist_abs_tol = get_defaults(
+        ["dist_tol", "dist_rel_tol", "dist_abs_tol"],
+        [dist_tol, dist_rel_tol, dist_abs_tol],
     )
-    dist_tol2 = dist_tol * dist_tol
+    dist_tol2 = dist_abs_tol * dist_abs_tol
     start1, end1 = poly_point1[0], poly_point1[-1]
     start2, end2 = poly_point2[0], poly_point2[-1]
     pp1 = poly_point1[:]

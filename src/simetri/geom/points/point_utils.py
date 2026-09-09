@@ -35,13 +35,21 @@ def distance(p1: PointType, p2: PointType) -> float:
     return hypot(p2[0] - p1[0], p2[1] - p1[1])
 
 
-def equal_points(point1: PointType, point2: PointType, dist_tol=0.001) -> bool:
+def equal_points(
+    point1: PointType,
+    point2: PointType,
+    dist_tol: float | None = None,
+    dist_rel_tol: float | None = None,
+    dist_abs_tol: float | None = None,
+) -> bool:
     """Return True if two points are within ``dist_tol`` of each other.
 
     Args:
         point1: First point.
         point2: Second point.
-        dist_tol: Maximum allowed distance. Defaults to 0.001.
+        dist_tol: Distance tolerance shorthand. Defaults to None.
+        dist_rel_tol: Relative distance tolerance. Defaults to None.
+        dist_abs_tol: Absolute distance tolerance. Defaults to None.
 
     Returns:
         bool: True if the points are within the given distance.
@@ -53,19 +61,29 @@ def equal_points(point1: PointType, point2: PointType, dist_tol=0.001) -> bool:
         >>> sg.equal_points((0, 0), (1, 0))
         False
     """
+    dist_tol, dist_rel_tol, dist_abs_tol = get_defaults(
+        ["dist_tol", "dist_rel_tol", "dist_abs_tol"],
+        [dist_tol, dist_rel_tol, dist_abs_tol],
+    )
 
-    return distance(point1, point2) <= dist_tol
+    return distance(point1, point2) <= dist_abs_tol
 
 
 def congruent_points(
-    point1: PointType, point2: PointType, dist_tol=0.001
+    point1: PointType,
+    point2: PointType,
+    dist_tol: float | None = None,
+    dist_rel_tol: float | None = None,
+    dist_abs_tol: float | None = None,
 ) -> bool:
     """Alias for ``equal_points``.
 
     Args:
         point1: First point.
         point2: Second point.
-        dist_tol: Maximum allowed distance. Defaults to 0.001.
+        dist_tol: Distance tolerance shorthand. Defaults to None.
+        dist_rel_tol: Relative distance tolerance. Defaults to None.
+        dist_abs_tol: Absolute distance tolerance. Defaults to None.
 
     Returns:
         bool: True if the points are within the given distance.
@@ -77,8 +95,13 @@ def congruent_points(
         >>> sg.congruent_points((0, 0), (1, 0))
         False
     """
-
-    return equal_points(point1, point2, dist_tol=dist_tol)
+    return equal_points(
+        point1,
+        point2,
+        dist_tol=dist_tol,
+        dist_rel_tol=dist_rel_tol,
+        dist_abs_tol=dist_abs_tol,
+    )
 
 
 def offset_point_on_line(
@@ -141,8 +164,11 @@ def fix_degen_points(
     loop=False,
     closed=False,
     dist_tol: float | None = None,
-    area_rtol: float | None = None,
-    area_atol: float | None = None,
+    dist_rel_tol: float | None = None,
+    dist_abs_tol: float | None = None,
+    area_tol: float | None = None,
+    area_rel_tol: float | None = None,
+    area_abs_tol: float | None = None,
     check_collinear=True,
 ) -> list[PointType]:
     """
@@ -153,9 +179,12 @@ def fix_degen_points(
         points (list[PointType]): List of points.
         loop (bool, optional): Whether to loop the points. Defaults to False.
         closed (bool, optional): Whether the points form a closed shape. Defaults to False.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-        area_rtol (float, optional): Relative tolerance for area. Defaults to None.
-        area_atol (float, optional): Absolute tolerance for area. Defaults to None.
+        dist_tol (float, optional): Distance tolerance shorthand. Defaults to None.
+        dist_rel_tol (float, optional): Relative distance tolerance. Defaults to None.
+        dist_abs_tol (float, optional): Absolute distance tolerance. Defaults to None.
+        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
+        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
+        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
         check_collinear (bool, optional): Whether to check for collinear points. Defaults to True.
 
     Returns:
@@ -169,10 +198,25 @@ def fix_degen_points(
         ... )
         [(0, 0), (1, 0), (2, 0)]
     """
-    dist_tol, area_rtol, area_atol = get_defaults(
-        ["dist_tol", "area_rtol", "area_atol"], [dist_tol, area_rtol, area_atol]
+    dist_tol, dist_rel_tol, dist_abs_tol, area_tol, area_rel_tol, area_abs_tol = get_defaults(
+        [
+            "dist_tol",
+            "dist_rel_tol",
+            "dist_abs_tol",
+            "area_tol",
+            "area_rel_tol",
+            "area_abs_tol",
+        ],
+        [
+            dist_tol,
+            dist_rel_tol,
+            dist_abs_tol,
+            area_tol,
+            area_rel_tol,
+            area_abs_tol,
+        ],
     )
-    dist_tol2 = dist_tol * dist_tol
+    dist_tol2 = dist_abs_tol * dist_abs_tol
     new_points = []
     for i, point in enumerate(points):
         if i == 0:
@@ -192,7 +236,11 @@ def fix_degen_points(
         )
 
         new_points = merge_consecutive_collinear_edges(
-            new_points, closed, area_rtol, area_atol
+            new_points,
+            closed,
+            area_tol,
+            area_rel_tol,
+            area_abs_tol,
         )
 
     return new_points
