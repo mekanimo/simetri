@@ -112,7 +112,7 @@ def make_tree(
 
     Args:
         node: The root ``TreeNode``.
-        canvas: Canvas to draw on. Created if omitted.
+        canvas: Canvas to draw on (mutated). Created if omitted.
         file_path: Optional path to save the drawing.
         overwrite: Whether to overwrite an existing file.
         dx: Horizontal spacing between indentation levels.

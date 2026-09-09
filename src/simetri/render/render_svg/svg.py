@@ -36,7 +36,7 @@ def append_non_default_style_options(options, sketch, style_map):
     """Append CSS style options for sketch attributes that differ from defaults.
 
     Args:
-        options: List of style option strings.
+        options: List of style option strings (mutated).
         sketch: Sketch object.
         style_map: Dictionary mapping sketch attribute name to (css_name, default_key).
     """

@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from math import atan2, hypot, pi
 
-import fitz
+import pymupdf as fitz
 import numpy as np
 from numpy.typing import NDArray
 from PIL import ImageFont
@@ -1841,9 +1841,11 @@ def _vertices_on_hull_points(
             if hypot(vx - hx, vy - hy) <= tol:
                 indices.append(i)
                 break
-            if ndigits >= 0 and round(vx, ndigits) == round(
-                hx, ndigits
-            ) and round(vy, ndigits) == round(hy, ndigits):
+            if (
+                ndigits >= 0
+                and round(vx, ndigits) == round(hx, ndigits)
+                and round(vy, ndigits) == round(hy, ndigits)
+            ):
                 indices.append(i)
                 break
     return indices

@@ -176,7 +176,7 @@ def fix_degen_points(
     Remove the middle point from the collinear points.
 
     Args:
-        points (list[PointType]): List of points.
+        points (list[PointType]): List of points (mutated).
         loop (bool, optional): Whether to loop the points. Defaults to False.
         closed (bool, optional): Whether the points form a closed shape. Defaults to False.
         dist_tol (float, optional): Distance tolerance shorthand. Defaults to None.

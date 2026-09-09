@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Iterator, Sequence
+from itertools import combinations
 from typing import TYPE_CHECKING, Any, Self
 
 from numpy import array
@@ -33,14 +34,69 @@ from ..base.common import LineType, PointType, get_unique_id
 from ..base.core import Base, _update_inplace
 from ..config.settings import defaults, issue_warning
 from ..geom.bbox import bounding_box
-from ..geom.points.point_utils import fix_degen_points, round_point
+from ..geom.points.point_utils import distance, fix_degen_points, round_point
 from ..geom.polygons.poly import get_polygons
 from ..geom.segments.line_utils import round_segment
 from ..helpers.modifiers import Modifier
-from .merge import _merge_collinears, _merge_shapes
+from .merge import (
+    _closest_angle_differences,
+    _merge_collinears,
+    _merge_shapes,
+    _segment_angles,
+)
 
 if TYPE_CHECKING:
     from ..shapes.shape import Shape
+
+
+def check_dist_tol(shapes_groups: Any | Sequence[Any], n: int) -> set[float]:
+    """Return up to ``n`` smallest positive pairwise vertex distances.
+
+    Args:
+        shapes_groups: One shape/group or a sequence mixing shapes and groups.
+        n: Number of distinct distances to return.
+
+    Returns:
+        set[float]: Up to ``n`` smallest positive distances.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> values = sg.check_dist_tol(
+        ...     [
+        ...         sg.Shape([(0, 0), (1, 0)]),
+        ...         sg.Shape([(0, 0), (0, 2)]),
+        ...     ],
+        ...     2,
+        ... )
+        >>> values == {1.0, 2.0}
+        True
+    """
+    return Group(shapes_groups).check_dist_tol(n)
+
+
+def check_angle_tol(shapes_groups: Any | Sequence[Any], n: int) -> set[float]:
+    """Return up to ``n`` smallest positive edge-angle differences.
+
+    Args:
+        shapes_groups: One shape/group or a sequence mixing shapes and groups.
+        n: Number of distinct angle differences to return.
+
+    Returns:
+        set[float]: Up to ``n`` smallest positive angle differences.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> values = sg.check_angle_tol(
+        ...     [
+        ...         sg.Shape([(0, 0), (1, 0)]),
+        ...         sg.Shape([(0, 0), (0, 1)]),
+        ...     ],
+        ...     1,
+        ... )
+        >>> values == {sg.pi / 2}
+        True
+    """
+    return Group(shapes_groups).check_angle_tol(n)
 
 
 class Group(Base):
@@ -319,6 +375,31 @@ class Group(Base):
 
         _, pairs = all_close_points(vertices, dist_tol=dist_tol, with_dist=True)
         return [pair for pair in pairs if pair[2] > 0][:n]
+
+    def check_dist_tol(self, n: int) -> set[float]:
+        """Return up to ``n`` smallest positive pairwise vertex distances."""
+        if n <= 0:
+            raise ValueError("n must be a positive integer.")
+
+        vertices = self.all_vertices
+        if len(vertices) < 2:
+            return set()
+
+        distances = set()
+        for first_point, second_point in combinations(vertices, 2):
+            point_distance = distance(first_point[:2], second_point[:2])
+            if point_distance > 0:
+                distances.add(point_distance)
+
+        return set(sorted(distances)[:n])
+
+    def check_angle_tol(self, n: int) -> set[float]:
+        """Return up to ``n`` smallest positive edge-angle differences."""
+        if n <= 0:
+            raise ValueError("n must be a positive integer.")
+
+        angles = _segment_angles(self.all_segments)
+        return _closest_angle_differences(angles, n)
 
     def append(self, element: Any) -> Self:
         """

@@ -176,7 +176,7 @@ def get_tex_code(canvas: Canvas) -> str:
     """Convert the sketches in the Canvas to TikZ code.
 
     Args:
-        canvas (Canvas): The canvas object.
+        canvas (Canvas): The canvas object (mutated).
 
     Returns:
         str: The TikZ code.

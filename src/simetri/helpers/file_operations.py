@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from string import Template
 
-import fitz
+import pymupdf as fitz
 
 from ..config.settings import issue_warning
 

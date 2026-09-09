@@ -2303,11 +2303,12 @@ def all_intersections(
     participating divisions and in the supplied lookup dictionaries.
 
     Args:
-        division_list: Divisions to test for pairwise intersections.
+        division_list: Divisions to test for pairwise intersections
+            (mutated).
         d_intersections: Mapping updated with discovered intersections keyed
-            by intersection id.
+            by intersection id (mutated).
         d_connections: Mapping updated with discovered intersections keyed by
-            division-id pairs.
+            by division-id pairs (mutated).
         loom: Whether to skip candidate pairs aligned on the same x or y start
             coordinates.
 
@@ -2413,11 +2414,12 @@ def merge_nodes(
     """Find and register intersections for the supplied divisions.
 
     Args:
-        division_list: Divisions to test for pairwise intersections.
+        division_list: Divisions to test for pairwise intersections
+            (mutated).
         d_intersections: Mapping updated with discovered intersections keyed
-            by intersection id.
+            by intersection id (mutated).
         d_connections: Mapping updated with discovered intersections keyed by
-            division-id pairs.
+            by division-id pairs (mutated).
         loom: Whether to skip candidate pairs aligned on the same x or y start
             coordinates.
 

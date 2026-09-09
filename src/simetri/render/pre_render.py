@@ -201,8 +201,8 @@ def collect_tikz_preamble_requirements_for_sketch(
 
     Args:
         sketch: Sketch to inspect.
-        tikz_libraries: Mutable list of TikZ library names (updated in place).
-        tikz_packages: Mutable list of TeX package names (updated in place).
+        tikz_libraries: Mutable list of TikZ library names (mutated).
+        tikz_packages: Mutable list of TeX package names (mutated).
     """
     sketch_dict = sketch.__dict__
 

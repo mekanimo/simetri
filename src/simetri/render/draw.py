@@ -1900,7 +1900,7 @@ def set_shape_sketch_style(
     """Set the style properties of the sketch.
 
     Args:
-        sketch: Sketch object.
+        sketch: Sketch object (mutated).
         item: Item whose style properties are to be set.
         canvas: Canvas object.
         linear (bool, optional): Whether the style is linear. Defaults to False.

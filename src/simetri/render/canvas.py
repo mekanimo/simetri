@@ -16,7 +16,7 @@ from math import pi
 from pathlib import Path
 from typing import Any, Self
 
-import fitz
+import pymupdf as fitz
 import networkx as nx
 import numpy as np
 from numpy.typing import NDArray
@@ -156,7 +156,7 @@ def warn_vertex_coord_label_sizing(canvas) -> None:
     """Warn once per export about vertex label sizing behavior.
 
     Args:
-        canvas: Canvas instance being exported.
+        canvas: Canvas instance being exported (mutated).
     """
     if getattr(canvas, "_vertex_label_sizing_warned", False):
         return

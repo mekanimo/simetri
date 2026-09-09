@@ -319,7 +319,7 @@ def _style_init(style, exact=None, exclude=None, prefix="", subtype=None):
     """Initialize the style object.
 
     Args:
-        style: The style object to initialize.
+        style: The style object to initialize (mutated).
         exact: List of exact attributes to include.
         exclude: List of attributes to exclude.
         prefix: Prefix to use for the attributes.
@@ -1648,7 +1648,7 @@ def _set_style_alias_map(map_dict, styles, paths, prefixes, debug=False):
     """Set the style alias map.
 
     Args:
-        map_dict (dict): The dictionary to store the alias map.
+        map_dict (dict): The dictionary to store the alias map (mutated).
         styles (list): List of style objects.
         paths (list): List of paths to the style objects.
         prefixes (list): List of prefixes for the style attributes.

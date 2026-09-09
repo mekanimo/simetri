@@ -11,7 +11,7 @@ import subprocess
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-import fitz
+import pymupdf as fitz
 
 from simetri.base.all_enums import TexLoc, Types
 from simetri.config.settings import defaults
@@ -46,10 +46,8 @@ def remove_aux_files(file_path):
     if os.path.exists(aux_file):
         if not wait_for_file_availability(aux_file, time_out):
             print(
-                
-                    f"File '{aux_file}' is not available after waiting for "
-                    f"{time_out} seconds."
-                
+                f"File '{aux_file}' is not available after waiting for "
+                f"{time_out} seconds."
             )
         else:
             os.remove(aux_file)

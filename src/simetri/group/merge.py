@@ -30,6 +30,60 @@ if TYPE_CHECKING:
     from .batch import Group
 
 
+def _collect_angles(
+    edges: list[LineType], d_node_coord: dict
+) -> list[tuple[float, list]]:
+    """Return normalized inclination angles paired with their edges."""
+    angles_edges = []
+    for edge in edges:
+        edge = list(edge)
+        start = d_node_coord[edge[0]]
+        end = d_node_coord[edge[1]]
+        angle = inclination_angle(start, end)
+        angles_edges.append((angle, edge))
+
+    angles_edges.sort()
+    return angles_edges
+
+
+def _segment_angles(segments: list[LineType]) -> list[float]:
+    """Return inclination angles for the given segments."""
+    angles = []
+    for segment in segments:
+        start_point, end_point = segment
+        angles.append(inclination_angle(start_point, end_point))
+
+    return angles
+
+
+def _closest_angle_differences(angles: list[float], n: int) -> set[float]:
+    """Return up to ``n`` smallest positive pairwise angle differences."""
+    if n <= 0:
+        raise ValueError("n must be a positive integer.")
+
+    if len(angles) < 2:
+        return set()
+
+    differences = set()
+    for index, angle1 in enumerate(angles):
+        for angle2 in angles[index + 1 :]:
+            angle_difference = abs(angle1 - angle2)
+            angle_difference = min(angle_difference, pi - angle_difference)
+            if angle_difference > 0:
+                differences.add(angle_difference)
+
+    return set(sorted(differences)[:n])
+
+
+def _collect_closest_angles(
+    edges: list[LineType], d_node_coord: dict, n: int
+) -> set[float]:
+    """Return up to ``n`` smallest positive inclination differences."""
+    angles_edges = _collect_angles(edges, d_node_coord)
+    angles = [angle for angle, _ in angles_edges]
+    return _closest_angle_differences(angles, n)
+
+
 def _merge_shapes(
     self,
     dist_tol: float | None = None,
@@ -222,16 +276,11 @@ def _merge_collinears(
         ]
 
     angles_edges = []
-    for edge in edges:
-        edge = list(edge)
-        start = d_node_coord[edge[0]]
-        end = d_node_coord[edge[1]]
-        angle = inclination_angle(start, end)
+    for angle, edge in _collect_angles(edges, d_node_coord):
         if abs(angle - pi) < merge_angle_tol:
             angle = 0
         angles_edges.append((angle, edge))
 
-    angles_edges.sort()
     bins = []
     current_bin = [angles_edges[0]]
     smallest_rejected_angle_difference = None

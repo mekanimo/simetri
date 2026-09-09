@@ -183,7 +183,12 @@ class SVG_Filter(SVGElement):
 
 
 def _indent_xml(elem: ET.Element, level: int = 0) -> None:
-    """In-place pretty-printer for ElementTree."""
+    """In-place pretty-printer for ElementTree.
+
+    Args:
+        elem: ElementTree node to format (mutated).
+        level: Current indentation depth.
+    """
     i = "\n" + level * "  "
     if len(elem):
         if not elem.text or not elem.text.strip():
