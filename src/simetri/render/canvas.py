@@ -183,6 +183,10 @@ class Canvas:
 
     All drawing operations go through ``Canvas``. It can draw graphics and
     text objects and provides helpers for lines, circles, polygons, and more.
+    Without ``page_size`` and ``page_origin``, output bounds are computed from
+    the drawn entities; when they are set, they fix the output size/position.
+    Canvas units are points (1 in = 72 pt), and all angles are in radians
+    (2 pi = 360 degrees).
 
     Examples:
         >>> import simetri.graphics as sg
@@ -1096,7 +1100,7 @@ class Canvas:
 
     def draw(
         self,
-        item_s: Shape | Group | Sequence,
+        item_s: "Drawable | Sequence",
         pos: PointType = None,
         angle: float = 0,
         rotocenter: PointType = (0, 0),
@@ -1109,7 +1113,7 @@ class Canvas:
         Draw the item_s. item_s can be a single item or a list of items.
 
         Args:
-            item_s (Group | Shape | Sequence): The item(s) to draw.
+            item_s (Drawable | Sequence): The item(s) to draw.
             pos (PointType, optional): The position to draw the item(s), defaults to None.
             angle (float, optional): The angle to rotate the item(s), defaults to 0.
             rotocenter (PointType, optional): The point about which to rotate, defaults to (0, 0).

@@ -100,6 +100,8 @@ class Shape(Base):
     fill and boolean operations.
     If the first and last points coincide then the last point is removed.
 
+    Color, alpha, width, dash, join, cap, marker, and related style override attributes default to None. When they are None, their effective values are resolved later from defaults. Use sg.doc(sg.Shape) to see the defaults.
+
     Attributes:
         primary_points: ``Points`` storage.
         xform_matrix: 3×3 affine transform (row form).
@@ -160,37 +162,37 @@ class Shape(Base):
         self,
         points: Sequence[PointType] | None = None,
         closed: bool = False,
-        fill: bool = True,
-        stroke: bool = True,
-        alpha: float | None = None,
-        color: Color | None = None,
-        draw_double: bool = False,
-        draw_fillets: bool = False,
-        draw_markers: bool = False,
+        fill: bool | None = None,
+        stroke: bool | None = None,
+        line_width: float | None = None,
+        line_color: Color | None = None,
+        fill_color: Color | None = None,
+        line_alpha: float | None = None,
+        fill_alpha: float | None = None,
+        line_cap: LineCap | None = None,
+        line_dash_array: Sequence | None = None,
+        line_dash_phase: float | None = None,
+        line_join: LineJoin | None = None,
+        line_miter_limit: float | None = None,
+        draw_double: bool | None = None,
+        draw_fillets: bool | None = None,
+        draw_markers: bool | None = None,
         back_style: Any = None,
         double_distance: float | None = None,
         double_color: Color | None = None,
-        fill_alpha: float = 1,
-        fill_color: Color = black,
-        fill_mode: FillMode = FillMode.EVENODD,
+        fill_mode: FillMode | None = None,
         fillet_radius: float | None = None,
         gradient: Any = None,
-        line_alpha: float = 1,
-        line_cap: LineCap = LineCap.BUTT,
-        line_color: Color = black,
-        line_dash_array: Any = None,
-        line_dash_phase: float | None = None,
-        line_join: LineJoin = LineJoin.MITER,
-        line_miter_limit: float | None = None,
-        line_width: float = 1,
-        marker_alpha: float = 1,
+        marker_alpha: float | None = None,
         marker_color: Color | None = None,
         marker_radius: float | None = None,
         marker_shape: Any = None,
         marker_size: float | None = None,
         marker_type: Any = None,
-        markers_only: bool = False,
-        smooth: bool = False,
+        markers_only: bool | None = None,
+        smooth: bool | None = None,
+        alpha: float | None = None,
+        color: Color | None = None,
         subtype: Types = Types.SHAPE,
         xform_matrix: NDArray | None = None,
     ) -> None:
@@ -588,58 +590,6 @@ class Shape(Base):
         """
         return len(self.primary_points) > 0
 
-    def to_json(self) -> str:
-        """Serialize the Shape into a JSON string.
-
-        The payload includes:
-          - type, subtype (as strings)
-          - closed (bool)
-          - points (original primary points, not transformed)
-          - xform_matrix (3x3)
-          - style (resolved style attributes present on the shape)
-        """
-
-        def _to_jsonable(obj):
-            # Enums (StrEnum) -> value
-            if hasattr(obj, "value"):
-                return obj.value
-            # Native primitives
-            if isinstance(obj, (str, int, float, bool)) or obj is None:
-                return obj
-            # Numpy arrays -> lists
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            # Sequences -> list
-            if isinstance(obj, (list, tuple)):
-                return [_to_jsonable(x) for x in obj]
-            # dict -> dict
-            if isinstance(obj, dict):
-                return {k: _to_jsonable(v) for k, v in obj.items()}
-            try:
-                return float(obj)
-            except (TypeError, ValueError):
-                return str(obj)
-
-        # Original points (primary points before transform)
-        prim_points = list(self.primary_points) if self.primary_points else []
-
-        data = {
-            "type": getattr(self.type, "value", str(self.type)),
-            "subtype": getattr(self.subtype, "value", str(self.subtype)),
-            "closed": bool(self.closed),
-            "points": [(float(p[0]), float(p[1])) for p in prim_points],
-            "xform_matrix": _to_jsonable(self.xform_matrix),
-            "style": {},
-        }
-
-        # Include style attributes that are set on the shape
-        for attrib in shape_style_map:
-            val = getattr(self, attrib, None)
-            if val is not None:
-                data["style"][attrib] = _to_jsonable(val)
-
-        return json.dumps(data, ensure_ascii=False)
-
     def copy_style(self, other):
         """Copies the other shape's style."""
         self.alpha = other.alpha
@@ -649,30 +599,69 @@ class Shape(Base):
             self.line_color = other.color
             self.fill_color = other.color
         else:
-            self.line_color = other.line_color
-            self.fill_color = other.fill_color
+            self.line_color, self.fill_color = get_defaults(
+                ["line_color", "fill_color"],
+                [other.line_color, other.fill_color],
+            )
 
         if other.alpha is not None:
             self.line_alpha = other.alpha
             self.fill_alpha = other.alpha
         else:
-            self.line_alpha = other.line_alpha
-            self.fill_alpha = other.fill_alpha
+            self.line_alpha, self.fill_alpha = get_defaults(
+                ["line_alpha", "fill_alpha"],
+                [other.line_alpha, other.fill_alpha],
+            )
 
-        self.line_width = other.line_width
-        self.fill = other.fill
-        self.stroke = other.stroke
-        self.line_dash_array = other.line_dash_array
-        self.line_dash_phase = other.line_dash_phase
-        self.line_cap = other.line_cap
-        self.line_join = other.line_join
-        self.smooth = other.smooth
-        self.back_style = other.back_style
-        self.draw_markers = other.draw_markers
-        self.marker_type = other.marker_type
-        self.marker_size = other.marker_size
-        self.marker_radius = other.marker_radius
-        self.markers_only = other.markers_only
+        (
+            self.line_width,
+            self.fill,
+            self.stroke,
+            self.line_dash_array,
+            self.line_dash_phase,
+            self.line_cap,
+            self.line_join,
+            self.smooth,
+            self.back_style,
+            self.draw_markers,
+            self.marker_type,
+            self.marker_size,
+            self.marker_radius,
+            self.markers_only,
+        ) = get_defaults(
+            [
+                "line_width",
+                "fill",
+                "stroke",
+                "line_dash_array",
+                "line_dash_phase",
+                "line_cap",
+                "line_join",
+                "smooth",
+                "back_style",
+                "draw_markers",
+                "marker_type",
+                "marker_size",
+                "marker_radius",
+                "markers_only",
+            ],
+            [
+                other.line_width,
+                other.fill,
+                other.stroke,
+                other.line_dash_array,
+                other.line_dash_phase,
+                other.line_cap,
+                other.line_join,
+                other.smooth,
+                other.back_style,
+                other.draw_markers,
+                other.marker_type,
+                other.marker_size,
+                other.marker_radius,
+                other.markers_only,
+            ],
+        )
 
         return self
 

@@ -2098,10 +2098,11 @@ def create_sketch(
             if attrib_name in ("color", "alpha"):
                 continue
             if attrib_name == "fill_color":
-                if item.fill_color in (None, colors.black):
+                fill_color = canvas.resolve_property(item, "fill_color")
+                if fill_color == colors.black:
                     sketch.frame_back_color = defaults["frame_back_color"]
                 else:
-                    sketch.frame_back_color = item.fill_color
+                    sketch.frame_back_color = fill_color
                 continue
             attrib_value = canvas.resolve_property(item, attrib_name)
             setattr(sketch, attrib_name, attrib_value)

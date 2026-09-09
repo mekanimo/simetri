@@ -298,68 +298,6 @@ class Group(Base):
 
         return len(set(elements)) != len(elements)
 
-    def to_json(self) -> str:
-        """Serialize the Group into a JSON string.
-
-        The payload includes:
-          - type, subtype
-          - elements (recursively serialized)
-          - modifiers (stringified)
-          - attributes (common group attributes incl. mask if present)
-        """
-
-        def _to_jsonable(obj):
-            # Enum-like with 'value'
-            if hasattr(obj, "value"):
-                return obj.value
-            if isinstance(obj, (str, int, float, bool)) or obj is None:
-                return obj
-            if isinstance(obj, dict):
-                return {k: _to_jsonable(v) for k, v in obj.items()}
-            if isinstance(obj, (list, tuple)):
-                return [_to_jsonable(x) for x in obj]
-            try:
-                return float(obj)
-            except (TypeError, ValueError):
-                return str(obj)
-
-        # Elements
-        elems = []
-        for elem in self.elements or []:
-            if hasattr(elem, "to_json") and callable(elem.to_json):
-                elems.append(json.loads(elem.to_json()))
-                continue
-            # Fallback summary for unknown elements
-            summary = {
-                "type": _to_jsonable(
-                    getattr(
-                        getattr(elem, "type", None),
-                        "value",
-                        getattr(elem, "type", "UNKNOWN"),
-                    )
-                ),
-                "repr": str(elem),
-            }
-            elems.append(summary)
-
-        # Modifiers (stringify conservatively)
-        mods = None
-        if self.modifiers:
-            mods = []
-            for m in self.modifiers:
-                name = getattr(m, "name", None)
-                mods.append(name if isinstance(name, str) else str(m))
-
-        data = {
-            "type": _to_jsonable(getattr(self.type, "value", self.type)),
-            "subtype": _to_jsonable(self.subtype),
-            "elements": elems,
-            "modifiers": mods,
-            "attributes": {},
-        }
-
-        return json.dumps(data, ensure_ascii=False)
-
     def proximity(
         self, dist_tol: float | None = None, n: int = 5
     ) -> list[PointType]:

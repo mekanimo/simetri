@@ -862,9 +862,11 @@ def is_stroked(shape: Shape) -> bool:
     Returns:
         bool: True if the shape is stroked, False otherwise.
     """
-    return (
-        shape.stroke and shape.line_color is not None and shape.line_width > 0
-    )
+    stroke = sg.Canvas.resolve_property(None, shape, "stroke")
+    line_color = sg.Canvas.resolve_property(None, shape, "line_color")
+    line_width = sg.Canvas.resolve_property(None, shape, "line_width")
+
+    return stroke and line_color is not None and line_width > 0
 
 
 def get_frame_options(sketch):
