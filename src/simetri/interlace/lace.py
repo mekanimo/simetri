@@ -20,7 +20,6 @@ from numpy import isclose
 
 from ..base.all_enums import Connection, Types
 from ..base.common import PointType, d_id_obj, get_defaults
-from ..base.common_style import COLOR_ALPHA_ATTRS, STYLE_COPY_ATTRS, CommonStyle
 from ..coloring import colors
 from ..config.settings import defaults
 from ..geom.geom_utils import close_points_square, connected_pairs
@@ -41,7 +40,6 @@ from ..geom.segments.line_utils import equal_lines, segment_connection
 from ..group.batch import Group
 from ..helpers.graph import get_cycles
 from ..helpers.utilities import flatten, group_into_bins
-from ..helpers.validation import validate_args
 from ..render.style_map import shape_style_map
 from ..shapes.geom_items import fillet_shape_corners
 from ..shapes.shape import Shape, custom_attributes
@@ -1005,21 +1003,18 @@ class ParallelPolyline(Group):
         self.offset_poly_list = polylines
 
 
-class Lace(Group, CommonStyle):
+class Lace(Group):
     """Collection of parallel polylines used to build interlace patterns.
 
-    Style lives on the Lace (``CommonStyle``), same model as Shape/Path2D/
-    Pattern. Lace-specific colors (``plait_color``, ``palette``, swatch) stay
-    separate from stroke/fill style.
+    Lace does not own stroke/fill style on itself. Drawing uses lace-specific
+    colors (``plait_color``, ``palette``, swatch) and the child fragment/plait
+    shapes.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> from simetri.interlace.lace import Lace
         >>> lace = Lace([sg.Shape([(0, 0), (40, 0), (40, 40)])], offset=3)
     """
-
-    # Group.__setattr__ adds a frame above the color/alpha property setters.
-    _style_warning_stacklevel: int = 4
 
     def __init__(
         self,
@@ -1057,7 +1052,7 @@ class Lace(Group, CommonStyle):
             merge_angle_tol: Angle tolerance (radians) for merging
                 collinear edges.
             debug: Print shape-merge diagnostics when True.
-            **kwargs: Style attributes (``CommonStyle`` / ``STYLE_COPY_ATTRS``).
+            **kwargs: Reserved for internal ``_copy`` use only.
         """
         (
             rel_tol,
@@ -1179,16 +1174,10 @@ class Lace(Group, CommonStyle):
         super().__init__(elements)
         self.subtype = Types.LACE
         if kwargs and "_copy" not in kwargs:
-            valid_args = list(COLOR_ALPHA_ATTRS) + list(STYLE_COPY_ATTRS)
-            validate_args(kwargs, valid_args)
-            self._init_from_style_kwargs(kwargs)
-            if kwargs:
-                raise TypeError(
-                    f"Unexpected keyword arguments: {sorted(kwargs)}"
-                )
-        elif not kwargs:
-            self._init_from_style_kwargs(kwargs)
-
+            raise TypeError(
+                f"Lace does not own style attributes; unexpected keyword "
+                f"arguments: {sorted(kwargs)}"
+            )
     @property
     def center(self):
         """Return the center of the lace.
