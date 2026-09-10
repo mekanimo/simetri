@@ -67,7 +67,7 @@ from ..base.all_enums import (
 from ..base.common import LineType, PointType, get_defaults, get_unique_id
 from ..base.core import Base, _update_inplace
 from ..coloring.colors import Color, black
-from ..config.settings import defaults
+from ..config.settings import defaults, issue_warning
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.geometry import (
     positive_angle,
@@ -100,7 +100,11 @@ class Shape(Base):
     fill and boolean operations.
     If the first and last points coincide then the last point is removed.
 
-    Color, alpha, width, dash, join, cap, marker, and related style override attributes default to None. When they are None, their effective values are resolved later from defaults. Use sg.doc(sg.Shape) to see the defaults.
+    Most style overrides default to None and are resolved later from defaults.
+    ``color`` sets both ``line_color`` and ``fill_color``. ``alpha`` sets both
+    ``line_alpha`` and ``fill_alpha``. Reading an unset ``line_color`` /
+    ``fill_color`` / ``line_alpha`` / ``fill_alpha`` returns the matching
+    configured default. Use sg.doc(sg.Shape) to see the defaults.
 
     Attributes:
         primary_points: ``Points`` storage.
@@ -119,24 +123,24 @@ class Shape(Base):
     """
 
     __slots__ = [
-        "alpha",
+        "_alpha",
+        "_color",
+        "_fill_alpha",
+        "_fill_color",
+        "_line_alpha",
+        "_line_color",
         "back_style",
         "closed",
-        "color",
         "double_color",
         "double_distance",
         "draw_double",
         "draw_fillets",
         "draw_markers",
         "fill",
-        "fill_alpha",
-        "fill_color",
         "fill_mode",
         "fillet_radius",
         "gradient",
-        "line_alpha",
         "line_cap",
-        "line_color",
         "line_dash_array",
         "line_dash_phase",
         "line_join",
@@ -236,8 +240,24 @@ class Shape(Base):
             self.primary_points.nd_array_changed = True
         self.xform_matrix = get_transform(xform_matrix)
         self.type = Types.SHAPE
-        self.alpha = alpha
-        self.color = color
+        self._alpha = None
+        self._color = None
+        self._line_alpha = None
+        self._fill_alpha = None
+        self._line_color = None
+        self._fill_color = None
+        if color is not None:
+            self.color = color
+        if alpha is not None:
+            self.alpha = alpha
+        if line_color is not None:
+            self.line_color = line_color
+        if fill_color is not None:
+            self.fill_color = fill_color
+        if line_alpha is not None:
+            self.line_alpha = line_alpha
+        if fill_alpha is not None:
+            self.fill_alpha = fill_alpha
         self.draw_double = draw_double
         self.draw_fillets = draw_fillets
         self.draw_markers = draw_markers
@@ -245,14 +265,10 @@ class Shape(Base):
         self.double_distance = double_distance
         self.double_color = double_color
         self.fill = fill
-        self.fill_alpha = fill_alpha
-        self.fill_color = fill_color
         self.fill_mode = fill_mode
         self.fillet_radius = fillet_radius
         self.gradient = gradient
-        self.line_alpha = line_alpha
         self.line_cap = line_cap
-        self.line_color = line_color
         self.line_dash_array = line_dash_array
         self.line_dash_phase = line_dash_phase
         self.line_join = line_join
@@ -273,6 +289,82 @@ class Shape(Base):
         self.visible = True
 
         self._b_box = None
+
+    @property
+    def color(self) -> Color | None:
+        """Convenience color shared by stroke and fill when set."""
+        return self._color
+
+    @color.setter
+    def color(self, value: Color | None) -> None:
+        self._color = value
+        if value is not None:
+            issue_warning(
+                "Setting 'color' also sets 'line_color' and 'fill_color'.",
+                stacklevel=3,
+            )
+            self._line_color = value
+            self._fill_color = value
+
+    @property
+    def line_color(self) -> Color:
+        """Stroke color. Unset values resolve to ``defaults['line_color']``."""
+        if self._line_color is None:
+            return defaults["line_color"]
+        return self._line_color
+
+    @line_color.setter
+    def line_color(self, value: Color | None) -> None:
+        self._line_color = value
+
+    @property
+    def fill_color(self) -> Color:
+        """Fill color. Unset values resolve to ``defaults['fill_color']``."""
+        if self._fill_color is None:
+            return defaults["fill_color"]
+        return self._fill_color
+
+    @fill_color.setter
+    def fill_color(self, value: Color | None) -> None:
+        self._fill_color = value
+
+    @property
+    def alpha(self) -> float | None:
+        """Convenience alpha shared by stroke and fill when set."""
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, value: float | None) -> None:
+        self._alpha = value
+        if value is not None:
+            issue_warning(
+                "Setting 'alpha' also sets 'line_alpha' and 'fill_alpha'.",
+                stacklevel=3,
+            )
+            self._line_alpha = value
+            self._fill_alpha = value
+
+    @property
+    def line_alpha(self) -> float:
+        """Stroke alpha. Unset values resolve to ``defaults['line_alpha']``."""
+        if self._line_alpha is None:
+            return defaults["line_alpha"]
+        return self._line_alpha
+
+    @line_alpha.setter
+    def line_alpha(self, value: float | None) -> None:
+        self._line_alpha = value
+
+    @property
+    def fill_alpha(self) -> float:
+        """Fill alpha. Unset values resolve to ``defaults['fill_alpha']``."""
+        if self._fill_alpha is None:
+            return defaults["fill_alpha"]
+        return self._fill_alpha
+
+    @fill_alpha.setter
+    def fill_alpha(self, value: float | None) -> None:
+        self._fill_alpha = value
 
     def _get_closed(self, points: Sequence[PointType], closed: bool):
         """Determine whether the shape should be considered closed.
@@ -592,76 +684,41 @@ class Shape(Base):
 
     def copy_style(self, other):
         """Copies the other shape's style."""
-        self.alpha = other.alpha
-        self.color = other.color
+        # Raw color/alpha fields: avoid setter fan-out order issues.
+        self._alpha = other._alpha
+        self._color = other._color
+        self._line_alpha = other._line_alpha
+        self._fill_alpha = other._fill_alpha
+        self._line_color = other._line_color
+        self._fill_color = other._fill_color
 
-        if other.color is not None:
-            self.line_color = other.color
-            self.fill_color = other.color
-        else:
-            self.line_color, self.fill_color = get_defaults(
-                ["line_color", "fill_color"],
-                [other.line_color, other.fill_color],
-            )
+        self.line_width = other.line_width
+        self.fill = other.fill
+        self.stroke = other.stroke
+        self.line_dash_array = other.line_dash_array
+        self.line_dash_phase = other.line_dash_phase
+        self.line_cap = other.line_cap
+        self.line_join = other.line_join
+        self.line_miter_limit = other.line_miter_limit
+        self.smooth = other.smooth
+        self.back_style = other.back_style
 
-        if other.alpha is not None:
-            self.line_alpha = other.alpha
-            self.fill_alpha = other.alpha
-        else:
-            self.line_alpha, self.fill_alpha = get_defaults(
-                ["line_alpha", "fill_alpha"],
-                [other.line_alpha, other.fill_alpha],
-            )
+        self.draw_double = other.draw_double
+        self.draw_fillets = other.draw_fillets
+        self.double_distance = other.double_distance
+        self.double_color = other.double_color
+        self.fill_mode = other.fill_mode
+        self.fillet_radius = other.fillet_radius
+        self.gradient = other.gradient
 
-        (
-            self.line_width,
-            self.fill,
-            self.stroke,
-            self.line_dash_array,
-            self.line_dash_phase,
-            self.line_cap,
-            self.line_join,
-            self.smooth,
-            self.back_style,
-            self.draw_markers,
-            self.marker_type,
-            self.marker_size,
-            self.marker_radius,
-            self.markers_only,
-        ) = get_defaults(
-            [
-                "line_width",
-                "fill",
-                "stroke",
-                "line_dash_array",
-                "line_dash_phase",
-                "line_cap",
-                "line_join",
-                "smooth",
-                "back_style",
-                "draw_markers",
-                "marker_type",
-                "marker_size",
-                "marker_radius",
-                "markers_only",
-            ],
-            [
-                other.line_width,
-                other.fill,
-                other.stroke,
-                other.line_dash_array,
-                other.line_dash_phase,
-                other.line_cap,
-                other.line_join,
-                other.smooth,
-                other.back_style,
-                other.draw_markers,
-                other.marker_type,
-                other.marker_size,
-                other.marker_radius,
-                other.markers_only,
-            ],
-        )
+        self.draw_markers = other.draw_markers
+        self.marker_type = other.marker_type
+        self.marker_size = other.marker_size
+        self.marker_radius = other.marker_radius
+        self.marker_alpha = other.marker_alpha
+        self.marker_color = other.marker_color
+        self.marker_shape = other.marker_shape
+        self.markers_only = other.markers_only
 
         return self
 
@@ -869,6 +926,11 @@ class Shape(Base):
         """Orientation angle of the shape."""
         res = decompose_transformations(self.xform_matrix)[1]
         return positive_angle(res)
+
+    @property
+    def orientation(self):
+        """Orientation angle of the shape."""
+        return self.angle
 
     @property
     def vertices(self) -> tuple[PointType]:

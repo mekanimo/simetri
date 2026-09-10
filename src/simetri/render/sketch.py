@@ -809,6 +809,11 @@ class HelpLinesSketch:
 
     spacing: float
     cs_size: float
+    grid_style: dict[str, Any]
+    x_axis_style: dict[str, Any]
+    y_axis_style: dict[str, Any]
+    origin_style: dict[str, Any]
+    origin_size: float
 
     def __post_init__(self):
         """Initialize the ShapeSketch object."""

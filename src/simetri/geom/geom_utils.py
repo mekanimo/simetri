@@ -42,9 +42,7 @@ def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
     """
     step = 2 * pi / n
     x, y = pos[:2]
-    points = [
-        [cos(step * i) * r + x, sin(step * i) * r + y] for i in range(n)
-    ]
+    points = [[cos(step * i) * r + x, sin(step * i) * r + y] for i in range(n)]
     points.append(points[0])
     return points
 

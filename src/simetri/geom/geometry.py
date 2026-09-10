@@ -10,7 +10,7 @@ fillets, and related utilities. Many helpers are also re-exported via
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from math import (
     acos,
     atan2,
@@ -32,12 +32,13 @@ from ..base.common import (
     PointType,
     get_defaults,
 )
-from ..config.settings import defaults
+from ..config.settings import defaults, issue_warning
 from .geom_utils import close_points_square
 from .vectors import *
 
 if TYPE_CHECKING:
-    from ..shapes.shape import Shape
+    from ..group.batch import Group
+
 
 tau = 2 * pi  # 360 degrees
 
@@ -70,6 +71,7 @@ def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
             angle += 360
 
     return angle
+
 
 def equal_angles(
     angle1: float,
@@ -547,3 +549,59 @@ def double_area3(a, b, c):
         0.5
     """
     return (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])
+
+
+def normalize_angle(angle: float) -> float:
+    """Return ``angle`` wrapped to ``(-pi, pi]``.
+
+    ``-pi`` is mapped to ``pi`` so the result is never ``-pi``.
+
+    Args:
+        angle (float): Angle in radians.
+
+    Returns:
+        float: Equivalent angle in ``(-pi, pi]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.normalize_angle(0)
+        0.0
+        >>> sg.normalize_angle(3 * sg.pi / 2) == -sg.pi / 2
+        True
+        >>> sg.normalize_angle(-sg.pi) == sg.pi
+        True
+        >>> sg.normalize_angle(sg.pi) == sg.pi
+        True
+        >>> sg.normalize_angle(2 * sg.pi)
+        0.0
+    """
+    normalized = (angle + pi) % (2 * pi) - pi
+    if isclose(normalized, -pi):
+        return pi
+    return normalized
+
+
+def add_angles(angle1: float, angle2: float) -> float:
+    """Return the sum of two angles in radians, wrapped to ``(-pi, pi]``.
+
+    ``-pi`` is mapped to ``pi`` so the result is never ``-pi``.
+
+    Args:
+        angle1 (float): First angle in radians.
+        angle2 (float): Second angle in radians.
+
+    Returns:
+        float: ``angle1 + angle2`` normalized into ``(-pi, pi]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.add_angles(sg.pi / 4, sg.pi / 4) == sg.pi / 2
+        True
+        >>> sg.add_angles(sg.pi, sg.pi / 2) == -sg.pi / 2
+        True
+        >>> sg.add_angles(sg.pi, sg.pi)
+        0.0
+        >>> sg.add_angles(sg.pi / 2, sg.pi / 2) == sg.pi
+        True
+    """
+    return normalize_angle(angle1 + angle2)

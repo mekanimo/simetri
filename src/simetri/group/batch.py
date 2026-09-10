@@ -31,7 +31,7 @@ from ..base.all_enums import (
     get_enum_value,
 )
 from ..base.common import LineType, PointType, get_unique_id
-from ..base.core import Base, _update_inplace
+from ..base.core import STYLE_ATTRIBUTES, Base, _update_inplace
 from ..config.settings import defaults, issue_warning
 from ..geom.bbox import bounding_box
 from ..geom.points.point_utils import distance, fix_degen_points, round_point
@@ -49,40 +49,53 @@ if TYPE_CHECKING:
     from ..shapes.shape import Shape
 
 
-def check_dist_tol(shapes_groups: Any | Sequence[Any], n: int) -> set[float]:
+def check_dist_tol(
+    shapes_groups: Any | Sequence[Any],
+    n: int,
+    n_round: int | None = None,
+) -> set[float]:
     """Return up to ``n`` smallest positive pairwise vertex distances.
 
     Args:
         shapes_groups: One shape/group or a sequence mixing shapes and groups.
         n: Number of distinct distances to return.
+        n_round: Number of decimal places used to round distances. If ``None``,
+            uses the configured ``n_round`` default.
 
     Returns:
-        set[float]: Up to ``n`` smallest positive distances.
+        set[float]: Up to ``n`` smallest positive rounded distances.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> values = sg.check_dist_tol(
         ...     [
+        ...         sg.Shape([(0, 0), (5e-14, 0)]),
         ...         sg.Shape([(0, 0), (1, 0)]),
-        ...         sg.Shape([(0, 0), (0, 2)]),
         ...     ],
         ...     2,
+        ...     n_round=12,
         ... )
-        >>> values == {1.0, 2.0}
+        >>> values == {1.0}
         True
     """
-    return Group(shapes_groups).check_dist_tol(n)
+    return Group(shapes_groups).check_dist_tol(n, n_round=n_round)
 
 
-def check_angle_tol(shapes_groups: Any | Sequence[Any], n: int) -> set[float]:
+def check_angle_tol(
+    shapes_groups: Any | Sequence[Any],
+    n: int,
+    n_round: int | None = None,
+) -> set[float]:
     """Return up to ``n`` smallest positive edge-angle differences.
 
     Args:
         shapes_groups: One shape/group or a sequence mixing shapes and groups.
         n: Number of distinct angle differences to return.
+        n_round: Number of decimal places used to round angle differences. If
+            ``None``, uses the configured ``n_round`` default.
 
     Returns:
-        set[float]: Up to ``n`` smallest positive angle differences.
+        set[float]: Up to ``n`` smallest positive rounded angle differences.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -92,11 +105,12 @@ def check_angle_tol(shapes_groups: Any | Sequence[Any], n: int) -> set[float]:
         ...         sg.Shape([(0, 0), (0, 1)]),
         ...     ],
         ...     1,
+        ...     n_round=2,
         ... )
-        >>> values == {sg.pi / 2}
+        >>> values == {1.57}
         True
     """
-    return Group(shapes_groups).check_angle_tol(n)
+    return Group(shapes_groups).check_angle_tol(n, n_round=n_round)
 
 
 class Group(Base):
@@ -190,6 +204,24 @@ class Group(Base):
         self.modifiers = modifiers
         self.visible = True
         self.id = get_unique_id(self)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Warn when a Shape attribute is assigned directly to a bare Group.
+
+        Subclasses that own style on themselves (e.g. Path2D) are not warned.
+        """
+        if (
+            type(self) is Group
+            and name in STYLE_ATTRIBUTES
+            and name != "subtype"
+        ):
+            issue_warning(
+                f"'{name}' is a Shape property and has no effect on a Group. "
+                f"Use group.set_attribs('{name}', value) to apply it to the "
+                "shapes in the group.",
+                stacklevel=3,
+            )
+        super().__setattr__(name, value)
 
     def set_attribs(
         self, attrib: str, value: Any, key: Callable | None = None
@@ -376,30 +408,94 @@ class Group(Base):
         _, pairs = all_close_points(vertices, dist_tol=dist_tol, with_dist=True)
         return [pair for pair in pairs if pair[2] > 0][:n]
 
-    def check_dist_tol(self, n: int) -> set[float]:
-        """Return up to ``n`` smallest positive pairwise vertex distances."""
+    def check_dist_tol(
+        self,
+        n: int,
+        n_round: int | None = None,
+    ) -> set[float]:
+        """Return up to ``n`` smallest positive rounded vertex distances.
+
+        Args:
+            n: Number of distinct distances to return.
+            n_round: Number of decimal places used to round distances. If
+                ``None``, uses the configured ``n_round`` default.
+
+        Returns:
+            set[float]: Up to ``n`` smallest positive rounded distances.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> group = sg.Group(
+            ...     [sg.Shape([(0, 0), (5e-14, 0), (1, 0)])]
+            ... )
+            >>> group.check_dist_tol(2, n_round=12) == {1.0}
+            True
+        """
         if n <= 0:
             raise ValueError("n must be a positive integer.")
+        if n_round is None:
+            n_round = defaults["n_round"]
+        if n_round < 0:
+            raise ValueError("n_round must be a nonnegative integer.")
 
         vertices = self.all_vertices
-        if len(vertices) < 2:
+        if len(vertices) < 2: 
             return set()
 
         distances = set()
         for first_point, second_point in combinations(vertices, 2):
-            point_distance = distance(first_point[:2], second_point[:2])
+            point_distance = round(
+                distance(first_point[:2], second_point[:2]),
+                n_round,
+            )
             if point_distance > 0:
                 distances.add(point_distance)
 
         return set(sorted(distances)[:n])
 
-    def check_angle_tol(self, n: int) -> set[float]:
-        """Return up to ``n`` smallest positive edge-angle differences."""
+    def check_angle_tol(
+        self,
+        n: int,
+        n_round: int | None = None,
+    ) -> set[float]:
+        """Return up to ``n`` smallest positive rounded angle differences.
+
+        Args:
+            n: Number of distinct angle differences to return.
+            n_round: Number of decimal places used to round angle differences.
+                If ``None``, uses the configured ``n_round`` default.
+
+        Returns:
+            set[float]: Up to ``n`` smallest positive rounded angle differences.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> group = sg.Group(
+            ...     [
+            ...         sg.Shape([(0, 0), (1, 0)]),
+            ...         sg.Shape([(0, 0), (0, 1)]),
+            ...     ]
+            ... )
+            >>> group.check_angle_tol(1, n_round=2) == {1.57}
+            True
+        """
         if n <= 0:
             raise ValueError("n must be a positive integer.")
+        if n_round is None:
+            n_round = defaults["n_round"]
+        if n_round < 0:
+            raise ValueError("n_round must be a nonnegative integer.")
 
         angles = _segment_angles(self.all_segments)
-        return _closest_angle_differences(angles, n)
+        pair_count = len(angles) * (len(angles) - 1) // 2
+        angle_differences = _closest_angle_differences(angles, pair_count)
+        rounded_differences = set()
+        for angle_difference in angle_differences:
+            rounded_difference = round(angle_difference, n_round)
+            if rounded_difference > 0:
+                rounded_differences.add(rounded_difference)
+
+        return set(sorted(rounded_differences)[:n])
 
     def append(self, element: Any) -> Self:
         """

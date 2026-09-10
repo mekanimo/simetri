@@ -1637,7 +1637,10 @@ class Canvas:
         if "color" in draw_kwargs:
             draw_color = draw_kwargs["color"]
             if check_color(draw_color):
-                color = draw_color
+                d_resolved["line_color"] = draw_color
+                d_resolved["fill_color"] = draw_color
+                d_resolved["color"] = draw_color
+                resolved.extend(["line_color", "fill_color", "color"])
             else:
                 raise ValueError(f"Invalid color value: {draw_color}")
         else:
@@ -1646,11 +1649,18 @@ class Canvas:
                 if check_color(item_color):
                     color = item_color
                 else:
-                    raise ValueError(f"Invalid color value: {draw_color}")
+                    raise ValueError(f"Invalid color value: {item_color}")
 
         if color is not None:
-            d_resolved["line_color"] = color
-            d_resolved["fill_color"] = color
+            if item.line_color is None:
+                d_resolved["line_color"] = color
+            else:
+                d_resolved["line_color"] = item.line_color
+            if item.fill_color is None:
+                d_resolved["fill_color"] = color
+            else:
+                d_resolved["fill_color"] = item.fill_color
+
             resolved.extend(["color", "line_color", "fill_color"])
 
         # handle alpha
@@ -1658,7 +1668,10 @@ class Canvas:
         if "alpha" in draw_kwargs:
             draw_alpha = draw_kwargs["alpha"]
             if check_alpha(draw_alpha):
-                alpha = draw_alpha
+                d_resolved["line_alpha"] = draw_alpha
+                d_resolved["fill_alpha"] = draw_alpha
+                d_resolved["alpha"] = draw_alpha
+                resolved.extend(["line_alpha", "fill_alpha", "alpha"])
             else:
                 raise ValueError(f"Invalid alpha value: {draw_alpha}")
         else:
@@ -1667,35 +1680,30 @@ class Canvas:
                 if check_alpha(item_alpha):
                     alpha = item_alpha
                 else:
-                    raise ValueError(f"Invalid alpha value: {draw_alpha}")
+                    raise ValueError(f"Invalid alpha value: {item_alpha}")
 
         if alpha is not None:
-            d_resolved["line_alpha"] = alpha
-            d_resolved["fill_alpha"] = alpha
+            if item.line_alpha is None:
+                d_resolved["line_alpha"] = alpha
+            else:
+                d_resolved["line_alpha"] = item.line_alpha
+            if item.fill_alpha is None:
+                d_resolved["fill_alpha"] = alpha
+            else:
+                d_resolved["fill_alpha"] = item.fill_alpha
+
             resolved.extend(["alpha", "line_alpha", "fill_alpha"])
 
         for attrib_name in style_map:
-            if attrib_name in draw_kwargs:
-                d_resolved[attrib_name] = draw_kwargs[attrib_name]
-            elif attrib_name in resolved:
+            if attrib_name in resolved:
                 continue
+            elif attrib_name in draw_kwargs:
+                d_resolved[attrib_name] = draw_kwargs[attrib_name]
             else:
                 d_resolved[attrib_name] = self.resolve_property(
                     item, attrib_name
                 )
             resolved.append(attrib_name)
-
-        # for attrib_name in style_map:
-        #     if attrib_name in resolved:
-        #         continue
-        #     # we need to validate input here!!!!
-        #     if attrib_name in draw_kwargs:
-        #         d_resolved[attrib_name] = draw_kwargs[attrib_name]
-        #     else:
-        #         d_resolved[attrib_name] = self.resolve_property(
-        #             item, attrib_name
-        #         )
-        #     resolved.append(attrib_name)
 
         return d_resolved
 
