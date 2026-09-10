@@ -71,6 +71,7 @@ from .sketch import (
 from .style_map import (
     line_style_map,
     shape_style_map,
+    tag_style_map,
 )
 
 if TYPE_CHECKING:
@@ -2094,7 +2095,7 @@ def create_sketch(
             xform_matrix=canvas.xform_matrix,
             **kwargs,
         )
-        for attrib_name in item._style_map:
+        for attrib_name in tag_style_map:
             if attrib_name in ("color", "alpha"):
                 continue
             if attrib_name == "fill_color":

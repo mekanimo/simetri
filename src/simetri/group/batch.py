@@ -16,7 +16,6 @@ Examples:
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable, Iterator, Sequence
 from itertools import combinations
 from typing import TYPE_CHECKING, Any, Self
@@ -439,7 +438,7 @@ class Group(Base):
             raise ValueError("n_round must be a nonnegative integer.")
 
         vertices = self.all_vertices
-        if len(vertices) < 2: 
+        if len(vertices) < 2:
             return set()
 
         distances = set()

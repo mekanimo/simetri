@@ -1,8 +1,7 @@
-"""Base transforms and style mixin for Shape and Group.
+"""Base transforms for Shape and Group.
 
 ``Base`` provides ``translate``, ``rotate``, ``mirror``, ``glide``,
-``scale``, ``shear``, ``move``, and ``move_to``. ``StyleMixin``
-resolves style attribute aliases.
+``scale``, ``shear``, ``move``, and ``move_to``.
 
 Examples:
     >>> import simetri.graphics as sg
@@ -10,7 +9,7 @@ Examples:
     >>> s.translate(5, 0).rotate(sg.pi / 4, about=s.midpoint)
 """
 
-__all__ = ["Base", "StyleMixin"]
+__all__ = ["Base"]
 
 import operator
 from collections.abc import Sequence
@@ -887,88 +886,3 @@ class Base:
         """
         anchor = get_enum_value(Anchor, anchor)
         return self.b_box.offset_point(anchor, dx, dy)
-
-
-class StyleMixin:
-    """Mixin that maps style aliases onto nested style objects.
-
-    Used by Shape subclasses and some Group subtypes so attributes like
-    ``line_color`` resolve through the style map.
-
-    Note:
-        Requires ``_aliases`` and ``_set_aliases`` on the concrete class.
-    """
-
-    def __setattr__(self, name, value):
-        """Set a style alias or an ordinary instance attribute.
-
-        A style alias is written onto the nested style object. Other
-        names are stored on this object.
-
-        Args:
-            name: Attribute name, which may be a style alias.
-            value: Value to assign.
-
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 0), (1, 0)])
-            >>> mark.line_width = 2
-            >>> mark.line_width
-            2
-        """
-        # Handle case where _aliases might not be set up yet
-        aliases = self.__dict__.get("_aliases", {})
-        obj, attrib = aliases.get(name, (None, None))
-        if obj:
-            setattr(obj, attrib, value)
-            if name == "gradient" or attrib == "gradient_style":
-                self._set_aliases()
-        else:
-            self.__dict__[name] = value
-
-    def __getattr__(self, name):
-        """Return a style alias or an ordinary instance attribute.
-
-        Args:
-            name (str): Attribute name to return.
-
-        Returns:
-            Any: The stored value, or the value on the nested style object.
-
-        Raises:
-            AttributeError: If the name is neither a style alias nor a
-            stored attribute.
-
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 0), (1, 0)])
-            >>> mark.line_width = 3
-            >>> mark.line_width
-            3
-        """
-        aliases = self.__dict__.get("_aliases", {})
-        obj, attrib = aliases.get(name, (None, None))
-        if obj is not None:
-            return getattr(obj, attrib)
-
-        try:
-            return self.__dict__[name]
-        except KeyError:
-            raise AttributeError(
-                f"'{type(self).__name__}' object has no attribute '{name}'"
-            )
-
-    def _set_aliases(self):
-        """Rebuild the style-alias map on this object.
-
-        This object is updated. The map is stored as ``_aliases``.
-        """
-        _aliases = {}
-        for alias, path_attrib in self._style_map.items():
-            style_path, attrib = path_attrib
-            obj = self
-            for attrib_name in style_path.split("."):
-                obj = obj.__dict__[attrib_name]
-            _aliases[alias] = (obj, attrib)
-
-        self.__dict__["_aliases"] = _aliases

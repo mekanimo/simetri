@@ -33,7 +33,7 @@ from ..base.common import (
 )
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
-from ..base.core import Base, StyleMixin
+from ..base.core import Base
 from ..coloring import colors
 from ..coloring.swatches import swatches_255
 from ..config.settings import defaults
@@ -53,13 +53,16 @@ from ..geom.segments.line_utils import (
 )
 from ..geom.vectors import Vector, perp_unit_vector, v_from_points
 from ..group.batch import Group
-from ..render.style_map import TagStyle, shape_style_map, tag_style_map
+from ..render.style_map import shape_style_map, tag_style_map
 from ..shapes.geom_items import reg_poly_points_side_length
 from ..shapes.points import Points
 from ..shapes.shape import Shape
 from .label_overlap import LabelRect, resolve_all_overlaps
 from .utilities import get_transform
 from .validation import validate_args
+
+# Flat Tag style attribute names (no StyleMixin / nested TagStyle aliases).
+TAG_STYLE_ATTRS: tuple[str, ...] = tuple(tag_style_map.keys())
 
 Color = colors.Color
 array = np.array
@@ -522,8 +525,11 @@ class TagFrame:
         self.subtype = Types.FRAME
 
 
-class Tag(Base, StyleMixin):
+class Tag(Base):
     """A Tag object is very similar to TikZ library's nodes. It is a text with a frame.
+
+    Style attributes are stored as ordinary instance attributes (no StyleMixin
+    aliasing). See ``TAG_STYLE_ATTRS`` / ``tag_style_map`` for the full set.
 
     Args:
         text (str): The text of the tag.
@@ -567,33 +573,40 @@ class Tag(Base, StyleMixin):
 
         See the class docstring for argument details.
         """
-        self.__dict__["style"] = TagStyle()
-        self.__dict__["_style_map"] = tag_style_map
-        self._set_aliases()
-        tag_attribs = list(tag_style_map.keys())
+        tag_attribs = list(TAG_STYLE_ATTRS)
         tag_attribs.append("subtype")
-        _set_Nones(
-            self,
-            ["font_family", "font_size", "font_color"],
-            [font_family, font_size, font_color],
-        )
         validate_args(kwargs, tag_attribs)
+
         x, y = pos[:2]
         self._init_pos = array([x, y, 1.0])
-
         self.text = text
-        if frame is None:
-            self.frame = TagFrame(stroke=False)
         self.type = Types.TAG
         self.subtype = Types.TAG
-        # self.style = TagStyle()
-        self.style.draw_frame = True
-        if font_family:
+        self.visible = True
+
+        if frame is None:
+            self.frame = TagFrame(stroke=False)
+        else:
+            self.frame = frame
+
+        for name in TAG_STYLE_ATTRS:
+            setattr(self, name, None)
+
+        self.draw_frame = True
+        self.alpha = defaults["tag_alpha"]
+        self.align = defaults["tag_align"]
+        self.blend_mode = defaults["tag_blend_mode"]
+
+        if font_family is not None:
             self.font_family = font_family
-        if font_size:
+        else:
+            self.font_family = defaults["font_family"]
+        if font_size is not None:
             self.font_size = font_size
         else:
             self.font_size = defaults["font_size"]
+        self.font_color = font_color
+
         if xform_matrix is None:
             self.xform_matrix = identity_matrix()
         else:
@@ -607,60 +620,14 @@ class Tag(Base, StyleMixin):
         self.minimum_size = minimum_size
         self.minimum_width = minimum_width
         self.minimum_height = minimum_height
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
         x1, y1, x2, y2 = self.text_bounds()
         w = x2 - x1
         h = y2 - y1
         self.points = Points([(0, 0, 1), (w, 0, 1), (w, h, 1), (0, h, 1)])
-        self.visible = True
-
-    def __setattr__(self, name, value):
-        """Set an attribute, routing style aliases when present.
-
-        Args:
-            name: Attribute name.
-            value: Attribute value.
-        """
-        obj, attrib = self.__dict__["_aliases"].get(name, (None, None))
-        if obj:
-            setattr(obj, attrib, value)
-        else:
-            self.__dict__[name] = value
-
-    def __getattr__(self, name):
-        """Get an attribute, resolving style aliases when present.
-
-        Args:
-            name: Attribute name.
-
-        Returns:
-            Resolved attribute value, or ``None`` if missing.
-        """
-        obj, attrib = self.__dict__["_aliases"].get(name, (None, None))
-        if obj:
-            res = getattr(obj, attrib)
-        else:
-            try:
-                res = super().__getattr__(name)
-            except AttributeError:
-                res = self.__dict__.get(name, None)
-
-        return res
-
-    def _set_aliases(self):
-        _aliases = {}
-
-        for alias, path_attrib in self._style_map.items():
-            style_path, attrib = path_attrib
-            obj = self
-            for attrib_name in style_path.split("."):
-                obj = obj.__dict__[attrib_name]
-
-            if obj is not self:
-                _aliases[alias] = (obj, attrib)
-        self.__dict__["_aliases"] = _aliases
 
     def _update(self, xform_matrix, reps: int = 0, merge: bool = False):
         if reps == 0:
@@ -697,19 +664,16 @@ class Tag(Base, StyleMixin):
         """
         tag = Tag(self.text, self.pos, xform_matrix=self.xform_matrix)
         tag._init_pos = self._init_pos
-        tag.font_family = self.font_family
-        tag.font_size = self.font_size
-        tag.font_color = self.font_color
-        tag.anchor = self.anchor
-        tag.bold = self.bold
-        tag.italic = self.italic
-        tag.text_width = self.text_width
+        tag.frame = self.frame
         tag.placement = self.placement
         tag.minimum_size = self.minimum_size
         tag.minimum_width = self.minimum_width
+        tag.minimum_height = self.minimum_height
+        for name in TAG_STYLE_ATTRS:
+            setattr(tag, name, getattr(self, name))
 
-        for k, v in kwargs.items():
-            setattr(tag, k, v)
+        for key, value in kwargs.items():
+            setattr(tag, key, value)
 
         return tag
 

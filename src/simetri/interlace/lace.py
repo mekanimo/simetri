@@ -20,6 +20,7 @@ from numpy import isclose
 
 from ..base.all_enums import Connection, Types
 from ..base.common import PointType, d_id_obj, get_defaults
+from ..base.common_style import COLOR_ALPHA_ATTRS, STYLE_COPY_ATTRS, CommonStyle
 from ..coloring import colors
 from ..config.settings import defaults
 from ..geom.geom_utils import close_points_square, connected_pairs
@@ -1004,14 +1005,21 @@ class ParallelPolyline(Group):
         self.offset_poly_list = polylines
 
 
-class Lace(Group):
+class Lace(Group, CommonStyle):
     """Collection of parallel polylines used to build interlace patterns.
+
+    Style lives on the Lace (``CommonStyle``), same model as Shape/Path2D/
+    Pattern. Lace-specific colors (``plait_color``, ``palette``, swatch) stay
+    separate from stroke/fill style.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> from simetri.interlace.lace import Lace
         >>> lace = Lace([sg.Shape([(0, 0), (40, 0), (40, 40)])], offset=3)
     """
+
+    # Group.__setattr__ adds a frame above the color/alpha property setters.
+    _style_warning_stacklevel: int = 4
 
     def __init__(
         self,
@@ -1049,9 +1057,8 @@ class Lace(Group):
             merge_angle_tol: Angle tolerance (radians) for merging
                 collinear edges.
             debug: Print shape-merge diagnostics when True.
-            **kwargs: Style and drawing attributes.
+            **kwargs: Style attributes (``CommonStyle`` / ``STYLE_COPY_ATTRS``).
         """
-        validate_args(kwargs, shape_style_map)
         (
             rel_tol,
             dist_tol,
@@ -1169,16 +1176,18 @@ class Lace(Group):
 
         if "debug" in kwargs:
             kwargs.pop("debug")
-        super().__init__(elements, **kwargs)
-        if kwargs and "_copy" not in kwargs:
-            for k, v in kwargs.items():
-                if k in shape_style_map:
-                    setattr(
-                        self, k, v
-                    )  # todo: we should check for valid values here
-                else:
-                    raise AttributeError(f"{k}. Invalid attribute!")
+        super().__init__(elements)
         self.subtype = Types.LACE
+        if kwargs and "_copy" not in kwargs:
+            valid_args = list(COLOR_ALPHA_ATTRS) + list(STYLE_COPY_ATTRS)
+            validate_args(kwargs, valid_args)
+            self._init_from_style_kwargs(kwargs)
+            if kwargs:
+                raise TypeError(
+                    f"Unexpected keyword arguments: {sorted(kwargs)}"
+                )
+        elif not kwargs:
+            self._init_from_style_kwargs(kwargs)
 
     @property
     def center(self):

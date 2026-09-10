@@ -33,14 +33,13 @@ from ..base.all_enums import (
     get_enum_value,
 )
 from ..base.common import LineType, PointType
-from ..base.core import StyleMixin
+from ..base.common_style import COLOR_ALPHA_ATTRS, STYLE_COPY_ATTRS, CommonStyle
 from ..geom.affine import *
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.geom_utils import offset_point
 from ..geom.segments.line_utils import offset_line
 from ..group.batch import Group
 from ..helpers.validation import validate_args
-from ..render.style_map import ShapeStyle, shape_args, shape_style_map
 from ..shapes.shape import Shape
 
 
@@ -224,10 +223,9 @@ class Transformation:
         all_vertices = kernel.final_coords @ self.composite
         vertices_list = np.hsplit(all_vertices, self.count)
         res = Group()
-        style = kernel.style
         for vertices in vertices_list:
             shape = Shape(vertices)
-            shape.style = style
+            shape.copy_style(kernel)
             res.append(shape)
 
         return res
@@ -299,11 +297,14 @@ class Transformation:
         )
 
 
-class Pattern(Group, StyleMixin):
+class Pattern(Group, CommonStyle):
     """Drawable pattern: a kernel repeated by a Transformation.
 
     Transform methods (``translate``, ``rotate``, …) append to
     ``transformation`` instead of mutating the kernel geometry directly.
+
+    Style lives on the Pattern (``CommonStyle``), same model as Shape/Path2D.
+    ``get_shapes`` copies this pattern's style onto each expanded Shape.
 
     Attributes:
         kernel: Shape or Group that is repeated.
@@ -316,6 +317,9 @@ class Pattern(Group, StyleMixin):
         >>> p.translate(10, 0, reps=3)
     """
 
+    # Group.__setattr__ adds a frame above the color/alpha property setters.
+    _style_warning_stacklevel: int = 4
+
     def __init__(
         self,
         kernel: Shape | Group = None,
@@ -327,21 +331,23 @@ class Pattern(Group, StyleMixin):
         Args:
             kernel: Shape or Group to repeat.
             transformation: Optional existing Transformation.
-            **kwargs: Style attributes validated against ``shape_args``.
+            **kwargs: Style attributes (``CommonStyle`` / ``STYLE_COPY_ATTRS``).
         """
-        self.__dict__["style"] = ShapeStyle()
-        self.__dict__["_style_map"] = shape_style_map
-        self._set_aliases()
         self.kernel = kernel
         if transformation is None:
             transformation = Transformation()
 
         self.transformation = transformation
-        super().__init__(**kwargs)
+        super().__init__()
         self.subtype = Types.PATTERN
 
-        valid_args = shape_args
+        valid_args = list(COLOR_ALPHA_ATTRS) + list(STYLE_COPY_ATTRS)
         validate_args(kwargs, valid_args)
+        self._init_from_style_kwargs(kwargs)
+        if kwargs:
+            raise TypeError(
+                f"Unexpected keyword arguments: {sorted(kwargs)}"
+            )
 
     def __repr__(self):
         return f"Pattern(kernel={self.kernel}, transformation={self.transformation})"
@@ -419,10 +425,9 @@ class Pattern(Group, StyleMixin):
         vertices_list = self.get_vertices_list()
         res = Group()
         kernel = self.kernel
-        style = kernel.style
         for vertices in vertices_list:
             shape = Shape(vertices, closed=kernel.closed)
-            shape.style = style
+            shape.copy_style(self)
             res.append(shape)
 
         return res
@@ -454,8 +459,7 @@ class Pattern(Group, StyleMixin):
             transformation = self.transformation.copy()
 
         pattern = Pattern(kernel, transformation)
-        for attrib in shape_style_map:
-            setattr(pattern, attrib, getattr(self, attrib))
+        pattern.copy_style(self)
         return pattern
 
     def translate(self, dx: float = 0, dy: float = 0, reps: int = 0) -> Self:

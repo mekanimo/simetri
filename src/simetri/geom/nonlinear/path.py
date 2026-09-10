@@ -29,8 +29,9 @@ from ...base.all_enums import (
 )
 from ...base.all_enums import PathOperation as PathOps
 from ...base.common import PointType
+from ...base.common_style import CommonStyle
 from ...coloring.colors import Color
-from ...config.settings import defaults, issue_warning
+from ...config.settings import defaults
 from ...group.batch import Group
 from ...shapes.shape import Shape
 from ..affine import rotation_matrix, translation_matrix
@@ -83,7 +84,7 @@ class Operation:
         self.type = Types.PATH_OPERATION
 
 
-class Path2D(Group):
+class Path2D(Group, CommonStyle):
     """Constructive 2D path with a pen position and heading.
 
     Operations such as ``line_to``, ``cubic_to``, and ``arc`` append geometry
@@ -93,7 +94,8 @@ class Path2D(Group):
     ``color`` sets both ``line_color`` and ``fill_color``. ``alpha`` sets both
     ``line_alpha`` and ``fill_alpha``. Reading an unset ``line_color`` /
     ``fill_color`` / ``line_alpha`` / ``fill_alpha`` returns the matching
-    configured default.
+    configured default. Style color/alpha and ``copy_style`` come from
+    ``CommonStyle``.
 
     Attributes:
         pos: Current pen position.
@@ -109,6 +111,9 @@ class Path2D(Group):
         >>> round(path.pos[0], 6), round(path.pos[1], 6)
         (10.0, 5.0)
     """
+
+    # Group.__setattr__ adds a frame above the color/alpha property setters.
+    _style_warning_stacklevel: int = 4
 
     def __init__(
         self,
@@ -144,6 +149,7 @@ class Path2D(Group):
         marker_size: float | None = None,
         marker_type: Any = None,
         markers_only: bool | None = None,
+        smooth: bool | None = None,
     ):
         """Initialize a Path2D.
 
@@ -175,6 +181,7 @@ class Path2D(Group):
             line_width: Stroke width. Defaults to 1.
             marker_*: Marker drawing options (same as Shape).
             markers_only: If True, draw markers without the path.
+            smooth: Prefer smooth curve rendering when applicable.
 
         Examples:
             >>> import simetri.graphics as sg
@@ -199,125 +206,42 @@ class Path2D(Group):
         self.stack = deque()
 
         self.closed = False
-        self._alpha = None
-        self._color = None
-        self._line_alpha = None
-        self._fill_alpha = None
-        self._line_color = None
-        self._fill_color = None
-        if color is not None:
-            self.color = color
-        if alpha is not None:
-            self.alpha = alpha
-        if line_color is not None:
-            self.line_color = line_color
-        if fill_color is not None:
-            self.fill_color = fill_color
-        if line_alpha is not None:
-            self.line_alpha = line_alpha
-        if fill_alpha is not None:
-            self.fill_alpha = fill_alpha
-        self.draw_double = draw_double
-        self.draw_fillets = draw_fillets
-        self.draw_markers = draw_markers
-        self.back_style = back_style
-        self.double_distance = double_distance
-        self.double_color = double_color
-        self.fill = fill
-        self.fill_mode = fill_mode
-        self.fillet_radius = fillet_radius
-        self.gradient = gradient
-        self.line_cap = line_cap
-        self.line_dash_array = line_dash_array
-        self.line_dash_phase = line_dash_phase
-        self.line_join = line_join
-        self.line_miter_limit = line_miter_limit
-        self.line_width = line_width
-        self.marker_alpha = marker_alpha
-        self.marker_color = marker_color
-        self.marker_radius = marker_radius
-        self.marker_shape = marker_shape
-        self.marker_size = marker_size
-        self.marker_type = marker_type
-        self.markers_only = markers_only
-        self.stroke = stroke
+        self._init_from_style_kwargs(
+            {
+                "color": color,
+                "alpha": alpha,
+                "line_color": line_color,
+                "fill_color": fill_color,
+                "line_alpha": line_alpha,
+                "fill_alpha": fill_alpha,
+                "line_width": line_width,
+                "fill": fill,
+                "stroke": stroke,
+                "line_dash_array": line_dash_array,
+                "line_dash_phase": line_dash_phase,
+                "line_cap": line_cap,
+                "line_join": line_join,
+                "line_miter_limit": line_miter_limit,
+                "smooth": smooth,
+                "back_style": back_style,
+                "draw_double": draw_double,
+                "draw_fillets": draw_fillets,
+                "double_distance": double_distance,
+                "double_color": double_color,
+                "fill_mode": fill_mode,
+                "fillet_radius": fillet_radius,
+                "gradient": gradient,
+                "draw_markers": draw_markers,
+                "marker_type": marker_type,
+                "marker_size": marker_size,
+                "marker_radius": marker_radius,
+                "marker_alpha": marker_alpha,
+                "marker_color": marker_color,
+                "marker_shape": marker_shape,
+                "markers_only": markers_only,
+            }
+        )
         self.visible = True
-
-    @property
-    def color(self) -> Color | None:
-        """Convenience color shared by stroke and fill when set."""
-        return self._color
-
-    @color.setter
-    def color(self, value: Color | None) -> None:
-        self._color = value
-        if value is not None:
-            issue_warning(
-                "Setting 'color' also sets 'line_color' and 'fill_color'.",
-                stacklevel=4,
-            )
-            self._line_color = value
-            self._fill_color = value
-
-    @property
-    def line_color(self) -> Color:
-        """Stroke color. Unset values resolve to ``defaults['line_color']``."""
-        if self._line_color is None:
-            return defaults["line_color"]
-        return self._line_color
-
-    @line_color.setter
-    def line_color(self, value: Color | None) -> None:
-        self._line_color = value
-
-    @property
-    def fill_color(self) -> Color:
-        """Fill color. Unset values resolve to ``defaults['fill_color']``."""
-        if self._fill_color is None:
-            return defaults["fill_color"]
-        return self._fill_color
-
-    @fill_color.setter
-    def fill_color(self, value: Color | None) -> None:
-        self._fill_color = value
-
-    @property
-    def alpha(self) -> float | None:
-        """Convenience alpha shared by stroke and fill when set."""
-        return self._alpha
-
-    @alpha.setter
-    def alpha(self, value: float | None) -> None:
-        self._alpha = value
-        if value is not None:
-            issue_warning(
-                "Setting 'alpha' also sets 'line_alpha' and 'fill_alpha'.",
-                stacklevel=4,
-            )
-            self._line_alpha = value
-            self._fill_alpha = value
-
-    @property
-    def line_alpha(self) -> float:
-        """Stroke alpha. Unset values resolve to ``defaults['line_alpha']``."""
-        if self._line_alpha is None:
-            return defaults["line_alpha"]
-        return self._line_alpha
-
-    @line_alpha.setter
-    def line_alpha(self, value: float | None) -> None:
-        self._line_alpha = value
-
-    @property
-    def fill_alpha(self) -> float:
-        """Fill alpha. Unset values resolve to ``defaults['fill_alpha']``."""
-        if self._fill_alpha is None:
-            return defaults["fill_alpha"]
-        return self._fill_alpha
-
-    @fill_alpha.setter
-    def fill_alpha(self, value: float | None) -> None:
-        self._fill_alpha = value
 
     def __bool__(self):
         """Return True if the path has recorded operations.
@@ -385,58 +309,6 @@ class Path2D(Group):
             self.append(self.cur_shape)
         else:
             raise ValueError(f"Invalid operation type: {op_type}")
-
-    def copy_style(self, other):
-        """Copy style attributes from another path or shape onto this path.
-
-        Args:
-            other: Object providing stroke/fill/marker style attributes.
-
-        Returns:
-            Self: This path.
-
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> a = sg.Path2D((0, 0), line_width=3)
-            >>> b = sg.Path2D((0, 0)).copy_style(a)
-            >>> b.line_width
-            3
-        """
-        # Raw color/alpha fields: avoid setter fan-out order issues.
-        self._alpha = other._alpha
-        self._color = other._color
-        self._line_alpha = other._line_alpha
-        self._fill_alpha = other._fill_alpha
-        self._line_color = other._line_color
-        self._fill_color = other._fill_color
-
-        self.line_width = other.line_width
-        self.fill = other.fill
-        self.stroke = other.stroke
-        self.line_dash_array = other.line_dash_array
-        self.line_dash_phase = other.line_dash_phase
-        self.line_cap = other.line_cap
-        self.line_join = other.line_join
-        self.line_miter_limit = other.line_miter_limit
-        self.back_style = other.back_style
-
-        self.draw_double = other.draw_double
-        self.draw_fillets = other.draw_fillets
-        self.double_distance = other.double_distance
-        self.double_color = other.double_color
-        self.fill_mode = other.fill_mode
-        self.fillet_radius = other.fillet_radius
-        self.gradient = other.gradient
-        self.draw_markers = other.draw_markers
-        self.marker_type = other.marker_type
-        self.marker_size = other.marker_size
-        self.marker_radius = other.marker_radius
-        self.marker_alpha = other.marker_alpha
-        self.marker_color = other.marker_color
-        self.marker_shape = other.marker_shape
-        self.markers_only = other.markers_only
-
-        return self
 
     def copy(self) -> "Path2D":
         """Return a deep-enough copy of the path for independent editing.
