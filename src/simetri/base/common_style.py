@@ -91,20 +91,26 @@ class CommonStyle:
     ) -> None:
         """Apply constructor color/alpha args in Shape order.
 
-        ``color`` / ``alpha`` first (fan-out), then explicit line/fill overrides.
+        ``color`` / ``alpha`` fan out to line and fill without warning;
+        the property setters still warn on later assignment.
+        Explicit line/fill args override after fan-out.
         """
         if color is not None:
-            self.color = color
+            self._color = color
+            self._line_color = color
+            self._fill_color = color
         if alpha is not None:
-            self.alpha = alpha
+            self._alpha = alpha
+            self._line_alpha = alpha
+            self._fill_alpha = alpha
         if line_color is not None:
-            self.line_color = line_color
+            self._line_color = line_color
         if fill_color is not None:
-            self.fill_color = fill_color
+            self._fill_color = fill_color
         if line_alpha is not None:
-            self.line_alpha = line_alpha
+            self._line_alpha = line_alpha
         if fill_alpha is not None:
-            self.fill_alpha = fill_alpha
+            self._fill_alpha = fill_alpha
 
     def _init_style_copy_attrs(self) -> None:
         """Set every ``STYLE_COPY_ATTRS`` field to ``None``."""

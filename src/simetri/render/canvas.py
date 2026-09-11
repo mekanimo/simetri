@@ -1106,7 +1106,7 @@ class Canvas:
 
     def draw(
         self,
-        item_s: "Drawable | Sequence",
+        *item_s: "Drawable | Sequence",
         pos: PointType = None,
         angle: float = 0,
         rotocenter: PointType = (0, 0),
@@ -1116,10 +1116,11 @@ class Canvas:
         **kwargs,
     ) -> Self:
         """
-        Draw the item_s. item_s can be a single item or a list of items.
+        Draw the item_s. Pass items individually or as one sequence.
 
         Args:
-            item_s (Drawable | Sequence): The item(s) to draw.
+            *item_s (Drawable | Sequence): Item(s) to draw. Use
+                ``draw(a, b)`` or ``draw([a, b])``.
             pos (PointType, optional): The position to draw the item(s), defaults to None.
             angle (float, optional): The angle to rotate the item(s), defaults to 0.
             rotocenter (PointType, optional): The point about which to rotate, defaults to (0, 0).
@@ -1138,6 +1139,13 @@ class Canvas:
             context="canvas.draw",
             stacklevel=3,
         )
+        if not item_s:
+            raise TypeError("Canvas.draw() requires at least one item")
+        if len(item_s) == 1 and isinstance(item_s[0], (list, tuple)):
+            items = item_s[0]
+        else:
+            items = item_s
+
         sketch_xform = self._sketch_xform_matrix
 
         if pos is not None:
@@ -1153,11 +1161,8 @@ class Canvas:
         # self._sketch_xform_matrix = sketch_xform @ self._xform_matrix
         self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
 
-        if isinstance(item_s, (list, tuple)):
-            for item in item_s:
-                draw.draw(self, item, **kwargs)
-        else:
-            draw.draw(self, item_s, **kwargs)
+        for item in items:
+            draw.draw(self, item, **kwargs)
 
         self._sketch_xform_matrix = identity_matrix()
         if show:

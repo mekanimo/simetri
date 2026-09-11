@@ -149,15 +149,16 @@ class Group(Base):
 
     def __init__(
         self,
-        elements: Any | Sequence[Any] | None = None,
+        *elements: Any,
         modifiers: Sequence[Modifier] | None = None,
         subtype: Types = Types.GROUP,
     ):
         """Initialize a Group.
 
         Args:
-            elements: Single element or sequence of elements (nested lists
-                are flattened one level recursively).
+            *elements: Drawables to include. Pass them individually
+                (``Group(a, b)``) or as one sequence (``Group([a, b])``).
+                Nested lists/tuples are flattened. Omit for an empty group.
             modifiers: Optional modifiers applied to the group.
             subtype: Group subtype enum or name. Defaults to ``Types.GROUP``.
         """
@@ -177,13 +178,21 @@ class Group(Base):
                 else:
                     yield i
 
-        # validate_args(kwargs, group_args)
-        # We need to handle this differently now!!!
-
-        if elements is None:
+        if not elements:
             self.elements = []
-        elif not isinstance(elements, (list, tuple)):
-            self.elements = [elements]
+        elif len(elements) == 1 and isinstance(elements[0], (list, tuple)):
+            _elements = []
+            for element in elements[0]:
+                if isinstance(element, (list, tuple)):
+                    for elem in flatten_elements(element):
+                        if elem:
+                            _elements.append(elem)
+                else:
+                    if element:
+                        _elements.append(element)
+            self.elements = _elements[:]
+        elif len(elements) == 1:
+            self.elements = [elements[0]]
         else:
             _elements = []
             for element in elements:
@@ -195,7 +204,6 @@ class Group(Base):
                     if element:
                         _elements.append(element)
             self.elements = _elements[:]
-            # self.elements = elements if elements is not None else []
 
         self.type = Types.GROUP
         self.subtype = get_enum_value(Types, subtype)
