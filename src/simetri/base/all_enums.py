@@ -1361,7 +1361,7 @@ class Types(StrEnum):
 class _CanvasWarnings(StrEnum):
     """Canvas transform, sizing, and export warnings.
 
-    Use ``warnings_off(WarningType.canvas)`` to silence all of these.
+    Use ``set_warning_off(WarningType.canvas)`` to silence all of these.
     """
 
     empty_stack = "canvas.empty_stack"
@@ -1403,7 +1403,7 @@ _CanvasWarnings.vertex_size.__doc__ = (
 class _DeprecationWarnings(StrEnum):
     """Deprecation warnings for renamed or retiring APIs.
 
-    Use ``warnings_off(WarningType.deprecation)`` to silence all of these.
+    Use ``set_warning_off(WarningType.deprecation)`` to silence all of these.
     """
 
     bbox_center = "deprecation.bbox_center"
@@ -1417,7 +1417,7 @@ _DeprecationWarnings.bbox_center.__doc__ = (
 class _FileWarnings(StrEnum):
     """File-helper warnings for code injection and token replacement.
 
-    Use ``warnings_off(WarningType.file)`` to silence all of these.
+    Use ``set_warning_off(WarningType.file)`` to silence all of these.
     """
 
     config = "file.config"
@@ -1443,7 +1443,7 @@ _FileWarnings.token.__doc__ = (
 class _FontWarnings(StrEnum):
     """Font-loading warnings.
 
-    Use ``warnings_off(WarningType.font)`` to silence all of these.
+    Use ``set_warning_off(WarningType.font)`` to silence all of these.
     """
 
     load = "font.load"
@@ -1457,7 +1457,7 @@ _FontWarnings.load.__doc__ = (
 class _GeometryWarnings(StrEnum):
     """Geometry validation warnings.
 
-    Use ``warnings_off(WarningType.geometry)`` to silence all of these.
+    Use ``set_warning_off(WarningType.geometry)`` to silence all of these.
     """
 
     not_ccw = "geometry.not_ccw"
@@ -1472,7 +1472,7 @@ _GeometryWarnings.not_ccw.__doc__ = (
 class _GroupWarnings(StrEnum):
     """Group membership and attribute warnings.
 
-    Use ``warnings_off(WarningType.group)`` to silence all of these.
+    Use ``set_warning_off(WarningType.group)`` to silence all of these.
     """
 
     duplicate = "group.duplicate"
@@ -1491,7 +1491,7 @@ _GroupWarnings.shape_attr.__doc__ = (
 class _OutputWarnings(StrEnum):
     """Export warnings for empty SVG or TeX output.
 
-    Use ``warnings_off(WarningType.output)`` to silence all of these.
+    Use ``set_warning_off(WarningType.output)`` to silence all of these.
     """
 
     empty_svg = "output.empty_svg"
@@ -1509,7 +1509,7 @@ _OutputWarnings.empty_tex.__doc__ = (
 class _StyleWarnings(StrEnum):
     """Style fan-out warnings when convenience properties set stroke and fill.
 
-    Use ``warnings_off(WarningType.style)`` to silence all of these.
+    Use ``set_warning_off(WarningType.style)`` to silence all of these.
     """
 
     line_fill_alpha = "style.line_fill_alpha"
@@ -1527,7 +1527,7 @@ _StyleWarnings.line_fill_color.__doc__ = (
 class _UtilWarnings(StrEnum):
     """Miscellaneous utility warnings.
 
-    Use ``warnings_off(WarningType.util)`` to silence all of these.
+    Use ``set_warning_off(WarningType.util)`` to silence all of these.
     """
 
     bad_char = "util.bad_char"
@@ -1541,7 +1541,7 @@ _UtilWarnings.bad_char.__doc__ = (
 class _ValidationWarnings(StrEnum):
     """Argument-validation warnings.
 
-    Use ``warnings_off(WarningType.validation)`` to silence all of these.
+    Use ``set_warning_off(WarningType.validation)`` to silence all of these.
     """
 
     kwargs = "validation.kwargs"
@@ -1555,7 +1555,7 @@ _ValidationWarnings.kwargs.__doc__ = (
 class _VectorWarnings(StrEnum):
     """Vector API warnings.
 
-    Use ``warnings_off(WarningType.vector)`` to silence all of these.
+    Use ``set_warning_off(WarningType.vector)`` to silence all of these.
     """
 
     mixed = "vector.mixed"
@@ -1571,9 +1571,9 @@ class WarningType:
 
     Toggle one leaf or a whole subgroup::
 
-        warnings_off(WarningType.group.duplicate)
-        warnings_off(WarningType.group)
-        warnings_off(WarningType.style.line_fill_color)
+        set_warning_off(WarningType.group.duplicate)
+        set_warning_off(WarningType.group)
+        set_warning_off(WarningType.style.line_fill_color)
 
     Use ``sg.doc(WarningType.canvas)`` for a subgroup, or
     ``sg.doc(WarningType.canvas.save_path)`` for one leaf.

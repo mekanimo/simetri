@@ -26,11 +26,14 @@ from __future__ import annotations
 import inspect
 from collections.abc import Sequence
 from enum import Enum
+from pathlib import Path
 
 from ..base.all_enums import WarningType
 from ..coloring import colors
 from ..coloring.colors import Color
 from ..config.settings import VOID, defaults, defaults_help
+
+_TOPIC_GUIDES_DIR = Path(__file__).resolve().parents[1] / "topic_guides"
 
 _DISPLAY_MODULE_PREFIXES = (
     "collections.abc.",
@@ -298,6 +301,12 @@ d_help_topic: dict[str, list[str]] = {
         "sg.square",
         "sg.star_shape",
     ],
+    "script_sharing": [
+        "sg.generate_shared_toml",
+        "sg.use_settings",
+        "sg.check_version",
+        "See also: sg.help('user_settings')",
+    ],
     "tags": [
         "sg.Arrow",
         "sg.ArrowHead",
@@ -332,6 +341,16 @@ d_help_topic: dict[str, list[str]] = {
         "sg.translate",
         "sg.translation_matrix",
     ],
+    "user_settings": [
+        "sg.user_config_path",
+        "sg.set_user_settings_path",
+        "sg.defaults",
+        "sg.set_defaults",
+        "sg.set_svg_defaults",
+        "sg.set_tikz_defaults",
+        "sg.Canvas.save",
+        "See also: sg.help('warnings'), sg.help('canvas')",
+    ],
     "vertices": [
         "Shape.vertices / Shape.primary_points",
         "sg.close_points_square",
@@ -339,6 +358,18 @@ d_help_topic: dict[str, list[str]] = {
         "sg.homogenize",
         "sg.round_point",
         "See also: sg.help('points'), sg.help('shapes')",
+    ],
+    "warnings": [
+        "sg.WarningType",
+        "sg.set_warning_on",
+        "sg.set_warning_off",
+        "sg.set_all_warnings_on",
+        "sg.set_all_warnings_off",
+        "sg.pause_warning",
+        "sg.resume_warning",
+        "sg.pause_warnings",
+        "sg.resume_warnings",
+        "See also: sg.help('user_settings')",
     ],
 }
 
@@ -361,11 +392,17 @@ _TOPIC_ALIASES = {
     "Polygons": "polygons",
     "Segments": "segments",
     "Shapes": "shapes",
+    "script-sharing": "script_sharing",
+    "ScriptSharing": "script_sharing",
     "Tags": "tags",
     "Text": "text",
     "Tolerances": "tolerances",
     "Transforms": "transforms",
+    "user-settings": "user_settings",
+    "UserSettings": "user_settings",
     "Vertices": "vertices",
+    "Warnings": "warnings",
+    "WarningType": "warnings",
 }
 
 _HELP_ABOUT_HELP = (
@@ -639,6 +676,14 @@ def _format_topic(topic: str, entries: Sequence[str]) -> str:
     return "\n".join(lines)
 
 
+def _topic_guide_text(topic: str) -> str | None:
+    """Return topic-guide markdown when ``topic_guides/{topic}.md`` exists."""
+    path = _TOPIC_GUIDES_DIR / f"{topic}.md"
+    if not path.is_file():
+        return None
+    return path.read_text(encoding="utf-8")
+
+
 def _format_topics() -> str:
     """Return the sorted list of help topic names."""
     topics = sorted(
@@ -690,6 +735,9 @@ def help(obj) -> str:
         if topic == "topics":
             return _format_topics()
         if topic in d_help_topic:
+            guide = _topic_guide_text(topic)
+            if guide is not None:
+                return guide
             return _format_topic(topic, d_help_topic[topic])
         if obj in defaults_help:
             return defaults_help[obj]

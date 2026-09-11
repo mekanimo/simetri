@@ -13,18 +13,26 @@ __all__ = [
     "WarningType",
     "apply_user_config",
     "defaults",
+    "generate_shared_toml",
     "issue_warning",
+    "pause_warning",
+    "pause_warnings",
     "resolve_save_filepath",
+    "resume_warning",
+    "resume_warnings",
+    "set_all_warnings_off",
+    "set_all_warnings_on",
     "set_defaults",
     "set_svg_defaults",
     "set_tikz_defaults",
     "set_user_settings_path",
+    "set_warning_off",
+    "set_warning_on",
     "svg_defaults",
     "tikz_defaults",
+    "use_settings",
     "user_config_path",
     "warning_types",
-    "warnings_off",
-    "warnings_on",
 ]
 
 import sys
@@ -65,8 +73,10 @@ from ..coloring import colors
 from ..coloring.palettes import seq_MATTER_256
 from .user_config import (
     apply_user_config,
+    generate_shared_toml,
     resolve_save_filepath,
     set_user_settings_path,
+    use_settings,
     user_config_path,
 )
 
@@ -107,8 +117,11 @@ class SettingsSingletonError(RuntimeError):
 
 # Counts per ``issue_warning`` call site (filename, lineno).
 _warning_counts: dict[tuple[str, int], int] = defaultdict(int)
-# Leaf warning members disabled while the global ``show_warnings`` toggle is on.
+# Leaf warning members disabled via config / ``set_warning_off``.
 _disabled_warning_types: set[StrEnum] = set()
+# Temporary mute overlay; does not change config or ``_disabled_warning_types``.
+_warnings_paused_all: bool = False
+_paused_warning_types: set[StrEnum] = set()
 
 # Public alias matching the library API name.
 warning_types = WarningType
@@ -129,9 +142,21 @@ def _resolve_warning_types(
 
 
 def _warning_type_label(warning_type: StrEnum) -> str:
-    """Return the dotted path users pass to ``warnings_off``."""
-    # value is already "group.duplicate" → WarningType.group.duplicate
+    """Return the dotted path users pass to ``set_warning_off``."""
     return f"WarningType.{warning_type.value}"
+
+
+def _apply_warning_enabled_session(
+    warning: StrEnum | type[StrEnum],
+    *,
+    enabled: bool,
+) -> None:
+    """Update in-process enable/disable without writing the config file."""
+    leaves = _resolve_warning_types(warning)
+    if enabled:
+        _disabled_warning_types.difference_update(leaves)
+    else:
+        _disabled_warning_types.update(leaves)
 
 
 _original_formatwarning = warnings.formatwarning
@@ -156,7 +181,7 @@ def issue_warning(
     category: type[Warning] = SimetriWarning,
     stacklevel: int = 2,
 ) -> None:
-    """Emit a warning when the global warning toggle is enabled.
+    """Emit a warning when warnings are enabled and not paused.
 
     Repeats are counted per ``issue_warning`` call site (not by exact
     message text), so warnings that embed changing details still collapse.
@@ -165,7 +190,7 @@ def issue_warning(
     ``SimetriWarning`` output omits the source-line snippet.
 
     Each message ends with a short hint showing how to silence that leaf
-    with ``sg.warnings_off(WarningType.<group>.<leaf>)``.
+    permanently with ``sg.set_warning_off(WarningType.<group>.<leaf>)``.
 
     Args:
         message: Warning text.
@@ -173,12 +198,18 @@ def issue_warning(
         category: Warning category class.
         stacklevel: Stack level passed to ``warn``.
     """
+    if _warnings_paused_all:
+        return
+    if warning_type in _paused_warning_types:
+        return
     if not defaults["show_warnings"]:
         return
     if warning_type in _disabled_warning_types:
         return
 
-    type_tag = f"[to turn it off use: sg.warnings_off({_warning_type_label(warning_type)})]"
+    type_tag = (
+        f"[to turn it off use: sg.set_warning_off({_warning_type_label(warning_type)})]"
+    )
     tagged_message = f"{message} {type_tag}"
 
     caller = sys._getframe(1)
@@ -195,37 +226,82 @@ def issue_warning(
         )
 
 
-def warnings_off(
-    warning: StrEnum | type[StrEnum] | None = None,
-) -> None:
-    """Turn warnings off globally, or disable a leaf / subgroup.
+def pause_warnings() -> None:
+    """Temporarily mute all warnings without changing config."""
+    global _warnings_paused_all
+    _warnings_paused_all = True
+
+
+def resume_warnings() -> None:
+    """Clear the global pause and all per-type pauses."""
+    global _warnings_paused_all
+    _warnings_paused_all = False
+    _paused_warning_types.clear()
+
+
+def pause_warning(warning: StrEnum | type[StrEnum]) -> None:
+    """Temporarily mute a leaf or subgroup without changing config.
 
     Args:
-        warning: A leaf (``WarningType.group.duplicate``), a subgroup
-            (``WarningType.group``), or ``None`` to disable all warnings.
+        warning: ``WarningType.group`` or ``WarningType.group.duplicate``.
     """
-    if warning is None:
-        defaults["show_warnings"] = False
-        return
-    _disabled_warning_types.update(_resolve_warning_types(warning))
+    _paused_warning_types.update(_resolve_warning_types(warning))
 
 
-def warnings_on(
-    warning: StrEnum | type[StrEnum] | None = None,
-) -> None:
-    """Turn warnings on globally, or re-enable a leaf / subgroup.
+def resume_warning(warning: StrEnum | type[StrEnum]) -> None:
+    """Clear the pause overlay for a leaf or subgroup.
+
+    Does not re-enable a warning that is off in config / ``set_warning_off``.
 
     Args:
-        warning: A leaf (``WarningType.style.line_fill_color``), a subgroup
-            (``WarningType.style``), or ``None`` to enable all warnings and
-            clear per-type disables.
+        warning: ``WarningType.group`` or ``WarningType.group.duplicate``.
     """
-    if warning is None:
-        defaults["show_warnings"] = True
-        _disabled_warning_types.clear()
-        return
-    _disabled_warning_types.difference_update(_resolve_warning_types(warning))
+    _paused_warning_types.difference_update(_resolve_warning_types(warning))
+
+
+def set_all_warnings_off() -> None:
+    """Permanently disable all warnings and write ``simetri_config.toml``."""
+    from .user_config import persist_all_warnings
+
+    defaults["show_warnings"] = False
+    persist_all_warnings(False)
+
+
+def set_all_warnings_on() -> None:
+    """Permanently enable all warnings and write ``simetri_config.toml``."""
+    from .user_config import persist_all_warnings
+
     defaults["show_warnings"] = True
+    _disabled_warning_types.clear()
+    persist_all_warnings(True)
+
+
+def set_warning_off(warning: StrEnum | type[StrEnum]) -> None:
+    """Permanently disable a leaf or subgroup and write ``simetri_config.toml``.
+
+    Args:
+        warning: ``WarningType.group`` or ``WarningType.group.duplicate``.
+    """
+    from .user_config import persist_warning_leaves
+
+    leaves = _resolve_warning_types(warning)
+    _disabled_warning_types.update(leaves)
+    persist_warning_leaves(leaves, False)
+
+
+def set_warning_on(warning: StrEnum | type[StrEnum]) -> None:
+    """Permanently enable a leaf or subgroup and write ``simetri_config.toml``.
+
+    Args:
+        warning: ``WarningType.style`` or ``WarningType.style.line_fill_color``.
+    """
+    from .user_config import persist_warning_leaves, persist_warnings_on_flag
+
+    leaves = _resolve_warning_types(warning)
+    _disabled_warning_types.difference_update(leaves)
+    defaults["show_warnings"] = True
+    persist_warnings_on_flag(True)
+    persist_warning_leaves(leaves, True)
 
 
 @dataclass
@@ -276,13 +352,17 @@ class _Defaults:
             raise SettingsSingletonError("This class is a singleton!")
         self.defaults = {}
         self.user_overrides: dict = {}
+        self.shared_overrides: dict = {}
+        self.suppress_user_overrides = False
         self.log = set()
 
     def __getitem__(self, key):
         """Gets the value associated with the key.
 
-        User overrides from ``simetri_config.toml`` win over library defaults.
-        Session assignments via ``__setitem__`` clear any override for that key.
+        Lookup order: ``shared_overrides`` (from ``use_settings``), then user
+        overrides from ``simetri_config.toml`` (unless suppressed), then library
+        defaults. Session assignments via ``__setitem__`` clear any override
+        for that key.
 
         Args:
             key: The key to look up.
@@ -290,7 +370,9 @@ class _Defaults:
         Returns:
             The value associated with the key.
         """
-        if key in self.user_overrides:
+        if key in self.shared_overrides:
+            value = self.shared_overrides[key]
+        elif (not self.suppress_user_overrides) and key in self.user_overrides:
             value = self.user_overrides[key]
         else:
             value = self.defaults[key]
@@ -308,6 +390,8 @@ class _Defaults:
         self.defaults[key] = value
         if key in self.user_overrides:
             del self.user_overrides[key]
+        if key in self.shared_overrides:
+            del self.shared_overrides[key]
 
     def __contains__(self, key):
         """Return True if ``key`` is a registered default."""
