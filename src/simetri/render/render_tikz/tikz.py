@@ -291,7 +291,7 @@ def get_tex_code(canvas: Canvas) -> str:
     if not has_sketches:
         issue_warning(
             "Canvas has no drawings/sketches. Writing empty TeX output.",
-            warning_type=WarningType.EMPTY_OUTPUT,
+            warning_type=WarningType.output.empty_tex,
         )
         return canvas.tex.tex_code(
             canvas,

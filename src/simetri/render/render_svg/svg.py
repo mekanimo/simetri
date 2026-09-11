@@ -986,7 +986,7 @@ def get_svg_code(canvas):
     if not canvas.active_page.sketches or not vertices:
         issue_warning(
             "Canvas has no drawings/sketches. Writing empty SVG output.",
-            warning_type=WarningType.EMPTY_OUTPUT,
+            warning_type=WarningType.output.empty_svg,
         )
         if canvas.page_size is not None:
             width, height = canvas.page_size

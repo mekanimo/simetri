@@ -219,7 +219,7 @@ class Group(Base):
                 f"'{name}' is a Shape property and has no effect on a Group. "
                 f"Use group.set_attribs('{name}', value) to apply it to the "
                 "shapes in the group.",
-                warning_type=WarningType.GROUP,
+                warning_type=WarningType.group.shape_attr,
                 stacklevel=3,
             )
         super().__setattr__(name, value)
@@ -511,7 +511,7 @@ class Group(Base):
         if element in self.elements:
             issue_warning(
                 f"Duplicate element added to Group: {element}",
-                warning_type=WarningType.DUPLICATE,
+                warning_type=WarningType.group.duplicate,
                 stacklevel=2,
             )
         self.elements.append(element)

@@ -27,6 +27,7 @@ import inspect
 from collections.abc import Sequence
 from enum import Enum
 
+from ..base.all_enums import WarningType
 from ..coloring import colors
 from ..coloring.colors import Color
 from ..config.settings import VOID, defaults, defaults_help
@@ -633,6 +634,15 @@ def help(obj) -> str:
     if obj is help or obj == "help":
         return _HELP_ABOUT_HELP
 
+    # StrEnum members are also ``str``; resolve WarningType paths first.
+    warning_path = _warning_type_path(obj)
+    if warning_path is not None:
+        return _warning_type_help(obj)
+
+    if isinstance(obj, Enum):
+        doc = inspect.getdoc(obj)
+        return doc if doc is not None else ""
+
     if isinstance(obj, str):
         topic = obj
         if obj in _TOPIC_ALIASES:
@@ -673,6 +683,10 @@ def help(obj) -> str:
 
 def _doc_title(obj) -> str:
     """Return the display title used by ``sg.doc`` for ``obj``."""
+    warning_path = _warning_type_path(obj)
+    if warning_path is not None:
+        return f"sg.{warning_path}"
+
     if isinstance(obj, str):
         return obj
 
@@ -688,6 +702,9 @@ def _doc_title(obj) -> str:
         if obj.__module__.startswith("simetri."):
             return f"sg.{obj.__qualname__}"
         return obj.__qualname__
+
+    if isinstance(obj, Enum):
+        return f"{type(obj).__qualname__}.{obj.name}"
 
     if not isinstance(obj, (bytes, int, float, bool, complex)):
         cls = type(obj)

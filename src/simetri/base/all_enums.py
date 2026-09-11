@@ -1358,24 +1358,234 @@ class Types(StrEnum):
     __hash__ = str.__hash__
 
 
-class WarningType(StrEnum):
-    """Categories for fine-grained simetri warning control.
+class _CanvasWarnings(StrEnum):
+    """Canvas transform, sizing, and export warnings.
 
-    Use with ``warnings_off`` / ``warnings_on`` and ``issue_warning``.
+    Use ``warnings_off(WarningType.canvas)`` to silence all of these.
     """
 
-    CANVAS = "canvas"
-    DEPRECATION = "deprecation"
-    DUPLICATE = "duplicate"
-    EMPTY_OUTPUT = "empty_output"
-    FILE = "file"
-    FONT = "font"
-    GENERAL = "general"
-    GEOMETRY = "geometry"
-    GROUP = "group"
-    STYLE = "style"
-    VALIDATION = "validation"
-    VECTOR = "vector"
+    empty_stack = "canvas.empty_stack"
+    flip_x = "canvas.flip_x"
+    flip_y = "canvas.flip_y"
+    missing_default = "canvas.missing_default"
+    outside_page = "canvas.outside_page"
+    save_path = "canvas.save_path"
+    vertex_pad = "canvas.vertex_pad"
+    vertex_size = "canvas.vertex_size"
+
+
+_CanvasWarnings.empty_stack.__doc__ = (
+    "Popping a transform from an empty canvas matrix stack."
+)
+_CanvasWarnings.flip_x.__doc__ = (
+    "Flipping the canvas x-axis reverses the positive rotation direction."
+)
+_CanvasWarnings.flip_y.__doc__ = (
+    "Flipping the canvas y-axis reverses the positive rotation direction."
+)
+_CanvasWarnings.missing_default.__doc__ = (
+    "A style property name is not present in ``defaults``."
+)
+_CanvasWarnings.outside_page.__doc__ = (
+    "A sketch is completely outside the page limits during export."
+)
+_CanvasWarnings.save_path.__doc__ = (
+    "Save inferred a filepath because none was specified."
+)
+_CanvasWarnings.vertex_pad.__doc__ = (
+    "Extra canvas padding was applied for vertex coordinate labels."
+)
+_CanvasWarnings.vertex_size.__doc__ = (
+    "Vertex coordinate labels are not included in the canvas size."
+)
+
+
+class _DeprecationWarnings(StrEnum):
+    """Deprecation warnings for renamed or retiring APIs.
+
+    Use ``warnings_off(WarningType.deprecation)`` to silence all of these.
+    """
+
+    bbox_center = "deprecation.bbox_center"
+
+
+_DeprecationWarnings.bbox_center.__doc__ = (
+    "``BoundingBox.center`` is deprecated; use ``midpoint`` instead."
+)
+
+
+class _FileWarnings(StrEnum):
+    """File-helper warnings for code injection and token replacement.
+
+    Use ``warnings_off(WarningType.file)`` to silence all of these.
+    """
+
+    display = "file.display"
+    mark = "file.mark"
+    token = "file.token"
+
+
+_FileWarnings.display.__doc__ = (
+    "Could not find ``canvas.display()`` while injecting a save path."
+)
+_FileWarnings.mark.__doc__ = (
+    "Could not find the requested mark while editing source text."
+)
+_FileWarnings.token.__doc__ = (
+    "Could not find the requested token while replacing source text."
+)
+
+
+class _FontWarnings(StrEnum):
+    """Font-loading warnings.
+
+    Use ``warnings_off(WarningType.font)`` to silence all of these.
+    """
+
+    load = "font.load"
+
+
+_FontWarnings.load.__doc__ = (
+    "A requested font file could not be loaded; a default font is used instead."
+)
+
+
+class _GeometryWarnings(StrEnum):
+    """Geometry validation warnings.
+
+    Use ``warnings_off(WarningType.geometry)`` to silence all of these.
+    """
+
+    not_ccw = "geometry.not_ccw"
+
+
+_GeometryWarnings.not_ccw.__doc__ = (
+    "Polygon vertices are not in counterclockwise order; the reversed "
+    "sequence is used for the computation."
+)
+
+
+class _GroupWarnings(StrEnum):
+    """Group membership and attribute warnings.
+
+    Use ``warnings_off(WarningType.group)`` to silence all of these.
+    """
+
+    duplicate = "group.duplicate"
+    shape_attr = "group.shape_attr"
+
+
+_GroupWarnings.duplicate.__doc__ = (
+    "The same element was appended to a Group more than once."
+)
+_GroupWarnings.shape_attr.__doc__ = (
+    "A Shape style attribute was set on a Group; it has no effect there. "
+    "Use ``group.set_attribs(...)`` to apply it to member shapes."
+)
+
+
+class _OutputWarnings(StrEnum):
+    """Export warnings for empty SVG or TeX output.
+
+    Use ``warnings_off(WarningType.output)`` to silence all of these.
+    """
+
+    empty_svg = "output.empty_svg"
+    empty_tex = "output.empty_tex"
+
+
+_OutputWarnings.empty_svg.__doc__ = (
+    "SVG export wrote empty output because the canvas has no sketches."
+)
+_OutputWarnings.empty_tex.__doc__ = (
+    "TeX export wrote empty output because the canvas has no sketches."
+)
+
+
+class _StyleWarnings(StrEnum):
+    """Style fan-out warnings when convenience properties set stroke and fill.
+
+    Use ``warnings_off(WarningType.style)`` to silence all of these.
+    """
+
+    line_fill_alpha = "style.line_fill_alpha"
+    line_fill_color = "style.line_fill_color"
+
+
+_StyleWarnings.line_fill_alpha.__doc__ = (
+    "Setting ``alpha`` also sets ``line_alpha`` and ``fill_alpha``."
+)
+_StyleWarnings.line_fill_color.__doc__ = (
+    "Setting ``color`` also sets ``line_color`` and ``fill_color``."
+)
+
+
+class _UtilWarnings(StrEnum):
+    """Miscellaneous utility warnings.
+
+    Use ``warnings_off(WarningType.util)`` to silence all of these.
+    """
+
+    bad_char = "util.bad_char"
+
+
+_UtilWarnings.bad_char.__doc__ = (
+    "An exclude-character argument was not present in the character set."
+)
+
+
+class _ValidationWarnings(StrEnum):
+    """Argument-validation warnings.
+
+    Use ``warnings_off(WarningType.validation)`` to silence all of these.
+    """
+
+    kwargs = "validation.kwargs"
+
+
+_ValidationWarnings.kwargs.__doc__ = (
+    "Unrecognized keyword argument(s) were passed to a function."
+)
+
+
+class _VectorWarnings(StrEnum):
+    """Vector API warnings.
+
+    Use ``warnings_off(WarningType.vector)`` to silence all of these.
+    """
+
+    mixed = "vector.mixed"
+
+
+_VectorWarnings.mixed.__doc__ = (
+    "Vector objects are mixed with list/tuple coordinates in an operation."
+)
+
+
+class WarningType:
+    """Namespace of warning subgroups; each subgroup is a ``StrEnum`` of leaves.
+
+    Toggle one leaf or a whole subgroup::
+
+        warnings_off(WarningType.group.duplicate)
+        warnings_off(WarningType.group)
+        warnings_off(WarningType.style.line_fill_color)
+
+    Use ``sg.doc(WarningType.canvas)`` for a subgroup, or
+    ``sg.doc(WarningType.canvas.save_path)`` for one leaf.
+    """
+
+    canvas = _CanvasWarnings
+    deprecation = _DeprecationWarnings
+    file = _FileWarnings
+    font = _FontWarnings
+    geometry = _GeometryWarnings
+    group = _GroupWarnings
+    output = _OutputWarnings
+    style = _StyleWarnings
+    util = _UtilWarnings
+    validation = _ValidationWarnings
+    vector = _VectorWarnings
 
 
 drawable_types = {

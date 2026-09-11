@@ -115,7 +115,7 @@ class BoundingBox:
             if name == "center":
                 issue_warning(
                     '"center" is deprecated use "midpoint" instead.',
-                    warning_type=WarningType.DEPRECATION,
+                    warning_type=WarningType.deprecation.bbox_center,
                     category=DeprecationWarning,
                 )
             return getattr(self, self._aliases[name])

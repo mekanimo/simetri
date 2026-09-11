@@ -156,7 +156,7 @@ class Vector:
             return Vector(v_sum(self.data, other.data))
         issue_warning(
             "Vector objects are being used with lists/tuples!",
-            warning_type=WarningType.VECTOR,
+            warning_type=WarningType.vector.mixed,
         )
         return Vector(v_sum(self.data, other))
 
@@ -173,7 +173,7 @@ class Vector:
             return Vector(v_diff(self.data, other.data))
         issue_warning(
             "Vector objects are being used with lists/tuples!",
-            warning_type=WarningType.VECTOR,
+            warning_type=WarningType.vector.mixed,
         )
         return Vector(v_diff(self.data, other))
 
@@ -194,7 +194,7 @@ class Vector:
             return v_mul(self.data, other.data)
         issue_warning(
             "Vector objects are being used with lists/tuples!",
-            warning_type=WarningType.VECTOR,
+            warning_type=WarningType.vector.mixed,
         )
         return v_mul(self.data, other)
 
@@ -244,7 +244,7 @@ class Vector:
         else:
             issue_warning(
                 "Vector objects are being used with lists/tuples!",
-                warning_type=WarningType.VECTOR,
+                warning_type=WarningType.vector.mixed,
             )
             other_data = other
         return distance(self.data, other_data)
@@ -299,7 +299,7 @@ class Vector:
             return v_mul(self.data, other.data)
         issue_warning(
             "Vector objects are being used with lists/tuples!",
-            warning_type=WarningType.VECTOR,
+            warning_type=WarningType.vector.mixed,
         )
         return v_mul(self.data, other)
 
@@ -317,7 +317,7 @@ class Vector:
         else:
             issue_warning(
                 "Vector objects are being used with lists/tuples!",
-                warning_type=WarningType.VECTOR,
+                warning_type=WarningType.vector.mixed,
             )
             other_data = other
         res = v_cross(self.data, other_data)
@@ -343,7 +343,7 @@ class Vector:
         else:
             issue_warning(
                 "Vector objects are being used with lists/tuples!",
-                warning_type=WarningType.VECTOR,
+                warning_type=WarningType.vector.mixed,
             )
             other_data = other
         return v_angle_between(self.data, other_data)
@@ -384,7 +384,7 @@ class Vector:
             if axis is not None:
                 issue_warning(
                     "Vector objects are being used with lists/tuples!",
-                    warning_type=WarningType.VECTOR,
+                    warning_type=WarningType.vector.mixed,
                 )
             axis_data = axis
         return Vector(v_rotated(self.data, angle, axis_data))
@@ -403,7 +403,7 @@ class Vector:
         else:
             issue_warning(
                 "Vector objects are being used with lists/tuples!",
-                warning_type=WarningType.VECTOR,
+                warning_type=WarningType.vector.mixed,
             )
             other_vec = Vector(other)
         b_mag_sq = other_vec.mag_sq()
@@ -426,7 +426,7 @@ class Vector:
         else:
             issue_warning(
                 "Vector objects are being used with lists/tuples!",
-                warning_type=WarningType.VECTOR,
+                warning_type=WarningType.vector.mixed,
             )
             n = Vector(normal)
         n = n.normalize()
@@ -447,7 +447,7 @@ class Vector:
         else:
             issue_warning(
                 "Vector objects are being used with lists/tuples!",
-                warning_type=WarningType.VECTOR,
+                warning_type=WarningType.vector.mixed,
             )
             other_data = other
         return Vector(v_interpolated(self.data, other_data, t))

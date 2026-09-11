@@ -158,7 +158,7 @@ class CommonStyle:
         if value is not None:
             issue_warning(
                 "Setting 'color' also sets 'line_color' and 'fill_color'.",
-                warning_type=WarningType.STYLE,
+                warning_type=WarningType.style.line_fill_color,
                 stacklevel=self._style_warning_stacklevel,
             )
             self._line_color = value
@@ -197,7 +197,7 @@ class CommonStyle:
         if value is not None:
             issue_warning(
                 "Setting 'alpha' also sets 'line_alpha' and 'fill_alpha'.",
-                warning_type=WarningType.STYLE,
+                warning_type=WarningType.style.line_fill_alpha,
                 stacklevel=self._style_warning_stacklevel,
             )
             self._line_alpha = value

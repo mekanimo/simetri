@@ -2346,7 +2346,7 @@ def polygon_internal_angles(vertices: Sequence[PointType]) -> Sequence[float]:
         issue_warning(
             """Vertices are not in counterclockwise positive order!
                          Result is for the reversed sequence of the given vertices.""",
-            warning_type=WarningType.GEOMETRY,
+            warning_type=WarningType.geometry.not_ccw,
         )
         vertices = list(vertices)[:]
         vertices.reverse()

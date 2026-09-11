@@ -752,7 +752,7 @@ def random_characters(
             except ValueError:
                 issue_warning(
                     f"{char} is not valid.",
-                    warning_type=WarningType.GENERAL,
+                    warning_type=WarningType.util.bad_char,
                 )
 
     return "".join([random.choice(characters) for _ in range(n)])

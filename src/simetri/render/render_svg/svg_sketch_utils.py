@@ -106,7 +106,7 @@ def get_text_size(text, font_name, font_size):
             # If specific font not found, use default font with scaling
             issue_warning(
                 f"Could not load font '{font_name}.ttf': {e}. Using default font with scaling.",
-                warning_type=WarningType.FONT,
+                warning_type=WarningType.font.load,
             )
             font = ImageFont.load_default()
             mult = font_size / 10  # Default font is ~10 pixels

@@ -170,13 +170,13 @@ def warn_vertex_coord_label_sizing(canvas) -> None:
             f"Vertex coordinate labels use extra canvas padding of {extra}pt "
             "per side (auto_expand_canvas_for_vertices). Increase "
             "vertices_canvas_expand or canvas.border if labels are still clipped.",
-            warning_type=WarningType.CANVAS,
+            warning_type=WarningType.canvas.vertex_pad,
         )
     else:
         issue_warning(
             "Vertex coordinate labels are not included in canvas size. "
             "Increase canvas.border (e.g. 40) if labels are clipped.",
-            warning_type=WarningType.CANVAS,
+            warning_type=WarningType.canvas.vertex_size,
         )
     canvas._vertex_label_sizing_warned = True
 
@@ -455,7 +455,7 @@ class Canvas:
         else:
             issue_warning(
                 "Trying to pop from an empty stack!",
-                warning_type=WarningType.CANVAS,
+                warning_type=WarningType.canvas.empty_stack,
             )
 
     def apply_mask(self, target, mask):
@@ -1519,7 +1519,7 @@ class Canvas:
         """
         issue_warning(
             "Flipping the x-axis will change the positive rotation direction.",
-            warning_type=WarningType.CANVAS,
+            warning_type=WarningType.canvas.flip_x,
         )
         return self._flip(Axis.X)
 
@@ -1532,7 +1532,7 @@ class Canvas:
         """
         issue_warning(
             "Flipping the y-axis will reverse the positive rotation direction.",
-            warning_type=WarningType.CANVAS,
+            warning_type=WarningType.canvas.flip_y,
         )
 
         return self._flip(Axis.Y)
@@ -1628,7 +1628,7 @@ class Canvas:
             if value == VOID and property_name not in ("color", "alpha"):
                 issue_warning(
                     f"Property {property_name} is not in defaults.",
-                    warning_type=WarningType.CANVAS,
+                    warning_type=WarningType.canvas.missing_default,
                 )
                 value = None
         return value
@@ -1876,7 +1876,7 @@ class Canvas:
                         "Sketch is completely outside page limits: "
                         f"page={page_index}, subtype={sketch.subtype}, id={sketch.id}, "
                         f"bbox={sketch_bbox}, limits={page_limits}.",
-                        warning_type=WarningType.CANVAS,
+                        warning_type=WarningType.canvas.outside_page,
                     )
 
     def _show_browser(
@@ -1943,7 +1943,7 @@ class Canvas:
 
             issue_warning(
                 f"Unspecified filepath, using {filepath}.",
-                warning_type=WarningType.CANVAS,
+                warning_type=WarningType.canvas.save_path,
             )
 
         renderer = _save_renderer(extension)

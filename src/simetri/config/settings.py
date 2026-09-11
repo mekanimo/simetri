@@ -28,6 +28,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from math import pi
 
 import numpy as np
@@ -96,11 +97,32 @@ class SettingsSingletonError(RuntimeError):
 
 # Counts per ``issue_warning`` call site (filename, lineno).
 _warning_counts: dict[tuple[str, int], int] = defaultdict(int)
-# Warning types disabled while the global ``show_warnings`` toggle is on.
-_disabled_warning_types: set[WarningType] = set()
+# Leaf warning members disabled while the global ``show_warnings`` toggle is on.
+_disabled_warning_types: set[StrEnum] = set()
 
 # Public alias matching the library API name.
 warning_types = WarningType
+
+
+def _is_warning_subgroup(obj: object) -> bool:
+    """Return True if ``obj`` is a nested warning ``StrEnum`` class."""
+    return isinstance(obj, type) and issubclass(obj, StrEnum)
+
+
+def _resolve_warning_types(
+    warning: StrEnum | type[StrEnum],
+) -> frozenset[StrEnum]:
+    """Expand a leaf member or a subgroup enum into leaf members."""
+    if _is_warning_subgroup(warning):
+        return frozenset(warning)
+    return frozenset({warning})
+
+
+def _warning_type_label(warning_type: StrEnum) -> str:
+    """Return the dotted path users pass to ``warnings_off``."""
+    # value is already "group.duplicate" → WarningType.group.duplicate
+    return f"WarningType.{warning_type.value}"
+
 
 _original_formatwarning = warnings.formatwarning
 
@@ -120,7 +142,7 @@ warnings.simplefilter("always", SimetriWarning)
 
 def issue_warning(
     message: str,
-    warning_type: WarningType = WarningType.GENERAL,
+    warning_type: StrEnum,
     category: type[Warning] = SimetriWarning,
     stacklevel: int = 2,
 ) -> None:
@@ -132,9 +154,12 @@ def issue_warning(
     a repeated-warning notice; further emits from that site are silent.
     ``SimetriWarning`` output omits the source-line snippet.
 
+    Each message is tagged with ``WarningType.<group>.<leaf>`` so callers can
+    silence it with ``warnings_off`` without looking up the type elsewhere.
+
     Args:
         message: Warning text.
-        warning_type: Category used by ``warnings_off`` / ``warnings_on``.
+        warning_type: Leaf member such as ``WarningType.group.duplicate``.
         category: Warning category class.
         stacklevel: Stack level passed to ``warn``.
     """
@@ -143,45 +168,53 @@ def issue_warning(
     if warning_type in _disabled_warning_types:
         return
 
+    type_tag = f"[{_warning_type_label(warning_type)}]"
+    tagged_message = f"{message} {type_tag}"
+
     caller = sys._getframe(1)
     warning_key = (caller.f_code.co_filename, caller.f_lineno)
     _warning_counts[warning_key] += 1
     count = _warning_counts[warning_key]
     if count <= 2:
-        warnings.warn(message, category, stacklevel=stacklevel)
+        warnings.warn(tagged_message, category, stacklevel=stacklevel)
     elif count == 3:
         warnings.warn(
-            f"{message} Repeated warnings are not shown.",
+            f"{tagged_message} Repeated warnings are not shown.",
             category,
             stacklevel=stacklevel,
         )
 
 
-def warnings_off(warning_type: WarningType | None = None) -> None:
-    """Turn warnings off globally, or disable one ``WarningType``.
+def warnings_off(
+    warning: StrEnum | type[StrEnum] | None = None,
+) -> None:
+    """Turn warnings off globally, or disable a leaf / subgroup.
 
     Args:
-        warning_type: If given, only that type is suppressed. If omitted,
-            all warnings are turned off.
+        warning: A leaf (``WarningType.group.duplicate``), a subgroup
+            (``WarningType.group``), or ``None`` to disable all warnings.
     """
-    if warning_type is None:
+    if warning is None:
         defaults["show_warnings"] = False
         return
-    _disabled_warning_types.add(warning_type)
+    _disabled_warning_types.update(_resolve_warning_types(warning))
 
 
-def warnings_on(warning_type: WarningType | None = None) -> None:
-    """Turn warnings on globally, or re-enable one ``WarningType``.
+def warnings_on(
+    warning: StrEnum | type[StrEnum] | None = None,
+) -> None:
+    """Turn warnings on globally, or re-enable a leaf / subgroup.
 
     Args:
-        warning_type: If given, only that type is re-enabled. If omitted,
-            all warnings are turned on and per-type disables are cleared.
+        warning: A leaf (``WarningType.style.line_fill_color``), a subgroup
+            (``WarningType.style``), or ``None`` to enable all warnings and
+            clear per-type disables.
     """
-    if warning_type is None:
+    if warning is None:
         defaults["show_warnings"] = True
         _disabled_warning_types.clear()
         return
-    _disabled_warning_types.discard(warning_type)
+    _disabled_warning_types.difference_update(_resolve_warning_types(warning))
     defaults["show_warnings"] = True
 
 

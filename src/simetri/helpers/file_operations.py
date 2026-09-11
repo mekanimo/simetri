@@ -76,7 +76,7 @@ def inject_snippet(
     if flag:
         issue_warning(
             f"Could not find '{mark}'",
-            warning_type=WarningType.FILE,
+            warning_type=WarningType.file.mark,
         )
     else:
         return "\n".join(res_lines)
@@ -107,7 +107,7 @@ def replace_token(code: str, token: str, replace: str) -> str:
     if flag:
         issue_warning(
             "Could not find 'token'",
-            warning_type=WarningType.FILE,
+            warning_type=WarningType.file.token,
         )
     else:
         return "\n".join(res_lines)
@@ -139,7 +139,7 @@ def inject_filepath(code: str, pic_path: str) -> str:
     if flag:
         issue_warning(
             "Could not find 'canvas.display()'",
-            warning_type=WarningType.FILE,
+            warning_type=WarningType.file.display,
         )
     else:
         return "\n".join(res_lines)
