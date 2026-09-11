@@ -17,8 +17,11 @@ __all__ = [
     "set_tikz_defaults",
     "svg_defaults",
     "tikz_defaults",
+    "warnings_off",
+    "warnings_on",
 ]
 
+import sys
 import warnings
 from collections import defaultdict
 from collections.abc import Sequence
@@ -88,6 +91,25 @@ class SettingsSingletonError(RuntimeError):
     """Raised when the settings singleton is instantiated more than once."""
 
 
+# Counts per ``issue_warning`` call site (filename, lineno).
+_warning_counts: dict[tuple[str, int], int] = defaultdict(int)
+
+_original_formatwarning = warnings.formatwarning
+
+
+def _formatwarning(message, category, filename, lineno, line=None):
+    """Format warnings; omit the source snippet for ``SimetriWarning``."""
+    if issubclass(category, SimetriWarning):
+        return f"{filename}:{lineno}: {category.__name__}: {message}\n"
+    return _original_formatwarning(message, category, filename, lineno, line)
+
+
+warnings.formatwarning = _formatwarning
+# Let ``issue_warning`` control repeat display; do not let the default
+# once-per-location filter swallow the 2nd (and later) emits.
+warnings.simplefilter("always", SimetriWarning)
+
+
 def issue_warning(
     message: str,
     category: type[Warning] = SimetriWarning,
@@ -95,13 +117,44 @@ def issue_warning(
 ) -> None:
     """Emit a warning when the global warning toggle is enabled.
 
+    Repeats are counted per ``issue_warning`` call site (not by exact
+    message text), so warnings that embed changing details still collapse.
+    The first two emits show ``message``; the third shows ``message`` plus
+    a repeated-warning notice; further emits from that site are silent.
+    ``SimetriWarning`` output omits the source-line snippet.
+
     Args:
         message: Warning text.
         category: Warning category class.
         stacklevel: Stack level passed to ``warn``.
     """
-    if defaults["show_warnings"]:
+    if not defaults["show_warnings"]:
+        return
+
+    caller = sys._getframe(1)
+    warning_key = (caller.f_code.co_filename, caller.f_lineno)
+    _warning_counts[warning_key] += 1
+    count = _warning_counts[warning_key]
+    if count <= 2:
         warnings.warn(message, category, stacklevel=stacklevel)
+    elif count == 3:
+        warnings.warn(
+            f"{message} Repeated warnings are not shown.",
+            category,
+            stacklevel=stacklevel,
+        )
+
+
+def warnings_off():
+    """Turn the warnings off."""
+
+    defaults["show_warnings"] = False
+
+
+def warnings_on():
+    """Turn the warnings on."""
+
+    defaults["show_warnings"] = True
 
 
 @dataclass

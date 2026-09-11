@@ -71,8 +71,8 @@ class Grid(Group):
             # Draw only the horizontal and vertical lines in the grid
             width = self.width
             for p1, p2 in pairs:
-                x1, y1 = p1
-                x2, y2 = p2
+                x1, y1 = p1[:2]
+                x2, y2 = p2[:2]
                 cond1 = x1 == x2
                 cond2 = y1 == y2
                 if cond1 ^ cond2:
@@ -80,10 +80,21 @@ class Grid(Group):
                     if isclose(dist, width, rel_tol=0, abs_tol=1e-5):
                         self.append(Shape([p1, p2], line_color=gray))
         else:
-            # Draw the lines connecting the points in the grid
-            for point1, point2 in pairs:
-                if point1 != point2:
-                    self.append(Shape([point1, point2], line_color=gray))
+            # Undirected chords between non-adjacent points. Consecutive ring
+            # edges were already appended above; skip both (i, j) and (j, i).
+            grid_points = self.points
+            n_points = len(grid_points)
+            for i in range(n_points):
+                for j in range(i + 1, n_points):
+                    step = j - i
+                    if step == 1 or step == n_points - 1:
+                        continue
+                    self.append(
+                        Shape(
+                            [grid_points[i], grid_points[j]],
+                            line_color=gray,
+                        )
+                    )
 
     @property
     def points(self):
