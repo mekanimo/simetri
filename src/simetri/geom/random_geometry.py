@@ -6,7 +6,6 @@ import random
 from collections.abc import Sequence
 from itertools import product
 from math import atan2, cos, isclose, pi, sin, tau
-from random import choice, uniform
 
 import numpy as np
 
@@ -36,11 +35,28 @@ N_MIN_EDGES = 3
 N_MAX_EDGES = 6
 
 
+def _resolve_rng(
+    seed: int | None = None,
+    rng: random.Random | None = None,
+) -> random.Random:
+    """Return ``rng`` if given, otherwise a new ``Random(seed)``.
+
+    A local generator never calls ``random.seed`` on the process-global RNG.
+    ``seed=None`` draws from OS entropy.
+    """
+    if rng is not None:
+        return rng
+    return random.Random(seed)
+
+
 def random_angle(
     min_angle: float = MIN_ANGLE,
     max_angle: float = MAX_ANGLE,
     incr: float | None = None,
     normalized: bool = True,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> float:
     """Return a random angle in radians within the requested range.
 
@@ -56,6 +72,9 @@ def random_angle(
             Defaults to None.
         normalized (bool, optional): Normalize the result to ``(-pi, pi]``.
             Defaults to True.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         float: The selected angle.
@@ -80,11 +99,14 @@ def random_angle(
         >>> deg_incr_rand_angle = sg.random_angle(incr=sg.radians(1))
         >>> sg.degrees(deg_incr_rand_angle).is_integer()
         True
+        >>> sg.random_angle(seed=1) == sg.random_angle(seed=1)
+        True
     """
+    rng = _resolve_rng(seed, rng)
     if min_angle > max_angle:
         raise ValueError(f"min_angle ({min_angle}) > max_angle ({max_angle})")
     if incr is None:
-        res = uniform(min_angle, max_angle)
+        res = rng.uniform(min_angle, max_angle)
     else:
         if incr <= 0:
             raise ValueError(f"incr ({incr}) must be positive")
@@ -95,7 +117,7 @@ def random_angle(
             options.append(min(option, max_angle))
             index += 1
             option = min_angle + index * incr
-        res = choice(options)
+        res = rng.choice(options)
 
     if normalized:
         res = normalize_angle(res)
@@ -108,6 +130,9 @@ def random_point(
     min_y: float = MIN_Y,
     max_x: float = MAX_X,
     max_y: float = MAX_Y,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> tuple:
     """Return a random point within the given axis-aligned limits.
 
@@ -116,6 +141,9 @@ def random_point(
         min_y (float, optional): Minimum y. Defaults to ``MIN_Y``.
         max_x (float, optional): Maximum x. Defaults to ``MAX_X``.
         max_y (float, optional): Maximum y. Defaults to ``MAX_Y``.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         tuple: A point ``(x, y)`` with each coordinate in its range.
@@ -125,8 +153,11 @@ def random_point(
         >>> x, y = sg.random_point(0, 0, 10, 20)
         >>> 0 <= x <= 10 and 0 <= y <= 20
         True
+        >>> sg.random_point(seed=7) == sg.random_point(seed=7)
+        True
     """
-    return (uniform(min_x, max_x), uniform(min_y, max_y))
+    rng = _resolve_rng(seed, rng)
+    return (rng.uniform(min_x, max_x), rng.uniform(min_y, max_y))
 
 
 def random_points(
@@ -135,6 +166,9 @@ def random_points(
     min_y: float = MIN_Y,
     max_x: float = MAX_X,
     max_y: float = MAX_Y,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> list[tuple]:
     """Return ``n`` random points within the given axis-aligned limits.
 
@@ -144,6 +178,9 @@ def random_points(
         min_y (float, optional): Minimum y. Defaults to ``MIN_Y``.
         max_x (float, optional): Maximum x. Defaults to ``MAX_X``.
         max_y (float, optional): Maximum y. Defaults to ``MAX_Y``.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         list[tuple]: ``n`` points ``(x, y)``.
@@ -155,8 +192,13 @@ def random_points(
         5
         >>> all(0 <= x <= 1 and 0 <= y <= 1 for x, y in points)
         True
+        >>> sg.random_points(seed=3) == sg.random_points(seed=3)
+        True
     """
-    return [random_point(min_x, min_y, max_x, max_y) for _ in range(n)]
+    rng = _resolve_rng(seed, rng)
+    return [
+        random_point(min_x, min_y, max_x, max_y, rng=rng) for _ in range(n)
+    ]
 
 
 def random_segment(
@@ -168,6 +210,9 @@ def random_segment(
     max_y: float = MAX_Y,
     min_angle: float = MIN_GEOM_ANGLE,
     max_angle: float = MAX_GEOM_ANGLE,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> Shape:
     """Return a randomly sized and positioned segment.
 
@@ -192,6 +237,9 @@ def random_segment(
             Defaults to ``MIN_GEOM_ANGLE``.
         max_angle (float, optional): Maximum inclination angle in radians.
             Defaults to ``MAX_GEOM_ANGLE``.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         Shape: An open two-point shape.
@@ -208,6 +256,7 @@ def random_segment(
         >>> 1 <= sg.distance(segment.vertices[0], segment.vertices[1]) <= 5
         True
     """
+    rng = _resolve_rng(seed, rng)
     if min_length > max_length:
         raise ValueError(
             f"min_length ({min_length}) > max_length ({max_length})"
@@ -221,10 +270,10 @@ def random_segment(
             f"inclination-angle range [{min_angle}, {max_angle}] does not "
             "intersect [0, pi]"
         )
-    length = uniform(min_length, max_length)
-    angle = uniform(effective_min_angle, effective_max_angle)
+    length = rng.uniform(min_length, max_length)
+    angle = rng.uniform(effective_min_angle, effective_max_angle)
     segment = Shape([(0, 0), (length * cos(angle), length * sin(angle))])
-    segment.move_to(random_point(min_x, min_y, max_x, max_y))
+    segment.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
     return segment
 
 
@@ -239,12 +288,15 @@ def random_segments(
     min_angle: float = MIN_GEOM_ANGLE,
     max_angle: float = MAX_GEOM_ANGLE,
     angles: Sequence[float] | None = None,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> Group:
     """Return ``n`` random segments in a ``Group``.
 
     Inclination angles are constrained by ``min_angle`` and ``max_angle``,
     unless ``angles`` is given. Then each segment picks one inclination from
-    ``angles`` with ``random.choice`` and uses that exact value.
+    ``angles`` with ``rng.choice`` and uses that exact value.
 
     Args:
         n (int, optional): Number of segments. Defaults to ``N``.
@@ -262,6 +314,9 @@ def random_segments(
             Used when ``angles`` is None. Defaults to ``MAX_GEOM_ANGLE``.
         angles (Sequence[float], optional): Exact inclination angles to
             choose from. Defaults to None.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         Group: ``n`` segment shapes.
@@ -288,10 +343,11 @@ def random_segments(
         ... )
         True
     """
+    rng = _resolve_rng(seed, rng)
     segments = []
     for _ in range(n):
         if angles is not None:
-            angle = choice(angles)
+            angle = rng.choice(angles)
             segment_min_angle = angle
             segment_max_angle = angle
         else:
@@ -307,6 +363,7 @@ def random_segments(
                 max_y,
                 segment_min_angle,
                 segment_max_angle,
+                rng=rng,
             )
         )
     return Group(segments)
@@ -320,6 +377,9 @@ def random_rectangle(
     max_x: float = MAX_X,
     max_y: float = MAX_Y,
     axis_aligned: bool = True,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> Shape:
     """Return a randomly sized and positioned rectangle.
 
@@ -343,6 +403,9 @@ def random_rectangle(
             Defaults to ``MAX_Y``.
         axis_aligned (bool, optional): Keep sides parallel to the axes.
             Defaults to True.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         Shape: A closed four-vertex rectangle.
@@ -358,13 +421,14 @@ def random_rectangle(
         >>> rectangle.closed
         True
     """
+    rng = _resolve_rng(seed, rng)
     if min_edge_length > max_edge_length:
         raise ValueError(
             f"min_edge_length ({min_edge_length}) > "
             f"max_edge_length ({max_edge_length})"
         )
-    width = uniform(min_edge_length, max_edge_length)
-    height = uniform(min_edge_length, max_edge_length)
+    width = rng.uniform(min_edge_length, max_edge_length)
+    height = rng.uniform(min_edge_length, max_edge_length)
     half_width = width / 2
     half_height = height / 2
     vertices = [
@@ -375,8 +439,8 @@ def random_rectangle(
     ]
     rectangle = Shape(vertices, closed=True)
     if not axis_aligned:
-        rectangle.rotate(uniform(0, tau))
-    rectangle.move_to(random_point(min_x, min_y, max_x, max_y))
+        rectangle.rotate(rng.uniform(0, tau))
+    rectangle.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
     return rectangle
 
 
@@ -389,6 +453,9 @@ def random_rectangles(
     max_x: float = MAX_X,
     max_y: float = MAX_Y,
     axis_aligned: bool = True,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> Group:
     """Return ``n`` random rectangles in a ``Group``.
 
@@ -404,6 +471,9 @@ def random_rectangles(
         max_y (float, optional): Maximum y. Defaults to ``MAX_Y``.
         axis_aligned (bool, optional): Keep sides parallel to the axes.
             Defaults to True.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         Group: ``n`` closed rectangle shapes.
@@ -414,6 +484,7 @@ def random_rectangles(
         >>> len(rectangles)
         4
     """
+    rng = _resolve_rng(seed, rng)
     return Group(
         [
             random_rectangle(
@@ -424,6 +495,7 @@ def random_rectangles(
                 max_x,
                 max_y,
                 axis_aligned,
+                rng=rng,
             )
             for _ in range(n)
         ]
@@ -440,6 +512,9 @@ def random_triangle(
     min_angle: float = MIN_GEOM_ANGLE,
     max_angle: float = MAX_TRIANGLE_ANGLE,
     angles: Sequence[float] | None = None,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> Shape:
     """Return a randomly sized and positioned triangle.
 
@@ -469,6 +544,9 @@ def random_triangle(
             Defaults to ``MAX_TRIANGLE_ANGLE``.
         angles (Sequence[float], optional): Discrete interior angles to
             choose from. Defaults to None.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         Shape: A closed three-vertex triangle.
@@ -498,6 +576,7 @@ def random_triangle(
         ... )
         True
     """
+    rng = _resolve_rng(seed, rng)
     if min_edge_length > max_edge_length:
         raise ValueError(
             f"min_edge_length ({min_edge_length}) > "
@@ -534,7 +613,7 @@ def random_triangle(
         if not constructions:
             raise ValueError(f"no three angles from {list(angles)!r} sum to pi")
 
-        random.shuffle(constructions)
+        rng.shuffle(constructions)
         for interior_angles in constructions:
             side_proportions = [sin(angle) for angle in interior_angles]
             if any(proportion <= 0 for proportion in side_proportions):
@@ -550,7 +629,7 @@ def random_triangle(
             side_ab = side_proportions[2]
             side_ac = side_proportions[1]
             angle_a = interior_angles[0]
-            scale = uniform(minimum_scale, maximum_scale)
+            scale = rng.uniform(minimum_scale, maximum_scale)
             vertices = [
                 (0.0, 0.0),
                 (side_ab * scale, 0.0),
@@ -560,8 +639,8 @@ def random_triangle(
                 ),
             ]
             triangle = Shape(vertices, closed=True)
-            triangle.rotate(uniform(0, tau))
-            triangle.move_to(random_point(min_x, min_y, max_x, max_y))
+            triangle.rotate(rng.uniform(0, tau))
+            triangle.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
             return triangle
 
         raise ValueError(
@@ -571,9 +650,9 @@ def random_triangle(
 
     area_tol = defaults["area_tol"]
     while True:
-        side_ab = uniform(min_edge_length, max_edge_length)
-        side_ac = uniform(min_edge_length, max_edge_length)
-        angle_a = uniform(min_angle, max_angle)
+        side_ab = rng.uniform(min_edge_length, max_edge_length)
+        side_ac = rng.uniform(min_edge_length, max_edge_length)
+        angle_a = rng.uniform(min_angle, max_angle)
         vertex_a = (0.0, 0.0)
         vertex_b = (side_ab, 0.0)
         vertex_c = (
@@ -594,8 +673,8 @@ def random_triangle(
         ):
             continue
         triangle = Shape(vertices, closed=True)
-        triangle.rotate(uniform(0, tau))
-        triangle.move_to(random_point(min_x, min_y, max_x, max_y))
+        triangle.rotate(rng.uniform(0, tau))
+        triangle.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
         return triangle
 
 
@@ -610,6 +689,9 @@ def random_triangles(
     min_angle: float = MIN_GEOM_ANGLE,
     max_angle: float = MAX_TRIANGLE_ANGLE,
     angles: Sequence[float] | None = None,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> Group:
     """Return ``n`` random triangles in a ``Group``.
 
@@ -632,6 +714,9 @@ def random_triangles(
             Defaults to ``MAX_TRIANGLE_ANGLE``.
         angles (Sequence[float], optional): Discrete interior angles to
             choose from. Defaults to None.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         Group: ``n`` closed triangle shapes.
@@ -647,6 +732,7 @@ def random_triangles(
         >>> len(equilateral)
         2
     """
+    rng = _resolve_rng(seed, rng)
     return Group(
         [
             random_triangle(
@@ -659,6 +745,7 @@ def random_triangles(
                 min_angle,
                 max_angle,
                 angles,
+                rng=rng,
             )
             for _ in range(n)
         ]
@@ -679,6 +766,9 @@ def random_polygon(
     min_angle: float = MIN_GEOM_ANGLE,
     max_angle: float = MAX_GEOM_ANGLE,
     angles: Sequence[float] | None = None,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> Shape:
     """Return a random polygon within the given axis-aligned limits.
     All angles are in radians.
@@ -719,6 +809,9 @@ def random_polygon(
             Defaults to ``MAX_GEOM_ANGLE``.
         angles (Sequence[float], optional): Discrete interior angles to
             choose from when building the polygon. Defaults to None.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         Shape: A polygon with a random vertex count in the given range.
@@ -758,6 +851,7 @@ def random_polygon(
         ...     "can close" in str(exc)
         True
     """
+    rng = _resolve_rng(seed, rng)
     if n_min_edges < 3:
         raise ValueError(f"n_min_edges ({n_min_edges}) must be >= 3")
     if n_min_edges > n_max_edges:
@@ -807,9 +901,9 @@ def random_polygon(
                 f"with interior angles from {list(angles)!r}"
             )
 
-        random.shuffle(constructions)
+        rng.shuffle(constructions)
         for edge_count, interior_angles in constructions:
-            first_heading = random.uniform(0, tau)
+            first_heading = rng.uniform(0, tau)
             headings = [first_heading]
             for vertex_index in range(1, edge_count):
                 headings.append(
@@ -834,7 +928,7 @@ def random_polygon(
             ):
                 continue
             maximum_scale = max(maximum_scale, minimum_scale)
-            edge_lengths *= random.uniform(minimum_scale, maximum_scale)
+            edge_lengths *= rng.uniform(minimum_scale, maximum_scale)
 
             vertices = [(0.0, 0.0)]
             for edge_index in range(edge_count - 1):
@@ -868,13 +962,13 @@ def random_polygon(
             )
 
         while True:
-            edge_count = random.choice(feasible_edge_counts)
-            center_x = random.uniform(-max_edge_length, max_edge_length)
-            center_y = random.uniform(-max_edge_length, max_edge_length)
+            edge_count = rng.choice(feasible_edge_counts)
+            center_x = rng.uniform(-max_edge_length, max_edge_length)
+            center_y = rng.uniform(-max_edge_length, max_edge_length)
             points = [
                 (
-                    random.uniform(-max_edge_length, max_edge_length),
-                    random.uniform(-max_edge_length, max_edge_length),
+                    rng.uniform(-max_edge_length, max_edge_length),
+                    rng.uniform(-max_edge_length, max_edge_length),
                 )
                 for _ in range(edge_count)
             ]
@@ -902,8 +996,8 @@ def random_polygon(
                 break
 
     polygon = Shape(vertices, closed=closed)
-    polygon.rotate(uniform(0, tau))
-    polygon.move_to(random_point(min_x, min_y, max_x, max_y))
+    polygon.rotate(rng.uniform(0, tau))
+    polygon.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
 
     if angles is not None:
         actual_angles = polygon_internal_angles(polygon.vertices)
@@ -934,6 +1028,9 @@ def random_polygons(
     min_angle: float = MIN_GEOM_ANGLE,
     max_angle: float = MAX_GEOM_ANGLE,
     angles: Sequence[float] | None = None,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
 ) -> Group:
     """Return ``n`` random polygons in a ``Group``.
 
@@ -967,6 +1064,9 @@ def random_polygons(
             Defaults to ``MAX_GEOM_ANGLE``.
         angles (Sequence[float], optional): Discrete interior angles to
             choose from when building each polygon. Defaults to None.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
 
     Returns:
         Group: ``n`` polygon shapes.
@@ -984,6 +1084,7 @@ def random_polygons(
         >>> len(angled)
         2
     """
+    rng = _resolve_rng(seed, rng)
 
     return Group(
         [
@@ -1001,6 +1102,7 @@ def random_polygons(
                 min_angle,
                 max_angle,
                 angles,
+                rng=rng,
             )
             for _ in range(n)
         ]
