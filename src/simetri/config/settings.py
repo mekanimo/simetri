@@ -154,8 +154,8 @@ def issue_warning(
     a repeated-warning notice; further emits from that site are silent.
     ``SimetriWarning`` output omits the source-line snippet.
 
-    Each message is tagged with ``WarningType.<group>.<leaf>`` so callers can
-    silence it with ``warnings_off`` without looking up the type elsewhere.
+    Each message ends with a short hint showing how to silence that leaf
+    with ``sg.warnings_off(WarningType.<group>.<leaf>)``.
 
     Args:
         message: Warning text.
@@ -168,7 +168,9 @@ def issue_warning(
     if warning_type in _disabled_warning_types:
         return
 
-    type_tag = f"[{_warning_type_label(warning_type)}]"
+    type_tag = (
+        f"[to turn it off use: sg.warnings_off({_warning_type_label(warning_type)})]"
+    )
     tagged_message = f"{message} {type_tag}"
 
     caller = sys._getframe(1)
