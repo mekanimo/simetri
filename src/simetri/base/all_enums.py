@@ -1420,11 +1420,15 @@ class _FileWarnings(StrEnum):
     Use ``warnings_off(WarningType.file)`` to silence all of these.
     """
 
+    config = "file.config"
     display = "file.display"
     mark = "file.mark"
     token = "file.token"
 
 
+_FileWarnings.config.__doc__ = (
+    "An unknown or invalid key was found in ``simetri_config.toml``."
+)
 _FileWarnings.display.__doc__ = (
     "Could not find ``canvas.display()`` while injecting a save path."
 )

@@ -50,6 +50,46 @@ _COLOR_NAME_BY_ID = {
     if isinstance(value, Color)
 }
 
+_WARNING_SUBGROUPS = {
+    value: name
+    for name, value in vars(WarningType).items()
+    if isinstance(value, type) and issubclass(value, Enum)
+}
+
+
+def _warning_type_path(obj) -> str | None:
+    """Return ``WarningType…`` path for a subgroup class or leaf member."""
+    if obj is WarningType:
+        return "WarningType"
+    if inspect.isclass(obj) and obj in _WARNING_SUBGROUPS:
+        return f"WarningType.{_WARNING_SUBGROUPS[obj]}"
+    if isinstance(obj, Enum) and type(obj) in _WARNING_SUBGROUPS:
+        group_name = _WARNING_SUBGROUPS[type(obj)]
+        return f"WarningType.{group_name}.{obj.name}"
+    return None
+
+
+def _warning_type_help(obj) -> str:
+    """Return help text for ``WarningType``, a subgroup, or a leaf."""
+    if obj is WarningType:
+        group_lines = [
+            f"  WarningType.{name}" for name in sorted(_WARNING_SUBGROUPS.values())
+        ]
+        base = inspect.getdoc(WarningType) or ""
+        return f"{base}\n\nSubgroups:\n" + "\n".join(group_lines)
+
+    if inspect.isclass(obj) and obj in _WARNING_SUBGROUPS:
+        base = inspect.getdoc(obj) or ""
+        member_lines = []
+        for member in obj:
+            member_doc = inspect.getdoc(member) or ""
+            member_lines.append(f"  {member.name}: {member_doc}")
+        return f"{base}\n\nMembers:\n" + "\n".join(member_lines)
+
+    doc = inspect.getdoc(obj)
+    return doc if doc is not None else ""
+
+
 # Topic name -> list of public ``sg.*`` names (and brief notes as plain lines).
 d_help_topic: dict[str, list[str]] = {
     "angles": [

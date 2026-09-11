@@ -16,9 +16,9 @@ from math import pi
 from pathlib import Path
 from typing import Any, Self
 
-import pymupdf as fitz
 import networkx as nx
 import numpy as np
+import pymupdf as fitz
 from numpy.typing import NDArray
 
 from simetri.base.all_enums import (
@@ -37,7 +37,12 @@ from simetri.base.common import (
     _set_Nones,
 )
 from simetri.coloring.colors import Color
-from simetri.config.settings import VOID, defaults, issue_warning
+from simetri.config.settings import (
+    VOID,
+    defaults,
+    issue_warning,
+    resolve_save_filepath,
+)
 from simetri.geom.affine import (
     rotation_matrix,
     scale_in_place_matrix,
@@ -1935,21 +1940,10 @@ class Canvas:
         self._vertex_label_sizing_warned = False
         self._warn_sketches_outside_page()
 
-        try:
-            parent_dir, file_name, extension = validate_filepath(
-                filepath, overwrite
-            )
-        except NotADirectoryError:
-            parent_dir = Path(sys.path[0])
-            filepath = str(parent_dir / filepath)
-            parent_dir, file_name, extension = validate_filepath(
-                filepath, overwrite
-            )
-
-            issue_warning(
-                f"Unspecified filepath, using {filepath}.",
-                warning_type=WarningType.canvas.save_path,
-            )
+        filepath = resolve_save_filepath(filepath)
+        parent_dir, file_name, extension = validate_filepath(
+            filepath, overwrite
+        )
 
         renderer = _save_renderer(extension)
         multi_page_svg = False

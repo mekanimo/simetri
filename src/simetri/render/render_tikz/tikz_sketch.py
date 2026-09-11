@@ -121,32 +121,21 @@ def draw_helplines_sketch(sketch):
     height = sketch.height
     spacing = sketch.spacing
     cs_size = sketch.cs_size
-    kwargs = dict(sketch.kwargs)
+    grid_style = sketch.grid_style
+    x_axis_style = sketch.x_axis_style
+    y_axis_style = sketch.y_axis_style
 
-    if spacing in (None, 0):
-        spacing = defaults["help_lines_spacing"]
-
-    # Match draw.grid defaults
-    grid_line_width = kwargs.get("line_width", defaults["grid_line_width"])
-    grid_line_color = kwargs.get("line_color", defaults["grid_line_color"])
-    grid_line_dash_array = kwargs.get(
-        "line_dash_array", defaults["grid_line_dash_array"]
-    )
-    line_alpha = kwargs.get(
-        "line_alpha", kwargs.get("alpha", defaults["line_alpha"])
-    )
-
-    def _line_options(
-        line_color, line_width, line_dash_array=None, draw_opacity=None
-    ):
+    def _line_options(style):
         options = [
-            f"draw={color_to_tikz(line_color)}",
-            f"line width={line_width}",
+            f"draw={color_to_tikz(style['line_color'])}",
+            f"line width={style['line_width']}",
         ]
-        if line_dash_array is not None:
-            options.append(f"dash pattern={get_dash_pattern(line_dash_array)}")
-        if draw_opacity not in (None, 1):
-            options.append(f"draw opacity={draw_opacity}")
+        if style["line_dash_array"] is not None:
+            options.append(
+                f"dash pattern={get_dash_pattern(style['line_dash_array'])}"
+            )
+        if style["line_alpha"] not in (None, 1):
+            options.append(f"draw opacity={style['line_alpha']}")
         return ", ".join(options)
 
     lines = []
@@ -154,9 +143,7 @@ def draw_helplines_sketch(sketch):
     # Grid lines (horizontal + vertical)
     n_h = int(height / spacing)
     n_v = int(width / spacing)
-    grid_opts = _line_options(
-        grid_line_color, grid_line_width, grid_line_dash_array, line_alpha
-    )
+    grid_opts = _line_options(grid_style)
 
     for i in range(n_h + 1):
         yi = y + i * spacing
@@ -170,29 +157,18 @@ def draw_helplines_sketch(sketch):
 
     # Coordinate system axes + origin marker
     if cs_size and cs_size > 0:
-        if "colors" in kwargs:
-            x_color, y_color = kwargs["colors"]
-        else:
-            x_color = defaults["CS_x_color"]
-            y_color = defaults["CS_y_color"]
-
-        cs_line_width = kwargs.get("line_width", defaults["CS_line_width"])
-        cs_dash = kwargs.get("line_dash_array", None)
-        cs_alpha = kwargs.get(
-            "line_alpha", kwargs.get("alpha", defaults["line_alpha"])
-        )
-
-        x_axis_opts = _line_options(x_color, cs_line_width, cs_dash, cs_alpha)
-        y_axis_opts = _line_options(y_color, cs_line_width, cs_dash, cs_alpha)
+        x_axis_opts = _line_options(x_axis_style)
+        y_axis_opts = _line_options(y_axis_style)
 
         lines.append(f"\\draw[{x_axis_opts}] (0, 0) -- ({cs_size}, 0);")
         lines.append(f"\\draw[{y_axis_opts}] (0, 0) -- (0, {cs_size});")
 
-        origin_color = kwargs.get("line_color", defaults["CS_origin_color"])
-        origin_size = defaults["CS_origin_size"]
+        origin_style = sketch.origin_style
+        origin_fill_color = color_to_tikz(origin_style["fill_color"])
+        origin_line_color = color_to_tikz(origin_style["line_color"])
         lines.append(
-            f"\\filldraw[draw={color_to_tikz(origin_color)}, fill={color_to_tikz(origin_color)}] "
-            f"(0, 0) circle ({origin_size});"
+            f"\\filldraw[draw={origin_line_color}, fill={origin_fill_color}] "
+            f"(0, 0) circle ({sketch.origin_size});"
         )
 
     return "\n".join(lines) + "\n"

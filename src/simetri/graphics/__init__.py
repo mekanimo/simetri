@@ -55,6 +55,7 @@ from ..friezes import frieze
 from ..helpers.utilities import *
 
 set_defaults()
+apply_user_config()
 from simetri import coloring as colors
 
 from ..base.all_enums import *

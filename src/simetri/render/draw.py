@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from math import pi, radians, sin
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Self
 
 from ..base.all_enums import (
@@ -122,8 +123,72 @@ def help_lines(
         True
     """
     if deferred:
-        sketch = HelpLinesSketch(spacing, cs_size)
-        sketch.kwargs = kwargs
+        style_source = SimpleNamespace(type=Types.SKETCH)
+
+        grid_kwargs = dict(kwargs)
+        if "line_width" not in grid_kwargs:
+            grid_kwargs["line_width"] = defaults["grid_line_width"]
+        if "line_color" not in grid_kwargs and "color" not in grid_kwargs:
+            grid_kwargs["line_color"] = defaults["grid_line_color"]
+        if "line_dash_array" not in grid_kwargs:
+            grid_kwargs["line_dash_array"] = defaults[
+                "grid_line_dash_array"
+            ]
+        grid_style = self.resolve_style_properties(
+            style_source,
+            line_style_map,
+            **grid_kwargs,
+        )
+
+        if "colors" in kwargs:
+            x_axis_color, y_axis_color = kwargs["colors"]
+        else:
+            x_axis_color = defaults["CS_x_color"]
+            y_axis_color = defaults["CS_y_color"]
+
+        axis_kwargs = dict(kwargs)
+        if "line_width" not in axis_kwargs:
+            axis_kwargs["line_width"] = defaults["CS_line_width"]
+        x_axis_kwargs = dict(axis_kwargs)
+        x_axis_kwargs["line_color"] = x_axis_color
+        x_axis_style = self.resolve_style_properties(
+            style_source,
+            line_style_map,
+            **x_axis_kwargs,
+        )
+        y_axis_kwargs = dict(axis_kwargs)
+        y_axis_kwargs["line_color"] = y_axis_color
+        y_axis_style = self.resolve_style_properties(
+            style_source,
+            line_style_map,
+            **y_axis_kwargs,
+        )
+
+        if "line_color" in kwargs:
+            origin_color = kwargs["line_color"]
+        elif "color" in kwargs:
+            origin_color = kwargs["color"]
+        else:
+            origin_color = defaults["CS_origin_color"]
+        origin_kwargs = dict(kwargs)
+        origin_kwargs["color"] = origin_color
+        origin_kwargs["fill"] = True
+        origin_kwargs["stroke"] = True
+        origin_style = self.resolve_style_properties(
+            style_source,
+            shape_style_map,
+            **origin_kwargs,
+        )
+
+        sketch = HelpLinesSketch(
+            spacing,
+            cs_size,
+            grid_style,
+            x_axis_style,
+            y_axis_style,
+            origin_style,
+            defaults["CS_origin_size"],
+        )
         self.active_page.sketches.append(sketch)
     else:
         self.grid(pos, width, height, spacing, **kwargs)

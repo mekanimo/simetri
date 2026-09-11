@@ -805,6 +805,11 @@ class HelpLinesSketch:
     Attributes:
         spacing: Grid spacing; ``None``/``0`` uses the default spacing.
         cs_size: Coordinate-system indicator size.
+        grid_style: Resolved line style for the grid.
+        x_axis_style: Resolved line style for the x axis.
+        y_axis_style: Resolved line style for the y axis.
+        origin_style: Resolved shape style for the origin marker.
+        origin_size: Origin marker radius.
     """
 
     spacing: float

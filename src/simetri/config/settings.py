@@ -11,13 +11,17 @@ Examples:
 __all__ = [
     "SimetriWarning",
     "WarningType",
+    "apply_user_config",
     "defaults",
     "issue_warning",
+    "resolve_save_filepath",
     "set_defaults",
     "set_svg_defaults",
     "set_tikz_defaults",
+    "set_user_settings_path",
     "svg_defaults",
     "tikz_defaults",
+    "user_config_path",
     "warning_types",
     "warnings_off",
     "warnings_on",
@@ -59,6 +63,12 @@ from ..base.all_enums import (
 )
 from ..coloring import colors
 from ..coloring.palettes import seq_MATTER_256
+from .user_config import (
+    apply_user_config,
+    resolve_save_filepath,
+    set_user_settings_path,
+    user_config_path,
+)
 
 # This is the alpha testing stage for the Simetri library.
 # These default values may change in the future.
@@ -168,9 +178,7 @@ def issue_warning(
     if warning_type in _disabled_warning_types:
         return
 
-    type_tag = (
-        f"[to turn it off use: sg.warnings_off({_warning_type_label(warning_type)})]"
-    )
+    type_tag = f"[to turn it off use: sg.warnings_off({_warning_type_label(warning_type)})]"
     tagged_message = f"{message} {type_tag}"
 
     caller = sys._getframe(1)
@@ -267,10 +275,14 @@ class _Defaults:
         if _Defaults._instance is not None:
             raise SettingsSingletonError("This class is a singleton!")
         self.defaults = {}
+        self.user_overrides: dict = {}
         self.log = set()
 
     def __getitem__(self, key):
         """Gets the value associated with the key.
+
+        User overrides from ``simetri_config.toml`` win over library defaults.
+        Session assignments via ``__setitem__`` clear any override for that key.
 
         Args:
             key: The key to look up.
@@ -278,7 +290,10 @@ class _Defaults:
         Returns:
             The value associated with the key.
         """
-        value = self.defaults[key]
+        if key in self.user_overrides:
+            value = self.user_overrides[key]
+        else:
+            value = self.defaults[key]
         str_value = str(value)
         self.log.add((key, str_value))
         return value
@@ -291,6 +306,12 @@ class _Defaults:
             value: The value to associate with the key.
         """
         self.defaults[key] = value
+        if key in self.user_overrides:
+            del self.user_overrides[key]
+
+    def __contains__(self, key):
+        """Return True if ``key`` is a registered default."""
+        return key in self.defaults
 
     def get(self, key, default=None):
         """Gets the value of a key. If the key does not exist, return the default value.
@@ -303,7 +324,7 @@ class _Defaults:
             The value associated with the key, or the default value.
         """
         if key in self.defaults:
-            res = self.defaults[key]
+            res = self[key]
         else:
             res = default
 
@@ -829,7 +850,7 @@ def set_defaults():
         "Fill mode for shapes. FillMode enum. Valid values: EVENODD, NONZERO."
     )
 
-    defaults["fillet_radius"] = None
+    defaults["fillet_radius"] = 3
     default_types["fillet_radius"] = float
     defaults_help["fillet_radius"] = (
         "Radius for rounded corners (fillets). Positive float. Length in <points>."

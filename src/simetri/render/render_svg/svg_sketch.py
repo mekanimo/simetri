@@ -499,111 +499,54 @@ def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
     height = sketch_attrib(sketch, "height")
     spacing = sketch_attrib(sketch, "spacing")
     cs_size = sketch_attrib(sketch, "cs_size")
-    kwargs = dict(sketch_attrib(sketch, "kwargs"))
-
-    if "line_width" not in kwargs:
-        kwargs["line_width"] = defaults["grid_line_width"]
-    if "line_color" not in kwargs:
-        kwargs["line_color"] = defaults["grid_line_color"]
-    if "line_dash_array" not in kwargs:
-        kwargs["line_dash_array"] = defaults["grid_line_dash_array"]
-    if "line_alpha" not in kwargs:
-        if "alpha" in kwargs:
-            kwargs["line_alpha"] = kwargs["alpha"]
-        else:
-            kwargs["line_alpha"] = defaults["line_alpha"]
-    if "line_cap" not in kwargs:
-        kwargs["line_cap"] = defaults["line_cap"]
-    if "line_join" not in kwargs:
-        kwargs["line_join"] = defaults["line_join"]
-    if "line_miter_limit" not in kwargs:
-        kwargs["line_miter_limit"] = defaults["line_miter_limit"]
-
-    # Match draw.grid defaults
-    grid_line_width = kwargs["line_width"]
-    grid_line_color = kwargs["line_color"]
-    grid_line_dash_array = kwargs["line_dash_array"]
-    line_alpha = kwargs["line_alpha"]
-    line_cap = kwargs["line_cap"]
-    line_join = kwargs["line_join"]
-    line_miter_limit = kwargs["line_miter_limit"]
-
-    def _line_style(
-        line_color: Color | str,
-        line_width: float,
-        line_dash_array: Collection | None = None,
-        alpha: float | None = None,
-    ) -> str:
-        if alpha is None:
-            style_alpha = defaults["line_alpha"]
-        else:
-            style_alpha = alpha
-        style_obj = SimpleNamespace(
-            stroke=True,
-            line_color=line_color,
-            line_width=line_width,
-            line_dash_array=line_dash_array,
-            line_alpha=style_alpha,
-            line_cap=line_cap,
-            line_join=line_join,
-            miter_limit=line_miter_limit,
-        )
-        return get_line_style_options(style_obj)
+    grid_style = SimpleNamespace(**sketch_attrib(sketch, "grid_style"))
+    x_axis_style = SimpleNamespace(**sketch_attrib(sketch, "x_axis_style"))
+    y_axis_style = SimpleNamespace(**sketch_attrib(sketch, "y_axis_style"))
+    origin_style = sketch_attrib(sketch, "origin_style")
+    origin_size = sketch_attrib(sketch, "origin_size")
 
     elements = []
 
     # Grid lines (horizontal + vertical)
     n_h = int(height / spacing)
     n_v = int(width / spacing)
-    grid_style = _line_style(
-        grid_line_color, grid_line_width, grid_line_dash_array, line_alpha
-    )
+    grid_style_text = get_line_style_options(grid_style)
 
     for i in range(n_h + 1):
         yi = y + i * spacing
         elements.append(
-            f'<line x1="{x}" y1="{yi}" x2="{x + width}" y2="{yi}" style="{grid_style}" />'
+            f'<line x1="{x}" y1="{yi}" x2="{x + width}" y2="{yi}" style="{grid_style_text}" />'
         )
 
     for i in range(n_v + 1):
         xi = x + i * spacing
         elements.append(
-            f'<line x1="{xi}" y1="{y}" x2="{xi}" y2="{y + height}" style="{grid_style}" />'
+            f'<line x1="{xi}" y1="{y}" x2="{xi}" y2="{y + height}" style="{grid_style_text}" />'
         )
 
     # Coordinate system axes + origin marker
     if cs_size and cs_size > 0:
-        if "colors" not in kwargs:
-            kwargs["colors"] = (defaults["CS_x_color"], defaults["CS_y_color"])
-        x_color, y_color = kwargs["colors"]
-
-        if "line_width" not in kwargs:
-            kwargs["line_width"] = defaults["CS_line_width"]
-        cs_line_width = kwargs["line_width"]
-
-        x_axis_style = _line_style(
-            x_color, cs_line_width, kwargs["line_dash_array"], line_alpha
-        )
-        y_axis_style = _line_style(
-            y_color, cs_line_width, kwargs["line_dash_array"], line_alpha
-        )
+        x_axis_style_text = get_line_style_options(x_axis_style)
+        y_axis_style_text = get_line_style_options(y_axis_style)
 
         elements.append(
-            f'<line x1="0" y1="0" x2="{cs_size}" y2="0" style="{x_axis_style}" />'
+            f'<line x1="0" y1="0" x2="{cs_size}" y2="0" style="{x_axis_style_text}" />'
         )
         elements.append(
-            f'<line x1="0" y1="0" x2="0" y2="{cs_size}" style="{y_axis_style}" />'
+            f'<line x1="0" y1="0" x2="0" y2="{cs_size}" style="{y_axis_style_text}" />'
         )
 
-        origin_color = kwargs["line_color"]
-        origin_color_svg = (
-            color_to_svg(origin_color)
-            if isinstance(origin_color, Color)
-            else origin_color
+        origin_fill_color = color_to_svg(
+            origin_style["fill_color"],
+            "fill_color",
+        )
+        origin_line_color = color_to_svg(
+            origin_style["line_color"],
+            "line_color",
         )
         elements.append(
-            f'<circle cx="0" cy="0" r="{defaults["CS_origin_size"]}" '
-            f'fill="{origin_color_svg}" stroke="{origin_color_svg}" />'
+            f'<circle cx="0" cy="0" r="{origin_size}" '
+            f'fill="{origin_fill_color}" stroke="{origin_line_color}" />'
         )
 
     content = "\n".join(elements)
