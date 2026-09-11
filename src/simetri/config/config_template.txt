@@ -1,4 +1,6 @@
-# Simetri user configuration
+# Simetri user configuration template (package file: config_template.txt).
+# On first run this is copied to the user config directory as simetri_config.toml.
+# Edit the copy under simetri_user/, not this package file.
 # Uncomment a key under [defaults] to override the library default.
 # Commented lines are documentation only and are not applied.
 
