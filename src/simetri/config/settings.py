@@ -1350,6 +1350,20 @@ def set_defaults():
     default_types["indices_font_family"] = str
     defaults_help["indices_font_family"] = "Indices font family. String."
 
+    defaults["index_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    default_types["index_font_family"] = (str, FontFamily)
+    defaults_help["index_font_family"] = (
+        "Vertex index label font family. TeX switch name "
+        "(ttfamily, rmfamily, sffamily) or FontFamily enum."
+    )
+
+    defaults["vertex_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    default_types["vertex_font_family"] = (str, FontFamily)
+    defaults_help["vertex_font_family"] = (
+        "Vertex coordinate label font family. TeX switch name "
+        "(ttfamily, rmfamily, sffamily) or FontFamily enum."
+    )
+
     defaults["INF"] = np.inf
     default_types["INF"] = float
     defaults_help["INF"] = (
@@ -1976,7 +1990,7 @@ def set_defaults():
     )
 
     defaults["render"] = (
-        "SVG"  # Render.TEX, Render.SVG, Render.PNG use string values
+        "SVG"  # Render.TEX, Render.SVG use string values
     )
     default_types["render"] = str
     defaults_help["render"] = (

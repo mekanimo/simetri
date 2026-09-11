@@ -48,6 +48,22 @@ from ..segments.line_utils import (
     line_by_point_angle_length,
 )
 from .bezier import Bezier
+
+# Path operations whose objects are dense samples; labels use endpoints only.
+_CURVE_PATH_OPS = frozenset(
+    {
+        PathOps.ARC,
+        PathOps.ARC_TO,
+        PathOps.BLEND_ARC,
+        PathOps.BLEND_CUBIC,
+        PathOps.BLEND_QUAD,
+        PathOps.BLEND_SINE,
+        PathOps.CUBIC_TO,
+        PathOps.HOBBY_TO,
+        PathOps.QUAD_TO,
+        PathOps.SINE,
+    }
+)
 from .ellipse import (
     ellipse_tangent,
     elliptic_arc_points,
@@ -1468,6 +1484,44 @@ class Path2D(Group, CommonStyle):
                 else:
                     vertices.extend(obj_verts)
                 last_vert = obj_verts[-1]
+
+        return vertices
+
+    def _label_vertices(self):
+        """Return vertices suitable for index / coordinate labels.
+
+        Line and polyline segments keep all corners. Sampled curves (arcs,
+        Beziers, Hobby, sine) contribute only their first and last points so
+        dense ellipse samples are not labeled.
+
+        Returns:
+            list: Deduplicated landmark vertices in drawing order.
+        """
+        if len(self.objects) != len(self.operations):
+            raise ValueError(
+                "Path2D.objects and Path2D.operations length mismatch"
+            )
+
+        vertices = []
+        last_vert = None
+        dist_tol2 = defaults["dist_tol"] ** 2
+        for obj, operation in zip(self.objects, self.operations):
+            if obj is None or not obj.vertices:
+                continue
+            obj_verts = obj.vertices
+            if (
+                operation.subtype in _CURVE_PATH_OPS
+                and len(obj_verts) > 2
+            ):
+                obj_verts = [obj_verts[0], obj_verts[-1]]
+            if last_vert:
+                if close_points_square(last_vert, obj_verts[0], dist_tol2):
+                    vertices.extend(obj_verts[1:])
+                else:
+                    vertices.extend(obj_verts)
+            else:
+                vertices.extend(obj_verts)
+            last_vert = obj_verts[-1]
 
         return vertices
 

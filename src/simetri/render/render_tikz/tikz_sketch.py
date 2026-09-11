@@ -24,11 +24,13 @@ from ...config.settings import defaults
 from ...geom.geom_utils import close_points_square
 from ...geom.points.point_utils import round_point
 from ...helpers.illustration import (
+    label_font_family_tikz,
     label_halo_color,
     label_halo_stroke_width,
     prepare_shape_index_labels,
     prepare_shape_vertex_coord_labels,
     sketch_label_font_color,
+    sketch_label_font_family,
     sketch_label_font_size_pt,
 )
 from ...helpers.utilities import detokenize
@@ -417,7 +419,7 @@ def draw_latex_sketch(sketch):
 
 def _label_font_tikz(sketch, label_kind: str) -> str:
     """TikZ node font option for index or vertex-coordinate labels."""
-    family = defaults["indices_font_family"]
+    family = label_font_family_tikz(sketch_label_font_family(sketch, label_kind))
     pt = sketch_label_font_size_pt(sketch, label_kind)
     baseline = ceil(pt * 1.2)
     return f"font=\\{family}\\fontsize{{{pt}}}{{{baseline}}}\\selectfont"
@@ -870,7 +872,26 @@ def draw_path_sketch(sketch, exceptions=None):
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options.extend(get_pattern_options(sketch))
     option_text = f"[{', '.join(options)}]" if options else ""
-    return f"{res}{option_text} svg {{{sketch.path_data}}};\n"
+    body = f"{res}{option_text} svg {{{sketch.path_data}}};\n"
+
+    label_lines = []
+    index_draw = prepare_shape_index_labels(sketch)
+    if index_draw is not None:
+        index_positions, index_labels = index_draw
+        for (lx, ly), label in zip(index_positions, index_labels):
+            label_lines.extend(
+                _tikz_halo_label_lines(lx, ly, label, "index", sketch)
+            )
+
+    vertex_draw = prepare_shape_vertex_coord_labels(sketch)
+    if vertex_draw is not None:
+        coord_positions, coord_labels = vertex_draw
+        for (lx, ly), text in zip(coord_positions, coord_labels):
+            label_lines.extend(
+                _tikz_halo_label_lines(lx, ly, text, "vertex", sketch)
+            )
+
+    return body + "".join(label_lines)
 
 
 def draw_line_sketch(sketch, canvas=None, exceptions=None):

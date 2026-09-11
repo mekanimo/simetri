@@ -260,6 +260,83 @@ def sketch_label_font_color(sketch, label_kind: str):
     return defaults[attr]
 
 
+def sketch_label_font_family(sketch, label_kind: str):
+    """Label font family from sketch kwargs or defaults.
+
+    Args:
+        sketch: Sketch providing optional font-family attributes.
+        label_kind (str): ``index`` or ``vertex``.
+
+    Returns:
+        str | FontFamily: TeX switch name, CSS-ish name, or FontFamily.
+    """
+    if label_kind == "index":
+        attr = "index_font_family"
+    else:
+        attr = "vertex_font_family"
+    if attr in sketch.__dict__ and sketch.__dict__[attr] is not None:
+        return sketch.__dict__[attr]
+    return defaults[attr]
+
+
+def label_font_family_tikz(family) -> str:
+    """Map a label font-family value to a TeX font switch (no backslash).
+
+    Args:
+        family: ``FontFamily``, or a string such as ``ttfamily`` / ``monospace``.
+
+    Returns:
+        str: One of ``ttfamily``, ``rmfamily``, ``sffamily``.
+    """
+    if isinstance(family, FontFamily):
+        if family == FontFamily.MONOSPACE:
+            return "ttfamily"
+        if family == FontFamily.SANSSERIF:
+            return "sffamily"
+        return "rmfamily"
+
+    normalized = str(family).strip().lower().replace("-", "").replace("_", "")
+    if normalized in ("ttfamily", "texttt", "monospace", "mono"):
+        return "ttfamily"
+    if normalized in ("sffamily", "textsf", "sansserif", "sans"):
+        return "sffamily"
+    if normalized in ("rmfamily", "textrm", "serif", "rm"):
+        return "rmfamily"
+    raise ValueError(
+        f"Unsupported label font family for TikZ: {family!r}. "
+        "Use FontFamily or ttfamily/rmfamily/sffamily."
+    )
+
+
+def label_font_family_svg(family) -> str:
+    """Map a label font-family value to a CSS ``font-family`` keyword.
+
+    Args:
+        family: ``FontFamily``, or a string such as ``ttfamily`` / ``monospace``.
+
+    Returns:
+        str: ``monospace``, ``serif``, or ``sans-serif``.
+    """
+    if isinstance(family, FontFamily):
+        if family == FontFamily.MONOSPACE:
+            return "monospace"
+        if family == FontFamily.SANSSERIF:
+            return "sans-serif"
+        return "serif"
+
+    normalized = str(family).strip().lower().replace("-", "").replace("_", "")
+    if normalized in ("ttfamily", "texttt", "monospace", "mono"):
+        return "monospace"
+    if normalized in ("sffamily", "textsf", "sansserif", "sans"):
+        return "sans-serif"
+    if normalized in ("rmfamily", "textrm", "serif", "rm"):
+        return "serif"
+    raise ValueError(
+        f"Unsupported label font family for SVG: {family!r}. "
+        "Use FontFamily or ttfamily/rmfamily/sffamily."
+    )
+
+
 def label_halo_color():
     """Stroke/halo color behind vertex index and coordinate labels."""
     return defaults["label_halo_color"]

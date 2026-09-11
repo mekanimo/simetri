@@ -1725,6 +1725,8 @@ draw_extra_kwargs = [
     "vertex_font_size",
     "index_font_color",
     "vertex_font_color",
+    "index_font_family",
+    "vertex_font_family",
     "handles",
     "pos",
     "closed",

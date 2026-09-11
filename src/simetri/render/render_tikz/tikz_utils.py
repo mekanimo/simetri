@@ -515,14 +515,11 @@ def get_line_style_options(sketch, exceptions=None):
         if style_key in attribs:
             attribs.remove(style_key)
     if sketch.stroke:
-        if (
-            "fillet_radius" in attribs
-            and exceptions
-            and "draw_fillets" not in exceptions
-        ):
-            conditions = {"fillet_radius": sketch.draw_fillets}
-        else:
-            conditions = None
+        # fillet_radius maps to TikZ ``rounded corners``; never emit it
+        # unless draw_fillets is True (same rule as SVG).
+        if "fillet_radius" in attribs and not sketch.draw_fillets:
+            attribs.remove("fillet_radius")
+        conditions = None
         if "line_alpha" in attribs and sketch.line_alpha in (None, 1):
             attribs.remove("line_alpha")
         if "double_color" in attribs and not sketch.draw_double:

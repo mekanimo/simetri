@@ -97,7 +97,7 @@ def run_job(parent_dir, file_name, extension, tex_path):
     Args:
         parent_dir: Directory containing the TeX file and outputs.
         file_name: Base name without extension.
-        extension: Desired output extension (e.g. ``.pdf``, ``.png``).
+        extension: Desired output extension (e.g. ``.pdf``, ``.svg``).
         tex_path: Full path to the ``.tex`` source file.
     """
     output_path = os.path.join(parent_dir, file_name + extension)
@@ -123,12 +123,6 @@ def run_job(parent_dir, file_name, extension, tex_path):
         svg = page.get_svg_image()
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(svg)
-    elif extension == ".png":
-        pdf_file = fitz.open(pdf_path)
-        page = pdf_file[0]
-        pix = page.get_pixmap()
-        pix.save(output_path)
-        pdf_file.close()
 
 
 def compile_tex(cmd, parent_dir, print_output):

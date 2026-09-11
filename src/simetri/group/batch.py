@@ -868,12 +868,21 @@ class Group(Base):
     def b_box(self):
         """Returns the bounding box of the group.
 
+        Built by uniting each element's own ``b_box`` (not raw vertices), so
+        shapes such as ``Circle`` that store only a center still contribute
+        their full extents.
+
         Returns:
             BoundingBox: The bounding box of the group.
         """
         # To do: memoize the bounding box
-
-        return bounding_box(array(self.all_vertices))
+        corners = []
+        for element in self.elements:
+            box = element.b_box
+            if box.southwest is None:
+                continue
+            corners.extend(box.corners)
+        return bounding_box(array(corners))
 
     def _modify(self, modifier):
         """Apply a modifier to the group.

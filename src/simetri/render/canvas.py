@@ -18,7 +18,6 @@ from typing import Any, Self
 
 import networkx as nx
 import numpy as np
-import pymupdf as fitz
 from numpy.typing import NDArray
 
 from simetri.base.all_enums import (
@@ -43,6 +42,11 @@ from simetri.config.settings import (
     issue_warning,
     resolve_save_filepath,
 )
+from simetri.config.user_config import (
+    converter_supports_extension,
+    get_converter_for_extension,
+    native_save_extensions,
+)
 from simetri.geom.affine import (
     rotation_matrix,
     scale_in_place_matrix,
@@ -53,7 +57,10 @@ from simetri.geom.bbox import bounding_box
 from simetri.geom.homogenize import homogenize
 from simetri.geom.matrices import identity_matrix
 from simetri.group.batch import Group
-from simetri.helpers.file_operations import validate_filepath
+from simetri.helpers.file_operations import (
+    run_external_converter,
+    validate_filepath,
+)
 from simetri.helpers.illustration import logo
 from simetri.helpers.utilities import (
     wait_for_file_availability,
@@ -77,23 +84,9 @@ from simetri.shapes.shape import Shape
 
 def _save_renderer(extension: str) -> Renderer:
     """Return the renderer family for the output extension."""
-    if extension in (".svg", ".png"):
+    if extension == ".svg":
         return Renderer.SVG
     return Renderer.TEX
-
-
-def save_svg_png(svg_code: str, filepath: Path) -> None:
-    """Rasterize SVG code to a PNG file.
-
-    Args:
-        svg_code (str): SVG document text.
-        filepath (Path): Destination PNG path.
-    """
-    document = fitz.open(stream=svg_code.encode("utf-8"), filetype="svg")
-    page = document[0]
-    pixmap = page.get_pixmap()
-    pixmap.save(filepath)
-    document.close()
 
 
 def canvas_has_vertex_coord_labels(canvas) -> bool:
@@ -1945,32 +1938,60 @@ class Canvas:
             filepath, overwrite
         )
 
+        if (
+            extension not in native_save_extensions()
+            and converter_supports_extension(extension)
+        ):
+            converter = get_converter_for_extension(extension)
+            source_extension = f".{converter['source']}"
+            intermediate_path = os.path.join(
+                parent_dir, f".{file_name}.simetri_src{source_extension}"
+            )
+            try:
+                self.save(
+                    intermediate_path,
+                    overwrite=True,
+                    show=False,
+                    print_output=print_output,
+                    remove_aux=remove_aux,
+                    inset=None,
+                    display=False,
+                )
+                run_external_converter(
+                    input_path=intermediate_path,
+                    output_path=filepath,
+                    extension=extension,
+                )
+            finally:
+                if os.path.isfile(intermediate_path):
+                    os.remove(intermediate_path)
+            self._show_browser(
+                filepath=filepath, show_browser=show, multi_page_svg=False
+            )
+            return self
+
         renderer = _save_renderer(extension)
         multi_page_svg = False
         if renderer == Renderer.SVG:
             from simetri.render.render_svg.svg import get_svg_code
 
-            if extension == ".png":
-                svg_code = get_svg_code(self)
-                save_svg_png(svg_code, filepath)
-            else:
-                if len(self.pages) > 1:
-                    multi_page_svg = True
-                    active_page = self.active_page
-                    for i, page in enumerate(self.pages):
-                        self.active_page = page
-                        page_filepath = os.path.join(
-                            parent_dir, f"{file_name}_{i + 1}{extension}"
-                        )
-                        validate_filepath(page_filepath, overwrite)
-                        svg_code = get_svg_code(self)
-                        with open(page_filepath, "w", encoding="utf-8") as f:
-                            f.write(svg_code)
-                    self.active_page = active_page
-                else:
+            if len(self.pages) > 1:
+                multi_page_svg = True
+                active_page = self.active_page
+                for i, page in enumerate(self.pages):
+                    self.active_page = page
+                    page_filepath = os.path.join(
+                        parent_dir, f"{file_name}_{i + 1}{extension}"
+                    )
+                    validate_filepath(page_filepath, overwrite)
                     svg_code = get_svg_code(self)
-                    with open(filepath, "w", encoding="utf-8") as f:
+                    with open(page_filepath, "w", encoding="utf-8") as f:
                         f.write(svg_code)
+                self.active_page = active_page
+            else:
+                svg_code = get_svg_code(self)
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write(svg_code)
         else:
             tex_code = get_tex_code(self)
             tex_path = os.path.join(parent_dir, file_name + ".tex")

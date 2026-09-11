@@ -20,9 +20,11 @@ from ...coloring.colors import Color, check_color
 from ...config.settings import defaults
 from ...geom.geom_utils import close_points_square
 from ...helpers.illustration import (
+    label_font_family_svg,
     prepare_shape_index_labels,
     prepare_shape_vertex_coord_labels,
     sketch_label_font_color,
+    sketch_label_font_family,
     sketch_label_font_size_pt,
     svg_label_paint_attrs,
 )
@@ -197,16 +199,23 @@ def draw_path_sketch(
     sketch: PathSketch,
     exceptions: Collection[str] | None = None,
 ) -> str:
-    """Draw a Path2D sketch as an SVG path without geometry conversion."""
+    """Draw a Path2D sketch as an SVG path without geometry conversion.
+
+    Open paths (``closed`` false) are stroked only — same rule as TikZ
+    ``get_draw`` and as polylines — so default ``fill=True`` does not paint a
+    closed region.
+    """
     path_data = sketch_attrib(sketch, "path_data")
+    closed = bool(sketch_attrib(sketch, "closed"))
+    style_shape_type = "path" if closed else "polyline"
 
     fill_attr = ""
     skip_fill_style = False
-    if sketch_attrib(sketch, "tile_svg") is not None:
+    if closed and sketch_attrib(sketch, "tile_svg") is not None:
         pattern_id = f"pattern_{id(sketch)}"
         fill_attr = f' fill="url(#{pattern_id})"'
         skip_fill_style = True
-    elif has_gradient(sketch):
+    elif closed and has_gradient(sketch):
         gradient_id = sketch_attrib(sketch, "_gradient_context_id")
         if gradient_id is None:
             gradient_id = f"gradient_{id(sketch)}"
@@ -218,12 +227,14 @@ def draw_path_sketch(
     style_id = get_active_svg_style_id(sketch)
     if exceptions is None and style_id is not None:
         class_attr = f' class="{style_id}"'
+        if not closed:
+            style = "fill: none;"
     else:
         line_style = get_line_style_options(sketch, exceptions=exceptions)
         style = line_style
         if not skip_fill_style:
             fill_style = get_fill_style_options(
-                sketch, "path", exceptions=exceptions
+                sketch, style_shape_type, exceptions=exceptions
             )
             style = f"{line_style} {fill_style}".strip()
 
@@ -236,10 +247,59 @@ def draw_path_sketch(
     if style:
         style_attr = f' style="{style}"'
 
-    return (
+    path_svg = (
         f'<path d="{path_data}"{class_attr}{style_attr}'
-        f"{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr} />"
+        f"{fill_attr}{fill_rule_attr} />"
     )
+
+    elements = [path_svg]
+    index_font_size = sketch_label_font_size_pt(sketch, "index")
+    vertex_font_size = sketch_label_font_size_pt(sketch, "vertex")
+    index_font_family = label_font_family_svg(
+        sketch_label_font_family(sketch, "index")
+    )
+    vertex_font_family = label_font_family_svg(
+        sketch_label_font_family(sketch, "vertex")
+    )
+
+    index_draw = prepare_shape_index_labels(sketch)
+    if index_draw is not None:
+        index_positions, index_labels = index_draw
+        for (lx, ly), label in zip(index_positions, index_labels):
+            paint = svg_label_paint_attrs(
+                sketch_label_font_color(sketch, "index"), index_font_size
+            )
+            elements.append(
+                f'<g transform="translate({lx} {ly}) scale(1,-1)">'
+                f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+                f' font-family="{index_font_family}"'
+                f' font-size="{index_font_size}" {paint}>{label}</text>'
+                f"</g>"
+            )
+
+    vertex_draw = prepare_shape_vertex_coord_labels(sketch)
+    if vertex_draw is not None:
+        coord_positions, coord_labels = vertex_draw
+        for (lx, ly), text in zip(coord_positions, coord_labels):
+            paint = svg_label_paint_attrs(
+                sketch_label_font_color(sketch, "vertex"), vertex_font_size
+            )
+            elements.append(
+                f'<g transform="translate({lx} {ly}) scale(1,-1)">'
+                f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+                f' font-family="{vertex_font_family}"'
+                f' font-size="{vertex_font_size}" {paint}>{text}</text>'
+                f"</g>"
+            )
+
+    if len(elements) == 1:
+        return (
+            f'<path d="{path_data}"{class_attr}{style_attr}'
+            f"{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr} />"
+        )
+
+    content = "\n".join(elements)
+    return f"<g{clip_attr}{mask_attr}>\n{content}\n</g>"
 
 
 def draw_shape_sketch_with_indices(
@@ -300,6 +360,12 @@ def draw_shape_sketch_with_indices(
 
     index_font_size = sketch_label_font_size_pt(sketch, "index")
     vertex_font_size = sketch_label_font_size_pt(sketch, "vertex")
+    index_font_family = label_font_family_svg(
+        sketch_label_font_family(sketch, "index")
+    )
+    vertex_font_family = label_font_family_svg(
+        sketch_label_font_family(sketch, "vertex")
+    )
     elements = [shape_svg]
 
     index_draw = prepare_shape_index_labels(sketch)
@@ -312,6 +378,7 @@ def draw_shape_sketch_with_indices(
             elements.append(
                 f'<g transform="translate({lx} {ly}) scale(1,-1)">'
                 f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+                f' font-family="{index_font_family}"'
                 f' font-size="{index_font_size}" {paint}>{label}</text>'
                 f"</g>"
             )
@@ -326,6 +393,7 @@ def draw_shape_sketch_with_indices(
             elements.append(
                 f'<g transform="translate({lx} {ly}) scale(1,-1)">'
                 f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+                f' font-family="{vertex_font_family}"'
                 f' font-size="{vertex_font_size}" {paint}>{text}</text>'
                 f"</g>"
             )

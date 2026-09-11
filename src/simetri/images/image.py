@@ -763,28 +763,6 @@ def is_pil_image(obj):
     return isinstance(obj, PIL_Image.Image)
 
 
-def convert_png_to_ico(png_path, ico_path, sizes=None):
-    """Converts a PNG image to an ICO file.
-
-    Args:
-        png_path: Path to the input PNG image.
-        ico_path: Path to save the output ICO file.
-        sizes: A list of tuples specifying the sizes to include in the ICO file,
-               e.g., [(16, 16), (32, 32), (48, 48)]. If None, defaults to [(32, 32)].
-    """
-    if sizes is None:
-        sizes = [(32, 32)]
-
-    img = Image.open(png_path)
-
-    icon_sizes = list(sizes)
-
-    img.save(ico_path, sizes=icon_sizes)
-
-    # Example usage:
-    convert_png_to_ico("input.png", "output.ico", sizes=[(16, 16), (32, 32)])
-
-
 def supported_formats() -> list[str]:
     """Generates a list of supported image formats available in your system.
     Returns:

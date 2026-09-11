@@ -2025,6 +2025,8 @@ def set_shape_sketch_style(
             "vertex_offset",
             "index_font_color",
             "vertex_font_color",
+            "index_font_family",
+            "vertex_font_family",
             "debug",
             "vertex_on_hull",
             "_group_hull_points",
@@ -2079,6 +2081,16 @@ def set_shape_sketch_style(
         sketch.vertex_font_color = kwargs["vertex_font_color"]
     elif "vertex_font_color" in item.__dict__:
         sketch.vertex_font_color = item.vertex_font_color
+
+    if "index_font_family" in kwargs:
+        sketch.index_font_family = kwargs["index_font_family"]
+    elif "index_font_family" in item.__dict__:
+        sketch.index_font_family = item.index_font_family
+
+    if "vertex_font_family" in kwargs:
+        sketch.vertex_font_family = kwargs["vertex_font_family"]
+    elif "vertex_font_family" in item.__dict__:
+        sketch.vertex_font_family = item.vertex_font_family
 
     if "debug" in kwargs:
         sketch.debug = kwargs["debug"]
@@ -2347,6 +2359,7 @@ def create_sketch(
         path_sketch.path_data = lin_path_svg(transformed_path)
         path_sketch.visible = item.visible
         path_sketch.closed = item.closed
+        path_sketch.vertices = list(transformed_path._label_vertices())
         set_shape_sketch_style(path_sketch, item, canvas, **kwargs)
 
         handle_sketches = []

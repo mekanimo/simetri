@@ -10,6 +10,12 @@ import pymupdf as fitz
 
 from ..base.all_enums import WarningType
 from ..config.settings import issue_warning
+from ..config.user_config import (
+    converter_supports_extension,
+    get_converter_for_extension,
+    native_save_extensions,
+    user_config_path,
+)
 
 
 def validate_filepath(filepath: Path, overwrite: bool):
@@ -31,14 +37,131 @@ def validate_filepath(filepath: Path, overwrite: bool):
         )
     parent_dir, file_name = os.path.split(filepath)
     file_name, extension = os.path.splitext(file_name)
-    if extension not in (".pdf", ".eps", ".ps", ".svg", ".png", ".tex"):
-        raise RuntimeError("File type is not supported.")
+    extension = extension.lower()
+    if extension not in native_save_extensions() and not converter_supports_extension(
+        extension
+    ):
+        config_file = user_config_path()
+        raise RuntimeError(
+            f"File type {extension!r} is not supported.\n"
+            f"Native formats: {', '.join(sorted(native_save_extensions()))}.\n"
+            "For other formats, add a personal converter in "
+            f"{config_file}, e.g.\n"
+            f"[converters.{extension.lstrip('.')}]\n"
+            'source = "svg"\n'
+            'command = ["resvg", "{input}", "{output}"]'
+        )
     if not os.path.exists(parent_dir):
         raise NotADirectoryError(f"Directory {parent_dir} does not exist.")
     if not os.access(parent_dir, os.W_OK):
         raise PermissionError(f"Directory {parent_dir} is not writable.")
 
     return parent_dir, file_name, extension
+
+
+def _substitute_converter_placeholders(
+    template: str,
+    *,
+    input_path: str,
+    output_path: str,
+) -> str:
+    """Replace ``{input}``, ``{output}``, ``{outdir}``, and ``{stem}``."""
+    output = Path(output_path)
+    return (
+        template.replace("{input}", input_path)
+        .replace("{output}", output_path)
+        .replace("{outdir}", str(output.parent))
+        .replace("{stem}", output.stem)
+    )
+
+
+def run_external_converter(
+    *,
+    input_path: str | Path,
+    output_path: str | Path,
+    extension: str | None = None,
+) -> None:
+    """Run the personal ``simetri_config.toml`` converter for ``output_path``.
+
+    Args:
+        input_path: Native Simetri file written as the converter source.
+        output_path: Destination path from ``canvas.save``.
+        extension: Output extension including the dot. Defaults to the
+            extension of ``output_path``.
+
+    Raises:
+        KeyError: No converter configured for the extension.
+        RuntimeError: Converter process failed or did not create the output.
+        ValueError: ``shell`` is false but ``command`` is a string (or the
+            reverse expectation is violated in a way that cannot run safely).
+    """
+    input_path = str(Path(input_path).resolve())
+    output_path = str(Path(output_path).resolve())
+    if extension is None:
+        extension = Path(output_path).suffix.lower()
+    else:
+        extension = extension.lower()
+
+    converter = get_converter_for_extension(extension)
+    command = converter["command"]
+    use_shell = bool(converter["shell"])
+    timeout_seconds = float(converter["timeout_seconds"])
+    outdir = str(Path(output_path).parent)
+
+    if use_shell:
+        if not isinstance(command, str):
+            raise ValueError(
+                f"[converters.{converter['format_key']}].command must be a "
+                "string when [converters].shell = true."
+            )
+        rendered_command = _substitute_converter_placeholders(
+            command, input_path=input_path, output_path=output_path
+        )
+        completed = subprocess.run(
+            rendered_command,
+            shell=True,
+            cwd=outdir,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+    else:
+        if isinstance(command, str):
+            raise ValueError(
+                f"[converters.{converter['format_key']}].command must be an "
+                "array of strings when [converters].shell = false. "
+                "Set shell = true only if you intentionally need a shell."
+            )
+        rendered_argv = [
+            _substitute_converter_placeholders(
+                part, input_path=input_path, output_path=output_path
+            )
+            for part in command
+        ]
+        completed = subprocess.run(
+            rendered_argv,
+            shell=False,
+            cwd=outdir,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+
+    if completed.returncode != 0:
+        stderr = (completed.stderr or "").strip()
+        stdout = (completed.stdout or "").strip()
+        details = stderr or stdout or "(no output)"
+        raise RuntimeError(
+            f"External converter for {extension!r} failed "
+            f"(exit {completed.returncode}):\n{details}"
+        )
+    if not os.path.isfile(output_path):
+        raise RuntimeError(
+            f"External converter for {extension!r} exited 0 but did not "
+            f"create {output_path}."
+        )
 
 
 def inject_snippet(
@@ -374,9 +497,9 @@ def replace_extension(filepath: str, ext: str) -> str:
 
 
 def convert_pdf(pdf_path: str, extension: str):
-    """Convert a PDF file to another supported image/vector format.
+    """Convert a PDF file to another supported vector format.
 
-    Only ``.ps``, ``.eps``, ``.svg``, and ``.png`` extensions are supported.
+    Only ``.ps``, ``.eps``, and ``.svg`` extensions are supported.
 
     Args:
         pdf_path (str): Path to the source PDF.
@@ -398,9 +521,3 @@ def convert_pdf(pdf_path: str, extension: str):
         svg = page.get_svg_image()
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(svg)
-    elif extension == ".png":
-        pdf_file = fitz.open(pdf_path)
-        page = pdf_file[0]
-        pix = page.get_pixmap()
-        pix.save(output_path)
-        pdf_file.close()

@@ -30,6 +30,17 @@ _user_paths: dict[str, str] = {
 _user_default_overrides: dict[str, Any] = {}
 _config_applied = False
 
+# Personal ``[converters]`` settings (never loaded from shared tomls).
+_NATIVE_SAVE_EXTENSIONS = frozenset({".pdf", ".eps", ".ps", ".svg", ".tex"})
+_CONVERTER_SOURCES = frozenset({"svg", "pdf", "tex"})
+_converter_globals: dict[str, Any] = {
+    "enabled": True,
+    "timeout_seconds": 120,
+    "shell": False,
+}
+# format key without dot → {"source": "svg", "command": list[str] | str}
+_converter_formats: dict[str, dict[str, Any]] = {}
+
 
 def set_user_settings_path() -> Path:
     """Return (and create) the OS-specific ``simetri_user`` config directory.
@@ -85,6 +96,62 @@ def get_default_test_directory() -> str:
 def get_user_default_overrides() -> dict[str, Any]:
     """Return the mapping of uncommented ``[defaults]`` overrides."""
     return _user_default_overrides
+
+
+def get_converter_globals() -> dict[str, Any]:
+    """Return personal ``[converters]`` global flags (copy)."""
+    return dict(_converter_globals)
+
+
+def get_converter_formats() -> dict[str, dict[str, Any]]:
+    """Return personal per-format converter entries (shallow copy)."""
+    return {key: dict(value) for key, value in _converter_formats.items()}
+
+
+def native_save_extensions() -> frozenset[str]:
+    """Extensions Simetri writes without an external converter."""
+    return _NATIVE_SAVE_EXTENSIONS
+
+
+def converter_supports_extension(extension: str) -> bool:
+    """Return True if personal config defines a converter for ``extension``.
+
+    Args:
+        extension: File extension including the leading dot (e.g. ``.png``).
+    """
+    if not _converter_globals["enabled"]:
+        return False
+    format_key = extension.lstrip(".").lower()
+    return format_key in _converter_formats
+
+
+def get_converter_for_extension(extension: str) -> dict[str, Any]:
+    """Return converter config for ``extension``.
+
+    Args:
+        extension: File extension including the leading dot (e.g. ``.png``).
+
+    Returns:
+        dict: ``source``, ``command``, plus global ``timeout_seconds`` / ``shell``.
+
+    Raises:
+        KeyError: No converter for this extension, or converters disabled.
+    """
+    if not _converter_globals["enabled"]:
+        raise KeyError(
+            "External converters are disabled "
+            "([converters].enabled = false in simetri_config.toml)."
+        )
+    format_key = extension.lstrip(".").lower()
+    if format_key not in _converter_formats:
+        raise KeyError(
+            f"No [converters.{format_key}] entry in simetri_config.toml."
+        )
+    entry = dict(_converter_formats[format_key])
+    entry["timeout_seconds"] = _converter_globals["timeout_seconds"]
+    entry["shell"] = _converter_globals["shell"]
+    entry["format_key"] = format_key
+    return entry
 
 
 def resolve_save_filepath(filepath: str | Path) -> str:
@@ -361,6 +428,93 @@ def _apply_warnings_table(warnings_table: dict[str, Any]) -> None:
         defaults["show_warnings"] = bool(warnings_table["warnings_on"])
 
 
+def _apply_converters_table(converters_table: dict[str, Any]) -> None:
+    """Apply personal ``[converters]`` and ``[converters.<format>]`` tables."""
+    _converter_formats.clear()
+    _converter_globals["enabled"] = True
+    _converter_globals["timeout_seconds"] = 120
+    _converter_globals["shell"] = False
+
+    global_keys = frozenset({"enabled", "timeout_seconds", "shell"})
+    for key, value in converters_table.items():
+        if key in global_keys:
+            if key == "enabled":
+                _converter_globals["enabled"] = bool(value)
+            elif key == "timeout_seconds":
+                timeout = float(value)
+                if timeout <= 0:
+                    _warn_invalid_key(
+                        "[converters].timeout_seconds must be positive "
+                        f"(got {value!r})"
+                    )
+                    continue
+                _converter_globals["timeout_seconds"] = timeout
+            else:
+                _converter_globals["shell"] = bool(value)
+            continue
+
+        if not isinstance(value, dict):
+            _warn_invalid_key(
+                f"Unknown key in [converters]: {key!r} "
+                "(expected a [converters.<format>] table)"
+            )
+            continue
+
+        format_key = str(key).lstrip(".").lower()
+        if not format_key:
+            _warn_invalid_key(
+                f"Invalid converter format name {key!r} (simetri_config.toml)"
+            )
+            continue
+
+        if "source" not in value:
+            _warn_invalid_key(
+                f"[converters.{format_key}] missing required key 'source'"
+            )
+            continue
+        if "command" not in value:
+            _warn_invalid_key(
+                f"[converters.{format_key}] missing required key 'command'"
+            )
+            continue
+
+        source = str(value["source"]).lstrip(".").lower()
+        if source not in _CONVERTER_SOURCES:
+            _warn_invalid_key(
+                f"[converters.{format_key}].source must be one of "
+                f"{sorted(_CONVERTER_SOURCES)} (got {value['source']!r})"
+            )
+            continue
+
+        command = value["command"]
+        if isinstance(command, str):
+            command_value: str | list[str] = command
+        elif isinstance(command, list):
+            if not command:
+                _warn_invalid_key(
+                    f"[converters.{format_key}].command must not be empty"
+                )
+                continue
+            command_value = [str(part) for part in command]
+        else:
+            _warn_invalid_key(
+                f"[converters.{format_key}].command must be a string or "
+                f"array of strings (got {type(command).__name__})"
+            )
+            continue
+
+        for extra_key in value:
+            if extra_key not in ("source", "command"):
+                _warn_invalid_key(
+                    f"Unknown key in [converters.{format_key}]: {extra_key!r}"
+                )
+
+        _converter_formats[format_key] = {
+            "source": source,
+            "command": command_value,
+        }
+
+
 def apply_user_config() -> Path:
     """Ensure, load, and apply ``simetri_config.toml``.
 
@@ -374,11 +528,15 @@ def apply_user_config() -> Path:
     _user_default_overrides.clear()
     _user_paths["default_output_directory"] = ""
     _user_paths["default_test_directory"] = ""
+    _converter_formats.clear()
+    _converter_globals["enabled"] = True
+    _converter_globals["timeout_seconds"] = 120
+    _converter_globals["shell"] = False
 
     with config_path.open("rb") as handle:
         data = tomllib.load(handle)
 
-    known_sections = frozenset({"paths", "warnings", "defaults"})
+    known_sections = frozenset({"paths", "warnings", "defaults", "converters"})
     for section_name in data:
         if section_name not in known_sections:
             _warn_invalid_key(
@@ -391,6 +549,8 @@ def apply_user_config() -> Path:
         _apply_defaults_table(data["defaults"])
     if "warnings" in data:
         _apply_warnings_table(data["warnings"])
+    if "converters" in data:
+        _apply_converters_table(data["converters"])
 
     defaults.user_overrides = _user_default_overrides
     _config_applied = True
