@@ -1,7 +1,7 @@
 """Sanzo Wada Dictionary of Color entries as ``Color`` dataclasses."""
 
 from dataclasses import dataclass
-import random
+from random import choice
 
 
 @dataclass
@@ -1953,12 +1953,11 @@ for i in range(3):
             colored[i][k] = [[x / 256 for x in color_.rgb] for color_ in v]
 
 
-def randomSwatch2(nColors=4, seed: int | None = None):
+def randomSwatch2(nColors=4):
     """Return a random Sanzo Wada swatch with ``nColors`` colors.
 
     Args:
         nColors: Number of colors in the swatch (2–4 inclusive).
-        seed (int, optional): Seed for a local RNG. Defaults to None.
 
     Returns:
         Selected swatch entry from the ``colored`` tables.
@@ -1971,8 +1970,7 @@ def randomSwatch2(nColors=4, seed: int | None = None):
     else:
         raise ValueError("nColors must be between 2 and 4 inclusive")
     keys = list(randSwatchIndexes)
-    rng = random.Random(seed)
-    ind = rng.choice(keys)
+    ind = choice(keys)
     swatch = colored[nColors - 2][ind]
 
     return ind, swatch

@@ -11,7 +11,7 @@ Examples:
 
 from datetime import UTC, datetime
 from enum import Enum
-import random
+from random import randint
 
 from simetri.coloring.colors import Color
 
@@ -17983,17 +17983,14 @@ d_name_palette_type[PaletteType.SEQUENTIAL] = [
 # getNames()
 
 
-def random_palette(seed: int | None = None):
+def random_palette():
     """Return a random 256-color palette.
-
-    Args:
-        seed (int, optional): Seed for a local RNG. Defaults to None.
 
     Returns:
         list: Random palette entries from ``d_n_palette[256]``.
     """
-    rng = random.Random(seed)
-    i = rng.randint(0, len(d_n_palette[256]) - 1)
+
+    i = randint(0, len(d_n_palette[256]) - 1)
     try:
         current_datetime = datetime.now(UTC)
         formatted = current_datetime.strftime("%Y-%m-%d %H:%M:%S")

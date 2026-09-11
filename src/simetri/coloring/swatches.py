@@ -10,7 +10,7 @@ Examples:
 
 from datetime import UTC, datetime
 from itertools import cycle
-import random
+from random import randint
 
 from simetri.coloring.colors import Color
 
@@ -956,17 +956,14 @@ def swatch_cyc():
     return cycle(swatches)
 
 
-def random_swatch(seed: int | None = None):
+def random_swatch():
     """Return a random nine-color swatch.
-
-    Args:
-        seed (int, optional): Seed for a local RNG. Defaults to None.
 
     Returns:
         list[Color]: Random swatch from the curated collection.
     """
-    rng = random.Random(seed)
-    i = rng.randint(0, 83)
+
+    i = randint(0, 83)
     try:
         current_datetime = datetime.now(UTC)
         formatted = current_datetime.strftime("%Y-%m-%d %H:%M:%S")

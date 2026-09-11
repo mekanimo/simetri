@@ -686,12 +686,7 @@ def wait_for_file_availability(file_path, timeout=None, check_interval=1):
 
 
 def random_characters(
-    n=4,
-    lower=True,
-    upper=True,
-    digit=False,
-    exclude_chars=None,
-    seed: int | None = None,
+    n=4, lower=True, upper=True, digit=False, exclude_chars=None
 ):
     """Return ``n`` random letters or digits as a string.
 
@@ -717,14 +712,6 @@ def random_characters(
     n = 6: 2176782336 unique lowercase or uppercase words and digits
     n = 6: 56800235584 unique mixed-case words and digits
 
-    Args:
-        n: Number of characters.
-        lower: Include lowercase letters.
-        upper: Include uppercase letters.
-        digit: Include digits.
-        exclude_chars: Characters to exclude from the pool.
-        seed (int, optional): Seed for a local RNG. Defaults to None.
-
     Examples:
         >>> import simetri.graphics as sg
         >>> excluded = ["l"]
@@ -735,8 +722,6 @@ def random_characters(
         True
         >>> excluded
         ['l']
-        >>> sg.random_characters(4, seed=1) == sg.random_characters(4, seed=1)
-        True
     """
     letters = string.ascii_letters
     uppers = string.ascii_uppercase
@@ -770,8 +755,7 @@ def random_characters(
                     warning_type=WarningType.util.bad_char,
                 )
 
-    rng = random.Random(seed)
-    return "".join([rng.choice(characters) for _ in range(n)])
+    return "".join([random.choice(characters) for _ in range(n)])
 
 
 def detokenize(text: str) -> str:

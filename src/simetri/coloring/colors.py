@@ -23,7 +23,7 @@ from colorsys import (
     yiq_to_rgb,
 )
 from dataclasses import dataclass
-import random
+from random import random
 
 import numpy as np
 from coloraide import Color as Color_aide
@@ -971,11 +971,8 @@ def rgb2cmyk(r, g, b):
     return c, m, y, k
 
 
-def random_color(seed: int | None = None):
+def random_color():
     """Return a random RGB color with components in 0-1.
-
-    Args:
-        seed (int, optional): Seed for a local RNG. Defaults to None.
 
     Returns:
         Color: Random color.
@@ -986,11 +983,8 @@ def random_color(seed: int | None = None):
         True
         >>> 0 <= sg.random_color().red <= 1
         True
-        >>> sg.random_color(seed=1) == sg.random_color(seed=1)
-        True
     """
-    rng = random.Random(seed)
-    return Color(rng.random(), rng.random(), rng.random())
+    return Color(random(), random(), random())
 
 
 def expand_palette(rgb255_palette, n):

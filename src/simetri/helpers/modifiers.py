@@ -6,7 +6,7 @@ Examples:
 """
 
 import inspect
-import random
+from random import choice, random
 
 from ..base.all_enums import Control, State
 
@@ -33,7 +33,6 @@ class Modifier:
         randomness=1.0,
         condition=True,
         *args,
-        seed: int | None = None,
         **kwargs,
     ):
         """
@@ -43,15 +42,12 @@ class Modifier:
             randomness (float or callable, optional): Determines the randomness of the modification. Defaults to 1.0.
             condition (bool or callable, optional): Condition to apply the modification. Defaults to True.
             *args: Additional arguments for the function.
-            seed (int, optional): Seed for a local RNG used by randomness checks.
-                Defaults to None.
             **kwargs: Additional keyword arguments for the function.
         """
         self.function = function  # it can be a list of functions
         signature = inspect.signature(function)
         self.n_func_args = len(signature.parameters)
         self.life_span = life_span
-        self._rng = random.Random(seed)
         self.randomness = randomness
         self.condition = condition
         self.state = State.INITIAL
@@ -147,9 +143,9 @@ class Modifier:
         if callable(self.randomness):
             randomness = self.get_value(self.randomness, target)
         elif isinstance(self.randomness, float):
-            randomness = self.randomness >= self._rng.random()
+            randomness = self.randomness >= random()
         elif isinstance(self.randomness, (list, tuple)):
-            randomness = self._rng.choice(self.randomness)
+            randomness = choice(self.randomness)
 
         if callable(self.condition):
             condition = self.get_value(self.condition, target)
