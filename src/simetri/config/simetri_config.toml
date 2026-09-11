@@ -1,0 +1,173 @@
+# Simetri user configuration
+# Uncomment a key under [defaults] to override the library default.
+# Commented lines are documentation only and are not applied.
+
+[paths]
+default_output_directory = ""
+default_test_directory = ""
+
+[warnings]
+warnings_on = true
+
+# Fine-grained toggles mirror WarningType.<group>.<leaf>
+# true = enabled (default); false = suppressed like warnings_off(...)
+[warnings.canvas]
+empty_stack = true
+flip_x = true
+flip_y = true
+missing_default = true
+outside_page = true
+save_path = true
+vertex_pad = true
+vertex_size = true
+
+[warnings.deprecation]
+bbox_center = true
+
+[warnings.file]
+config = true
+display = true
+mark = true
+token = true
+
+[warnings.font]
+load = true
+
+[warnings.geometry]
+not_ccw = true
+
+[warnings.group]
+duplicate = true
+shape_attr = true
+
+[warnings.output]
+empty_svg = true
+empty_tex = true
+
+[warnings.style]
+line_fill_alpha = true
+line_fill_color = true
+
+[warnings.util]
+bad_char = true
+
+[warnings.validation]
+kwargs = true
+
+[warnings.vector]
+mixed = true
+
+[defaults]
+# Default tolerance values for checking congruency
+##################################################
+# abs_tol = 0.05
+# angle_abs_tol = 0.001
+# angle_rel_tol = 0.001
+# angle_tol = 0.001
+# area_abs_tol = 0.001
+# area_rel_tol = 0.001
+# area_tol = 0.1
+# dist_abs_tol = 0.05
+# dist_rel_tol = 0
+# dist_tol = 0.05
+
+# Default font settings
+##################################################
+# font_size = 12
+# font_color = "black"
+# font_family = "serif"
+# font_alpha = 1
+# main_font = "Times New Roman"
+# sans_font = "Arial"
+# mono_font = "Courier New"
+
+# Default Canvas / page settings
+##################################################
+# canvas_back_color = "white"
+# canvas_back_style = "EMPTY"
+# canvas_border = 20
+# border = 25
+# page_size = "LETTER"
+# auto_expand_canvas_for_vertices = true
+# vertices_canvas_expand = 40
+# overwrite_files = false
+# show_browser = true
+# debug_mode = false
+# show_log_on_console = true
+
+# Help grid / coordinate system
+##################################################
+# help_lines_spacing = 25
+# help_lines_margin = 25
+# help_lines_width = 400
+# help_lines_height = 400
+# grid_line_color = "gray"
+# grid_line_width = 0.5
+# grid_line_dash_array = [2, 2]
+# grid_alpha = 0.5
+# CS_size = 40
+# CS_line_width = 2
+# CS_x_color = "red"
+# CS_y_color = "green"
+# CS_origin_color = "gray"
+# CS_origin_size = 2
+
+# Default line-style settings
+##################################################
+# line_alpha = 1
+# line_color = "black"
+# line_width = 1
+# fillet_radius = 3
+# line_cap = "BUTT"
+# line_join = "MITER"
+# line_miter_limit = 10
+# line_dash_array = []
+# double_distance = 2
+# double_color = "white"
+# smooth = false
+
+# Default fill-style settings
+##################################################
+# fill = true
+# fill_alpha = 1
+# fill_color = "black"
+# fill_mode = "EVENODD"
+
+# Markers
+##################################################
+# marker_type = "FCIRCLE"
+# marker_size = 3
+# marker_radius = 3
+# marker_color = "black"
+# marker_alpha = 1.0
+# marker_line_width = 1
+
+# Index and Vertex Labels
+##################################################
+# index_font_size = "footnotesize"
+# index_font_color = [0.0, 0.42, 0.72]
+# index_offset = 4
+# vertex_font_size = "footnotesize"
+# vertex_font_color = [0.0, 0.42, 0.72]
+# vertex_offset = 4
+# label_halo_color = "white"
+# label_halo_scale = 1.14
+# label_halo_width_scale = 0.14
+# vertices_label_avoid_overlap = true
+
+# Lace / patterns
+##################################################
+# lace_offset = 4
+# plait_color = "white"
+
+# TeX / TikZ
+##################################################
+# keep_aux_files = false
+# keep_log_files = false
+# keep_tex_files = false
+# document_class = "standalone"
+# document_options = ["12pt", "border=25pt"]
+# tikz_scale = 1
+# tikz_nround = 3
+
+# Common settings only — not every defaults dictionary key.
