@@ -9,6 +9,7 @@ from string import Template
 
 import pymupdf as fitz
 
+from ..base.all_enums import WarningType
 from ..config.settings import issue_warning
 
 
@@ -73,7 +74,10 @@ def inject_snippet(
     res_lines = lines[:count] + snippet + lines[count:]
 
     if flag:
-        issue_warning(f"Could not find '{mark}'")
+        issue_warning(
+            f"Could not find '{mark}'",
+            warning_type=WarningType.FILE,
+        )
     else:
         return "\n".join(res_lines)
 
@@ -101,7 +105,10 @@ def replace_token(code: str, token: str, replace: str) -> str:
             res_lines.append(line)
 
     if flag:
-        issue_warning("Could not find 'token'")
+        issue_warning(
+            "Could not find 'token'",
+            warning_type=WarningType.FILE,
+        )
     else:
         return "\n".join(res_lines)
 
@@ -130,7 +137,10 @@ def inject_filepath(code: str, pic_path: str) -> str:
             res_lines.append(line)
 
     if flag:
-        issue_warning("Could not find 'canvas.display()'")
+        issue_warning(
+            "Could not find 'canvas.display()'",
+            warning_type=WarningType.FILE,
+        )
     else:
         return "\n".join(res_lines)
 

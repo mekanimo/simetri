@@ -25,6 +25,7 @@ import networkx as nx
 import numpy as np
 from numpy.typing import NDArray
 
+from ...base.all_enums import WarningType
 from ...base.common import (
     LineType,
     PointType,
@@ -2342,8 +2343,11 @@ def polygon_internal_angles(vertices: Sequence[PointType]) -> Sequence[float]:
     area = polygon_area(vertices)
     is_ccw_ = area > 0
     if not is_ccw_:
-        issue_warning("""Vertices are not in counterclockwise positive order!
-                         Result is for the reversed sequence of the given vertices.""")
+        issue_warning(
+            """Vertices are not in counterclockwise positive order!
+                         Result is for the reversed sequence of the given vertices.""",
+            warning_type=WarningType.GEOMETRY,
+        )
         vertices = list(vertices)[:]
         vertices.reverse()
     angles = []

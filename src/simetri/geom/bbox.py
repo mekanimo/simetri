@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ..base.all_enums import Anchor, Side, Types
+from ..base.all_enums import Anchor, Side, Types, WarningType
 from ..base.common import PointType, defaults, get_unique_id
 from ..config.settings import VOID, issue_warning
 from .geom_utils import midpoint
@@ -115,6 +115,7 @@ class BoundingBox:
             if name == "center":
                 issue_warning(
                     '"center" is deprecated use "midpoint" instead.',
+                    warning_type=WarningType.DEPRECATION,
                     category=DeprecationWarning,
                 )
             return getattr(self, self._aliases[name])

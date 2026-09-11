@@ -779,6 +779,7 @@ def warn_unknown_kwargs(
 
     issue_warning(
         f"{context}: unrecognized keyword argument(s): {', '.join(unknown)}",
+        warning_type=WarningType.VALIDATION,
         stacklevel=stacklevel,
     )
 

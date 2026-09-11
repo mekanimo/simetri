@@ -1358,6 +1358,26 @@ class Types(StrEnum):
     __hash__ = str.__hash__
 
 
+class WarningType(StrEnum):
+    """Categories for fine-grained simetri warning control.
+
+    Use with ``warnings_off`` / ``warnings_on`` and ``issue_warning``.
+    """
+
+    CANVAS = "canvas"
+    DEPRECATION = "deprecation"
+    DUPLICATE = "duplicate"
+    EMPTY_OUTPUT = "empty_output"
+    FILE = "file"
+    FONT = "font"
+    GENERAL = "general"
+    GEOMETRY = "geometry"
+    GROUP = "group"
+    STYLE = "style"
+    VALIDATION = "validation"
+    VECTOR = "vector"
+
+
 drawable_types = {
     Types.ARC,
     Types.ARC_ARROW,

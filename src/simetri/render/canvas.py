@@ -29,6 +29,7 @@ from simetri.base.all_enums import (
     Renderer,
     TexLoc,
     Types,
+    WarningType,
 )
 from simetri.base.common import (
     PointType,
@@ -168,12 +169,14 @@ def warn_vertex_coord_label_sizing(canvas) -> None:
         issue_warning(
             f"Vertex coordinate labels use extra canvas padding of {extra}pt "
             "per side (auto_expand_canvas_for_vertices). Increase "
-            "vertices_canvas_expand or canvas.border if labels are still clipped."
+            "vertices_canvas_expand or canvas.border if labels are still clipped.",
+            warning_type=WarningType.CANVAS,
         )
     else:
         issue_warning(
             "Vertex coordinate labels are not included in canvas size. "
-            "Increase canvas.border (e.g. 40) if labels are clipped."
+            "Increase canvas.border (e.g. 40) if labels are clipped.",
+            warning_type=WarningType.CANVAS,
         )
     canvas._vertex_label_sizing_warned = True
 
@@ -450,7 +453,10 @@ class Canvas:
         if self.stack:
             self._xform_matrix = self.stack.pop()
         else:
-            issue_warning("Trying to pop from an empty stack!")
+            issue_warning(
+                "Trying to pop from an empty stack!",
+                warning_type=WarningType.CANVAS,
+            )
 
     def apply_mask(self, target, mask):
         """Apply a mask to a drawable target and append a masked sketch.
@@ -1512,7 +1518,8 @@ class Canvas:
             Self: The canvas object.
         """
         issue_warning(
-            "Flipping the x-axis will change the positive rotation direction."
+            "Flipping the x-axis will change the positive rotation direction.",
+            warning_type=WarningType.CANVAS,
         )
         return self._flip(Axis.X)
 
@@ -1524,7 +1531,8 @@ class Canvas:
             Self: The canvas object.
         """
         issue_warning(
-            "Flipping the y-axis will reverse the positive rotation direction."
+            "Flipping the y-axis will reverse the positive rotation direction.",
+            warning_type=WarningType.CANVAS,
         )
 
         return self._flip(Axis.Y)
@@ -1618,7 +1626,10 @@ class Canvas:
         if value is None:
             value = defaults.get(property_name, VOID)
             if value == VOID and property_name not in ("color", "alpha"):
-                issue_warning(f"Property {property_name} is not in defaults.")
+                issue_warning(
+                    f"Property {property_name} is not in defaults.",
+                    warning_type=WarningType.CANVAS,
+                )
                 value = None
         return value
 
@@ -1864,7 +1875,8 @@ class Canvas:
                     issue_warning(
                         "Sketch is completely outside page limits: "
                         f"page={page_index}, subtype={sketch.subtype}, id={sketch.id}, "
-                        f"bbox={sketch_bbox}, limits={page_limits}."
+                        f"bbox={sketch_bbox}, limits={page_limits}.",
+                        warning_type=WarningType.CANVAS,
                     )
 
     def _show_browser(
@@ -1929,7 +1941,10 @@ class Canvas:
                 filepath, overwrite
             )
 
-            issue_warning(f"Unspecified filepath, using {filepath}.")
+            issue_warning(
+                f"Unspecified filepath, using {filepath}.",
+                warning_type=WarningType.CANVAS,
+            )
 
         renderer = _save_renderer(extension)
         multi_page_svg = False

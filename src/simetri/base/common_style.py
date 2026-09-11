@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Self
 
+from simetri.base.all_enums import WarningType
 from simetri.coloring.colors import Color
 from simetri.config.settings import defaults, issue_warning
 
@@ -157,6 +158,7 @@ class CommonStyle:
         if value is not None:
             issue_warning(
                 "Setting 'color' also sets 'line_color' and 'fill_color'.",
+                warning_type=WarningType.STYLE,
                 stacklevel=self._style_warning_stacklevel,
             )
             self._line_color = value
@@ -195,6 +197,7 @@ class CommonStyle:
         if value is not None:
             issue_warning(
                 "Setting 'alpha' also sets 'line_alpha' and 'fill_alpha'.",
+                warning_type=WarningType.STYLE,
                 stacklevel=self._style_warning_stacklevel,
             )
             self._line_alpha = value

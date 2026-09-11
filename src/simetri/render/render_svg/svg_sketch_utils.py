@@ -3,7 +3,7 @@
 import numpy as np
 from PIL import ImageFont
 
-from ...base.all_enums import FontFamily, MarkerType, Types
+from ...base.all_enums import FontFamily, MarkerType, Types, WarningType
 from ...coloring.colors import Color
 from ...config.settings import defaults, issue_warning
 from ...geom.bbox import bounding_box
@@ -105,7 +105,8 @@ def get_text_size(text, font_name, font_size):
         except OSError as e:
             # If specific font not found, use default font with scaling
             issue_warning(
-                f"Could not load font '{font_name}.ttf': {e}. Using default font with scaling."
+                f"Could not load font '{font_name}.ttf': {e}. Using default font with scaling.",
+                warning_type=WarningType.FONT,
             )
             font = ImageFont.load_default()
             mult = font_size / 10  # Default font is ~10 pixels

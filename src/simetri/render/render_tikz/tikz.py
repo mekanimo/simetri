@@ -19,6 +19,7 @@ from ...base.all_enums import (
     ShadeType,
     TexLoc,
     Types,
+    WarningType,
 )
 from ...config.settings import defaults, issue_warning
 from ...geom.bbox import bounding_box
@@ -289,7 +290,8 @@ def get_tex_code(canvas: Canvas) -> str:
 
     if not has_sketches:
         issue_warning(
-            "Canvas has no drawings/sketches. Writing empty TeX output."
+            "Canvas has no drawings/sketches. Writing empty TeX output.",
+            warning_type=WarningType.EMPTY_OUTPUT,
         )
         return canvas.tex.tex_code(
             canvas,

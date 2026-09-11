@@ -10,6 +10,7 @@ Examples:
 
 __all__ = [
     "SimetriWarning",
+    "WarningType",
     "defaults",
     "issue_warning",
     "set_defaults",
@@ -17,6 +18,7 @@ __all__ = [
     "set_tikz_defaults",
     "svg_defaults",
     "tikz_defaults",
+    "warning_types",
     "warnings_off",
     "warnings_on",
 ]
@@ -52,6 +54,7 @@ from ..base.all_enums import (
     PageSize,
     PatternType,
     ShadeType,
+    WarningType,
 )
 from ..coloring import colors
 from ..coloring.palettes import seq_MATTER_256
@@ -93,6 +96,11 @@ class SettingsSingletonError(RuntimeError):
 
 # Counts per ``issue_warning`` call site (filename, lineno).
 _warning_counts: dict[tuple[str, int], int] = defaultdict(int)
+# Warning types disabled while the global ``show_warnings`` toggle is on.
+_disabled_warning_types: set[WarningType] = set()
+
+# Public alias matching the library API name.
+warning_types = WarningType
 
 _original_formatwarning = warnings.formatwarning
 
@@ -112,6 +120,7 @@ warnings.simplefilter("always", SimetriWarning)
 
 def issue_warning(
     message: str,
+    warning_type: WarningType = WarningType.GENERAL,
     category: type[Warning] = SimetriWarning,
     stacklevel: int = 2,
 ) -> None:
@@ -125,10 +134,13 @@ def issue_warning(
 
     Args:
         message: Warning text.
+        warning_type: Category used by ``warnings_off`` / ``warnings_on``.
         category: Warning category class.
         stacklevel: Stack level passed to ``warn``.
     """
     if not defaults["show_warnings"]:
+        return
+    if warning_type in _disabled_warning_types:
         return
 
     caller = sys._getframe(1)
@@ -145,15 +157,31 @@ def issue_warning(
         )
 
 
-def warnings_off():
-    """Turn the warnings off."""
+def warnings_off(warning_type: WarningType | None = None) -> None:
+    """Turn warnings off globally, or disable one ``WarningType``.
 
-    defaults["show_warnings"] = False
+    Args:
+        warning_type: If given, only that type is suppressed. If omitted,
+            all warnings are turned off.
+    """
+    if warning_type is None:
+        defaults["show_warnings"] = False
+        return
+    _disabled_warning_types.add(warning_type)
 
 
-def warnings_on():
-    """Turn the warnings on."""
+def warnings_on(warning_type: WarningType | None = None) -> None:
+    """Turn warnings on globally, or re-enable one ``WarningType``.
 
+    Args:
+        warning_type: If given, only that type is re-enabled. If omitted,
+            all warnings are turned on and per-type disables are cleared.
+    """
+    if warning_type is None:
+        defaults["show_warnings"] = True
+        _disabled_warning_types.clear()
+        return
+    _disabled_warning_types.discard(warning_type)
     defaults["show_warnings"] = True
 
 

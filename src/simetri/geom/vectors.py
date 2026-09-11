@@ -29,6 +29,7 @@ from numbers import Real
 
 import numpy as np
 
+from ..base.all_enums import WarningType
 from ..base.common import LineType, PointType, VecType, axis_x, axis_y
 from ..config.settings import issue_warning
 from ..helpers.validation import check_position
@@ -153,7 +154,10 @@ class Vector:
         """
         if isinstance(other, Vector):
             return Vector(v_sum(self.data, other.data))
-        issue_warning("Vector objects are being used with lists/tuples!")
+        issue_warning(
+            "Vector objects are being used with lists/tuples!",
+            warning_type=WarningType.VECTOR,
+        )
         return Vector(v_sum(self.data, other))
 
     def __sub__(self, other: "Vector | Sequence[float]") -> "Vector":
@@ -167,7 +171,10 @@ class Vector:
         """
         if isinstance(other, Vector):
             return Vector(v_diff(self.data, other.data))
-        issue_warning("Vector objects are being used with lists/tuples!")
+        issue_warning(
+            "Vector objects are being used with lists/tuples!",
+            warning_type=WarningType.VECTOR,
+        )
         return Vector(v_diff(self.data, other))
 
     def __mul__(
@@ -185,7 +192,10 @@ class Vector:
             return Vector(v_mul(self.data, other))
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
-        issue_warning("Vector objects are being used with lists/tuples!")
+        issue_warning(
+            "Vector objects are being used with lists/tuples!",
+            warning_type=WarningType.VECTOR,
+        )
         return v_mul(self.data, other)
 
     def __rmul__(self, other: float) -> "Vector":
@@ -232,7 +242,10 @@ class Vector:
         if isinstance(other, Vector):
             other_data = other.data
         else:
-            issue_warning("Vector objects are being used with lists/tuples!")
+            issue_warning(
+                "Vector objects are being used with lists/tuples!",
+                warning_type=WarningType.VECTOR,
+            )
             other_data = other
         return distance(self.data, other_data)
 
@@ -284,7 +297,10 @@ class Vector:
         """
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
-        issue_warning("Vector objects are being used with lists/tuples!")
+        issue_warning(
+            "Vector objects are being used with lists/tuples!",
+            warning_type=WarningType.VECTOR,
+        )
         return v_mul(self.data, other)
 
     def cross(self, other: "Vector | Sequence[float]") -> "float | Vector":
@@ -299,7 +315,10 @@ class Vector:
         if isinstance(other, Vector):
             other_data = other.data
         else:
-            issue_warning("Vector objects are being used with lists/tuples!")
+            issue_warning(
+                "Vector objects are being used with lists/tuples!",
+                warning_type=WarningType.VECTOR,
+            )
             other_data = other
         res = v_cross(self.data, other_data)
         if isinstance(res, list):
@@ -322,7 +341,10 @@ class Vector:
         if isinstance(other, Vector):
             other_data = other.data
         else:
-            issue_warning("Vector objects are being used with lists/tuples!")
+            issue_warning(
+                "Vector objects are being used with lists/tuples!",
+                warning_type=WarningType.VECTOR,
+            )
             other_data = other
         return v_angle_between(self.data, other_data)
 
@@ -361,7 +383,8 @@ class Vector:
         else:
             if axis is not None:
                 issue_warning(
-                    "Vector objects are being used with lists/tuples!"
+                    "Vector objects are being used with lists/tuples!",
+                    warning_type=WarningType.VECTOR,
                 )
             axis_data = axis
         return Vector(v_rotated(self.data, angle, axis_data))
@@ -378,7 +401,10 @@ class Vector:
         if isinstance(other, Vector):
             other_vec = other
         else:
-            issue_warning("Vector objects are being used with lists/tuples!")
+            issue_warning(
+                "Vector objects are being used with lists/tuples!",
+                warning_type=WarningType.VECTOR,
+            )
             other_vec = Vector(other)
         b_mag_sq = other_vec.mag_sq()
         if b_mag_sq == 0:
@@ -398,7 +424,10 @@ class Vector:
         if isinstance(normal, Vector):
             n = normal
         else:
-            issue_warning("Vector objects are being used with lists/tuples!")
+            issue_warning(
+                "Vector objects are being used with lists/tuples!",
+                warning_type=WarningType.VECTOR,
+            )
             n = Vector(normal)
         n = n.normalize()
         return self - n * (2 * self.dot(n))
@@ -416,7 +445,10 @@ class Vector:
         if isinstance(other, Vector):
             other_data = other.data
         else:
-            issue_warning("Vector objects are being used with lists/tuples!")
+            issue_warning(
+                "Vector objects are being used with lists/tuples!",
+                warning_type=WarningType.VECTOR,
+            )
             other_data = other
         return Vector(v_interpolated(self.data, other_data, t))
 

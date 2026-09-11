@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from ...base.all_enums import (
     MarkerType,
     Types,
+    WarningType,
 )
 from ...coloring.colors import black, check_color, white
 from ...geom.bbox import bounding_box
@@ -984,7 +985,8 @@ def get_svg_code(canvas):
 
     if not canvas.active_page.sketches or not vertices:
         issue_warning(
-            "Canvas has no drawings/sketches. Writing empty SVG output."
+            "Canvas has no drawings/sketches. Writing empty SVG output.",
+            warning_type=WarningType.EMPTY_OUTPUT,
         )
         if canvas.page_size is not None:
             width, height = canvas.page_size

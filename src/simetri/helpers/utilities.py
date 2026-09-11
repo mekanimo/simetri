@@ -22,6 +22,7 @@ import numpy as np
 from numpy import array, ndarray
 from PIL import ImageFont
 
+from ..base.all_enums import WarningType
 from ..base.common import LineType, PointType
 from ..config.settings import (
     _print_options,
@@ -749,7 +750,10 @@ def random_characters(
             try:
                 characters.remove(char)
             except ValueError:
-                issue_warning(f"{char} is not valid.")
+                issue_warning(
+                    f"{char} is not valid.",
+                    warning_type=WarningType.GENERAL,
+                )
 
     return "".join([random.choice(characters) for _ in range(n)])
 
