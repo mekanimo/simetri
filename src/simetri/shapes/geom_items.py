@@ -578,14 +578,21 @@ class Circle(Shape):
 
     @property
     def b_box(self) -> BoundingBox:
-        """Return the bounding box of the shape.
+        """Return the axis-aligned bounding box of the circle.
+
+        Under an affine transform the circle becomes an ellipse. Half-widths
+        are ``_radius`` times the Euclidean norms of the linear matrix rows,
+        so non-uniform scale and shear are handled correctly.
 
         Returns:
             BoundingBox: The bounding box of the shape.
         """
         x, y = self.center[:2]
-        x1, y1 = x - self.radius, y - self.radius
-        x2, y2 = x + self.radius, y + self.radius
+        linear = self.xform_matrix[:2, :2]
+        half_width = self._radius * float(np.linalg.norm(linear[0]))
+        half_height = self._radius * float(np.linalg.norm(linear[1]))
+        x1, y1 = x - half_width, y - half_height
+        x2, y2 = x + half_width, y + half_height
         self._b_box = BoundingBox((x1, y1), (x2, y2))
 
         return self._b_box
