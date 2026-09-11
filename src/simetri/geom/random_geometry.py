@@ -11,6 +11,7 @@ import numpy as np
 
 from ..config.settings import defaults
 from ..group.batch import Group
+from ..shapes.geom_items import Circle
 from ..shapes.shape import Shape
 from .geometry import double_area3, normalize_angle
 from .polygons.polygon import polygon_internal_angles
@@ -199,6 +200,121 @@ def random_points(
     return [
         random_point(min_x, min_y, max_x, max_y, rng=rng) for _ in range(n)
     ]
+
+
+def random_circle(
+    min_radius: float = MIN_EDGE_LENGTH,
+    max_radius: float = MAX_EDGE_LENGTH,
+    min_x: float = MIN_X,
+    min_y: float = MIN_Y,
+    max_x: float = MAX_X,
+    max_y: float = MAX_Y,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
+) -> Circle:
+    """Return a randomly sized and positioned circle.
+
+    Radius is sampled from ``[min_radius, max_radius]``. The center is a
+    random point within the coordinate limits.
+
+    Args:
+        min_radius (float, optional): Minimum radius.
+            Defaults to ``MIN_EDGE_LENGTH``.
+        max_radius (float, optional): Maximum radius.
+            Defaults to ``MAX_EDGE_LENGTH``.
+        min_x (float, optional): Minimum center x-position.
+            Defaults to ``MIN_X``.
+        min_y (float, optional): Minimum center y-position.
+            Defaults to ``MIN_Y``.
+        max_x (float, optional): Maximum center x-position.
+            Defaults to ``MAX_X``.
+        max_y (float, optional): Maximum center y-position.
+            Defaults to ``MAX_Y``.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
+
+    Returns:
+        Circle: A circle with random radius and center.
+
+    Raises:
+        ValueError: If ``min_radius`` exceeds ``max_radius``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> circle = sg.random_circle(2, 8, 0, 0, 20, 20)
+        >>> 2 <= circle.radius <= 8
+        True
+        >>> isinstance(circle, sg.Circle)
+        True
+        >>> sg.random_circle(seed=1).radius == sg.random_circle(seed=1).radius
+        True
+    """
+    rng = _resolve_rng(seed, rng)
+    if min_radius > max_radius:
+        raise ValueError(
+            f"min_radius ({min_radius}) > max_radius ({max_radius})"
+        )
+    radius = rng.uniform(min_radius, max_radius)
+    center = random_point(min_x, min_y, max_x, max_y, rng=rng)
+    return Circle(radius=radius, center=center)
+
+
+def random_circles(
+    n: int = N,
+    min_radius: float = MIN_EDGE_LENGTH,
+    max_radius: float = MAX_EDGE_LENGTH,
+    min_x: float = MIN_X,
+    min_y: float = MIN_Y,
+    max_x: float = MAX_X,
+    max_y: float = MAX_Y,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
+) -> Group:
+    """Return ``n`` random circles in a ``Group``.
+
+    Args:
+        n (int, optional): Number of circles. Defaults to ``N``.
+        min_radius (float, optional): Minimum radius.
+            Defaults to ``MIN_EDGE_LENGTH``.
+        max_radius (float, optional): Maximum radius.
+            Defaults to ``MAX_EDGE_LENGTH``.
+        min_x (float, optional): Minimum x. Defaults to ``MIN_X``.
+        min_y (float, optional): Minimum y. Defaults to ``MIN_Y``.
+        max_x (float, optional): Maximum x. Defaults to ``MAX_X``.
+        max_y (float, optional): Maximum y. Defaults to ``MAX_Y``.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
+
+    Returns:
+        Group: ``n`` circle shapes.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> circles = sg.random_circles(4, 2, 8, 0, 0, 30, 30)
+        >>> len(circles)
+        4
+        >>> all(isinstance(circle, sg.Circle) for circle in circles)
+        True
+    """
+    rng = _resolve_rng(seed, rng)
+    return Group(
+        [
+            random_circle(
+                min_radius,
+                max_radius,
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+                rng=rng,
+            )
+            for _ in range(n)
+        ]
+    )
 
 
 def random_segment(

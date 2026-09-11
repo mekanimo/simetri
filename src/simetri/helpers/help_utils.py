@@ -303,6 +303,8 @@ d_help_topic: dict[str, list[str]] = {
     ],
     "random_seeds": [
         "sg.random_angle",
+        "sg.random_circle",
+        "sg.random_circles",
         "sg.random_point",
         "sg.random_points",
         "sg.random_segment",
