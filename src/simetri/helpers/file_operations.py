@@ -13,6 +13,7 @@ from ..config.settings import issue_warning
 from ..config.user_config import (
     converter_supports_extension,
     get_converter_for_extension,
+    get_tex_compiler,
     native_save_extensions,
     user_config_path,
 )
@@ -161,6 +162,88 @@ def run_external_converter(
         raise RuntimeError(
             f"External converter for {extension!r} exited 0 but did not "
             f"create {output_path}."
+        )
+
+
+def run_tex_compiler(
+    *,
+    input_path: str | Path,
+    output_path: str | Path,
+) -> None:
+    """Run the personal ``[tex].command`` from ``simetri_config.toml``.
+
+    Args:
+        input_path: Absolute ``.tex`` file Simetri wrote.
+        output_path: Expected ``.pdf`` path (``{output}`` placeholder).
+
+    Raises:
+        RuntimeError: ``[tex].command`` is unset, the process failed, or
+            the PDF was not created.
+        ValueError: ``shell`` does not match the ``command`` type.
+    """
+    input_path = str(Path(input_path).resolve())
+    output_path = str(Path(output_path).resolve())
+    tex = get_tex_compiler()
+    command = tex["command"]
+    if command is None:
+        raise RuntimeError(
+            "[tex].command is not set in simetri_config.toml."
+        )
+    use_shell = bool(tex["shell"])
+    timeout_seconds = float(tex["timeout_seconds"])
+    outdir = str(Path(output_path).parent)
+
+    if use_shell:
+        if not isinstance(command, str):
+            raise ValueError(
+                "[tex].command must be a string when [tex].shell = true."
+            )
+        rendered_command = _substitute_converter_placeholders(
+            command, input_path=input_path, output_path=output_path
+        )
+        completed = subprocess.run(
+            rendered_command,
+            shell=True,
+            cwd=outdir,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+    else:
+        if isinstance(command, str):
+            raise ValueError(
+                "[tex].command must be an array of strings when "
+                "[tex].shell = false. Set shell = true only if you "
+                "intentionally need a shell."
+            )
+        rendered_argv = [
+            _substitute_converter_placeholders(
+                part, input_path=input_path, output_path=output_path
+            )
+            for part in command
+        ]
+        completed = subprocess.run(
+            rendered_argv,
+            shell=False,
+            cwd=outdir,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+
+    if completed.returncode != 0:
+        stderr = (completed.stderr or "").strip()
+        stdout = (completed.stdout or "").strip()
+        details = stderr or stdout or "(no output)"
+        raise RuntimeError(
+            f"TeX compiler failed (exit {completed.returncode}):\n{details}"
+        )
+    if not os.path.isfile(output_path):
+        raise RuntimeError(
+            "TeX compiler exited 0 but did not create "
+            f"{output_path}."
         )
 
 

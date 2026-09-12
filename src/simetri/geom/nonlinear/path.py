@@ -30,6 +30,7 @@ from ...base.all_enums import (
 from ...base.all_enums import PathOperation as PathOps
 from ...base.common import PointType
 from ...base.common_style import CommonStyle
+from ...base.core import _update_inplace
 from ...coloring.colors import Color
 from ...config.settings import defaults
 from ...group.batch import Group
@@ -289,6 +290,8 @@ class Path2D(Group, CommonStyle):
         elif op_type in [
             PO.LINE_TO,
             PO.R_LINE,
+            PO.R_H_LINE,
+            PO.R_V_LINE,
             PO.H_LINE_TO,
             PO.V_LINE_TO,
             PO.FORWARD,
@@ -1509,10 +1512,7 @@ class Path2D(Group, CommonStyle):
             if obj is None or not obj.vertices:
                 continue
             obj_verts = obj.vertices
-            if (
-                operation.subtype in _CURVE_PATH_OPS
-                and len(obj_verts) > 2
-            ):
+            if operation.subtype in _CURVE_PATH_OPS and len(obj_verts) > 2:
                 obj_verts = [obj_verts[0], obj_verts[-1]]
             if last_vert:
                 if close_points_square(last_vert, obj_verts[0], dist_tol2):
@@ -1559,14 +1559,21 @@ class Path2D(Group, CommonStyle):
         Args:
             xform_matrix: 3x3 affine matrix.
             reps: Extra copies to generate. Defaults to 0.
-            take: Unused; reserved for element slicing.
-            incr: Unused; reserved for incremental transforms.
+            take: Not supported; must be ``None``.
+            incr: Increment applied between repetitions when ``reps > 0``.
             merge: If True and ``reps > 0``, merge resulting shapes.
-            xform_type: Unused transform classification.
+            xform_type: Transform kind used with ``incr``.
 
         Returns:
             Group: ``self`` when ``reps == 0``, otherwise a group of copies.
+
+        Raises:
+            ValueError: If ``take`` is set.
         """
+        if take is not None:
+            raise ValueError(
+                "Path2D._update does not support take=; transform the whole path."
+            )
         if reps == 0:
             original_pos = self.pos
             direction_point = (
@@ -1599,7 +1606,11 @@ class Path2D(Group, CommonStyle):
         else:
             paths = [self]
             path = self
-            for _ in range(reps):
+            for i in range(reps):
+                if incr is not None and i > 0:
+                    xform_matrix = _update_inplace(
+                        xform_matrix, xform_type, incr
+                    )
                 path = path.copy()
                 path._update(xform_matrix)
                 paths.append(path)
@@ -1695,7 +1706,10 @@ def _transform_path_operation(
             _transform_path_point(data[0], xform_matrix),
             _transform_path_points(data[1], xform_matrix),
         )
-    elif subtype in [PathOps.CUBIC_TO, PathOps.BLEND_CUBIC] or subtype in [PathOps.QUAD_TO, PathOps.BLEND_QUAD]:
+    elif subtype in [PathOps.CUBIC_TO, PathOps.BLEND_CUBIC] or subtype in [
+        PathOps.QUAD_TO,
+        PathOps.BLEND_QUAD,
+    ]:
         transformed_data = tuple(
             _transform_path_point(point, xform_matrix) for point in data
         )
@@ -1770,7 +1784,9 @@ def lin_path_svg(lin_path):
             PO.LINE_TO,
             PO.R_LINE,
             PO.H_LINE_TO,
+            PO.R_H_LINE,
             PO.V_LINE_TO,
+            PO.R_V_LINE,
             PO.FORWARD,
         ]:
             # data is (start, end)
@@ -1833,7 +1849,7 @@ def lin_path_svg(lin_path):
     return " ".join(parts)
 
 
-def svg_path_to_linpath(svg_path: str) -> Path2D:
+def svg_path_to_path2d(svg_path: str) -> Path2D:
     """Parse an SVG path ``d`` string into a ``Path2D``.
 
         Args:
@@ -1844,7 +1860,7 @@ def svg_path_to_linpath(svg_path: str) -> Path2D:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> p = sg.svg_path_to_linpath("M 0 0 L 10 0 L 10 10 Z")
+        >>> p = sg.svg_path_to_path2d("M 0 0 L 10 0 L 10 10 Z")
         >>> p.closed
         True
     """

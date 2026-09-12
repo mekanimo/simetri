@@ -15,6 +15,8 @@ import pymupdf as fitz
 
 from simetri.base.all_enums import TexLoc, Types
 from simetri.config.settings import defaults
+from simetri.config.user_config import get_tex_compiler
+from simetri.helpers.file_operations import run_tex_compiler
 from simetri.helpers.utilities import *
 from simetri.render.pre_render import (
     canvas_uses_label_halos,
@@ -101,14 +103,18 @@ def run_job(parent_dir, file_name, extension, tex_path):
         tex_path: Full path to the ``.tex`` source file.
     """
     output_path = os.path.join(parent_dir, file_name + extension)
-    compiler = defaults["latex_compiler"].lower()
-    cmd = f'{compiler} "{tex_path}" --output-directory "{parent_dir}"'
-    res = compile_tex(cmd, parent_dir, print_output=False)
-    if "No pages of output" in res:
-        raise RuntimeError("Failed to compile the tex file.")
     pdf_path = os.path.join(parent_dir, file_name + ".pdf")
-    if not os.path.exists(pdf_path):
-        raise RuntimeError("Failed to compile the tex file.")
+    tex_settings = get_tex_compiler()
+    if tex_settings["command"] is not None:
+        run_tex_compiler(input_path=tex_path, output_path=pdf_path)
+    else:
+        compiler = defaults["latex_compiler"].lower()
+        cmd = f'{compiler} "{tex_path}" --output-directory "{parent_dir}"'
+        res = compile_tex(cmd, parent_dir, print_output=False)
+        if "No pages of output" in res:
+            raise RuntimeError("Failed to compile the tex file.")
+        if not os.path.exists(pdf_path):
+            raise RuntimeError("Failed to compile the tex file.")
 
     if extension in (".eps", ".ps"):
         ps_path = os.path.join(parent_dir, file_name + extension)

@@ -530,7 +530,14 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
         text_width_attr = f'textLength="{text_width}" '
 
     # Wrap text in a transform group to flip y-axis (prevents upside-down text)
-    elements.append(f'<g transform="translate({x} {y}) scale(1,-1)">')
+    angle = sketch_attrib(sketch, "angle")
+    if angle:
+        rotate_attr = f" rotate({degrees(angle)})"
+    else:
+        rotate_attr = ""
+    elements.append(
+        f'<g transform="translate({x} {y}){rotate_attr} scale(1,-1)">'
+    )
     elements.append(
         f'<text x="0" y="0" '
         f'font-family="{font_family}" '

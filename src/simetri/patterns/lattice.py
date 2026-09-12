@@ -360,27 +360,33 @@ class Lattice:
             self.pattern = pattern.translate(0, dy, reps=reps)
 
     def expand(self, kernel, reps: int = 1) -> Group:
-        """Populate the unit and expand the pattern by repeated translations.
+        """Replace ``pattern`` by expanding a fresh copy of ``kernel``.
+
+        Stores a clean copy on ``self.kernel`` and builds ``self.pattern`` from
+        another copy, so the caller's motif is not shared with the pattern.
+        A later ``expand`` replaces both ``kernel`` and ``pattern``.
 
         Args:
             kernel: Motif ``Shape`` or ``Group``.
-            reps: Expansion repetitions. Defaults to 1.
+            reps: Expansion repetitions; must be ``> 0``. Defaults to 1.
 
         Returns:
             Lattice: ``self``, for chaining.
+
+        Raises:
+            ValueError: If ``reps`` is not greater than 0.
         """
-        self.populate_unit(kernel)
+        if reps <= 0:
+            raise ValueError("expand requires reps > 0")
+
+        self.kernel = kernel.copy()
+        self.populate_unit(self.kernel.copy())
         pattern = self.pattern
         subtype = self.subtype
-        reps1 = reps // 2
-        reps2 = reps
         if subtype in (LatType.HEX, LatType.PAR):
-            dx1 = 0
-            dy1 = 2 * self.by
-            dx2 = self.a
             pattern.translate(dx=self.bx, dy=self.by, reps=1)
-            pattern.translate(dx=dx1, dy=dy1, reps=reps1).translate(
-                dx=dx2, reps=reps2
+            pattern.translate(dx=0, dy=2 * self.by, reps=reps).translate(
+                dx=self.a, reps=reps
             )
 
         elif subtype in [LatType.SQR, LatType.RECT]:
@@ -390,8 +396,8 @@ class Lattice:
             width = self.unit.width
             height = self.unit.height
             pattern.translate(dx=self.bx, dy=self.by, reps=1).translate(
-                dx=0, dy=height, reps=reps2
-            ).translate(dx=width, reps=reps2)
+                dx=0, dy=height, reps=reps
+            ).translate(dx=width, reps=reps)
 
         return self
 

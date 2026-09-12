@@ -193,6 +193,14 @@ d_help_topic: dict[str, list[str]] = {
         "sg.pdf_to_svg",
         "sg.set_svg_defaults",
         "sg.set_tikz_defaults",
+        "See also: sg.help('external_converters'), sg.help('tex_compiler')",
+    ],
+    "external_converters": [
+        "sg.Canvas.save",
+        "sg.user_config_path",
+        "sg.set_user_settings_path",
+        "See also: sg.help('user_settings'), sg.help('script_sharing'), "
+        "sg.help('tex_compiler')",
     ],
     "grids": [
         "sg.Grid",
@@ -208,6 +216,13 @@ d_help_topic: dict[str, list[str]] = {
     "images": [
         "sg.Image",
         "sg.open_img",
+    ],
+    "latex_engine": [
+        "sg.Canvas.save",
+        "sg.Compiler",
+        "sg.defaults['latex_compiler']",
+        "sg.user_config_path",
+        "See also: sg.help('tex_compiler'), sg.help('user_settings')",
     ],
     "lines": [
         "sg.Line",
@@ -325,7 +340,8 @@ d_help_topic: dict[str, list[str]] = {
         "sg.generate_shared_toml",
         "sg.use_settings",
         "sg.check_version",
-        "See also: sg.help('user_settings'), sg.help('random_seeds')",
+        "See also: sg.help('user_settings'), sg.help('random_seeds'), "
+        "sg.help('tex_compiler')",
     ],
     "tags": [
         "sg.Arrow",
@@ -340,6 +356,13 @@ d_help_topic: dict[str, list[str]] = {
         "sg.ArrowHead",
         "sg.get_text_dimensions",
         "sg.get_text_size",
+    ],
+    "tex_compiler": [
+        "sg.Canvas.save",
+        "sg.user_config_path",
+        "sg.set_user_settings_path",
+        "See also: sg.help('user_settings'), sg.help('external_converters'), "
+        "sg.help('script_sharing')",
     ],
     "tolerances": [
         "sg.check_angle_tol",
@@ -369,7 +392,8 @@ d_help_topic: dict[str, list[str]] = {
         "sg.set_svg_defaults",
         "sg.set_tikz_defaults",
         "sg.Canvas.save",
-        "See also: sg.help('warnings'), sg.help('canvas')",
+        "See also: sg.help('warnings'), sg.help('canvas'), "
+        "sg.help('external_converters'), sg.help('tex_compiler')",
     ],
     "vertices": [
         "Shape.vertices / Shape.primary_points",
@@ -403,10 +427,20 @@ _TOPIC_ALIASES = {
     "Edges": "edges",
     "Effects": "effects",
     "Export": "export",
+    "external-converters": "external_converters",
+    "ExternalConverters": "external_converters",
+    "converters": "external_converters",
+    "tex": "tex_compiler",
+    "tex-compiler": "tex_compiler",
+    "TexCompiler": "tex_compiler",
+    "latex": "tex_compiler",
+    "LaTeX": "tex_compiler",
     "Grids": "grids",
     "Groups": "groups",
     "Images": "images",
     "Lines": "lines",
+    "latex-engine": "latex_engine",
+    "LatexEngine": "latex_engine",
     "Patterns": "patterns",
     "Points": "points",
     "Polygons": "polygons",

@@ -389,7 +389,7 @@ def convert_svg_arc(
     return ((cx, cy), start_angle, sweep_angle)
 
 
-def svg_path_to_linpath(svg_path: str) -> "Path2D":
+def svg_path_to_path2d(svg_path: str) -> "Path2D":
     """Given an SVG path returns the equivalent Path2D object."""
     from ...geom.nonlinear.path import Path2D
 
@@ -580,15 +580,15 @@ def svg_path_to_linpath(svg_path: str) -> "Path2D":
     return lp
 
 
-def linpath_to_svg_path(linpath: "Path2D") -> str:
+def path2d_to_svg_path(path2d: "Path2D") -> str:
     """Given a Path2D instance, returns the equivalent SVG path string."""
-    parts = [f"M {fmt(linpath.start[0])},{fmt(linpath.start[1])}"]
+    parts = [f"M {fmt(path2d.start[0])},{fmt(path2d.start[1])}"]
 
     # Iterate through operations and convert to SVG path commands
     obj_idx = 0
     PO = PathOps
 
-    for op in linpath.operations:
+    for op in path2d.operations:
         if isinstance(op, tuple):
             # Style operation - skip
             continue
@@ -598,7 +598,7 @@ def linpath_to_svg_path(linpath: "Path2D") -> str:
 
         # Current geometry object (if applicable)
         current_obj = (
-            linpath.objects[obj_idx] if obj_idx < len(linpath.objects) else None
+            path2d.objects[obj_idx] if obj_idx < len(path2d.objects) else None
         )
 
         if st in (PO.MOVE_TO, PO.R_MOVE):
@@ -670,15 +670,15 @@ def linpath_to_svg_path(linpath: "Path2D") -> str:
     return " ".join(parts)
 
 
-def linpath_points(
-    linpath: "Path2D", delta: float
+def path2d_points(
+    path2d: "Path2D", delta: float
 ) -> list[tuple[float, float]]:
     """Given a Path2D instance, returns a list of points separated by the given length.
     It is not possible to create the points with the exact delta. Delta will be
     adjusted for each part of the Path2D accordingly.
     """
     points = []
-    vertices = linpath.vertices
+    vertices = path2d.vertices
 
     if not vertices:
         return points
@@ -717,8 +717,8 @@ def svg_path_points(svg_path: str, delta: float) -> list[tuple[float, float]]:
     It is not possible to create the points with the exact delta. Delta will be
     adjusted for each part of the SVG path accordingly.
     """
-    lp = svg_path_to_linpath(svg_path)
-    return linpath_points(lp, delta)
+    lp = svg_path_to_path2d(svg_path)
+    return path2d_points(lp, delta)
 
 
 def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):

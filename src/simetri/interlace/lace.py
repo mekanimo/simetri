@@ -18,8 +18,9 @@ import networkx as nx
 import numpy as np
 from numpy import isclose
 
-from ..base.all_enums import Connection, Types
+from ..base.all_enums import Connection, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults
+from ..base.core import _update_inplace
 from ..coloring import colors
 from ..config.settings import defaults
 from ..geom.geom_utils import close_points_square, connected_pairs
@@ -221,29 +222,49 @@ class Intersection(Shape):
         self.endpoint = endpoint
         self.division = None  # used for fragment divisions' DCEL structure
 
-    def _update(self, xform_matrix, reps=0, merge: bool = False):
+    def _update(
+        self,
+        xform_matrix,
+        reps=0,
+        take: slice | None = None,
+        incr=None,
+        merge: bool = False,
+        xform_type: TransformationType = None,
+    ):
         """Update the transformation matrix of the intersection.
 
         Args:
             xform_matrix (array): Transformation matrix.
             reps (int, optional): Number of repetitions. Defaults to 0.
+            take: Not supported; must be ``None``.
+            incr: Increment applied between repetitions when ``reps > 0``.
+            merge: If True and ``reps > 0``, merge the copies.
+            xform_type: Transform kind used with ``incr``.
 
         Returns:
             Any: Updated intersection or list of updated intersections.
+
+        Raises:
+            ValueError: If ``take`` is set.
         """
+        if take is not None:
+            raise ValueError(
+                "Intersection._update does not support take=."
+            )
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
-            res = self
-        else:
-            res = []
-            for _ in range(reps):
-                shape = self.copy()
-                shape._update(xform_matrix)
-                res.append(shape)
-
-        if merge and reps > 0:
+            return self
+        res = []
+        for i in range(reps):
+            if incr is not None and i > 0:
+                xform_matrix = _update_inplace(
+                    xform_matrix, xform_type, incr
+                )
+            shape = self.copy()
+            shape._update(xform_matrix)
+            res.append(shape)
+        if merge:
             res = res.merge_shapes()
-
         return res
 
     def copy(self):
@@ -635,28 +656,47 @@ class Division(Shape):
             **kwargs,
         )
 
-    def _update(self, xform_matrix, reps=0, merge: bool = False):
+    def _update(
+        self,
+        xform_matrix,
+        reps=0,
+        take: slice | None = None,
+        incr=None,
+        merge: bool = False,
+        xform_type: TransformationType = None,
+    ):
         """Update the transformation matrix of the division.
 
         Args:
             xform_matrix (array): Transformation matrix.
             reps (int, optional): Number of repetitions. Defaults to 0.
+            take: Not supported; must be ``None``.
+            incr: Increment applied between repetitions when ``reps > 0``.
+            merge: If True and ``reps > 0``, merge the copies.
+            xform_type: Transform kind used with ``incr``.
 
         Returns:
             Any: Updated division or list of updated divisions.
+
+        Raises:
+            ValueError: If ``take`` is set.
         """
+        if take is not None:
+            raise ValueError("Division._update does not support take=.")
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
-            res = self
-        else:
-            res = []
-            for _ in range(reps):
-                shape = self.copy()
-                shape._update(xform_matrix)
-                res.append(shape)
-        if merge and reps > 0:
+            return self
+        res = []
+        for i in range(reps):
+            if incr is not None and i > 0:
+                xform_matrix = _update_inplace(
+                    xform_matrix, xform_type, incr
+                )
+            shape = self.copy()
+            shape._update(xform_matrix)
+            res.append(shape)
+        if merge:
             res = res.merge_shapes()
-
         return res
 
     def __str__(self):
@@ -807,30 +847,49 @@ class Polyline(Shape):
         if not self.closed:
             self._set_intersections()
 
-    def _update(self, xform_matrix, reps=0, merge: bool = False):
+    def _update(
+        self,
+        xform_matrix,
+        reps=0,
+        take: slice | None = None,
+        incr=None,
+        merge: bool = False,
+        xform_type: TransformationType = None,
+    ):
         """Update the transformation matrix of the polyline.
 
         Args:
             xform_matrix (array): Transformation matrix.
             reps (int, optional): Number of repetitions. Defaults to 0.
+            take: Not supported; must be ``None``.
+            incr: Increment applied between repetitions when ``reps > 0``.
+            merge: If True and ``reps > 0``, merge the copies.
+            xform_type: Transform kind used with ``incr``.
 
         Returns:
             Any: Updated polyline or list of updated polylines.
+
+        Raises:
+            ValueError: If ``take`` is set.
         """
+        if take is not None:
+            raise ValueError("Polyline._update does not support take=.")
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
             for division in self.divisions:
                 division._update(xform_matrix, reps=reps)
-            res = self
-        else:
-            res = []
-            for _ in range(reps):
-                shape = self.copy()
-                shape._update(xform_matrix)
-                res.append(shape)
-        if merge and reps > 0:
+            return self
+        res = []
+        for i in range(reps):
+            if incr is not None and i > 0:
+                xform_matrix = _update_inplace(
+                    xform_matrix, xform_type, incr
+                )
+            shape = self.copy()
+            shape._update(xform_matrix)
+            res.append(shape)
+        if merge:
             res = res.merge_shapes()
-
         return res
 
     def __str__(self):
@@ -1290,16 +1349,40 @@ class Lace(Group):
 
         return polyline_shapes
 
-    def _update(self, xform_matrix, reps=0, merge: bool = False):
+    def _update(
+        self,
+        xform_matrix,
+        reps=0,
+        take: slice | None = None,
+        incr=None,
+        merge: bool = False,
+        xform_type: TransformationType = None,
+    ):
         """Update the transformation matrix of the lace.
 
         Args:
             xform_matrix (array): Transformation matrix.
             reps (int, optional): Number of repetitions. Defaults to 0.
+            take: Not supported for Lace; must be ``None``.
+            incr: Optional increment between repetitions when ``reps > 0``.
+            merge: Not supported for Lace when ``reps > 0``.
+            xform_type: Transform kind used with ``incr``.
 
         Returns:
             Any: Updated lace or list of updated laces.
+
+        Raises:
+            ValueError: If ``take`` is set, or ``merge`` is True with ``reps > 0``.
         """
+        if take is not None:
+            raise ValueError(
+                "Lace._update does not support take=; transform the whole lace."
+            )
+        if merge and reps > 0:
+            raise ValueError(
+                "Lace._update does not support merge=True with reps > 0."
+            )
+
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
             for polygon in self.polygon_shapes:
@@ -1328,14 +1411,18 @@ class Lace(Group):
                 plait._update(xform_matrix)
 
             return self
-        else:
-            res = []
-            for _ in range(reps):
-                shape = self.copy()
-                shape._update(xform_matrix)
-                res.append(shape)
 
-            return res
+        res = []
+        for i in range(reps):
+            if incr is not None and i > 0:
+                xform_matrix = _update_inplace(
+                    xform_matrix, xform_type, incr
+                )
+            lace_copy = self.copy()
+            lace_copy._update(xform_matrix)
+            res.append(lace_copy)
+
+        return res
 
     def _set_twin_sections(self) -> None:
         """Pair corresponding sections across each offset-polyline pair."""

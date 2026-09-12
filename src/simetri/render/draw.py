@@ -858,13 +858,16 @@ def draw_widget(self, item: Drawable, **kwargs) -> Self:
     """Draw an item that exposes ``draw_list`` as a composite sketch.
 
     Args:
-        item: Drawable with a ``draw_list()`` method.
+        item: Drawable with a ``draw_list`` of drawables and/or functions.
         **kwargs: Style overrides applied to nested drawables.
     """
     active_sketches = self.active_page.sketches
     first_sketch_index = len(active_sketches)
 
-    for drawable_item in item.draw_list():
+    for drawable_item in item.draw_list:
+        if callable(drawable_item):
+            drawable_item(self, item, **kwargs)
+            continue
         draw(self, drawable_item, **kwargs)
 
     widget_sketches = active_sketches[first_sketch_index:]
@@ -1783,19 +1786,23 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
         >>> len(canvas.active_page.sketches)
         1
     """
+    try:
+        draw_list = item.draw_list
+    except AttributeError:
+        draw_list = None
+    if draw_list is not None:
+        if callable(draw_list):
+            raise TypeError(
+                "item.draw_list must be a list of drawables and/or functions."
+            )
+        draw_widget(self, item, **kwargs)
+        return self
+
     # check if the item has any points
     if not item:
         return self
 
     active_sketches = self.active_page.sketches
-    try:
-        draw_list_method = item.draw_list
-    except AttributeError:
-        draw_list_method = None
-    if draw_list_method and callable(draw_list_method):
-        draw_widget(self, item, **kwargs)
-        return self
-
     subtype = item.subtype
     if item.type is not Types.CLIPPING:
         extend_vertices(self, item)
@@ -1820,7 +1827,7 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
                     ]
                 )
 
-    if subtype == Types.GROUP:
+    if subtype in (Types.GROUP, Types.STAR):
         group_kwargs = dict(kwargs)
         if kwargs.get("vertex_on_hull") and "_group_hull_points" not in kwargs:
             group_kwargs["_group_hull_points"] = convex_hull(
@@ -2164,13 +2171,14 @@ def create_sketch(
             TagSketch: Created TagSketch.
         """
         pos = kwargs.get("pos", item.pos)
+        _, rotation, _ = decompose_transformations(item.xform_matrix)
 
         sketch = TagSketch(
             text=item.text,
             pos=pos,
             anchor=item.anchor,
-            xform_matrix=canvas.xform_matrix,
-            **kwargs,
+            angle=rotation,
+            xform_matrix=canvas._sketch_xform_matrix,
         )
         for attrib_name in tag_style_map:
             if attrib_name in ("color", "alpha"):

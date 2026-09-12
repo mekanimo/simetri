@@ -12,8 +12,9 @@ from typing import Any
 
 from PIL import Image as PIL_Image
 
-from ..base.all_enums import Anchor, ImageMode, Types
+from ..base.all_enums import Anchor, ImageMode, TransformationType, Types
 from ..base.common import PointType
+from ..base.core import _update_inplace
 from ..geom.affine import (
     rotation_matrix,
     scale_in_place_matrix,
@@ -184,33 +185,47 @@ class Image(Rectangle):
         self,
         xform_matrix: "array",
         reps: int = 0,
+        take: slice | None = None,
+        incr=None,
         merge: bool = False,
-        **kwargs,
+        xform_type: TransformationType = None,
     ) -> "Group | Image":
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
             xform_matrix (array): The transformation matrix.
             reps (int, optional): The number of repetitions, defaults to 0.
+            take: Not supported; must be ``None``.
+            incr: Increment applied between repetitions when ``reps > 0``.
+            merge: If True and ``reps > 0``, merge the copies.
+            xform_type: Transform kind used with ``incr``.
 
         Returns:
             Group: The updated shape or a group of shapes.
+
+        Raises:
+            ValueError: If ``take`` is set.
         """
+        if take is not None:
+            raise ValueError(
+                "Image._update does not support take=; transform the whole image."
+            )
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
-            res = self
-        else:
-            images = [self]
-            image = self
-            for _ in range(reps):
-                image = image.copy()
-                image._update(xform_matrix)
-                images.append(image)
-            res = Group(images)
-
-        if merge and reps > 0:
+            return self
+        images = [self]
+        image = self
+        for i in range(reps):
+            if incr is not None and i > 0:
+                xform_matrix = _update_inplace(
+                    xform_matrix, xform_type, incr
+                )
+            image = image.copy()
+            image._update(xform_matrix)
+            images.append(image)
+        res = Group(images)
+        if merge:
             return res.merge_images()
-
         return res
 
     @property

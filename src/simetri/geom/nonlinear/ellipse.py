@@ -7,7 +7,7 @@ from math import atan2, ceil, cos, isclose, pi, sin, sqrt
 import numpy as np
 from numpy.typing import NDArray
 
-from ...base.all_enums import Types
+from ...base.all_enums import TransformationType, Types
 from ...base.common import PointType
 from ...config.settings import defaults
 from ...group.batch import Group
@@ -296,17 +296,34 @@ class Ellipse(Shape):
         """
 
     def _update(
-        self, xform_matrix: np.array, reps: int = 0, merge: bool = False
+        self,
+        xform_matrix: np.array,
+        reps: int = 0,
+        take: slice | None = None,
+        incr=None,
+        merge: bool = False,
+        xform_type: TransformationType = None,
     ) -> Group:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
             xform_matrix (array): The transformation matrix.
             reps (int, optional): The number of repetitions, defaults to 0.
+            take: Not supported; must be ``None``.
+            incr: Increment applied between repetitions when ``reps > 0``.
+            merge: If True and ``reps > 0``, merge the copies.
+            xform_type: Transform kind used with ``incr``.
 
         Returns:
             Group: The updated shape or a group of shapes.
+
+        Raises:
+            ValueError: If ``take`` is set.
         """
+        if take is not None:
+            raise ValueError(
+                "Ellipse._update does not support take=; transform the whole ellipse."
+            )
         if reps == 0:
             center = list(self.center[:2]) + [1]
             start = list(self.vertices[0][:2]) + [1]
@@ -318,7 +335,13 @@ class Ellipse(Shape):
             self.end_point = end2[:2]
             self.start_angle = line_angle(center2, start2)
 
-        return super()._update(xform_matrix, reps, merge)
+        return super()._update(
+            xform_matrix,
+            reps=reps,
+            incr=incr,
+            merge=merge,
+            xform_type=xform_type,
+        )
 
     def copy(self, **kwargs):
         """Return a copy of the ellipse.

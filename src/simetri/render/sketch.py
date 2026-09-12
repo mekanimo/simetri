@@ -701,6 +701,8 @@ class TagSketch:
         font_family (str, optional): The font family. Defaults to None.
         font_size (float, optional): The font size. Defaults to None.
         minimum_width (float, optional): The minimum width. Defaults to None.
+        fill (bool, optional): Whether to fill the tag frame. Defaults to None
+            (use the default).
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     """
 
@@ -710,6 +712,8 @@ class TagSketch:
     font_family: str | None = None
     font_size: float | None = None
     minimum_width: float | None = None
+    fill: bool | None = None
+    angle: float = 0
     xform_matrix: NDArray = None
 
     def __post_init__(self):

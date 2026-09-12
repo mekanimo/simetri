@@ -41,6 +41,14 @@ _converter_globals: dict[str, Any] = {
 # format key without dot → {"source": "svg", "command": list[str] | str}
 _converter_formats: dict[str, dict[str, Any]] = {}
 
+# Personal ``[tex]`` compiler (never loaded from shared tomls).
+# command is None → use defaults["latex_compiler"] on PATH.
+_tex_settings: dict[str, Any] = {
+    "timeout_seconds": 120,
+    "shell": False,
+    "command": None,
+}
+
 
 def set_user_settings_path() -> Path:
     """Return (and create) the OS-specific ``simetri_user`` config directory.
@@ -123,6 +131,14 @@ def converter_supports_extension(extension: str) -> bool:
         return False
     format_key = extension.lstrip(".").lower()
     return format_key in _converter_formats
+
+
+def get_tex_compiler() -> dict[str, Any]:
+    """Return personal ``[tex]`` compiler settings (copy).
+
+    ``command`` is ``None`` when the user did not set ``[tex].command``.
+    """
+    return dict(_tex_settings)
 
 
 def get_converter_for_extension(extension: str) -> dict[str, Any]:
@@ -515,6 +531,49 @@ def _apply_converters_table(converters_table: dict[str, Any]) -> None:
         }
 
 
+def _reset_tex_settings() -> None:
+    """Restore personal ``[tex]`` settings to library defaults."""
+    _tex_settings["timeout_seconds"] = 120
+    _tex_settings["shell"] = False
+    _tex_settings["command"] = None
+
+
+def _apply_tex_table(tex_table: dict[str, Any]) -> None:
+    """Apply personal ``[tex]`` compiler table."""
+    _reset_tex_settings()
+    known_keys = frozenset({"timeout_seconds", "shell", "command"})
+    for key, value in tex_table.items():
+        if key not in known_keys:
+            _warn_invalid_key(f"Unknown key in [tex]: {key!r}")
+            continue
+        if key == "timeout_seconds":
+            timeout = float(value)
+            if timeout <= 0:
+                _warn_invalid_key(
+                    f"[tex].timeout_seconds must be positive (got {value!r})"
+                )
+                continue
+            _tex_settings["timeout_seconds"] = timeout
+        elif key == "shell":
+            _tex_settings["shell"] = bool(value)
+        else:
+            if isinstance(value, str):
+                if not value:
+                    _warn_invalid_key("[tex].command must not be empty")
+                    continue
+                _tex_settings["command"] = value
+            elif isinstance(value, list):
+                if not value:
+                    _warn_invalid_key("[tex].command must not be empty")
+                    continue
+                _tex_settings["command"] = [str(part) for part in value]
+            else:
+                _warn_invalid_key(
+                    "[tex].command must be a string or array of strings "
+                    f"(got {type(value).__name__})"
+                )
+
+
 def apply_user_config() -> Path:
     """Ensure, load, and apply ``simetri_config.toml``.
 
@@ -532,11 +591,14 @@ def apply_user_config() -> Path:
     _converter_globals["enabled"] = True
     _converter_globals["timeout_seconds"] = 120
     _converter_globals["shell"] = False
+    _reset_tex_settings()
 
     with config_path.open("rb") as handle:
         data = tomllib.load(handle)
 
-    known_sections = frozenset({"paths", "warnings", "defaults", "converters"})
+    known_sections = frozenset(
+        {"paths", "warnings", "defaults", "converters", "tex"}
+    )
     for section_name in data:
         if section_name not in known_sections:
             _warn_invalid_key(
@@ -551,6 +613,14 @@ def apply_user_config() -> Path:
         _apply_warnings_table(data["warnings"])
     if "converters" in data:
         _apply_converters_table(data["converters"])
+    if "tex" in data:
+        tex_table = data["tex"]
+        if not isinstance(tex_table, dict):
+            raise TypeError(
+                "[tex] in simetri_config.toml must be a table, "
+                f"got {type(tex_table).__name__}"
+            )
+        _apply_tex_table(tex_table)
 
     defaults.user_overrides = _user_default_overrides
     _config_applied = True

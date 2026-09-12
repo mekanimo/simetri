@@ -6,11 +6,12 @@ Examples:
 """
 
 from collections.abc import Sequence
+from copy import copy
 from dataclasses import dataclass
 from math import atan2, hypot, pi
 
-import pymupdf as fitz
 import numpy as np
+import pymupdf as fitz
 from numpy.typing import NDArray
 from PIL import ImageFont
 
@@ -24,6 +25,7 @@ from ..base.all_enums import (
     HeadPos,
     LineJoin,
     Placement,
+    TransformationType,
     Types,
 )
 from ..base.common import (
@@ -33,7 +35,7 @@ from ..base.common import (
 )
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
-from ..base.core import Base
+from ..base.core import Base, _update_inplace
 from ..coloring import colors
 from ..coloring.swatches import swatches_255
 from ..config.settings import defaults
@@ -63,6 +65,31 @@ from .validation import validate_args
 
 # Flat Tag style attribute names (no StyleMixin / nested TagStyle aliases).
 TAG_STYLE_ATTRS: tuple[str, ...] = tuple(tag_style_map.keys())
+# Tag names stored on ``Tag.frame`` via properties (not a second copy on Tag).
+_TAG_FRAME_PROPERTY_NAMES: frozenset[str] = frozenset(
+    {
+        "back_color",
+        "double_color",
+        "double_distance",
+        "draw_double",
+        "draw_fillets",
+        "fill",
+        "fill_color",
+        "fillet_radius",
+        "frame_inner_sep",
+        "frame_min_height",
+        "frame_min_size",
+        "frame_min_width",
+        "frame_outer_sep",
+        "frame_shape",
+        "line_color",
+        "line_dash_array",
+        "line_join",
+        "line_width",
+        "smooth",
+        "stroke",
+    }
+)
 
 Color = colors.Color
 array = np.array
@@ -605,8 +632,9 @@ class TagFrame:
 class Tag(Base):
     """A Tag object is very similar to TikZ library's nodes. It is a text with a frame.
 
-    Style attributes are stored as ordinary instance attributes (no StyleMixin
-    aliasing). See ``TAG_STYLE_ATTRS`` / ``tag_style_map`` for the full set.
+    Frame paint aliases (``fill``, ``stroke``, ``line_width``, ``fill_color``,
+    …) are properties on ``self.frame``. Text styles stay on the Tag.
+    See ``TAG_STYLE_ATTRS`` / ``tag_style_map`` for the full set.
 
     Args:
         text (str): The text of the tag.
@@ -623,6 +651,8 @@ class Tag(Base):
         minimum_width (float, optional): The minimum width of the tag. Defaults to None.
         minimum_height (float, optional): The minimum height of the tag. Defaults to None.
         frame (TagFrame, optional): The frame of the tag. Defaults to None.
+        fill (bool, optional): Whether to fill the tag frame. Defaults to None
+            (use the default).
         xform_matrix (array, optional): The transformation matrix. Defaults to None.
         **kwargs: Additional keyword arguments for tag styling.
     """
@@ -643,6 +673,7 @@ class Tag(Base):
         minimum_width: float | None = None,
         minimum_height: float | None = None,
         frame=None,
+        fill: bool | None = None,
         xform_matrix=None,
         **kwargs,
     ):
@@ -662,11 +693,16 @@ class Tag(Base):
         self.visible = True
 
         if frame is None:
-            self.frame = TagFrame(stroke=False)
+            self.frame = TagFrame(
+                stroke=False,
+                inner_sep=defaults["frame_inner_sep"],
+            )
         else:
             self.frame = frame
 
         for name in TAG_STYLE_ATTRS:
+            if name in _TAG_FRAME_PROPERTY_NAMES:
+                continue
             setattr(self, name, None)
 
         self.draw_frame = True
@@ -698,6 +734,9 @@ class Tag(Base):
         self.minimum_width = minimum_width
         self.minimum_height = minimum_height
 
+        if fill is not None:
+            self.fill = fill
+
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -706,22 +745,213 @@ class Tag(Base):
         h = y2 - y1
         self.points = Points([(0, 0, 1), (w, 0, 1), (w, h, 1), (0, h, 1)])
 
-    def _update(self, xform_matrix, reps: int = 0, merge: bool = False):
+    @property
+    def fill(self):
+        """Whether the tag frame is filled. Stored on ``self.frame.fill``."""
+        return self.frame.fill
+
+    @fill.setter
+    def fill(self, value):
+        self.frame.fill = value
+
+    @property
+    def stroke(self):
+        """Whether the tag frame is stroked. Stored on ``self.frame.stroke``."""
+        return self.frame.stroke
+
+    @stroke.setter
+    def stroke(self, value):
+        self.frame.stroke = value
+
+    @property
+    def line_width(self):
+        """Frame line width. Stored on ``self.frame.line_width``."""
+        return self.frame.line_width
+
+    @line_width.setter
+    def line_width(self, value):
+        self.frame.line_width = value
+
+    @property
+    def line_color(self):
+        """Frame line color. Stored on ``self.frame.line_color``."""
+        return self.frame.line_color
+
+    @line_color.setter
+    def line_color(self, value):
+        self.frame.line_color = value
+
+    @property
+    def line_dash_array(self):
+        """Frame dash pattern. Stored on ``self.frame.line_dash_array``."""
+        return self.frame.line_dash_array
+
+    @line_dash_array.setter
+    def line_dash_array(self, value):
+        self.frame.line_dash_array = value
+
+    @property
+    def line_join(self):
+        """Frame line join. Stored on ``self.frame.line_join``."""
+        return self.frame.line_join
+
+    @line_join.setter
+    def line_join(self, value):
+        self.frame.line_join = value
+
+    @property
+    def back_color(self):
+        """Frame fill color. Stored on ``self.frame.back_color``."""
+        return self.frame.back_color
+
+    @back_color.setter
+    def back_color(self, value):
+        self.frame.back_color = value
+
+    @property
+    def fill_color(self):
+        """Alias of ``back_color`` / ``self.frame.back_color``."""
+        return self.frame.back_color
+
+    @fill_color.setter
+    def fill_color(self, value):
+        self.frame.back_color = value
+
+    @property
+    def draw_double(self):
+        """Whether the frame uses a double line. Stored on ``self.frame``."""
+        return self.frame.draw_double
+
+    @draw_double.setter
+    def draw_double(self, value):
+        self.frame.draw_double = value
+
+    @property
+    def double_distance(self):
+        """Distance between double frame lines. Stored on ``self.frame``."""
+        return self.frame.double_distance
+
+    @double_distance.setter
+    def double_distance(self, value):
+        self.frame.double_distance = value
+
+    @property
+    def double_color(self):
+        """Color of double frame lines. Stored on ``self.frame.double``."""
+        return self.frame.double
+
+    @double_color.setter
+    def double_color(self, value):
+        self.frame.double = value
+
+    @property
+    def draw_fillets(self):
+        """Whether the frame draws fillets. Stored on ``self.frame``."""
+        return self.frame.draw_fillets
+
+    @draw_fillets.setter
+    def draw_fillets(self, value):
+        self.frame.draw_fillets = value
+
+    @property
+    def fillet_radius(self):
+        """Frame fillet radius. Stored on ``self.frame.fillet_radius``."""
+        return self.frame.fillet_radius
+
+    @fillet_radius.setter
+    def fillet_radius(self, value):
+        self.frame.fillet_radius = value
+
+    @property
+    def smooth(self):
+        """Whether the frame is smoothed. Stored on ``self.frame.smooth``."""
+        return self.frame.smooth
+
+    @smooth.setter
+    def smooth(self, value):
+        self.frame.smooth = value
+
+    @property
+    def frame_shape(self):
+        """Frame shape. Stored on ``self.frame.frame_shape``."""
+        return self.frame.frame_shape
+
+    @frame_shape.setter
+    def frame_shape(self, value):
+        self.frame.frame_shape = value
+
+    @property
+    def frame_inner_sep(self):
+        """Frame inner separation. Stored on ``self.frame.inner_sep``."""
+        return self.frame.inner_sep
+
+    @frame_inner_sep.setter
+    def frame_inner_sep(self, value):
+        self.frame.inner_sep = value
+
+    @property
+    def frame_outer_sep(self):
+        """Frame outer separation. Stored on ``self.frame.outer_sep``."""
+        return self.frame.outer_sep
+
+    @frame_outer_sep.setter
+    def frame_outer_sep(self, value):
+        self.frame.outer_sep = value
+
+    @property
+    def frame_min_width(self):
+        """Frame minimum width. Stored on ``self.frame.min_width``."""
+        return self.frame.min_width
+
+    @frame_min_width.setter
+    def frame_min_width(self, value):
+        self.frame.min_width = value
+
+    @property
+    def frame_min_height(self):
+        """Frame minimum height. Stored on ``self.frame.min_height``."""
+        return self.frame.min_height
+
+    @frame_min_height.setter
+    def frame_min_height(self, value):
+        self.frame.min_height = value
+
+    @property
+    def frame_min_size(self):
+        """Frame minimum size. Stored on ``self.frame.min_size``."""
+        return self.frame.min_size
+
+    @frame_min_size.setter
+    def frame_min_size(self, value):
+        self.frame.min_size = value
+
+    def _update(
+        self,
+        xform_matrix,
+        reps: int = 0,
+        take: slice | None = None,
+        incr=None,
+        merge: bool = False,
+        xform_type: TransformationType = None,
+    ):
+        if take is not None:
+            raise ValueError(
+                "Tag._update does not support take=; transform the whole tag."
+            )
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
-            res = self
-        else:
-            tags = [self]
-            tag = self
-            for _ in range(reps):
-                tag = tag.copy()
-                tag._update(xform_matrix)
-                tags.append(tag)
-            res = Group(tags)
-
-        if merge and reps > 0:
+            return self
+        tags = [self]
+        tag = self
+        for i in range(reps):
+            if incr is not None and i > 0:
+                xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
+            tag = tag.copy()
+            tag._update(xform_matrix)
+            tags.append(tag)
+        res = Group(tags)
+        if merge:
             res = res.merge_shapes()
-
         return res
 
     @property
@@ -741,7 +971,7 @@ class Tag(Base):
         """
         tag = Tag(self.text, self.pos, xform_matrix=self.xform_matrix)
         tag._init_pos = self._init_pos
-        tag.frame = self.frame
+        tag.frame = copy(self.frame)
         tag.placement = self.placement
         tag.minimum_size = self.minimum_size
         tag.minimum_width = self.minimum_width

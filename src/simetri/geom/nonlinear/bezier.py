@@ -96,7 +96,7 @@ class Bezier(Shape):
             self.matrix = cubic_poly_matrix @ array(control_points)
         else:
             raise ValueError("Invalid number of control points.")
-        self.control_points = control_points
+        self.__dict__["control_points"] = control_points
 
     @property
     def control_points(self) -> Sequence[PointType]:
@@ -118,12 +118,13 @@ class Bezier(Shape):
             ValueError: If the number of control points is not 3 or 4.
         """
         self.__dict__["control_points"] = new_control_points
+        n_points = defaults["n_bezier_points"]
         if len(new_control_points) == 3:
-            vertices = q_bezier_points(*new_control_points)
+            vertices = q_bezier_points(*new_control_points, n_points)
             self[:] = vertices
             self.subtype = Types.Q_BEZIER
         elif len(new_control_points) == 4:
-            vertices = bezier_points(*new_control_points)
+            vertices = bezier_points(*new_control_points, n_points)
             self[:] = vertices
             self.subtype = Types.BEZIER
         else:

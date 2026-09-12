@@ -1119,7 +1119,10 @@ class Canvas:
         Args:
             *item_s (Drawable | Sequence): Item(s) to draw. Use
                 ``draw(a, b)`` or ``draw([a, b])``.
-            pos (PointType, optional): The position to draw the item(s), defaults to None.
+            pos (PointType, optional): Midpoint where the item is drawn.
+                For a group, this is the group's midpoint; every member is
+                shifted by the same ``(dx, dy)``. The item is not moved.
+                Defaults to None.
             angle (float, optional): The angle to rotate the item(s), defaults to 0.
             rotocenter (PointType, optional): The point about which to rotate, defaults to (0, 0).
             scale (tuple, optional): The scale factors for the x and y axes, defaults to (1, 1).
@@ -1144,22 +1147,23 @@ class Canvas:
         else:
             items = item_s
 
-        sketch_xform = self._sketch_xform_matrix
-
-        if pos is not None:
-            sketch_xform = translation_matrix(*pos[:2]) @ sketch_xform
-        if scale[0] != 1 or scale[1] != 1:
-            if pos is None:
-                pos = (0, 0)
-            sketch_xform = (
-                scale_in_place_matrix(*scale[:2], about) @ sketch_xform
-            )
-        if angle != 0:
-            sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
-        # self._sketch_xform_matrix = sketch_xform @ self._xform_matrix
-        self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
+        base_sketch_xform = self._sketch_xform_matrix
 
         for item in items:
+            sketch_xform = base_sketch_xform
+            if pos is not None:
+                mid_x, mid_y = item.midpoint[:2]
+                dest_x, dest_y = pos[:2]
+                dx = dest_x - mid_x
+                dy = dest_y - mid_y
+                sketch_xform = translation_matrix(dx, dy) @ sketch_xform
+            if scale[0] != 1 or scale[1] != 1:
+                sketch_xform = (
+                    scale_in_place_matrix(*scale[:2], about) @ sketch_xform
+                )
+            if angle != 0:
+                sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
+            self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
             draw.draw(self, item, **kwargs)
 
         self._sketch_xform_matrix = identity_matrix()

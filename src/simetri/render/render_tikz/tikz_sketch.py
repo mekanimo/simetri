@@ -332,6 +332,8 @@ def draw_tag_sketch(sketch):
         options += f", align={sketch.align.value}"
     if sketch.text_width:
         options += f", text width={sketch.text_width}"
+    if sketch.angle:
+        options += f", rotate={degrees(sketch.angle)}"
 
     # no_family, tex_family, new_family
     # no_size, tex_size, num_size
