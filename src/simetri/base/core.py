@@ -285,6 +285,7 @@ class Base:
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
         """Translate the object by ``dx`` and ``dy``.
@@ -318,6 +319,7 @@ class Base:
                 transform,
                 reps=reps,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.TRANSLATE,
             )
@@ -327,6 +329,7 @@ class Base:
                 reps=reps,
                 take=take,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.TRANSLATE,
             )
@@ -345,6 +348,7 @@ class Base:
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
         """Place copies of this object at points along ``path``.
@@ -425,6 +429,7 @@ class Base:
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
         """Rotate by ``angle`` radians about a point.
@@ -458,6 +463,7 @@ class Base:
                 transform,
                 reps=reps,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.ROTATE,
             )
@@ -468,6 +474,7 @@ class Base:
                 reps=reps,
                 take=take,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.ROTATE,
             )
@@ -483,6 +490,7 @@ class Base:
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
         """Mirror this object about a line or a point.
@@ -518,6 +526,7 @@ class Base:
                 transform,
                 reps=reps,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.MIRROR,
             )
@@ -527,6 +536,7 @@ class Base:
                 reps=reps,
                 take=take,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.MIRROR,
             )
@@ -544,6 +554,7 @@ class Base:
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
         """Mirror this object across ``glide_line``, then slide it.
@@ -582,6 +593,7 @@ class Base:
                 transform,
                 reps=reps,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.GLIDE,
             )
@@ -591,6 +603,7 @@ class Base:
                 reps=reps,
                 take=take,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.GLIDE,
             )
@@ -609,6 +622,7 @@ class Base:
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
         """Scale this object about a point.
@@ -643,14 +657,25 @@ class Base:
         if scale_y is None:
             scale_y = scale_x
         transform = scale_in_place_matrix(scale_x, scale_y, about)
-        res = self._update(
-            transform,
-            reps=reps,
-            take=take,
-            incr=incr,
-            merge=merge,
-            xform_type=TransformationType.SCALE,
-        )
+        if self.__class__.__name__ == "Shape":
+            res = self._update(
+                transform,
+                reps=reps,
+                incr=incr,
+                dyn_ref=dyn_ref,
+                merge=merge,
+                xform_type=TransformationType.SCALE,
+            )
+        else:
+            res = self._update(
+                transform,
+                reps=reps,
+                take=take,
+                incr=incr,
+                dyn_ref=dyn_ref,
+                merge=merge,
+                xform_type=TransformationType.SCALE,
+            )
 
         return res
 
@@ -665,6 +690,7 @@ class Base:
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
         """Shear this object by the given angles.
@@ -697,6 +723,7 @@ class Base:
                 transform,
                 reps=reps,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.SHEAR,
             )
@@ -706,6 +733,7 @@ class Base:
                 reps=reps,
                 take=take,
                 incr=incr,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.SHEAR,
             )
@@ -738,6 +766,7 @@ class Base:
         transform_matrix: NDArray,
         reps: int = 0,
         take: slice | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
         """Apply an affine matrix to this object.

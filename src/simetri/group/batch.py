@@ -849,19 +849,23 @@ class Group(Base):
     def copy(self) -> Group:
         """Returns a copy of the group.
 
+        The copy has the same class as this group, so subclasses keep their
+        type, ``subtype``, ``visible`` flag, and their own attributes without
+        writing a ``copy`` of their own. ``__init__`` is not called, since
+        subclass constructors take different arguments.
+
+        Elements are copied and ``modifiers`` is a new list. All other state
+        is copied by reference.
+
         Returns:
             Group: A copy of the group.
         """
 
-        # return deepcopy(self)
-        b = Group(modifiers=self.modifiers)
-        if self.elements:
-            b.elements = [elem.copy() for elem in self.elements]
-        else:
-            b.elements = []
-        # custom_attribs = custom_group_attributes(self)
-        # for attrib in custom_attribs:
-        #     setattr(b, attrib, getattr(self, attrib))
+        b = object.__new__(type(self))
+        b.__dict__.update(self.__dict__)
+        b.elements = [elem.copy() for elem in self.elements]
+        b.modifiers = self.modifiers[:]
+        b.id = get_unique_id(b)
         return b
 
     @property
@@ -902,6 +906,7 @@ class Group(Base):
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Self:

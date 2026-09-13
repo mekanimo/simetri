@@ -228,6 +228,7 @@ class Intersection(Shape):
         reps=0,
         take: slice | None = None,
         incr=None,
+        dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ):
@@ -662,6 +663,7 @@ class Division(Shape):
         reps=0,
         take: slice | None = None,
         incr=None,
+        dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ):
@@ -853,6 +855,7 @@ class Polyline(Shape):
         reps=0,
         take: slice | None = None,
         incr=None,
+        dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ):
@@ -1355,6 +1358,7 @@ class Lace(Group):
         reps=0,
         take: slice | None = None,
         incr=None,
+        dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ):

@@ -187,6 +187,7 @@ class Image(Rectangle):
         reps: int = 0,
         take: slice | None = None,
         incr=None,
+        dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> "Group | Image":

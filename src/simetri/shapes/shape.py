@@ -509,6 +509,7 @@ class Shape(Base, CommonStyle):
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool = False,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Shape | Group:

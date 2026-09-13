@@ -1,4 +1,7 @@
-"""Playing cards as custom widgets. Self-contained; not part of the core library.
+"""Playing cards as an extension. Self-contained; not part of the core library.
+
+``PlayingCard`` is a ``Group`` whose elements are the card's face and marks,
+so transformations, copying, and drawing all come from ``Group``.
 
 Use from a script::
 
@@ -15,7 +18,6 @@ from enum import StrEnum
 from math import pi
 
 import simetri.graphics as sg
-from simetri.base.core import _update_inplace
 
 CARD_WIDTH = 62
 CARD_HEIGHT = 88
@@ -186,9 +188,9 @@ def _pip_positions(pip_box: sg.BoundingBox, rank: Rank) -> list:
     return []
 
 
-def _card_graphics(
+def _card_marks(
     rank: Rank, suit: Suit, width: float, height: float
-) -> sg.Group:
+) -> list:
     """Build the face and marks at the origin from ``width`` and ``height``."""
     face = sg.Rectangle(
         (0, 0),
@@ -239,7 +241,7 @@ def _card_graphics(
                 CARD_FONT_SIZE * 3,
             )
         )
-        return sg.Group(items)
+        return items
 
     center_scale = CARD_PIP_SCALE
     if rank == Rank.ACE:
@@ -253,11 +255,11 @@ def _card_graphics(
         if pip_y < box_mid_y:
             pip.rotate(pi, about=pos)
         items.append(pip)
-    return sg.Group(items)
+    return items
 
 
 class PlayingCard(sg.Group):
-    """A single playing card drawn through ``draw_list``.
+    """A single playing card. The card's elements are its face and marks.
 
     Args:
         rank: ``Rank`` of the card.
@@ -279,71 +281,15 @@ class PlayingCard(sg.Group):
             raise ValueError(f"rank must be a Rank, got {rank!r}")
         if suit not in Suit:
             raise ValueError(f"suit must be a Suit, got {suit!r}")
-        super().__init__()
-        self.rank = rank
-        self.suit = suit
-        self.center = center[:2]
         if width is None:
             width = CARD_WIDTH
         if height is None:
             height = CARD_HEIGHT
-        self.width = width
-        self.height = height
-        self._rebuild_draw_list()
-
-    def _rebuild_draw_list(self) -> None:
-        """Build the card at the origin, then sit it on ``self.center``."""
-        card_graphics = _card_graphics(
-            self.rank, self.suit, self.width, self.height
-        )
-        cx, cy = self.center[:2]
-        card_graphics.translate(cx, cy)
-        self.clear()
-        self.append(card_graphics)
-        self.draw_list = [card_graphics]
-
-    def _update(
-        self,
-        xform_matrix,
-        reps=0,
-        take=None,
-        incr=None,
-        merge: bool = False,
-        xform_type=None,
-    ):
-        """Move the card center, then rebuild the face."""
-        if take is not None:
-            raise ValueError(
-                "PlayingCard._update does not support take=; "
-                "transform the whole card."
-            )
-        if merge:
-            raise ValueError("PlayingCard._update does not support merge=True.")
-        if reps == 0:
-            transformed = sg.homogenize([self.center]) @ xform_matrix
-            x, y = transformed[0][:2]
-            self.center = (float(x), float(y))
-            self._rebuild_draw_list()
-            return self
-
-        cards = []
-        for i in range(reps):
-            if incr is not None and i > 0:
-                xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
-            card_copy = self.copy()
-            card_copy._update(xform_matrix)
-            cards.append(card_copy)
-        return cards
-
-    def copy(self) -> "PlayingCard":
-        """Return a card with the same rank, suit, center, and size."""
-        return PlayingCard(
-            self.rank,
-            self.suit,
-            center=self.center,
-            width=self.width,
-            height=self.height,
-        )
+        super().__init__(_card_marks(rank, suit, width, height))
+        self.rank = rank
+        self.suit = suit
+        center_x, center_y = center[:2]
+        self.translate(center_x, center_y)
 
 
 class Deck(list):

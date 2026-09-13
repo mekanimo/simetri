@@ -214,6 +214,7 @@ class Poly:
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
+        dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Self | Group:
