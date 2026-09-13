@@ -1698,6 +1698,7 @@ point_refs = {
     Reference.CENTER,
     Reference.MIDPOINT,
     Reference.VERTEX,
+    Reference.EDGE,
 }
 
 line_refs = {
@@ -1713,6 +1714,7 @@ line_refs = {
 length_refs = {
     Reference.WIDTH,
     Reference.HEIGHT,
+    Reference.EDGE,
 }
 
 angle_refs = {

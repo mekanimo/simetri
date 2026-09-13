@@ -650,8 +650,8 @@ def set_defaults():
     default_types["border"] = float
     defaults_help["border"] = (
         "Border around the canvas. "
-        "Positive float. Length in <points>. "
-        "Border size for the canvas."
+        "Float. Length in <points>. "
+        "Positive values pad the canvas; negative values clip the output."
     )
 
     defaults["border_size"] = 4  # border size for the canvas
@@ -681,7 +681,8 @@ def set_defaults():
     default_types["canvas_border"] = float
     defaults_help["canvas_border"] = (
         "Canvas margin value for all sides. floating point number in points. 72 pnts = 1 in."
-        "Applied after the canvas size is computed from the drawn entities."
+        "Applied after the canvas size is computed from the drawn entities. "
+        "Negative values clip the output."
     )
 
     defaults["canvas_frame_color"] = colors.black  # frame color for the canvas

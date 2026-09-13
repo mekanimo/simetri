@@ -9,7 +9,7 @@ Examples:
     >>> s.translate(5, 0).rotate(sg.pi / 4, about=s.midpoint)
 """
 
-__all__ = ["Base", "DynRef"]
+__all__ = ["Base", "DynRef", "Transform", "Transformation"]
 
 import operator
 from collections.abc import Callable, Sequence
@@ -29,7 +29,7 @@ from ..geom.affine import (
     shear_matrix,
     translation_matrix,
 )
-from ..geom.geom_utils import offset_point
+from ..geom.geom_utils import midpoint, offset_point
 from ..geom.segments.line_utils import line_angle, offset_line, update_line
 from ..helpers.utilities import decompose_transformations
 from ..helpers.validation import is_line
@@ -229,8 +229,12 @@ class DynRef:
             ``EDGE`` read ``target.vertices[index]`` and
             ``target.edges[index]`` on a Shape, or
             ``target.all_vertices[index]`` and
-            ``target.all_edges[index]`` on a Group. Other members are
-            attributes of the target.
+            ``target.all_edges[index]`` on a Group. In a point argument
+            (``rotate`` / ``scale`` ``about``) an edge is that edge's
+            midpoint; in a line argument it stays the edge; in a length
+            argument it is the edge length. One ``EDGE`` argument to
+            ``translate`` is the edge vector ``(end - start)``. Other
+            members are attributes of the target.
         target: Which object the reference resolves against. ``KERNEL`` is
             the object as it was when the transform was called, ``PATTERN``
             is the result accumulated so far, and ``ACTIVE`` is the copy
@@ -247,8 +251,9 @@ class DynRef:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> from simetri.base.all_enums import Reference, ReferenceTarget
-        >>> from simetri.base.core import DynRef
+        >>> DynRef = sg.DynRef
+        >>> Reference = sg.Reference
+        >>> ReferenceTarget = sg.ReferenceTarget
         >>> box = sg.Shape([(0, 0), (100, 0), (100, 40)], closed=True)
         >>> gap = DynRef(Reference.WIDTH, ReferenceTarget.KERNEL)
         >>> row = box.translate(gap, 0, reps=2, dyn_ref=True)
@@ -283,6 +288,34 @@ class DynRef:
         ... )
         >>> [shape.midpoint[0] for shape in walk]
         [50.0, 150.0]
+
+        In a point argument the same edge is its midpoint.
+
+        >>> spun = box.rotate(
+        ...     sg.pi,
+        ...     about=DynRef(Reference.EDGE, ReferenceTarget.ACTIVE, index=1),
+        ...     reps=1,
+        ...     dyn_ref=True,
+        ... )
+        >>> [shape.midpoint[0] for shape in spun]
+        [50.0, 150.0]
+
+        An edge in a length argument is its length. One ``EDGE``
+        argument to ``translate`` is the edge vector.
+
+        >>> row = box.translate(
+        ...     DynRef(Reference.EDGE, ReferenceTarget.KERNEL, index=1),
+        ...     0,
+        ...     reps=1,
+        ...     dyn_ref=True,
+        ... )
+        >>> [shape.midpoint[0] for shape in row]
+        [50.0, 90.0]
+
+        >>> step = DynRef(Reference.EDGE, ReferenceTarget.KERNEL, index=1)
+        >>> climb = box.translate(step, reps=1, dyn_ref=True)
+        >>> [shape.midpoint[1] for shape in climb]
+        [20.0, 60.0]
     """
 
     reference: Reference | Callable
@@ -367,6 +400,286 @@ def _is_line(value: Any) -> bool:
     return length == 2 and _is_point(value[0])
 
 
+def _translate_builder_args(
+    dx: float | PointType | DynRef | None,
+    dy: float | DynRef | None,
+) -> tuple[Callable, dict[str, Any]]:
+    """Return the translation builder and its argument mapping.
+
+    Same two-length vs one-vector rules as ``Base.translate`` and
+    ``Transform.translate``.
+
+    Args:
+        dx: X length, or a vector / ``EDGE`` ``DynRef`` when ``dy`` is
+            omitted. ``None`` becomes ``0``.
+        dy: Y length. Omit it for the one-vector form.
+
+    Returns:
+        tuple: ``(translation_matrix, arguments)``. ``arguments`` is
+        ``{"dx", "dy"}`` for two lengths, or ``{"vector": ...}`` for one
+        ``EDGE`` ``DynRef`` vector.
+
+    Raises:
+        ValueError: If a vector is passed together with ``dy``.
+    """
+    if dy is None:
+        if dx is None:
+            dx = 0
+            dy = 0
+            vector_form = False
+        elif isinstance(dx, DynRef):
+            if callable(dx.reference):
+                dy = 0
+                vector_form = False
+            elif get_enum_value(Reference, dx.reference) == Reference.EDGE:
+                vector_form = True
+            else:
+                dy = 0
+                vector_form = False
+        elif _is_point(dx):
+            vector_form = True
+        else:
+            dy = 0
+            vector_form = False
+    else:
+        if _is_point(dx):
+            raise ValueError(
+                "translate takes one vector or two lengths, not a "
+                "vector and a second length. Use translate((x, y)) "
+                "or translate(dx, dy)."
+            )
+        vector_form = False
+
+    if vector_form:
+        if isinstance(dx, DynRef):
+            arguments = {"vector": dx}
+        else:
+            vector_x, vector_y = dx[:2]
+            arguments = {"dx": vector_x, "dy": vector_y}
+    else:
+        arguments = {"dx": dx, "dy": dy}
+
+    return translation_matrix, arguments
+
+
+@dataclass
+class Transform:
+    """One primitive transform recipe. Arguments may be ``DynRef`` values.
+
+    Build steps with the classmethods ``translate``, ``rotate``,
+    ``mirror``, ``glide``, ``scale``, and ``shear``. Those take the same
+    geometric arguments as the ``Base`` methods (no ``reps``, ``incr``,
+    or ``dyn_ref``). Put the steps in a ``Transformation`` and pass that
+    to ``shape.transform``.
+
+    Attributes:
+        builder: Matrix constructor from ``geom.affine``.
+        arguments: ``(name, value)`` pairs for the builder, in order.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+        >>> xform = sg.Transformation(
+        ...     sg.Transform.translate(40, 0),
+        ...     sg.Transform.rotate(sg.pi / 2, about=(0, 0)),
+        ... )
+        >>> moved = box.transform(xform)
+        >>> tuple(round(value, 10) for value in moved.midpoint[:2])
+        (-20.0, 90.0)
+    """
+
+    builder: Callable
+    arguments: tuple[tuple[str, Any], ...]
+
+    @classmethod
+    def translate(
+        cls,
+        dx: float | PointType | DynRef | None = None,
+        dy: float | DynRef | None = None,
+    ) -> "Transform":
+        """Translate by two lengths, or by one vector.
+
+        **Two lengths:** ``translate(dx, dy)``. ``translate(10)`` is
+        ``(10, 0)``. An ``EDGE`` ``DynRef`` used here is the edge
+        **length**, not a component of the edge.
+
+        **One vector:** ``translate((x, y))`` or ``translate(edge)``
+        with ``dy`` omitted. ``edge`` must be an ``EDGE`` ``DynRef``;
+        the step is ``end - start``. Do not pass a second length with
+        a vector. ``translate(edge, edge)`` is two lengths
+        ``(‖edge‖, ‖edge‖)``, not the vector.
+
+        Args:
+            dx: X length, or a vector ``(x, y)`` / ``EDGE`` ``DynRef``
+                when ``dy`` is omitted. Defaults to None (then ``0``).
+            dy: Y length. Omit it for the one-vector form. ``0`` means
+                a zero y length, not “use a vector”. Defaults to None.
+
+        Returns:
+            Transform: The translation step.
+
+        Raises:
+            ValueError: If a vector is passed together with ``dy``.
+        """
+        builder, arguments = _translate_builder_args(dx, dy)
+        return cls(builder, tuple(arguments.items()))
+
+    @classmethod
+    def rotate(
+        cls, angle: float | DynRef, about: PointType | DynRef = (0, 0)
+    ) -> "Transform":
+        """Rotate by ``angle`` radians about a point.
+
+        Args:
+            angle: Rotation angle in radians, counterclockwise.
+            about: Center of rotation. Defaults to ``(0, 0)``.
+
+        Returns:
+            Transform: The rotation step.
+        """
+        return cls(
+            rotation_matrix, (("angle", angle), ("about", about))
+        )
+
+    @classmethod
+    def mirror(cls, about: LineType | PointType | DynRef) -> "Transform":
+        """Mirror about a line or a point.
+
+        Args:
+            about: Mirror line, or a point treated as the mirror origin.
+
+        Returns:
+            Transform: The mirror step.
+        """
+        return cls(mirror_matrix, (("about", about),))
+
+    @classmethod
+    def glide(
+        cls,
+        glide_line: LineType | DynRef,
+        glide_dist: float | DynRef,
+    ) -> "Transform":
+        """Mirror across ``glide_line``, then slide along it.
+
+        Args:
+            glide_line: Line to mirror across and travel along.
+            glide_dist: Distance to travel along that line after the
+                mirror.
+
+        Returns:
+            Transform: The glide step.
+        """
+        return cls(
+            glide_matrix,
+            (("glide_line", glide_line), ("glide_dist", glide_dist)),
+        )
+
+    @classmethod
+    def scale(
+        cls,
+        scale_x: float | DynRef,
+        scale_y: float | DynRef | None = None,
+        about: PointType | DynRef = (0, 0),
+    ) -> "Transform":
+        """Scale about a point.
+
+        If ``scale_y`` is omitted, both axes use ``scale_x``.
+
+        Args:
+            scale_x: Scale factor on x.
+            scale_y: Scale factor on y. Defaults to ``scale_x``.
+            about: Fixed point. Defaults to ``(0, 0)``.
+
+        Returns:
+            Transform: The scale step.
+        """
+        if scale_y is None:
+            scale_y = scale_x
+        return cls(
+            scale_in_place_matrix,
+            (
+                ("scale_x", scale_x),
+                ("scale_y", scale_y),
+                ("about", about),
+            ),
+        )
+
+    @classmethod
+    def shear(
+        cls, theta_x: float | DynRef, theta_y: float | DynRef
+    ) -> "Transform":
+        """Shear by the given angles.
+
+        Args:
+            theta_x: Shear angle for the x direction, in radians.
+            theta_y: Shear angle for the y direction, in radians.
+
+        Returns:
+            Transform: The shear step.
+        """
+        return cls(
+            shear_matrix, (("theta_x", theta_x), ("theta_y", theta_y))
+        )
+
+
+@dataclass
+class Transformation:
+    """Ordered ``Transform`` steps applied as one composite tick.
+
+    ``shape.transform(xform, reps=n)`` repeats this sequence. Each
+    repetition resolves every step against the same KERNEL / PATTERN /
+    ACTIVE (the copy **before** this tick), multiplies the step
+    matrices in list order, and applies the product once.
+
+    That is different from calling ``translate`` then ``rotate`` as two
+    Python statements: sequential methods let ACTIVE change between
+    steps; a composite tick does not.
+
+    Args:
+        *steps: One or more ``Transform`` instances.
+
+    Raises:
+        ValueError: If no steps are given.
+        TypeError: If a step is not a ``Transform``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> DynRef = sg.DynRef
+        >>> Transform = sg.Transform
+        >>> Transformation = sg.Transformation
+        >>> Reference = sg.Reference
+        >>> ReferenceTarget = sg.ReferenceTarget
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+        >>> xform = Transformation(
+        ...     Transform.translate(
+        ...         DynRef(Reference.WIDTH, ReferenceTarget.KERNEL), 0
+        ...     ),
+        ...     Transform.rotate(
+        ...         sg.pi / 2,
+        ...         about=DynRef(
+        ...             Reference.MIDPOINT, ReferenceTarget.ACTIVE
+        ...         ),
+        ...     ),
+        ... )
+        >>> copies = box.transform(xform, reps=1, dyn_ref=True)
+        >>> [tuple(shape.midpoint[:2]) for shape in copies]
+        [(50.0, 20.0), (50.0, 120.0)]
+    """
+
+    steps: tuple[Transform, ...]
+
+    def __init__(self, *steps: Transform):
+        if not steps:
+            raise ValueError("Transformation needs at least one Transform.")
+        for step in steps:
+            if not isinstance(step, Transform):
+                raise TypeError(
+                    "Transformation steps must be Transform instances, "
+                    f"got {type(step).__name__}."
+                )
+        self.steps = steps
+
+
 def _multiply_reference(value: Any, multiplier: float) -> float:
     """Scale a resolved length reference.
 
@@ -427,16 +740,26 @@ def _offset_reference(value: Any, offset: PointType | float) -> Any:
     return res
 
 
-def _resolve_reference(dyn_ref: DynRef, target: Any, index: int) -> Any:
+def _resolve_reference(
+    dyn_ref: DynRef,
+    target: Any,
+    index: int,
+    as_point: bool = False,
+    as_length: bool = False,
+    as_vector: bool = False,
+) -> Any:
     """Resolve ``dyn_ref`` against ``target`` for repetition ``index``.
 
     Args:
         dyn_ref: The reference to resolve.
         target: Object supplying the reference geometry.
         index: Index of the current repetition.
+        as_point: If True, ``Reference.EDGE`` is the edge midpoint.
+        as_length: If True, ``Reference.EDGE`` is the edge length.
+        as_vector: If True, ``Reference.EDGE`` is ``end - start``.
 
     Returns:
-        The resolved length, point, or line.
+        The resolved length, point, line, or vector.
     """
     if dyn_ref.kwargs is None:
         kwargs = {}
@@ -466,6 +789,16 @@ def _resolve_reference(dyn_ref: DynRef, target: Any, index: int) -> Any:
                 res = target.all_edges[dyn_ref.index]
             else:
                 res = target.edges[dyn_ref.index]
+            if as_point or as_length or as_vector:
+                start, end = res
+                x1, y1 = start[:2]
+                x2, y2 = end[:2]
+                if as_point:
+                    res = midpoint((x1, y1), (x2, y2))
+                elif as_length:
+                    res = hypot(x2 - x1, y2 - y1)
+                else:
+                    res = (x2 - x1, y2 - y1)
         else:
             if dyn_ref.index is not None:
                 raise ValueError(
@@ -475,7 +808,14 @@ def _resolve_reference(dyn_ref: DynRef, target: Any, index: int) -> Any:
             res = getattr(target, reference)
 
     if dyn_ref.multiplier is not None:
-        res = _multiply_reference(res, dyn_ref.multiplier)
+        if as_vector:
+            vector_x, vector_y = res[:2]
+            res = (
+                vector_x * dyn_ref.multiplier,
+                vector_y * dyn_ref.multiplier,
+            )
+        else:
+            res = _multiply_reference(res, dyn_ref.multiplier)
     if dyn_ref.modifier is not None:
         res = dyn_ref.modifier(res)
     if dyn_ref.offset is not None:
@@ -484,13 +824,23 @@ def _resolve_reference(dyn_ref: DynRef, target: Any, index: int) -> Any:
     return res
 
 
-def _resolve_arg(value: Any, targets: _Targets, index: int) -> Any:
+def _resolve_arg(
+    value: Any,
+    targets: _Targets,
+    index: int,
+    as_point: bool = False,
+    as_length: bool = False,
+    as_vector: bool = False,
+) -> Any:
     """Resolve one transform argument that may be a ``DynRef``.
 
     Args:
         value: Transform argument, dynamic or plain.
         targets: The objects references resolve against.
         index: Index of the current repetition.
+        as_point: If True, ``Reference.EDGE`` is the edge midpoint.
+        as_length: If True, ``Reference.EDGE`` is the edge length.
+        as_vector: If True, ``Reference.EDGE`` is ``end - start``.
 
     Returns:
         The resolved value, or ``value`` unchanged when it is not a
@@ -498,7 +848,9 @@ def _resolve_arg(value: Any, targets: _Targets, index: int) -> Any:
     """
     if isinstance(value, DynRef):
         target = targets[get_enum_value(ReferenceTarget, value.target)]
-        res = _resolve_reference(value, target, index)
+        res = _resolve_reference(
+            value, target, index, as_point, as_length, as_vector
+        )
     else:
         res = value
 
@@ -531,16 +883,47 @@ def _dyn_matrix(
 
     Args:
         builder: Matrix constructor from ``geom.affine``.
-        arguments: The builder's positional arguments, dynamic or plain.
+        arguments: ``(name, value)`` pairs for the builder, dynamic or
+            plain.
         targets: The objects references resolve against.
         index: Index of the current repetition.
 
     Returns:
         NDArray: The transformation matrix for this repetition.
     """
-    return builder(
-        *[_resolve_arg(argument, targets, index) for argument in arguments]
-    )
+    if (
+        builder is translation_matrix
+        and len(arguments) == 1
+        and arguments[0][0] == "vector"
+    ):
+        value = arguments[0][1]
+        if isinstance(value, DynRef):
+            vector_x, vector_y = _resolve_arg(
+                value, targets, index, as_vector=True
+            )[:2]
+        else:
+            vector_x, vector_y = value[:2]
+        return translation_matrix(vector_x, vector_y)
+
+    resolved = []
+    for name, argument in arguments:
+        as_point = (
+            builder is rotation_matrix or builder is scale_in_place_matrix
+        ) and name == "about"
+        as_length = (
+            (builder is translation_matrix and name in {"dx", "dy"})
+            or (builder is glide_matrix and name == "glide_dist")
+            or (
+                builder is scale_in_place_matrix
+                and name in {"scale_x", "scale_y"}
+            )
+        )
+        resolved.append(
+            _resolve_arg(
+                argument, targets, index, as_point=as_point, as_length=as_length
+            )
+        )
+    return builder(*resolved)
 
 
 def _make_xform(
@@ -563,12 +946,66 @@ def _make_xform(
         ValueError: If an argument is a ``DynRef`` while ``dyn_ref`` is False.
     """
     if dyn_ref:
-        factory = partial(_dyn_matrix, builder, tuple(arguments.values()))
+        factory = partial(_dyn_matrix, builder, tuple(arguments.items()))
         matrix = factory(_Targets(kernel, kernel), 0)
     else:
         _reject_dyn_refs(**arguments)
         factory = None
         matrix = builder(*arguments.values())
+
+    return matrix, factory
+
+
+def _composite_matrix(
+    steps: tuple[Transform, ...], targets: _Targets, index: int
+) -> NDArray:
+    """Build the product of every step's matrix for one repetition.
+
+    Every step resolves against the same ``targets`` and ``index``.
+
+    Args:
+        steps: Ordered ``Transform`` recipes. Must not be empty.
+        targets: The objects references resolve against.
+        index: Index of the current repetition.
+
+    Returns:
+        NDArray: ``M0 @ M1 @ …`` for this repetition.
+    """
+    matrices = [
+        _dyn_matrix(step.builder, step.arguments, targets, index)
+        for step in steps
+    ]
+    return np.linalg.multi_dot(matrices)
+
+
+def _make_composite_xform(
+    transformation: Transformation, dyn_ref: bool, kernel: Any
+) -> tuple[NDArray, Callable | None]:
+    """Return a composite's first matrix and its per-repetition factory.
+
+    Args:
+        transformation: Ordered ``Transform`` steps.
+        dyn_ref: True if dynamic references are enabled.
+        kernel: Object the first repetition resolves against.
+
+    Returns:
+        tuple: The matrix for the first repetition, and a factory callable
+        that builds the matrix for later repetitions, or None when
+        ``dyn_ref`` is False.
+
+    Raises:
+        ValueError: If a step argument is a ``DynRef`` while ``dyn_ref``
+            is False.
+    """
+    steps = transformation.steps
+    if dyn_ref:
+        factory = partial(_composite_matrix, steps)
+        matrix = factory(_Targets(kernel, kernel), 0)
+    else:
+        for step in steps:
+            _reject_dyn_refs(**dict(step.arguments))
+        factory = None
+        matrix = _composite_matrix(steps, _Targets(kernel, kernel), 0)
 
     return matrix, factory
 
@@ -610,7 +1047,8 @@ def _next_xform_matrix(
             raise ValueError(
                 f"dyn_ref reached _update as {dyn_ref!r}. Dynamic references "
                 "need a transform method (translate, rotate, mirror, glide, "
-                "scale, or shear) to build the matrix factory."
+                "scale, or shear) or a Transformation to build the matrix "
+                "factory."
             )
         res = dyn_ref(targets, index)
     elif incr is not None and index > 0:
@@ -676,8 +1114,8 @@ class Base:
 
     def translate(
         self,
-        dx: float = 0,
-        dy: float = 0,
+        dx: float | PointType | DynRef | None = None,
+        dy: float | DynRef | None = None,
         take: slice | None = None,
         reps: int = 0,
         incr: float
@@ -688,13 +1126,26 @@ class Base:
         dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
-        """Translate the object by ``dx`` and ``dy``.
+        """Translate by two lengths, or by one vector.
+
+        **Two lengths:** ``translate(dx, dy)``. ``dx`` and ``dy`` are
+        scalars (or length ``DynRef`` values). ``translate(10)`` is
+        ``(10, 0)``. An ``EDGE`` ``DynRef`` used here is the edge
+        **length**, not a component of the edge.
+
+        **One vector:** ``translate((x, y))`` or ``translate(edge)``
+        with ``dy`` omitted. ``edge`` must be an ``EDGE`` ``DynRef``;
+        the step is ``end - start``. Do not pass a second length with
+        a vector. ``translate(edge, edge)`` is two lengths
+        ``(‖edge‖, ‖edge‖)``, not the vector.
 
         This object is updated.
 
         Args:
-            dx: Translation along the x-axis.
-            dy: Translation along the y-axis.
+            dx: X length, or a vector ``(x, y)`` / ``EDGE`` ``DynRef``
+                when ``dy`` is omitted. Defaults to None (then ``0``).
+            dy: Y length. Omit it for the one-vector form. ``0`` means
+                a zero y length, not “use a vector”. Defaults to None.
             take: Optional slice selecting which group elements to transform.
             reps: Extra repetitions of the transform. Defaults to 0.
             incr: Optional increment applied between repetitions.
@@ -702,6 +1153,9 @@ class Base:
 
         Returns:
             Self: This object after the translation is applied.
+
+        Raises:
+            ValueError: If a vector is passed together with ``dy``.
 
         Examples:
             >>> import simetri.graphics as sg
@@ -712,9 +1166,13 @@ class Base:
             ((10.0, 5.0), (11.0, 5.0))
             >>> square.translate(0, -5).vertices[0]
             (10.0, 0.0)
+            >>> mark = sg.Shape([(0, 0)])
+            >>> mark.translate((80, 40)).vertices[0][:2]
+            (80.0, 40.0)
         """
+        builder, arguments = _translate_builder_args(dx, dy)
         transform, dyn_ref = _make_xform(
-            translation_matrix, dyn_ref, self, dx=dx, dy=dy
+            builder, dyn_ref, self, **arguments
         )
         if self.type == Types.SHAPE:
             res = self._update(
@@ -1220,28 +1678,38 @@ class Base:
 
     def transform(
         self,
-        transform_matrix: NDArray,
+        xform: NDArray | Transformation,
         reps: int = 0,
         take: slice | None = None,
         dyn_ref: bool = False,
         merge: bool = False,
     ) -> Self:
-        """Apply an affine matrix to this object.
+        """Apply an affine matrix or a composite ``Transformation``.
 
-        This object is updated.
+        This object is updated. A 3×3 matrix is applied as-is. A
+        ``Transformation`` rebuilds its step matrices each repetition
+        when ``dyn_ref`` is True, resolving every step against the same
+        KERNEL / PATTERN / ACTIVE before multiplying them in list order.
 
         Args:
-            transform_matrix (NDArray): Affine matrix to apply.
+            xform: Affine matrix, or a ``Transformation`` of
+                ``Transform`` steps.
             reps (int, optional): Extra repetitions. Defaults to 0.
             take: Optional slice of group elements to transform.
+            dyn_ref: True if ``xform`` is a ``Transformation`` whose
+                steps contain ``DynRef`` values. Defaults to False.
             merge (bool, optional): Merge results where supported.
                 Defaults to False.
 
         Returns:
-            Self: This object after the matrix is applied.
+            Self: This object after the transform is applied.
 
         Raises:
-            ValueError: If ``dyn_ref`` is True.
+            TypeError: If ``xform`` is not a matrix or a
+                ``Transformation``.
+            ValueError: If ``dyn_ref`` is True and ``xform`` is a
+                matrix, or if a ``Transformation`` contains a ``DynRef``
+                while ``dyn_ref`` is False.
 
         Examples:
             >>> import simetri.graphics as sg
@@ -1250,25 +1718,45 @@ class Base:
             True
             >>> mark.vertices
             ((0.0, 0.0), (1.0, 0.0))
+            >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+            >>> xform = sg.Transformation(
+            ...     sg.Transform.translate(40, 0),
+            ...     sg.Transform.rotate(sg.pi / 2, about=(0, 0)),
+            ... )
+            >>> tuple(round(value, 10) for value in box.transform(xform).midpoint[:2])
+            (-20.0, 90.0)
         """
-        if dyn_ref:
-            raise ValueError(
-                "transform takes a ready-made matrix, so dyn_ref has no "
-                "arguments to resolve. Use translate, rotate, mirror, "
-                "glide, scale, or shear instead."
-            )
+        if isinstance(xform, Transformation):
+            transform, dyn_ref = _make_composite_xform(xform, dyn_ref, self)
+        else:
+            if not isinstance(xform, np.ndarray):
+                raise TypeError(
+                    "transform xform must be a 3x3 matrix or a "
+                    "Transformation, "
+                    f"got {type(xform).__name__}."
+                )
+            if dyn_ref:
+                raise ValueError(
+                    "transform takes a ready-made matrix, so dyn_ref has no "
+                    "arguments to resolve. Use a Transformation, or "
+                    "translate, rotate, mirror, glide, scale, or shear."
+                )
+            transform = xform
+            dyn_ref = None
         if self.__class__.__name__ == "Shape":
             res = self._update(
-                transform_matrix,
+                transform,
                 reps=reps,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.TRANSFORM,
             )
         else:
             res = self._update(
-                transform_matrix,
+                transform,
                 reps=reps,
                 take=take,
+                dyn_ref=dyn_ref,
                 merge=merge,
                 xform_type=TransformationType.TRANSFORM,
             )

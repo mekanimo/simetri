@@ -570,7 +570,7 @@ def circle_flower(n, radius=25, layers=6, ratio=None):
     circles = Circle((r1, 0), radius).rotate(pi / (n / 2), (0, 0), reps=n - 1)
     xform = scale_matrix(ratio) @ rotation_matrix(pi / n)
 
-    return circles.transform(xform_matrix=xform, reps=layers)
+    return circles.transform(xform=xform, reps=layers)
 
 
 def circle_inversion(point, center, radius):

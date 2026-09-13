@@ -121,8 +121,8 @@ def normalize_canvas_border(border) -> tuple[float, float, float, float]:
     if isinstance(border, (list, tuple, np.ndarray)) and len(border) == 4:
         return tuple(border)
     raise ValueError(
-        "Canvas.border must be a positive numeric value or a tuple of 4 "
-        "positive numeric values."
+        "Canvas.border must be a numeric value or a tuple of 4 "
+        "numeric values."
     )
 
 
@@ -210,7 +210,8 @@ class Canvas:
 
         Args:
             back_color: Background color of the canvas.
-            border: Border width applied to all margins.
+            border: Border width applied to all margins. Negative
+                values clip the output.
             page_size: Page size with ``page_origin`` at ``(0, 0)``.
                 Calculated automatically unless specified.
             page_origin: Origin of the page coordinate system.
@@ -304,10 +305,6 @@ class Canvas:
             if value is None:
                 border = None
             elif isinstance(value, (int, float)):
-                if value < 0:
-                    raise ValueError(
-                        "Canvas.border must be a positive numeric value."
-                    )
                 border = value
             elif (
                 isinstance(value, (list, tuple, np.ndarray)) and len(value) == 4
@@ -315,15 +312,11 @@ class Canvas:
                 border = tuple(value)
                 if not all(isinstance(item, (int, float)) for item in border):
                     raise ValueError(
-                        "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
-                    )
-                if any(item < 0 for item in border):
-                    raise ValueError(
-                        "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                        "Canvas.border must be a numeric value or a tuple of 4 numeric values."
                     )
             else:
                 raise ValueError(
-                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                    "Canvas.border must be a numeric value or a tuple of 4 numeric values."
                 )
 
             if hasattr(self, "active_page"):
@@ -1810,7 +1803,7 @@ class Canvas:
                 border_left, border_bottom, border_right, border_top = border
             else:
                 raise ValueError(
-                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                    "Canvas.border must be a numeric value or a tuple of 4 numeric values."
                 )
             w = b_box.width + border_left + border_right
             h = b_box.height + border_bottom + border_top

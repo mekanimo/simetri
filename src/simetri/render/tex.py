@@ -326,19 +326,11 @@ class Tex:
                 isinstance(canvas.border, (list, tuple))
                 and len(canvas.border) == 4
             ):
-                if any(item < 0 for item in canvas.border):
-                    raise ValueError(
-                        "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
-                    )
                 left, bottom, right, top = canvas.border
                 border = f"{{{left}pt {bottom}pt {right}pt {top}pt}}"
             else:
                 raise ValueError(
-                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
-                )
-            if isinstance(border, (int, float)) and border < 0:
-                raise ValueError(
-                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                    "Canvas.border must be a numeric value or a tuple of 4 numeric values."
                 )
         doc_class = self.get_doc_class(border, defaults["font_size"])
         # Check if different fonts are used

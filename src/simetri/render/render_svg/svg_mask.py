@@ -96,7 +96,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
                 )
             else:
                 raise ValueError(
-                    "Canvas.border must be a positive numeric value or a tuple of 4 positive numeric values."
+                    "Canvas.border must be a numeric value or a tuple of 4 numeric values."
                 )
             x = canvas_bbox.southwest[0] - border_left
             y = canvas_bbox.southwest[1] - border_bottom

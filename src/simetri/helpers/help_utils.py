@@ -168,6 +168,35 @@ d_help_topic: dict[str, list[str]] = {
         "sg.white",
         "See also: sg.help('effects')",
     ],
+    "composite_transformations": [
+        "sg.Transform",
+        "sg.Transformation",
+        "sg.translation_matrix",
+        "sg.rotation_matrix",
+        "sg.mirror_matrix",
+        "sg.glide_matrix",
+        "sg.scale_matrix",
+        "sg.shear_matrix",
+        "Shape.transform: a 3×3 matrix (product of helpers such as "
+        "translation_matrix @ rotation_matrix), or a Transformation of "
+        "Transform steps. dyn_ref=True rebuilds every step each "
+        "repetition against the same KERNEL / PATTERN / ACTIVE.",
+        "See also: sg.help('dynamic_references_doc'), "
+        "sg.help('transforms')",
+    ],
+    "dynamic_references_doc": [
+        "sg.DynRef",
+        "sg.Reference",
+        "sg.ReferenceTarget",
+        "sg.Transform",
+        "sg.Transformation",
+        "Shape.translate: two lengths (dx, dy), or one vector "
+        "translate((x, y)) / translate(edge). EDGE in a length slot "
+        "is ‖edge‖; one EDGE argument is the edge vector.",
+        "See also: sg.help('transforms'), "
+        "sg.help('composite_transformations'), "
+        "sg.doc(sg.Shape.translate)",
+    ],
     "edges": [
         "sg.Edge",
         "sg.Segment",
@@ -381,8 +410,16 @@ d_help_topic: dict[str, list[str]] = {
         "sg.scale",
         "sg.scale_matrix",
         "sg.shear_matrix",
+        "sg.Transform",
+        "sg.Transformation",
         "sg.translate",
         "sg.translation_matrix",
+        "translate(dx, dy) is two lengths; translate((x, y)) or "
+        "translate(edge) is one vector. Shape.transform accepts a "
+        "matrix or a Transformation. See "
+        "sg.help('dynamic_references_doc'), "
+        "sg.help('composite_transformations'), "
+        "and sg.doc(sg.Shape.translate).",
     ],
     "user_settings": [
         "sg.user_config_path",
@@ -424,6 +461,10 @@ _TOPIC_ALIASES = {
     "Canvas": "canvas",
     "Clipping": "clipping",
     "Colors": "colors",
+    "CompositeTransformations": "composite_transformations",
+    "composite_transformations_with_dynamic_references": "composite_transformations",
+    "dynamic_references": "dynamic_references_doc",
+    "DynamicReferences": "dynamic_references_doc",
     "Edges": "edges",
     "Effects": "effects",
     "Export": "export",

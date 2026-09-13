@@ -898,7 +898,8 @@ def header(
     xmlns="http://www.w3.org/2000/svg"
     width="{width}pt"
     height="{height}pt"
-    viewBox="{vbox_x} {vbox_y} {vbox_width} {vbox_height}">{defs_section}
+    viewBox="{vbox_x} {vbox_y} {vbox_width} {vbox_height}"
+    overflow="hidden">{defs_section}
     {styles}
     <g transform="translate(0 {dy}) scale(1,-1)">
     <rect x="{vbox_x}" y="{vbox_y}" width="{width}" height="{height}" fill="{back_color}" />

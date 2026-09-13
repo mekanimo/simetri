@@ -125,6 +125,7 @@ set_svg_defaults()
 
 # Restore public enum symbols that are shadowed by later star imports.
 from ..base.all_enums import Side as Side
+from ..base.core import Transform as Transform, Transformation as Transformation
 
 # aliases
 is_close = isclose
