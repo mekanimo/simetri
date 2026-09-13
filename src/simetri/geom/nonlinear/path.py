@@ -13,6 +13,7 @@ import re
 from collections import deque
 from dataclasses import dataclass
 from math import acos, atan2, cos, degrees, pi, radians, sin, sqrt
+from collections.abc import Callable
 from typing import Any, Self
 
 import numpy as np
@@ -30,7 +31,7 @@ from ...base.all_enums import (
 from ...base.all_enums import PathOperation as PathOps
 from ...base.common import PointType
 from ...base.common_style import CommonStyle
-from ...base.core import _update_inplace
+from ...base.core import _Targets, _next_xform_matrix
 from ...coloring.colors import Color
 from ...config.settings import defaults
 from ...group.batch import Group
@@ -1551,7 +1552,7 @@ class Path2D(Group, CommonStyle):
         reps: int = 0,
         take: slice | None = None,
         incr: float | None = None,
-        dyn_ref: bool | None = None,
+        dyn_ref: Callable | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Group:
@@ -1562,6 +1563,8 @@ class Path2D(Group, CommonStyle):
             reps: Extra copies to generate. Defaults to 0.
             take: Not supported; must be ``None``.
             incr: Increment applied between repetitions when ``reps > 0``.
+            dyn_ref: Matrix factory built by the transform method when
+                dynamic references are in use. Defaults to None.
             merge: If True and ``reps > 0``, merge resulting shapes.
             xform_type: Transform kind used with ``incr``.
 
@@ -1607,12 +1610,19 @@ class Path2D(Group, CommonStyle):
         else:
             paths = [self]
             path = self
+            if dyn_ref:
+                pattern = Group()
+                pattern.elements = paths
+                targets = _Targets(self, pattern)
+            else:
+                targets = None
             for i in range(reps):
-                if incr is not None and i > 0:
-                    xform_matrix = _update_inplace(
-                        xform_matrix, xform_type, incr
-                    )
                 path = path.copy()
+                if targets is not None:
+                    targets.active = path
+                xform_matrix = _next_xform_matrix(
+                    xform_matrix, xform_type, incr, dyn_ref, targets, i
+                )
                 path._update(xform_matrix)
                 paths.append(path)
             res = Group(paths)

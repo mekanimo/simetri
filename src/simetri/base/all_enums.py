@@ -978,7 +978,8 @@ class Reference(StrEnum):
     """References are used for applying transformations dynamically.
     For example a rotation can be applied to a transformed shape's midpoint
     that will be computed during successive transformations.
-    They are specified by bounding-box width, height, points, lines or their offsets.
+    They are specified by bounding-box width, height, points, lines,
+    angle, vertex, edge, or their offsets.
     """
 
     # points
@@ -1002,6 +1003,11 @@ class Reference(StrEnum):
     # lengths
     WIDTH = "width"
     HEIGHT = "height"
+    # angles
+    ANGLE = "angle"
+    # geometry
+    VERTEX = "vertex"
+    EDGE = "edge"
 
 
 class ReferenceTarget(StrEnum):
@@ -1691,6 +1697,7 @@ point_refs = {
     Reference.NORTHEAST,
     Reference.CENTER,
     Reference.MIDPOINT,
+    Reference.VERTEX,
 }
 
 line_refs = {
@@ -1700,11 +1707,16 @@ line_refs = {
     Reference.BOTTOM,
     Reference.HORIZ_CENTERLINE,
     Reference.VERT_CENTERLINE,
+    Reference.EDGE,
 }
 
 length_refs = {
     Reference.WIDTH,
     Reference.HEIGHT,
+}
+
+angle_refs = {
+    Reference.ANGLE,
 }
 # Drawable is used in runtime-imported annotations, so it must reference
 # Python types rather than enum values.

@@ -42,7 +42,7 @@ from simetri.geom.vectors import (
     v_from_points,
     v_mul,
 )
-from simetri.helpers.validation import is_point
+from simetri.helpers.validation import is_number, is_point
 
 
 def equal_edges(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
@@ -1752,6 +1752,47 @@ def line_through_point_and_angle(
     return [[x, y], [x + dx, y + dy]]
 
 
+def rotate_line(
+    line: LineType, angle: float, about: PointType = (0, 0)
+) -> LineType:
+    """Return a line rotated by ``angle`` about a point.
+
+    Args:
+        line (LineType): Input line defined by two points.
+        angle (float): Rotation angle in radians (counterclockwise).
+        about (PointType): Pivot. Defaults to ``(0, 0)``.
+
+    Returns:
+        LineType: Rotated line.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> p0, p1 = sg.rotate_line(
+        ...     [(100, 0), (200, 0)], sg.pi / 2, about=(0, 0)
+        ... )
+        >>> (round(p0[0], 10), round(p0[1], 10)), (
+        ...     round(p1[0], 10),
+        ...     round(p1[1], 10),
+        ... )
+        ((0.0, 100.0), (0.0, 200.0))
+    """
+    about_x, about_y = about[:2]
+    cosine = cos(angle)
+    sine = sin(angle)
+    rotated = []
+    for point in (line[0], line[1]):
+        x, y = point[:2]
+        delta_x = x - about_x
+        delta_y = y - about_y
+        rotated.append(
+            [
+                about_x + delta_x * cosine - delta_y * sine,
+                about_y + delta_x * sine + delta_y * cosine,
+            ]
+        )
+    return rotated
+
+
 def translate_line(dx: float, dy: float, line: LineType) -> LineType:
     """Return a translated line by dx and dy
 
@@ -1766,6 +1807,107 @@ def translate_line(dx: float, dy: float, line: LineType) -> LineType:
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
     return [[x1 + dx, y1 + dy], [x2 + dx, y2 + dy]]
+
+
+def _is_line_translate(value: object) -> bool:
+    """Return True if ``value`` is a ``(dx, dy)`` pair."""
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        if len(value) == 2:
+            delta_x, delta_y = value
+            return is_number(delta_x) and is_number(delta_y)
+    return False
+
+
+def _is_line_rotate(value: object) -> bool:
+    """Return True if ``value`` is ``(angle, about)``."""
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        if len(value) == 2:
+            angle, about = value
+            return is_number(angle) and is_point(about)
+    return False
+
+
+def update_line(line: LineType, incr: object) -> LineType:
+    """Return a line after one increment, or after an ordered sequence of them.
+
+    A number is a perpendicular offset. ``(dx, dy)`` translates both
+    endpoints. ``(angle, about)`` rotates about a point. A sequence of
+    those steps is applied in the given order. ``(callable, arg)`` is
+    resolved to one of the above.
+
+    Args:
+        line (LineType): Input line defined by two points.
+        incr: One increment, a sequence of increments, or
+            ``(callable, arg)``.
+
+    Returns:
+        LineType: The updated line.
+
+    Raises:
+        TypeError: If ``incr`` is not a recognized line increment.
+        ValueError: If ``incr`` is an empty sequence.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.update_line([(0, 0), (100, 0)], 20)
+        [[0.0, 20.0], [100.0, 20.0]]
+        >>> sg.update_line([(0, 0), (100, 0)], (0, 20))
+        [[0.0, 20.0], [100.0, 20.0]]
+        >>> p0, p1 = sg.update_line(
+        ...     [(100, 0), (200, 0)], (sg.pi / 2, (0, 0))
+        ... )
+        >>> (round(p0[0], 10), round(p0[1], 10)), (
+        ...     round(p1[0], 10),
+        ...     round(p1[1], 10),
+        ... )
+        ((0.0, 100.0), (0.0, 200.0))
+        >>> p0, p1 = sg.update_line(
+        ...     [(0, 0), (100, 0)], [(0, 20), (sg.pi / 2, (0, 0))]
+        ... )
+        >>> (round(p0[0], 10), round(p0[1], 10)), (
+        ...     round(p1[0], 10),
+        ...     round(p1[1], 10),
+        ... )
+        ((-20.0, 0.0), (-20.0, 100.0))
+        >>> p0, p1 = sg.update_line(
+        ...     [(0, 0), (100, 0)], [(sg.pi / 2, (0, 0)), (0, 20)]
+        ... )
+        >>> (round(p0[0], 10), round(p0[1], 10)), (
+        ...     round(p1[0], 10),
+        ...     round(p1[1], 10),
+        ... )
+        ((0.0, 20.0), (0.0, 120.0))
+    """
+    if is_number(incr):
+        return offset_line(line, float(incr))
+    if isinstance(incr, Sequence) and not isinstance(incr, (str, bytes)):
+        if len(incr) == 2 and callable(incr[0]) and not _is_line_translate(incr):
+            return update_line(line, incr[0](incr[1]))
+        if _is_line_translate(incr):
+            delta_x, delta_y = incr
+            return translate_line(float(delta_x), float(delta_y), line)
+        if _is_line_rotate(incr):
+            angle, about = incr
+            return rotate_line(line, float(angle), about)
+        if len(incr) == 0:
+            raise ValueError("incr is an empty sequence")
+        updated = line
+        for step in incr:
+            if is_number(step) or _is_line_translate(step) or _is_line_rotate(
+                step
+            ):
+                updated = update_line(updated, step)
+            else:
+                raise TypeError(
+                    "Each line increment must be an offset, (dx, dy), "
+                    f"or (angle, about); got {step!r}."
+                )
+        return updated
+
+    raise TypeError(
+        "A line increment must be an offset, (dx, dy), (angle, about), "
+        f"or a sequence of those; got {incr!r}."
+    )
 
 
 def trim_line(line1: LineType, line2: LineType) -> LineType:

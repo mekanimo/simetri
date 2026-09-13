@@ -5,7 +5,7 @@ Examples:
     >>> tag = sg.Tag("Hello", (0, 0))
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from copy import copy
 from dataclasses import dataclass
 from math import atan2, hypot, pi
@@ -35,7 +35,7 @@ from ..base.common import (
 )
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
-from ..base.core import Base, _update_inplace
+from ..base.core import Base, _Targets, _next_xform_matrix
 from ..coloring import colors
 from ..coloring.swatches import swatches_255
 from ..config.settings import defaults
@@ -931,7 +931,7 @@ class Tag(Base):
         reps: int = 0,
         take: slice | None = None,
         incr=None,
-        dyn_ref: bool | None = None,
+        dyn_ref: Callable | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ):
@@ -944,10 +944,19 @@ class Tag(Base):
             return self
         tags = [self]
         tag = self
+        if dyn_ref:
+            pattern = Group()
+            pattern.elements = tags
+            targets = _Targets(self, pattern)
+        else:
+            targets = None
         for i in range(reps):
-            if incr is not None and i > 0:
-                xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
             tag = tag.copy()
+            if targets is not None:
+                targets.active = tag
+            xform_matrix = _next_xform_matrix(
+                xform_matrix, xform_type, incr, dyn_ref, targets, i
+            )
             tag._update(xform_matrix)
             tags.append(tag)
         res = Group(tags)

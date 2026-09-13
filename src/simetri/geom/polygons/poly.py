@@ -226,7 +226,15 @@ class Poly:
 
         Returns:
             Shape or Group: The updated shape or a group of shapes.
+
+        Raises:
+            ValueError: If ``dyn_ref`` is used.
         """
+        if dyn_ref:
+            raise ValueError(
+                "Poly does not support dynamic references. Only Shape and "
+                "Group resolve dyn_ref."
+            )
         if reps == 0:
             fillet_radius = getattr(self, "fillet_radius", None)
             if fillet_radius:

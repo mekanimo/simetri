@@ -9,7 +9,7 @@ Examples:
 """
 
 from collections import OrderedDict
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from itertools import combinations
 from math import ceil, log10, pi, sqrt
 from typing import Any
@@ -20,7 +20,7 @@ from numpy import isclose
 
 from ..base.all_enums import Connection, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults
-from ..base.core import _update_inplace
+from ..base.core import _Targets, _next_xform_matrix, _update_inplace
 from ..coloring import colors
 from ..config.settings import defaults
 from ..geom.geom_utils import close_points_square, connected_pairs
@@ -246,8 +246,13 @@ class Intersection(Shape):
             Any: Updated intersection or list of updated intersections.
 
         Raises:
-            ValueError: If ``take`` is set.
+            ValueError: If ``take`` is set, or if ``dyn_ref`` is used.
         """
+        if dyn_ref:
+            raise ValueError(
+                "Intersection does not support dynamic references. Only "
+                "Shape and Group resolve dyn_ref."
+            )
         if take is not None:
             raise ValueError(
                 "Intersection._update does not support take=."
@@ -681,8 +686,13 @@ class Division(Shape):
             Any: Updated division or list of updated divisions.
 
         Raises:
-            ValueError: If ``take`` is set.
+            ValueError: If ``take`` is set, or if ``dyn_ref`` is used.
         """
+        if dyn_ref:
+            raise ValueError(
+                "Division does not support dynamic references. Only Shape "
+                "and Group resolve dyn_ref."
+            )
         if take is not None:
             raise ValueError("Division._update does not support take=.")
         if reps == 0:
@@ -873,8 +883,13 @@ class Polyline(Shape):
             Any: Updated polyline or list of updated polylines.
 
         Raises:
-            ValueError: If ``take`` is set.
+            ValueError: If ``take`` is set, or if ``dyn_ref`` is used.
         """
+        if dyn_ref:
+            raise ValueError(
+                "Polyline does not support dynamic references. Only Shape "
+                "and Group resolve dyn_ref."
+            )
         if take is not None:
             raise ValueError("Polyline._update does not support take=.")
         if reps == 0:
@@ -1358,7 +1373,7 @@ class Lace(Group):
         reps=0,
         take: slice | None = None,
         incr=None,
-        dyn_ref: bool | None = None,
+        dyn_ref: Callable | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ):
@@ -1369,6 +1384,8 @@ class Lace(Group):
             reps (int, optional): Number of repetitions. Defaults to 0.
             take: Not supported for Lace; must be ``None``.
             incr: Optional increment between repetitions when ``reps > 0``.
+            dyn_ref: Matrix factory built by the transform method when
+                dynamic references are in use. Defaults to None.
             merge: Not supported for Lace when ``reps > 0``.
             xform_type: Transform kind used with ``incr``.
 
@@ -1376,7 +1393,8 @@ class Lace(Group):
             Any: Updated lace or list of updated laces.
 
         Raises:
-            ValueError: If ``take`` is set, or ``merge`` is True with ``reps > 0``.
+            ValueError: If ``take`` is set, or ``merge`` is True with
+                ``reps > 0``.
         """
         if take is not None:
             raise ValueError(
@@ -1417,14 +1435,23 @@ class Lace(Group):
             return self
 
         res = []
+        if dyn_ref:
+            pattern = Group()
+            pattern.elements = [self]
+            targets = _Targets(self, pattern)
+        else:
+            targets = None
         for i in range(reps):
-            if incr is not None and i > 0:
-                xform_matrix = _update_inplace(
-                    xform_matrix, xform_type, incr
-                )
             lace_copy = self.copy()
+            if targets is not None:
+                targets.active = lace_copy
+            xform_matrix = _next_xform_matrix(
+                xform_matrix, xform_type, incr, dyn_ref, targets, i
+            )
             lace_copy._update(xform_matrix)
             res.append(lace_copy)
+            if targets is not None:
+                targets.pattern.elements.append(lace_copy)
 
         return res
 

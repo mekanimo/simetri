@@ -43,7 +43,7 @@ __all__ = [
 ]
 
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from math import floor, isclose, pi
@@ -66,7 +66,7 @@ from ..base.all_enums import (
 )
 from ..base.common import LineType, PointType, get_defaults, get_unique_id
 from ..base.common_style import CommonStyle
-from ..base.core import Base, _update_inplace
+from ..base.core import Base, _next_xform_matrix, _Targets
 from ..coloring.colors import Color
 from ..config.settings import defaults
 from ..geom.bbox import BoundingBox, bounding_box
@@ -509,7 +509,7 @@ class Shape(Base, CommonStyle):
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
-        dyn_ref: bool = False,
+        dyn_ref: Callable | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Shape | Group:
@@ -518,6 +518,8 @@ class Shape(Base, CommonStyle):
         Args:
             xform_matrix (array): The transformation matrix.
             reps (int, optional): The number of repetitions, defaults to 0.
+            dyn_ref: Matrix factory built by the transform method when
+                dynamic references are in use. Defaults to None.
 
         Returns:
             Shape or Group: The updated shape or a group of shapes.
@@ -538,13 +540,20 @@ class Shape(Base, CommonStyle):
         else:
             shapes = [self]
             shape = self
+            if dyn_ref:
+                pattern = Group()
+                # Aliases shapes, so the pattern grows with the loop.
+                pattern.elements = shapes
+                targets = _Targets(self, pattern)
+            else:
+                targets = None
             for i in range(reps):
                 shape = shape.copy()
-                if incr is not None and i > 0:
-                    xform_matrix = _update_inplace(
-                        xform_matrix, xform_type, incr
-                    )
-
+                if targets is not None:
+                    targets.active = shape
+                xform_matrix = _next_xform_matrix(
+                    xform_matrix, xform_type, incr, dyn_ref, targets, i
+                )
                 shape._update(xform_matrix)
                 shapes.append(shape)
             res = Group(shapes)

@@ -14,7 +14,7 @@ from bisect import bisect_left
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from functools import cmp_to_key, reduce, wraps
-from math import atan2, ceil, cos, factorial, floor, isclose, sin, sqrt
+from math import atan2, ceil, cos, factorial, floor, hypot, isclose, sin, sqrt
 from pathlib import Path
 from time import monotonic, perf_counter, sleep, time
 
@@ -968,14 +968,48 @@ def nested_count(nested_sequence):
     )
 
 
+class TransformationParts(tuple):
+    """``(translation, rotation, scale)`` plus the recovered pivot ``about``.
+
+    Unpacks as the three historical components so existing callers stay valid.
+    ``about`` is the unique fixed point of the matrix when one exists, else
+    ``(0.0, 0.0)``.
+    """
+
+    def __new__(cls, translation, rotation, scale, about):
+        parts = super().__new__(cls, (translation, rotation, scale))
+        parts.about = about
+        return parts
+
+    @property
+    def translation(self):
+        """Matrix translation term (row 2)."""
+        return self[0]
+
+    @property
+    def rotation(self):
+        """Rotation angle in radians from the linear part."""
+        return self[1]
+
+    @property
+    def scale(self):
+        """``(scale_x, scale_y)`` from the linear-part column norms."""
+        return self[2]
+
+
 def decompose_transformations(transformation_matrix):
     """Decompose a 3x3 transformation matrix into translation, rotation, and scale components.
+
+    ``translation`` is the matrix translation term (row 2). ``about`` is the
+    fixed point of a rotation or scale about a point, when that point is
+    unique.
 
     Args:
         transformation_matrix: A 3x3 transformation matrix.
 
     Returns:
-        A tuple containing the translation, rotation, and scale components.
+        TransformationParts: ``(translation, rotation, scale)`` with
+        ``.about`` set to the recovered pivot, or ``(0.0, 0.0)``.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -984,13 +1018,35 @@ def decompose_transformations(transformation_matrix):
         >>> translation, rotation, scale = sg.decompose_transformations(matrix)
         >>> list(translation), float(rotation), (float(scale[0]), float(scale[1]))
         ([3.0, 4.0], 0.0, (1.0, 1.0))
+        >>> M = sg.rotation_matrix(sg.pi / 2, about=(100, 100))
+        >>> parts = sg.decompose_transformations(M)
+        >>> tuple(round(value, 10) for value in parts.about)
+        (100.0, 100.0)
     """
     xform = transformation_matrix
     translation = xform[2, :2]
     rotation = np.arctan2(xform[0, 1], xform[0, 0])
     scale = np.linalg.norm(xform[:2, 0]), np.linalg.norm(xform[:2, 1])
 
-    return translation, rotation, scale
+    m00, m01 = xform[0, 0], xform[0, 1]
+    m10, m11 = xform[1, 0], xform[1, 1]
+    m20, m21 = xform[2, 0], xform[2, 1]
+    system = np.array([[m00 - 1.0, m10], [m01, m11 - 1.0]])
+    rhs = np.array([-m20, -m21])
+    try:
+        about_xy = np.linalg.solve(system, rhs)
+    except np.linalg.LinAlgError:
+        about = (0.0, 0.0)
+    else:
+        about_x, about_y = about_xy[:2]
+        mapped_x = about_x * m00 + about_y * m10 + m20
+        mapped_y = about_x * m01 + about_y * m11 + m21
+        if hypot(mapped_x - about_x, mapped_y - about_y) <= defaults["dist_tol"]:
+            about = (float(about_x), float(about_y))
+        else:
+            about = (0.0, 0.0)
+
+    return TransformationParts(translation, rotation, scale, about)
 
 
 def check_directory(dir_path):

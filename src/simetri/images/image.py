@@ -205,8 +205,13 @@ class Image(Rectangle):
             Group: The updated shape or a group of shapes.
 
         Raises:
-            ValueError: If ``take`` is set.
+            ValueError: If ``take`` is set, or if ``dyn_ref`` is used.
         """
+        if dyn_ref:
+            raise ValueError(
+                "Image does not support dynamic references. Only Shape and "
+                "Group resolve dyn_ref."
+            )
         if take is not None:
             raise ValueError(
                 "Image._update does not support take=; transform the whole image."

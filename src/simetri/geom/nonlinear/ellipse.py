@@ -319,8 +319,13 @@ class Ellipse(Shape):
             Group: The updated shape or a group of shapes.
 
         Raises:
-            ValueError: If ``take`` is set.
+            ValueError: If ``take`` is set, or if ``dyn_ref`` is used.
         """
+        if dyn_ref:
+            raise ValueError(
+                "Ellipse does not support dynamic references. Only Shape and "
+                "Group resolve dyn_ref."
+            )
         if take is not None:
             raise ValueError(
                 "Ellipse._update does not support take=; transform the whole ellipse."

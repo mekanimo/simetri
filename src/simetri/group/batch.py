@@ -31,7 +31,12 @@ from ..base.all_enums import (
     get_enum_value,
 )
 from ..base.common import LineType, PointType, get_unique_id
-from ..base.core import STYLE_ATTRIBUTES, Base, _update_inplace
+from ..base.core import (
+    STYLE_ATTRIBUTES,
+    Base,
+    _next_xform_matrix,
+    _Targets,
+)
 from ..config.settings import defaults, issue_warning
 from ..geom.bbox import bounding_box
 from ..geom.points.point_utils import distance, fix_degen_points, round_point
@@ -117,7 +122,8 @@ class Group(Base):
     """Collection of drawable elements that transform together.
 
     Elements may be Shape, Group, or Tag objects. Methods such as
-    ``all_vertices`` and ``all_shapes`` flatten nested groups recursively.
+    ``all_vertices``, ``all_edges``, ``all_segments``, and ``all_shapes``
+    flatten nested groups recursively.
     Alias: ``Batch`` on the ``simetri.graphics`` namespace.
 
     Attributes:
@@ -679,6 +685,8 @@ class Group(Base):
         for element in elements:
             if element.type == Types.SHAPE:
                 segments.extend(element.vertex_pairs)
+            elif element.type == Types.GROUP:
+                segments.extend(element.all_segments)
         return segments
 
     @property
@@ -906,7 +914,7 @@ class Group(Base):
         | tuple[callable, Any]
         | tuple[InPlace, Any]
         | None = None,
-        dyn_ref: bool | None = None,
+        dyn_ref: Callable | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
     ) -> Self:
@@ -918,6 +926,8 @@ class Group(Base):
         Args:
             xform_matrix (ndarray): The transformation matrix.
             reps (int, optional): The number of repetitions. Defaults to 0.
+            dyn_ref: Matrix factory built by the transform method when
+                dynamic references are in use. Defaults to None.
             merge(bool, optional): If True, shapes are merged.
         """
         if take is None:
@@ -931,12 +941,19 @@ class Group(Base):
                     for modifier in self.modifiers:
                         modifier.apply(element)
         else:
+            if dyn_ref:
+                # self grows in place, so it is the accumulated pattern.
+                targets = _Targets(Group(self.elements[:]), self)
+                targets.active = Group()
+            else:
+                targets = None
             new = []
             for i in range(reps):
-                if incr is not None and i > 0:
-                    xform_matrix = _update_inplace(
-                        xform_matrix, xform_type, incr
-                    )
+                if targets is not None:
+                    targets.active.elements = elements
+                xform_matrix = _next_xform_matrix(
+                    xform_matrix, xform_type, incr, dyn_ref, targets, i
+                )
                 for element in elements:
                     new_element = element.copy()
                     new_element._update(xform_matrix)
