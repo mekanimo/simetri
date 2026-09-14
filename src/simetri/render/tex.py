@@ -196,9 +196,13 @@ class Tex:
             str: The final TeX code.
         """
         doc_code = []
-        for sketch in self.sketches:
-            if sketch.location == TexLoc.DOCUMENT:
-                doc_code.append(sketch.code)
+        for page in canvas.pages:
+            for sketch in page.sketches:
+                if (
+                    sketch.subtype == Types.TEX_SKETCH
+                    and sketch.location == TexLoc.DOCUMENT
+                ):
+                    doc_code.append(sketch.code)
         doc_code = "\n".join(doc_code)
         if canvas.back_color is None:
             back_color = ""

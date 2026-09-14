@@ -217,7 +217,9 @@ class Arc(Shape):
 
 
 class Ellipse(Shape):
-    """An axis-aligned or rotated ellipse defined by center, width, and height.
+    """Ellipse defined by width, height, and optional center.
+
+    Size comes first so ``Ellipse(80, 40)`` is an 80×40 ellipse at the origin.
 
     Attributes:
         a: Semi-axis along width (``width / 2``).
@@ -232,16 +234,16 @@ class Ellipse(Shape):
 
             import simetri.graphics as sg
 
-            ell = sg.Ellipse((0, 0), width=80, height=40)
+            ell = sg.Ellipse(80, 40)
             canvas = sg.Canvas()
             canvas.draw(ell)
     """
 
     def __init__(
         self,
-        center: PointType,
-        width: float,
-        height: float,
+        width: float | None = None,
+        height: float | None = None,
+        center: PointType = (0, 0),
         angle: float = 0,
         xform_matrix: NDArray = None,
         **kwargs,
@@ -249,20 +251,32 @@ class Ellipse(Shape):
         """Create an ellipse.
 
         Args:
-            center: Ellipse center ``(x, y)``.
-            width: Full width of the ellipse.
-            height: Full height of the ellipse.
+            width: Full width. ``None`` uses ``defaults["ellipse_width_height"]``.
+            height: Full height. ``None`` uses ``defaults["ellipse_width_height"]``.
+            center: Ellipse center ``(x, y)``. Defaults to ``(0, 0)``.
             angle: Rotation angle in radians. Defaults to 0.
             xform_matrix: Optional transformation matrix.
             **kwargs: Additional keyword arguments passed to ``Shape``.
         """
+        if width is None or height is None:
+            default_width, default_height = defaults["ellipse_width_height"]
+            if width is None:
+                width = default_width
+            if height is None:
+                height = default_height
         n_points = defaults["n_ellipse_points"]
         vertices = [
             tuple(p)
             for p in ellipse_points(
-                center, width / 2, height / 2, angle, n_points
+                center, width / 2, height / 2, 0, n_points
             )
         ]
+        if angle:
+            rot_matrix = rotation_matrix(angle, center)
+            if xform_matrix is not None:
+                xform_matrix = rot_matrix @ xform_matrix
+            else:
+                xform_matrix = rot_matrix
         super().__init__(
             vertices, closed=True, xform_matrix=xform_matrix, **kwargs
         )
@@ -271,12 +285,49 @@ class Ellipse(Shape):
         self.a = a
         self.b = b
         self.center = center
-        self.width = width
-        self.height = height
-        self.angle = angle
         self.smooth = True
         self.closed = True
         self.subtype = Types.ELLIPSE
+
+    def __setattr__(self, name, value):
+        """Set an attribute of the ellipse.
+
+        ``width`` and ``height`` scale about the center.
+
+        Args:
+            name: The name of the attribute.
+            value: The value of the attribute.
+        """
+        if name == "width" and "a" in self.__dict__:
+            current = 2 * self.__dict__["a"]
+            super().__setattr__("a", value / 2)
+            if current != 0:
+                self.scale(value / current, 1, about=self.center, reps=0)
+        elif name == "height" and "b" in self.__dict__:
+            current = 2 * self.__dict__["b"]
+            super().__setattr__("b", value / 2)
+            if current != 0:
+                self.scale(1, value / current, about=self.center, reps=0)
+        else:
+            super().__setattr__(name, value)
+
+    @property
+    def width(self):
+        """Return the full width of the ellipse (twice the x semi-axis).
+
+        Returns:
+            float: ``2 * a``.
+        """
+        return 2 * self.a
+
+    @property
+    def height(self):
+        """Return the full height of the ellipse (twice the y semi-axis).
+
+        Returns:
+            float: ``2 * b``.
+        """
+        return 2 * self.b
 
     @property
     def closed(self):
@@ -355,16 +406,9 @@ class Ellipse(Shape):
         Returns:
             Ellipse: A copy of the ellipse.
         """
-        center = self.center
-        width = self.width
-        height = self.height
-        ellipse = Ellipse(center, width, height)
-        custom_attribs = custom_attributes(self)
-        for attrib in custom_attribs:
-            setattr(ellipse, attrib, getattr(self, attrib))
-
-        for k, v in kwargs.items():
-            setattr(ellipse, k, v)
+        ellipse = super().copy()
+        for key, value in kwargs.items():
+            setattr(ellipse, key, value)
 
         return ellipse
 
@@ -946,3 +990,6 @@ def solve_quartic_equation(a, b, c, d):
         result[i] -= 0.25 * a
 
     return result
+
+
+ellipse = Ellipse

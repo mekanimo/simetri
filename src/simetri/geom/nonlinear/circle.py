@@ -567,7 +567,7 @@ def circle_flower(n, radius=25, layers=6, ratio=None):
             )
 
     r1 = side_len_to_radius(n, 2 * radius)
-    circles = Circle((r1, 0), radius).rotate(pi / (n / 2), (0, 0), reps=n - 1)
+    circles = Circle(radius, (r1, 0)).rotate(pi / (n / 2), (0, 0), reps=n - 1)
     xform = scale_matrix(ratio) @ rotation_matrix(pi / n)
 
     return circles.transform(xform=xform, reps=layers)

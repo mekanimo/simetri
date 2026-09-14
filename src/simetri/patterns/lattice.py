@@ -10,7 +10,7 @@ Examples:
         import simetri.graphics as sg
 
         lat = sg.lattice_p4(a=40)
-        motif = sg.Circle((10, 10), 5)
+        motif = sg.Circle(5, (10, 10))
         lat.populate_unit(motif)
 """
 

@@ -22,7 +22,8 @@ from ..base.all_enums import (
     Types,
 )
 from ..base.common import PointType
-from ..patterns.pattern import PatternDef, ReferenceDef, TransformDef
+from ..base.core import DynRef
+from ..patterns.pattern import PatternDef, TransformDef
 
 
 @dataclass
@@ -36,8 +37,8 @@ class HopDef:
         pattern_def: Built ``PatternDef``.
     """
 
-    dx: float | ReferenceDef
-    dy: float | ReferenceDef = 0
+    dx: float | DynRef
+    dy: float | DynRef = 0
     reps: int = 3
 
     def __post_init__(self):
@@ -83,8 +84,8 @@ class StepDef:
         pattern_def: Built ``PatternDef``.
     """
 
-    mirror_offset: float | ReferenceDef
-    distance: float | ReferenceDef
+    mirror_offset: float | DynRef
+    distance: float | DynRef
     side: Reference = Reference.BOTTOM
     reps: int = 3
 
@@ -105,7 +106,7 @@ class StepDef:
         """Rebuild pattern_def from current glide parameters."""
         t_type = TransformationType.GLIDE
         target = ReferenceTarget.KERNEL
-        ref_def = ReferenceDef(self.side, target, self.mirror_offset)
+        ref_def = DynRef(self.side, target, self.mirror_offset)
         glide_def = TransformDef(t_type, ref_def, self.distance, reps=self.reps)
         self.pattern_def = PatternDef([glide_def])
 
@@ -133,8 +134,8 @@ class JumpDef:
         pattern_def: Built ``PatternDef``.
     """
 
-    mirror_offset: float | ReferenceDef
-    distance: float | ReferenceDef
+    mirror_offset: float | DynRef
+    distance: float | DynRef
     side: Reference = Reference.BOTTOM
     reps: int = 3
 
@@ -155,7 +156,7 @@ class JumpDef:
         """Rebuild pattern_def from current mirror/translate parameters."""
         t_type = TransformationType.MIRROR
         target = ReferenceTarget.KERNEL
-        ref_def = ReferenceDef(self.side, target, self.mirror_offset)
+        ref_def = DynRef(self.side, target, self.mirror_offset)
         mirror_def = TransformDef(t_type, ref_def, reps=1)
         t_type2 = TransformationType.TRANSLATE
         trans_def = TransformDef(
@@ -189,8 +190,8 @@ class SidleDef:
         pattern_def: Built ``PatternDef``.
     """
 
-    mirror_offset: float | ReferenceDef
-    dx: float | ReferenceDef
+    mirror_offset: float | DynRef
+    dx: float | DynRef
     reps: int = 0
 
     def __post_init__(self):
@@ -210,7 +211,7 @@ class SidleDef:
         """Rebuild pattern_def from current mirror/translate parameters."""
         mirror_def = TransformDef(
             TransformationType.MIRROR,
-            ReferenceDef(
+            DynRef(
                 Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset
             ),
             reps=1,
@@ -247,9 +248,9 @@ class SpinningHopDef:
         pattern_def: Built ``PatternDef``.
     """
 
-    rotocenter: PointType | ReferenceDef
-    dx: float | ReferenceDef
-    dy: float | ReferenceDef = 0
+    rotocenter: PointType | DynRef
+    dx: float | DynRef
+    dy: float | DynRef = 0
     reps: int = 3
 
     def __post_init__(self):
@@ -306,10 +307,10 @@ class SpinningJumpDef:
         pattern_def: Built ``PatternDef``.
     """
 
-    mirror_offset1: float | ReferenceDef
-    mirror_offset2: float | ReferenceDef
-    dx: float | ReferenceDef
-    dy: float | ReferenceDef = 0
+    mirror_offset1: float | DynRef
+    mirror_offset2: float | DynRef
+    dx: float | DynRef
+    dy: float | DynRef = 0
     reps: int = 3
 
     def __post_init__(self):
@@ -329,14 +330,14 @@ class SpinningJumpDef:
         """Rebuild pattern_def from current mirror/translate parameters."""
         mirror_def1 = TransformDef(
             TransformationType.MIRROR,
-            ReferenceDef(
+            DynRef(
                 Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset1
             ),
             reps=1,
         )
         mirror_def2 = TransformDef(
             TransformationType.MIRROR,
-            ReferenceDef(
+            DynRef(
                 Reference.BOTTOM, ReferenceTarget.PATTERN, self.mirror_offset2
             ),
             reps=1,
@@ -374,10 +375,10 @@ class SpinningSidleDef:
         pattern_def: Built ``PatternDef``.
     """
 
-    mirror_offset: float | ReferenceDef
-    glide_distance: float | ReferenceDef
-    dx: float | ReferenceDef
-    dy: float | ReferenceDef = 0
+    mirror_offset: float | DynRef
+    glide_distance: float | DynRef
+    dx: float | DynRef
+    dy: float | DynRef = 0
     reps: int = 3
 
     def __post_init__(self):
@@ -397,14 +398,14 @@ class SpinningSidleDef:
         """Rebuild pattern_def from current mirror/glide/translate parameters."""
         mirror_def = TransformDef(
             TransformationType.MIRROR,
-            ReferenceDef(
+            DynRef(
                 Reference.RIGHT, ReferenceTarget.KERNEL, self.mirror_offset
             ),
             reps=1,
         )
         glide_def = TransformDef(
             TransformationType.GLIDE,
-            ReferenceDef(Reference.BOTTOM, ReferenceTarget.KERNEL, 0),
+            DynRef(Reference.BOTTOM, ReferenceTarget.KERNEL, 0),
             self.glide_distance,
             reps=1,
         )
@@ -428,7 +429,7 @@ class SpinningSidleDef:
         return self.pattern_def.apply(design)
 
 
-def hop_def(distance: float | ReferenceDef, reps: int = 3) -> PatternDef:
+def hop_def(distance: float | DynRef, reps: int = 3) -> PatternDef:
     """Build a p1 (translation) pattern definition.
 
     Args:
@@ -447,8 +448,8 @@ def hop_def(distance: float | ReferenceDef, reps: int = 3) -> PatternDef:
 
 
 def step_def(
-    mirror_offset: float | ReferenceDef,
-    distance: float | ReferenceDef,
+    mirror_offset: float | DynRef,
+    distance: float | DynRef,
     side: Reference = Reference.BOTTOM,
     reps: int = 3,
 ) -> PatternDef:
@@ -465,7 +466,7 @@ def step_def(
     """
     t_type = TransformationType.GLIDE
     target = ReferenceTarget.KERNEL
-    ref_def = ReferenceDef(side, target, mirror_offset)
+    ref_def = DynRef(side, target, mirror_offset)
     glide_def = TransformDef(t_type, ref_def, distance, reps=reps)
     pattern_def = PatternDef([glide_def])
 
@@ -473,8 +474,8 @@ def step_def(
 
 
 def jump_def(
-    mirror_offset: float | ReferenceDef,
-    distance: float | ReferenceDef,
+    mirror_offset: float | DynRef,
+    distance: float | DynRef,
     side: Reference = Reference.BOTTOM,
     reps: int = 3,
 ) -> PatternDef:
@@ -491,7 +492,7 @@ def jump_def(
     """
     t_type = TransformationType.MIRROR
     target = ReferenceTarget.KERNEL
-    ref_def = ReferenceDef(side, target, mirror_offset)
+    ref_def = DynRef(side, target, mirror_offset)
     mirror_def = TransformDef(t_type, ref_def, reps=1)
     t_type2 = TransformationType.TRANSLATE
     trans_def = TransformDef(t_type2, ref=None, args=(distance, 0), reps=reps)
@@ -514,7 +515,7 @@ def sidle_def(mirror_offset, dx, reps: int = 0):
     # reflect over right+offset, then translate by pattern width+dx
     mirror_def = TransformDef(
         TransformationType.MIRROR,
-        ReferenceDef(Reference.RIGHT, ReferenceTarget.KERNEL, mirror_offset),
+        DynRef(Reference.RIGHT, ReferenceTarget.KERNEL, mirror_offset),
         reps=1,
     )
     trans_def = TransformDef(

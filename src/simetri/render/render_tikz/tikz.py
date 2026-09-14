@@ -236,6 +236,8 @@ def get_tex_code(canvas: Canvas) -> str:
                 code = sketch.code
             else:
                 code = ""
+        elif sketch.subtype == Types.SVG_SKETCH:
+            code = ""
         elif sketch.subtype == Types.LATEX_SKETCH:
             code = draw_latex_sketch(sketch)
         elif sketch.subtype == Types.MASK_SKETCH:
@@ -392,6 +394,15 @@ def get_tex_code(canvas: Canvas) -> str:
             ind = 0
             page_code, ind = render_sketches(sketches, ind)
             tikz_sketch_module.set_active_tikz_style_ids({})
+            picture_inserts = []
+            for sketch in sketches:
+                if (
+                    sketch.subtype == Types.TEX_SKETCH
+                    and sketch.location == TexLoc.PICTURE
+                ):
+                    picture_inserts.append(sketch.code)
+            if picture_inserts:
+                code.append("\n".join(picture_inserts))
             code.append(page_code)
 
         code = "\n".join(code)

@@ -1,7 +1,7 @@
 """Repeated geometric patterns built from a kernel and transforms.
 
 A ``Pattern`` stores a kernel Shape/Group plus a
-``Transformation`` (list of ``Transform`` matrices with
+``PatternTransformation`` (list of ``TransformMat`` matrices with
 repetitions). Calling transform helpers such as ``translate`` / ``rotate``
 appends transforms rather than baking them into the kernel.
 
@@ -13,7 +13,7 @@ Examples:
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import md5
 from itertools import product
 from math import prod
@@ -26,28 +26,25 @@ from numpy.typing import NDArray
 from ..base.all_enums import (
     Anchor,
     InPlace,
-    Reference,
-    ReferenceTarget,
     TransformationType,
     Types,
     get_enum_value,
 )
 from ..base.common import LineType, PointType
 from ..base.common_style import COLOR_ALPHA_ATTRS, STYLE_COPY_ATTRS, CommonStyle
+from ..base.core import DynRef, resolve_dyn_ref
 from ..geom.affine import *
 from ..geom.bbox import BoundingBox, bounding_box
-from ..geom.geom_utils import offset_point
-from ..geom.segments.line_utils import offset_line
 from ..group.batch import Group
 from ..helpers.validation import validate_args
 from ..shapes.shape import Shape
 
 
 @dataclass
-class Transform:
+class TransformMat:
     """A single transformation matrix with optional repetitions.
 
-    Used inside ``Transformation`` to build a composite matrix stack.
+    Used inside ``PatternTransformation`` to build a composite matrix stack.
 
     Attributes:
         xform_matrix: 3×3 affine matrix (row form).
@@ -81,10 +78,10 @@ class Transform:
         self._reps = self.reps
 
     def __repr__(self):
-        return f"Transform(xform_matrix={self.xform_matrix}, reps={self.reps})"
+        return f"TransformMat(xform_matrix={self.xform_matrix}, reps={self.reps})"
 
     def __str__(self):
-        return f"Transform(xform_matrix={self.xform_matrix}, reps={self.reps})"
+        return f"TransformMat(xform_matrix={self.xform_matrix}, reps={self.reps})"
 
     # @property
     # def reps(self) -> int:
@@ -178,26 +175,26 @@ class Transform:
 
         return self._composite
 
-    def copy(self) -> "Transform":
+    def copy(self) -> "TransformMat":
         """
-        Creates a copy of the Transform instance.
+        Creates a copy of the TransformMat instance.
 
         Returns:
-            Transform: A new Transform instance with the same attributes.
+            TransformMat: A new TransformMat instance with the same attributes.
         """
-        return Transform(self.xform_matrix.copy(), self.reps)
+        return TransformMat(self.xform_matrix.copy(), self.reps)
 
 
 @dataclass
-class Transformation:
-    """Ordered list of ``Transform`` components forming a pattern.
+class PatternTransformation:
+    """Ordered list of ``TransformMat`` components forming a pattern.
 
     Attributes:
-        components: List of ``Transform`` instances applied in order.
+        components: List of ``TransformMat`` instances applied in order.
         type: Always ``Types.TRANSFORMATION``.
     """
 
-    components: list[Transform] = None
+    components: list[TransformMat] = None
 
     def __post_init__(self):
         self.type = Types.TRANSFORMATION
@@ -206,10 +203,10 @@ class Transformation:
             self.components = []
 
     def __repr__(self):
-        return f"Transformation(components={self.components})"
+        return f"PatternTransformation(components={self.components})"
 
     def __str__(self):
-        return f"Transformation(components={self.components})"
+        return f"PatternTransformation(components={self.components})"
 
     def apply(self, kernel: Shape) -> list[Shape]:
         """Apply the composite transform to ``kernel`` and return copies.
@@ -285,20 +282,21 @@ class Transformation:
 
         return np.concatenate(res, axis=1)
 
-    def copy(self) -> "Transformation":
+    def copy(self) -> "PatternTransformation":
         """
-        Creates a copy of the Transform instance.
+        Creates a copy of the PatternTransformation instance.
 
         Returns:
-            Transform: A new Transform instance with the same components.
+            PatternTransformation: A new PatternTransformation with the same
+            components.
         """
-        return Transformation(
+        return PatternTransformation(
             [component.copy() for component in self.components]
         )
 
 
 class Pattern(Group, CommonStyle):
-    """Drawable pattern: a kernel repeated by a Transformation.
+    """Drawable pattern: a kernel repeated by a PatternTransformation.
 
     Transform methods (``translate``, ``rotate``, …) append to
     ``transformation`` instead of mutating the kernel geometry directly.
@@ -308,7 +306,7 @@ class Pattern(Group, CommonStyle):
 
     Attributes:
         kernel: Shape or Group that is repeated.
-        transformation: Accumulated ``Transformation``.
+        transformation: Accumulated ``PatternTransformation``.
         subtype: Always ``Types.PATTERN``.
 
     Examples:
@@ -323,19 +321,19 @@ class Pattern(Group, CommonStyle):
     def __init__(
         self,
         kernel: Shape | Group = None,
-        transformation: Transformation = None,
+        transformation: PatternTransformation = None,
         **kwargs,
     ):
         """Initialize a Pattern.
 
         Args:
             kernel: Shape or Group to repeat.
-            transformation: Optional existing Transformation.
+            transformation: Optional existing PatternTransformation.
             **kwargs: Style attributes (``CommonStyle`` / ``STYLE_COPY_ATTRS``).
         """
         self.kernel = kernel
         if transformation is None:
-            transformation = Transformation()
+            transformation = PatternTransformation()
 
         self.transformation = transformation
         super().__init__()
@@ -475,7 +473,7 @@ class Pattern(Group, CommonStyle):
             Self: The transformed object.
         """
 
-        component = Transform(translation_matrix(dx, dy), reps)
+        component = TransformMat(translation_matrix(dx, dy), reps)
         self.transformation.components.append(component)
 
         return self
@@ -494,7 +492,7 @@ class Pattern(Group, CommonStyle):
         Returns:
             Self: The rotated object.
         """
-        component = Transform(rotation_matrix(angle, about), reps)
+        component = TransformMat(rotation_matrix(angle, about), reps)
         self.transformation.components.append(component)
 
         return self
@@ -510,7 +508,7 @@ class Pattern(Group, CommonStyle):
         Returns:
             Self: The mirrored object.
         """
-        component = Transform(mirror_matrix(about), reps)
+        component = TransformMat(mirror_matrix(about), reps)
         self.transformation.components.append(component)
 
         return self
@@ -530,7 +528,7 @@ class Pattern(Group, CommonStyle):
         Returns:
             Self: The glided object.
         """
-        component = Transform(glide_matrix(glide_line, glide_dist), reps)
+        component = TransformMat(glide_matrix(glide_line, glide_dist), reps)
         self.transformation.components.append(component)
 
         return self
@@ -556,7 +554,7 @@ class Pattern(Group, CommonStyle):
         """
         if scale_y is None:
             scale_y = scale_x
-        component = Transform(
+        component = TransformMat(
             scale_in_place_matrix(scale_x, scale_y, about), reps
         )
         self.transformation.components.append(component)
@@ -575,7 +573,7 @@ class Pattern(Group, CommonStyle):
         Returns:
             Self: The sheared object.
         """
-        component = Transform(shear_matrix(theta_x, theta_y), reps)
+        component = TransformMat(shear_matrix(theta_x, theta_y), reps)
         self.transformation.components.append(component)
 
         return self
@@ -607,7 +605,7 @@ class Pattern(Group, CommonStyle):
         x, y = pos[:2]
         anchor = get_enum_value(Anchor, anchor)
         x1, y1 = getattr(self.b_box, anchor)
-        component = Transform(translation_matrix(x - x1, y - y1), reps=0)
+        component = TransformMat(translation_matrix(x - x1, y - y1), reps=0)
         self.transformation.components.append(component)
 
         return self
@@ -631,7 +629,7 @@ class Pattern(Group, CommonStyle):
 #     def __init__(
 #         self,
 #         kernel: Shape | Group = None,
-#         transformation: Transformation = None,
+#         transformation: PatternTransformation = None,
 #         **kwargs,
 #     ):
 #         super().__init__(kernel, transformation, **kwargs)
@@ -642,46 +640,15 @@ class Pattern(Group, CommonStyle):
 
 
 @dataclass
-class ReferenceDef:
-    """Deferred reference to a kernel/pattern anchor for pattern transforms.
-
-    Attributes:
-        reference: Bounding-box or named reference (e.g. ``Reference.BOTTOM``).
-        target: Whether the reference is taken from kernel, pattern, or default.
-        offset: Scalar offset for lines or ``(dx, dy)`` for points.
-        multiplier: Optional scale applied to the resolved value.
-        modifier: Optional callable applied after resolution.
-        kwargs: Extra keyword arguments for modifiers.
-    """
-
-    reference: Reference  # Bounding-box references
-    target: ReferenceTarget | None = None  # kernel, pattern, or None
-    offset: PointType | float = (
-        None  # float for line, <dx, dy> for point offset
-    )
-    multiplier: float | None = None
-    modifier: Callable = None
-    kwargs: dict | None = None
-
-    def copy(self):
-        """Return a shallow copy of this reference definition."""
-        return ReferenceDef(
-            reference=self.reference,
-            target=self.target,
-            offset=self.offset,
-            multiplier=self.multiplier,
-            modifier=self.modifier,
-            kwargs=self.kwargs.copy() if self.kwargs is not None else None,
-        )
-
-
-@dataclass
 class TransformDef:
-    """Deferred transform step used by ``PatternDef.apply``.
+    """One transform step in a ``PatternDef``.
+
+    ``Def`` means definition: the operation and its arguments, applied
+    later by ``PatternDef.apply``.
 
     Attributes:
         type: Transformation kind (translate, rotate, mirror, glide, ...).
-        ref: Optional ``ReferenceDef`` for pivot/axis resolution.
+        ref: Optional ``DynRef`` or literal for pivot/axis resolution.
         args: Transform arguments (angle, distance, ``(dx, dy)``, etc.).
         take: Optional slice selecting which elements to transform.
         incr: Optional increment between repetitions.
@@ -690,8 +657,8 @@ class TransformDef:
     """
 
     type: TransformationType  # translation, rotation, ...
-    ref: ReferenceDef
-    args: ReferenceDef | PointType | float | None = None
+    ref: DynRef | PointType | None
+    args: DynRef | PointType | float | None = None
     take: slice = None
     incr: Any = None
     reps: int = 0
@@ -699,12 +666,28 @@ class TransformDef:
 
     def copy(self):
         """Return a copy of this transform definition."""
+        if isinstance(self.ref, DynRef):
+            ref = replace(
+                self.ref,
+                kwargs=None
+                if self.ref.kwargs is None
+                else dict(self.ref.kwargs),
+            )
+        else:
+            ref = self.ref
+        if isinstance(self.args, DynRef):
+            args = replace(
+                self.args,
+                kwargs=None
+                if self.args.kwargs is None
+                else dict(self.args.kwargs),
+            )
+        else:
+            args = self.args
         return TransformDef(
             type=self.type,
-            ref=self.ref.copy() if self.ref is not None else None,
-            args=self.args.copy()
-            if isinstance(self.args, ReferenceDef)
-            else self.args,
+            ref=ref,
+            args=args,
             take=self.take,
             incr=self.incr,
             reps=self.reps,
@@ -717,7 +700,7 @@ class PatternDef:
     """Sequence of ``TransformDef`` steps that build a pattern ``Group``.
 
     Attributes:
-        transform_defs: Ordered list of deferred transform steps.
+        transform_defs: Ordered list of transform definition steps.
         modifier: Optional callable applied to the finished pattern.
     """
 
@@ -763,77 +746,31 @@ class PatternDef:
 
         return pattern
 
-    def resolve_reference(self, reference_def, kernel, pattern):
-        """Resolve a ``ReferenceDef`` against ``kernel`` / ``pattern``.
+    def resolve_reference(self, reference, kernel, pattern):
+        """Resolve a ``DynRef`` against ``kernel`` / ``pattern``.
 
         Args:
-            reference_def: Reference definition or already-resolved value.
+            reference: A ``DynRef`` or an already-resolved value.
             kernel: Seed object for ``ReferenceTarget.KERNEL``.
             pattern: Growing pattern group for ``ReferenceTarget.PATTERN``.
 
         Returns:
             Resolved point, line, or numeric value.
         """
-        if not isinstance(reference_def, ReferenceDef):
-            return reference_def
-
-        def apply_offset(value, offset):
-            if isinstance(offset, ReferenceDef):
-                offset = self.resolve_reference(offset, kernel, pattern)
-            elif isinstance(offset, (tuple, list)):
-                offset = tuple(
-                    self.resolve_value(item, kernel, pattern) for item in offset
-                )
-
-            if isinstance(value, (float, int)):
-                # number
-                offset_val = value + offset
-            elif isinstance(value, (tuple, list)):
-                x, y = value
-                if isinstance(x, (tuple, list)):
-                    # line
-                    offset_val = offset_line(value, offset)
-                elif isinstance(x, (float, int)):
-                    # point type
-                    offset_val = offset_point(value, offset[0], offset[1])
-                elif callable(x):
-                    offset_val = x(**y)
-
-            return offset_val
-
-        ref_def = reference_def
-        if ref_def.target is None:
-            ref_def.target = ReferenceTarget.PATTERN
-
-        if ref_def.target == ReferenceTarget.KERNEL:
-            res = getattr(kernel, ref_def.reference)
-        elif ref_def.target == ReferenceTarget.PATTERN:
-            res = getattr(pattern, ref_def.reference)
-
-        if ref_def.multiplier is not None:
-            res *= ref_def.multiplier
-
-        if ref_def.modifier is not None:
-            res = ref_def.modifier(res)
-
-        offset = ref_def.offset
-        if offset is not None:
-            res = apply_offset(res, offset)
-
-        return res
+        return resolve_dyn_ref(reference, kernel=kernel, pattern=pattern)
 
     def resolve_tuple(self, args, kernel, pattern):
-        """Resolve a 2-tuple argument (or ``ReferenceDef``) for transforms.
+        """Resolve a 2-tuple argument (or ``DynRef``) for transforms.
 
         Args:
-            args: ``ReferenceDef``, ``(x, y)``, or callable pair.
+            args: ``DynRef``, ``(x, y)``, or callable pair.
             kernel: Seed object used for nested resolution.
             pattern: Pattern group used for nested resolution.
 
         Returns:
             Resolved ``(x, y)`` or other 2-value result.
         """
-        if isinstance(args, ReferenceDef):
+        if isinstance(args, DynRef):
             res = self.resolve_reference(args, kernel, pattern)
         elif isinstance(args, (tuple, list)):
             x, y = args
@@ -850,14 +787,14 @@ class PatternDef:
         """Resolve a scalar/reference argument for a transform.
 
         Args:
-            value: ``ReferenceDef``, callable, or literal value.
+            value: ``DynRef``, callable, or literal value.
             kernel: Seed object used for nested resolution.
             pattern: Pattern group used for nested resolution.
 
         Returns:
             Resolved numeric or geometric value.
         """
-        if isinstance(value, ReferenceDef):
+        if isinstance(value, DynRef):
             res = self.resolve_reference(value, kernel, pattern)
         elif isinstance(value, FunctionType):
             value(kernel, pattern)

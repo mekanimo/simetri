@@ -5,27 +5,28 @@ drawing basic shapes like lines, circles, and polygons.
 """
 
 import os
-import shutil
 import sys
 import tempfile
-import time
-import webbrowser
 from collections.abc import Sequence
 from dataclasses import dataclass
-from math import pi
+from math import atan2, cos, hypot, pi, sin
 from pathlib import Path
 from typing import Any, Self
 
 import networkx as nx
 import numpy as np
+import pymupdf as fitz
 from numpy.typing import NDArray
+from PIL import Image as PIL_Image
 
 from simetri.base.all_enums import (
     Align,
     Anchor,
     Axis,
     Drawable,
+    ImageMode,
     Renderer,
+    SvgLoc,
     TexLoc,
     Types,
     WarningType,
@@ -34,6 +35,11 @@ from simetri.base.common import (
     PointType,
     VecType,
     _set_Nones,
+)
+from simetri.base.common_style import (
+    FILL_STYLE_ATTRS,
+    LINE_STYLE_ATTRS,
+    coerce_style_overlay,
 )
 from simetri.coloring.colors import Color
 from simetri.config.settings import (
@@ -46,6 +52,7 @@ from simetri.config.user_config import (
     converter_supports_extension,
     get_converter_for_extension,
     native_save_extensions,
+    user_config_path,
 )
 from simetri.geom.affine import (
     rotation_matrix,
@@ -56,8 +63,10 @@ from simetri.geom.affine import (
 from simetri.geom.bbox import bounding_box
 from simetri.geom.homogenize import homogenize
 from simetri.geom.matrices import identity_matrix
+from simetri.geom.vectors import Vector
 from simetri.group.batch import Group
 from simetri.helpers.file_operations import (
+    open_saved_file,
     run_external_converter,
     validate_filepath,
 )
@@ -71,7 +80,7 @@ from simetri.helpers.validation import (
     validate_args,
     warn_unknown_kwargs,
 )
-from simetri.images.image import Image, create_image_from_data
+from simetri.images.image import Image
 from simetri.notebook import display
 from simetri.render import draw
 from simetri.render.render_tikz.tikz import get_tex_code
@@ -80,6 +89,40 @@ from simetri.render.sketch import MaskedSketch
 from simetri.render.style_map import canvas_args, get_draw_valid_kwargs
 from simetri.render.tex import Tex, remove_aux_files, run_job
 from simetri.shapes.shape import Shape
+
+
+class _CanvasScope:
+    """Restore canvas matrix or style when used as a context manager.
+
+    Bare ``translate`` / ``style`` apply immediately and leave the change
+    on. ``with`` pushes the saved state on enter and pops on exit.
+    """
+
+    def __init__(self, canvas: "Canvas", kind: str, saved) -> None:
+        self._canvas = canvas
+        self._kind = kind
+        self._saved = saved
+
+    def __enter__(self) -> "Canvas":
+        if self._kind == "matrix":
+            self._canvas.matrix_stack.append(self._saved)
+        elif self._kind == "style":
+            self._canvas.style_stack.append(self._saved)
+        else:
+            raise ValueError(f"Unknown canvas scope kind {self._kind!r}")
+        return self._canvas
+
+    def __exit__(self, exc_type, exc, traceback) -> bool:
+        if self._kind == "matrix":
+            self._canvas.pop_matrix()
+        elif self._kind == "style":
+            self._canvas.pop_style()
+        else:
+            raise ValueError(f"Unknown canvas scope kind {self._kind!r}")
+        return False
+
+    def __getattr__(self, name: str):
+        return getattr(self._canvas, name)
 
 
 def _save_renderer(extension: str) -> Renderer:
@@ -192,8 +235,8 @@ class Canvas:
     Examples:
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
-        >>> canvas.draw(sg.Circle((0, 0), 20))
-        >>> canvas.save('out.pdf')
+        >>> canvas.draw(sg.Circle(20)) is canvas
+        True
     """
 
     def __init__(
@@ -284,7 +327,10 @@ class Canvas:
         else:
             self._limits = None
         self.overlay = False  # used for inserting pdf pictures
-        self.stack = []
+        self.matrix_stack = []
+        self.stack = self.matrix_stack
+        self.style_stack = []
+        self._style_overlay: dict[str, Any] = {}
 
     def __setattr__(self, name, value):
         """Set canvas attributes with special handling for layout properties.
@@ -433,21 +479,81 @@ class Canvas:
             self.__dict__[name] = value
 
     def push_matrix(self):
-        """Push the current transform matrix onto the stack."""
-        self.stack.append(self._xform_matrix)
+        """Push the current transform matrix onto ``matrix_stack``."""
+        self.matrix_stack.append(self._xform_matrix.copy())
 
     def pop_matrix(self):
-        """Pop the transform matrix from the stack.
+        """Pop the transform matrix from ``matrix_stack``.
 
         Warns if the stack is empty.
         """
-        if self.stack:
-            self._xform_matrix = self.stack.pop()
+        if self.matrix_stack:
+            self._xform_matrix = self.matrix_stack.pop()
         else:
             issue_warning(
                 "Trying to pop from an empty stack!",
                 warning_type=WarningType.canvas.empty_stack,
             )
+
+    def push_style(self):
+        """Push the current canvas style overlay onto ``style_stack``."""
+        self.style_stack.append(dict(self._style_overlay))
+
+    def pop_style(self):
+        """Pop the canvas style overlay from ``style_stack``.
+
+        Warns if the stack is empty.
+        """
+        if self.style_stack:
+            self._style_overlay = self.style_stack.pop()
+        else:
+            issue_warning(
+                "Trying to pop from an empty stack!",
+                warning_type=WarningType.canvas.empty_stack,
+            )
+
+    def style(self, mapping=None, **kwargs) -> _CanvasScope:
+        """Apply a canvas style overlay and return a restore-on-``with`` scope.
+
+        Bare call leaves the overlay on. ``with canvas.style(...)`` restores
+        the overlay from entry. Does not mutate drawables.
+
+        Args:
+            mapping: A ``Style``, a dict of draw aliases, or omitted.
+            **kwargs: Draw-alias overlay; overwrites ``mapping`` for those keys.
+        """
+        if mapping is None and not kwargs:
+            raise TypeError(
+                "canvas.style() requires a Style, a dict, or keyword arguments"
+            )
+        overlay = coerce_style_overlay(mapping, kwargs)
+        saved = dict(self._style_overlay)
+        for key, value in overlay.items():
+            if value is None:
+                if key in self._style_overlay:
+                    del self._style_overlay[key]
+            else:
+                self._style_overlay[key] = value
+        return _CanvasScope(self, "style", saved)
+
+    def reset_style(self) -> Self:
+        """Clear the current canvas style overlay. Does not pop ``style_stack``."""
+        self._style_overlay = {}
+        return self
+
+    def reset_line_style(self) -> Self:
+        """Drop stroke keys from the current canvas overlay."""
+        for key in LINE_STYLE_ATTRS:
+            if key in self._style_overlay:
+                del self._style_overlay[key]
+        return self
+
+    def reset_fill_style(self) -> Self:
+        """Drop fill keys from the current canvas overlay."""
+        for key in FILL_STYLE_ATTRS:
+            if key in self._style_overlay:
+                del self._style_overlay[key]
+        return self
 
     def apply_mask(self, target, mask):
         """Apply a mask to a drawable target and append a masked sketch.
@@ -610,38 +716,113 @@ class Canvas:
         xform = np.linalg.inv(self._xform_matrix)
         return bounding_box(homogenize(self._all_vertices) @ xform)
 
-    def capture(self, **kwargs) -> Image:
-        """
-        Create an image from the canvas.
+    def capture(self, format: str | None = None) -> Image:
+        """Snapshot the canvas to an image.
 
-        Returns:
-            Image: The Image object.
-        """
-        tmpdirname = tempfile.TemporaryDirectory().name
-        os.makedirs(tmpdirname, exist_ok=True)
-        file_name = next(tempfile._get_candidate_names())
-        filepath = os.path.join(tmpdirname, file_name + ".ps")
-
-        self.save(filepath, show=False, print_output=False, remove_aux=False)
-        wait_for_file_availability(filepath, timeout=5)
-        temp_img = create_image_from_data(filepath)
-
-        time.sleep(1)
-        shutil.rmtree(tmpdirname, ignore_errors=True)
-        return temp_img
-
-    def insert_code(self, code, loc: TexLoc = TexLoc.PICTURE) -> Self:
-        """
-        Insert code into the canvas.
+        Default format is ``defaults["canvas_capture_format"]`` (``svg``).
+        Native capture formats are the ``save`` formats except ``.tex``.
+        Other extensions require a personal ``[converters.<ext>]`` entry.
 
         Args:
-            code (str): The code to insert.
+            format: Extension with or without a leading dot. ``None`` uses
+                ``defaults["canvas_capture_format"]``.
+
+        Returns:
+            Image: Snapshot of the current drawing.
+
+        Raises:
+            ValueError: If ``format`` is ``.tex``.
+            RuntimeError: If the format is not native and has no converter.
+        """
+        if format is None:
+            capture_format = defaults["canvas_capture_format"]
+        else:
+            capture_format = format
+        extension = capture_format.lower()
+        if not extension.startswith("."):
+            extension = f".{extension}"
+        if extension == ".tex":
+            raise ValueError(
+                "canvas.capture does not write .tex. Use canvas.save for TeX."
+            )
+        if (
+            extension not in native_save_extensions()
+            and not converter_supports_extension(extension)
+        ):
+            config_file = user_config_path()
+            raise RuntimeError(
+                f"Capture format {extension!r} is not supported.\n"
+                "Native formats: "
+                f"{', '.join(sorted(native_save_extensions()))}.\n"
+                "For other formats, add a personal converter in "
+                f"{config_file}, e.g.\n"
+                f"[converters.{extension.lstrip('.')}]\n"
+                'source = "svg"\n'
+                'command = ["resvg", "{input}", "{output}"]'
+            )
+
+        handle, filepath = tempfile.mkstemp(suffix=extension)
+        os.close(handle)
+        keep_filepath = False
+        try:
+            self.save(
+                filepath,
+                overwrite=True,
+                show=False,
+                print_output=False,
+                remove_aux=False,
+            )
+            wait_for_file_availability(filepath, timeout=5)
+            if extension in native_save_extensions():
+                document = fitz.open(filepath)
+                page = document[0]
+                pixmap = page.get_pixmap()
+                if pixmap.alpha:
+                    image_mode = ImageMode.RGBA
+                else:
+                    image_mode = ImageMode.RGB
+                pil_img = PIL_Image.frombytes(
+                    image_mode,
+                    (pixmap.width, pixmap.height),
+                    pixmap.samples,
+                )
+                captured = Image(img=pil_img)
+                if extension == ".svg":
+                    captured.file_path = filepath
+                    keep_filepath = True
+                return captured
+            opened = Image(img=filepath)
+            return Image(img=opened.pil_img.copy())
+        finally:
+            if not keep_filepath and os.path.isfile(filepath):
+                os.remove(filepath)
+
+    def insert_svg(self, code, loc: SvgLoc = SvgLoc.PICTURE) -> Self:
+        """
+        Insert SVG markup into the canvas.
+
+        Args:
+            code (str): The SVG fragment to insert.
+            loc (SvgLoc): The location to insert the markup.
+
+        Returns:
+            Self: The canvas object.
+        """
+        draw.insert_svg(self, code, loc)
+        return self
+
+    def insert_tex(self, code, loc: TexLoc = TexLoc.PICTURE) -> Self:
+        """
+        Insert TeX code into the canvas.
+
+        Args:
+            code (str): The TeX to insert.
             loc (TexLoc): The location to insert the code.
 
         Returns:
             Self: The canvas object.
         """
-        draw.insert_code(self, code, loc)
+        draw.insert_tex(self, code, loc)
         return self
 
     def arc(
@@ -701,11 +882,11 @@ class Canvas:
         self, radius: float, center: PointType = (0, 0), **kwargs
     ) -> Self:
         """
-        Draw a circle with the given center and radius.
+        Draw a circle with the given radius and optional center.
 
         Args:
-            center (PointType): The center of the circle.
             radius (float): The radius of the circle.
+            center (PointType): The center of the circle. Defaults to (0, 0).
             kwargs (dict): Additional keyword arguments.
 
         Returns:
@@ -716,26 +897,26 @@ class Canvas:
 
     def ellipse(
         self,
-        center: PointType,
         width: float,
         height: float,
+        center: PointType = (0, 0),
         angle: float = 0,
         **kwargs,
     ) -> Self:
         """
-        Draw an ellipse with the given center and radius.
+        Draw an ellipse with the given width, height, and optional center.
 
         Args:
-            center (PointType): The center of the ellipse.
             width (float): The width of the ellipse.
             height (float): The height of the ellipse.
+            center (PointType): The center of the ellipse. Defaults to (0, 0).
             angle (float, optional): The angle of the ellipse, defaults to 0.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
-        draw.ellipse(self, center, width, height, angle, **kwargs)
+        draw.ellipse(self, width, height, center, angle, **kwargs)
 
         return self
 
@@ -909,26 +1090,34 @@ class Canvas:
 
     def rectangle(
         self,
+        width: float | None = None,
+        height: float | None = None,
         center: PointType = (0, 0),
-        width: float = 100,
-        height: float = 100,
         angle: float = 0,
         **kwargs,
     ) -> Self:
         """
-        Draw a rectangle.
+        Draw a rectangle (width and height first, default center ``(0, 0)``).
 
         Args:
-            center (PointType): The center of the rectangle.
-            width (float): The width of the rectangle.
-            height (float): The height of the rectangle.
+            width (float): The width of the rectangle. ``None`` uses
+                ``defaults["rectangle_width_height"]``.
+            height (float): The height of the rectangle. ``None`` uses
+                ``defaults["rectangle_width_height"]``.
+            center (PointType): The center of the rectangle. Defaults to (0, 0).
             angle (float, optional): The angle of the rectangle, defaults to 0.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
-        draw.rectangle(self, center, width, height, angle, **kwargs)
+        if width is None or height is None:
+            default_width, default_height = defaults["rectangle_width_height"]
+            if width is None:
+                width = default_width
+            if height is None:
+                height = default_height
+        draw.rectangle(self, width, height, center, angle, **kwargs)
         return self
 
     def rectangle2(
@@ -956,57 +1145,68 @@ class Canvas:
         height = abs(y2 - y1)
         center = ((x1 + x2) / 2, (y1 + y2) / 2)
 
-        draw.rectangle(self, center, width, height, angle, **kwargs)
+        draw.rectangle(self, width, height, center, angle, **kwargs)
         return self
 
     def rectangle3(
         self,
         upper_left: PointType,
-        width: float = 100,
-        height: float = 100,
+        width: float | None = None,
+        height: float | None = None,
         angle: float = 0,
         **kwargs,
     ) -> Self:
         """
-        Draw a rectangle.
+        Draw a rectangle from the upper-left corner.
 
         Args:
             upper_left (PointType): The upper_left corner of the rectangle.
-            width (float): The width of the rectangle.
-            height (float): The height of the rectangle.
+            width (float): The width of the rectangle. ``None`` uses
+                ``defaults["rectangle_width_height"]``.
+            height (float): The height of the rectangle. ``None`` uses
+                ``defaults["rectangle_width_height"]``.
             angle (float, optional): The angle of the rectangle, defaults to 0.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
+        if width is None or height is None:
+            default_width, default_height = defaults["rectangle_width_height"]
+            if width is None:
+                width = default_width
+            if height is None:
+                height = default_height
         x1, y1 = upper_left[:2]
         x2, y2 = x1 + width, y1 - height
         center = ((x1 + x2) / 2, (y1 + y2) / 2)
 
-        draw.rectangle(self, center, width, height, angle, **kwargs)
+        draw.rectangle(self, width, height, center, angle, **kwargs)
         return self
 
     def square(
         self,
+        size: float | None = None,
         center: PointType = (0, 0),
-        size: float = 100,
         angle: float = 0,
         **kwargs,
     ) -> Self:
         """
-        Draw a square with the given center and size.
+        Draw a square (side ``size`` first, default center ``(0, 0)``).
 
         Args:
-            center (PointType): The center of the square.
-            size (float): The size of the square.
+            size (float): The size of the square. ``None`` uses
+                ``defaults["square_size"]``.
+            center (PointType): The center of the square. Defaults to (0, 0).
             angle (float, optional): The angle of the square, defaults to 0.
             kwargs (dict): Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
         """
-        draw.rectangle(self, center, size, size, angle, **kwargs)
+        if size is None:
+            size = defaults["square_size"]
+        draw.rectangle(self, size, size, center, angle, **kwargs)
         return self
 
     def lines(self, points: Sequence[PointType], **kwargs) -> Self:
@@ -1111,7 +1311,19 @@ class Canvas:
 
         Args:
             *item_s (Drawable | Sequence): Item(s) to draw. Use
-                ``draw(a, b)`` or ``draw([a, b])``.
+                ``draw(a, b)`` or ``draw([a, b])``. A ``Vector`` is
+                drawn as a line with an arrow head from the origin to
+                ``(x, y)``. ``vec_start`` places the tail; ``vec_end``
+                places the tip. If both are omitted, the tail is at the
+                origin. Only one is needed. If both are given and match
+                the Vector, a warning is issued; if they disagree,
+                ``ValueError`` is raised. Several Vectors in one call
+                share the same ``vec_start`` or ``vec_end``.
+                ``shaft_line_color`` / ``shaft_line_width`` /
+                ``shaft_line_dash_array`` style the shaft;
+                ``head_fill_color`` / ``head_line_color`` /
+                ``head_line_width`` style the head; ``color`` and
+                ``alpha`` style both.
             pos (PointType, optional): Midpoint where the item is drawn.
                 For a group, this is the group's midpoint; every member is
                 shifted by the same ``(dx, dy)``. The item is not moved.
@@ -1140,24 +1352,188 @@ class Canvas:
         else:
             items = item_s
 
+        if "vec_start" in kwargs and "vec_end" in kwargs:
+            vector_count = 0
+            for item in items:
+                if isinstance(item, Vector):
+                    vector_count += 1
+            if vector_count > 1:
+                raise ValueError(
+                    "Cannot use both vec_start and vec_end when drawing "
+                    "more than one Vector."
+                )
+
         base_sketch_xform = self._sketch_xform_matrix
 
         for item in items:
-            sketch_xform = base_sketch_xform
-            if pos is not None:
-                mid_x, mid_y = item.midpoint[:2]
-                dest_x, dest_y = pos[:2]
-                dx = dest_x - mid_x
-                dy = dest_y - mid_y
-                sketch_xform = translation_matrix(dx, dy) @ sketch_xform
-            if scale[0] != 1 or scale[1] != 1:
-                sketch_xform = (
-                    scale_in_place_matrix(*scale[:2], about) @ sketch_xform
+            vector_midpoint = None
+            vector_shift = (0.0, 0.0)
+            if isinstance(item, Vector):
+                vector_x, vector_y = item[:2]
+                if vector_x == 0 and vector_y == 0:
+                    raise ValueError("Cannot draw a zero-length Vector.")
+                if pos is not None and (
+                    "vec_start" in kwargs or "vec_end" in kwargs
+                ):
+                    raise ValueError(
+                        "Cannot combine pos with vec_start or vec_end "
+                        "when drawing a Vector."
+                    )
+                if "vec_start" in kwargs:
+                    start_x, start_y = kwargs["vec_start"][:2]
+                    vector_shift = (start_x, start_y)
+                if "vec_end" in kwargs:
+                    end_x, end_y = kwargs["vec_end"][:2]
+                    if "vec_start" in kwargs:
+                        start_x, start_y = kwargs["vec_start"][:2]
+                        displacement_x = end_x - start_x
+                        displacement_y = end_y - start_y
+                        offset = hypot(
+                            displacement_x - vector_x,
+                            displacement_y - vector_y,
+                        )
+                        if offset <= defaults["dist_tol"]:
+                            issue_warning(
+                                "Duplicate position used for Vector"
+                                f"({kwargs['vec_start']}, {kwargs['vec_end']}).",
+                                warning_type=WarningType.vector.duplicate,
+                            )
+                        else:
+                            raise ValueError(
+                                "vec_start and vec_end are not consistent "
+                                "with the Vector displacement "
+                                f"{(vector_x, vector_y)}."
+                            )
+                    else:
+                        vector_shift = (
+                            end_x - vector_x,
+                            end_y - vector_y,
+                        )
+                head_length = defaults["arrow_head_length"]
+                half_width = defaults["arrow_head_width"] / 2
+                vector_angle = atan2(vector_y, vector_x)
+                cosine = cos(vector_angle)
+                sine = sin(vector_angle)
+                head_local = (
+                    (-head_length, 0),
+                    (-head_length, -half_width),
+                    (0, 0),
+                    (-head_length, half_width),
                 )
-            if angle != 0:
-                sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
-            self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
-            draw.draw(self, item, **kwargs)
+                head_vertices = []
+                for local_x, local_y in head_local:
+                    head_vertices.append(
+                        (
+                            local_x * cosine - local_y * sine + vector_x,
+                            local_x * sine + local_y * cosine + vector_y,
+                        )
+                    )
+                shaft = Shape(
+                    [(0, 0), (vector_x, vector_y)],
+                    closed=False,
+                    fill=False,
+                    line_width=defaults["shaft_line_width"],
+                    line_color=defaults["shaft_line_color"],
+                )
+                head = Shape(
+                    head_vertices,
+                    closed=True,
+                    fill=True,
+                    line_width=defaults["head_line_width"],
+                    line_color=defaults["head_line_color"],
+                    fill_color=defaults["head_fill_color"],
+                )
+                drawables = (shaft, head)
+                vector_midpoint = (vector_x / 2, vector_y / 2)
+                shaft_kwargs = dict(kwargs)
+                head_kwargs = dict(kwargs)
+                prefixed_keys = [
+                    key
+                    for key in kwargs
+                    if key.startswith("shaft_") or key.startswith("head_")
+                ]
+                replaced_keys = (
+                    "line_color",
+                    "line_width",
+                    "line_dash_array",
+                    "fill_color",
+                    "vec_start",
+                    "vec_end",
+                )
+                for key in prefixed_keys:
+                    del shaft_kwargs[key]
+                    del head_kwargs[key]
+                for key in replaced_keys:
+                    if key in shaft_kwargs:
+                        del shaft_kwargs[key]
+                    if key in head_kwargs:
+                        del head_kwargs[key]
+                for key, value in kwargs.items():
+                    if key.startswith("shaft_"):
+                        mapped = key[len("shaft_") :]
+                        shaft_kwargs[mapped] = value
+                        if mapped == "line_color" and "color" in shaft_kwargs:
+                            del shaft_kwargs["color"]
+                    elif key.startswith("head_"):
+                        mapped = key[len("head_") :]
+                        if mapped in ("line_color", "fill_color"):
+                            if "color" in head_kwargs:
+                                if (
+                                    mapped == "fill_color"
+                                    and "line_color" not in head_kwargs
+                                ):
+                                    head_kwargs["line_color"] = head_kwargs[
+                                        "color"
+                                    ]
+                                if (
+                                    mapped == "line_color"
+                                    and "fill_color" not in head_kwargs
+                                ):
+                                    head_kwargs["fill_color"] = head_kwargs[
+                                        "color"
+                                    ]
+                                del head_kwargs["color"]
+                        head_kwargs[mapped] = value
+            else:
+                drawables = (item,)
+                shaft_kwargs = kwargs
+                head_kwargs = kwargs
+
+            for drawable in drawables:
+                sketch_xform = base_sketch_xform
+                if vector_midpoint is not None:
+                    shift_x, shift_y = vector_shift
+                    if shift_x != 0 or shift_y != 0:
+                        sketch_xform = (
+                            translation_matrix(shift_x, shift_y)
+                            @ sketch_xform
+                        )
+                if pos is not None:
+                    if vector_midpoint is None:
+                        mid_x, mid_y = drawable.midpoint[:2]
+                    else:
+                        mid_x, mid_y = vector_midpoint
+                    dest_x, dest_y = pos[:2]
+                    dx = dest_x - mid_x
+                    dy = dest_y - mid_y
+                    sketch_xform = translation_matrix(dx, dy) @ sketch_xform
+                if scale[0] != 1 or scale[1] != 1:
+                    sketch_xform = (
+                        scale_in_place_matrix(*scale[:2], about)
+                        @ sketch_xform
+                    )
+                if angle != 0:
+                    sketch_xform = (
+                        rotation_matrix(angle, rotocenter) @ sketch_xform
+                    )
+                self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
+                if drawable is drawables[-1] and vector_midpoint is not None:
+                    part_kwargs = head_kwargs
+                elif vector_midpoint is not None:
+                    part_kwargs = shaft_kwargs
+                else:
+                    part_kwargs = kwargs
+                draw.draw(self, drawable, **part_kwargs)
 
         self._sketch_xform_matrix = identity_matrix()
         if show:
@@ -1427,6 +1803,8 @@ class Canvas:
         The canvas origin is at (0, 0) and the orientation angle is 0.
         Transformation matrix is the identity matrix.
 
+        Does not pop ``matrix_stack``. Does not touch ``style_stack``.
+
         Returns:
             Self: The canvas object.
         """
@@ -1434,60 +1812,69 @@ class Canvas:
 
         return self
 
-    def translate(self, dx: float, dy: float) -> Self:
+    def translate(self, dx: float, dy: float) -> _CanvasScope:
         """
         Translate the canvas by dx and dy.
+
+        Bare call leaves the translation on. ``with canvas.translate(dx, dy)``
+        restores the matrix from entry.
 
         Args:
             dx (float): The translation distance along the x-axis.
             dy (float): The translation distance along the y-axis.
 
         Returns:
-            Self: The canvas object.
+            A scope that restores the matrix when used as a context manager.
         """
-
+        saved = self._xform_matrix.copy()
         self._xform_matrix = translation_matrix(dx, dy) @ self._xform_matrix
+        return _CanvasScope(self, "matrix", saved)
 
-        return self
-
-    def rotate(self, angle: float, about=(0, 0)) -> Self:
+    def rotate(self, angle: float, about=(0, 0)) -> _CanvasScope:
         """
         Rotate the canvas by angle in radians about the given point.
+
+        Bare call leaves the rotation on. ``with canvas.rotate(angle)``
+        restores the matrix from entry.
 
         Args:
             angle (float): The rotation angle in radians.
             about (tuple): The point about which to rotate the canvas.
 
         Returns:
-            Self: The canvas object.
+            A scope that restores the matrix when used as a context manager.
         """
-
+        saved = self._xform_matrix.copy()
         self._xform_matrix = rotation_matrix(angle, about) @ self._xform_matrix
-
-        return self
+        return _CanvasScope(self, "matrix", saved)
 
     def scale(
         self,
         scale_x: float,
         scale_y: float | None = None,
         about: PointType = (0, 0),
-    ) -> Self:
+    ) -> _CanvasScope:
         """
         Scale the canvas by scale_x and scale_y about the given point.
         If scale_y is not given then scale_y = scale_x.
+
+        Bare call leaves the scale on. ``with canvas.scale(...)`` restores
+        the matrix from entry.
 
         Args:
             scale_x (float): The scale factor in x direction.
             scale_y (float): The scale factor in y direction.
 
         Returns:
-            Self: The canvas object.
+            A scope that restores the matrix when used as a context manager.
         """
         if scale_y is None:
             scale_y = scale_x
+        saved = self._xform_matrix.copy()
         self._xform_matrix = (
             scale_in_place_matrix(scale_x, scale_y, about) @ self._xform_matrix
         )
+        return _CanvasScope(self, "matrix", saved)
 
     def _flip(self, axis: Axis) -> Self:
         """
@@ -1521,7 +1908,9 @@ class Canvas:
             "Flipping the x-axis will change the positive rotation direction.",
             warning_type=WarningType.canvas.flip_x,
         )
-        return self._flip(Axis.X)
+        saved = self._xform_matrix.copy()
+        self._flip(Axis.X)
+        return _CanvasScope(self, "matrix", saved)
 
     def flip_y_axis(self) -> Self:
         """
@@ -1534,8 +1923,9 @@ class Canvas:
             "Flipping the y-axis will reverse the positive rotation direction.",
             warning_type=WarningType.canvas.flip_y,
         )
-
-        return self._flip(Axis.Y)
+        saved = self._xform_matrix.copy()
+        self._flip(Axis.Y)
+        return _CanvasScope(self, "matrix", saved)
 
     @property
     def x(self) -> float:
@@ -1641,19 +2031,34 @@ class Canvas:
         1. Handle color and alpha
         2. Handle kwargs
         """
+        overlay = self._style_overlay
+
+        def layered(name: str) -> tuple[bool, Any]:
+            if name in draw_kwargs:
+                return True, draw_kwargs[name]
+            if name in overlay:
+                return True, overlay[name]
+            return False, None
+
         d_resolved = {}
         resolved = []
         # handle color
         color = None
-        if "color" in draw_kwargs:
-            draw_color = draw_kwargs["color"]
-            if check_color(draw_color):
-                d_resolved["line_color"] = draw_color
-                d_resolved["fill_color"] = draw_color
-                d_resolved["color"] = draw_color
-                resolved.extend(["line_color", "fill_color", "color"])
+        found_color, color_value = layered("color")
+        found_line_color, line_color_value = layered("line_color")
+        found_fill_color, fill_color_value = layered("fill_color")
+        if found_color:
+            if check_color(color_value):
+                d_resolved["color"] = color_value
+                resolved.append("color")
+                if not found_line_color:
+                    d_resolved["line_color"] = color_value
+                    resolved.append("line_color")
+                if not found_fill_color:
+                    d_resolved["fill_color"] = color_value
+                    resolved.append("fill_color")
             else:
-                raise ValueError(f"Invalid color value: {draw_color}")
+                raise ValueError(f"Invalid color value: {color_value}")
         else:
             item_color = getattr(item, "color", None)
             if item_color is not None:
@@ -1662,29 +2067,48 @@ class Canvas:
                 else:
                     raise ValueError(f"Invalid color value: {item_color}")
 
-        if color is not None:
-            if item.line_color is None:
-                d_resolved["line_color"] = color
-            else:
-                d_resolved["line_color"] = item.line_color
-            if item.fill_color is None:
-                d_resolved["fill_color"] = color
-            else:
-                d_resolved["fill_color"] = item.fill_color
+        if found_line_color:
+            d_resolved["line_color"] = line_color_value
+            if "line_color" not in resolved:
+                resolved.append("line_color")
+        if found_fill_color:
+            d_resolved["fill_color"] = fill_color_value
+            if "fill_color" not in resolved:
+                resolved.append("fill_color")
 
-            resolved.extend(["color", "line_color", "fill_color"])
+        if color is not None:
+            if "line_color" not in resolved:
+                if item.line_color is None:
+                    d_resolved["line_color"] = color
+                else:
+                    d_resolved["line_color"] = item.line_color
+                resolved.append("line_color")
+            if "fill_color" not in resolved:
+                if item.fill_color is None:
+                    d_resolved["fill_color"] = color
+                else:
+                    d_resolved["fill_color"] = item.fill_color
+                resolved.append("fill_color")
+            if "color" not in resolved:
+                resolved.append("color")
 
         # handle alpha
         alpha = None
-        if "alpha" in draw_kwargs:
-            draw_alpha = draw_kwargs["alpha"]
-            if check_alpha(draw_alpha):
-                d_resolved["line_alpha"] = draw_alpha
-                d_resolved["fill_alpha"] = draw_alpha
-                d_resolved["alpha"] = draw_alpha
-                resolved.extend(["line_alpha", "fill_alpha", "alpha"])
+        found_alpha, alpha_value = layered("alpha")
+        found_line_alpha, line_alpha_value = layered("line_alpha")
+        found_fill_alpha, fill_alpha_value = layered("fill_alpha")
+        if found_alpha:
+            if check_alpha(alpha_value):
+                d_resolved["alpha"] = alpha_value
+                resolved.append("alpha")
+                if not found_line_alpha:
+                    d_resolved["line_alpha"] = alpha_value
+                    resolved.append("line_alpha")
+                if not found_fill_alpha:
+                    d_resolved["fill_alpha"] = alpha_value
+                    resolved.append("fill_alpha")
             else:
-                raise ValueError(f"Invalid alpha value: {draw_alpha}")
+                raise ValueError(f"Invalid alpha value: {alpha_value}")
         else:
             item_alpha = getattr(item, "alpha", None)
             if item_alpha is not None:
@@ -1693,23 +2117,37 @@ class Canvas:
                 else:
                     raise ValueError(f"Invalid alpha value: {item_alpha}")
 
-        if alpha is not None:
-            if item.line_alpha is None:
-                d_resolved["line_alpha"] = alpha
-            else:
-                d_resolved["line_alpha"] = item.line_alpha
-            if item.fill_alpha is None:
-                d_resolved["fill_alpha"] = alpha
-            else:
-                d_resolved["fill_alpha"] = item.fill_alpha
+        if found_line_alpha:
+            d_resolved["line_alpha"] = line_alpha_value
+            if "line_alpha" not in resolved:
+                resolved.append("line_alpha")
+        if found_fill_alpha:
+            d_resolved["fill_alpha"] = fill_alpha_value
+            if "fill_alpha" not in resolved:
+                resolved.append("fill_alpha")
 
-            resolved.extend(["alpha", "line_alpha", "fill_alpha"])
+        if alpha is not None:
+            if "line_alpha" not in resolved:
+                if item.line_alpha is None:
+                    d_resolved["line_alpha"] = alpha
+                else:
+                    d_resolved["line_alpha"] = item.line_alpha
+                resolved.append("line_alpha")
+            if "fill_alpha" not in resolved:
+                if item.fill_alpha is None:
+                    d_resolved["fill_alpha"] = alpha
+                else:
+                    d_resolved["fill_alpha"] = item.fill_alpha
+                resolved.append("fill_alpha")
+            if "alpha" not in resolved:
+                resolved.append("alpha")
 
         for attrib_name in style_map:
             if attrib_name in resolved:
                 continue
-            elif attrib_name in draw_kwargs:
-                d_resolved[attrib_name] = draw_kwargs[attrib_name]
+            found_layer, layer_value = layered(attrib_name)
+            if found_layer:
+                d_resolved[attrib_name] = layer_value
             else:
                 d_resolved[attrib_name] = self.resolve_property(
                     item, attrib_name
@@ -1883,24 +2321,22 @@ class Canvas:
         self, filepath: Path, show_browser: bool, multi_page_svg: bool
     ) -> None:
         """
-        Show the file in the browser.
+        Open the saved file with the personal ``[viewer]`` setting.
 
         Args:
             filepath (Path): The path to the file.
-            show_browser (bool): Whether to show the file in the browser.
+            show_browser (bool): Whether to open the file.
             multi_page_svg (bool): Whether the file is a multi-page SVG.
         """
         if show_browser is None:
             show_browser = defaults["show_browser"]
         if show_browser:
-            filepath = "file:///" + filepath
             if multi_page_svg:
-                root, extension = os.path.splitext(filepath)
+                root, extension = os.path.splitext(str(filepath))
                 for i, _ in enumerate(self.pages):
-                    f_path = f"{root}_{i + 1}{extension}"
-                    webbrowser.open(f_path)
+                    open_saved_file(f"{root}_{i + 1}{extension}")
             else:
-                webbrowser.open(filepath)
+                open_saved_file(filepath)
 
     def save(
         self,
@@ -1918,7 +2354,9 @@ class Canvas:
         Args:
             filepath (Path, optional): The path to save the file.
             overwrite (bool, optional): Whether to overwrite the file if it exists.
-            show (bool, optional): Whether to show the file in the browser.
+            show (bool, optional): Whether to open the file after save.
+                Uses the personal ``[viewer]`` setting (system default,
+                a command such as Cursor, or nothing).
             inset (float, optional): The inset value will be clipped from all sides, defaults to None.
         Returns:
             Self: The canvas object.

@@ -2,7 +2,7 @@
 
 Matrices are stored in row-major form suitable for ``points @ matrix`` with
 homogeneous coordinates. Public aliases on ``simetri.graphics`` include
-``TM``, ``RM``, ``MM``, ``GM``, ``SM``, and ``SHM``.
+``TM``, ``RM``, ``MirM``, ``GM``, ``SM``, and ``SHM``.
 
 Examples:
     >>> import simetri.graphics as sg

@@ -9,7 +9,7 @@ Examples:
     >>> s.translate(5, 0).rotate(sg.pi / 4, about=s.midpoint)
 """
 
-__all__ = ["Base", "DynRef", "Transform", "Transformation"]
+__all__ = ["Base", "DynRef", "Transform", "Transformation", "resolve_dyn_ref"]
 
 import operator
 from collections.abc import Callable, Sequence
@@ -855,6 +855,53 @@ def _resolve_arg(
         res = value
 
     return res
+
+
+def resolve_dyn_ref(
+    value: Any,
+    kernel: Any,
+    pattern: Any,
+    active: Any | None = None,
+    index: int = 0,
+    as_point: bool = False,
+    as_length: bool = False,
+    as_vector: bool = False,
+) -> Any:
+    """Resolve a ``DynRef`` against kernel / pattern / active.
+
+    If ``value`` is not a ``DynRef``, it is returned unchanged.
+
+    Args:
+        value: A ``DynRef`` or a literal.
+        kernel: Object for ``ReferenceTarget.KERNEL``.
+        pattern: Object for ``ReferenceTarget.PATTERN``.
+        active: Object for ``ReferenceTarget.ACTIVE``. Defaults to
+            ``kernel``.
+        index: Repetition index for callable / VERTEX / EDGE references.
+            Defaults to 0.
+        as_point: If True, ``Reference.EDGE`` is the edge midpoint.
+        as_length: If True, ``Reference.EDGE`` is the edge length.
+        as_vector: If True, ``Reference.EDGE`` is ``end - start``.
+
+    Returns:
+        The resolved value, or ``value`` if it is not a ``DynRef``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+        >>> gap = sg.DynRef(sg.Reference.WIDTH, sg.ReferenceTarget.KERNEL)
+        >>> sg.resolve_dyn_ref(gap, kernel=box, pattern=box)
+        100.0
+        >>> sg.resolve_dyn_ref(40, kernel=box, pattern=box)
+        40
+    """
+    if active is None:
+        active = kernel
+    targets = _Targets(kernel, pattern)
+    targets.active = active
+    return _resolve_arg(
+        value, targets, index, as_point, as_length, as_vector
+    )
 
 
 def _reject_dyn_refs(**arguments: Any) -> None:

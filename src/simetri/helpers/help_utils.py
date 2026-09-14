@@ -148,6 +148,40 @@ d_help_topic: dict[str, list[str]] = {
         "sg.set_defaults",
         "sg.set_svg_defaults",
         "sg.set_tikz_defaults",
+        "See also: sg.help('canvas_doc'), sg.help('user_settings'), "
+        "sg.help('tex_compiler'), sg.help('viewer')",
+    ],
+    "canvas_context_managers": [
+        "Canvas.style",
+        "Canvas.push_style",
+        "Canvas.pop_style",
+        "Canvas.translate",
+        "Canvas.rotate",
+        "Canvas.scale",
+        "Canvas.push_matrix",
+        "Canvas.pop_matrix",
+        "Canvas.reset_transform",
+        "Canvas.reset_style",
+        "Canvas.reset_line_style",
+        "Canvas.reset_fill_style",
+        "Shape.reset_style",
+        "Shape.reset_line_style",
+        "Shape.reset_fill_style",
+        "sg.Style",
+        "sg.user_styles",
+        "See also: sg.help('canvas_doc'), sg.help('user_settings')",
+    ],
+    "canvas_doc": [
+        "sg.Canvas",
+        "Canvas.draw",
+        "Canvas.save",
+        "Canvas.display",
+        "Canvas.insert_svg",
+        "Canvas.insert_tex",
+        "Canvas.reset",
+        "See also: sg.help('user_settings'), sg.help('script_sharing'), "
+        "sg.help('tex_compiler'), "
+        "sg.help('image_converters'), sg.help('viewer')",
     ],
     "clipping": [
         "sg.Mask",
@@ -184,10 +218,25 @@ d_help_topic: dict[str, list[str]] = {
         "See also: sg.help('dynamic_references_doc'), "
         "sg.help('transforms')",
     ],
+    "dimensioning_doc": [
+        "sg.Dimension",
+        "sg.AnnotationArrow",
+        "sg.RadialDimension",
+        "sg.AngularDimension",
+        "sg.Anchor",
+        "sg.defaults['gap']",
+        "sg.defaults['overshoot']",
+        "sg.defaults['text_offset']",
+        "sg.defaults['aligned_text']",
+        "sg.defaults['landing_length']",
+        "sg.defaults['rev_arrow_length']",
+        "See also: sg.help('canvas_doc'), sg.help('tags')",
+    ],
     "dynamic_references_doc": [
         "sg.DynRef",
         "sg.Reference",
         "sg.ReferenceTarget",
+        "sg.resolve_dyn_ref",
         "sg.Transform",
         "sg.Transformation",
         "Shape.translate: two lengths (dx, dy), or one vector "
@@ -222,14 +271,8 @@ d_help_topic: dict[str, list[str]] = {
         "sg.pdf_to_svg",
         "sg.set_svg_defaults",
         "sg.set_tikz_defaults",
-        "See also: sg.help('external_converters'), sg.help('tex_compiler')",
-    ],
-    "external_converters": [
-        "sg.Canvas.save",
-        "sg.user_config_path",
-        "sg.set_user_settings_path",
-        "See also: sg.help('user_settings'), sg.help('script_sharing'), "
-        "sg.help('tex_compiler')",
+        "See also: sg.help('image_converters'), sg.help('tex_compiler'), "
+        "sg.help('viewer')",
     ],
     "grids": [
         "sg.Grid",
@@ -242,16 +285,29 @@ d_help_topic: dict[str, list[str]] = {
         "sg.Lace",
         "See Group methods: append, extend, translate, rotate, mirror, …",
     ],
+    "image_converters": [
+        "sg.Canvas.save",
+        "sg.Canvas.capture",
+        "sg.Image",
+        "sg.open_img",
+        "sg.user_config_path",
+        "sg.set_user_settings_path",
+        "sg.apply_user_config",
+        "See also: sg.help('canvas_doc'), sg.help('images'), "
+        "sg.help('user_settings'), sg.help('tex_compiler')",
+    ],
     "images": [
         "sg.Image",
         "sg.open_img",
+        "See also: sg.help('image_converters'), sg.help('canvas_doc')",
     ],
     "latex_engine": [
         "sg.Canvas.save",
         "sg.Compiler",
         "sg.defaults['latex_compiler']",
         "sg.user_config_path",
-        "See also: sg.help('tex_compiler'), sg.help('user_settings')",
+        "See also: sg.help('tex_compiler'), sg.help('user_settings'), "
+        "sg.help('viewer')",
     ],
     "lines": [
         "sg.Line",
@@ -312,6 +368,7 @@ d_help_topic: dict[str, list[str]] = {
         "sg.Side",
         "sg.convex_hull",
         "sg.in_polygon",
+        "sg.inflate",
         "sg.offset_polygon",
         "sg.offset_polygon_shape",
         "sg.polygon_area",
@@ -335,9 +392,11 @@ d_help_topic: dict[str, list[str]] = {
         "sg.Rectangle2",
         "sg.Segment",
         "sg.Shape",
+        "sg.Square",
         "sg.arc_shape",
         "sg.circle_shape",
         "sg.ellipse_shape",
+        "sg.inflate",
         "sg.line_shape",
         "sg.rect_shape",
         "sg.reg_poly_shape",
@@ -349,6 +408,8 @@ d_help_topic: dict[str, list[str]] = {
         "sg.random_angle",
         "sg.random_circle",
         "sg.random_circles",
+        "sg.random_ellipse",
+        "sg.random_ellipses",
         "sg.random_point",
         "sg.random_points",
         "sg.random_segment",
@@ -372,11 +433,29 @@ d_help_topic: dict[str, list[str]] = {
         "See also: sg.help('user_settings'), sg.help('random_seeds'), "
         "sg.help('tex_compiler')",
     ],
-    "tags": [
-        "sg.Arrow",
-        "sg.ArrowHead",
+    "style_definitions": [
+        "Canvas.style",
+        "sg.Style",
+        "Shape.style",
+        "Shape.line_style",
+        "Shape.fill_style",
+        "Group.set_style",
+        "sg.user_styles",
+        "Shape.copy_style",
+        "See also: sg.help('canvas_doc'), sg.help('user_settings')",
+    ],
+    "tag_objects": [
         "sg.Tag",
         "sg.TagFrame",
+        "sg.Canvas.text",
+        "sg.Canvas.draw",
+        "sg.Anchor",
+        "sg.Align",
+        "sg.FrameShape",
+        "sg.FontFamily",
+        "sg.FontSize",
+        "See also: sg.help('canvas_doc'), sg.help('text'), "
+        "sg.help('dimensioning_doc')",
     ],
     "text": [
         "sg.Tag",
@@ -385,13 +464,14 @@ d_help_topic: dict[str, list[str]] = {
         "sg.ArrowHead",
         "sg.get_text_dimensions",
         "sg.get_text_size",
+        "See also: sg.help('tag_objects'), sg.help('canvas_doc')",
     ],
     "tex_compiler": [
         "sg.Canvas.save",
         "sg.user_config_path",
         "sg.set_user_settings_path",
-        "See also: sg.help('user_settings'), sg.help('external_converters'), "
-        "sg.help('script_sharing')",
+        "See also: sg.help('user_settings'), sg.help('image_converters'), "
+        "sg.help('script_sharing'), sg.help('viewer')",
     ],
     "tolerances": [
         "sg.check_angle_tol",
@@ -430,7 +510,8 @@ d_help_topic: dict[str, list[str]] = {
         "sg.set_tikz_defaults",
         "sg.Canvas.save",
         "See also: sg.help('warnings'), sg.help('canvas'), "
-        "sg.help('external_converters'), sg.help('tex_compiler')",
+        "sg.help('image_converters'), sg.help('tex_compiler'), "
+        "sg.help('viewer')",
     ],
     "vertices": [
         "Shape.vertices / Shape.primary_points",
@@ -439,6 +520,14 @@ d_help_topic: dict[str, list[str]] = {
         "sg.homogenize",
         "sg.round_point",
         "See also: sg.help('points'), sg.help('shapes')",
+    ],
+    "viewer": [
+        "sg.Canvas.save",
+        "sg.user_config_path",
+        "sg.set_user_settings_path",
+        "sg.defaults['show_browser']",
+        "See also: sg.help('user_settings'), sg.help('export'), "
+        "sg.help('script_sharing')",
     ],
     "warnings": [
         "sg.WarningType",
@@ -457,20 +546,34 @@ d_help_topic: dict[str, list[str]] = {
 d_help_topic["segments"] = list(d_help_topic["lines"])
 
 _TOPIC_ALIASES = {
+    "AnnotationArrow": "dimensioning_doc",
     "BooleanOps": "boolean_ops",
-    "Canvas": "canvas",
+    "Canvas": "canvas_doc",
+    "canvas": "canvas_doc",
+    "canvas-context-managers": "canvas_context_managers",
+    "canvas_context_managers": "canvas_context_managers",
+    "context-managers": "canvas_context_managers",
+    "context_managers": "canvas_context_managers",
+    "ContextManagers": "canvas_context_managers",
     "Clipping": "clipping",
     "Colors": "colors",
     "CompositeTransformations": "composite_transformations",
     "composite_transformations_with_dynamic_references": "composite_transformations",
+    "Dimension": "dimensioning_doc",
+    "dimensioning": "dimensioning_doc",
+    "Dimensioning": "dimensioning_doc",
+    "dimensions": "dimensioning_doc",
     "dynamic_references": "dynamic_references_doc",
     "DynamicReferences": "dynamic_references_doc",
     "Edges": "edges",
     "Effects": "effects",
     "Export": "export",
-    "external-converters": "external_converters",
-    "ExternalConverters": "external_converters",
-    "converters": "external_converters",
+    "external-converters": "image_converters",
+    "ExternalConverters": "image_converters",
+    "external_converters": "image_converters",
+    "converters": "image_converters",
+    "image-converters": "image_converters",
+    "ImageConverters": "image_converters",
     "tex": "tex_compiler",
     "tex-compiler": "tex_compiler",
     "TexCompiler": "tex_compiler",
@@ -485,18 +588,35 @@ _TOPIC_ALIASES = {
     "Patterns": "patterns",
     "Points": "points",
     "Polygons": "polygons",
+    "pop_matrix": "canvas_context_managers",
+    "pop_style": "canvas_context_managers",
+    "push_matrix": "canvas_context_managers",
+    "push_style": "canvas_context_managers",
     "random-seeds": "random_seeds",
     "RandomSeeds": "random_seeds",
     "Segments": "segments",
     "Shapes": "shapes",
     "script-sharing": "script_sharing",
     "ScriptSharing": "script_sharing",
-    "Tags": "tags",
+    "Style": "style_definitions",
+    "style": "style_definitions",
+    "style-definitions": "style_definitions",
+    "styles": "style_definitions",
+    "user_styles": "style_definitions",
+    "Tag": "tag_objects",
+    "tag-objects": "tag_objects",
+    "TagFrame": "tag_objects",
+    "Tags": "tag_objects",
+    "tags": "tag_objects",
     "Text": "text",
     "Tolerances": "tolerances",
     "Transforms": "transforms",
     "user-settings": "user_settings",
     "UserSettings": "user_settings",
+    "viewer": "viewer",
+    "preview": "viewer",
+    "open_saved": "viewer",
+    "open-saved": "viewer",
     "Vertices": "vertices",
     "Warnings": "warnings",
     "WarningType": "warnings",
@@ -774,8 +894,8 @@ def _format_topic(topic: str, entries: Sequence[str]) -> str:
 
 
 def _topic_guide_text(topic: str) -> str | None:
-    """Return topic-guide markdown when ``topic_guides/{topic}.md`` exists."""
-    path = _TOPIC_GUIDES_DIR / f"{topic}.md"
+    """Return topic-guide text when ``topic_guides/{topic}.qmd`` exists."""
+    path = _TOPIC_GUIDES_DIR / f"{topic}.qmd"
     if not path.is_file():
         return None
     return path.read_text(encoding="utf-8")

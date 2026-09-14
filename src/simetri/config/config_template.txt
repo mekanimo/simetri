@@ -12,7 +12,7 @@ default_test_directory = ""
 warnings_on = true
 
 # Fine-grained toggles mirror WarningType.<group>.<leaf>
-# true = enabled (default); false = suppressed like warnings_off(...)
+# true = enabled (default); false = suppressed like set_warning_off(...)
 [warnings.canvas]
 empty_stack = true
 flip_x = true
@@ -57,6 +57,7 @@ bad_char = true
 kwargs = true
 
 [warnings.vector]
+duplicate = true
 mixed = true
 
 [defaults]
@@ -88,6 +89,7 @@ mixed = true
 # canvas_back_color = "white"
 # canvas_back_style = "EMPTY"
 # canvas_border = 20
+# canvas_capture_format = "svg"
 # border = 25
 # page_size = "LETTER"
 # auto_expand_canvas_for_vertices = true
@@ -96,6 +98,8 @@ mixed = true
 # show_browser = true
 # debug_mode = false
 # show_log_on_console = true
+# After save(), show_browser still decides *whether* to open the file.
+# *How* it opens is [viewer] at the bottom of this file (Cursor, VS Code, …).
 
 # Help grid / coordinate system
 ##################################################
@@ -148,9 +152,11 @@ mixed = true
 ##################################################
 # index_font_size = "footnotesize"
 # index_font_color = [0.0, 0.42, 0.72]
+# index_font_family = "ttfamily"
 # index_offset = 4
 # vertex_font_size = "footnotesize"
 # vertex_font_color = [0.0, 0.42, 0.72]
+# vertex_font_family = "ttfamily"
 # vertex_offset = 4
 # label_halo_color = "white"
 # label_halo_scale = 1.14
@@ -173,3 +179,68 @@ mixed = true
 # tikz_nround = 3
 
 # Common settings only — not every defaults dictionary key.
+
+# External converters (personal machine only — never put in shared tomls)
+##################################################
+# Simetri natively writes: .svg .pdf .tex .eps .ps
+# For other formats (e.g. .png), register a CLI converter here.
+# Placeholders: {input} {output} {outdir} {stem}
+# Prefer command as a string array with shell = false.
+
+[converters]
+enabled = true
+timeout_seconds = 120
+shell = false
+
+# [converters.png]
+# source = "svg"
+# command = ["resvg", "{input}", "{output}"]
+
+# [converters.webp]
+# source = "svg"
+# command = ["magick", "{input}", "{output}"]
+
+# TeX compiler (personal machine only — never put in shared tomls)
+##################################################
+# If command is omitted, Simetri runs defaults.latex_compiler from PATH.
+# Placeholders: {input} = .tex  {output} = .pdf  {outdir} {stem}
+
+# [tex]
+# timeout_seconds = 120
+# shell = false
+# command = [
+#     "xelatex",
+#     "-interaction=nonstopmode",
+#     "--output-directory={outdir}",
+#     "{input}",
+# ]
+
+# After canvas.save() (personal machine only — never put in shared tomls)
+##################################################
+# show_browser / canvas.save(..., show=False) still gates whether anything opens.
+# mode = "system"  — OS default app (current behavior)
+# mode = "none"    — do not open
+# mode = "command" — run command (Cursor, VS Code, a browser, …)
+# Placeholders: {filepath}  {file}  {url}
+
+# [viewer]
+# mode = "system"
+# shell = false
+# command = ["cursor", "-r", "{filepath}"]
+
+# VS Code:
+# command = ["code", "-r", "{filepath}"]
+
+# Named draw-time styles (personal machine only — never put in shared tomls)
+##################################################
+# Look up with sg.user_styles["outline"]. Unknown names raise KeyError.
+
+# [styles.outline]
+# fill = false
+# line_width = 3
+# line_color = "blue"
+
+# [styles.ghost]
+# fill = true
+# fill_alpha = 0.15
+# stroke = false

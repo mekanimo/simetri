@@ -106,7 +106,17 @@ from ..shapes.dots import *
 from ..shapes.geom_items import *
 
 # Preserve geometric Line class on public namespace.
-from ..shapes.geom_items import Line as Line
+from ..shapes.geom_items import (
+    Circle,
+    Line,
+    Rectangle,
+    Square,
+    circle,
+    rectangle,
+    square,
+)
+from ..geom.nonlinear.ellipse import Ellipse as Ellipse
+from ..geom.nonlinear.ellipse import ellipse as ellipse
 from ..shapes.shape import (
     Clipping,
     all_segments,
@@ -125,18 +135,18 @@ set_svg_defaults()
 
 # Restore public enum symbols that are shadowed by later star imports.
 from ..base.all_enums import Side as Side
-from ..base.core import Transform as Transform, Transformation as Transformation
 
 # aliases
 is_close = isclose
 Batch = Group
 TM = translation_matrix
 RM = rotation_matrix
-MM = mirror_matrix
+MirM = mirror_matrix
 GM = glide_matrix
 SM = scale_matrix
 SHM = shear_matrix
 LinPath = Path2D
 
 # Explicit public re-exports (star-imports can drop or shadow these).
+from ..base.common_style import Style
 from ..helpers.help_utils import doc, help

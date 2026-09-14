@@ -14,7 +14,15 @@ from typing import TYPE_CHECKING
 import matplotlib
 import matplotlib.pyplot as plt
 
-from ...base.all_enums import Align, Anchor, Extent, FrameShape, MarkerType
+from ...base.all_enums import (
+    Align,
+    Anchor,
+    Extent,
+    FrameShape,
+    MarkerType,
+    SvgLoc,
+    Types,
+)
 from ...base.common import get_unique_id
 from ...coloring.colors import Color, check_color
 from ...config.settings import defaults
@@ -52,6 +60,24 @@ if TYPE_CHECKING:
         Sketch,
         TagSketch,
     )
+
+
+@dataclass
+class SvgSketch:
+    """Raw SVG markup inserted by ``canvas.insert_svg``.
+
+    Attributes:
+        code: SVG fragment to insert.
+        location: Where the fragment is placed. Defaults to ``SvgLoc.NONE``.
+    """
+
+    code: str | None = None
+    location: SvgLoc = SvgLoc.NONE
+
+    def __post_init__(self):
+        """Initialize the SvgSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.SVG_SKETCH
 
 
 @dataclass
@@ -555,8 +581,14 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
 
     content = "\n".join(elements)
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)
-    if clip_attr or mask_attr:
-        return f"<g{clip_attr}{mask_attr}>\n{content}\n</g>"
+    alpha = sketch.alpha
+    if alpha is None:
+        raise ValueError("TagSketch.alpha was not resolved at draw time.")
+    opacity_attr = ""
+    if alpha != defaults["tag_alpha"]:
+        opacity_attr = f' opacity="{alpha}"'
+    if clip_attr or mask_attr or opacity_attr:
+        return f"<g{clip_attr}{mask_attr}{opacity_attr}>\n{content}\n</g>"
     return content
 
 

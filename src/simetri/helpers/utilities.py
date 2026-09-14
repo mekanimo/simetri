@@ -17,6 +17,7 @@ from functools import cmp_to_key, reduce, wraps
 from math import atan2, ceil, cos, factorial, floor, hypot, isclose, sin, sqrt
 from pathlib import Path
 from time import monotonic, perf_counter, sleep, time
+from typing import Union
 
 import numpy as np
 from numpy import array, ndarray
@@ -29,6 +30,40 @@ from ..config.settings import (
     defaults,
     issue_warning,
 )
+
+
+# from https://peps.python.org/pep-0661/
+class sentinel:
+    """Unique sentinel values."""
+
+    __slots__ = ("__name__", "_repr")
+
+    def __init_subclass__(cls):
+        raise TypeError("type 'sentinel' is not an acceptable base type")
+
+    def __init__(self, name, /, repr=None):
+        if not isinstance(name, str):
+            raise TypeError("sentinel name must be a string")
+        self.__name__ = name
+        self._repr = repr if repr is not None else name
+
+    def __repr__(self):
+        return self._repr
+
+    def __reduce__(self):
+        return self.__name__
+
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
+
+    def __or__(self, other):
+        return Union[self, other]
+
+    def __ror__(self, other):
+        return Union[other, self]
 
 
 @contextmanager

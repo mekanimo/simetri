@@ -18,7 +18,6 @@ from PIL import ImageFont
 from ..base.all_enums import (
     Align,
     Anchor,
-    ArrowLine,
     FontFamily,
     FontSize,
     FrameShape,
@@ -27,18 +26,20 @@ from ..base.all_enums import (
     Placement,
     TransformationType,
     Types,
+    WarningType,
 )
 from ..base.common import (
     PointType,
+    VecType,
     _set_Nones,
     get_defaults,
 )
 
 # from reportlab.pdfbase import pdfmetrics # to do: remove this
-from ..base.core import Base, _Targets, _next_xform_matrix
+from ..base.core import Base, _next_xform_matrix, _Targets
 from ..coloring import colors
 from ..coloring.swatches import swatches_255
-from ..config.settings import defaults
+from ..config.settings import defaults, issue_warning
 from ..geom.bbox import bounding_box
 from ..geom.geom_utils import midpoint
 from ..geom.geometry import (
@@ -532,41 +533,155 @@ def pdf_to_svg(pdf_path, svg_path):
         f.write(svg)
 
 
-# To do: use a different name for the Annotation class
-# annotation is a label with an arrow
-class Annotation(Group):
-    """An Annotation object is a label with an arrow pointing to a specific location.
+# annotation is a label with a broken leader and an arrow
+class AnnotationArrow(Group):
+    """A leader from a feature point to text or a circled number.
+
+    The leader is two segments: an angled shaft from ``tip`` to ``elbow``,
+    then a landing from ``elbow`` to ``landing``. The arrowhead sits at
+    ``tip``. If only ``landing`` or only ``elbow`` is given, the missing
+    point is inferred so the landing is horizontal.
 
     Args:
-        text (str): The annotation text.
-        pos (tuple): The position of the annotation.
-        frame (FrameShape): The frame shape of the annotation.
-        root_pos (tuple): The root position of the arrow.
-        arrow_line (ArrowLine, optional): The type of arrow line. Defaults to ArrowLine.STRAIGHT_END.
-        **kwargs: Additional keyword arguments for annotation styling.
+        tip (PointType): Feature point the arrowhead points at.
+        text (str | int): Label text, or a number for a balloon. Defaults
+            to "".
+        landing (PointType, optional): End of the landing, at the label.
+            Defaults to None.
+        elbow (PointType, optional): Break between the angled shaft and
+            the landing. Defaults to None.
+        landing_length (float, optional): Horizontal landing length used
+            when inferring ``elbow`` or ``landing``. Defaults to None
+            (``defaults["landing_length"]``).
+        circled (bool, optional): If True, the label is a balloon
+            (circled number or text). Defaults to False.
+        font_size (float, optional): Label font size. Defaults to None
+            (``defaults["font_size"]``).
+        **kwargs: Passed to the leader ``Arrow`` and landing ``Shape``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> note = sg.AnnotationArrow((0, 0), "A", landing=(40, 20))
+        >>> note.tip
+        (0, 0)
+        >>> note.elbow
+        (20, 20)
+        >>> note.landing
+        (40, 20)
+        >>> balloon = sg.AnnotationArrow(
+        ...     (0, 0), 1, landing=(40, 20), circled=True
+        ... )
+        >>> balloon.text
+        '1'
+        >>> balloon.tag.frame_shape == sg.FrameShape.CIRCLE
+        True
+        >>> sg.AnnotationArrow((0, 0), "A")
+        Traceback (most recent call last):
+            ...
+        ValueError: AnnotationArrow requires landing or elbow.
     """
 
     def __init__(
         self,
-        text,
-        pos,
-        frame,
-        root_pos,
-        arrow_line=ArrowLine.STRAIGHT_END,
+        tip: PointType,
+        text: str | int = "",
+        landing: PointType | None = None,
+        elbow: PointType | None = None,
+        landing_length: float | None = None,
+        circled: bool = False,
+        font_size: float | None = None,
         **kwargs,
     ):
-        """Create a text annotation with an arrow.
+        """Create a broken-leader annotation arrow.
 
         See the class docstring for argument details.
         """
-        self.text = text
-        self.pos = pos
-        self.frame = frame
-        self.root_pos = root_pos
-        self.arrow_line = arrow_line
-        self.kwargs = kwargs
+        if elbow is None and landing is None:
+            raise ValueError("AnnotationArrow requires landing or elbow.")
+        if elbow is not None and landing is not None:
+            if landing_length is not None:
+                raise ValueError(
+                    "Do not pass landing_length when both elbow "
+                    "and landing are given."
+                )
+        else:
+            (landing_length,) = get_defaults(
+                ["landing_length"], [landing_length]
+            )
 
-        super().__init__(subtype=Types.ANNOTATION, **kwargs)
+        (font_size,) = get_defaults(["font_size"], [font_size])
+        tip_x, tip_y = tip[:2]
+        self.tip = (tip_x, tip_y)
+        self.circled = circled
+        self.font_size = font_size
+        self.text = str(text)
+
+        if elbow is None:
+            landing_x, landing_y = landing[:2]
+            if landing_x >= tip_x:
+                elbow_x = landing_x - landing_length
+            else:
+                elbow_x = landing_x + landing_length
+            elbow_y = landing_y
+            self.elbow = (elbow_x, elbow_y)
+            self.landing = (landing_x, landing_y)
+        elif landing is None:
+            elbow_x, elbow_y = elbow[:2]
+            if elbow_x >= tip_x:
+                landing_x = elbow_x + landing_length
+            else:
+                landing_x = elbow_x - landing_length
+            landing_y = elbow_y
+            self.elbow = (elbow_x, elbow_y)
+            self.landing = (landing_x, landing_y)
+        else:
+            elbow_x, elbow_y = elbow[:2]
+            landing_x, landing_y = landing[:2]
+            self.elbow = (elbow_x, elbow_y)
+            self.landing = (landing_x, landing_y)
+
+        self.arrow = Arrow(self.elbow, self.tip, **kwargs)
+        items = [self.arrow]
+        dist_tol = defaults["dist_tol"]
+        landing_span = distance(self.elbow, self.landing)
+        if landing_span > dist_tol:
+            self.landing_line = Shape(
+                [self.elbow, self.landing], fill=False, **kwargs
+            )
+            items.append(self.landing_line)
+        else:
+            self.landing_line = None
+
+        land_dx = landing_x - elbow_x
+        land_dy = landing_y - elbow_y
+        land_len = hypot(land_dx, land_dy)
+        if land_len > dist_tol:
+            unit_x = land_dx / land_len
+            unit_y = land_dy / land_len
+        elif landing_x >= tip_x:
+            unit_x, unit_y = 1.0, 0.0
+        else:
+            unit_x, unit_y = -1.0, 0.0
+
+        text_gap = defaults["text_offset"]
+        if circled:
+            tag_x, tag_y = landing_x, landing_y
+        else:
+            tag_x = landing_x + unit_x * text_gap
+            tag_y = landing_y + unit_y * text_gap
+        self.tag = Tag(
+            self.text,
+            (tag_x, tag_y),
+            font_size=font_size,
+            align=Align.CENTER,
+        )
+        if circled:
+            self.tag.frame_shape = FrameShape.CIRCLE
+            self.tag.stroke = True
+            self.tag.fill = True
+            self.tag.fill_color = colors.white
+        items.append(self.tag)
+        super().__init__(items, subtype=Types.ANNOTATION)
 
 
 @dataclass
@@ -1476,6 +1591,90 @@ class Arrow(Group):
         super().__init__(items, subtype=Types.ARROW, **kwargs)
 
 
+def vec_arrow(
+    vec: VecType,
+    *,
+    start: PointType | None = None,
+    end: PointType | None = None,
+    **kwargs,
+) -> Arrow:
+    """Return an ``Arrow`` from a displacement and a start or end point.
+
+    ``vec`` is a displacement. It is not stored on the ``Arrow``. Extra
+    keyword arguments are passed to ``Arrow``.
+
+    Args:
+        vec (VecType): Displacement from tail to tip.
+        start (PointType, optional): Tail position. Defaults to None.
+        end (PointType, optional): Tip position. Defaults to None.
+        **kwargs: Passed to ``Arrow``.
+
+    Returns:
+        Arrow: Arrow from ``start`` to ``start + vec``, or from
+        ``end - vec`` to ``end``.
+
+    Raises:
+        ValueError: If ``vec`` is zero, if neither ``start`` nor ``end``
+            is given, or if both are given and ``end - start`` does not
+            match ``vec``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> arrow = sg.vec_arrow(sg.Vector(3, 4), start=(10, 20))
+        >>> arrow.p1
+        (10, 20)
+        >>> arrow.p2
+        (13, 24)
+        >>> arrow = sg.vec_arrow(sg.Vector(3, 4), end=(13, 24))
+        >>> arrow.p1
+        (10, 20)
+        >>> arrow.p2
+        (13, 24)
+        >>> sg.vec_arrow(sg.Vector(0, 0), start=(1, 1))
+        Traceback (most recent call last):
+            ...
+        ValueError: Cannot create an Arrow from a zero-length Vector.
+        >>> sg.vec_arrow(sg.Vector(3, 4), start=(0, 0), end=(1, 0))
+        Traceback (most recent call last):
+            ...
+        ValueError: start and end are not consistent with the Vector displacement (3, 4).
+    """
+    vector_x, vector_y = vec[:2]
+    if vector_x == 0 and vector_y == 0:
+        raise ValueError("Cannot create an Arrow from a zero-length Vector.")
+    if start is None and end is None:
+        raise ValueError("vec_arrow requires start or end.")
+    if start is not None and end is not None:
+        start_x, start_y = start[:2]
+        end_x, end_y = end[:2]
+        displacement_x = end_x - start_x
+        displacement_y = end_y - start_y
+        offset = hypot(displacement_x - vector_x, displacement_y - vector_y)
+        if offset <= defaults["dist_tol"]:
+            issue_warning(
+                f"Duplicate position used for Vector({start}, {end}).",
+                warning_type=WarningType.vector.duplicate,
+            )
+            return Arrow((start_x, start_y), (end_x, end_y), **kwargs)
+        raise ValueError(
+            "start and end are not consistent with the Vector "
+            f"displacement {(vector_x, vector_y)}."
+        )
+    if start is not None:
+        start_x, start_y = start[:2]
+        return Arrow(
+            (start_x, start_y),
+            (start_x + vector_x, start_y + vector_y),
+            **kwargs,
+        )
+    end_x, end_y = end[:2]
+    return Arrow(
+        (end_x - vector_x, end_y - vector_y),
+        (end_x, end_y),
+        **kwargs,
+    )
+
+
 class AngularDimension(Group):
     """An AngularDimension object is a dimension that represents an angle.
 
@@ -1524,24 +1723,50 @@ class AngularDimension(Group):
 class Dimension(Group):
     """A Dimension object is a line with arrows and a text.
 
+    The label position is computed and stored on ``text_pos`` as a point.
+
     Args:
-        text (str): The text of the dimension.
         p1 (PointType): The starting point of the dimension.
         p2 (PointType): The ending point of the dimension.
         ext_length (float): The length of the extension lines.
-        ext_length2 (float, optional): The length of the second extension line. Defaults to None.
-        orientation (Anchor, optional): The orientation of the dimension. Defaults to None.
-        text_pos (Anchor, optional): The position of the text. Defaults to Anchor.CENTER.
-        text_offset (float, optional): The offset of the text. Defaults to 0.
+        ext_length2 (float, optional): The length of the second extension
+            line. Defaults to None.
+        orientation (Anchor, optional): The orientation of the dimension.
+            Defaults to None.
+        text (str, optional): The text of the dimension. Empty string
+            auto-generates the measured length. Defaults to "".
+        text_offset (PointType, optional): ``(dx, dy)`` offset added to the
+            computed label point. Defaults to (0, 0).
         gap (float, optional): The gap. Defaults to None.
-        reverse_arrows (bool, optional): Whether to reverse the arrows. Defaults to False.
-        reverse_arrow_length (float, optional): The length of the reversed arrows. Defaults to None.
-        parallel (bool, optional): Whether the dimension is parallel. Defaults to False.
-        ext1pnt (PointType, optional): The first extension point. Defaults to None.
-        ext2pnt (PointType, optional): The second extension point. Defaults to None.
-        scale (float, optional): The scale factor. Defaults to 1.
-        font_size (int, optional): The font size. Defaults to 12.
-        keep_centered (bool, optional): Whether to keep the dimension centered. Defaults to False.
+        reverse_arrows (bool, optional): Whether to reverse the arrows.
+            Defaults to False.
+        reverse_arrow_length (float, optional): The length of the reversed
+            arrows. Defaults to None.
+        parallel (bool, optional): Whether the dimension is parallel.
+            Defaults to False.
+        ext1pnt (PointType, optional): The first extension point. Defaults
+            to None.
+        ext2pnt (PointType, optional): The second extension point. Defaults
+            to None.
+        scale (float, optional): Divides the measured length when
+            auto-generating the label text. Defaults to 1.
+        font_size (float, optional): The font size. Defaults to None
+            (``defaults["font_size"]``).
+        keep_centered (bool, optional): Whether to keep the label at the
+            midpoint when arrows are reversed. Defaults to False.
+        text_side (Anchor, optional): When ``reverse_arrows`` is True and
+            ``keep_centered`` is False, ``Anchor.BOTTOM`` places the label
+            toward the opposite extension for EAST, NORTHEAST, and NORTH
+            orientations. Defaults to None.
+        overshoot (float, optional): How far each extension line continues
+            past the dimension line. Defaults to None
+            (``defaults["overshoot"]``).
+        text_gap (float, optional): Distance to offset the label away from
+            the dimension line, along the extension direction. Defaults
+            to None (``defaults["text_offset"]``).
+        aligned_text (bool, optional): If True, the label is parallel to
+            the dimension line and readable from the bottom or right.
+            Defaults to None (``defaults["aligned_text"]``).
         **kwargs: Additional keyword arguments for dimension styling.
     """
 
@@ -1552,29 +1777,55 @@ class Dimension(Group):
         p2: PointType,
         ext_length: float,
         ext_length2: float | None = None,
-        orientation: Anchor = None,
+        orientation: Anchor | None = None,
         text: str = "",
-        text_pos: Anchor = Anchor.CENTER,
-        text_offset: tuple = (0, 0),
+        text_offset: PointType = (0, 0),
         gap: float | None = None,
         reverse_arrows: bool = False,
         reverse_arrow_length: float | None = None,
         parallel: bool = False,
-        ext1pnt: PointType = None,
-        ext2pnt: PointType = None,
+        ext1pnt: PointType | None = None,
+        ext2pnt: PointType | None = None,
         scale: float = 1,
-        font_size: int = 12,
+        font_size: float | None = None,
         keep_centered: bool = False,
-        text_side: Anchor = None,  # (Anchor.TOP, Anchor.BOTTOM, Anchor.LEFT, Anchor.RIGHT)
+        text_side: Anchor | None = None,
+        overshoot: float | None = None,
+        text_gap: float | None = None,
+        aligned_text: bool | None = None,
         **kwargs,
     ):
         """Create a linear dimension with extension lines and arrows.
 
         See the class docstring for argument details.
         """
-        ext_length2, gap, reverse_arrow_length = get_defaults(
-            ["ext_length2", "gap", "rev_arrow_length"],
-            [ext_length2, gap, reverse_arrow_length],
+        (
+            ext_length2,
+            gap,
+            reverse_arrow_length,
+            font_size,
+            overshoot,
+            text_gap,
+            aligned_text,
+        ) = get_defaults(
+            [
+                "ext_length2",
+                "gap",
+                "rev_arrow_length",
+                "font_size",
+                "overshoot",
+                "text_offset",
+                "aligned_text",
+            ],
+            [
+                ext_length2,
+                gap,
+                reverse_arrow_length,
+                font_size,
+                overshoot,
+                text_gap,
+                aligned_text,
+            ],
         )
         self.text = text
         self.p1 = p1
@@ -1582,7 +1833,6 @@ class Dimension(Group):
         self.ext_length = ext_length
         self.ext_length2 = ext_length2
         self.orientation = orientation
-        self.text_pos = text_pos
         self.text_offset = text_offset
         self.gap = gap
         self.reverse_arrows = reverse_arrows
@@ -1590,6 +1840,9 @@ class Dimension(Group):
         self.parallel = parallel
         self.keep_centered = keep_centered
         self.text_side = text_side
+        self.overshoot = overshoot
+        self.text_gap = text_gap
+        self.aligned_text = aligned_text
         self.kwargs = kwargs
         self.ext1 = None
         self.ext2 = None
@@ -1601,13 +1854,14 @@ class Dimension(Group):
         self.ext1pnt = ext1pnt
         self.ext2pnt = ext2pnt
         self.scale = scale
+        self.font_size = font_size
         x1, y1 = p1[:2]
         x2, y2 = p2[:2]
         min_x = min(x1, x2)
         max_x = max(x1, x2)
         min_y = min(y1, y2)
         max_y = max(y1, y2)
-        text_dx, text_dy = self.text_offset
+        text_dx, text_dy = self.text_offset[:2]
 
         # px1_1 : extension1 point 1
         # px1_2 : extension1 point 2
@@ -1620,20 +1874,15 @@ class Dimension(Group):
         # ptext : text point
         super().__init__(subtype=Types.DIMENSION, **kwargs)
         dist_tol = defaults["dist_tol"]
-        space = gap * 0.75
-        if font_size is not None:
-            self.font_size = font_size
+        space = overshoot
         if parallel:
             if orientation is None:
                 orientation = Anchor.NORTHEAST
-            elif (
-                orientation == Anchor.NORTHEAST
-                or orientation == Anchor.NORTHWEST
+            if orientation in (
+                Anchor.NORTHEAST,
+                Anchor.NORTHWEST,
+                Anchor.SOUTHWEST,
             ):
-                angle = line_angle(p1, p2) + pi / 2
-            elif orientation == Anchor.SOUTHEAST:
-                angle = line_angle(p1, p2) - pi / 2
-            elif orientation == Anchor.SOUTHWEST:
                 angle = line_angle(p1, p2) + pi / 2
             else:
                 angle = line_angle(p1, p2) - pi / 2
@@ -1658,51 +1907,19 @@ class Dimension(Group):
             tx, ty = midpoint(pa1, pa2)
             self.text_pos = (tx + text_dx, ty + text_dy)
             if self.text == "":
-                self.text = f"{distance(p1, p2):.2f}"
-
-            # Handle reverse_arrows for parallel dimensions
-            if self.reverse_arrows:
-                dist = self.reverse_arrow_length
-                p2 = extended_line(dist, [pa1, pa2])[1]
-                self.arrow1 = Arrow(p2, pa2)
-                p2 = extended_line(dist, [pa2, pa1])[1]
-                self.arrow2 = Arrow(p2, pa1)
-                self.append(self.arrow1)
-                self.append(self.arrow2)
-                self.mid_line = Shape([pa1, pa2])
-                self.append(self.mid_line)
-                dist = self.text_offset[0] + self.reverse_arrow_length
-                if not self.keep_centered:
-                    if orientation in [
-                        Anchor.EAST,
-                        Anchor.NORTHEAST,
-                        Anchor.NORTH,
-                    ]:
-                        if self.text_side == Anchor.BOTTOM:
-                            tx, ty = extended_line(dist, [pa2, pa1])[1]
-                        else:
-                            tx, ty = extended_line(dist, [pa1, pa2])[1]
-                            self.text_pos = (tx + text_dx, ty + text_dy)
-                    else:
-                        tx, ty = extended_line(dist, [pa1, pa2])[1]
-                        self.text_pos = (tx + text_dx, ty + text_dy)
-            else:
-                self.dim_line = Arrow(pa1, pa2, head_pos=HeadPos.BOTH)
-                self.append(self.dim_line)
+                self.text = f"{distance(p1, p2) / scale:.2f}"
 
             self.ext1 = Shape([px1_1, px1_2])
             self.ext2 = Shape([px2_1, px2_2])
-            self.append(self.ext1)
-            self.append(self.ext2)
 
         else:
             if self.text == "":
                 if orientation in (Anchor.NORTH, Anchor.SOUTH):
-                    self.text = f"{(max_x - min_x / scale):.2f}"
-                elif orientation in [Anchor.EAST, Anchor.WEST]:
-                    self.text = f"{(max_y - min_y / scale):.2f}"
+                    self.text = f"{(max_x - min_x) / scale:.2f}"
+                elif orientation in (Anchor.EAST, Anchor.WEST):
+                    self.text = f"{(max_y - min_y) / scale:.2f}"
                 else:
-                    self.text = f"{distance(p1, p2):.2f}"
+                    self.text = f"{distance(p1, p2) / scale:.2f}"
             if abs(x1 - x2) < dist_tol:
                 # vertical line
                 if self.orientation is None:
@@ -1909,42 +2126,64 @@ class Dimension(Group):
                 tx, ty = midpoint(pa1, pa2)
                 self.text_pos = (tx + text_dx, ty + text_dy)
 
-            if self.reverse_arrows:
-                dist = self.reverse_arrow_length
-                p2 = extended_line(dist, [pa1, pa2])[1]
-                self.arrow1 = Arrow(p2, pa2)
-                p2 = extended_line(dist, [pa2, pa1])[1]
-                self.arrow2 = Arrow(p2, pa1)
-                self.append(self.arrow1)
-                self.append(self.arrow2)
-                self.mid_line = Shape([pa1, pa2])
-                self.append(self.mid_line)
-                dist = self.text_offset[0] + self.reverse_arrow_length
-                if not keep_centered:
-                    if orientation in [
-                        Anchor.EAST,
-                        Anchor.NORTHEAST,
-                        Anchor.NORTH,
-                    ]:
-                        if self.text_side == Anchor.BOTTOM:
-                            tx, ty = extended_line(dist, [pa2, pa1])[1]
-                        else:
-                            tx, ty = extended_line(dist, [pa1, pa2])[1]
-                            self.text_pos = (tx + text_dx, ty + text_dy)
+        if self.reverse_arrows:
+            dist = self.reverse_arrow_length
+            arrow1_tail = extended_line(dist, [pa1, pa2])[1]
+            self.arrow1 = Arrow(arrow1_tail, pa2)
+            arrow2_tail = extended_line(dist, [pa2, pa1])[1]
+            self.arrow2 = Arrow(arrow2_tail, pa1)
+            self.append(self.arrow1)
+            self.append(self.arrow2)
+            self.mid_line = Shape([pa1, pa2])
+            self.append(self.mid_line)
+            dist = text_dx + self.reverse_arrow_length
+            if not self.keep_centered:
+                if orientation in (
+                    Anchor.EAST,
+                    Anchor.NORTHEAST,
+                    Anchor.NORTH,
+                ):
+                    if self.text_side == Anchor.BOTTOM:
+                        tx, ty = extended_line(dist, [pa2, pa1])[1]
                     else:
                         tx, ty = extended_line(dist, [pa1, pa2])[1]
-                        self.text_pos = (tx + text_dx, ty + text_dy)
-            else:
-                self.dim_line = Arrow(pa1, pa2, head_pos=HeadPos.BOTH)
-                self.append(self.dim_line)
-            if self.ext1 is not None:
-                self.append(self.ext1)
+                else:
+                    tx, ty = extended_line(dist, [pa1, pa2])[1]
+                self.text_pos = (tx + text_dx, ty + text_dy)
+        else:
+            self.dim_line = Arrow(pa1, pa2, head_pos=HeadPos.BOTH)
+            self.append(self.dim_line)
+        if self.ext1 is not None:
+            self.append(self.ext1)
+        if self.ext2 is not None:
+            self.append(self.ext2)
+        if self.ext3 is not None:
+            self.append(self.ext3)
 
-            if self.ext2 is not None:
-                self.append(self.ext2)
-
-            if self.ext3 is not None:
-                self.append(self.ext3)
+        pa1_x, pa1_y = pa1[:2]
+        pa2_x, pa2_y = pa2[:2]
+        feature_x, feature_y = midpoint(p1, p2)[:2]
+        dim_mid_x = (pa1_x + pa2_x) / 2
+        dim_mid_y = (pa1_y + pa2_y) / 2
+        out_x = dim_mid_x - feature_x
+        out_y = dim_mid_y - feature_y
+        out_len = hypot(out_x, out_y)
+        if out_len > dist_tol:
+            out_x = out_x / out_len
+            out_y = out_y / out_len
+        else:
+            out_x, out_y = 0.0, 1.0
+        text_x, text_y = self.text_pos[:2]
+        self.text_pos = (
+            text_x + out_x * text_gap,
+            text_y + out_y * text_gap,
+        )
+        text_angle = line_angle(pa1, pa2)
+        if text_angle > pi / 2:
+            text_angle -= pi
+        elif text_angle <= -pi / 2:
+            text_angle += pi
+        self.text_angle = text_angle
 
 
 def vert_label_layout(shape, offset):

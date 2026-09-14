@@ -190,7 +190,7 @@ def iter_polyominoes(n, polyo_type="free", size=20):
     """
     res = iter_centers(n=n, polyo_type=polyo_type)
 
-    unit = sg.square((0, 0), size)
+    unit = sg.square(size, (0, 0))
     for polyo in res:
         units = sg.Group()
         for x, y in polyo:

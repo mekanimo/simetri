@@ -65,7 +65,7 @@ class PDF(Rectangle):
         width, height = (100, 100) if size is None else size
         kwargs["fill"] = False
         kwargs["stroke"] = False
-        super().__init__(center=pos, width=width, height=height, **kwargs)
+        super().__init__(width, height, center=pos, **kwargs)
 
     def __repr__(self):
         """
@@ -126,7 +126,7 @@ class Image(Rectangle):
         self.__dict__["pil_img"] = img
         kwargs["fill"] = False
         kwargs["stroke"] = False
-        super().__init__(center=pos, width=width, height=height, **kwargs)
+        super().__init__(width, height, center=pos, **kwargs)
         self.file_path = file_path
         self.type = Types.IMAGE
         self.subtype = Types.IMAGE

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from ...base.all_enums import (
     MarkerType,
+    SvgLoc,
     Types,
     WarningType,
 )
@@ -125,6 +126,27 @@ style="{style_options}"/>'
 """
 
 
+def _svg_insert_snippets(canvas, location: SvgLoc) -> str:
+    """Return joined raw SVG fragments stored at ``location``."""
+    snippets = []
+    for page in canvas.pages:
+        for sketch in page.sketches:
+            if (
+                sketch.subtype == Types.SVG_SKETCH
+                and sketch.location == location
+            ):
+                snippets.append(sketch.code)
+    return "\n".join(snippets)
+
+
+def _page_has_svg_inserts(canvas) -> bool:
+    """Return True if the active page has any ``SvgSketch``."""
+    for sketch in canvas.active_page.sketches:
+        if sketch.subtype == Types.SVG_SKETCH:
+            return True
+    return False
+
+
 def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
     """Convert the sketches in the Canvas to SVG code.
 
@@ -183,6 +205,11 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
         elif subtype == Types.TEX_SKETCH:
             # TexSketch is for TikZ/LaTeX output, skip in SVG
             code = ""
+        elif subtype == Types.SVG_SKETCH:
+            if sketch.location == SvgLoc.NONE:
+                code = sketch.code
+            else:
+                code = ""
         elif subtype == Types.MASK_SKETCH:
             code = ""
         elif subtype == Types.LATEX_SKETCH:
@@ -253,6 +280,9 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
 
     resolve_page_vertex_labels(sketches)
     rendered_code = render_sketches(sketches, 0)
+    picture_inserts = _svg_insert_snippets(canvas, SvgLoc.PICTURE)
+    if picture_inserts:
+        code.append(picture_inserts)
     code.append(rendered_code)
 
     svg_sketch_utils_module.set_active_svg_style_ids({})
@@ -648,6 +678,7 @@ def generate_defs(canvas, styles_dict):
         and not limits_clippath_def
         and not canvas_mask_clippath_id
         and not canvas_mask_mask_id
+        and not _svg_insert_snippets(canvas, SvgLoc.DEFS)
     ):
         return ""
 
@@ -769,6 +800,10 @@ def generate_defs(canvas, styles_dict):
     for sketch_id, svg_filter in filters.items():
         defs_content.append(generate_filter_def(sketch_id, svg_filter))
 
+    inserted_defs = _svg_insert_snippets(canvas, SvgLoc.DEFS)
+    if inserted_defs:
+        defs_content.append(inserted_defs)
+
     defs_str = "\n".join(defs_content)
     return f"  <defs>\n{defs_str}\n  </defs>"
 
@@ -874,6 +909,7 @@ def header(
     dy,
     styles,
     defs="",
+    document_svg="",
 ):
     """Build the opening SVG document fragment.
 
@@ -888,19 +924,22 @@ def header(
         dy: Vertical translation used with the y-flip transform.
         styles: CSS ``<style>`` block string.
         defs: Optional ``<defs>`` inner markup.
+        document_svg: Optional raw SVG placed inside ``<svg>``, outside the
+            y-flip group.
 
     Returns:
         str: Opening ``<svg>…`` markup including background rect.
     """
     back_color = color_to_svg(color)
     defs_section = f"\n{defs}" if defs else ""
+    document_section = f"\n{document_svg}" if document_svg else ""
     return rf'''<svg
     xmlns="http://www.w3.org/2000/svg"
     width="{width}pt"
     height="{height}pt"
     viewBox="{vbox_x} {vbox_y} {vbox_width} {vbox_height}"
     overflow="hidden">{defs_section}
-    {styles}
+    {styles}{document_section}
     <g transform="translate(0 {dy}) scale(1,-1)">
     <rect x="{vbox_x}" y="{vbox_y}" width="{width}" height="{height}" fill="{back_color}" />
 
@@ -985,42 +1024,44 @@ def get_svg_code(canvas):
     }
 
     if not canvas.active_page.sketches or not vertices:
-        issue_warning(
-            "Canvas has no drawings/sketches. Writing empty SVG output.",
-            warning_type=WarningType.output.empty_svg,
-        )
-        if canvas.page_size is not None:
-            width, height = canvas.page_size
-            minx, miny = canvas.page_origin
-        else:
-            width = border_left + border_right
-            height = border_bottom + border_top
-            minx = -border_left
-            miny = -border_bottom
-        dy = 2 * miny + height
-        code = [
-            header(
-                width,
-                height,
-                minx,
-                miny,
-                width,
-                height,
-                color,
-                dy,
-                styles,
-                defs,
+        if not _page_has_svg_inserts(canvas):
+            issue_warning(
+                "Canvas has no drawings/sketches. Writing empty SVG output.",
+                warning_type=WarningType.output.empty_svg,
             )
-        ]
-        code.append("<!-- Canvas has no drawings/sketches. -->")
-        code.append(footer())
-        return "\n".join(code)
+            if canvas.page_size is not None:
+                width, height = canvas.page_size
+                minx, miny = canvas.page_origin
+            else:
+                width = border_left + border_right
+                height = border_bottom + border_top
+                minx = -border_left
+                miny = -border_bottom
+            dy = 2 * miny + height
+            code = [
+                header(
+                    width,
+                    height,
+                    minx,
+                    miny,
+                    width,
+                    height,
+                    color,
+                    dy,
+                    styles,
+                    defs,
+                    _svg_insert_snippets(canvas, SvgLoc.DOCUMENT),
+                )
+            ]
+            code.append("<!-- Canvas has no drawings/sketches. -->")
+            code.append(footer())
+            return "\n".join(code)
 
     if canvas.page_size is not None:
         minx, miny, maxx, maxy = canvas.limits
         width = maxx - minx
         height = maxy - miny
-    else:
+    elif vertices:
         bbox = bounding_box(vertices)
         width = bbox.width + border_left + border_right
         height = bbox.height + border_bottom + border_top
@@ -1032,6 +1073,11 @@ def get_svg_code(canvas):
             y_coords.append(y_coord)
         minx = min(x_coords) - border_left
         miny = min(y_coords) - border_bottom
+    else:
+        width = border_left + border_right
+        height = border_bottom + border_top
+        minx = -border_left
+        miny = -border_bottom
 
     dy = 2 * miny + height
 
@@ -1065,7 +1111,17 @@ def get_svg_code(canvas):
 
     code = [
         header(
-            width, height, minx, miny, width, height, color, dy, styles, defs
+            width,
+            height,
+            minx,
+            miny,
+            width,
+            height,
+            color,
+            dy,
+            styles,
+            defs,
+            _svg_insert_snippets(canvas, SvgLoc.DOCUMENT),
         )
     ]
 

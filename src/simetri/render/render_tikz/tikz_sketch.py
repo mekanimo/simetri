@@ -391,6 +391,15 @@ def draw_tag_sketch(sketch):
     close_braces = tex_text.count("}")
     tex_text = tex_text + "}" * (open_braces - close_braces)
 
+    alpha = sketch.alpha
+    if alpha is None:
+        raise ValueError("TagSketch.alpha was not resolved at draw time.")
+    if alpha != defaults["tag_alpha"]:
+        if options:
+            options += f", opacity={alpha}"
+        else:
+            options = f"opacity={alpha}"
+
     res.append(f"\\node[{options}] at ({x}, {y}) {tex_text};\n")
 
     return "".join(res)

@@ -1,20 +1,23 @@
 """Factory classes and helpers for common geometric shapes.
 
-Includes ``Line``, ``Rectangle``, ``Circle``, ``Segment``, and helpers such
-as ``square``, ``circle_points``, and ``reg_poly_shape``.
+Includes ``Line``, ``Rectangle``, ``Square``, ``Circle``, ``Segment``, and
+helpers such as ``square``, ``circle_points``, and ``reg_poly_shape``.
+
+Size (side, width/height, radius) is the first argument. Center defaults
+to ``(0, 0)``.
 
 Examples:
     >>> import simetri.graphics as sg
     >>> c = sg.Circle(radius=25, center=(0, 0))
     >>> c.radius
     25.0
-    >>> sq = sg.square(center=(0, 0), size=40)
+    >>> sq = sg.square(40)
     >>> sq.closed
     True
 """
 
 from collections.abc import Callable, Sequence
-from math import cos, gcd, pi, sin
+from math import atan2, cos, gcd, pi, sin
 
 import numpy as np
 
@@ -36,12 +39,13 @@ from ..geom.geometry import (
     side_len_to_radius,
 )
 from ..geom.homogenize import homogenize
-from ..geom.nonlinear.ellipse import ellipse_points
+from ..geom.nonlinear.ellipse import Ellipse, ellipse_points
 from ..geom.points.point_utils import distance
-from ..geom.polygons.polygon import offset_polygon_points
+from ..geom.polygons.polygon import offset_polygon
 from ..geom.segments.line_utils import angle_between_lines3, fillet_corners
 from ..geom.vectors import v_diff, v_scale, v_sum
 from ..group.batch import Group
+from ..helpers.utilities import decompose_transformations
 from .shape import Shape
 
 Color = colors.Color
@@ -118,30 +122,31 @@ def offset_box(
 
 
 def square(
-    center: PointType = (0, 0), size: float = 100, angle: float = 0, **kwargs
-) -> Shape:
-    """Return a closed square Shape.
+    size: float | None = None,
+    center: PointType = (0, 0),
+    angle: float = 0,
+    **kwargs,
+) -> "Square":
+    """Return a ``Square`` (side ``size``, default center ``(0, 0)``).
 
     Args:
+        size: Side length. ``None`` uses ``defaults["square_size"]``.
         center: Center of the square. Defaults to ``(0, 0)``.
-        size: Side length (width and height). Defaults to 100.
         angle: Rotation angle in radians. Defaults to 0.
-        **kwargs: Passed to ``Shape``.
+        **kwargs: Passed to ``Square``.
 
     Returns:
-        Shape: Closed square.
+        Square: Closed square.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sq = sg.square(size=50)
+        >>> sq = sg.square(50)
         >>> len(sq.vertices)
         4
         >>> [round(coord, 6) for coord in sq.vertices[0][:2]]
         [-25.0, -25.0]
     """
-    points = rectangle_points(center, size, size, angle)
-
-    return Shape(points, closed=True, **kwargs)
+    return Square(size, center, angle, **kwargs)
 
 
 class Line(Shape):
@@ -347,11 +352,13 @@ class Line(Shape):
 
 
 class Rectangle(Shape):
-    """Axis-aligned rectangle defined by center, width, and height.
+    """Rectangle defined by width, height, and optional center.
+
+    Size comes first so ``Rectangle(40, 20)`` is a 40×20 box at the origin.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> r = sg.Rectangle((0, 0), 40, 20)
+        >>> r = sg.Rectangle(40, 20)
         >>> r.subtype.name
         'RECTANGLE'
         >>> r.width
@@ -359,16 +366,30 @@ class Rectangle(Shape):
     """
 
     def __init__(
-        self, center: PointType, width: float, height: float, **kwargs
+        self,
+        width: float | None = None,
+        height: float | None = None,
+        center: PointType = (0, 0),
+        angle: float = 0,
+        **kwargs,
     ) -> None:
         """Initialize a Rectangle.
 
         Args:
-            center: Center point of the rectangle.
-            width: Width of the rectangle.
-            height: Height of the rectangle.
+            width: Width of the rectangle. ``None`` uses
+                ``defaults["rectangle_width_height"]``.
+            height: Height of the rectangle. ``None`` uses
+                ``defaults["rectangle_width_height"]``.
+            center: Center point. Defaults to ``(0, 0)``.
+            angle: Rotation about ``center``, in radians. Defaults to 0.
             **kwargs: Additional shape keyword arguments.
         """
+        if width is None or height is None:
+            default_width, default_height = defaults["rectangle_width_height"]
+            if width is None:
+                width = default_width
+            if height is None:
+                height = default_height
         x, y = center[:2]
         half_width = width / 2
         half_height = height / 2
@@ -378,6 +399,10 @@ class Rectangle(Shape):
             (x + half_width, y + half_height),
             (x - half_width, y + half_height),
         ]
+        if angle != 0:
+            vertices = (
+                homogenize(vertices) @ rotation_matrix(angle, center)
+            ).tolist()
         super().__init__(vertices, closed=True, **kwargs)
         self.subtype = Types.RECTANGLE
 
@@ -487,6 +512,41 @@ class Rectangle(Shape):
             self[i] = (x + x_diff, y + y_diff)
 
 
+class Square(Rectangle):
+    """Square defined by side length and optional center.
+
+    Size comes first so ``Square(40)`` is a 40×40 box at the origin.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sq = sg.Square(40)
+        >>> sq.subtype.name
+        'SQUARE'
+        >>> sq.width
+        40.0
+    """
+
+    def __init__(
+        self,
+        size: float | None = None,
+        center: PointType = (0, 0),
+        angle: float = 0,
+        **kwargs,
+    ) -> None:
+        """Initialize a Square.
+
+        Args:
+            size: Side length. ``None`` uses ``defaults["square_size"]``.
+            center: Center point. Defaults to ``(0, 0)``.
+            angle: Rotation about ``center``, in radians. Defaults to 0.
+            **kwargs: Additional shape keyword arguments.
+        """
+        if size is None:
+            size = defaults["square_size"]
+        super().__init__(size, size, center, angle, **kwargs)
+        self.subtype = Types.SQUARE
+
+
 class Rectangle2(Rectangle):
     """A rectangle defined by two opposite corners.
 
@@ -516,11 +576,11 @@ class Rectangle2(Rectangle):
         center = ((x_min + x_max) / 2, (y_min + y_max) / 2)
         width = x_max - x_min
         height = y_max - y_min
-        super().__init__(center, width, height, **kwargs)
+        super().__init__(width, height, center, **kwargs)
 
 
 class Circle(Shape):
-    """Circle defined by center and radius.
+    """Circle defined by radius and optional center.
 
     Stored as a one-point shape at the center; ``radius`` drives drawing and
     the bounding box.
@@ -1207,58 +1267,33 @@ def dot_shape(
 
 
 def rect_shape(
-    width: float,
-    height: float,
-    pos: PointType = (0, 0),
-    fill_color: Color | None = colors.white,
-    line_color: Color | None = defaults["line_color"],
-    line_width: float | None = defaults["line_width"],
-    fill: bool = True,
-    marker: float | None = None,
+    width: float | None = None,
+    height: float | None = None,
+    center: PointType = (0, 0),
+    angle: float = 0,
     **kwargs,
-) -> Shape:
-    """Return a rectangle ``Shape`` from lower-left corner, width, and height.
+) -> Rectangle:
+    """Return a ``Rectangle`` (width and height first, default center ``(0, 0)``).
 
     Args:
-        width: Rectangle width.
-        height: Rectangle height.
-        pos: Lower-left corner. Defaults to ``(0, 0)``.
-        fill_color: Interior color. Defaults to ``colors.white``.
-        line_color: Stroke color. Defaults to ``defaults["line_color"]``.
-        line_width: Stroke width. Defaults to ``defaults["line_width"]``.
-        fill: Whether the rectangle is filled. Defaults to True.
-        marker: Optional vertex marker. Defaults to None.
-        **kwargs: Additional keyword arguments passed to ``Shape``.
+        width: Rectangle width. ``None`` uses ``defaults["rectangle_width_height"]``.
+        height: Rectangle height. ``None`` uses ``defaults["rectangle_width_height"]``.
+        center: Center of the rectangle. Defaults to ``(0, 0)``.
+        angle: Rotation about ``center``, in radians. Defaults to 0.
+        **kwargs: Additional keyword arguments passed to ``Rectangle``.
 
     Returns:
-        Shape: A closed axis-aligned rectangle.
+        Rectangle: A closed rectangle.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> rect = sg.rect_shape(10, 4, pos=(1, 2), marker=2)
-        >>> rect.marker
-        2
+        >>> rect = sg.rect_shape(10, 4, center=(1, 2), fill=False)
+        >>> rect.fill
+        False
         >>> [round(coord, 6) for coord in rect.vertices[0][:2]]
-        [1.0, 2.0]
+        [-4.0, 0.0]
     """
-    x, y = pos[:2]
-    fill_color, line_color, line_width = get_defaults(
-        ["fill_color", "line_color", "line_width"],
-        [fill_color, line_color, line_width],
-    )
-    rect = Shape(
-        [(x, y), (x + width, y), (x + width, y + height), (x, y + height)],
-        closed=True,
-        fill_color=fill_color,
-        line_color=line_color,
-        fill=fill,
-        line_width=line_width,
-        subtype=Types.RECTANGLE,
-        **kwargs,
-    )
-    if marker is not None:
-        rect.marker = marker
-    return rect
+    return Rectangle(width, height, center, angle, **kwargs)
 
 
 def arc_shape(
@@ -1297,32 +1332,29 @@ def arc_shape(
 
 
 def circle_shape(
-    radius: float,
-    pos: PointType = (0, 0),
-    n: int = 30,
+    radius: float | None = None,
+    center: PointType = (0, 0),
     **kwargs,
-) -> Shape:
-    """Return a Shape object with points that form a circle with the given parameters.
+) -> Circle:
+    """Return a ``Circle`` (radius first, default center ``(0, 0)``).
 
     Args:
-        radius (float): The radius of the circle.
-        pos (PointType, optional): The position of the center of the circle. Defaults to (0, 0).
-        n (int, optional): The number of points to use for the circle. Defaults to 30.
+        radius: Circle radius. ``None`` uses ``defaults["circle_radius"]``.
+        center: Center of the circle. Defaults to ``(0, 0)``.
+        **kwargs: Additional keyword arguments passed to ``Circle``.
 
     Returns:
-        Shape: A Shape object with points that form a circle.
+        Circle: A circle.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> circ = sg.circle_shape(2, pos=(3, 4), n=4, fill=False)
+        >>> circ = sg.circle_shape(2, center=(3, 4), fill=False)
         >>> circ.fill
         False
-        >>> len(circ.vertices)
-        4
+        >>> circ.center
+        (3.0, 4.0)
     """
-    x, y = pos[:2]
-    points = circle_points((x, y), radius, n=n)
-    return Shape(points, closed=True, **kwargs)
+    return Circle(radius, center, **kwargs)
 
 
 def reg_poly_shape(
@@ -1385,39 +1417,33 @@ def reg_poly_shape_side_length(
 
 
 def ellipse_shape(
-    width: float,
-    height: float,
+    width: float | None = None,
+    height: float | None = None,
+    center: PointType = (0, 0),
     angle: float = 0,
-    pos: PointType = (0, 0),
-    n_points: int | None = None,
     **kwargs,
-) -> Shape:
-    """Return an ellipse as a ``Shape``.
+) -> Ellipse:
+    """Return an ``Ellipse`` (width and height first, default center ``(0, 0)``).
 
     Args:
-        width: Major-axis diameter (full width).
-        height: Minor-axis diameter (full height).
+        width: Full width. ``None`` uses ``defaults["ellipse_width_height"]``.
+        height: Full height. ``None`` uses ``defaults["ellipse_width_height"]``.
+        center: Center of the ellipse. Defaults to ``(0, 0)``.
         angle: Rotation angle in radians. Defaults to 0.
-        pos: Center of the ellipse. Defaults to ``(0, 0)``.
-        n_points: Number of sample points. Defaults to ``defaults["n_ellipse_points"]``.
-        **kwargs: Additional keyword arguments passed to ``Shape``.
+        **kwargs: Additional keyword arguments passed to ``Ellipse``.
 
     Returns:
-        Shape: An ellipse approximated by a polyline.
+        Ellipse: An ellipse.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> ell = sg.ellipse_shape(10, 6, pos=(1, 2), n_points=8)
-        >>> len(ell.vertices) != len(sg.ellipse_shape(10, 6, n_points=16).vertices)
-        True
+        >>> ell = sg.ellipse_shape(10, 6, center=(1, 2))
         >>> ell.subtype.name
         'ELLIPSE'
+        >>> ell.center
+        (1, 2)
     """
-    if n_points is None:
-        n_points = defaults["n_ellipse_points"]
-
-    points = ellipse_points(pos, width, height, angle, n_points=n_points)
-    return Shape(points, subtype=Types.ELLIPSE, **kwargs)
+    return Ellipse(width, height, center, angle, **kwargs)
 
 
 def line_shape(
@@ -1458,6 +1484,128 @@ def line_shape(
     )
 
 
+def inflate(item: Shape, offset: float) -> Shape:
+    """Return a copy of ``item`` grown or shrunk by ``offset``.
+
+    Positive ``offset`` expands every side (or the radius of a circle).
+    Negative ``offset`` deflates. The result has the same type as ``item``.
+    ``item`` is not mutated.
+
+    Args:
+        item: A ``Square``, ``Rectangle``, ``Circle``, ``Ellipse``, or closed
+            ``Shape``.
+        offset: Distance added to each side, or to a circle's radius.
+
+    Returns:
+        Shape: A new object of the same type as ``item``.
+
+    Raises:
+        TypeError: If ``item`` is not a supported shape type.
+        ValueError: If ``item`` is an open or degenerate ``Shape``, or if the
+            result would have a non-positive size.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sq = sg.square(40)
+        >>> out = sg.inflate(sq, 5)
+        >>> type(out).__name__
+        'Square'
+        >>> out.width
+        50.0
+        >>> sq.width
+        40.0
+        >>> sg.inflate(sg.Circle(20), 5).radius
+        25.0
+        >>> sg.inflate(sg.Rectangle(80, 40), -10).width
+        60.0
+        >>> sg.inflate(sg.Ellipse(80, 40), 10).width
+        100.0
+        >>> poly = sg.Shape([(-5, -5), (5, -5), (5, 5), (-5, 5)], closed=True)
+        >>> [round(coord, 6) for coord in sg.inflate(poly, 5).vertices[0][:2]]
+        [-10.0, -10.0]
+    """
+    if not isinstance(item, Shape):
+        raise TypeError(
+            f"inflate does not support {type(item).__name__}"
+        )
+
+    inflated = item.copy()
+    if isinstance(item, Circle):
+        new_radius = inflated.radius + offset
+        if new_radius <= 0:
+            raise ValueError("inflate would make radius non-positive")
+        inflated.radius = new_radius
+        return inflated
+    if isinstance(item, Ellipse):
+        new_width = inflated.width + 2 * offset
+        new_height = inflated.height + 2 * offset
+        if new_width <= 0:
+            raise ValueError("inflate would make width non-positive")
+        if new_height <= 0:
+            raise ValueError("inflate would make height non-positive")
+        center = inflated.center
+        _, rotation, _ = decompose_transformations(inflated.xform_matrix)
+        vertices = [
+            tuple(point)
+            for point in ellipse_points(
+                center, new_width / 2, new_height / 2, rotation
+            )
+        ]
+        inflated[:] = vertices
+        inflated.a = new_width / 2
+        inflated.b = new_height / 2
+        return inflated
+    if isinstance(item, Square):
+        new_size = inflated.width + 2 * offset
+        if new_size <= 0:
+            raise ValueError("inflate would make size non-positive")
+        inflated.scale(
+            new_size / inflated.width, about=inflated.center, reps=0
+        )
+        return inflated
+    if isinstance(item, Rectangle):
+        new_width = inflated.width + 2 * offset
+        new_height = inflated.height + 2 * offset
+        if new_width <= 0:
+            raise ValueError("inflate would make width non-positive")
+        if new_height <= 0:
+            raise ValueError("inflate would make height non-positive")
+        center = inflated.center
+        x0, y0 = inflated.vertices[0][:2]
+        x1, y1 = inflated.vertices[1][:2]
+        angle = atan2(y1 - y0, x1 - x0)
+        x, y = center[:2]
+        half_width = new_width / 2
+        half_height = new_height / 2
+        vertices = [
+            (x - half_width, y - half_height),
+            (x + half_width, y - half_height),
+            (x + half_width, y + half_height),
+            (x - half_width, y + half_height),
+        ]
+        if angle != 0:
+            vertices = (
+                homogenize(vertices) @ rotation_matrix(angle, center)
+            ).tolist()
+        inflated[:] = vertices
+        return inflated
+    if not inflated.closed:
+        raise ValueError("inflate requires a closed Shape")
+    if len(inflated) < 3:
+        raise ValueError(
+            "inflate requires a Shape with at least 3 vertices"
+        )
+    vertices = list(offset_polygon(inflated.vertices, offset))
+    if len(vertices) >= 2 and close_points_square(vertices[0], vertices[-1]):
+        vertices = vertices[:-1]
+    xs = [point[0] for point in vertices]
+    ys = [point[1] for point in vertices]
+    if max(xs) - min(xs) <= 0 or max(ys) - min(ys) <= 0:
+        raise ValueError("inflate would make size non-positive")
+    inflated[:] = vertices
+    return inflated
+
+
 def offset_polygon_shape(
     polygon_shape: Shape,
     offset: float = 1,
@@ -1477,13 +1625,13 @@ def offset_polygon_shape(
     Examples:
         >>> import simetri.graphics as sg
         >>> src = sg.square(size=10)
-        >>> out = sg.offset_polygon_shape(src, offset=0)
+        >>> out = sg.offset_polygon_shape(src, offset=2)
         >>> out is not src
         True
-        >>> len(out.vertices)
-        4
+        >>> [round(coord, 6) for coord in out.vertices[0][:2]]
+        [-7.0, -7.0]
     """
-    vertices = offset_polygon_points(polygon_shape.vertices, offset, dist_tol)
+    vertices = offset_polygon(polygon_shape.vertices, offset, dist_tol)
 
     return Shape(vertices)
 
@@ -1644,3 +1792,7 @@ def fillet_shape_corners(
     new_shape[:] = vertices
 
     return new_shape
+
+
+rectangle = Rectangle
+circle = Circle

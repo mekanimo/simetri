@@ -16,6 +16,7 @@ from ..base.all_enums import (
     FrameShape,
     MarkerType,
     PlaitStyle,
+    SvgLoc,
     TexLoc,
     Types,
     drawable_types,
@@ -49,6 +50,7 @@ from ..helpers.utilities import (
     group_into_bins,
 )
 from ..shapes.shape import Shape, all_segments
+from .render_svg.svg_sketch import SvgSketch
 from .render_tikz.tikz_sketch import TexSketch
 from .sketch import (
     ArcSketch,
@@ -301,12 +303,14 @@ def bezier(self, control_points: Sequence[PointType], **kwargs) -> Self:
     return self
 
 
-def circle(self, radius: float, center: PointType, **kwargs) -> Self:
-    """Draw a circle with the given center and radius.
+def circle(
+    self, radius: float, center: PointType = (0, 0), **kwargs
+) -> Self:
+    """Draw a circle with the given radius and optional center.
 
     Args:
         radius: Radius of the circle.
-        center: Center of the circle.
+        center: Center of the circle. Defaults to ``(0, 0)``.
         **kwargs: Style overrides for the circle sketch.
 
     Returns:
@@ -348,19 +352,19 @@ def circle(self, radius: float, center: PointType, **kwargs) -> Self:
 
 def ellipse(
     self,
-    center: PointType,
     width: float,
     height: float,
-    angle: float,
+    center: PointType = (0, 0),
+    angle: float = 0,
     **kwargs,
 ) -> Self:
-    """Draw an ellipse with the given center, width, height, and angle.
+    """Draw an ellipse with the given width, height, and optional center.
 
     Args:
-        center: Center of the ellipse.
         width: Full width. The x-radius is ``width / 2``.
         height: Full height. The y-radius is ``height / 2``.
-        angle: Rotation of the ellipse in radians.
+        center: Center of the ellipse. Defaults to ``(0, 0)``.
+        angle: Rotation of the ellipse in radians. Defaults to 0.
         **kwargs: Style overrides for the ellipse sketch.
 
     Returns:
@@ -369,7 +373,7 @@ def ellipse(
     Examples:
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
-        >>> canvas.ellipse((0, 0), 20, 10, 0) is canvas
+        >>> canvas.ellipse(20, 10) is canvas
         True
         >>> canvas.active_page.sketches[-1].subtype.name
         'ELLIPSE_SKETCH'
@@ -488,19 +492,19 @@ def line(self, start: PointType, end: PointType, **kwargs) -> Self:
 
 def rectangle(
     self,
-    center: PointType,
     width: float,
     height: float,
-    angle: float,
+    center: PointType = (0, 0),
+    angle: float = 0,
     **kwargs,
 ) -> Self:
-    """Draw a rectangle with the given center, width, height, and angle.
+    """Draw a rectangle with the given width, height, and optional center.
 
     Args:
-        center: Center of the rectangle.
         width: Width of the rectangle.
         height: Height of the rectangle.
-        angle: Rotation about ``center``, in radians.
+        center: Center of the rectangle. Defaults to ``(0, 0)``.
+        angle: Rotation about ``center``, in radians. Defaults to 0.
         **kwargs: Style overrides for the rectangle.
 
     Returns:
@@ -509,7 +513,7 @@ def rectangle(
     Examples:
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
-        >>> canvas.rectangle((0, 0), 10, 6, 0) is canvas
+        >>> canvas.rectangle(10, 6) is canvas
         True
         >>> len(canvas.active_page.sketches)
         1
@@ -763,7 +767,32 @@ def draw_latex(
     return self
 
 
-def insert_code(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
+def insert_svg(self, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
+    """Insert an SVG fragment at the given location.
+
+    Args:
+        code: SVG markup to insert.
+        location: Where the snippet is placed. Defaults to ``SvgLoc.NONE``.
+
+    Returns:
+        Self: The canvas.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> canvas.insert_svg('<circle cx="0" cy="0" r="10"/>') is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
+    """
+    active_sketches = self.active_page.sketches
+    sketch = SvgSketch(code, location=location)
+    active_sketches.append(sketch)
+
+    return self
+
+
+def insert_tex(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
     """Insert a TeX snippet at the given location.
 
     Args:
@@ -776,7 +805,7 @@ def insert_code(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
     Examples:
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
-        >>> canvas.insert_code("% note") is canvas
+        >>> canvas.insert_tex("% note") is canvas
         True
         >>> len(canvas.active_page.sketches)
         1
@@ -1610,6 +1639,8 @@ def draw_dimension(self, item: Dimension, **kwargs) -> Self:
     x, y = item.text_pos[:2]
 
     tag = Tag(item.text, (x, y), font_size=item.font_size, **kwargs)
+    if item.aligned_text:
+        tag.rotate(item.text_angle, about=(x, y))
     # extend vertices with the Tag's bounding box
     extend_vertices(self, tag)
     tag_sketch = create_sketch(tag, self, **kwargs)
@@ -1703,6 +1734,7 @@ regular_sketch_types = [
     Types.SEGMENT,
     Types.SHAPE,
     Types.SINE_WAVE,
+    Types.SQUARE,
     Types.SQUARE_GRID,
     Types.STAR,
     Types.TAG,
@@ -1752,7 +1784,7 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         all_vertices.extend(vertices)
     elif item.subtype == Types.PATTERN:
         all_vertices.extend(item.all_vertices)
-    elif item.subtype == Types.GROUP:
+    elif item.subtype in (Types.GROUP, Types.ANNOTATION):
         for element in item:
             extend_vertices(canvas, element)
     elif item.subtype == Types.FIGURE:
@@ -1827,7 +1859,7 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
                     ]
                 )
 
-    if subtype in (Types.GROUP, Types.STAR):
+    if subtype in (Types.GROUP, Types.STAR, Types.ANNOTATION):
         group_kwargs = dict(kwargs)
         if kwargs.get("vertex_on_hull") and "_group_hull_points" not in kwargs:
             group_kwargs["_group_hull_points"] = convex_hull(
@@ -2181,7 +2213,7 @@ def create_sketch(
             xform_matrix=canvas._sketch_xform_matrix,
         )
         for attrib_name in tag_style_map:
-            if attrib_name in ("color", "alpha"):
+            if attrib_name == "color":
                 continue
             if attrib_name == "fill_color":
                 fill_color = canvas.resolve_property(item, "fill_color")
@@ -2198,7 +2230,6 @@ def create_sketch(
             "color",
             "line_color",
             "fill_color",
-            "alpha",
             "line_alpha",
             "fill_alpha",
         }
@@ -2541,6 +2572,7 @@ def create_sketch(
         return sketch
 
     d_subtype_sketch = {
+        Types.ANNOTATION: get_composite_sketch,
         Types.ARC: get_arc_sketch,
         Types.ARC_ARROW: get_composite_sketch,
         Types.ARROW: get_composite_sketch,
@@ -2575,6 +2607,7 @@ def create_sketch(
         Types.SEGMENT: get_sketch,
         Types.SHAPE: get_sketch,
         Types.SINE_WAVE: get_sketch,
+        Types.SQUARE: get_sketch,
         Types.SQUARE_GRID: get_composite_sketch,
         Types.STAR: get_composite_sketch,
         Types.TAG: get_tag_sketch,

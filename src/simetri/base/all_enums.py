@@ -1116,6 +1116,18 @@ class State(StrEnum):
     STOPPED = "STOPPED"
 
 
+class SvgLoc(StrEnum):
+    """Where raw SVG from ``canvas.insert_svg`` is placed.
+
+    Valid values are: DEFS, DOCUMENT, PICTURE, NONE.
+    """
+
+    DEFS = "DEFS"  # inside <defs>
+    DOCUMENT = "DOCUMENT"  # inside <svg>, outside the y-flip group
+    PICTURE = "PICTURE"  # start of the y-flip group (canvas y-up)
+    NONE = "NONE"  # in draw order inside the y-flip group
+
+
 class SvgMaskType(StrEnum):
     """SVG mask type modes."""
 
@@ -1322,6 +1334,7 @@ class Types(StrEnum):
     STYLE = "STYLE"
     SVG_PATH = "SVG_PATH"
     SVG_PATH_SKETCH = "SVG_PATH_SKETCH"
+    SVG_SKETCH = "SVG_SKETCH"
     TABLE = "TABLE"
     TAG = "TAG"
     TAG_SKETCH = "TAG_SKETCH"
@@ -1564,9 +1577,13 @@ class _VectorWarnings(StrEnum):
     Use ``set_warning_off(WarningType.vector)`` to silence all of these.
     """
 
+    duplicate = "vector.duplicate"
     mixed = "vector.mixed"
 
 
+_VectorWarnings.duplicate.__doc__ = (
+    "start and end were both given and already match the Vector displacement."
+)
 _VectorWarnings.mixed.__doc__ = (
     "Vector objects are mixed with list/tuple coordinates in an operation."
 )
@@ -1599,6 +1616,7 @@ class WarningType:
 
 
 drawable_types = {
+    Types.ANNOTATION,
     Types.ARC,
     Types.ARC_ARROW,
     Types.ARROW,
@@ -1636,6 +1654,7 @@ drawable_types = {
     Types.SEGMENT,
     Types.SHAPE,
     Types.SINE_WAVE,
+    Types.SQUARE,
     Types.SQUARE_GRID,
     Types.STAR,
     Types.SVG_PATH,

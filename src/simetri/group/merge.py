@@ -89,7 +89,7 @@ def _merge_shapes(
     dist_tol: float | None = None,
     merge_angle_tol: float = 0.1,
     debug: bool = False,
-    remove_duplicate_edges: bool = False,
+    remove_duplicate_edges: bool = True,
     **kwargs,
 ) -> Group:
     """Merge connected shapes in this group into polygons and open polylines.
@@ -105,7 +105,8 @@ def _merge_shapes(
             collinear. Defaults to 0.1.
         debug: If True, print point and angle diagnostics.
         remove_duplicate_edges: If True, drop edges that have a congruent
-            duplicate before merging collinears.
+            duplicate before merging collinears. One copy of each edge is
+            kept.
         **kwargs: Attributes set on the returned group via ``set_attribs``.
 
     Returns:
@@ -251,7 +252,7 @@ def _merge_collinears(
             collinear.
         debug: If True, print the smallest rejected angle difference.
         remove_duplicate_edges: If True, drop edges that have a congruent
-            duplicate (``keep_one=False``) before merging.
+            duplicate (``keep_one=True``) before merging.
 
     Returns:
         list[LineType]: Merged segments as coordinate pairs.
@@ -266,7 +267,7 @@ def _merge_collinears(
         coord_edges = [
             (d_node_coord[edge[0]], d_node_coord[edge[1]]) for edge in edges
         ]
-        coord_edges = _remove_duplicate_edges(coord_edges, keep_one=False)
+        coord_edges = _remove_duplicate_edges(coord_edges, keep_one=True)
         edges = [
             (d_coord_node[seg[0]], d_coord_node[seg[1]]) for seg in coord_edges
         ]

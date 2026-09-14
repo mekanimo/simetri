@@ -52,6 +52,119 @@ COLOR_ALPHA_ATTRS: tuple[str, ...] = (
     "fill_alpha",
 )
 
+# Stroke aliases (not ``color`` / ``alpha``, which fan out to both sides).
+LINE_STYLE_ATTRS: tuple[str, ...] = (
+    "stroke",
+    "line_width",
+    "line_color",
+    "line_alpha",
+    "line_dash_array",
+    "line_dash_phase",
+    "line_cap",
+    "line_join",
+    "line_miter_limit",
+    "smooth",
+    "draw_double",
+    "draw_fillets",
+    "double_distance",
+    "double_color",
+    "fillet_radius",
+    "draw_markers",
+    "marker_type",
+    "marker_size",
+    "marker_radius",
+    "marker_alpha",
+    "marker_color",
+    "marker_shape",
+    "markers_only",
+)
+
+# Fill aliases (not ``color`` / ``alpha``).
+FILL_STYLE_ATTRS: tuple[str, ...] = (
+    "fill",
+    "fill_color",
+    "fill_alpha",
+    "fill_mode",
+    "back_style",
+    "gradient",
+)
+
+_COLOR_ALPHA_RAW: dict[str, str] = {
+    "color": "_color",
+    "alpha": "_alpha",
+    "line_color": "_line_color",
+    "fill_color": "_fill_color",
+    "line_alpha": "_line_alpha",
+    "fill_alpha": "_fill_alpha",
+}
+
+STYLE_ALIAS_KEYS: frozenset[str] = frozenset(STYLE_COPY_ATTRS) | frozenset(
+    COLOR_ALPHA_ATTRS
+)
+
+
+class Style:
+    """Validated mapping of draw-alias names (``line_width``, ``fill_color``, …).
+
+    Unknown keys raise. ``None`` on a field means unset.
+    """
+
+    def __init__(self, mapping: Any = None, **kwargs) -> None:
+        self._data: dict[str, Any] = coerce_style_overlay(mapping, kwargs)
+
+    def items(self):
+        return self._data.items()
+
+    def keys(self):
+        return self._data.keys()
+
+    def values(self):
+        return self._data.values()
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._data
+
+    def __getitem__(self, key: str) -> Any:
+        return self._data[key]
+
+    def __repr__(self) -> str:
+        body = ", ".join(f"{key}={value!r}" for key, value in self._data.items())
+        return f"Style({body})"
+
+
+def coerce_style_overlay(mapping: Any = None, kwargs: dict | None = None) -> dict[str, Any]:
+    """Return a dict of draw-alias keys from a Style, a dict, and/or kwargs.
+
+    Keyword arguments overwrite keys from ``mapping``. Unknown keys raise.
+    """
+    if kwargs is None:
+        kwargs = {}
+    overlay: dict[str, Any] = {}
+    if mapping is not None:
+        if isinstance(mapping, Style):
+            source_items = mapping.items()
+        elif isinstance(mapping, dict):
+            source_items = mapping.items()
+        else:
+            raise TypeError(
+                "Style overlay must be a Style, a dict, or keyword arguments, "
+                f"got {type(mapping).__name__}"
+            )
+        for key, value in source_items:
+            overlay[key] = value
+    for key, value in kwargs.items():
+        overlay[key] = value
+    for key in overlay:
+        if key not in STYLE_ALIAS_KEYS:
+            raise ValueError(f"Unknown style key {key!r}")
+    return overlay
+
 
 class CommonStyle:
     """Mixin: color/alpha properties and ``copy_style``.
@@ -247,4 +360,85 @@ class CommonStyle:
         for name in STYLE_COPY_ATTRS:
             setattr(self, name, getattr(other, name))
 
+        return self
+
+    def _raw_style_value(self, name: str) -> Any:
+        """Return the stored style value (``None`` if unset), not the default."""
+        if name in _COLOR_ALPHA_RAW:
+            return getattr(self, _COLOR_ALPHA_RAW[name])
+        return getattr(self, name)
+
+    def _style_snapshot(self, names: tuple[str, ...]) -> Style:
+        """Return a Style of raw values for ``names``."""
+        snapshot = {}
+        for name in names:
+            snapshot[name] = self._raw_style_value(name)
+        return Style(snapshot)
+
+    def _apply_style_overlay(self, overlay: dict[str, Any]) -> None:
+        """Copy each key in ``overlay`` onto this object, including ``None``."""
+        for key, value in overlay.items():
+            if key in _COLOR_ALPHA_RAW:
+                setattr(self, _COLOR_ALPHA_RAW[key], value)
+            else:
+                setattr(self, key, value)
+
+    @property
+    def style(self) -> Style:
+        """Full style snapshot (stroke, fill, ``color`` / ``alpha``)."""
+        names = tuple(dict.fromkeys((*COLOR_ALPHA_ATTRS, *STYLE_COPY_ATTRS)))
+        return self._style_snapshot(names)
+
+    @style.setter
+    def style(self, value: Style | dict[str, Any]) -> None:
+        self._apply_style_overlay(coerce_style_overlay(value))
+
+    @property
+    def line_style(self) -> Style:
+        """Stroke snapshot only."""
+        return self._style_snapshot(LINE_STYLE_ATTRS)
+
+    @line_style.setter
+    def line_style(self, value: Style | dict[str, Any]) -> None:
+        overlay = coerce_style_overlay(value)
+        for key in overlay:
+            if key not in LINE_STYLE_ATTRS:
+                raise ValueError(f"{key!r} is not a line-style field")
+        self._apply_style_overlay(overlay)
+
+    @property
+    def fill_style(self) -> Style:
+        """Fill snapshot only."""
+        return self._style_snapshot(FILL_STYLE_ATTRS)
+
+    @fill_style.setter
+    def fill_style(self, value: Style | dict[str, Any]) -> None:
+        overlay = coerce_style_overlay(value)
+        for key in overlay:
+            if key not in FILL_STYLE_ATTRS:
+                raise ValueError(f"{key!r} is not a fill-style field")
+        self._apply_style_overlay(overlay)
+
+    def reset_style(self) -> Self:
+        """Set all owned style fields to ``None`` (use defaults)."""
+        self._init_color_alpha_state()
+        self._init_style_copy_attrs()
+        return self
+
+    def reset_line_style(self) -> Self:
+        """Set owned stroke fields to ``None`` (use defaults)."""
+        for name in LINE_STYLE_ATTRS:
+            if name in _COLOR_ALPHA_RAW:
+                setattr(self, _COLOR_ALPHA_RAW[name], None)
+            else:
+                setattr(self, name, None)
+        return self
+
+    def reset_fill_style(self) -> Self:
+        """Set owned fill fields to ``None`` (use defaults)."""
+        for name in FILL_STYLE_ATTRS:
+            if name in _COLOR_ALPHA_RAW:
+                setattr(self, _COLOR_ALPHA_RAW[name], None)
+            else:
+                setattr(self, name, None)
         return self

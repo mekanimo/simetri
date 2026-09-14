@@ -1795,7 +1795,7 @@ class Lace(Group):
             vertices = item.vertices
             dist_tol = defaults["dist_tol"]
             offset_poly = offset_polygon_points(
-                vertices, offset * (i + 1), dist_tol=dist_tol
+                vertices, -offset * (i + 1), dist_tol=dist_tol
             )
             shape = Shape(offset_poly)
             shape.fill = False

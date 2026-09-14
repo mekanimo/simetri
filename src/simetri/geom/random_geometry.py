@@ -14,6 +14,7 @@ from ..group.batch import Group
 from ..shapes.geom_items import Circle
 from ..shapes.shape import Shape
 from .geometry import double_area3, normalize_angle
+from .nonlinear.ellipse import Ellipse
 from .polygons.polygon import polygon_internal_angles
 from .polygons.polygon_utils import is_ccw, is_simple
 from .vectors import distance
@@ -310,6 +311,137 @@ def random_circles(
                 min_y,
                 max_x,
                 max_y,
+                rng=rng,
+            )
+            for _ in range(n)
+        ]
+    )
+
+
+def random_ellipse(
+    min_axis: float = MIN_EDGE_LENGTH,
+    max_axis: float = MAX_EDGE_LENGTH,
+    min_x: float = MIN_X,
+    min_y: float = MIN_Y,
+    max_x: float = MAX_X,
+    max_y: float = MAX_Y,
+    axis_aligned: bool = True,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
+) -> Ellipse:
+    """Return a randomly sized and positioned ellipse.
+
+    Width and height are sampled independently from
+    ``[min_axis, max_axis]``. If ``axis_aligned`` is False, the ellipse
+    is rotated by a random angle. The center is a random point within
+    the coordinate limits.
+
+    Args:
+        min_axis (float, optional): Minimum width and height.
+            Defaults to ``MIN_EDGE_LENGTH``.
+        max_axis (float, optional): Maximum width and height.
+            Defaults to ``MAX_EDGE_LENGTH``.
+        min_x (float, optional): Minimum center x-position.
+            Defaults to ``MIN_X``.
+        min_y (float, optional): Minimum center y-position.
+            Defaults to ``MIN_Y``.
+        max_x (float, optional): Maximum center x-position.
+            Defaults to ``MAX_X``.
+        max_y (float, optional): Maximum center y-position.
+            Defaults to ``MAX_Y``.
+        axis_aligned (bool, optional): Keep the axes parallel to the
+            coordinate axes. Defaults to True.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
+
+    Returns:
+        Ellipse: An ellipse with random size and center.
+
+    Raises:
+        ValueError: If ``min_axis`` exceeds ``max_axis``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> ellipse = sg.random_ellipse(20, 80, 0, 0, 200, 150)
+        >>> 20 <= ellipse.width <= 80
+        True
+        >>> 20 <= ellipse.height <= 80
+        True
+        >>> isinstance(ellipse, sg.Ellipse)
+        True
+        >>> sg.random_ellipse(seed=1).width == sg.random_ellipse(seed=1).width
+        True
+    """
+    rng = _resolve_rng(seed, rng)
+    if min_axis > max_axis:
+        raise ValueError(
+            f"min_axis ({min_axis}) > max_axis ({max_axis})"
+        )
+    width = rng.uniform(min_axis, max_axis)
+    height = rng.uniform(min_axis, max_axis)
+    center = random_point(min_x, min_y, max_x, max_y, rng=rng)
+    if axis_aligned:
+        angle = 0
+    else:
+        angle = rng.uniform(0, tau)
+    return Ellipse(width, height, center, angle=angle)
+
+
+def random_ellipses(
+    n: int = N,
+    min_axis: float = MIN_EDGE_LENGTH,
+    max_axis: float = MAX_EDGE_LENGTH,
+    min_x: float = MIN_X,
+    min_y: float = MIN_Y,
+    max_x: float = MAX_X,
+    max_y: float = MAX_Y,
+    axis_aligned: bool = True,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
+) -> Group:
+    """Return ``n`` random ellipses in a ``Group``.
+
+    Args:
+        n (int, optional): Number of ellipses. Defaults to ``N``.
+        min_axis (float, optional): Minimum width and height.
+            Defaults to ``MIN_EDGE_LENGTH``.
+        max_axis (float, optional): Maximum width and height.
+            Defaults to ``MAX_EDGE_LENGTH``.
+        min_x (float, optional): Minimum x. Defaults to ``MIN_X``.
+        min_y (float, optional): Minimum y. Defaults to ``MIN_Y``.
+        max_x (float, optional): Maximum x. Defaults to ``MAX_X``.
+        max_y (float, optional): Maximum y. Defaults to ``MAX_Y``.
+        axis_aligned (bool, optional): Keep the axes parallel to the
+            coordinate axes. Defaults to True.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
+
+    Returns:
+        Group: ``n`` ellipse shapes.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> ellipses = sg.random_ellipses(4, 20, 80, 0, 0, 200, 150)
+        >>> len(ellipses)
+        4
+        >>> all(isinstance(ellipse, sg.Ellipse) for ellipse in ellipses)
+        True
+    """
+    rng = _resolve_rng(seed, rng)
+    return Group(
+        [
+            random_ellipse(
+                min_axis,
+                max_axis,
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+                axis_aligned,
                 rng=rng,
             )
             for _ in range(n)

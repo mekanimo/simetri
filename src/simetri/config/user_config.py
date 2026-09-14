@@ -49,6 +49,18 @@ _tex_settings: dict[str, Any] = {
     "command": None,
 }
 
+# Personal ``[viewer]`` for canvas.save() (never loaded from shared tomls).
+# mode "system" → webbrowser / OS default; "command" → command; "none" → skip.
+_VIEWER_MODES = frozenset({"system", "command", "none"})
+_viewer_settings: dict[str, Any] = {
+    "mode": "system",
+    "shell": False,
+    "command": None,
+}
+
+# Personal ``[styles.<name>]`` recipes (never loaded from shared tomls).
+user_styles: dict[str, Any] = {}
+
 
 def set_user_settings_path() -> Path:
     """Return (and create) the OS-specific ``simetri_user`` config directory.
@@ -139,6 +151,15 @@ def get_tex_compiler() -> dict[str, Any]:
     ``command`` is ``None`` when the user did not set ``[tex].command``.
     """
     return dict(_tex_settings)
+
+
+def get_viewer_settings() -> dict[str, Any]:
+    """Return personal ``[viewer]`` settings (copy).
+
+    ``command`` is ``None`` when the user did not set ``[viewer].command``.
+    ``mode`` is ``system``, ``command``, or ``none``.
+    """
+    return dict(_viewer_settings)
 
 
 def get_converter_for_extension(extension: str) -> dict[str, Any]:
@@ -538,6 +559,13 @@ def _reset_tex_settings() -> None:
     _tex_settings["command"] = None
 
 
+def _reset_viewer_settings() -> None:
+    """Restore personal ``[viewer]`` settings to library defaults."""
+    _viewer_settings["mode"] = "system"
+    _viewer_settings["shell"] = False
+    _viewer_settings["command"] = None
+
+
 def _apply_tex_table(tex_table: dict[str, Any]) -> None:
     """Apply personal ``[tex]`` compiler table."""
     _reset_tex_settings()
@@ -574,6 +602,69 @@ def _apply_tex_table(tex_table: dict[str, Any]) -> None:
                 )
 
 
+def _apply_viewer_table(viewer_table: dict[str, Any]) -> None:
+    """Apply personal ``[viewer]`` table for ``canvas.save`` previews."""
+    _reset_viewer_settings()
+    known_keys = frozenset({"mode", "shell", "command"})
+    for key, value in viewer_table.items():
+        if key not in known_keys:
+            _warn_invalid_key(f"Unknown key in [viewer]: {key!r}")
+            continue
+        if key == "mode":
+            mode = str(value).strip().lower()
+            if mode not in _VIEWER_MODES:
+                _warn_invalid_key(
+                    "[viewer].mode must be 'system', 'command', or 'none' "
+                    f"(got {value!r})"
+                )
+                continue
+            _viewer_settings["mode"] = mode
+        elif key == "shell":
+            _viewer_settings["shell"] = bool(value)
+        else:
+            if isinstance(value, str):
+                if not value:
+                    _warn_invalid_key("[viewer].command must not be empty")
+                    continue
+                _viewer_settings["command"] = value
+            elif isinstance(value, list):
+                if not value:
+                    _warn_invalid_key("[viewer].command must not be empty")
+                    continue
+                _viewer_settings["command"] = [str(part) for part in value]
+            else:
+                _warn_invalid_key(
+                    "[viewer].command must be a string or array of strings "
+                    f"(got {type(value).__name__})"
+                )
+
+
+def _apply_styles_table(styles_table: dict[str, Any]) -> None:
+    """Apply personal ``[styles.<name>]`` tables into ``user_styles``."""
+    from .settings import default_types
+    from ..base.common_style import STYLE_ALIAS_KEYS, Style
+
+    user_styles.clear()
+    for style_name, body in styles_table.items():
+        if not isinstance(body, dict):
+            raise TypeError(
+                f"[styles.{style_name}] in simetri_config.toml must be a table, "
+                f"got {type(body).__name__}"
+            )
+        converted: dict[str, Any] = {}
+        for key, value in body.items():
+            if key not in STYLE_ALIAS_KEYS:
+                raise ValueError(
+                    f"Unknown style key {key!r} in [styles.{style_name}]"
+                )
+            if key not in default_types:
+                raise ValueError(
+                    f"Key {key!r} in [styles.{style_name}] has no registered type"
+                )
+            converted[key] = _convert_default_value(key, value, default_types[key])
+        user_styles[style_name] = Style(converted)
+
+
 def apply_user_config() -> Path:
     """Ensure, load, and apply ``simetri_config.toml``.
 
@@ -592,12 +683,22 @@ def apply_user_config() -> Path:
     _converter_globals["timeout_seconds"] = 120
     _converter_globals["shell"] = False
     _reset_tex_settings()
+    _reset_viewer_settings()
+    user_styles.clear()
 
     with config_path.open("rb") as handle:
         data = tomllib.load(handle)
 
     known_sections = frozenset(
-        {"paths", "warnings", "defaults", "converters", "tex"}
+        {
+            "paths",
+            "warnings",
+            "defaults",
+            "converters",
+            "tex",
+            "viewer",
+            "styles",
+        }
     )
     for section_name in data:
         if section_name not in known_sections:
@@ -621,6 +722,22 @@ def apply_user_config() -> Path:
                 f"got {type(tex_table).__name__}"
             )
         _apply_tex_table(tex_table)
+    if "viewer" in data:
+        viewer_table = data["viewer"]
+        if not isinstance(viewer_table, dict):
+            raise TypeError(
+                "[viewer] in simetri_config.toml must be a table, "
+                f"got {type(viewer_table).__name__}"
+            )
+        _apply_viewer_table(viewer_table)
+    if "styles" in data:
+        styles_table = data["styles"]
+        if not isinstance(styles_table, dict):
+            raise TypeError(
+                "[styles] in simetri_config.toml must be a table, "
+                f"got {type(styles_table).__name__}"
+            )
+        _apply_styles_table(styles_table)
 
     defaults.user_overrides = _user_default_overrides
     _config_applied = True

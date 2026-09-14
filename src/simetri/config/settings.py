@@ -32,6 +32,7 @@ __all__ = [
     "tikz_defaults",
     "use_settings",
     "user_config_path",
+    "user_styles",
     "warning_types",
 ]
 
@@ -78,6 +79,7 @@ from .user_config import (
     set_user_settings_path,
     use_settings,
     user_config_path,
+    user_styles,
 )
 
 # This is the alpha testing stage for the Simetri library.
@@ -498,6 +500,14 @@ def set_defaults():
         "LEFT, NONE, RIGHT, TOP, VERT_CENTER."
     )
 
+    defaults["aligned_text"] = True
+    default_types["aligned_text"] = bool
+    defaults_help["aligned_text"] = (
+        "Boolean property for aligned dimension text. If True, the label "
+        "is parallel to the dimension line and readable from the bottom "
+        "or right."
+    )
+
     defaults["all_caps"] = False  # use all caps for text
     default_types["all_caps"] = bool
     defaults_help["all_caps"] = (
@@ -683,6 +693,14 @@ def set_defaults():
         "Canvas margin value for all sides. floating point number in points. 72 pnts = 1 in."
         "Applied after the canvas size is computed from the drawn entities. "
         "Negative values clip the output."
+    )
+
+    defaults["canvas_capture_format"] = "svg"
+    default_types["canvas_capture_format"] = str
+    defaults_help["canvas_capture_format"] = (
+        "Default canvas.capture() format, without a leading dot. "
+        "Native values: svg, pdf, eps, ps. Other values (png, jpg, gif, …) "
+        "require a personal [converters.<format>] entry."
     )
 
     defaults["canvas_frame_color"] = colors.black  # frame color for the canvas
@@ -1280,6 +1298,25 @@ def set_defaults():
         "Handle marker size. Positive float. Side length in <points>."
     )
 
+    defaults["head_fill_color"] = colors.black
+    default_types["head_fill_color"] = colors.Color
+    defaults_help["head_fill_color"] = (
+        "Arrow-head fill color when drawing a Vector. Color object."
+    )
+
+    defaults["head_line_color"] = colors.black
+    default_types["head_line_color"] = colors.Color
+    defaults_help["head_line_color"] = (
+        "Arrow-head outline color when drawing a Vector. Color object."
+    )
+
+    defaults["head_line_width"] = 1
+    default_types["head_line_width"] = float
+    defaults_help["head_line_width"] = (
+        "Arrow-head outline width when drawing a Vector. "
+        "Positive float. Length in <points>."
+    )
+
     defaults["help_lines_height"] = 400
     default_types["help_lines_height"] = float
     defaults_help["help_lines_height"] = (
@@ -1426,6 +1463,13 @@ def set_defaults():
     default_types["lace_offset"] = float
     defaults_help["lace_offset"] = (
         "Lace offset. Positive float. Length in <points>."
+    )
+
+    defaults["landing_length"] = 20
+    default_types["landing_length"] = float
+    defaults_help["landing_length"] = (
+        "Horizontal landing length for annotation leaders. Positive float. "
+        "Length in <points>."
     )
 
     defaults["latex_compiler"] = Compiler.XELATEX  # PDFLATEX, XELATEX, LUALATEX
@@ -1791,6 +1835,13 @@ def set_defaults():
         "Boolean property for overline. If True, overline is used."
     )
 
+    defaults["overshoot"] = 4
+    default_types["overshoot"] = float
+    defaults_help["overshoot"] = (
+        "Length that a dimension extension line continues past the "
+        "dimension line. Positive float. Length in <points>."
+    )
+
     defaults["overwrite_files"] = False
     default_types["overwrite_files"] = bool
     defaults_help["overwrite_files"] = (
@@ -2042,6 +2093,19 @@ def set_defaults():
         "Section width. Positive float. Length in <points>."
     )
 
+    defaults["shaft_line_color"] = colors.black
+    default_types["shaft_line_color"] = colors.Color
+    defaults_help["shaft_line_color"] = (
+        "Arrow shaft color when drawing a Vector. Color object."
+    )
+
+    defaults["shaft_line_width"] = 1
+    default_types["shaft_line_width"] = float
+    defaults_help["shaft_line_width"] = (
+        "Arrow shaft width when drawing a Vector. "
+        "Positive float. Length in <points>."
+    )
+
     defaults["shade_axis_angle"] = (
         pi / 4
     )  # angle from the x-axis for the shading in radians
@@ -2149,7 +2213,10 @@ def set_defaults():
     defaults["show_browser"] = True
     default_types["show_browser"] = bool
     defaults_help["show_browser"] = (
-        "Boolean property for showing the browser. If True, the browser is shown."
+        "If True, canvas.save() opens the file after writing it. "
+        "How it opens is set in personal simetri_config.toml [viewer]: "
+        "mode 'system' (OS default), 'command' (e.g. cursor -r), or 'none'. "
+        "See sg.help('viewer'). canvas.save(..., show=False) skips opening."
     )
 
     defaults["show_log_on_console"] = True  # show log messages on console
@@ -2183,6 +2250,13 @@ def set_defaults():
     default_types["smooth"] = bool
     defaults_help["smooth"] = (
         "Boolean property for smooth lines. If True, lines are smooth."
+    )
+
+    defaults["square_size"] = 100
+    default_types["square_size"] = float
+    defaults_help["square_size"] = (
+        "Default side length for Square / square(). Positive float. "
+        "Length in <points>."
     )
 
     defaults["stop_color"] = colors.white  # default gradient stop color

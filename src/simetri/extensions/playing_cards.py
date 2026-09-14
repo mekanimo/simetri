@@ -193,9 +193,9 @@ def _card_marks(
 ) -> list:
     """Build the face and marks at the origin from ``width`` and ``height``."""
     face = sg.Rectangle(
-        (0, 0),
         width,
         height,
+        (0, 0),
         fill=True,
         fill_color=sg.white,
         line_color=sg.black,

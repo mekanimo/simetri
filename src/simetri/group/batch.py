@@ -31,6 +31,7 @@ from ..base.all_enums import (
     get_enum_value,
 )
 from ..base.common import LineType, PointType, get_unique_id
+from ..base.common_style import coerce_style_overlay
 from ..base.core import (
     STYLE_ATTRIBUTES,
     Base,
@@ -218,6 +219,29 @@ class Group(Base):
         self.modifiers = modifiers
         self.visible = True
         self.id = get_unique_id(self)
+
+    def set_style(self, mapping: Any = None, **kwargs) -> Self:
+        """Set style fields on every member (mutated).
+
+        Nested groups are walked like ``set_attribs``. A missing attribute
+        on a member raises.
+
+        Args:
+            mapping: A ``Style``, a dict of draw aliases, or omitted.
+            **kwargs: Draw-alias fields; overwrite ``mapping`` for those keys.
+        """
+        if mapping is None and not kwargs:
+            raise TypeError(
+                "Group.set_style() requires a Style, a dict, or keyword arguments"
+            )
+        overlay = coerce_style_overlay(mapping, kwargs)
+        for element in self.elements:
+            if element.type == Types.GROUP:
+                element.set_style(overlay)
+            else:
+                for key, value in overlay.items():
+                    setattr(element, key, value)
+        return self
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Warn when a Shape attribute is assigned directly to a bare Group.
@@ -713,8 +737,8 @@ class Group(Base):
             edges: Edges as node-id pairs (see ``_set_node_dictionaries``).
             merge_angle_tol: Angle tolerance in radians for collinearity.
             debug: If True, print rejected-angle diagnostics.
-            remove_duplicate_edges: If True, drop congruent duplicate edges
-                before merging.
+            remove_duplicate_edges: If True, keep one copy of each congruent
+                edge and drop the extra duplicates before merging.
 
         Returns:
             list: Merged segments as coordinate pairs.
@@ -743,7 +767,8 @@ class Group(Base):
             dist_tol: Vertex snap tolerance. Defaults to library ``dist_tol``.
             merge_angle_tol: Collinearity angle tolerance in radians.
             debug: If True, print merge diagnostics.
-            remove_duplicate_edges: If True, drop congruent duplicates first.
+            remove_duplicate_edges: If True, keep one copy of each congruent
+                edge and drop extra duplicates first.
 
         Returns:
             Group: New group of merged shapes.
@@ -752,9 +777,13 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> g = sg.Group([
             ...     sg.Shape([(0, 0), (10, 0)]),
-            ...     sg.Shape([(10, 0), (20, 0)]),
+            ...     sg.Shape([(10, 0), (0, 0)]),
             ... ])
-            >>> g.merge_shapes()  # doctest: +SKIP
+            >>> merged = g.merge_shapes()
+            >>> len(merged)
+            1
+            >>> len(merged[0])
+            2
         """
         return _merge_shapes(
             self,

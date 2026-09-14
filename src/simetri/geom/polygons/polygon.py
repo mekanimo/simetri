@@ -2140,9 +2140,8 @@ def offset_polygon(
 ) -> Sequence[PointType]:
     """Return a closed polygon offset from ``polygon``.
 
-    The result is a stitched closed ring. A positive ``offset`` is inward
-    after the walk is made right-handed; the default ``-1`` therefore
-    offsets outward.
+    Positive ``offset`` expands outward; negative deflates. The default
+    ``-1`` therefore shrinks the ring by 1.
 
     Args:
         polygon (Sequence[PointType]): Polygon vertices.
@@ -2244,6 +2243,9 @@ def offset_polygon_points(
 ) -> Sequence[PointType]:
     """Return a stitched offset polygon.
 
+    Positive ``offset`` expands outward; negative deflates. Same sign
+    convention as ``offset_polygon`` and ``inflate``.
+
     Args:
         polygon (Sequence[PointType]): Polygon vertices.
         offset (float): Offset distance. Defaults to 1.
@@ -2256,24 +2258,9 @@ def offset_polygon_points(
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.offset_polygon_points([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
-        [(0.5, 0.5), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5)]
+        [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
     """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
-    polygon = list(polygon)
-    if not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
-        polygon.append(polygon[0])
-    poly = []
-    for i, point in enumerate(polygon[:-1]):
-        line = [point, polygon[i + 1]]
-        offset_edge = offset_line(line, offset)
-        poly.append(offset_edge)
-
-    poly = stitch(poly)
-    if not right_handed(poly):
-        poly.reverse()
-    return poly
+    return offset_polygon(polygon, offset, dist_tol)
 
 
 def polyline_length(

@@ -2,8 +2,10 @@
 
 import os
 import platform
+import shutil
 import subprocess
 import time
+import webbrowser
 from pathlib import Path
 
 import pymupdf as fitz
@@ -14,9 +16,13 @@ from ..config.user_config import (
     converter_supports_extension,
     get_converter_for_extension,
     get_tex_compiler,
+    get_viewer_settings,
     native_save_extensions,
     user_config_path,
 )
+
+# Win32 CREATE_BREAKAWAY_FROM_JOB: child is not killed with the parent job.
+_WINDOWS_CREATE_BREAKAWAY_FROM_JOB = 0x01000000
 
 
 def validate_filepath(filepath: Path, overwrite: bool):
@@ -58,6 +64,110 @@ def validate_filepath(filepath: Path, overwrite: bool):
         raise PermissionError(f"Directory {parent_dir} is not writable.")
 
     return parent_dir, file_name, extension
+
+
+def _substitute_viewer_placeholders(template: str, filepath: str) -> str:
+    """Replace ``{filepath}``, ``{file}``, and ``{url}`` in a viewer command."""
+    file_url = Path(filepath).as_uri()
+    return (
+        template.replace("{filepath}", filepath)
+        .replace("{file}", filepath)
+        .replace("{url}", file_url)
+    )
+
+
+def _resolve_viewer_program(program: str) -> str:
+    """Return an executable path for ``program`` when it is on PATH."""
+    candidate = Path(program)
+    if candidate.is_file():
+        return str(candidate)
+    found = shutil.which(program)
+    return found if found else program
+
+
+def open_saved_file(filepath: str | Path) -> None:
+    """Open a file written by ``canvas.save`` using personal ``[viewer]``.
+
+    ``show=False`` / ``defaults['show_browser']`` is handled by the caller.
+    ``mode = "system"`` uses the OS default (``webbrowser.open``).
+    ``mode = "command"`` runs ``[viewer].command``.
+    ``mode = "none"`` does nothing.
+
+    Args:
+        filepath: Saved output path (not a ``file://`` URL).
+    """
+    path = str(Path(filepath).resolve())
+    viewer = get_viewer_settings()
+    mode = viewer["mode"]
+    if mode == "none":
+        return
+    if mode == "command":
+        command = viewer["command"]
+        if command is None:
+            issue_warning(
+                "[viewer].mode is 'command' but [viewer].command is not set; "
+                "opening with the system default instead.",
+                WarningType.file.config,
+            )
+        else:
+            try:
+                _run_viewer_command(path, viewer)
+                return
+            except (FileNotFoundError, OSError, ValueError) as error:
+                issue_warning(
+                    f"Could not run [viewer].command ({error}); "
+                    "opening with the system default instead.",
+                    WarningType.file.config,
+                )
+    webbrowser.open(Path(path).as_uri())
+
+
+def _run_viewer_command(filepath: str, viewer: dict) -> None:
+    """Launch the configured viewer command without waiting for it."""
+    command = viewer["command"]
+    use_shell = bool(viewer["shell"])
+    outdir = str(Path(filepath).parent)
+    launch_env = os.environ.copy()
+    for key in list(launch_env):
+        if key.startswith(("ELECTRON_", "VSCODE_", "CURSOR_")):
+            del launch_env[key]
+    popen_kwargs = {
+        "cwd": outdir,
+        "env": launch_env,
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
+    if platform.system() == "Windows":
+        popen_kwargs["creationflags"] = (
+            subprocess.DETACHED_PROCESS
+            | subprocess.CREATE_NEW_PROCESS_GROUP
+            | _WINDOWS_CREATE_BREAKAWAY_FROM_JOB
+        )
+    else:
+        popen_kwargs["start_new_session"] = True
+        popen_kwargs["close_fds"] = True
+
+    if use_shell:
+        if not isinstance(command, str):
+            raise ValueError(
+                "[viewer].command must be a string when [viewer].shell = true."
+            )
+        rendered_command = _substitute_viewer_placeholders(command, filepath)
+        subprocess.Popen(rendered_command, shell=True, **popen_kwargs)
+        return
+
+    if isinstance(command, str):
+        raise ValueError(
+            "[viewer].command must be an array of strings when "
+            "[viewer].shell = false. Set shell = true only if you "
+            "intentionally need a shell."
+        )
+    rendered_argv = [
+        _substitute_viewer_placeholders(part, filepath) for part in command
+    ]
+    rendered_argv[0] = _resolve_viewer_program(rendered_argv[0])
+    subprocess.Popen(rendered_argv, shell=False, **popen_kwargs)
 
 
 def _substitute_converter_placeholders(
