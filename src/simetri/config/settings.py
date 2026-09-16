@@ -662,6 +662,46 @@ def set_defaults():
         "This is a small value used for line/point bounding boxes."
     )
 
+    defaults["bbox_draw_markers"] = False
+    default_types["bbox_draw_markers"] = bool
+    defaults_help["bbox_draw_markers"] = (
+        "Boolean property for drawing markers at bounding-box vertices. "
+        "If True, markers are drawn."
+    )
+
+    defaults["bbox_fill"] = False
+    default_types["bbox_fill"] = bool
+    defaults_help["bbox_fill"] = (
+        "Boolean property for filling bounding-box sketches. "
+        "If True, the bounding box is filled."
+    )
+
+    defaults["bbox_line_color"] = colors.gray
+    default_types["bbox_line_color"] = colors.Color
+    defaults_help["bbox_line_color"] = (
+        "Stroke color for bounding-box sketches. Color object."
+    )
+
+    defaults["bbox_line_dash_array"] = [3, 3]
+    default_types["bbox_line_dash_array"] = Sequence
+    defaults_help["bbox_line_dash_array"] = (
+        "Line dash array for bounding-box sketches. List of floats."
+    )
+
+    defaults["bbox_line_width"] = 1
+    default_types["bbox_line_width"] = float
+    defaults_help["bbox_line_width"] = (
+        "Line width for bounding-box sketches. "
+        "Positive float. Length in <points>."
+    )
+
+    defaults["bbox_stroke"] = True
+    default_types["bbox_stroke"] = bool
+    defaults_help["bbox_stroke"] = (
+        "Boolean property for stroking bounding-box sketches. "
+        "If True, the bounding box outline is drawn."
+    )
+
     defaults["begin_doc"] = "\\begin{document}\n"
     default_types["begin_doc"] = str
     defaults_help["begin_doc"] = "Used with the generated .tex file."

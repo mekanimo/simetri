@@ -1720,11 +1720,11 @@ regular_sketch_types = [
     Types.FRAGMENT,
     Types.HEX_GRID,
     Types.LINE,
-    Types.LINPATH,
     Types.MIXED_GRID,
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
+    Types.PATH2D,
     Types.PLAIT,
     Types.POLYLINE,
     Types.Q_BEZIER,
@@ -1776,7 +1776,7 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
             all_vertices.extend(plait.corners)
         for fragment in item.fragments:
             all_vertices.extend(fragment.corners)
-    elif item.subtype == Types.LINPATH:
+    elif item.subtype == Types.PATH2D:
         vertices = [
             x[:2]
             for x in homogenize(item.all_vertices) @ canvas._sketch_xform_matrix
@@ -1852,7 +1852,7 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
     if item.type is not Types.CLIPPING:
         extend_vertices(self, item)
 
-    if subtype == Types.LINPATH and kwargs.get("handles", False):
+    if subtype == Types.PATH2D and kwargs.get("handles", False):
         handle_size = defaults["handle_marker_size"]
         half_size = handle_size / 2
         for handle in item.handles:
@@ -2444,21 +2444,21 @@ def _get_bbox_sketch(item, canvas, **kwargs):
     sketch.exclusive = item.exclusive
     sketch.visible = True
     sketch.closed = True
-    style = {
-        "fill": False,
-        "stroke": True,
-        "line_color": colors.gray,
-        "line_width": 1,
-        "line_dash_array": [3, 3],
-        "draw_markers": False,
-    }
-    for name, value in style.items():
+    bbox_style_names = (
+        "fill",
+        "stroke",
+        "line_color",
+        "line_width",
+        "line_dash_array",
+        "draw_markers",
+    )
+    for name in bbox_style_names:
         if name in kwargs:
             setattr(sketch, name, kwargs[name])
         else:
-            setattr(sketch, name, value)
+            setattr(sketch, name, defaults[f"bbox_{name}"])
     for name in shape_style_map:
-        if name in kwargs and name not in style:
+        if name in kwargs and name not in bbox_style_names:
             setattr(sketch, name, kwargs[name])
     return sketch
 
@@ -2604,11 +2604,11 @@ _d_subtype_sketch = {
     Types.IMAGE: _get_image_sketch,
     Types.LACE: _get_lace_sketch,
     Types.LINE: _get_line_sketch,
-    Types.LINPATH: _get_path_sketch,
     Types.MIXED_GRID: _get_composite_sketch,
     Types.MASK: _get_sketch,
     Types.OVERLAP: _get_composite_sketch,
     Types.PARALLEL_POLYLINE: _get_composite_sketch,
+    Types.PATH2D: _get_path_sketch,
     Types.PATTERN: _get_pattern_sketch,
     Types.PLAIT: _get_sketch,
     Types.POLYLINE: _get_sketch,

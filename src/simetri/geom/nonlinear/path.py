@@ -49,6 +49,7 @@ from ..geometry import (
     positive_angle,
 )
 from ..homogenize import homogenize
+from ..points.point_utils import fix_degen_points
 from ..segments.line_utils import (
     extended_line,
     line_angle,
@@ -154,7 +155,7 @@ class Path2D(Group, CommonStyle):
         start: Path start point.
         angle: Current heading in radians.
         operations: List of ``Operation`` records.
-        subtype: ``Types.LINPATH``.
+        subtype: ``Types.PATH2D``.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -249,7 +250,7 @@ class Path2D(Group, CommonStyle):
         self.objects = []
         self.even_odd = True  # False is non-zero winding rule
         super().__init__()
-        self.subtype = Types.LINPATH
+        self.subtype = Types.PATH2D
         self.cur_shape = Shape([start])
         self.append(self.cur_shape)
         self.rc = self.r_coord  # alias for r_coord
@@ -472,7 +473,9 @@ class Path2D(Group, CommonStyle):
     def pop(self):
         """Restore the pen position and heading from the stack.
 
-        Does nothing if the stack is empty.
+        Starts a new subpath at the restored position so later drawing is
+        not connected to the segment that was drawn after ``push``. Does
+        nothing if the stack is empty.
 
         Examples:
             >>> import simetri.graphics as sg
@@ -482,9 +485,16 @@ class Path2D(Group, CommonStyle):
             >>> p.pop()
             >>> p.angle
             0
+            >>> p.pos
+            (0, 0)
         """
-        if self.stack:
-            self.pos, self.angle = self.stack.pop()
+        if not self.stack:
+            return
+        pos, angle = self.stack.pop()
+        self.operations.append(Operation(PathOps.MOVE_TO, pos))
+        self._create_object()
+        self.pos = pos
+        self.angle = angle
 
     def r_coord(self, dx: float, dy: float) -> PointType:
         """Map local offsets into world coordinates relative to the pen.
@@ -1491,6 +1501,68 @@ class Path2D(Group, CommonStyle):
                 last_vert = obj_verts[-1]
 
         return vertices
+
+    def as_shape(self) -> Shape | Group:
+        """Return cleaned geometry as a ``Shape``, or a ``Group`` of subpaths.
+
+        Consecutive duplicate joints are dropped. If a subpath is closed, a
+        repeated closing vertex is dropped. Sampled curves keep their
+        interior samples. Disjoint subpaths (``move_to``) each become their
+        own ``Shape``.
+
+        Returns:
+            Shape or Group: One polyline/polygon, or a group of them.
+
+        Raises:
+            ValueError: If the path has no geometric vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> path = (
+            ...     sg.Path2D((0, 0), angle=0)
+            ...     .line_to((10, 0))
+            ...     .line_to((10, 5))
+            ...     .close()
+            ... )
+            >>> shape = path.as_shape()
+            >>> shape.closed
+            True
+            >>> len(shape)
+            3
+            >>> disjoint = (
+            ...     sg.Path2D((0, 0), angle=0)
+            ...     .line_to((0, 40))
+            ...     .move_to((15, 0))
+            ...     .line_to((15, 40))
+            ...     .line_to((35, 0))
+            ...     .line_to((35, 40))
+            ... )
+            >>> converted = disjoint.as_shape()
+            >>> isinstance(converted, sg.Group), len(converted)
+            (True, 2)
+        """
+        shapes = []
+        for subpath in self.elements:
+            vertices = list(subpath.vertices)
+            if len(vertices) < 2:
+                continue
+            closed = subpath.closed
+            vertices = fix_degen_points(
+                vertices,
+                loop=closed,
+                closed=closed,
+                check_collinear=False,
+            )
+            if len(vertices) < 2:
+                continue
+            shape = Shape(vertices, closed=closed)
+            shape.copy_style(self)
+            shapes.append(shape)
+        if not shapes:
+            raise ValueError("Path2D.as_shape requires recorded geometry.")
+        if len(shapes) == 1:
+            return shapes[0]
+        return Group(shapes)
 
     def _label_vertices(self):
         """Return vertices suitable for index / coordinate labels.

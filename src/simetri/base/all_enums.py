@@ -1286,6 +1286,7 @@ class Types(StrEnum):
     PAGE_GRID = "PAGE_GRID"
     PARALLEL_POLYLINE = "PARALLEL_POLYLINE"
     PART = "PART"
+    PATH2D = "PATH2D"
     PATH_OPERATION = "PATH_OPERATION"
     PATH_SKETCH = "PATH_SKETCH"
     PATTERN = "PATTERN"
@@ -1639,11 +1640,11 @@ drawable_types = {
     Types.INTERSECTION,
     Types.LACE,
     Types.LINE,
-    Types.LINPATH,
     Types.MIXED_GRID,
     Types.OUTLINE,
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
+    Types.PATH2D,
     Types.PATTERN,
     Types.PLAIT,
     Types.POLYLINE,
@@ -1699,6 +1700,7 @@ group_types = {
     Types.OVERLAP,
     Types.PARALLEL_POLYLINE,
     Types.PATTERN,
+    Types.PATH2D,
     Types.SQUARE_GRID,
     Types.STAR,
     Types.SVG_PATH,

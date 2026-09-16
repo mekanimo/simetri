@@ -467,6 +467,19 @@ d_help_topic: dict[str, list[str]] = {
         "sg.rosette",
         "See also: sg.help('grids'), sg.help('lattices_doc')",
     ],
+    "path_objects_doc": [
+        "sg.Path2D",
+        "sg.LinPath",
+        "sg.Operation",
+        "sg.PathOps",
+        "sg.path_code",
+        "sg.svg_path_to_path2d",
+        "sg.path2d_to_svg_path",
+        (
+            "See also: sg.help('shapes_doc'), sg.help('groups_doc'), "
+            "sg.help('canvas_doc'), sg.help('style_definitions')"
+        ),
+    ],
     "points": [
         "sg.cart_to_tri",
         "sg.close_points_square",
@@ -809,6 +822,16 @@ _TOPIC_ALIASES = {
     "Isometry": "lattices_doc",
     "LatType": "lattices_doc",
     "LatRef": "lattices_doc",
+    "LinPath": "path_objects_doc",
+    "Path2D": "path_objects_doc",
+    "path": "path_objects_doc",
+    "paths": "path_objects_doc",
+    "path_code": "path_objects_doc",
+    "path_objects": "path_objects_doc",
+    "path_objects_doc": "path_objects_doc",
+    "path-objects": "path_objects_doc",
+    "path-objects-doc": "path_objects_doc",
+    "svg_path_to_path2d": "path_objects_doc",
     "Patterns": "patterns",
     "Points": "points",
     "Polygons": "polygons",

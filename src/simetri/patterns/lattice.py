@@ -326,7 +326,7 @@ class Lattice:
         Raises:
             ValueError: If ``kernel`` is not a Shape or Group.
         """
-        if kernel.subtype == "LINPATH" or kernel.type == "SHAPE":
+        if kernel.subtype == "PATH2D" or kernel.type == "SHAPE":
             self.pattern = Group(kernel)
         elif kernel.type == "BATCH" or kernel.type == "GROUP":
             self.pattern = kernel
