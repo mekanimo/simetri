@@ -625,6 +625,20 @@ def collinear_segments(
     )
 
 
+_TOLERANCES = frozenset(
+    (
+        "rel_tol",
+        "abs_tol",
+        "dist_tol",
+        "dist_rel_tol",
+        "dist_abs_tol",
+        "area_tol",
+        "area_rel_tol",
+        "area_abs_tol",
+    )
+)
+
+
 def check_intersection(
     x1: float,
     y1: float,
@@ -689,17 +703,17 @@ def check_intersection(
     # s1e2: start1 and end2 is connected
     # e1s2: end1 and start2 is connected
     # e1e2: end1 and end2 is connected
-    rel_tol, abs_tol, dist_tol, dist_rel_tol, dist_abs_tol, area_tol, area_rel_tol, area_abs_tol = get_defaults(
-        [
-            "rel_tol",
-            "abs_tol",
-            "dist_tol",
-            "dist_rel_tol",
-            "dist_abs_tol",
-            "area_tol",
-            "area_rel_tol",
-            "area_abs_tol",
-        ],
+    (
+        rel_tol,
+        abs_tol,
+        dist_tol,
+        dist_rel_tol,
+        dist_abs_tol,
+        area_tol,
+        area_rel_tol,
+        area_abs_tol,
+    ) = get_defaults(
+        _TOLERANCES,
         [
             rel_tol,
             abs_tol,
@@ -1881,7 +1895,11 @@ def update_line(line: LineType, incr: object) -> LineType:
     if is_number(incr):
         return offset_line(line, float(incr))
     if isinstance(incr, Sequence) and not isinstance(incr, (str, bytes)):
-        if len(incr) == 2 and callable(incr[0]) and not _is_line_translate(incr):
+        if (
+            len(incr) == 2
+            and callable(incr[0])
+            and not _is_line_translate(incr)
+        ):
             return update_line(line, incr[0](incr[1]))
         if _is_line_translate(incr):
             delta_x, delta_y = incr
@@ -1893,8 +1911,10 @@ def update_line(line: LineType, incr: object) -> LineType:
             raise ValueError("incr is an empty sequence")
         updated = line
         for step in incr:
-            if is_number(step) or _is_line_translate(step) or _is_line_rotate(
-                step
+            if (
+                is_number(step)
+                or _is_line_translate(step)
+                or _is_line_rotate(step)
             ):
                 updated = update_line(updated, step)
             else:

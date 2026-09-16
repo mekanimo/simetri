@@ -47,6 +47,18 @@ array = np.array
 
 
 enum_map = {}
+_anchor_map = {
+    Anchor.BASE_EAST: "base east",
+    Anchor.BASE_WEST: "base west",
+    Anchor.BOTTOM: "south",
+    Anchor.LEFT: "west",
+    Anchor.NORTHEAST: "north east",
+    Anchor.NORTHWEST: "north west",
+    Anchor.RIGHT: "east",
+    Anchor.SOUTHEAST: "south east",
+    Anchor.SOUTHWEST: "south west",
+    Anchor.TOP: "north",
+}
 
 
 def anchor_to_tikz(anchor: Anchor | None) -> str | None:
@@ -61,19 +73,7 @@ def anchor_to_tikz(anchor: Anchor | None) -> str | None:
     if anchor is None:
         return None
 
-    anchor_map = {
-        Anchor.BASE_EAST: "base east",
-        Anchor.BASE_WEST: "base west",
-        Anchor.BOTTOM: "south",
-        Anchor.LEFT: "west",
-        Anchor.NORTHEAST: "north east",
-        Anchor.NORTHWEST: "north west",
-        Anchor.RIGHT: "east",
-        Anchor.SOUTHEAST: "south east",
-        Anchor.SOUTHWEST: "south west",
-        Anchor.TOP: "north",
-    }
-    return anchor_map.get(anchor, anchor.value)
+    return _anchor_map.get(anchor, anchor.value)
 
 
 def scope_code_required(canvas: Canvas) -> bool:
@@ -173,6 +173,21 @@ def get_back_code(canvas: Canvas) -> str:
     return f"\\pagecolor{back_color}\n"
 
 
+_STYLEABLE_SUBTYPES = frozenset(
+    (
+        Types.ARC_SKETCH,
+        Types.BEZIER_SKETCH,
+        Types.CIRCLE_SKETCH,
+        Types.ELLIPSE_SKETCH,
+        Types.LINE_SKETCH,
+        Types.PATH_SKETCH,
+        Types.PATTERN_SKETCH,
+        Types.RECTANGLE_SKETCH,
+        Types.SHAPE_SKETCH,
+    )
+)
+
+
 def get_tex_code(canvas: Canvas) -> str:
     """Convert the sketches in the Canvas to TikZ code.
 
@@ -185,17 +200,6 @@ def get_tex_code(canvas: Canvas) -> str:
 
     render_style_ids = {}
 
-    styleable_subtypes = [
-        Types.ARC_SKETCH,
-        Types.BEZIER_SKETCH,
-        Types.CIRCLE_SKETCH,
-        Types.ELLIPSE_SKETCH,
-        Types.LINE_SKETCH,
-        Types.PATH_SKETCH,
-        Types.PATTERN_SKETCH,
-        Types.RECTANGLE_SKETCH,
-        Types.SHAPE_SKETCH,
-    ]
     tikz_libraries = []
     tikz_packages = ["tikz", "pgf"]
 
@@ -340,7 +344,7 @@ def get_tex_code(canvas: Canvas) -> str:
                     and hasattr(sketch, "populate")
                 ):
                     sketch.populate(canvas)
-                if sketch.subtype in styleable_subtypes:
+                if sketch.subtype in _STYLEABLE_SUBTYPES:
                     style_sketches.append(sketch)
 
             d_styles, d_sketch_style = set_styles(style_sketches)
@@ -601,6 +605,26 @@ def get_canvas_scope(canvas):
     return "\\begin{scope}\n"
 
 
+_decision_table = {
+    (True, True, True, True): "\\shadedraw",
+    (True, True, True, False): "\\filldraw",
+    (True, True, False, True): "\\shade",
+    (True, True, False, False): "\\fill",
+    (True, False, True, True): "\\draw",
+    (True, False, True, False): "\\draw",
+    (True, False, False, True): False,
+    (True, False, False, False): False,
+    (False, True, True, True): "\\draw",
+    (False, True, True, False): "\\draw",
+    (False, True, False, True): False,
+    (False, True, False, False): False,
+    (False, False, True, True): "\\draw",
+    (False, False, True, False): "\\draw",
+    (False, False, False, True): False,
+    (False, False, False, False): False,
+}
+
+
 def get_draw(sketch):
     """Returns the draw command for sketches.
 
@@ -611,24 +635,7 @@ def get_draw(sketch):
         str: The draw command as a string.
     """
     # sketch.closed, sketch.fill, sketch.stroke, shading
-    decision_table = {
-        (True, True, True, True): "\\shadedraw",
-        (True, True, True, False): "\\filldraw",
-        (True, True, False, True): "\\shade",
-        (True, True, False, False): "\\fill",
-        (True, False, True, True): "\\draw",
-        (True, False, True, False): "\\draw",
-        (True, False, False, True): False,
-        (True, False, False, False): False,
-        (False, True, True, True): "\\draw",
-        (False, True, True, False): "\\draw",
-        (False, True, False, True): False,
-        (False, True, False, False): False,
-        (False, False, True, True): "\\draw",
-        (False, False, True, False): "\\draw",
-        (False, False, False, True): False,
-        (False, False, False, False): False,
-    }
+
     if hasattr(sketch, "markers_only") and sketch.markers_only:
         res = "\\draw"
     else:
@@ -657,7 +664,7 @@ def get_draw(sketch):
             if stroke is None:
                 stroke = False
 
-        res = decision_table[(closed, fill, stroke, shading)]
+        res = _decision_table[(closed, fill, stroke, shading)]
 
     return res
 

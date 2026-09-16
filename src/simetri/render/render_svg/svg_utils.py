@@ -262,33 +262,34 @@ def double_lines(
     return " ".join(res_paths)
 
 
+_mapping = {
+    "stroke_width": "stroke-width",
+    "stroke_dasharray": "stroke-dasharray",
+    "stroke_linecap": "stroke-linecap",
+    "stroke_linejoin": "stroke-linejoin",
+    "fill_opacity": "fill-opacity",
+    "stroke_opacity": "stroke-opacity",
+    "stop_color": "stop-color",
+    "stop_opacity": "stop-opacity",
+    "clip_path": "clip-path",
+    "font_family": "font-family",
+    "font_size": "font-size",
+    "text_anchor": "text-anchor",
+    "dominant_baseline": "dominant-baseline",
+    "even_odd": "fill-rule",
+}
+
+
 def set_style(svg_shape: str, d_style: dict) -> str:
     """Given an svg shape (line, circle, ellipse, or path), applies the
     style values (line style, fill style, and gradient) given as a dictionary.
     Returns a string representing the stylized svg_shape.
     """
-    mapping = {
-        "stroke_width": "stroke-width",
-        "stroke_dasharray": "stroke-dasharray",
-        "stroke_linecap": "stroke-linecap",
-        "stroke_linejoin": "stroke-linejoin",
-        "fill_opacity": "fill-opacity",
-        "stroke_opacity": "stroke-opacity",
-        "stop_color": "stop-color",
-        "stop_opacity": "stop-opacity",
-        "clip_path": "clip-path",
-        "font_family": "font-family",
-        "font_size": "font-size",
-        "text_anchor": "text-anchor",
-        "dominant_baseline": "dominant-baseline",
-        "even_odd": "fill-rule",
-    }
-
     attribs = []
     for k, v in d_style.items():
         if v is None:
             continue
-        key = mapping.get(k, k.replace("_", "-"))
+        key = _mapping.get(k, k.replace("_", "-"))
         attribs.append(f'{key}="{v}"')
 
     style_str = " ".join(attribs)
@@ -742,9 +743,7 @@ def path2d_to_svg_path(path2d: "Path2D") -> str:
     return " ".join(parts)
 
 
-def path2d_points(
-    path2d: "Path2D", delta: float
-) -> list[tuple[float, float]]:
+def path2d_points(path2d: "Path2D", delta: float) -> list[tuple[float, float]]:
     """Given a Path2D instance, returns a list of points separated by the given length.
     It is not possible to create the points with the exact delta. Delta will be
     adjusted for each part of the Path2D accordingly.

@@ -292,111 +292,68 @@ def get_marker_path(marker_type, size):
     """
     # Normalize size
     s = size
-
-    marker_paths = {
-        MarkerType.CIRCLE: ("circle", f'<circle cx="0" cy="0" r="{s}"/>'),
-        MarkerType.FCIRCLE: ("circle", f'<circle cx="0" cy="0" r="{s}"/>'),
-        MarkerType.SQUARE: (
+    if marker_type in (MarkerType.CIRCLE, MarkerType.FCIRCLE):
+        res = "circle", f'<circle cx="0" cy="0" r="{s}"/>'
+    elif marker_type in (MarkerType.SQUARE, MarkerType.SQUARE_F):
+        res = (
             "path",
             f'<rect x="{-s}" y="{-s}" width="{2 * s}" height="{2 * s}"/>',
-        ),
-        MarkerType.SQUARE_F: (
-            "path",
-            f'<rect x="{-s}" y="{-s}" width="{2 * s}" height="{2 * s}"/>',
-        ),
-        MarkerType.DIAMOND: (
-            "path",
-            f'<path d="M 0,{s} L {s},0 L 0,{-s} L {-s},0 Z"/>',
-        ),
-        MarkerType.DIAMOND_F: (
-            "path",
-            f'<path d="M 0,{s} L {s},0 L 0,{-s} L {-s},0 Z"/>',
-        ),
-        MarkerType.TRIANGLE: (
+        )
+    elif marker_type in (MarkerType.DIAMOND, MarkerType.DIAMOND_F):
+        res = "path", f'<path d="M 0,{s} L {s},0 L 0,{-s} L {-s},0 Z"/>'
+    elif marker_type in (MarkerType.TRIANGLE, MarkerType.TRIANGLE_F):
+        res = (
             "path",
             f'<path d="M 0,{s * 1.2} L {s * 1.04},{-s * 0.6} L {-s * 1.04},{-s * 0.6} Z"/>',
-        ),
-        MarkerType.TRIANGLE_F: (
-            "path",
-            f'<path d="M 0,{s * 1.2} L {s * 1.04},{-s * 0.6} L {-s * 1.04},{-s * 0.6} Z"/>',
-        ),
-        MarkerType.PLUS: (
-            "path",
-            f'<path d="M 0,{s} L 0,{-s} M {s},0 L {-s},0"/>',
-        ),
-        MarkerType.CROSS: (
-            "path",
-            f'<path d="M {s},{s} L {-s},{-s} M {s},{-s} L {-s},{s}"/>',
-        ),
-        MarkerType.ASTERISK: (
+        )
+    elif marker_type == MarkerType.PLUS:
+        res = "path", f'<path d="M 0,{s} L 0,{-s} M {s},0 L {-s},0"/>'
+    elif marker_type == MarkerType.CROSS:
+        res = "path", f'<path d="M {s},{s} L {-s},{-s} M {s},{-s} L {-s},{s}"/>'
+    elif marker_type == MarkerType.ASTERISK:
+        res = (
             "path",
             f'<path d="M 0,{s} L 0,{-s} M {s * 0.866},{s * 0.5} L {-s * 0.866},{-s * 0.5} M {s * 0.866},{-s * 0.5} L {-s * 0.866},{s * 0.5}"/>',
-        ),
-        MarkerType.STAR: (
+        )
+    elif marker_type == MarkerType.STAR:
+        res = (
             "path",
             f'<path d="M 0,{s} L {s * 0.224},{s * 0.309} L {s * 0.951},{s * 0.309} L {s * 0.363},{-s * 0.118} L {s * 0.588},{-s * 0.809} L 0,{-s * 0.382} L {-s * 0.588},{-s * 0.809} L {-s * 0.363},{-s * 0.118} L {-s * 0.951},{s * 0.309} L {-s * 0.224},{s * 0.309} Z"/>',
-        ),
-        MarkerType.PENTAGON: (
+        )
+    elif marker_type in (MarkerType.PENTAGON, MarkerType.PENTAGON_F):
+        res = (
             "path",
             f'<path d="M 0,{s} L {s * 0.951},{s * 0.309} L {s * 0.588},{-s * 0.809} L {-s * 0.588},{-s * 0.809} L {-s * 0.951},{s * 0.309} Z"/>',
-        ),
-        MarkerType.PENTAGON_F: (
-            "path",
-            f'<path d="M 0,{s} L {s * 0.951},{s * 0.309} L {s * 0.588},{-s * 0.809} L {-s * 0.588},{-s * 0.809} L {-s * 0.951},{s * 0.309} Z"/>',
-        ),
-        MarkerType.HEXAGON: (
+        )
+    elif marker_type in (MarkerType.HEXAGON, MarkerType.HEXAGON_F):
+        res = (
             "path",
             f'<path d="M {s},0 L {s * 0.5},{s * 0.866} L {-s * 0.5},{s * 0.866} L {-s},0 L {-s * 0.5},{-s * 0.866} L {s * 0.5},{-s * 0.866} Z"/>',
-        ),
-        MarkerType.HEXAGON_F: (
-            "path",
-            f'<path d="M {s},0 L {s * 0.5},{s * 0.866} L {-s * 0.5},{s * 0.866} L {-s},0 L {-s * 0.5},{-s * 0.866} L {s * 0.5},{-s * 0.866} Z"/>',
-        ),
-        MarkerType.BAR: ("path", f'<path d="M 0,{s} L 0,{-s}"/>'),
-        MarkerType.MINUS: ("path", f'<path d="M {s},0 L {-s},0"/>'),
-        MarkerType.OPLUS: (
+        )
+    elif marker_type == MarkerType.BAR:
+        res = "path", f'<path d="M 0,{s} L 0,{-s}"/>'
+    elif marker_type == MarkerType.MINUS:
+        res = "path", f'<path d="M {s},0 L {-s},0"/>'
+    elif marker_type in (MarkerType.OPLUS, MarkerType.OPLUS_F):
+        res = (
             "g",
             f'<circle cx="0" cy="0" r="{s}"/><path d="M 0,{s * 0.7} L 0,{-s * 0.7} M {s * 0.7},0 L {-s * 0.7},0"/>',
-        ),
-        MarkerType.OPLUS_F: (
-            "g",
-            f'<circle cx="0" cy="0" r="{s}"/><path d="M 0,{s * 0.7} L 0,{-s * 0.7} M {s * 0.7},0 L {-s * 0.7},0"/>',
-        ),
-        MarkerType.O_TIMES: (
+        )
+    elif marker_type in (MarkerType.O_TIMES, MarkerType.O_TIMES_F):
+        res = (
             "g",
             f'<circle cx="0" cy="0" r="{s}"/><path d="M {s * 0.7},{s * 0.7} L {-s * 0.7},{-s * 0.7} M {s * 0.7},{-s * 0.7} L {-s * 0.7},{s * 0.7}"/>',
-        ),
-        MarkerType.O_TIMES_F: (
-            "g",
-            f'<circle cx="0" cy="0" r="{s}"/><path d="M {s * 0.7},{s * 0.7} L {-s * 0.7},{-s * 0.7} M {s * 0.7},{-s * 0.7} L {-s * 0.7},{s * 0.7}"/>',
-        ),
-        MarkerType.HALF_CIRCLE: (
-            "path",
-            f'<path d="M 0,{s} A {s} {s} 0 0 1 0,{-s} L 0,{s} Z"/>',
-        ),
-        MarkerType.HALF_CIRCLE_F: (
-            "path",
-            f'<path d="M 0,{s} A {s} {s} 0 0 1 0,{-s} L 0,{s} Z"/>',
-        ),
-        MarkerType.HALF_SQUARE: (
-            "path",
-            f'<path d="M 0,{s} L {s},{s} L {s},{-s} L 0,{-s} Z"/>',
-        ),
-        MarkerType.HALF_SQUARE_F: (
-            "path",
-            f'<path d="M 0,{s} L {s},{s} L {s},{-s} L 0,{-s} Z"/>',
-        ),
-        MarkerType.HALF_DIAMOND: (
-            "path",
-            f'<path d="M 0,{s} L {s},0 L 0,{-s} Z"/>',
-        ),
-        MarkerType.HALF_DIAMOND_F: (
-            "path",
-            f'<path d="M 0,{s} L {s},0 L 0,{-s} Z"/>',
-        ),
-    }
+        )
+    elif marker_type in (MarkerType.HALF_CIRCLE, MarkerType.HALF_CIRCLE_F):
+        res = "path", f'<path d="M 0,{s} A {s} {s} 0 0 1 0,{-s} L 0,{s} Z"/>'
+    elif marker_type in (MarkerType.HALF_SQUARE, MarkerType.HALF_SQUARE_F):
+        res = "path", f'<path d="M 0,{s} L {s},{s} L {s},{-s} L 0,{-s} Z"/>'
+    elif marker_type in (MarkerType.HALF_DIAMOND, MarkerType.HALF_DIAMOND_F):
+        res = "path", f'<path d="M 0,{s} L {s},0 L 0,{-s} Z"/>'
+    else:
+        raise KeyError(marker_type)
 
-    return marker_paths[marker_type]
+    return res
 
 
 def generate_marker_def(

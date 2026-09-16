@@ -693,18 +693,30 @@ def draw_image_sketch(sketch: ImageSketch) -> str:
 
     # Calculate anchor offset
     # In SVG, image x,y is at top-left, so we need to adjust based on anchor
-    anchor_offsets = {
-        Anchor.CENTER: (-width / 2, -height / 2),
-        Anchor.NORTH: (-width / 2, 0),
-        Anchor.SOUTH: (-width / 2, -height),
-        Anchor.EAST: (-width, -height / 2),
-        Anchor.WEST: (0, -height / 2),
-        Anchor.NORTHEAST: (-width, 0),
-        Anchor.NORTHWEST: (0, 0),
-        Anchor.SOUTHEAST: (-width, -height),
-        Anchor.SOUTHWEST: (0, -height),
-    }
-    dx, dy = anchor_offsets[anchor]
+    def _anchor_offset(anchor, width, height):
+        match anchor:
+            case Anchor.CENTER:
+                res = (-width / 2, -height / 2)
+            case Anchor.NORTH:
+                res = (-width / 2, 0)
+            case Anchor.SOUTH:
+                res = (-width / 2, -height)
+            case Anchor.EAST:
+                res = (-width, -height / 2)
+            case Anchor.WEST:
+                res = (0, -height / 2)
+            case Anchor.NORTHEAST:
+                res = (-width, 0)
+            case Anchor.NORTHWEST:
+                res = (0, 0)
+            case Anchor.SOUTHEAST:
+                res = (-width, -height)
+            case Anchor.SOUTHWEST:
+                res = (0, -height)
+
+        return res
+
+    dx, dy = _anchor_offset(anchor, width, height)
 
     # Build transform string
     transforms = []
@@ -732,6 +744,31 @@ def draw_image_sketch(sketch: ImageSketch) -> str:
     return f'<image x="0" y="0" width="{width}" height="{height}" href="{file_path}"{transform_attr}{clip_attr}{mask_attr} />'
 
 
+# Friendly name → matplotlib mathtext.fontset mapping
+_FONTSET_MAP = {
+    "computer modern": "cm",
+    "cm": "cm",
+    "stix": "stix",
+    "stix sans": "stixsans",
+    "stixsans": "stixsans",
+    "dejavu sans": "dejavusans",
+    "dejavusans": "dejavusans",
+    "dejavu": "dejavusans",
+    "dejavu serif": "dejavuserif",
+    "dejavuserif": "dejavuserif",
+}
+
+_TEXT_MODE_MAP = frozenset(
+    (
+        (r"\texttt", r"\mathtt"),  # monospace / typewriter
+        (r"\textrm", r"\mathrm"),  # roman (serif)
+        (r"\textbf", r"\mathbf"),  # bold
+        (r"\textit", r"\mathit"),  # italic
+        (r"\textsf", r"\mathsf"),  # sans-serif
+    )
+)
+
+
 def draw_latex_sketch(sketch: LatexSketch) -> str:
     """Renders a LaTeX math formula to inline SVG using matplotlib mathtext.
 
@@ -745,20 +782,6 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
     Returns:
         str: SVG code for the formula positioned at the canvas anchor point.
     """
-    # Friendly name → matplotlib mathtext.fontset mapping
-    _FONTSET_MAP = {
-        "computer modern": "cm",
-        "cm": "cm",
-        "stix": "stix",
-        "stix sans": "stixsans",
-        "stixsans": "stixsans",
-        "dejavu sans": "dejavusans",
-        "dejavusans": "dejavusans",
-        "dejavu": "dejavusans",
-        "dejavu serif": "dejavuserif",
-        "dejavuserif": "dejavuserif",
-    }
-
     formula = sketch_attrib(sketch, "formula")
     x, y = sketch_attrib(sketch, "pos")[:2]
     font_size = sketch_attrib(sketch, "font_size")
@@ -784,13 +807,7 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
 
     # Silently map unsupported LaTeX text-mode commands to their math-mode
     # equivalents that matplotlib mathtext does support:
-    _TEXT_MODE_MAP = [
-        (r"\texttt", r"\mathtt"),  # monospace / typewriter
-        (r"\textrm", r"\mathrm"),  # roman (serif)
-        (r"\textbf", r"\mathbf"),  # bold
-        (r"\textit", r"\mathit"),  # italic
-        (r"\textsf", r"\mathsf"),  # sans-serif
-    ]
+
     for src, dst in _TEXT_MODE_MAP:
         formula = formula.replace(src, dst)
 
@@ -859,18 +876,30 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
     # Anchor offset: distance from the formula's SW corner to the given anchor point,
     # measured in canvas/formula coordinate space (W wide, H tall).
     # The formula's SW corner is at its left edge and visual bottom edge.
-    anchor_offsets = {
-        Anchor.SOUTHWEST: (0, 0),
-        Anchor.SOUTH: (W / 2, 0),
-        Anchor.SOUTHEAST: (W, 0),
-        Anchor.WEST: (0, H / 2),
-        Anchor.CENTER: (W / 2, H / 2),
-        Anchor.EAST: (W, H / 2),
-        Anchor.NORTHWEST: (0, H),
-        Anchor.NORTH: (W / 2, H),
-        Anchor.NORTHEAST: (W, H),
-    }
-    ax, ay = anchor_offsets.get(anchor, (0, 0))
+    def _anchor_offset(anchor, W, H):
+        match anchor:
+            case Anchor.CENTER:
+                res = (W / 2, H / 2)
+            case Anchor.NORTH:
+                res = (W / 2, H)
+            case Anchor.SOUTH:
+                res = (W / 2, 0)
+            case Anchor.EAST:
+                res = (W, H / 2)
+            case Anchor.WEST:
+                res = (0, H / 2)
+            case Anchor.NORTHEAST:
+                res = (W, H)
+            case Anchor.NORTHWEST:
+                res = (0, H)
+            case Anchor.SOUTHEAST:
+                res = (W, 0)
+            case Anchor.SOUTHWEST:
+                res = (0, 0)
+
+        return res
+
+    ax, ay = _anchor_offset(anchor, W, H)
 
     # The main SVG group has transform="translate(0,dy) scale(1,-1)".
     # Inside this group, a sub-group with "translate(x,y) scale(1,-1)" restores normal

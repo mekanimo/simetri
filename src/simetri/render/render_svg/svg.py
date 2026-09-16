@@ -52,6 +52,23 @@ def append_non_default_style_options(options, sketch, style_map):
             options.append(f"{css_name}: {value};")
 
 
+_attrib_map = {
+    # 'marker': 'mark',
+    "marker_size": "mark size",
+    "marker_angle": "rotate",
+    # 'fill_color': 'color',
+    "marker_color": "color",
+    "marker_fill": "fill",
+    "marker_opacity": "opacity",
+    "marker_repeat": "mark repeat",
+    "marker_phase": "mark phase",
+    "marker_tension": "tension",
+    "marker_line_width": "line width",
+    "marker_line_style": "style",
+    # 'line_color': 'line color',
+}
+
+
 def get_marker_options(sketch):
     """Returns the options for the markers.
 
@@ -61,21 +78,8 @@ def get_marker_options(sketch):
     Returns:
         list: The marker options as a list.
     """
-    attrib_map = {
-        # 'marker': 'mark',
-        "marker_size": "mark size",
-        "marker_angle": "rotate",
-        # 'fill_color': 'color',
-        "marker_color": "color",
-        "marker_fill": "fill",
-        "marker_opacity": "opacity",
-        "marker_repeat": "mark repeat",
-        "marker_phase": "mark phase",
-        "marker_tension": "tension",
-        "marker_line_width": "line width",
-        "marker_line_style": "style",
-        # 'line_color': 'line color',
-    }
+    attrib_map = _attrib_map
+
     # if mark_stroke is false make line color same as fill color
     if sketch_attrib(sketch, "draw_markers"):
         res = sg_to_tikz(sketch, marker_style_map.keys(), attrib_map)
@@ -361,12 +365,7 @@ def svg_shape(sketch, styles_dict, exceptions=None):
 
     # Check for opacity mask property (mask shape + clip is not enabled)
     mask_attr = ""
-    if (
-        mask is not None
-        and not clip
-        or has_mask_style(sketch)
-        and not clip
-    ):
+    if mask is not None and not clip or has_mask_style(sketch) and not clip:
         mask_id = f"mask_{sketch.id}"
         mask_attr = f' mask="url(#{mask_id})"'
 

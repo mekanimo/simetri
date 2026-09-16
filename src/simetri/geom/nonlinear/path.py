@@ -31,7 +31,11 @@ from ...base.all_enums import (
 )
 from ...base.all_enums import PathOperation as PathOps
 from ...base.common import PointType
-from ...base.common_style import CommonStyle
+from ...base.common_style import (
+    COLOR_ALPHA_ATTRS,
+    STYLE_COPY_ATTRS,
+    CommonStyle,
+)
 from ...base.core import _next_xform_matrix, _Targets
 from ...coloring.colors import Color
 from ...config.settings import defaults
@@ -67,9 +71,7 @@ _CURVE_PATH_OPS = frozenset(
         PathOps.SINE,
     )
 )
-_ARC_CODE_PATH_OPS = frozenset(
-    (PathOps.ARC, PathOps.ARC_TO, PathOps.BLEND_ARC)
-)
+_ARC_CODE_PATH_OPS = frozenset((PathOps.ARC, PathOps.ARC_TO, PathOps.BLEND_ARC))
 _ARC_PATH_OPS = frozenset((PathOps.ARC, PathOps.BLEND_ARC))
 _BEZIER_PATH_OPS = frozenset((PathOps.CUBIC_TO, PathOps.QUAD_TO))
 _CUBIC_PATH_OPS = frozenset((PathOps.BLEND_CUBIC, PathOps.CUBIC_TO))
@@ -256,39 +258,11 @@ class Path2D(Group, CommonStyle):
         self.stack = deque()
 
         self.closed = False
+        init_locals = locals()
         self._init_from_style_kwargs(
             {
-                "color": color,
-                "alpha": alpha,
-                "line_color": line_color,
-                "fill_color": fill_color,
-                "line_alpha": line_alpha,
-                "fill_alpha": fill_alpha,
-                "line_width": line_width,
-                "fill": fill,
-                "stroke": stroke,
-                "line_dash_array": line_dash_array,
-                "line_dash_phase": line_dash_phase,
-                "line_cap": line_cap,
-                "line_join": line_join,
-                "line_miter_limit": line_miter_limit,
-                "smooth": smooth,
-                "back_style": back_style,
-                "draw_double": draw_double,
-                "draw_fillets": draw_fillets,
-                "double_distance": double_distance,
-                "double_color": double_color,
-                "fill_mode": fill_mode,
-                "fillet_radius": fillet_radius,
-                "gradient": gradient,
-                "draw_markers": draw_markers,
-                "marker_type": marker_type,
-                "marker_size": marker_size,
-                "marker_radius": marker_radius,
-                "marker_alpha": marker_alpha,
-                "marker_color": marker_color,
-                "marker_shape": marker_shape,
-                "markers_only": markers_only,
+                name: init_locals[name]
+                for name in (*COLOR_ALPHA_ATTRS, *STYLE_COPY_ATTRS)
             }
         )
         self.visible = True
@@ -1284,15 +1258,23 @@ class Path2D(Group, CommonStyle):
             self.pos, rx, ry, angle, large_arc_flag, sweep_flag, end
         )
 
-        if params["type"] == "line":
-            self.line_to(params["end"], **kwargs)
-        elif params["type"] == "arc":
+        if params is not None and params[0] is PathOps.LINE_TO:
+            self.line_to(params[1], **kwargs)
+        elif params is not None and params[0] is PathOps.ARC:
+            (
+                _op,
+                radius_x,
+                radius_y,
+                start_angle,
+                span_angle,
+                rot_angle,
+            ) = params
             self.arc(
-                params["rx"],
-                params["ry"],
-                params["start_angle"],
-                params["span_angle"],
-                rot_angle=params["rot_angle"],
+                radius_x,
+                radius_y,
+                start_angle,
+                span_angle,
+                rot_angle=rot_angle,
                 **kwargs,
             )
         return self
@@ -2350,15 +2332,23 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                     lp.pos, rx, ry, rot_deg, large_arc, sweep, end
                 )
 
-                if params["type"] == "line":
-                    lp.line_to(params["end"])
-                elif params["type"] == "arc":
+                if params is not None and params[0] is PathOps.LINE_TO:
+                    lp.line_to(params[1])
+                elif params is not None and params[0] is PathOps.ARC:
+                    (
+                        _op,
+                        radius_x,
+                        radius_y,
+                        start_angle,
+                        span_angle,
+                        rot_angle,
+                    ) = params
                     lp.arc(
-                        params["rx"],
-                        params["ry"],
-                        params["start_angle"],
-                        params["span_angle"],
-                        rot_angle=params["rot_angle"],
+                        radius_x,
+                        radius_y,
+                        start_angle,
+                        span_angle,
+                        rot_angle=rot_angle,
                     )
 
     return lp
@@ -2377,7 +2367,9 @@ def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
         end: Arc end point.
 
     Returns:
-        dict: Either a line stub or arc parameters for ``Path2D.arc``.
+        ``(PathOps.LINE_TO, end)`` if the arc degenerates to a line,
+        ``None`` if start and end coincide, otherwise
+        ``(PathOps.ARC, rx, ry, start_angle, span_angle, rot_angle)``.
     """
     x1, y1 = start[:2]
     x2, y2 = end[:2]
@@ -2387,10 +2379,10 @@ def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
     phi = radians(phi_deg)
 
     if rx == 0 or ry == 0:
-        return {"type": "line", "end": end}
+        return (PathOps.LINE_TO, end)
 
     if x1 == x2 and y1 == y2:
-        return {"type": "none"}
+        return None
 
     # Matrix for rotation
     cos_phi = cos(phi)
@@ -2452,14 +2444,7 @@ def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
     elif fs and dtheta < 0:
         dtheta += 2 * pi
 
-    return {
-        "type": "arc",
-        "rx": rx,
-        "ry": ry,
-        "start_angle": theta1,
-        "span_angle": dtheta,
-        "rot_angle": phi,
-    }
+    return (PathOps.ARC, rx, ry, theta1, dtheta, phi)
 
 
 def shape_to_path(shape: Shape) -> Path2D:

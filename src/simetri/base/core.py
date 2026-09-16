@@ -54,6 +54,16 @@ STYLE_ATTRIBUTES = set(shape_args)
 
 _mirror_lines: dict[int, LineType] = {}
 
+operators = {
+    InPlace.ADD: operator.iadd,
+    InPlace.SUB: operator.isub,
+    InPlace.MUL: operator.imul,
+    InPlace.TRUE_DIV: operator.itruediv,
+    InPlace.FLOOR_DIV: operator.ifloordiv,
+    InPlace.MOD: operator.imod,
+    InPlace.POW: operator.ipow,
+}
+
 
 def _update_inplace(
     xform_matrix: NDArray,
@@ -148,15 +158,7 @@ def _update_inplace(
             xform_matrix[2, 1] = dy * scale
 
     def _apply_operator(ip_op: InPlace, value: Any) -> None:
-        operators = {
-            InPlace.ADD: operator.iadd,
-            InPlace.SUB: operator.isub,
-            InPlace.MUL: operator.imul,
-            InPlace.TRUE_DIV: operator.itruediv,
-            InPlace.FLOOR_DIV: operator.ifloordiv,
-            InPlace.MOD: operator.imod,
-            InPlace.POW: operator.ipow,
-        }
+
         oper = operators[ip_op]
 
         if xform_type == TransformationType.TRANSLATE:
@@ -537,9 +539,7 @@ class Transform:
         Returns:
             Transform: The rotation step.
         """
-        return cls(
-            rotation_matrix, (("angle", angle), ("about", about))
-        )
+        return cls(rotation_matrix, (("angle", angle), ("about", about)))
 
     @classmethod
     def mirror(cls, about: LineType | PointType | DynRef) -> "Transform":
@@ -617,9 +617,7 @@ class Transform:
         Returns:
             Transform: The shear step.
         """
-        return cls(
-            shear_matrix, (("theta_x", theta_x), ("theta_y", theta_y))
-        )
+        return cls(shear_matrix, (("theta_x", theta_x), ("theta_y", theta_y)))
 
 
 @dataclass
@@ -769,8 +767,7 @@ def _resolve_reference(
     if callable(dyn_ref.reference):
         if dyn_ref.index is not None:
             raise ValueError(
-                "DynRef.index is only for Reference.VERTEX and "
-                "Reference.EDGE."
+                "DynRef.index is only for Reference.VERTEX and Reference.EDGE."
             )
         res = dyn_ref.reference(target, index, **kwargs)
     else:
@@ -899,9 +896,7 @@ def resolve_dyn_ref(
         active = kernel
     targets = _Targets(kernel, pattern)
     targets.active = active
-    return _resolve_arg(
-        value, targets, index, as_point, as_length, as_vector
-    )
+    return _resolve_arg(value, targets, index, as_point, as_length, as_vector)
 
 
 def _reject_dyn_refs(**arguments: Any) -> None:
@@ -1218,9 +1213,7 @@ class Base:
             (80.0, 40.0)
         """
         builder, arguments = _translate_builder_args(dx, dy)
-        transform, dyn_ref = _make_xform(
-            builder, dyn_ref, self, **arguments
-        )
+        transform, dyn_ref = _make_xform(builder, dyn_ref, self, **arguments)
         if self.type == Types.SHAPE:
             res = self._update(
                 transform,

@@ -10,6 +10,19 @@ from ...config.settings import defaults
 from ...geom.bbox import bounding_box
 from .tikz_utils import _get_gradient_shading_options, get_clip_code
 
+_anchor_map = {
+    Anchor.BASE_EAST: "base east",
+    Anchor.BASE_WEST: "base west",
+    Anchor.BOTTOM: "south",
+    Anchor.LEFT: "west",
+    Anchor.NORTHEAST: "north east",
+    Anchor.NORTHWEST: "north west",
+    Anchor.RIGHT: "east",
+    Anchor.SOUTHEAST: "south east",
+    Anchor.SOUTHWEST: "south west",
+    Anchor.TOP: "north",
+}
+
 
 def anchor_to_tikz(anchor: Anchor | None) -> str | None:
     """Convert an ``Anchor`` enum value to a TikZ anchor name.
@@ -23,19 +36,7 @@ def anchor_to_tikz(anchor: Anchor | None) -> str | None:
     if anchor is None:
         return None
 
-    anchor_map = {
-        Anchor.BASE_EAST: "base east",
-        Anchor.BASE_WEST: "base west",
-        Anchor.BOTTOM: "south",
-        Anchor.LEFT: "west",
-        Anchor.NORTHEAST: "north east",
-        Anchor.NORTHWEST: "north west",
-        Anchor.RIGHT: "east",
-        Anchor.SOUTHEAST: "south east",
-        Anchor.SOUTHWEST: "south west",
-        Anchor.TOP: "north",
-    }
-    return anchor_map.get(anchor, anchor.value)
+    return _anchor_map.get(anchor, anchor.value)
 
 
 def _pgf_gray(transparency: int) -> str:
@@ -177,26 +178,29 @@ def _mask_scope_parts(sketch, fade_id=None):
     return "", ""
 
 
+_decision_table = {
+    (True, True, True, True): "\\shadedraw",
+    (True, True, True, False): "\\filldraw",
+    (True, True, False, True): "\\shade",
+    (True, True, False, False): "\\fill",
+    (True, False, True, True): "\\draw",
+    (True, False, True, False): "\\draw",
+    (True, False, False, True): False,
+    (True, False, False, False): False,
+    (False, True, True, True): "\\draw",
+    (False, True, True, False): "\\draw",
+    (False, True, False, True): False,
+    (False, True, False, False): False,
+    (False, False, True, True): "\\draw",
+    (False, False, True, False): "\\draw",
+    (False, False, False, True): False,
+    (False, False, False, False): False,
+}
+
+
 def get_draw(sketch):
     """Return the TikZ draw command for sketches."""
-    decision_table = {
-        (True, True, True, True): "\\shadedraw",
-        (True, True, True, False): "\\filldraw",
-        (True, True, False, True): "\\shade",
-        (True, True, False, False): "\\fill",
-        (True, False, True, True): "\\draw",
-        (True, False, True, False): "\\draw",
-        (True, False, False, True): False,
-        (True, False, False, False): False,
-        (False, True, True, True): "\\draw",
-        (False, True, True, False): "\\draw",
-        (False, True, False, True): False,
-        (False, True, False, False): False,
-        (False, False, True, True): "\\draw",
-        (False, False, True, False): "\\draw",
-        (False, False, False, True): False,
-        (False, False, False, False): False,
-    }
+
     if hasattr(sketch, "markers_only") and sketch.markers_only:
         result = "\\draw"
     else:
@@ -223,7 +227,7 @@ def get_draw(sketch):
             if stroke is None:
                 stroke = False
 
-        result = decision_table[(closed, fill, stroke, shading)]
+        result = _decision_table[(closed, fill, stroke, shading)]
 
     return result
 

@@ -430,7 +430,9 @@ def draw_latex_sketch(sketch):
 
 def _label_font_tikz(sketch, label_kind: str) -> str:
     """TikZ node font option for index or vertex-coordinate labels."""
-    family = label_font_family_tikz(sketch_label_font_family(sketch, label_kind))
+    family = label_font_family_tikz(
+        sketch_label_font_family(sketch, label_kind)
+    )
     pt = sketch_label_font_size_pt(sketch, label_kind)
     baseline = ceil(pt * 1.2)
     return f"font=\\{family}\\fontsize{{{pt}}}{{{baseline}}}\\selectfont"
@@ -828,17 +830,11 @@ def draw_shape_sketch(sketch, ind=None, canvas=None, exceptions=None):
     Returns:
         str: The TikZ code for the shape sketch.
     """
-    d_subtype_draw = {
-        sg.Types.ARC_SKETCH: draw_arc_sketch,
-        sg.Types.BEZIER_SKETCH: draw_bezier_sketch,
-        sg.Types.CIRCLE_SKETCH: draw_circle_sketch,
-        sg.Types.ELLIPSE_SKETCH: draw_ellipse_sketch,
-        sg.Types.PATH_SKETCH: draw_path_sketch,
-    }
+
     if sketch.subtype == sg.Types.LINE_SKETCH:
         res = draw_line_sketch(sketch, canvas, exceptions=exceptions)
-    elif sketch.subtype in d_subtype_draw:
-        res = d_subtype_draw[sketch.subtype](sketch, exceptions=exceptions)
+    elif sketch.subtype in _d_subtype_draw:
+        res = _d_subtype_draw[sketch.subtype](sketch, exceptions=exceptions)
     elif (
         (
             hasattr(sketch, "draw_markers")
@@ -1158,3 +1154,12 @@ def draw_line(line):
         res = f"\\draw[{', '.join(options)}] {p1} -- {p2};\n"
 
     return res
+
+
+_d_subtype_draw = {
+    sg.Types.ARC_SKETCH: draw_arc_sketch,
+    sg.Types.BEZIER_SKETCH: draw_bezier_sketch,
+    sg.Types.CIRCLE_SKETCH: draw_circle_sketch,
+    sg.Types.ELLIPSE_SKETCH: draw_ellipse_sketch,
+    sg.Types.PATH_SKETCH: draw_path_sketch,
+}

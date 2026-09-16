@@ -20,7 +20,7 @@ from numpy import isclose
 
 from ..base.all_enums import Connection, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults
-from ..base.core import _Targets, _next_xform_matrix, _update_inplace
+from ..base.core import _next_xform_matrix, _Targets, _update_inplace
 from ..coloring import colors
 from ..config.settings import defaults
 from ..geom.geom_utils import close_points_square, connected_pairs
@@ -254,18 +254,14 @@ class Intersection(Shape):
                 "Shape and Group resolve dyn_ref."
             )
         if take is not None:
-            raise ValueError(
-                "Intersection._update does not support take=."
-            )
+            raise ValueError("Intersection._update does not support take=.")
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
             return self
         res = []
         for i in range(reps):
             if incr is not None and i > 0:
-                xform_matrix = _update_inplace(
-                    xform_matrix, xform_type, incr
-                )
+                xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
             shape = self.copy()
             shape._update(xform_matrix)
             res.append(shape)
@@ -701,9 +697,7 @@ class Division(Shape):
         res = []
         for i in range(reps):
             if incr is not None and i > 0:
-                xform_matrix = _update_inplace(
-                    xform_matrix, xform_type, incr
-                )
+                xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
             shape = self.copy()
             shape._update(xform_matrix)
             res.append(shape)
@@ -900,9 +894,7 @@ class Polyline(Shape):
         res = []
         for i in range(reps):
             if incr is not None and i > 0:
-                xform_matrix = _update_inplace(
-                    xform_matrix, xform_type, incr
-                )
+                xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
             shape = self.copy()
             shape._update(xform_matrix)
             res.append(shape)
@@ -1255,6 +1247,7 @@ class Lace(Group):
                 f"Lace does not own style attributes; unexpected keyword "
                 f"arguments: {sorted(kwargs)}"
             )
+
     @property
     def center(self):
         """Return the center of the lace.

@@ -28,7 +28,35 @@ from .segments.line_utils import offset_line
 
 if TYPE_CHECKING:
     from ..group.batch import Group
-    from .shape import Shape
+    from ..shapes.shape import Shape
+
+
+_ALIASES = {
+    "s": "south",
+    "n": "north",
+    "w": "west",
+    "e": "east",
+    "sw": "southwest",
+    "se": "southeast",
+    "nw": "northwest",
+    "ne": "northeast",
+    "d1": "diagonal1",
+    "d2": "diagonal2",
+    "m": "midpoint",
+    "vcl": "vert_centerline",
+    "hcl": "horiz_centerline",
+    "center": "midpoint",
+}
+
+_EXCLUSIVE = frozenset(
+    (
+        "line_color",
+        "line_width",
+        "line_dash_array",
+        "stroke",
+        "fill",
+    )
+)
 
 
 class BoundingBox:
@@ -71,33 +99,12 @@ class BoundingBox:
             self.__dict__["northeast"] = northeast
             self.__dict__["northwest"] = (southwest[0], northeast[1])
             self.__dict__["southeast"] = (northeast[0], southwest[1])
-        self._aliases = {
-            "s": "south",
-            "n": "north",
-            "w": "west",
-            "e": "east",
-            "sw": "southwest",
-            "se": "southeast",
-            "nw": "northwest",
-            "ne": "northeast",
-            "d1": "diagonal1",
-            "d2": "diagonal2",
-            "m": "midpoint",
-            "vcl": "vert_centerline",
-            "hcl": "horiz_centerline",
-            "center": "midpoint",
-        }
+        self._aliases = _ALIASES
 
         self.type = Types.BOUNDING_BOX
         self.subtype = Types.BOUNDING_BOX
         self.visible = True
-        self.exclusive = [
-            "line_color",
-            "line_width",
-            "line_dash_array",
-            "stroke",
-            "fill",
-        ]
+        self.exclusive = _EXCLUSIVE
 
         self.id = get_unique_id(self)
 

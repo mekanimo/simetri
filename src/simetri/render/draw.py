@@ -13,7 +13,6 @@ from ..base.all_enums import (
     BackStyle,
     Connection,
     Drawable,
-    FrameShape,
     MarkerType,
     PlaitStyle,
     SvgLoc,
@@ -87,6 +86,18 @@ if TYPE_CHECKING:
     from .canvas import Canvas
 
 
+_PRECEDENCE_KEYS = frozenset(
+    (
+        "color",
+        "line_color",
+        "fill_color",
+        "alpha",
+        "line_alpha",
+        "fill_alpha",
+    )
+)
+
+
 def help_lines(
     self,
     pos: PointType | None = None,
@@ -133,9 +144,7 @@ def help_lines(
         if "line_color" not in grid_kwargs and "color" not in grid_kwargs:
             grid_kwargs["line_color"] = defaults["grid_line_color"]
         if "line_dash_array" not in grid_kwargs:
-            grid_kwargs["line_dash_array"] = defaults[
-                "grid_line_dash_array"
-            ]
+            grid_kwargs["line_dash_array"] = defaults["grid_line_dash_array"]
         grid_style = self.resolve_style_properties(
             style_source,
             line_style_map,
@@ -253,16 +262,9 @@ def arc(
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
-    precedence_keys = {
-        "color",
-        "line_color",
-        "fill_color",
-        "alpha",
-        "line_alpha",
-        "fill_alpha",
-    }
+
     for k, v in kwargs.items():
-        if k not in precedence_keys:
+        if k not in _PRECEDENCE_KEYS:
             setattr(sketch, k, v)
     self.active_page.sketches.append(sketch)
 
@@ -294,24 +296,15 @@ def bezier(self, control_points: Sequence[PointType], **kwargs) -> Self:
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
-    precedence_keys = {
-        "color",
-        "line_color",
-        "fill_color",
-        "alpha",
-        "line_alpha",
-        "fill_alpha",
-    }
+
     for k, v in kwargs.items():
-        if k not in precedence_keys:
+        if k not in _PRECEDENCE_KEYS:
             setattr(sketch, k, v)
     self.active_page.sketches.append(sketch)
     return self
 
 
-def circle(
-    self, radius: float, center: PointType = (0, 0), **kwargs
-) -> Self:
+def circle(self, radius: float, center: PointType = (0, 0), **kwargs) -> Self:
     """Draw a circle with the given radius and optional center.
 
     Args:
@@ -342,16 +335,9 @@ def circle(
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
-    precedence_keys = {
-        "color",
-        "line_color",
-        "fill_color",
-        "alpha",
-        "line_alpha",
-        "fill_alpha",
-    }
+
     for k, v in kwargs.items():
-        if k not in precedence_keys:
+        if k not in _PRECEDENCE_KEYS:
             setattr(sketch, k, v)
     self.active_page.sketches.append(sketch)
 
@@ -402,16 +388,9 @@ def ellipse(
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
-    precedence_keys = {
-        "color",
-        "line_color",
-        "fill_color",
-        "alpha",
-        "line_alpha",
-        "fill_alpha",
-    }
+
     for k, v in kwargs.items():
-        if k not in precedence_keys:
+        if k not in _PRECEDENCE_KEYS:
             setattr(sketch, k, v)
     self.active_page.sketches.append(sketch)
 
@@ -1866,9 +1845,7 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
         return self
 
     if item.type is Types.LATTICE:
-        raise TypeError(
-            "Cannot draw a Lattice. Draw lattice.pattern instead."
-        )
+        raise TypeError("Cannot draw a Lattice. Draw lattice.pattern instead.")
 
     active_sketches = self.active_page.sketches
     subtype = item.subtype
@@ -2031,6 +2008,38 @@ def get_sketches(
     return res
 
 
+_PRESEDENCE_KEYS = frozenset(
+    (
+        "color",
+        "line_color",
+        "fill_color",
+        "alpha",
+        "line_alpha",
+        "fill_alpha",
+    )
+)
+
+_NON_STYLE_KEYS = frozenset(
+    (
+        "_mask_context_id",
+        "_style_id",
+        "_tikz_style_id",
+        "vertices",
+        "index_font_size",
+        "vertex_font_size",
+        "index_offset",
+        "vertex_offset",
+        "index_font_color",
+        "vertex_font_color",
+        "index_font_family",
+        "vertex_font_family",
+        "debug",
+        "vertex_on_hull",
+        "_group_hull_points",
+    )
+)
+
+
 def set_shape_sketch_style(
     sketch: Sketch,
     item: Drawable,
@@ -2080,33 +2089,10 @@ def set_shape_sketch_style(
     if "even_odd" in item.__dict__:
         sketch.even_odd = item.even_odd
 
-    precedence_keys = {
-        "color",
-        "line_color",
-        "fill_color",
-        "alpha",
-        "line_alpha",
-        "fill_alpha",
-    }
     for k, v in kwargs.items():
-        if k in precedence_keys or k in (
-            "_mask_context_id",
-            "_style_id",
-            "_tikz_style_id",
-            "vertices",
-            "index_font_size",
-            "vertex_font_size",
-            "index_offset",
-            "vertex_offset",
-            "index_font_color",
-            "vertex_font_color",
-            "index_font_family",
-            "vertex_font_family",
-            "debug",
-            "vertex_on_hull",
-            "_group_hull_points",
-        ):
+        if k in _PRESEDENCE_KEYS or k in _NON_STYLE_KEYS:
             continue
+
         setattr(sketch, k, v)
 
     if "_group_hull_points" in kwargs:
@@ -2122,7 +2108,11 @@ def set_shape_sketch_style(
     elif "index_font_size" in item.__dict__:
         sketch.index_font_size = item.index_font_size
 
-    if kwargs.get("vertices") or kwargs.get("vertex_on_hull") or getattr(item, "vertex_on_hull", False):
+    if (
+        kwargs.get("vertices")
+        or kwargs.get("vertex_on_hull")
+        or getattr(item, "vertex_on_hull", False)
+    ):
         sketch.show_vertex_coords = True
     elif "show_vertex_coords" in item.__dict__:
         sketch.show_vertex_coords = item.show_vertex_coords
@@ -2211,6 +2201,431 @@ def get_verts_in_new_pos(item: Shape, **kwargs) -> list[PointType]:
     return vertices
 
 
+##################################
+
+
+def _get_tag_sketch(item, canvas, **kwargs):
+    """Create a TagSketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        TagSketch: Created TagSketch.
+    """
+    pos = kwargs.get("pos", item.pos)
+    _, rotation, _ = decompose_transformations(item.xform_matrix)
+
+    sketch = TagSketch(
+        text=item.text,
+        pos=pos,
+        anchor=item.anchor,
+        angle=rotation,
+        xform_matrix=canvas._sketch_xform_matrix,
+    )
+    for attrib_name in tag_style_map:
+        if attrib_name == "color":
+            continue
+        if attrib_name == "fill_color":
+            fill_color = canvas.resolve_property(item, "fill_color")
+            if fill_color == colors.black:
+                sketch.frame_back_color = defaults["frame_back_color"]
+            else:
+                sketch.frame_back_color = fill_color
+            continue
+        attrib_value = canvas.resolve_property(item, attrib_name)
+        setattr(sketch, attrib_name, attrib_value)
+    sketch.text_width = item.text_width
+    sketch.visible = item.visible
+
+    for k, v in kwargs.items():
+        if k in _PRECEDENCE_KEYS:
+            continue
+        setattr(sketch, k, v)
+    return sketch
+
+
+def _get_ellipse_sketch(item, canvas, **kwargs):
+    """Create an EllipseSketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        EllipseSketch: Created EllipseSketch.
+    """
+    sketch = EllipseSketch(
+        item.center,
+        item.a,
+        item.b,
+        item.angle,
+        xform_matrix=canvas._sketch_xform_matrix,
+        **kwargs,
+    )
+    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+    return sketch
+
+
+def _get_pattern_sketch(item, canvas, **kwargs):
+    """Create a PatternSketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        PatternSketch: Created PatternSketch.
+    """
+    sketch = PatternSketch(item, xform_matrix=canvas._sketch_xform_matrix)
+    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+    return sketch
+
+
+def _get_circle_sketch(item, canvas, **kwargs):
+    """Create a CircleSketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        CircleSketch: Created CircleSketch.
+    """
+    sketch = CircleSketch(
+        item.center,
+        item.radius,
+        xform_matrix=canvas._sketch_xform_matrix,
+    )
+    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+    return sketch
+
+
+def _get_dots_sketch(item, canvas, **kwargs):
+    """Create sketches for dots from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        list: List of created sketches.
+    """
+    vertices = [x.pos for x in item.all_shapes]
+    fill_color = item[0].fill_color
+    radius = item[0].radius
+    marker_size = item[0].marker_size
+    marker_type = item[0].marker_type
+    item = Shape(
+        vertices,
+        fill_color=fill_color,
+        markers_only=True,
+        draw_markers=True,
+        marker_size=marker_size,
+        marker_radius=radius,
+        marker_type=marker_type,
+    )
+    sketches = get_sketches(item, canvas, **kwargs)
+
+    return sketches
+
+
+def _get_arc_sketch(item, canvas, **kwargs):
+    """Create an ArcSketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        ArcSketch: Created ArcSketch.
+    """
+
+    # vertices = get_verts_in_new_pos(item, **kwargs)
+    sketch = ArcSketch(item.vertices, xform_matrix=canvas._sketch_xform_matrix)
+    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+    return sketch
+
+
+def _get_lace_sketch(item, canvas, **kwargs):
+    """Create sketches for lace from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        list: List of created sketches.
+    """
+    sketches = [get_sketch(frag, canvas, **kwargs) for frag in item.fragments]
+    sketches.extend(
+        [get_sketch(plait, canvas, **kwargs) for plait in item.plaits]
+    )
+    return sketches
+
+
+def _get_composite_sketch(items, canvas, **kwargs):
+    """Create a sketch for composite items like arrows, grids,
+    parallel_polylines, dimensions, etc."""
+    sketches = []
+    for component in items:
+        sketch = create_sketch(component, canvas, **kwargs)
+        sketches.append(sketch)
+    return sketches
+
+
+def _get_path_sketch(item, canvas, **kwargs):
+    """Create sketches for a path from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        list: List of created sketches.
+    """
+    transformed_path = item.copy()
+    transformed_path._update(canvas._sketch_xform_matrix)
+
+    path_sketch = PathSketch([], canvas._sketch_xform_matrix)
+    path_sketch.path_data = lin_path_svg(transformed_path)
+    path_sketch.visible = item.visible
+    path_sketch.closed = item.closed
+    path_sketch.vertices = list(transformed_path._label_vertices())
+    set_shape_sketch_style(path_sketch, item, canvas, **kwargs)
+
+    handle_sketches = []
+    if kwargs.get("handles"):
+        del kwargs["handles"]
+        for handle in item.handles:
+            shape = Shape(handle)
+            shape.subtype = Types.HANDLE
+            sketches = create_sketch(shape, canvas, **kwargs)
+            handle_sketches.extend(sketches)
+
+    if handle_sketches:
+        return [path_sketch, *handle_sketches]
+
+    return path_sketch
+
+
+def _get_bbox_sketch(item, canvas, **kwargs):
+    """Create a bounding box sketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        ShapeSketch: Created bounding box sketch.
+    """
+    nround = defaults["tikz_nround"]
+    vertices = [
+        (round(x[0], nround), round(x[1], nround)) for x in item.corners
+    ]
+    if not vertices:
+        return None
+    sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
+    sketch.subtype = Types.BBOX_SKETCH
+    sketch.exclusive = item.exclusive
+    sketch.visible = True
+    sketch.closed = True
+    style = {
+        "fill": False,
+        "stroke": True,
+        "line_color": colors.gray,
+        "line_width": 1,
+        "line_dash_array": [3, 3],
+        "draw_markers": False,
+    }
+    for name, value in style.items():
+        if name in kwargs:
+            setattr(sketch, name, kwargs[name])
+        else:
+            setattr(sketch, name, value)
+    for name in shape_style_map:
+        if name in kwargs and name not in style:
+            setattr(sketch, name, kwargs[name])
+    return sketch
+
+
+def _get_handle_sketch(item, canvas, **kwargs):
+    """Create handle sketches from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        list: List of created handle sketches.
+    """
+    nround = defaults["tikz_nround"]
+    vertices = [
+        (round(x[0], nround), round(x[1], nround)) for x in item.vertices
+    ]
+    if not vertices:
+        return None
+    if "pos" in kwargs:
+        x, y = item.midpoint[:2]
+        x1, y1 = kwargs["pos"][:2]
+        dx = x1 - x
+        dy = y1 - y
+        vertices = [(x + dx, y + dy) for x, y in vertices]
+    sketches = []
+    sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
+    sketch.subtype = Types.HANDLE
+    sketch.closed = False
+    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+    sketches.append(sketch)
+    temp_item = Shape()
+    temp_item.closed = True
+    handle_size = defaults["handle_marker_size"]
+    handle1 = RectSketch(
+        item.vertices[0],
+        handle_size,
+        handle_size,
+        canvas._sketch_xform_matrix,
+    )
+    set_shape_sketch_style(handle1, temp_item, canvas, **kwargs)
+    handle2 = RectSketch(
+        item.vertices[-1],
+        handle_size,
+        handle_size,
+        canvas._sketch_xform_matrix,
+    )
+    set_shape_sketch_style(handle2, temp_item, canvas, **kwargs)
+    sketches.extend([handle1, handle2])
+
+    return sketches
+
+
+def _get_sketch(item, canvas, **kwargs):
+    """Create a sketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        ShapeSketch: Created sketch.
+    """
+    if not item.vertices:
+        return None
+
+    nround = defaults["tikz_nround"]
+    vertices = [
+        (round(x[0], nround), round(x[1], nround)) for x in item.vertices
+    ]
+
+    sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
+    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+    return sketch
+
+
+def _get_line_sketch(item, canvas, **kwargs):
+    """Create a line sketch from the given item."""
+    if not item.vertices:
+        return None
+
+    nround = defaults["tikz_nround"]
+    vertices = [
+        (round(x[0], nround), round(x[1], nround)) for x in item.vertices
+    ]
+    sketch = LineSketch(vertices, canvas._sketch_xform_matrix)
+    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+    sketch.extent = item.extent
+
+    return sketch
+
+
+def _get_image_sketch(item, canvas, **kwargs):
+    """Create an ImageSketch from the given item.
+
+    Args:
+        item: Item to be sketched.
+        canvas: Canvas object.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        ImageSketch: Created ImageSketch.
+    """
+    _, rotation, scale = decompose_transformations(item.xform_matrix)
+    sketch = ImageSketch(
+        item,
+        pos=item.pos,
+        angle=rotation,
+        scale=scale,
+        anchor=item.anchor,
+        size=item.size,
+        file_path=item.file_path,
+        xform_matrix=canvas._sketch_xform_matrix,
+        **kwargs,
+    )
+    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+
+    return sketch
+
+
+_d_subtype_sketch = {
+    Types.ANNOTATION: _get_composite_sketch,
+    Types.ARC: _get_arc_sketch,
+    Types.ARC_ARROW: _get_composite_sketch,
+    Types.ARROW: _get_composite_sketch,
+    Types.ARROW_HEAD: _get_sketch,
+    Types.GROUP: _get_composite_sketch,
+    Types.BEZIER: _get_sketch,
+    Types.BOUNDING_BOX: _get_bbox_sketch,
+    Types.CIRCLE: _get_circle_sketch,
+    Types.CIRCULAR_GRID: _get_composite_sketch,
+    Types.DIVISION: _get_sketch,
+    Types.DOT: _get_circle_sketch,
+    Types.DOTS: _get_dots_sketch,
+    Types.ELLIPSE: _get_sketch,
+    Types.FRAGMENT: _get_sketch,
+    Types.HANDLE: _get_handle_sketch,
+    Types.HEX_GRID: _get_composite_sketch,
+    Types.IMAGE: _get_image_sketch,
+    Types.LACE: _get_lace_sketch,
+    Types.LINE: _get_line_sketch,
+    Types.LINPATH: _get_path_sketch,
+    Types.MIXED_GRID: _get_composite_sketch,
+    Types.MASK: _get_sketch,
+    Types.OVERLAP: _get_composite_sketch,
+    Types.PARALLEL_POLYLINE: _get_composite_sketch,
+    Types.PATTERN: _get_pattern_sketch,
+    Types.PLAIT: _get_sketch,
+    Types.POLYLINE: _get_sketch,
+    Types.RADIAL_DIMENSION: _get_composite_sketch,
+    Types.Q_BEZIER: _get_sketch,
+    Types.RECTANGLE: _get_sketch,
+    Types.SECTION: _get_sketch,
+    Types.SEGMENT: _get_sketch,
+    Types.SHAPE: _get_sketch,
+    Types.SINE_WAVE: _get_sketch,
+    Types.SQUARE: _get_sketch,
+    Types.SQUARE_GRID: _get_composite_sketch,
+    Types.STAR: _get_composite_sketch,
+    Types.TAG: _get_tag_sketch,
+}
+
+
 def create_sketch(
     item: Drawable, canvas: Canvas, **kwargs
 ) -> Sketch | list[Sketch | None] | None:
@@ -2227,421 +2642,4 @@ def create_sketch(
     if not (item.visible):
         return None
 
-    def get_tag_sketch(item, canvas, **kwargs):
-        """Create a TagSketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            TagSketch: Created TagSketch.
-        """
-        pos = kwargs.get("pos", item.pos)
-        _, rotation, _ = decompose_transformations(item.xform_matrix)
-
-        sketch = TagSketch(
-            text=item.text,
-            pos=pos,
-            anchor=item.anchor,
-            angle=rotation,
-            xform_matrix=canvas._sketch_xform_matrix,
-        )
-        for attrib_name in tag_style_map:
-            if attrib_name == "color":
-                continue
-            if attrib_name == "fill_color":
-                fill_color = canvas.resolve_property(item, "fill_color")
-                if fill_color == colors.black:
-                    sketch.frame_back_color = defaults["frame_back_color"]
-                else:
-                    sketch.frame_back_color = fill_color
-                continue
-            attrib_value = canvas.resolve_property(item, attrib_name)
-            setattr(sketch, attrib_name, attrib_value)
-        sketch.text_width = item.text_width
-        sketch.visible = item.visible
-        precedence_keys = {
-            "color",
-            "line_color",
-            "fill_color",
-            "line_alpha",
-            "fill_alpha",
-        }
-        for k, v in kwargs.items():
-            if k in precedence_keys:
-                continue
-            setattr(sketch, k, v)
-        return sketch
-
-    def get_ellipse_sketch(item, canvas, **kwargs):
-        """Create an EllipseSketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            EllipseSketch: Created EllipseSketch.
-        """
-        sketch = EllipseSketch(
-            item.center,
-            item.a,
-            item.b,
-            item.angle,
-            xform_matrix=canvas._sketch_xform_matrix,
-            **kwargs,
-        )
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-
-        return sketch
-
-    def get_pattern_sketch(item, canvas, **kwargs):
-        """Create a PatternSketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            PatternSketch: Created PatternSketch.
-        """
-        sketch = PatternSketch(item, xform_matrix=canvas._sketch_xform_matrix)
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-
-        return sketch
-
-    def get_circle_sketch(item, canvas, **kwargs):
-        """Create a CircleSketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            CircleSketch: Created CircleSketch.
-        """
-        sketch = CircleSketch(
-            item.center,
-            item.radius,
-            xform_matrix=canvas._sketch_xform_matrix,
-        )
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-
-        return sketch
-
-    def get_dots_sketch(item, canvas, **kwargs):
-        """Create sketches for dots from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            list: List of created sketches.
-        """
-        vertices = [x.pos for x in item.all_shapes]
-        fill_color = item[0].fill_color
-        radius = item[0].radius
-        marker_size = item[0].marker_size
-        marker_type = item[0].marker_type
-        item = Shape(
-            vertices,
-            fill_color=fill_color,
-            markers_only=True,
-            draw_markers=True,
-            marker_size=marker_size,
-            marker_radius=radius,
-            marker_type=marker_type,
-        )
-        sketches = get_sketches(item, canvas, **kwargs)
-
-        return sketches
-
-    def get_arc_sketch(item, canvas, **kwargs):
-        """Create an ArcSketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            ArcSketch: Created ArcSketch.
-        """
-
-        # vertices = get_verts_in_new_pos(item, **kwargs)
-        sketch = ArcSketch(
-            item.vertices, xform_matrix=canvas._sketch_xform_matrix
-        )
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-
-        return sketch
-
-    def get_lace_sketch(item, canvas, **kwargs):
-        """Create sketches for lace from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            list: List of created sketches.
-        """
-        sketches = [
-            get_sketch(frag, canvas, **kwargs) for frag in item.fragments
-        ]
-        sketches.extend(
-            [get_sketch(plait, canvas, **kwargs) for plait in item.plaits]
-        )
-        return sketches
-
-    def get_composite_sketch(items, canvas, **kwargs):
-        """Create a sketch for composite items like arrows, grids,
-        parallel_polylines, dimensions, etc."""
-        sketches = []
-        for component in items:
-            sketch = create_sketch(component, canvas, **kwargs)
-            sketches.append(sketch)
-        return sketches
-
-    def get_path_sketch(item, canvas, **kwargs):
-        """Create sketches for a path from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            list: List of created sketches.
-        """
-        transformed_path = item.copy()
-        transformed_path._update(canvas._sketch_xform_matrix)
-
-        path_sketch = PathSketch([], canvas._sketch_xform_matrix)
-        path_sketch.path_data = lin_path_svg(transformed_path)
-        path_sketch.visible = item.visible
-        path_sketch.closed = item.closed
-        path_sketch.vertices = list(transformed_path._label_vertices())
-        set_shape_sketch_style(path_sketch, item, canvas, **kwargs)
-
-        handle_sketches = []
-        if kwargs.get("handles"):
-            del kwargs["handles"]
-            for handle in item.handles:
-                shape = Shape(handle)
-                shape.subtype = Types.HANDLE
-                sketches = create_sketch(shape, canvas, **kwargs)
-                handle_sketches.extend(sketches)
-
-        if handle_sketches:
-            return [path_sketch, *handle_sketches]
-
-        return path_sketch
-
-    def get_bbox_sketch(item, canvas, **kwargs):
-        """Create a bounding box sketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            ShapeSketch: Created bounding box sketch.
-        """
-        nround = defaults["tikz_nround"]
-        vertices = [
-            (round(x[0], nround), round(x[1], nround)) for x in item.corners
-        ]
-        if not vertices:
-            return None
-        sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
-        sketch.subtype = Types.BBOX_SKETCH
-        sketch.exclusive = item.exclusive
-        sketch.visible = True
-        sketch.closed = True
-        style = {
-            "fill": False,
-            "stroke": True,
-            "line_color": colors.gray,
-            "line_width": 1,
-            "line_dash_array": [3, 3],
-            "draw_markers": False,
-        }
-        for name, value in style.items():
-            if name in kwargs:
-                setattr(sketch, name, kwargs[name])
-            else:
-                setattr(sketch, name, value)
-        for name in shape_style_map:
-            if name in kwargs and name not in style:
-                setattr(sketch, name, kwargs[name])
-        return sketch
-
-    def get_handle_sketch(item, canvas, **kwargs):
-        """Create handle sketches from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            list: List of created handle sketches.
-        """
-        nround = defaults["tikz_nround"]
-        vertices = [
-            (round(x[0], nround), round(x[1], nround)) for x in item.vertices
-        ]
-        if not vertices:
-            return None
-        if "pos" in kwargs:
-            x, y = item.midpoint[:2]
-            x1, y1 = kwargs["pos"][:2]
-            dx = x1 - x
-            dy = y1 - y
-            vertices = [(x + dx, y + dy) for x, y in vertices]
-        sketches = []
-        sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
-        sketch.subtype = Types.HANDLE
-        sketch.closed = False
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-        sketches.append(sketch)
-        temp_item = Shape()
-        temp_item.closed = True
-        handle_size = defaults["handle_marker_size"]
-        handle1 = RectSketch(
-            item.vertices[0],
-            handle_size,
-            handle_size,
-            canvas._sketch_xform_matrix,
-        )
-        set_shape_sketch_style(handle1, temp_item, canvas, **kwargs)
-        handle2 = RectSketch(
-            item.vertices[-1],
-            handle_size,
-            handle_size,
-            canvas._sketch_xform_matrix,
-        )
-        set_shape_sketch_style(handle2, temp_item, canvas, **kwargs)
-        sketches.extend([handle1, handle2])
-
-        return sketches
-
-    def get_sketch(item, canvas, **kwargs):
-        """Create a sketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            ShapeSketch: Created sketch.
-        """
-        if not item.vertices:
-            return None
-
-        nround = defaults["tikz_nround"]
-        vertices = [
-            (round(x[0], nround), round(x[1], nround)) for x in item.vertices
-        ]
-
-        sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-
-        return sketch
-
-    def get_line_sketch(item, canvas, **kwargs):
-        """Create a line sketch from the given item."""
-        if not item.vertices:
-            return None
-
-        nround = defaults["tikz_nround"]
-        vertices = [
-            (round(x[0], nround), round(x[1], nround)) for x in item.vertices
-        ]
-        sketch = LineSketch(vertices, canvas._sketch_xform_matrix)
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-        sketch.extent = item.extent
-
-        return sketch
-
-    def get_image_sketch(item, canvas, **kwargs):
-        """Create an ImageSketch from the given item.
-
-        Args:
-            item: Item to be sketched.
-            canvas: Canvas object.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            ImageSketch: Created ImageSketch.
-        """
-        _, rotation, scale = decompose_transformations(item.xform_matrix)
-        sketch = ImageSketch(
-            item,
-            pos=item.pos,
-            angle=rotation,
-            scale=scale,
-            anchor=item.anchor,
-            size=item.size,
-            file_path=item.file_path,
-            xform_matrix=canvas._sketch_xform_matrix,
-            **kwargs,
-        )
-        set_shape_sketch_style(sketch, item, canvas, **kwargs)
-
-        return sketch
-
-    d_subtype_sketch = {
-        Types.ANNOTATION: get_composite_sketch,
-        Types.ARC: get_arc_sketch,
-        Types.ARC_ARROW: get_composite_sketch,
-        Types.ARROW: get_composite_sketch,
-        Types.ARROW_HEAD: get_sketch,
-        Types.GROUP: get_composite_sketch,
-        Types.BEZIER: get_sketch,
-        Types.BOUNDING_BOX: get_bbox_sketch,
-        Types.CIRCLE: get_circle_sketch,
-        Types.CIRCULAR_GRID: get_composite_sketch,
-        Types.DIVISION: get_sketch,
-        Types.DOT: get_circle_sketch,
-        Types.DOTS: get_dots_sketch,
-        Types.ELLIPSE: get_sketch,
-        Types.FRAGMENT: get_sketch,
-        Types.HANDLE: get_handle_sketch,
-        Types.HEX_GRID: get_composite_sketch,
-        Types.IMAGE: get_image_sketch,
-        Types.LACE: get_lace_sketch,
-        Types.LINE: get_line_sketch,
-        Types.LINPATH: get_path_sketch,
-        Types.MIXED_GRID: get_composite_sketch,
-        Types.MASK: get_sketch,
-        Types.OVERLAP: get_composite_sketch,
-        Types.PARALLEL_POLYLINE: get_composite_sketch,
-        Types.PATTERN: get_pattern_sketch,
-        Types.PLAIT: get_sketch,
-        Types.POLYLINE: get_sketch,
-        Types.RADIAL_DIMENSION: get_composite_sketch,
-        Types.Q_BEZIER: get_sketch,
-        Types.RECTANGLE: get_sketch,
-        Types.SECTION: get_sketch,
-        Types.SEGMENT: get_sketch,
-        Types.SHAPE: get_sketch,
-        Types.SINE_WAVE: get_sketch,
-        Types.SQUARE: get_sketch,
-        Types.SQUARE_GRID: get_composite_sketch,
-        Types.STAR: get_composite_sketch,
-        Types.TAG: get_tag_sketch,
-    }
-
-    return d_subtype_sketch[item.subtype](item, canvas, **kwargs)
+    return _d_subtype_sketch[item.subtype](item, canvas, **kwargs)

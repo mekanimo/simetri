@@ -415,6 +415,16 @@ def get_dash_pattern(line_dash_array):
     return " ".join(dash_pattern)
 
 
+_converters = {
+    "line_color": color_to_tikz,
+    "fill_color": color_to_tikz,
+    "double_color": color_to_tikz,
+    "draw": color_to_tikz,
+    "marker_color": color_to_tikz,
+    "line_dash_array": get_dash_pattern,
+}
+
+
 def sg_to_tikz(
     sketch, attrib_list, attrib_map, conditions=None, exceptions=None
 ):
@@ -423,14 +433,6 @@ def sg_to_tikz(
     tikz_enum_attribs = {
         "line_width": LineWidth,
         "line_dash_array": LineDashArray,
-    }
-    converters = {
-        "line_color": color_to_tikz,
-        "fill_color": color_to_tikz,
-        "double_color": color_to_tikz,
-        "draw": color_to_tikz,
-        "marker_color": color_to_tikz,
-        "line_dash_array": get_dash_pattern,
     }
 
     options = []
@@ -469,12 +471,28 @@ def sg_to_tikz(
         if tikz_attrib in tikz_defaults and value == tikz_defaults[tikz_attrib]:
             continue
 
-        if attrib_name in converters and value is not None:
-            value = converters[attrib_name](value)
+        if attrib_name in _converters and value is not None:
+            value = _converters[attrib_name](value)
 
         options.append(f"{tikz_attrib}={value}")
 
     return options
+
+
+_attrib_map_line_style = {
+    "double_color": "double",
+    "double_distance": "double distance",
+    "line_color": "draw",
+    "line_width": "line width",
+    "line_dash_array": "dash pattern",
+    "line_cap": "line cap",
+    "line_join": "line join",
+    "line_miter_limit": "miter limit",
+    "line_dash_phase": "dash phase",
+    "line_alpha": "draw opacity",
+    "smooth": "smooth",
+    "fillet_radius": "rounded corners",
+}
 
 
 def get_line_style_options(sketch, exceptions=None):
@@ -490,20 +508,6 @@ def get_line_style_options(sketch, exceptions=None):
     if exceptions is None:
         exceptions = []
 
-    attrib_map = {
-        "double_color": "double",
-        "double_distance": "double distance",
-        "line_color": "draw",
-        "line_width": "line width",
-        "line_dash_array": "dash pattern",
-        "line_cap": "line cap",
-        "line_join": "line join",
-        "line_miter_limit": "miter limit",
-        "line_dash_phase": "dash phase",
-        "line_alpha": "draw opacity",
-        "smooth": "smooth",
-        "fillet_radius": "rounded corners",
-    }
     attribs = list(line_style_map.keys())
     if "exclusive" in sketch.__dict__ and sketch.exclusive is not None:
         attribs = [
@@ -529,11 +533,22 @@ def get_line_style_options(sketch, exceptions=None):
                 attribs.remove("double_distance")
         if "smooth" in attribs and not sketch.smooth:
             attribs.remove("smooth")
-        res = sg_to_tikz(sketch, attribs, attrib_map, conditions, exceptions)
+        res = sg_to_tikz(
+            sketch, attribs, _attrib_map_line_style, conditions, exceptions
+        )
     else:
         res = []
 
     return res
+
+
+_attrib_map_fill_style = {
+    "fill_color": "fill",
+    "fill_alpha": "fill opacity",
+    #'fill_mode': 'even odd rule',
+    "blend_mode": "blend mode",
+    "frame_back_color": "fill",
+}
 
 
 def get_fill_style_options(sketch, exceptions=None, frame=False):
@@ -550,13 +565,6 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
     if exceptions is None:
         exceptions = []
 
-    attrib_map = {
-        "fill_color": "fill",
-        "fill_alpha": "fill opacity",
-        #'fill_mode': 'even odd rule',
-        "blend_mode": "blend mode",
-        "frame_back_color": "fill",
-    }
     attribs = list(shape_style_map.keys())
     if "exclusive" in sketch.__dict__ and sketch.exclusive is not None:
         attribs = [
@@ -571,7 +579,9 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
     if "fill_alpha" in attribs and sketch.fill_alpha in (None, 1):
         attribs.remove("fill_alpha")
     if sketch.fill and sketch.back_style != BackStyle.PATTERN:
-        res = sg_to_tikz(sketch, attribs, attrib_map, exceptions=exceptions)
+        res = sg_to_tikz(
+            sketch, attribs, _attrib_map_fill_style, exceptions=exceptions
+        )
         if frame:
             res = [
                 f"fill = {color_to_tikz(sketch.back_color, 'back_color')}"
@@ -606,16 +616,21 @@ def get_axis_shading_colors(sketch):
     bottom = get_color(sketch.shade_bottom_color, "shade_bottom_color")
     middle = get_color(sketch.shade_middle_color, "shade_middle_color")
 
-    axis_colors = {
-        ShadeType.AXIS_BOTTOM_MIDDLE: f"bottom color={bottom}, middle color={middle}",
-        ShadeType.AXIS_LEFT_MIDDLE: f"left color={left}, middle color={middle}",
-        ShadeType.AXIS_RIGHT_MIDDLE: f"right color={right}, middle color={middle}",
-        ShadeType.AXIS_TOP_MIDDLE: f"top color={top}, middle color={middle}",
-        ShadeType.AXIS_LEFT_RIGHT: f"left color={left}, right color={right}",
-        ShadeType.AXIS_TOP_BOTTOM: f"top color={top}, bottom color={bottom}",
-    }
+    if sketch.shade_type == ShadeType.AXIS_BOTTOM_MIDDLE:
+        res = f"bottom color={bottom}, middle color={middle}"
+    elif sketch.shade_type == ShadeType.AXIS_LEFT_MIDDLE:
+        res = f"left color={left}, middle color={middle}"
+    elif sketch.shade_type == ShadeType.AXIS_RIGHT_MIDDLE:
+        res = f"right color={right}, middle color={middle}"
+    elif sketch.shade_type == ShadeType.AXIS_TOP_MIDDLE:
+        res = f"top color={top}, middle color={middle}"
+    elif sketch.shade_type == ShadeType.AXIS_LEFT_RIGHT:
+        res = f"left color={left}, right color={right}"
+    elif sketch.shade_type == ShadeType.AXIS_TOP_BOTTOM:
+        res = f"top color={top}, bottom color={bottom}"
+    else:
+        raise KeyError(sketch.shade_type)
 
-    res = axis_colors[sketch.shade_type]
     return res
 
 
@@ -748,6 +763,23 @@ def get_pattern_options(sketch):
     return res
 
 
+_attrib_map_marker_style = {
+    # 'marker': 'mark',
+    "marker_size": "mark size",
+    "marker_angle": "rotate",
+    # 'fill_color': 'color',
+    "marker_color": "color",
+    "marker_fill": "fill",
+    "marker_opacity": "opacity",
+    "marker_repeat": "mark repeat",
+    "marker_phase": "mark phase",
+    "marker_tension": "tension",
+    "marker_line_width": "line width",
+    "marker_line_style": "style",
+    # 'line_color': 'line color',
+}
+
+
 def get_marker_options(sketch):
     """Returns the options for the markers.
 
@@ -757,24 +789,12 @@ def get_marker_options(sketch):
     Returns:
         list: The marker options as a list.
     """
-    attrib_map = {
-        # 'marker': 'mark',
-        "marker_size": "mark size",
-        "marker_angle": "rotate",
-        # 'fill_color': 'color',
-        "marker_color": "color",
-        "marker_fill": "fill",
-        "marker_opacity": "opacity",
-        "marker_repeat": "mark repeat",
-        "marker_phase": "mark phase",
-        "marker_tension": "tension",
-        "marker_line_width": "line width",
-        "marker_line_style": "style",
-        # 'line_color': 'line color',
-    }
+
     # if mark_stroke is false make line color same as fill color
     if sketch.draw_markers:
-        res = sg_to_tikz(sketch, marker_style_map.keys(), attrib_map)
+        res = sg_to_tikz(
+            sketch, marker_style_map.keys(), _attrib_map_marker_style
+        )
     else:
         res = []
 

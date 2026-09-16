@@ -51,6 +51,38 @@ def rosette(
     return star
 
 
+_COMMON_ANGLES_DEG = frozenset(
+    (
+        0,
+        15,
+        30,
+        45,
+        60,
+        75,
+        90,
+        105,
+        120,
+        135,
+        150,
+        165,
+        180,
+    )
+)
+
+_COMMON_ANGLES_RAD = frozenset(
+    (
+        pi / 6,
+        pi / 4,
+        pi / 3,
+        pi / 2,
+        2 * pi / 3,
+        3 * pi / 4,
+        5 * pi / 6,
+        pi,
+    )
+)
+
+
 class Star(Group):
     """Represents a star shape with n points.
 
@@ -349,25 +381,9 @@ class Star(Group):
         representations = []
 
         # Check common angles in degrees and radians
-        common_angles_deg = [
-            0,
-            15,
-            30,
-            45,
-            60,
-            75,
-            90,
-            105,
-            120,
-            135,
-            150,
-            165,
-            180,
-        ]
-        common_angles_rad = [deg * pi / 180 for deg in common_angles_deg]
 
         # Check basic trig functions
-        for angle_deg, angle_rad in zip(common_angles_deg, common_angles_rad):
+        for angle_deg, angle_rad in zip(_COMMON_ANGLES_DEG, _COMMON_ANGLES_RAD):
             if abs(sin(angle_rad) - target_value) < tolerance:
                 representations.append(
                     f"sin({angle_deg}°) = sin({angle_rad:.6f})"
@@ -385,17 +401,8 @@ class Star(Group):
                 )
 
         # Check combinations with sqrt, pi, etc.
-        common_values = [
-            pi / 6,
-            pi / 4,
-            pi / 3,
-            pi / 2,
-            2 * pi / 3,
-            3 * pi / 4,
-            5 * pi / 6,
-            pi,
-        ]
-        for val in common_values:
+
+        for val in _COMMON_ANGLES_RAD:
             if abs(val - target_value) < tolerance:
                 representations.append(
                     f"π/{6 * val / pi:.0f}" if val < pi else f"{val / pi:.3f}π"

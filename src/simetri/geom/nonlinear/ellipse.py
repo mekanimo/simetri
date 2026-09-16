@@ -22,6 +22,17 @@ from ..points.point_utils import distance
 from ..segments.line_utils import line_angle
 
 
+_ARC_ATTRIBS = frozenset(
+    (
+        "center",
+        "start_angle",
+        "span_angle",
+        "radius_x",
+        "radius_y",
+    )
+)
+
+
 class Arc(Shape):
     """A circular or elliptic arc.
 
@@ -199,13 +210,8 @@ class Arc(Shape):
         #     setattr(arc, attrib, getattr(self, attrib))
         arc.subtype = self.subtype
         custom_attribs = custom_attributes(self)
-        arc_attribs = [
-            "center",
-            "start_angle",
-            "span_angle",
-            "radius_x",
-            "radius_y",
-        ]
+        arc_attribs = _ARC_ATTRIBS
+
         for attrib in custom_attribs:
             if attrib not in arc_attribs:
                 setattr(arc, attrib, getattr(self, attrib))
@@ -267,9 +273,7 @@ class Ellipse(Shape):
         n_points = defaults["n_ellipse_points"]
         vertices = [
             tuple(p)
-            for p in ellipse_points(
-                center, width / 2, height / 2, 0, n_points
-            )
+            for p in ellipse_points(center, width / 2, height / 2, 0, n_points)
         ]
         if angle:
             rot_matrix = rotation_matrix(angle, center)

@@ -1348,6 +1348,19 @@ def equal_sorted_arrays(
     return bool(np.all((delta * delta).sum(axis=1) <= dist_tol2))
 
 
+_HOLE_DTYPE = frozenset(
+    (
+        ("xmin", np.float64),
+        ("ymin", np.float64),
+        ("xmax", np.float64),
+        ("ymax", np.float64),
+        ("x", object),
+        ("y", object),
+        ("hole_id", np.int64),
+    )
+)
+
+
 def _build_hole_index(
     holes: Sequence[Shape],
 ) -> tuple[NDArray[Any], Sequence[NDArray[np.float64]], NDArray[np.bool_]]:
@@ -1366,15 +1379,7 @@ def _build_hole_index(
         (0, [], [])
     """
     n_holes = len(holes)
-    hole_dtype = [
-        ("xmin", np.float64),
-        ("ymin", np.float64),
-        ("xmax", np.float64),
-        ("ymax", np.float64),
-        ("x", object),
-        ("y", object),
-        ("hole_id", np.int64),
-    ]
+    hole_dtype = _HOLE_DTYPE
     if n_holes == 0:
         return np.empty(0, dtype=hole_dtype), [], np.zeros(0, dtype=bool)
 
