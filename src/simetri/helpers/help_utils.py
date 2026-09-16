@@ -3,15 +3,17 @@
 ``sg.help(obj)`` accepts a string key or a callable/class/instance:
 
 - String keys look up ``defaults_help[obj]`` (empty string if missing),
-  except for reserved topic names described below.
+  except for reserved topic names described below. Unknown topic strings
+  return similar topic names.
 - Classes (and instances of Simetri types) return the constructor
   signature, class docstring, and ``__init__`` docstring.
 - Functions, methods, modules, and other objects return
   ``inspect.getdoc(obj)``.
 
 ``d_help_topic`` maps topic names to short descriptions and lists of
-related ``sg.*`` names. ``sg.help('help')`` or ``sg.help(sg.help)``
-summarizes how help works. ``sg.help('topics')`` lists available topics.
+related ``sg.*`` names. ``sg.help('help')`` loads the help-utilities
+guide. ``sg.help(sg.help)`` summarizes how help lookup works.
+``sg.help('topics')`` lists available topics.
 
 Examples:
     >>> import simetri.graphics as sg
@@ -24,9 +26,14 @@ Examples:
 from __future__ import annotations
 
 import inspect
+import sys
+import unicodedata
 from collections.abc import Sequence
 from enum import Enum
+from functools import lru_cache
 from pathlib import Path
+
+from rapidfuzz.distance import DamerauLevenshtein
 
 from ..base.all_enums import WarningType
 from ..coloring import colors
@@ -60,6 +67,37 @@ _WARNING_SUBGROUPS = {
 }
 
 
+def normalize(word):
+    return unicodedata.normalize("NFKC", word).casefold().strip()
+
+
+def _resolve_help_suggestion_limit(limit: int | None) -> int:
+    """Return the active similar-name suggestion limit."""
+    if limit is None:
+        return defaults["help_suggestion_limit"]
+    return limit
+
+
+def find_similar(query, words, threshold=0.75, limit: int | None = None):
+    """Example:
+    words = ["hello", "help", "yellow", "hero", "world"]
+    print(find_similar("hlelo", words))
+    """
+    limit = _resolve_help_suggestion_limit(limit)
+    query_normalized = normalize(query)
+    matches = []
+
+    for word in words:
+        score = DamerauLevenshtein.normalized_similarity(
+            query_normalized, normalize(word)
+        )
+
+        if score >= threshold:
+            matches.append((word, score))
+
+    return sorted(matches, key=lambda item: item[1], reverse=True)[:limit]
+
+
 def _warning_type_path(obj) -> str | None:
     """Return ``WarningType…`` path for a subgroup class or leaf member."""
     if obj is WarningType:
@@ -76,7 +114,8 @@ def _warning_type_help(obj) -> str:
     """Return help text for ``WarningType``, a subgroup, or a leaf."""
     if obj is WarningType:
         group_lines = [
-            f"  WarningType.{name}" for name in sorted(_WARNING_SUBGROUPS.values())
+            f"  WarningType.{name}"
+            for name in sorted(_WARNING_SUBGROUPS.values())
         ]
         base = inspect.getdoc(WarningType) or ""
         return f"{base}\n\nSubgroups:\n" + "\n".join(group_lines)
@@ -141,6 +180,18 @@ d_help_topic: dict[str, list[str]] = {
         "sg.clip",
         "See also: sg.help('clipping'), sg.help('polygons')",
     ],
+    "bounding_box_doc": [
+        "sg.BoundingBox",
+        "sg.bounding_box",
+        "Shape.b_box",
+        "Group.b_box",
+        "sg.Reference",
+        "sg.DynRef",
+        (
+            "See also: sg.help('shapes_doc'), sg.help('groups_doc'), "
+            "sg.help('transforms_doc'), sg.help('dynamic_references_doc')"
+        ),
+    ],
     "canvas": [
         "Canvas.draw",
         "Canvas.save",
@@ -148,8 +199,10 @@ d_help_topic: dict[str, list[str]] = {
         "sg.set_defaults",
         "sg.set_svg_defaults",
         "sg.set_tikz_defaults",
-        "See also: sg.help('canvas_doc'), sg.help('user_settings'), "
-        "sg.help('tex_compiler'), sg.help('viewer')",
+        (
+            "See also: sg.help('canvas_doc'), sg.help('user_settings'), "
+            "sg.help('tex_compiler'), sg.help('viewer')"
+        ),
     ],
     "canvas_context_managers": [
         "Canvas.style",
@@ -169,6 +222,7 @@ d_help_topic: dict[str, list[str]] = {
         "Shape.reset_fill_style",
         "sg.Style",
         "sg.user_styles",
+        "sg.save_user_style",
         "See also: sg.help('canvas_doc'), sg.help('user_settings')",
     ],
     "canvas_doc": [
@@ -179,9 +233,11 @@ d_help_topic: dict[str, list[str]] = {
         "Canvas.insert_svg",
         "Canvas.insert_tex",
         "Canvas.reset",
-        "See also: sg.help('user_settings'), sg.help('script_sharing'), "
-        "sg.help('tex_compiler'), "
-        "sg.help('image_converters'), sg.help('viewer')",
+        (
+            "See also: sg.help('user_settings'), sg.help('script_sharing'), "
+            "sg.help('tex_compiler'), "
+            "sg.help('image_converters'), sg.help('viewer')"
+        ),
     ],
     "clipping": [
         "sg.Mask",
@@ -211,12 +267,13 @@ d_help_topic: dict[str, list[str]] = {
         "sg.glide_matrix",
         "sg.scale_matrix",
         "sg.shear_matrix",
-        "Shape.transform: a 3×3 matrix (product of helpers such as "
-        "translation_matrix @ rotation_matrix), or a Transformation of "
-        "Transform steps. dyn_ref=True rebuilds every step each "
-        "repetition against the same KERNEL / PATTERN / ACTIVE.",
-        "See also: sg.help('dynamic_references_doc'), "
-        "sg.help('transforms')",
+        (
+            "Shape.transform: a 3×3 matrix (product of helpers such as "
+            "translation_matrix @ rotation_matrix), or a Transformation of "
+            "Transform steps. dyn_ref=True rebuilds every step each "
+            "repetition against the same KERNEL / PATTERN / ACTIVE."
+        ),
+        "See also: sg.help('dynamic_references_doc'), sg.help('transforms')",
     ],
     "dimensioning_doc": [
         "sg.Dimension",
@@ -239,12 +296,16 @@ d_help_topic: dict[str, list[str]] = {
         "sg.resolve_dyn_ref",
         "sg.Transform",
         "sg.Transformation",
-        "Shape.translate: two lengths (dx, dy), or one vector "
-        "translate((x, y)) / translate(edge). EDGE in a length slot "
-        "is ‖edge‖; one EDGE argument is the edge vector.",
-        "See also: sg.help('transforms'), "
-        "sg.help('composite_transformations'), "
-        "sg.doc(sg.Shape.translate)",
+        (
+            "Shape.translate: two lengths (dx, dy), or one vector "
+            "translate((x, y)) / translate(edge). EDGE in a length slot "
+            "is ‖edge‖; one EDGE argument is the edge vector."
+        ),
+        (
+            "See also: sg.help('transforms'), "
+            "sg.help('composite_transformations'), "
+            "sg.doc(sg.Shape.translate)"
+        ),
     ],
     "edges": [
         "sg.Edge",
@@ -267,12 +328,15 @@ d_help_topic: dict[str, list[str]] = {
         "sg.Canvas",
         "Canvas.draw",
         "Canvas.save",
+        "sg.extract_glyph_path",
         "sg.get_svg_code",
         "sg.pdf_to_svg",
         "sg.set_svg_defaults",
         "sg.set_tikz_defaults",
-        "See also: sg.help('image_converters'), sg.help('tex_compiler'), "
-        "sg.help('viewer')",
+        (
+            "See also: sg.help('image_converters'), sg.help('tex_compiler'), "
+            "sg.help('viewer')"
+        ),
     ],
     "grids": [
         "sg.Grid",
@@ -285,6 +349,32 @@ d_help_topic: dict[str, list[str]] = {
         "sg.Lace",
         "See Group methods: append, extend, translate, rotate, mirror, …",
     ],
+    "groups_doc": [
+        "sg.Group",
+        "sg.Batch",
+        "sg.Path2D",
+        "sg.Lace",
+        "sg.Pattern",
+        "sg.Star",
+        "sg.Dots",
+        (
+            "See also: sg.help('shapes_doc'), sg.help('canvas_doc'), "
+            "sg.help('style_definitions'), sg.help('boolean_ops'), "
+            "sg.help('tag_objects')"
+        ),
+    ],
+    "help_doc": [
+        "sg.help",
+        "sg.doc",
+        "sg.help('topics')",
+        "sg.Canvas.draw",
+        "Canvas.help_lines",
+        "Canvas.draw_all_segments",
+        (
+            "See also: sg.help('canvas_doc'), sg.help('warnings'), "
+            "sg.help('user_settings'), sg.help('shapes_doc')"
+        ),
+    ],
     "image_converters": [
         "sg.Canvas.save",
         "sg.Canvas.capture",
@@ -293,12 +383,21 @@ d_help_topic: dict[str, list[str]] = {
         "sg.user_config_path",
         "sg.set_user_settings_path",
         "sg.apply_user_config",
-        "See also: sg.help('canvas_doc'), sg.help('images'), "
-        "sg.help('user_settings'), sg.help('tex_compiler')",
+        (
+            "See also: sg.help('canvas_doc'), sg.help('images'), "
+            "sg.help('user_settings'), sg.help('tex_compiler')"
+        ),
     ],
     "images": [
         "sg.Image",
         "sg.open_img",
+        "See also: sg.help('image_converters'), sg.help('canvas_doc')",
+    ],
+    "images_doc": [
+        "sg.Image",
+        "sg.open_img",
+        "Canvas.draw_on_image",
+        "Canvas.save_image",
         "See also: sg.help('image_converters'), sg.help('canvas_doc')",
     ],
     "latex_engine": [
@@ -306,8 +405,39 @@ d_help_topic: dict[str, list[str]] = {
         "sg.Compiler",
         "sg.defaults['latex_compiler']",
         "sg.user_config_path",
-        "See also: sg.help('tex_compiler'), sg.help('user_settings'), "
-        "sg.help('viewer')",
+        (
+            "See also: sg.help('tex_compiler'), sg.help('user_settings'), "
+            "sg.help('viewer')"
+        ),
+    ],
+    "lattices_doc": [
+        "sg.Lattice",
+        "sg.Isometry",
+        "sg.LatType",
+        "sg.LatRef",
+        "sg.lattice_p1",
+        "sg.lattice_p2",
+        "sg.lattice_pm",
+        "sg.lattice_pg",
+        "sg.lattice_cm",
+        "sg.lattice_pmm",
+        "sg.lattice_pmg",
+        "sg.lattice_pgg",
+        "sg.lattice_cmm",
+        "sg.lattice_p4",
+        "sg.lattice_p4m",
+        "sg.lattice_p4g",
+        "sg.lattice_p3",
+        "sg.lattice_p3m1",
+        "sg.lattice_p31m",
+        "sg.lattice_p6",
+        "sg.lattice_p6m",
+        "sg.get_unit",
+        "sg.draw_unit",
+        (
+            "See also: sg.help('shapes_doc'), sg.help('groups_doc'), "
+            "sg.help('transforms_doc'), sg.help('patterns')"
+        ),
     ],
     "lines": [
         "sg.Line",
@@ -335,7 +465,7 @@ d_help_topic: dict[str, list[str]] = {
         "sg.frieze",
         "sg.reg_star_polygon",
         "sg.rosette",
-        "See also: sg.help('grids')",
+        "See also: sg.help('grids'), sg.help('lattices_doc')",
     ],
     "points": [
         "sg.cart_to_tri",
@@ -404,6 +534,23 @@ d_help_topic: dict[str, list[str]] = {
         "sg.square",
         "sg.star_shape",
     ],
+    "shapes_doc": [
+        "sg.Shape",
+        "sg.square",
+        "sg.Square",
+        "sg.Rectangle",
+        "sg.Circle",
+        "sg.Line",
+        "sg.Segment",
+        "sg.clip",
+        "sg.polygon_difference",
+        "sg.inflate",
+        (
+            "See also: sg.help('canvas_doc'), sg.help('style_definitions'), "
+            "sg.help('groups_doc'), sg.help('boolean_ops'), "
+            "sg.help('tag_objects')"
+        ),
+    ],
     "random_seeds": [
         "sg.random_angle",
         "sg.random_circle",
@@ -430,8 +577,10 @@ d_help_topic: dict[str, list[str]] = {
         "sg.generate_shared_toml",
         "sg.use_settings",
         "sg.check_version",
-        "See also: sg.help('user_settings'), sg.help('random_seeds'), "
-        "sg.help('tex_compiler')",
+        (
+            "See also: sg.help('user_settings'), sg.help('random_seeds'), "
+            "sg.help('tex_compiler')"
+        ),
     ],
     "style_definitions": [
         "Canvas.style",
@@ -441,6 +590,7 @@ d_help_topic: dict[str, list[str]] = {
         "Shape.fill_style",
         "Group.set_style",
         "sg.user_styles",
+        "sg.save_user_style",
         "Shape.copy_style",
         "See also: sg.help('canvas_doc'), sg.help('user_settings')",
     ],
@@ -454,24 +604,41 @@ d_help_topic: dict[str, list[str]] = {
         "sg.FrameShape",
         "sg.FontFamily",
         "sg.FontSize",
-        "See also: sg.help('canvas_doc'), sg.help('text'), "
-        "sg.help('dimensioning_doc')",
+        (
+            "See also: sg.help('canvas_doc'), sg.help('text'), "
+            "sg.help('dimensioning_doc')"
+        ),
     ],
     "text": [
         "sg.Tag",
         "sg.TagFrame",
         "sg.Arrow",
         "sg.ArrowHead",
+        "sg.extract_glyph_path",
         "sg.get_text_dimensions",
         "sg.get_text_size",
         "See also: sg.help('tag_objects'), sg.help('canvas_doc')",
+    ],
+    "text_doc": [
+        "sg.Canvas.text",
+        "sg.Tag",
+        "sg.TagFrame",
+        "sg.Canvas.draw_latex",
+        "sg.extract_glyph_path",
+        "sg.get_text_dimensions",
+        (
+            "See also: sg.help('tag_objects'), sg.help('canvas_doc'), "
+            "sg.help('images_doc')"
+        ),
     ],
     "tex_compiler": [
         "sg.Canvas.save",
         "sg.user_config_path",
         "sg.set_user_settings_path",
-        "See also: sg.help('user_settings'), sg.help('image_converters'), "
-        "sg.help('script_sharing'), sg.help('viewer')",
+        (
+            "See also: sg.help('user_settings'), sg.help('image_converters'), "
+            "sg.help('script_sharing'), sg.help('viewer')"
+        ),
     ],
     "tolerances": [
         "sg.check_angle_tol",
@@ -494,24 +661,50 @@ d_help_topic: dict[str, list[str]] = {
         "sg.Transformation",
         "sg.translate",
         "sg.translation_matrix",
-        "translate(dx, dy) is two lengths; translate((x, y)) or "
-        "translate(edge) is one vector. Shape.transform accepts a "
-        "matrix or a Transformation. See "
-        "sg.help('dynamic_references_doc'), "
-        "sg.help('composite_transformations'), "
-        "and sg.doc(sg.Shape.translate).",
+        (
+            "translate(dx, dy) is two lengths; translate((x, y)) or "
+            "translate(edge) is one vector. Shape.transform accepts a "
+            "matrix or a Transformation. See "
+            "sg.help('dynamic_references_doc'), "
+            "sg.help('composite_transformations'), "
+            "and sg.doc(sg.Shape.translate)."
+        ),
+    ],
+    "transforms_doc": [
+        "sg.Transform",
+        "sg.Transformation",
+        "sg.DynRef",
+        "sg.translate",
+        "sg.rotate",
+        "sg.mirror",
+        "sg.glide",
+        "sg.scale",
+        "sg.shear",
+        "sg.translation_matrix",
+        "sg.rotation_matrix",
+        (
+            "See also: sg.help('dynamic_references_doc'), "
+            "sg.help('composite_transformations'), "
+            "sg.help('shapes_doc'), sg.help('groups_doc'), "
+            "sg.help('canvas_context_managers')"
+        ),
     ],
     "user_settings": [
         "sg.user_config_path",
         "sg.set_user_settings_path",
         "sg.defaults",
+        "sg.save_user_defaults",
+        "sg.save_user_style",
+        "sg.save_user_warning",
         "sg.set_defaults",
         "sg.set_svg_defaults",
         "sg.set_tikz_defaults",
         "sg.Canvas.save",
-        "See also: sg.help('warnings'), sg.help('canvas'), "
-        "sg.help('image_converters'), sg.help('tex_compiler'), "
-        "sg.help('viewer')",
+        (
+            "See also: sg.help('warnings'), sg.help('canvas'), "
+            "sg.help('image_converters'), sg.help('tex_compiler'), "
+            "sg.help('viewer')"
+        ),
     ],
     "vertices": [
         "Shape.vertices / Shape.primary_points",
@@ -526,8 +719,10 @@ d_help_topic: dict[str, list[str]] = {
         "sg.user_config_path",
         "sg.set_user_settings_path",
         "sg.defaults['show_browser']",
-        "See also: sg.help('user_settings'), sg.help('export'), "
-        "sg.help('script_sharing')",
+        (
+            "See also: sg.help('user_settings'), sg.help('export'), "
+            "sg.help('script_sharing')"
+        ),
     ],
     "warnings": [
         "sg.WarningType",
@@ -535,6 +730,7 @@ d_help_topic: dict[str, list[str]] = {
         "sg.set_warning_off",
         "sg.set_all_warnings_on",
         "sg.set_all_warnings_off",
+        "sg.save_user_warning",
         "sg.pause_warning",
         "sg.resume_warning",
         "sg.pause_warnings",
@@ -547,6 +743,14 @@ d_help_topic["segments"] = list(d_help_topic["lines"])
 
 _TOPIC_ALIASES = {
     "AnnotationArrow": "dimensioning_doc",
+    "BoundingBox": "bounding_box_doc",
+    "BoundingBoxes": "bounding_box_doc",
+    "bounding-box": "bounding_box_doc",
+    "bounding_box": "bounding_box_doc",
+    "bounding-boxes": "bounding_box_doc",
+    "bounding_boxes": "bounding_box_doc",
+    "bbox": "bounding_box_doc",
+    "b_box": "bounding_box_doc",
     "BooleanOps": "boolean_ops",
     "Canvas": "canvas_doc",
     "canvas": "canvas_doc",
@@ -567,6 +771,7 @@ _TOPIC_ALIASES = {
     "DynamicReferences": "dynamic_references_doc",
     "Edges": "edges",
     "Effects": "effects",
+    "extract_glyph_path": "text_doc",
     "Export": "export",
     "external-converters": "image_converters",
     "ExternalConverters": "image_converters",
@@ -580,11 +785,30 @@ _TOPIC_ALIASES = {
     "latex": "tex_compiler",
     "LaTeX": "tex_compiler",
     "Grids": "grids",
-    "Groups": "groups",
-    "Images": "images",
+    "help": "help_doc",
+    "Help": "help_doc",
+    "help-doc": "help_doc",
+    "Group": "groups_doc",
+    "groups": "groups_doc",
+    "Groups": "groups_doc",
+    "groups-doc": "groups_doc",
+    "Batch": "groups_doc",
+    "Image": "images_doc",
+    "image": "images_doc",
+    "images": "images_doc",
+    "Images": "images_doc",
+    "images-doc": "images_doc",
     "Lines": "lines",
     "latex-engine": "latex_engine",
     "LatexEngine": "latex_engine",
+    "Lattice": "lattices_doc",
+    "lattice": "lattices_doc",
+    "lattices": "lattices_doc",
+    "lattices-doc": "lattices_doc",
+    "lattice_p1": "lattices_doc",
+    "Isometry": "lattices_doc",
+    "LatType": "lattices_doc",
+    "LatRef": "lattices_doc",
     "Patterns": "patterns",
     "Points": "points",
     "Polygons": "polygons",
@@ -595,9 +819,15 @@ _TOPIC_ALIASES = {
     "random-seeds": "random_seeds",
     "RandomSeeds": "random_seeds",
     "Segments": "segments",
-    "Shapes": "shapes",
+    "Shape": "shapes_doc",
+    "shapes": "shapes_doc",
+    "shapes-doc": "shapes_doc",
+    "Shapes": "shapes_doc",
     "script-sharing": "script_sharing",
     "ScriptSharing": "script_sharing",
+    "save_user_defaults": "user_settings",
+    "save_user_style": "style_definitions",
+    "save_user_warning": "warnings",
     "Style": "style_definitions",
     "style": "style_definitions",
     "style-definitions": "style_definitions",
@@ -608,9 +838,14 @@ _TOPIC_ALIASES = {
     "TagFrame": "tag_objects",
     "Tags": "tag_objects",
     "tags": "tag_objects",
-    "Text": "text",
+    "Text": "text_doc",
+    "text": "text_doc",
+    "text-doc": "text_doc",
     "Tolerances": "tolerances",
-    "Transforms": "transforms",
+    "Transforms": "transforms_doc",
+    "transforms": "transforms_doc",
+    "transformations": "transforms_doc",
+    "transforms-doc": "transforms_doc",
     "user-settings": "user_settings",
     "UserSettings": "user_settings",
     "viewer": "viewer",
@@ -633,7 +868,8 @@ String keys
 - defaults setting:  sg.help('line_width')  -> text from defaults_help
 - topic:             sg.help('points')      -> related sg.* names
 - topic list:        sg.help('topics')
-- this summary:      sg.help('help')  or  sg.help(sg.help)
+- this guide:        sg.help('help')  or  sg.help('help_doc')
+- short lookup rules: sg.help(sg.help)
 
 Topics
 ------
@@ -649,6 +885,7 @@ Callables / classes
   -> function docstring
 
 Missing defaults keys return an empty string.
+Unknown names list similar topics, settings, and public ``sg`` names.
 """
 )
 
@@ -909,11 +1146,273 @@ def _format_topics() -> str:
     return "Available help topics:\n  " + "\n  ".join(topics)
 
 
+def _is_named_help_object(obj: object) -> bool:
+    """Return True for public objects worth resolving by string name."""
+    if inspect.isclass(obj) or inspect.isroutine(obj) or inspect.ismodule(obj):
+        return True
+    if isinstance(obj, Enum):
+        return True
+    return type(obj).__module__.startswith("simetri.")
+
+
+def _register_named_help_object(
+    mapping: dict[str, object], name: str, obj: object
+) -> None:
+    """Register both ``name`` and ``sg.name`` for string lookup."""
+    if name not in mapping:
+        mapping[name] = obj
+    sg_name = f"sg.{name}"
+    if sg_name not in mapping:
+        mapping[sg_name] = obj
+
+
+def _register_class_members(
+    mapping: dict[str, object], class_name: str, cls: type, depth: int = 1
+) -> None:
+    """Register public members for one exported class."""
+    for member_name, member in inspect.getmembers(cls):
+        if member_name.startswith("_"):
+            continue
+        qualified_name = f"{class_name}.{member_name}"
+        _register_named_help_object(mapping, qualified_name, member)
+        if depth > 1 and inspect.isclass(member):
+            _register_class_members(
+                mapping, qualified_name, member, depth=depth - 1
+            )
+
+
+@lru_cache(maxsize=1)
+def _public_sg_names() -> list[str]:
+    """Return public top-level names exported on ``simetri.graphics``."""
+    module = sys.modules.get("simetri.graphics")
+    if module is None:
+        return []
+
+    names = []
+    for name, obj in vars(module).items():
+        if name.startswith("_") or not _is_named_help_object(obj):
+            continue
+        names.append(name)
+
+    return sorted(set(names))
+
+
+def _similar_sg_attribute_names(
+    query: str, limit: int | None = None
+) -> list[str]:
+    """Return similar top-level ``sg`` attribute names."""
+    limit = _resolve_help_suggestion_limit(limit)
+    names = _public_sg_names()
+    suggestions: list[str] = []
+    seen: set[str] = set()
+    query_tokens = tuple(sorted(_help_name_tokens(query)))
+    normalized_query_tokens = tuple(normalize(token) for token in query_tokens)
+
+    def add(name: str) -> None:
+        key = name.casefold()
+        if key not in seen:
+            seen.add(key)
+            suggestions.append(name)
+
+    direct_matches = find_similar(query, names, limit=limit)
+    for name, _score in direct_matches:
+        add(name)
+    if suggestions:
+        return suggestions[:limit]
+
+    exact_token_matches = []
+    for name in names:
+        if set(query_tokens).intersection(_help_name_tokens(name)):
+            exact_token_matches.append(name)
+
+    for name in sorted(exact_token_matches, key=lambda item: (len(item), item)):
+        add(name)
+        if len(suggestions) >= limit:
+            return suggestions
+
+    scored_matches = []
+    for name in names:
+        best_score = 0.0
+        for token in _help_name_tokens(name):
+            normalized_token = normalize(token)
+            for normalized_query_token in normalized_query_tokens:
+                score = DamerauLevenshtein.normalized_similarity(
+                    normalized_query_token, normalized_token
+                )
+                best_score = max(best_score, score)
+        if best_score >= 0.75:
+            scored_matches.append((name, best_score))
+
+    for name, _score in sorted(
+        scored_matches,
+        key=lambda item: (-item[1], len(item[0]), item[0]),
+    ):
+        add(name)
+        if len(suggestions) >= limit:
+            return suggestions
+
+    return suggestions
+
+
+@lru_cache(maxsize=1)
+def _named_help_objects() -> dict[str, object]:
+    """Return public ``sg`` names that can be resolved from strings."""
+    module = sys.modules.get("simetri.graphics")
+    if module is None:
+        return {}
+
+    mapping: dict[str, object] = {}
+    for name, obj in vars(module).items():
+        if name.startswith("_") or not _is_named_help_object(obj):
+            continue
+        _register_named_help_object(mapping, name, obj)
+        if inspect.isclass(obj) and obj.__module__.startswith("simetri."):
+            depth = 2 if name == "WarningType" else 1
+            _register_class_members(mapping, name, obj, depth=depth)
+
+    return mapping
+
+
+@lru_cache(maxsize=1)
+def _help_lookup_names() -> list[str]:
+    """Return names that can be resolved or suggested by ``sg.help``."""
+    names = set(d_help_topic)
+    names.update(_TOPIC_ALIASES)
+    names.update(defaults.defaults)
+    names.update(defaults_help)
+    names.update(_named_help_objects())
+    names.add("help")
+    names.add("topics")
+    return sorted(names)
+
+
+def _canonical_help_name(name: str) -> str:
+    """Prefer ``sg.`` display for public object names when available."""
+    if name.startswith("sg."):
+        return name
+
+    named_objects = _named_help_objects()
+    sg_name = f"sg.{name}"
+    if name in named_objects and sg_name in named_objects:
+        return sg_name
+
+    return name
+
+
+@lru_cache(maxsize=1)
+def _canonical_help_names() -> list[str]:
+    """Return canonicalized, de-duplicated help names for suggestions."""
+    return sorted({_canonical_help_name(name) for name in _help_lookup_names()})
+
+
+def _help_name_tokens(name: str) -> set[str]:
+    """Return searchable tokens derived from one help name."""
+    name = name.removeprefix("sg.")
+
+    tokens = {name}
+    leaf_name = name.rsplit(".", maxsplit=1)[-1]
+    if not leaf_name.isupper():
+        tokens.add(leaf_name)
+        for part in leaf_name.replace("-", "_").split("_"):
+            if part:
+                tokens.add(part)
+
+    return tokens
+
+
+@lru_cache(maxsize=1)
+def _help_token_to_names() -> dict[str, set[str]]:
+    """Map searchable tokens back to their original help names."""
+    token_to_names: dict[str, set[str]] = {}
+    for canonical in _canonical_help_names():
+        for token in _help_name_tokens(canonical):
+            if token not in token_to_names:
+                token_to_names[token] = set()
+            token_to_names[token].add(canonical)
+
+    return token_to_names
+
+
+def _similar_help_names(query: str, limit: int | None = None) -> list[str]:
+    """Return similar help names, including matches via token pieces."""
+    limit = _resolve_help_suggestion_limit(limit)
+    lookup_names = _canonical_help_names()
+    suggestions: list[str] = []
+    seen: set[str] = set()
+    query_tokens = tuple(sorted(_help_name_tokens(query)))
+    normalized_query_tokens = tuple(normalize(token) for token in query_tokens)
+
+    def sort_key(name: str) -> tuple[int, int, str]:
+        return (0 if name.startswith("sg.") else 1, len(name), name)
+
+    def add(name: str) -> None:
+        canonical = _canonical_help_name(name)
+        key = canonical.casefold()
+        if key not in seen:
+            seen.add(key)
+            suggestions.append(canonical)
+
+    direct_matches = find_similar(query, lookup_names, limit=limit)
+    for name, _score in direct_matches:
+        add(name)
+    if suggestions:
+        return suggestions[:limit]
+
+    exact_token_matches = []
+    for name in lookup_names:
+        if set(query_tokens).intersection(_help_name_tokens(name)):
+            exact_token_matches.append(name)
+
+    for name in sorted(exact_token_matches, key=sort_key):
+        add(name)
+        if len(suggestions) >= limit:
+            return suggestions
+
+    scored_matches = []
+    for name in lookup_names:
+        best_score = 0.0
+        for token in _help_name_tokens(name):
+            normalized_token = normalize(token)
+            for normalized_query_token in normalized_query_tokens:
+                score = DamerauLevenshtein.normalized_similarity(
+                    normalized_query_token, normalized_token
+                )
+                best_score = max(best_score, score)
+        if best_score >= 0.75:
+            scored_matches.append((name, best_score))
+
+    for name, _score in sorted(
+        scored_matches,
+        key=lambda item: (-item[1], *sort_key(item[0])),
+    ):
+        add(name)
+        if len(suggestions) >= limit:
+            return suggestions
+
+    return suggestions
+
+
+def _unknown_topic_help(query: str) -> str:
+    """Return similar help names when ``query`` is not an exact match."""
+    matches = _similar_help_names(query)
+    if not matches:
+        return (
+            f"No help entry named {query!r}.\n"
+            "Use sg.help('topics') for topics, or pass an sg object directly."
+        )
+    lines = [f"No help entry named {query!r}. Similar names:"]
+    for name in matches:
+        lines.append(f"  {name}")
+    return "\n".join(lines)
+
+
 def help(obj) -> str:
     """Return documentation text for ``obj``.
 
     For string keys, returns ``defaults_help[obj]`` when ``obj`` is a
-    defaults setting name (empty string if missing). Reserved topic
+    defaults setting name (empty string if missing), or resolves public
+    ``sg`` names such as ``Canvas.draw`` and ``Shape.translate``.
+    Reserved topic
     strings (``points``, ``lines``, ``topics``, ``help``, …) return
     topic listings from ``d_help_topic``. For classes (and instances of
     Simetri types), returns the constructor signature, class docstring,
@@ -924,7 +1423,9 @@ def help(obj) -> str:
         obj: Object to document, a defaults setting name, or a help topic.
 
     Returns:
-        Documentation text, or an empty string if none is available.
+        Documentation text, similar help names when the string is not a
+        known topic, setting, or public ``sg`` name, or an empty string
+        if none is available.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -932,8 +1433,10 @@ def help(obj) -> str:
         'Available help topics:'
         >>> 'sg.distance' in sg.help('points')
         True
+        >>> 'shapes' in sg.help('shapess')
+        True
     """
-    if obj is help or obj == "help":
+    if obj is help:
         return _HELP_ABOUT_HELP
 
     # StrEnum members are also ``str``; resolve WarningType paths first.
@@ -956,9 +1459,14 @@ def help(obj) -> str:
             if guide is not None:
                 return guide
             return _format_topic(topic, d_help_topic[topic])
-        if obj in defaults_help:
-            return defaults_help[obj]
-        return ""
+        if obj in defaults.defaults:
+            if obj in defaults_help:
+                return defaults_help[obj]
+            return ""
+        named_obj = _named_help_objects().get(obj)
+        if named_obj is not None:
+            return help(named_obj)
+        return _unknown_topic_help(obj)
 
     if inspect.isclass(obj):
         return _class_help(obj)
@@ -992,6 +1500,12 @@ def _doc_title(obj) -> str:
     if warning_path is not None:
         return f"sg.{warning_path}"
 
+    if isinstance(obj, Enum):
+        enum_type = type(obj)
+        if enum_type.__module__.startswith("simetri."):
+            return f"sg.{enum_type.__qualname__}.{obj.name}"
+        return f"{enum_type.__qualname__}.{obj.name}"
+
     if isinstance(obj, str):
         return obj
 
@@ -1007,9 +1521,6 @@ def _doc_title(obj) -> str:
         if obj.__module__.startswith("simetri."):
             return f"sg.{obj.__qualname__}"
         return obj.__qualname__
-
-    if isinstance(obj, Enum):
-        return f"{type(obj).__qualname__}.{obj.name}"
 
     if not isinstance(obj, (bytes, int, float, bool, complex)):
         cls = type(obj)

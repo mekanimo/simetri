@@ -497,8 +497,11 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
 
         # Get accurate text dimensions using PIL
         text_width, text_height = get_text_size(text, font_family, font_size)
+        requested_text_width = sketch_attrib(sketch, "text_width")
+        if requested_text_width is not None:
+            text_width = requested_text_width
 
-        if minimum_width and text_width < minimum_width:
+        if minimum_width is not None and text_width < minimum_width:
             text_width = minimum_width
 
         # Add padding; place frame to match text-anchor (same rule as Tag.b_box).

@@ -255,7 +255,7 @@ class Vector:
 
     def magnitude(self) -> float:
         """Magnitude (length) of the vector."""
-        return self.mag
+        return self.mag()
 
     def mag_sq(self) -> float:
         """Squared magnitude."""

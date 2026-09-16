@@ -8,7 +8,7 @@ Examples:
 from collections.abc import Callable, Sequence
 from copy import copy
 from dataclasses import dataclass
-from math import atan2, hypot, pi
+from math import atan2, cos, hypot, pi, sin
 
 import numpy as np
 import pymupdf as fitz
@@ -57,7 +57,7 @@ from ..geom.segments.line_utils import (
 from ..geom.vectors import Vector, perp_unit_vector, v_from_points
 from ..group.batch import Group
 from ..render.style_map import shape_style_map, tag_style_map
-from ..shapes.geom_items import reg_poly_points_side_length
+from ..shapes.geom_items import Line, reg_poly_points_side_length
 from ..shapes.points import Points
 from ..shapes.shape import Shape
 from .label_overlap import LabelRect, resolve_all_overlaps
@@ -1182,7 +1182,9 @@ class Tag(Base):
         text_width = xmax - xmin
         text_height = ymax - ymin
         if self.text_width is not None:
-            text_width = max(text_width, self.text_width)
+            text_width = self.text_width
+        if self.minimum_width is not None:
+            text_width = max(text_width, self.minimum_width)
 
         w2 = text_width / 2
         h2 = text_height / 2
@@ -1570,7 +1572,13 @@ class Arrow(Group):
             self.head.translate(*p1)
             self.heads = [self.head]
         elif self.head_pos == HeadPos.START:
-            self.head = [None]
+            self.head.rotate(pi)
+            self.head.translate(self.head.head_length, 0)
+            self.head.rotate(angle)
+            self.line.rotate(angle)
+            self.line.translate(*p1)
+            self.head.translate(*p1)
+            self.heads = [self.head]
         elif self.head_pos == HeadPos.BOTH:
             self.head2 = ArrowHead()
             self.head2.rotate(pi)
@@ -1721,78 +1729,48 @@ class AngularDimension(Group):
 
 
 class Dimension(Group):
-    """A Dimension object is a line with arrows and a text.
+    """A linear dimension: extension lines, dimension line, and a label.
 
-    The label position is computed and stored on ``text_pos`` as a point.
+    ``p1`` and ``p2`` decide the kind: same ``y`` is horizontal, same
+    ``x`` is vertical, otherwise the dimension is aligned to the
+    segment (diagonal). The label position is stored on ``text_pos``.
 
     Args:
-        p1 (PointType): The starting point of the dimension.
-        p2 (PointType): The ending point of the dimension.
-        ext_length (float): The length of the extension lines.
-        ext_length2 (float, optional): The length of the second extension
-            line. Defaults to None.
-        orientation (Anchor, optional): The orientation of the dimension.
-            Defaults to None.
-        text (str, optional): The text of the dimension. Empty string
-            auto-generates the measured length. Defaults to "".
-        text_offset (PointType, optional): ``(dx, dy)`` offset added to the
-            computed label point. Defaults to (0, 0).
-        gap (float, optional): The gap. Defaults to None.
-        reverse_arrows (bool, optional): Whether to reverse the arrows.
-            Defaults to False.
-        reverse_arrow_length (float, optional): The length of the reversed
-            arrows. Defaults to None.
-        parallel (bool, optional): Whether the dimension is parallel.
-            Defaults to False.
-        ext1pnt (PointType, optional): The first extension point. Defaults
-            to None.
-        ext2pnt (PointType, optional): The second extension point. Defaults
-            to None.
-        scale (float, optional): Divides the measured length when
-            auto-generating the label text. Defaults to 1.
-        font_size (float, optional): The font size. Defaults to None
-            (``defaults["font_size"]``).
-        keep_centered (bool, optional): Whether to keep the label at the
-            midpoint when arrows are reversed. Defaults to False.
-        text_side (Anchor, optional): When ``reverse_arrows`` is True and
-            ``keep_centered`` is False, ``Anchor.BOTTOM`` places the label
-            toward the opposite extension for EAST, NORTHEAST, and NORTH
-            orientations. Defaults to None.
-        overshoot (float, optional): How far each extension line continues
-            past the dimension line. Defaults to None
-            (``defaults["overshoot"]``).
-        text_gap (float, optional): Distance to offset the label away from
-            the dimension line, along the extension direction. Defaults
-            to None (``defaults["text_offset"]``).
-        aligned_text (bool, optional): If True, the label is parallel to
-            the dimension line and readable from the bottom or right.
-            Defaults to None (``defaults["aligned_text"]``).
+        p1 (PointType): First feature point.
+        p2 (PointType): Second feature point.
+        side (str): Which side of the features the dimension line is
+            on. Horizontal or diagonal: ``"up"`` or ``"down"``.
+            Vertical: ``"left"`` or ``"right"``.
+        text_offset (float): Distance from the gap to the dimension line.
+        text (str, optional): Label text. ``None`` uses the measured
+            length. Defaults to None.
+        ext_line_extension (float, optional): How far each extension
+            continues past the dimension line. ``None`` uses
+            ``defaults["overshoot"]``.
+        ext_line_offset (float, optional): Gap from the feature to the
+            start of the extension. ``None`` uses ``defaults["gap"]``.
+        text_horiz_offset (float, optional): Offset of the label along
+            the dimension line when ``text_loc`` is ``"left"`` or
+            ``"right"``. ``None`` uses ``defaults["ext_length2"]``.
+        text_loc (str, optional): ``"middle"``, ``"left"``, or
+            ``"right"``. Defaults to ``"middle"``.
+        stub_length (float, optional): Outward shaft length when the
+            label is not in the middle. Defaults to 15.
         **kwargs: Additional keyword arguments for dimension styling.
     """
 
-    # To do: This is too long and convoluted. Refactor it.
     def __init__(
         self,
         p1: PointType,
         p2: PointType,
-        ext_length: float,
-        ext_length2: float | None = None,
-        orientation: Anchor | None = None,
-        text: str = "",
-        text_offset: PointType = (0, 0),
-        gap: float | None = None,
-        reverse_arrows: bool = False,
-        reverse_arrow_length: float | None = None,
-        parallel: bool = False,
-        ext1pnt: PointType | None = None,
-        ext2pnt: PointType | None = None,
-        scale: float = 1,
-        font_size: float | None = None,
-        keep_centered: bool = False,
-        text_side: Anchor | None = None,
-        overshoot: float | None = None,
-        text_gap: float | None = None,
-        aligned_text: bool | None = None,
+        side: str,
+        text_offset: float,
+        text: str | None = None,
+        ext_line_extension: float | None = None,
+        ext_line_offset: float | None = None,
+        text_horiz_offset: float | None = None,
+        text_loc: str = "middle",
+        stub_length: float = 15,
         **kwargs,
     ):
         """Create a linear dimension with extension lines and arrows.
@@ -1800,49 +1778,38 @@ class Dimension(Group):
         See the class docstring for argument details.
         """
         (
-            ext_length2,
-            gap,
-            reverse_arrow_length,
+            ext_line_extension,
+            ext_line_offset,
+            text_horiz_offset,
             font_size,
-            overshoot,
-            text_gap,
-            aligned_text,
         ) = get_defaults(
             [
-                "ext_length2",
-                "gap",
-                "rev_arrow_length",
-                "font_size",
                 "overshoot",
-                "text_offset",
-                "aligned_text",
+                "gap",
+                "ext_length2",
+                "font_size",
             ],
             [
-                ext_length2,
-                gap,
-                reverse_arrow_length,
-                font_size,
-                overshoot,
-                text_gap,
-                aligned_text,
+                ext_line_extension,
+                ext_line_offset,
+                text_horiz_offset,
+                None,
             ],
         )
-        self.text = text
+        if text is None:
+            text = str(distance(p1, p2))
+
         self.p1 = p1
         self.p2 = p2
-        self.ext_length = ext_length
-        self.ext_length2 = ext_length2
-        self.orientation = orientation
+        self.side = side
         self.text_offset = text_offset
-        self.gap = gap
-        self.reverse_arrows = reverse_arrows
-        self.reverse_arrow_length = reverse_arrow_length
-        self.parallel = parallel
-        self.keep_centered = keep_centered
-        self.text_side = text_side
-        self.overshoot = overshoot
-        self.text_gap = text_gap
-        self.aligned_text = aligned_text
+        self.text = text
+        self.ext_line_extension = ext_line_extension
+        self.ext_line_offset = ext_line_offset
+        self.text_horiz_offset = text_horiz_offset
+        self.text_loc = text_loc
+        self.stub_length = stub_length
+        self.font_size = font_size
         self.kwargs = kwargs
         self.ext1 = None
         self.ext2 = None
@@ -1851,339 +1818,162 @@ class Dimension(Group):
         self.arrow2 = None
         self.dim_line = None
         self.mid_line = None
-        self.ext1pnt = ext1pnt
-        self.ext2pnt = ext2pnt
-        self.scale = scale
-        self.font_size = font_size
+        self.tag = None
+        self.text_anchor = Anchor.CENTER
+        self.text_align = Align.CENTER
+
+        super().__init__(subtype=Types.DIMENSION, **kwargs)
+
         x1, y1 = p1[:2]
         x2, y2 = p2[:2]
-        min_x = min(x1, x2)
-        max_x = max(x1, x2)
-        min_y = min(y1, y2)
-        max_y = max(y1, y2)
-        text_dx, text_dy = self.text_offset[:2]
-
-        # px1_1 : extension1 point 1
-        # px1_2 : extension1 point 2
-        # px2_1 : extension2 point 1
-        # px2_2 : extension2 point 2
-        # px3_1 : extension3 point 1
-        # px3_2 : extension3 point 2
-        # pa1 : arrow point 1
-        # pa2 : arrow point 2
-        # ptext : text point
-        super().__init__(subtype=Types.DIMENSION, **kwargs)
         dist_tol = defaults["dist_tol"]
-        space = overshoot
-        if parallel:
-            if orientation is None:
-                orientation = Anchor.NORTHEAST
-            if orientation in (
-                Anchor.NORTHEAST,
-                Anchor.NORTHWEST,
-                Anchor.SOUTHWEST,
-            ):
-                angle = line_angle(p1, p2) + pi / 2
+        if abs(x1 - x2) < dist_tol and abs(y1 - y2) < dist_tol:
+            raise ValueError("Dimension points must be distinct.")
+
+        if abs(y1 - y2) < dist_tol:
+            dim_x1 = x1
+            dim_x2 = x2
+            if text_loc == "middle":
+                text_x = (x1 + x2) / 2
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.CENTER
+            elif text_loc == "left":
+                text_x = x1 - text_horiz_offset
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.RIGHT
             else:
-                angle = line_angle(p1, p2) - pi / 2
-            if self.ext1pnt is None:
-                px1_1 = line_by_point_angle_length(p1, angle, self.gap)[1]
+                text_x = x2 + text_horiz_offset
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.LEFT
+            if side == "up":
+                text_y = y1 + ext_line_offset + text_offset
+                y_p1_start = y1 + ext_line_offset
+                y_p1_end = text_y + ext_line_extension
+                y_p2_start = y2 + ext_line_offset
+                y_p2_end = y2 + ext_line_offset + text_offset + ext_line_extension
             else:
-                px1_1 = self.ext1pnt
-            px1_2 = line_by_point_angle_length(
-                p1, angle, self.gap + self.ext_length
-            )[1]
-            if self.ext2pnt is None:
-                px2_1 = line_by_point_angle_length(p2, angle, self.gap)[1]
+                text_y = y1 - ext_line_offset - text_offset
+                y_p1_start = y1 - ext_line_offset
+                y_p1_end = y1 - ext_line_offset - text_offset - ext_line_extension
+                y_p2_start = y2 - ext_line_offset
+                y_p2_end = y2 - ext_line_offset - text_offset - ext_line_extension
+            ext1_start = (x1, y_p1_start)
+            ext1_end = (x1, y_p1_end)
+            ext2_start = (x2, y_p2_start)
+            ext2_end = (x2, y_p2_end)
+            dim1 = (dim_x1, text_y)
+            dim2 = (dim_x2, text_y)
+            stub1_tail = (dim_x1 - stub_length, text_y)
+            stub2_tip = (dim_x2 + stub_length, text_y)
+        elif abs(x1 - x2) < dist_tol:
+            dim_y1 = y1
+            dim_y2 = y2
+            if text_loc == "middle":
+                text_y = (y1 + y2) / 2
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.CENTER
+            elif text_loc == "left":
+                text_y = y1 - text_horiz_offset
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.RIGHT
             else:
-                px2_1 = self.ext2pnt
-            px2_2 = line_by_point_angle_length(
-                p2, angle, self.gap + self.ext_length
-            )[1]
-
-            pa1 = line_by_point_angle_length(px1_2, angle, -space)[1]
-            pa2 = line_by_point_angle_length(px2_2, angle, -space)[1]
-
-            tx, ty = midpoint(pa1, pa2)
-            self.text_pos = (tx + text_dx, ty + text_dy)
-            if self.text == "":
-                self.text = f"{distance(p1, p2) / scale:.2f}"
-
-            self.ext1 = Shape([px1_1, px1_2])
-            self.ext2 = Shape([px2_1, px2_2])
-
+                text_y = y2 + text_horiz_offset
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.LEFT
+            if side == "right":
+                text_x = x1 + ext_line_offset + text_offset
+                x_p1_start = x1 + ext_line_offset
+                x_p1_end = text_x + ext_line_extension
+                x_p2_start = x2 + ext_line_offset
+                x_p2_end = x2 + ext_line_offset + text_offset + ext_line_extension
+            else:
+                text_x = x1 - ext_line_offset - text_offset
+                x_p1_start = x1 - ext_line_offset
+                x_p1_end = x1 - ext_line_offset - text_offset - ext_line_extension
+                x_p2_start = x2 - ext_line_offset
+                x_p2_end = x2 - ext_line_offset - text_offset - ext_line_extension
+            ext1_start = (x_p1_start, y1)
+            ext1_end = (x_p1_end, y1)
+            ext2_start = (x_p2_start, y2)
+            ext2_end = (x_p2_end, y2)
+            dim1 = (text_x, dim_y1)
+            dim2 = (text_x, dim_y2)
+            stub1_tail = (text_x, dim_y1 - stub_length)
+            stub2_tip = (text_x, dim_y2 + stub_length)
         else:
-            if self.text == "":
-                if orientation in (Anchor.NORTH, Anchor.SOUTH):
-                    self.text = f"{(max_x - min_x) / scale:.2f}"
-                elif orientation in (Anchor.EAST, Anchor.WEST):
-                    self.text = f"{(max_y - min_y) / scale:.2f}"
-                else:
-                    self.text = f"{distance(p1, p2) / scale:.2f}"
-            if abs(x1 - x2) < dist_tol:
-                # vertical line
-                if self.orientation is None:
-                    orientation = Anchor.EAST
-
-                if orientation in [
-                    Anchor.WEST,
-                    Anchor.SOUTHWEST,
-                    Anchor.NORTHWEST,
-                ]:
-                    x = x1 - self.gap
-                    px1_1 = (x, y1)
-                    px1_2 = (x - ext_length, y1)
-                    px2_1 = (x, y2)
-                    px2_2 = (x - ext_length, y2)
-                    x = px1_2[0] + space
-                    pa1 = (x, y1)
-                    pa2 = (x, y2)
-                elif orientation in [
-                    Anchor.EAST,
-                    Anchor.SOUTHEAST,
-                    Anchor.NORTHEAST,
-                ]:
-                    x = x1 + self.gap
-                    px1_1 = (x, y1)
-                    px1_2 = (x + ext_length, y1)
-                    px2_1 = (x, y2)
-                    px2_2 = (x + ext_length, y2)
-                    x = px1_2[0] - space
-                    pa1 = (x, y1)
-                    pa2 = (x, y2)
-                elif orientation == Anchor.CENTER:
-                    pa1 = (x1, y1)
-                    pa2 = (x1, y2)
-                x = pa1[0]
-                if orientation in (Anchor.SOUTHWEST, Anchor.SOUTHEAST):
-                    px3_1 = pa2
-                    y = y2 - self.ext_length2
-                    px3_2 = (x, y)
-                    self.ext3 = Shape([px3_1, px3_2])
-                    self.text_pos = (x + text_dx, y - text_dy)
-                elif orientation in [Anchor.NORTHWEST, Anchor.NORTHEAST]:
-                    px3_1 = pa1
-                    y = y1 + self.ext_length2
-                    px3_2 = (x, y)
-                    self.ext3 = Shape([px3_1, px3_2])
-                    self.text_pos = (x + text_dx, y + text_dy)
-                elif orientation == Anchor.SOUTH:
-                    px3_1 = pa2
-                    y = y2 - self.ext_length2
-                    px3_2 = (x, y)
-                    self.ext3 = Shape([px3_1, px3_2])
-                    self.text_pos = (x + text_dx, y - text_dy)
-                elif orientation == Anchor.NORTH:
-                    px3_2 = pa1
-                    y = y2 + self.ext_length2
-                    px3_1 = (x, y)
-                    self.ext3 = Shape([px3_1, px3_2])
-                    self.text_pos = (x + text_dx, y + text_dy)
-                else:
-                    self.text_pos = (x + text_dx, y1 - (y1 - y2) / 2 + text_dy)
-                if orientation not in [
-                    Anchor.CENTER,
-                    Anchor.NORTH,
-                    Anchor.SOUTH,
-                ]:
-                    if self.ext1pnt is None:
-                        self.ext1 = Shape([px1_1, px1_2])
-                    else:
-                        self.ext1 = Shape([ext1pnt, px1_2])
-                    if self.ext2pnt is None:
-                        self.ext2 = Shape([px2_1, px2_2])
-                    else:
-                        self.ext2 = Shape([ext2pnt, px2_2])
-            elif abs(y1 - y2) < dist_tol:
-                # horizontal line
-                if self.orientation is None:
-                    orientation = Anchor.SOUTH
-
-                if orientation in [
-                    Anchor.SOUTH,
-                    Anchor.SOUTHWEST,
-                    Anchor.SOUTHEAST,
-                ]:
-                    y = y1 - self.gap
-                    px1_1 = (x1, y)
-                    px1_2 = (x1, y - ext_length)
-                    px2_1 = (x2, y)
-                    px2_2 = (x2, y - ext_length)
-                    y = px1_2[1] + space
-                    pa1 = (x1, y)
-                    pa2 = (x2, y)
-                elif orientation in [
-                    Anchor.NORTH,
-                    Anchor.NORTHWEST,
-                    Anchor.NORTHEAST,
-                ]:
-                    y = y1 + self.gap
-                    px1_1 = (x1, y)
-                    px1_2 = (x1, y + ext_length)
-                    px2_1 = (x2, y)
-                    px2_2 = (x2, y + ext_length)
-                    y = px1_2[1] - space
-                    pa1 = (x1, y)
-                    pa2 = (x2, y)
-                elif orientation in [Anchor.WEST, Anchor.EAST]:
-                    pa1 = (x1, y1)
-                    pa2 = (x2, y2)
-                    if orientation == Anchor.WEST:
-                        px3_1 = (pa1[0] - self.ext_length2, pa1[1])
-                        px3_2 = pa1
-                        self.text_pos = (px3_1[0] - text_dx, pa1[1] + text_dy)
-                    else:
-                        px3_1 = pa2
-                        px3_2 = (pa2[0] + self.ext_length2, pa1[1])
-                        self.text_pos = (px3_1[0] + text_dx, pa1[1] + text_dy)
-                    self.ext3 = Shape([px3_1, px3_2])
-                elif orientation == Anchor.CENTER:
-                    pa1 = (x1, y1)
-                    pa2 = (x2, y2)
-
-                y = pa1[1]
-                if orientation in (Anchor.SOUTHWEST, Anchor.NORTHWEST):
-                    px3_1 = pa1
-                    x = x1 - self.ext_length2
-                    px3_2 = (x, y)
-                    self.ext3 = Shape([px3_1, px3_2])
-                    self.text_pos = (x + text_dx, y + text_dy)
-                elif orientation in [Anchor.NORTHEAST, Anchor.SOUTHEAST]:
-                    px3_1 = pa2
-                    x = x2 + self.ext_length2
-                    px3_2 = (x, y)
-                    self.ext3 = Shape([px3_1, px3_2])
-                    self.text_pos = (x + text_dx, y + text_dy)
-                elif orientation in [Anchor.CENTER, Anchor.NORTH, Anchor.SOUTH]:
-                    self.text_pos = (x1 + (x2 - x1) / 2, y)
-
-                if orientation not in (Anchor.CENTER, Anchor.WEST, Anchor.EAST):
-                    if self.ext1pnt is None:
-                        self.ext1 = Shape([px1_1, px1_2])
-                    else:
-                        self.ext1 = Shape([ext1pnt, px1_2])
-                    if self.ext2pnt is None:
-                        self.ext2 = Shape([px2_1, px2_2])
-                    else:
-                        self.ext2 = Shape([ext2pnt, px2_2])
+            dim_angle = line_angle(p1, p2)
+            if side == "up":
+                normal_angle = dim_angle + pi / 2
             else:
-                if orientation is Anchor.WEST:
-                    leftmost = min_x - self.gap - self.ext_length
-                    px1_1 = (min_x - self.gap, min_y)
-                    px1_2 = (leftmost, min_y)
-                    px2_1 = (max_x + self.gap, max_y)
-                    px2_2 = (leftmost, max_y)
-                    pa1 = (leftmost + space, min_y)
-                    pa2 = (leftmost + space, max_y)
-                    self.ext1 = Shape([px1_1, px1_2])
-                    self.ext2 = Shape([px2_1, px2_2])
-                elif orientation is Anchor.EAST:
-                    rightmost = max_x + self.gap + self.ext_length
-                    px1_1 = (min_x + self.gap, min_y)
-                    px1_2 = (rightmost, min_y)
-                    px2_1 = (max_x + self.gap, max_y)
-                    px2_2 = (rightmost, max_y)
-                    pa1 = (rightmost - space, min_y)
-                    pa2 = (rightmost - space, max_y)
-                    self.ext1 = Shape([px1_1, px1_2])
-                    self.ext2 = Shape([px2_1, px2_2])
-                elif orientation is Anchor.NORTH:
-                    topmost = max_y + self.gap + self.ext_length
-                    if min_x == (x1, y1)[0]:
-                        px1_1 = (min_x, y1 + self.gap)
-                        px1_2 = (min_x, topmost)
+                normal_angle = dim_angle - pi / 2
+            along_x = cos(dim_angle)
+            along_y = sin(dim_angle)
+            dist_to_line = ext_line_offset + text_offset
+            ext_end_length = dist_to_line + ext_line_extension
+            ext1_start = line_by_point_angle_length(
+                p1, normal_angle, ext_line_offset
+            )[1]
+            ext1_end = line_by_point_angle_length(
+                p1, normal_angle, ext_end_length
+            )[1]
+            ext2_start = line_by_point_angle_length(
+                p2, normal_angle, ext_line_offset
+            )[1]
+            ext2_end = line_by_point_angle_length(
+                p2, normal_angle, ext_end_length
+            )[1]
+            dim1 = line_by_point_angle_length(p1, normal_angle, dist_to_line)[1]
+            dim2 = line_by_point_angle_length(p2, normal_angle, dist_to_line)[1]
+            dim1_x, dim1_y = dim1[:2]
+            dim2_x, dim2_y = dim2[:2]
+            if text_loc == "middle":
+                text_x = (dim1_x + dim2_x) / 2
+                text_y = (dim1_y + dim2_y) / 2
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.CENTER
+            elif text_loc == "left":
+                text_x = dim1_x - along_x * text_horiz_offset
+                text_y = dim1_y - along_y * text_horiz_offset
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.RIGHT
+            else:
+                text_x = dim2_x + along_x * text_horiz_offset
+                text_y = dim2_y + along_y * text_horiz_offset
+                self.text_anchor = Anchor.CENTER
+                self.text_align = Align.LEFT
+            stub1_tail = (
+                dim1_x - along_x * stub_length,
+                dim1_y - along_y * stub_length,
+            )
+            stub2_tip = (
+                dim2_x + along_x * stub_length,
+                dim2_y + along_y * stub_length,
+            )
 
-                        px2_1 = (max_x, y2 + self.gap)
-                        px2_2 = (max_x, topmost)
-                    else:
-                        px1_1 = (max_x, y2 + self.gap)
-                        px1_2 = (max_x, topmost)
+        self.text_pos = (text_x, text_y)
 
-                        px2_1 = (min_x, y1 + self.gap)
-                        px2_2 = (min_x, topmost)
-
-                    pa1 = (min_x, topmost - space)
-                    pa2 = (max_x, topmost - space)
-                    self.ext1 = Shape([px1_1, px1_2])
-                    self.ext2 = Shape([px2_1, px2_2])
-                elif orientation is Anchor.SOUTH:
-                    bottommost = min_y - self.gap - self.ext_length
-                    # px1_1 = (min_x, max_y - self.gap)
-                    px1_1 = (p1[0], p1[1] - self.gap)
-                    # px1_2 = (min_x, bottommost)
-                    px1_2 = (p1[0], bottommost)
-                    # px2_1 = (max_x, min_y - self.gap)
-                    px2_1 = (p2[0], p2[1] - self.gap)
-                    # px2_2 = (max_x, bottommost)
-                    px2_2 = (p2[0], bottommost)
-                    pa1 = (min_x, bottommost + space)
-                    pa2 = (max_x, bottommost + space)
-                    self.ext1 = Shape([px1_1, px1_2])
-                    self.ext2 = Shape([px2_1, px2_2])
-                else:
-                    pa1 = p1
-                    pa2 = p2
-                tx, ty = midpoint(pa1, pa2)
-                self.text_pos = (tx + text_dx, ty + text_dy)
-
-        if self.reverse_arrows:
-            dist = self.reverse_arrow_length
-            arrow1_tail = extended_line(dist, [pa1, pa2])[1]
-            self.arrow1 = Arrow(arrow1_tail, pa2)
-            arrow2_tail = extended_line(dist, [pa2, pa1])[1]
-            self.arrow2 = Arrow(arrow2_tail, pa1)
+        self.tag = Tag(
+            text,
+            pos=(text_x, text_y),
+            fill=True,
+            anchor=self.text_anchor,
+            align=self.text_align,
+            font_size=self.font_size,
+        )
+        self.ext1 = Line(ext1_start, ext1_end)
+        self.ext2 = Line(ext2_start, ext2_end)
+        self.append(self.ext1)
+        self.append(self.ext2)
+        if text_loc == "middle":
+            self.dim_line = Arrow(dim1, dim2, head_pos=HeadPos.BOTH)
+            self.append(self.dim_line)
+        else:
+            self.arrow1 = Arrow(stub1_tail, dim1, head_pos=HeadPos.END)
+            self.arrow2 = Arrow(dim2, stub2_tip, head_pos=HeadPos.START)
+            self.mid_line = Line(dim1, dim2)
             self.append(self.arrow1)
             self.append(self.arrow2)
-            self.mid_line = Shape([pa1, pa2])
             self.append(self.mid_line)
-            dist = text_dx + self.reverse_arrow_length
-            if not self.keep_centered:
-                if orientation in (
-                    Anchor.EAST,
-                    Anchor.NORTHEAST,
-                    Anchor.NORTH,
-                ):
-                    if self.text_side == Anchor.BOTTOM:
-                        tx, ty = extended_line(dist, [pa2, pa1])[1]
-                    else:
-                        tx, ty = extended_line(dist, [pa1, pa2])[1]
-                else:
-                    tx, ty = extended_line(dist, [pa1, pa2])[1]
-                self.text_pos = (tx + text_dx, ty + text_dy)
-        else:
-            self.dim_line = Arrow(pa1, pa2, head_pos=HeadPos.BOTH)
-            self.append(self.dim_line)
-        if self.ext1 is not None:
-            self.append(self.ext1)
-        if self.ext2 is not None:
-            self.append(self.ext2)
-        if self.ext3 is not None:
-            self.append(self.ext3)
-
-        pa1_x, pa1_y = pa1[:2]
-        pa2_x, pa2_y = pa2[:2]
-        feature_x, feature_y = midpoint(p1, p2)[:2]
-        dim_mid_x = (pa1_x + pa2_x) / 2
-        dim_mid_y = (pa1_y + pa2_y) / 2
-        out_x = dim_mid_x - feature_x
-        out_y = dim_mid_y - feature_y
-        out_len = hypot(out_x, out_y)
-        if out_len > dist_tol:
-            out_x = out_x / out_len
-            out_y = out_y / out_len
-        else:
-            out_x, out_y = 0.0, 1.0
-        text_x, text_y = self.text_pos[:2]
-        self.text_pos = (
-            text_x + out_x * text_gap,
-            text_y + out_y * text_gap,
-        )
-        text_angle = line_angle(pa1, pa2)
-        if text_angle > pi / 2:
-            text_angle -= pi
-        elif text_angle <= -pi / 2:
-            text_angle += pi
-        self.text_angle = text_angle
 
 
 def vert_label_layout(shape, offset):

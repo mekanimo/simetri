@@ -1,5 +1,3 @@
-from itertools import pairwise
-
 """Dependency-free geometry primitives.
 
 This module is intentionally a **leaf**: it must not import from
@@ -8,6 +6,7 @@ Other geometry modules may import from here to avoid circular imports.
 """
 
 from collections.abc import Sequence
+from itertools import pairwise
 from math import cos, pi, sin, sqrt
 
 import numpy as np
@@ -102,13 +101,14 @@ def offset_point_from_start(
 
     Returns:
         Point on the line at the given offset.
+
+    Raises:
+        ZeroDivisionError: If ``p1`` and ``p2`` are the same point.
     """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
     dx, dy = x2 - x1, y2 - y1
     d = (dx**2 + dy**2) ** 0.5
-    if d == 0:
-        return p1
     return (x1 + offset * dx / d, y1 + offset * dy / d)
 
 
@@ -163,7 +163,9 @@ def turning_function(curve):
     """
     Compute the turning function for a planar curve.
     curve: Nx2 array-like of (x, y) points (ordered).
-    Returns: angles (cumulative turning angle at each point), arc_lengths
+    Returns: angles (cumulative turning angle at each point), arc_lengths.
+    For curves with at least two points, both arrays have one value per
+    input point.
     """
     curve = np.asarray(curve)
     if curve.shape[0] < 2:
@@ -171,13 +173,12 @@ def turning_function(curve):
     # Compute tangent vectors
     tangents = np.diff(curve, axis=0)
     # Compute angles between consecutive segments
-    angles = np.arctan2(tangents[:, 1], tangents[:, 0])
+    angles = np.unwrap(np.arctan2(tangents[:, 1], tangents[:, 0]))
     # Compute turning angles (difference between consecutive angles)
     turning_angles = np.diff(angles)
-    # Unwrap to avoid jumps at -pi/pi
-    turning_angles = np.unwrap(turning_angles)
     # Cumulative sum gives the turning function
     cumulative_turn = np.concatenate([[0], np.cumsum(turning_angles)])
+    cumulative_turn = np.concatenate([cumulative_turn, [cumulative_turn[-1]]])
     # Arc length parameterization
     arc_lengths = np.concatenate(
         [[0], np.cumsum(np.linalg.norm(tangents, axis=1))]

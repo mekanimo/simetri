@@ -365,6 +365,95 @@ def persist_all_warnings(enabled: bool) -> None:
     _update_config_lines(warnings_on=enabled, leaf_states=leaf_states)
 
 
+def _defaults_assignment_key(stripped: str) -> str | None:
+    """Return the defaults key on an assignment line, commented or not."""
+    code = stripped
+    if code.startswith("#"):
+        code = code[1:].strip()
+    if "=" not in code:
+        return None
+    key_part, _, _value_part = code.partition("=")
+    key_name = key_part.strip()
+    if not _is_toml_bare_key(key_name):
+        return None
+    return key_name
+
+
+def _update_default_keys(toml_literals: dict[str, str]) -> None:
+    """Uncomment or insert ``[defaults]`` assignments in the personal toml."""
+    config_path = ensure_user_config()
+    text = config_path.read_text(encoding="utf-8")
+    newline = "\r\n" if "\r\n" in text else "\n"
+    lines = text.splitlines(keepends=True)
+    current_section: str | None = None
+    defaults_start: int | None = None
+    defaults_end: int | None = None
+    live_index: dict[str, int] = {}
+    comment_index: dict[str, int] = {}
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            section = stripped[1:-1].strip()
+            if current_section == "defaults" and section != "defaults":
+                defaults_end = index
+            current_section = section
+            if section == "defaults" and defaults_start is None:
+                defaults_start = index
+            continue
+        if current_section != "defaults":
+            continue
+        key_name = _defaults_assignment_key(stripped)
+        if key_name is None:
+            continue
+        if stripped.startswith("#"):
+            if key_name not in comment_index:
+                comment_index[key_name] = index
+        else:
+            live_index[key_name] = index
+    if current_section == "defaults":
+        defaults_end = len(lines)
+
+    new_lines = list(lines)
+
+    def replace_defaults_line(index: int, key_name: str) -> None:
+        line = new_lines[index]
+        indent = line[: len(line) - len(line.lstrip(" \t"))]
+        stripped = line.strip()
+        trailing = ""
+        if not stripped.startswith("#") and "#" in stripped:
+            trailing = " #" + stripped.split("#", 1)[1]
+        new_lines[index] = (
+            f"{indent}{key_name} = {toml_literals[key_name]}{trailing}{newline}"
+        )
+
+    replaced: set[str] = set()
+    for key_name in toml_literals:
+        if key_name in live_index:
+            replace_defaults_line(live_index[key_name], key_name)
+            replaced.add(key_name)
+        elif key_name in comment_index:
+            replace_defaults_line(comment_index[key_name], key_name)
+            replaced.add(key_name)
+
+    missing_keys = [key for key in toml_literals if key not in replaced]
+    extra = [f"{key} = {toml_literals[key]}{newline}" for key in missing_keys]
+    if extra:
+        extra.append(newline)
+        if defaults_start is None:
+            if new_lines:
+                last_line = new_lines[-1]
+                if not last_line.endswith("\n"):
+                    new_lines[-1] = last_line + newline
+                if new_lines[-1].strip():
+                    new_lines.append(newline)
+            new_lines.append(f"[defaults]{newline}")
+            new_lines.extend(extra)
+        else:
+            insert_at = defaults_end if defaults_end is not None else len(new_lines)
+            new_lines = new_lines[:insert_at] + extra + new_lines[insert_at:]
+    config_path.write_text("".join(new_lines), encoding="utf-8")
+
+
 def _apply_paths(paths_table: dict[str, Any]) -> None:
     """Apply the ``[paths]`` table."""
     known = frozenset(_user_paths)
@@ -663,6 +752,176 @@ def _apply_styles_table(styles_table: dict[str, Any]) -> None:
                 )
             converted[key] = _convert_default_value(key, value, default_types[key])
         user_styles[style_name] = Style(converted)
+
+
+def _is_toml_bare_key(name: str) -> bool:
+    """Return True if ``name`` is a TOML bare key (letters, digits, ``_``, ``-``)."""
+    if not name:
+        return False
+    for character in name:
+        is_letter = ("A" <= character <= "Z") or ("a" <= character <= "z")
+        is_digit = "0" <= character <= "9"
+        if not (is_letter or is_digit or character in "_-"):
+            return False
+    return True
+
+
+def _upsert_toml_table(config_path: Path, table_header: str, body_lines: list[str]) -> None:
+    """Replace or append ``[table_header]``, preserving other file contents."""
+    text = config_path.read_text(encoding="utf-8")
+    newline = "\r\n" if "\r\n" in text else "\n"
+    lines = text.splitlines(keepends=True)
+    start: int | None = None
+    end: int | None = None
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if not (stripped.startswith("[") and stripped.endswith("]")):
+            continue
+        section = stripped[1:-1].strip()
+        if start is not None:
+            end = index
+            break
+        if section == table_header:
+            start = index
+    replacement = [f"[{table_header}]{newline}"]
+    for body_line in body_lines:
+        replacement.append(f"{body_line}{newline}")
+    replacement.append(newline)
+    if start is not None:
+        if end is None:
+            end = len(lines)
+        new_lines = lines[:start] + replacement + lines[end:]
+    else:
+        new_lines = list(lines)
+        if new_lines:
+            last_line = new_lines[-1]
+            if not last_line.endswith("\n"):
+                new_lines[-1] = last_line + newline
+            if new_lines[-1].strip():
+                new_lines.append(newline)
+        new_lines.extend(replacement)
+    config_path.write_text("".join(new_lines), encoding="utf-8")
+
+
+def save_user_style(name: str, mapping: Any = None, **kwargs) -> Path:
+    """Write ``[styles.<name>]`` to the personal ``simetri_config.toml``.
+
+    Overwrites that table if it already exists. Updates ``user_styles``
+    in this session. Fields whose value is ``None`` are not written.
+
+    Args:
+        name: Style name. Must be a TOML bare key (letters, digits, ``_``, ``-``).
+        mapping: A ``Style``, a dict of draw aliases, or omitted.
+        **kwargs: Draw-alias fields; overwrite ``mapping`` for those keys.
+
+    Returns:
+        Path to the personal config file.
+
+    Examples:
+        sg.save_user_style(
+            "outline", fill=False, line_width=3, line_color=sg.blue
+        )
+    """
+    from ..base.common_style import Style, coerce_style_overlay
+
+    if mapping is None and not kwargs:
+        raise TypeError(
+            "save_user_style() requires a Style, a dict, or keyword arguments"
+        )
+    if not _is_toml_bare_key(name):
+        raise ValueError(
+            f"Style name {name!r} is not a TOML bare key "
+            "(use letters, digits, '_' or '-')"
+        )
+    overlay = coerce_style_overlay(mapping, kwargs)
+    written: dict[str, Any] = {}
+    body_lines: list[str] = []
+    for key in sorted(overlay):
+        value = overlay[key]
+        if value is None:
+            continue
+        serialized = _serialize_shared_value(value)
+        written[key] = value
+        body_lines.append(f"{key} = {_format_toml_value(serialized)}")
+    if not body_lines:
+        raise ValueError(
+            f"Style {name!r} has no fields to save (all values are None)"
+        )
+    config_path = ensure_user_config()
+    _upsert_toml_table(config_path, f"styles.{name}", body_lines)
+    user_styles[name] = Style(written)
+    return config_path
+
+
+def save_user_defaults(mapping: Any = None, **kwargs) -> Path:
+    """Write ``[defaults]`` keys to the personal ``simetri_config.toml``.
+
+    Uncomments an existing catalog line for that key when present; otherwise
+    inserts the assignment under ``[defaults]``. Updates user overrides in
+    this session. Does not change library ``defaults.defaults``.
+
+    Args:
+        mapping: A dict of defaults keys to values, or omitted.
+        **kwargs: Defaults keys; overwrite ``mapping`` for those keys.
+
+    Returns:
+        Path to the personal config file.
+
+    Raises:
+        TypeError: No mapping or kwargs, or a value cannot be serialized.
+        KeyError: Unknown defaults key, or the key has no registered type.
+
+    Examples:
+        sg.save_user_defaults(line_width=1.5, page_size="A4")
+        sg.save_user_defaults({"fill_color": sg.blue})
+    """
+    from .settings import default_types, defaults
+
+    if mapping is None and not kwargs:
+        raise TypeError(
+            "save_user_defaults() requires a dict or keyword arguments"
+        )
+    updates: dict[str, Any] = {}
+    if mapping is not None:
+        if not isinstance(mapping, dict):
+            raise TypeError(
+                "save_user_defaults() mapping must be a dict, "
+                f"got {type(mapping).__name__}"
+            )
+        updates.update(mapping)
+    updates.update(kwargs)
+    if not updates:
+        raise TypeError(
+            "save_user_defaults() requires at least one defaults key"
+        )
+
+    converted_map: dict[str, Any] = {}
+    toml_literals: dict[str, str] = {}
+    for key in sorted(updates):
+        if key not in defaults.defaults:
+            raise KeyError(
+                f"Unknown defaults key {key!r} (simetri_config.toml)"
+            )
+        if key not in default_types:
+            raise KeyError(
+                f"Defaults key {key!r} has no registered type"
+            )
+        expected_type = default_types[key]
+        if not _is_exportable_default_type(expected_type):
+            raise TypeError(
+                f"Cannot serialize defaults key {key!r} of type "
+                f"{expected_type!r}"
+            )
+        converted = _convert_default_value(key, updates[key], expected_type)
+        serialized = _serialize_shared_value(converted)
+        converted_map[key] = converted
+        toml_literals[key] = _format_toml_value(serialized)
+
+    _update_default_keys(toml_literals)
+    for key, converted in converted_map.items():
+        _user_default_overrides[key] = converted
+        defaults.user_overrides[key] = converted
+    return user_config_path()
 
 
 def apply_user_config() -> Path:

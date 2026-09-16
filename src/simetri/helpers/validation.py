@@ -95,7 +95,7 @@ def check_int(value: Any) -> bool:
         >>> check_int(1.0)
         False
     """
-    return isinstance(value, int)
+    return isinstance(value, numbers.Integral) and not isinstance(value, bool)
 
 
 def check_number(number: Any) -> bool:
@@ -115,7 +115,7 @@ def check_number(number: Any) -> bool:
         >>> check_number("1")
         False
     """
-    return isinstance(number, (int, float))
+    return isinstance(number, numbers.Real) and not isinstance(number, bool)
 
 
 def check_alpha(alpha: Any) -> bool:
@@ -182,7 +182,10 @@ def check_dash_array(dash_array: Any) -> bool:
     if dash_array is None:
         res = True
     elif isinstance(dash_array, (list, tuple, ndarray)):
-        res = all(isinstance(x, (int, float)) for x in dash_array)
+        res = all(
+            isinstance(value, numbers.Real) and not isinstance(value, bool)
+            for value in dash_array
+        )
     elif isinstance(dash_array, LineDashArray):
         res = True
     else:
@@ -278,7 +281,7 @@ def check_blend_mode(blend_mode: Any) -> bool:
         >>> check_blend_mode("normal")
         False
     """
-    return blend_mode in BlendMode
+    return isinstance(blend_mode, BlendMode)
 
 
 def check_position(pos: Any) -> bool:
@@ -301,7 +304,10 @@ def check_position(pos: Any) -> bool:
     return (
         isinstance(pos, (list, tuple, ndarray))
         and len(pos) >= 2
-        and all(isinstance(x, (int, float)) for x in pos)
+        and all(
+            isinstance(coord, numbers.Real) and not isinstance(coord, bool)
+            for coord in pos
+        )
     )
 
 
@@ -382,7 +388,10 @@ def check_mask(mask: Any) -> bool:
         >>> check_mask(sg.Shape([(0, 0), (1, 0)]))
         True
     """
-    return mask.type == Types.SHAPE
+    try:
+        return mask.type == Types.SHAPE
+    except AttributeError:
+        return False
 
 
 def check_line_width(line_width: Any) -> bool:
@@ -405,9 +414,9 @@ def check_line_width(line_width: Any) -> bool:
         >>> check_line_width(sg.LineWidth.THIN)
         True
     """
-    if isinstance(line_width, (int, float)):
+    if isinstance(line_width, numbers.Real) and not isinstance(line_width, bool):
         res = line_width >= 0
-    elif line_width in all_enums.LineWidth:
+    elif isinstance(line_width, all_enums.LineWidth):
         res = True
     else:
         res = False
@@ -433,7 +442,7 @@ def check_anchor(anchor: Any) -> bool:
         >>> check_anchor("center")
         False
     """
-    return anchor in Anchor
+    return isinstance(anchor, Anchor)
 
 
 # Create a dictionary of enums for validation.
@@ -801,7 +810,7 @@ def is_number(x: Any) -> bool:
         >>> is_number(True)
         False
     """
-    return isinstance(x, (int, float, complex)) and not isinstance(x, bool)
+    return isinstance(x, numbers.Number) and not isinstance(x, bool)
 
 
 def is_point(pnt: Any) -> bool:

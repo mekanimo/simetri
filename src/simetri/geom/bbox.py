@@ -24,7 +24,7 @@ from ..config.settings import VOID, issue_warning
 from .geom_utils import midpoint
 from .geometry import polar_to_cartesian, positive_angle
 from .points.point_utils import distance
-from .segments.line_utils import intersect, line_angle, offset_line
+from .segments.line_utils import offset_line
 
 if TYPE_CHECKING:
     from ..group.batch import Group
@@ -133,22 +133,27 @@ class BoundingBox:
             PointType: Intersection of the ray with the bounding-box edge.
         """
         angle = positive_angle(angle)
-        line = ((0, 0), (np.cos(angle), np.sin(angle)))
+        direction_x = np.cos(angle)
+        direction_y = np.sin(angle)
+        midpoint_x, midpoint_y = self.midpoint[:2]
+        southwest_x, southwest_y = self.southwest[:2]
+        northeast_x, northeast_y = self.northeast[:2]
 
-        angle1 = line_angle(self.midpoint, self.northeast)
-        angle2 = -angle1  # midpoint, southeast
-        angle3 = np.pi - angle1  # midpoint, northwest
-        angle4 = -angle3  # midpoint, southwest
-        if angle3 >= angle >= angle1:
-            res = intersect(line, self.top)
-        elif angle4 <= angle <= angle2:
-            res = intersect(line, self.bottom)
-        elif angle1 <= angle <= angle2:
-            res = intersect(line, self.right)
-        else:
-            res = intersect(line, self.left)
+        distances = []
+        if direction_x > 0:
+            distances.append((northeast_x - midpoint_x) / direction_x)
+        elif direction_x < 0:
+            distances.append((southwest_x - midpoint_x) / direction_x)
+        if direction_y > 0:
+            distances.append((northeast_y - midpoint_y) / direction_y)
+        elif direction_y < 0:
+            distances.append((southwest_y - midpoint_y) / direction_y)
 
-        return res
+        distance_to_edge = min(distances)
+        return (
+            midpoint_x + distance_to_edge * direction_x,
+            midpoint_y + distance_to_edge * direction_y,
+        )
 
     @property
     def left(self):
@@ -486,9 +491,9 @@ class BoundingBox:
         elif side == Side.DIAGONAL2:
             res = offset_line(self.diagonal2, offset)
         elif side == Side.H_CENTERLINE:
-            res = offset_line(self.horiz_center_line, offset)
+            res = offset_line(self.horiz_centerline, offset)
         elif side == Side.V_CENTERLINE:
-            res = offset_line(self.vert_center_line, offset)
+            res = offset_line(self.vert_centerline, offset)
         else:
             raise ValueError(f"Unknown side: {side}")
 

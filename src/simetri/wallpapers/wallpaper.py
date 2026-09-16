@@ -224,9 +224,9 @@ def wallpaper_p1(
         Group: The resulting wallpaper pattern as a Group object.
     """
     dx1, dy1 = vector1
-    wallpaper = generator.translate(dx1, dy1, reps1)
+    wallpaper = generator.translate(dx1, dy1, reps=reps1)
     dx2, dy2 = vector2
-    wallpaper.translate(dx2, dy2, reps2)
+    wallpaper.translate(dx2, dy2, reps=reps2)
 
     return wallpaper
 

@@ -5,6 +5,8 @@ import re
 from math import acos, cos, degrees, pi, radians, sin, sqrt
 
 import numpy as np
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.ttLib import TTFont
 
 from ...base.all_enums import PathOperation as PathOps
 from ...base.common import PointType
@@ -578,6 +580,76 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     )
 
     return lp
+
+
+def extract_glyph_svg_path(font_path, character):
+    """Return the glyph name and SVG path ``d`` string for ``character``.
+
+    Args:
+        font_path: Path to a TrueType or OpenType font file.
+        character: A single character to look up in the font cmap.
+
+    Returns:
+        ``(glyph_name, svg_path_d)``.
+
+    Raises:
+        ValueError: If ``character`` is not in the font's character map.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> glyph_name, svg_d = sg.extract_glyph_svg_path(
+        ...     "c:/windows/fonts/times.ttf", "S"
+        ... )
+        >>> glyph_name
+        'S'
+        >>> svg_d.startswith("M")
+        True
+    """
+    font = TTFont(font_path)
+    cmap = font.getBestCmap()
+    char_code = ord(character)
+
+    if char_code not in cmap:
+        raise ValueError(
+            f"Character '{character}' not found in the font's character map."
+        )
+
+    glyph_name = cmap[char_code]
+    glyph_set = font.getGlyphSet()
+    glyph = glyph_set[glyph_name]
+    pen = SVGPathPen(glyph_set)
+    glyph.draw(pen)
+    svg_path_d = pen.getCommands()
+    return glyph_name, svg_path_d
+
+
+def extract_glyph_path(font_path, character, scale=0.1):
+    """Return the glyph name and a scaled ``Path2D`` for ``character``.
+
+    Args:
+        font_path: Path to a TrueType or OpenType font file.
+        character: A single character to look up in the font cmap.
+        scale: Scale factor applied to the path. Defaults to ``0.1``.
+
+    Returns:
+        ``(glyph_name, path)`` where ``path`` is a ``Path2D``.
+
+    Raises:
+        ValueError: If ``character`` is not in the font's character map.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> glyph_name, path = sg.extract_glyph_path(
+        ...     "c:/windows/fonts/times.ttf", "S", scale=0.1
+        ... )
+        >>> glyph_name
+        'S'
+        >>> isinstance(path, sg.Path2D)
+        True
+    """
+    glyph_name, svg_path = extract_glyph_svg_path(font_path, character)
+    path = svg_path_to_path2d(svg_path).scale(scale)
+    return glyph_name, path
 
 
 def path2d_to_svg_path(path2d: "Path2D") -> str:

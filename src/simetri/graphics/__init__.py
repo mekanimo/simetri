@@ -75,7 +75,7 @@ from ..geom.nonlinear.bezier import *
 from ..geom.nonlinear.circle import *
 from ..geom.nonlinear.ellipse import *
 from ..geom.nonlinear.hobby import *
-from ..geom.nonlinear.path import Operation, Path2D
+from ..geom.nonlinear.path import Operation, Path2D, path_code
 from ..geom.nonlinear.sine import *
 from ..geom.points.point_utils import *
 from ..geom.polygons.convex_hull import convex_hull
@@ -149,4 +149,20 @@ LinPath = Path2D
 
 # Explicit public re-exports (star-imports can drop or shadow these).
 from ..base.common_style import Style
-from ..helpers.help_utils import doc, help
+from ..helpers.help_utils import _similar_sg_attribute_names, doc, help
+from ..render.render_svg.svg_utils import (
+    extract_glyph_path,
+    extract_glyph_svg_path,
+)
+
+
+def __getattr__(name: str):
+    """Raise an AttributeError with similar public ``sg`` names."""
+    matches = _similar_sg_attribute_names(name)
+    if matches:
+        suggestions = "\n  ".join(matches)
+        raise AttributeError(
+            f"module {__name__!r} has no attribute {name!r}. Similar names:\n"
+            f"  {suggestions}"
+        )
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

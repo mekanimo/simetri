@@ -80,7 +80,7 @@ from simetri.helpers.validation import (
     validate_args,
     warn_unknown_kwargs,
 )
-from simetri.images.image import Image
+from simetri.images.image import Image, draw_on_image as draw_sketches_on_image
 from simetri.notebook import display
 from simetri.render import draw
 from simetri.render.render_tikz.tikz import get_tex_code
@@ -1591,6 +1591,42 @@ class Canvas:
             Self: The canvas object.
         """
         draw.draw_image(self, image, pos, **kwargs)
+        return self
+
+    def draw_on_image(self, item: Drawable, image: Image, **kwargs) -> Image:
+        """Draw an item on a copy of an image.
+
+        Args:
+            item: Shape or group to draw.
+            image: Simetri image used as the pixel base.
+            **kwargs: Style overrides applied while creating sketches.
+
+        Returns:
+            Image: New image with the item drawn on it.
+        """
+        warn_unknown_kwargs(
+            kwargs,
+            get_draw_valid_kwargs(),
+            context="canvas.draw_on_image",
+            stacklevel=3,
+        )
+        sketches = draw.get_sketches(item, self, **kwargs)
+
+        return draw_sketches_on_image(sketches, image)
+
+    def save_image(self, image: Image, filepath: Path, **params) -> Self:
+        """Save an image to a file.
+
+        Args:
+            image: Simetri image to save.
+            filepath: Output file path.
+            **params: Extra Pillow save parameters.
+
+        Returns:
+            Self: The canvas object.
+        """
+        image.save(filepath, **params)
+
         return self
 
     def draw_latex(

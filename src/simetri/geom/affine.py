@@ -197,7 +197,7 @@ def inv_rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
     # translate it back to initial pos
     inv_trans_mat = translation_matrix(dx, dy)
     # compose the transformation matrix
-    return inv_trans_mat @ rot_mat.T @ trans_mat
+    return trans_mat @ rot_mat.T @ inv_trans_mat
 
 
 def glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
@@ -231,8 +231,7 @@ def glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
 def inv_glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
     """
     Return the inverse of a glide-reflection matrix in row-major form.
-    Reflect about the given vector then translate by dx
-    along the same vector.
+    Translate back along the given line then reflect about that line.
 
     Args:
         mirror_line (LineType): The line to mirror about.
@@ -244,14 +243,14 @@ def inv_glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
     Examples:
         >>> import simetri.graphics as sg
         >>> M = sg.inv_glide_matrix([(0, 0), (1, 0)], 5)
-        >>> points = sg.homogenize([[0, 1], [2, 3]])
+        >>> points = sg.homogenize([[5, -1], [7, -3]])
         >>> print(points @ M)
-        [[ 5. -1.  1.]
-         [ 7. -3.  1.]]
+        [[0. 1. 1.]
+         [2. 3. 1.]]
     """
     mirror_mat = mirror_about_line_matrix(mirror_line)
     x, y = vec_along_line(mirror_line, distance)[:2]
-    trans_matrix = translation_matrix(x, y)
+    trans_matrix = inv_translation_matrix(x, y)
 
     return trans_matrix @ mirror_mat
 
@@ -375,10 +374,19 @@ def inv_shear_matrix(angle_x: float, angle_y: float = 0) -> NDArray:
         >>> M = sg.inv_shear_matrix(sg.pi / 4)
         >>> points = sg.homogenize([[1, 1], [1, 0]])
         >>> print(np.round(points @ M, 10))
-        [[ 1.  0.  1.]
-         [ 1. -1.  1.]]
+        [[0. 1. 1.]
+         [1. 0. 1.]]
     """
-    return np.array([[1, -tan(angle_x), 0], [-tan(angle_y), 1, 0], [0, 0, 1.0]])
+    tan_x = tan(angle_x)
+    tan_y = tan(angle_y)
+    determinant = 1 - tan_x * tan_y
+    return np.array(
+        [
+            [1 / determinant, -tan_y / determinant, 0],
+            [-tan_x / determinant, 1 / determinant, 0],
+            [0, 0, 1.0],
+        ]
+    )
 
 
 def mirror_matrix(about: LineType | PointType) -> NDArray:

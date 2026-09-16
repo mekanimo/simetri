@@ -11,10 +11,12 @@ from math import degrees
 from typing import Any
 
 from PIL import Image as PIL_Image
+from PIL import ImageDraw
 
 from ..base.all_enums import Anchor, ImageMode, TransformationType, Types
 from ..base.common import PointType
 from ..base.core import _update_inplace
+from ..coloring.colors import check_color
 from ..geom.affine import (
     rotation_matrix,
     scale_in_place_matrix,
@@ -223,9 +225,7 @@ class Image(Rectangle):
         image = self
         for i in range(reps):
             if incr is not None and i > 0:
-                xform_matrix = _update_inplace(
-                    xform_matrix, xform_type, incr
-                )
+                xform_matrix = _update_inplace(xform_matrix, xform_type, incr)
             image = image.copy()
             image._update(xform_matrix)
             images.append(image)
@@ -822,3 +822,288 @@ def create_image_from_data(image_path):
     except (OSError, ValueError) as e:
         print(f"An error occurred: {e}")
         return None
+
+
+def _normalize_target_image(image):
+    """Return a Simetri Image wrapper for image drawing."""
+    if isinstance(image, Image):
+        target = image
+    elif isinstance(image, PIL_Image.Image):
+        target = Image(img=image)
+    else:
+        raise TypeError("image must be a Simetri Image or a PIL Image.")
+
+    return target
+
+
+def _anchor_bounds(
+    anchor: Anchor,
+    pos: PointType,
+    width: float,
+    height: float,
+) -> tuple[float, float, float, float]:
+    """Return left, bottom, right, top bounds for an anchored image."""
+    pos_x, pos_y = pos[:2]
+    if anchor == Anchor.CENTER:
+        left = pos_x - width / 2
+        bottom = pos_y - height / 2
+    elif anchor == Anchor.NORTH:
+        left = pos_x - width / 2
+        bottom = pos_y - height
+    elif anchor == Anchor.SOUTH:
+        left = pos_x - width / 2
+        bottom = pos_y
+    elif anchor == Anchor.EAST:
+        left = pos_x - width
+        bottom = pos_y - height / 2
+    elif anchor == Anchor.WEST:
+        left = pos_x
+        bottom = pos_y - height / 2
+    elif anchor == Anchor.NORTHEAST:
+        left = pos_x - width
+        bottom = pos_y - height
+    elif anchor == Anchor.NORTHWEST:
+        left = pos_x
+        bottom = pos_y - height
+    elif anchor == Anchor.SOUTHEAST:
+        left = pos_x - width
+        bottom = pos_y
+    elif anchor == Anchor.SOUTHWEST:
+        left = pos_x
+        bottom = pos_y
+    else:
+        raise ValueError(f"Unsupported image anchor: {anchor!r}")
+
+    return left, bottom, left + width, bottom + height
+
+
+def _image_bounds(image: Image) -> tuple[float, float, float, float]:
+    """Return image bounds in Simetri canvas coordinates."""
+    width, height = image.pil_img.size
+    return _anchor_bounds(image.anchor, image.pos, width, height)
+
+
+def _canvas_to_pixel(
+    point: PointType,
+    bounds: tuple[float, float, float, float],
+) -> tuple[float, float]:
+    """Map a Simetri canvas point to Pillow pixel coordinates."""
+    left, _, _, top = bounds
+    point_x, point_y = point[:2]
+
+    return point_x - left, top - point_y
+
+
+def _points_to_pixels(
+    points: Sequence[PointType],
+    bounds: tuple[float, float, float, float],
+) -> list[tuple[float, float]]:
+    """Map Simetri canvas points to Pillow pixel coordinates."""
+    return [_canvas_to_pixel(point, bounds) for point in points]
+
+
+def _style_rgba(color, alpha: float) -> tuple[int, int, int, int]:
+    """Return a Pillow RGBA tuple from a Simetri color and alpha."""
+    if color is None:
+        raise ValueError("Color must be resolved before drawing on an image.")
+    if alpha is None:
+        raise ValueError("Alpha must be resolved before drawing on an image.")
+
+    color_value = check_color(color)
+    red, green, blue = color_value.rgb255
+    _, _, _, color_alpha = color_value.rgba255
+    combined_alpha = round(color_alpha * alpha)
+
+    return red, green, blue, combined_alpha
+
+
+def _fill_rgba(sketch):
+    """Return Pillow fill color for a sketch."""
+    fill = sketch.fill
+    if fill:
+        fill_color = _style_rgba(sketch.fill_color, sketch.fill_alpha)
+    else:
+        fill_color = None
+
+    return fill_color
+
+
+def _stroke_rgba(sketch):
+    """Return Pillow stroke color for a sketch."""
+    stroke = sketch.stroke
+    if stroke:
+        line_color = _style_rgba(sketch.line_color, sketch.line_alpha)
+    else:
+        line_color = None
+
+    return line_color
+
+
+def _line_width(sketch) -> int:
+    """Return Pillow line width for a sketch."""
+    line_width = sketch.line_width
+    if line_width is None:
+        raise ValueError("Line width must be resolved before drawing on an image.")
+    pixel_width = round(line_width)
+    if pixel_width < 1:
+        raise ValueError("Line width must be at least one pixel.")
+
+    return pixel_width
+
+
+def _flatten_sketches(sketches) -> list:
+    """Flatten sketch lists and composite sketches."""
+    if isinstance(sketches, Sequence):
+        candidates = sketches
+    else:
+        candidates = (sketches,)
+
+    flat_sketches = []
+    for sketch in candidates:
+        if isinstance(sketch, Sequence):
+            flat_sketches.extend(_flatten_sketches(sketch))
+        elif sketch.subtype == Types.COMPOSITE_SKETCH:
+            flat_sketches.extend(_flatten_sketches(sketch.sketches))
+        else:
+            flat_sketches.append(sketch)
+
+    return flat_sketches
+
+
+def _draw_shape_sketch(drawer, sketch, bounds) -> None:
+    """Draw a polygon/polyline sketch on a Pillow drawer."""
+    vertices = _points_to_pixels(sketch.vertices, bounds)
+    fill_color = _fill_rgba(sketch)
+    line_color = _stroke_rgba(sketch)
+
+    if sketch.closed:
+        if fill_color is not None:
+            drawer.polygon(vertices, fill=fill_color)
+        if line_color is not None:
+            line_width = _line_width(sketch)
+            outline_vertices = vertices + [vertices[0]]
+            drawer.line(outline_vertices, fill=line_color, width=line_width)
+    elif line_color is not None:
+        line_width = _line_width(sketch)
+        drawer.line(vertices, fill=line_color, width=line_width)
+
+
+def _draw_line_sketch(drawer, sketch, bounds) -> None:
+    """Draw a line sketch on a Pillow drawer."""
+    vertices = _points_to_pixels(sketch.vertices, bounds)
+    line_color = _stroke_rgba(sketch)
+    if line_color is not None:
+        line_width = _line_width(sketch)
+        drawer.line(vertices, fill=line_color, width=line_width)
+
+
+def _draw_circle_sketch(drawer, sketch, bounds) -> None:
+    """Draw a circle sketch on a Pillow drawer."""
+    center_x, center_y = sketch.center[:2]
+    radius = sketch.radius
+    left = center_x - radius
+    right = center_x + radius
+    bottom = center_y - radius
+    top = center_y + radius
+    bbox_left, bbox_top = _canvas_to_pixel((left, top), bounds)
+    bbox_right, bbox_bottom = _canvas_to_pixel((right, bottom), bounds)
+    fill_color = _fill_rgba(sketch)
+    line_color = _stroke_rgba(sketch)
+    if line_color is None:
+        drawer.ellipse(
+            (bbox_left, bbox_top, bbox_right, bbox_bottom),
+            fill=fill_color,
+            outline=line_color,
+        )
+    else:
+        line_width = _line_width(sketch)
+        drawer.ellipse(
+            (bbox_left, bbox_top, bbox_right, bbox_bottom),
+            fill=fill_color,
+            outline=line_color,
+            width=line_width,
+        )
+
+
+def _draw_ellipse_sketch(drawer, sketch, bounds) -> None:
+    """Draw an unrotated ellipse sketch on a Pillow drawer."""
+    if sketch.angle != 0:
+        raise NotImplementedError(
+            "draw_on_image does not support rotated ellipse sketches."
+        )
+
+    center_x, center_y = sketch.center[:2]
+    left = center_x - sketch.x_radius
+    right = center_x + sketch.x_radius
+    bottom = center_y - sketch.y_radius
+    top = center_y + sketch.y_radius
+    bbox_left, bbox_top = _canvas_to_pixel((left, top), bounds)
+    bbox_right, bbox_bottom = _canvas_to_pixel((right, bottom), bounds)
+    fill_color = _fill_rgba(sketch)
+    line_color = _stroke_rgba(sketch)
+    if line_color is None:
+        drawer.ellipse(
+            (bbox_left, bbox_top, bbox_right, bbox_bottom),
+            fill=fill_color,
+            outline=line_color,
+        )
+    else:
+        line_width = _line_width(sketch)
+        drawer.ellipse(
+            (bbox_left, bbox_top, bbox_right, bbox_bottom),
+            fill=fill_color,
+            outline=line_color,
+            width=line_width,
+        )
+
+
+def _draw_sketch_on_image(drawer, sketch, bounds) -> None:
+    """Draw one supported sketch on a Pillow drawer."""
+    subtype = sketch.subtype
+    if subtype == Types.SHAPE_SKETCH:
+        _draw_shape_sketch(drawer, sketch, bounds)
+    elif subtype == Types.LINE_SKETCH:
+        _draw_line_sketch(drawer, sketch, bounds)
+    elif subtype == Types.CIRCLE_SKETCH:
+        _draw_circle_sketch(drawer, sketch, bounds)
+    elif subtype == Types.ELLIPSE_SKETCH:
+        _draw_ellipse_sketch(drawer, sketch, bounds)
+    else:
+        raise NotImplementedError(
+            f"draw_on_image does not support {subtype!r} sketches."
+        )
+
+
+def draw_on_image(sketches, image):
+    """Draw sketch snapshots on a copy of the given image.
+
+    Args:
+        sketches: Sketch or sequence of sketches to draw.
+        image: Simetri ``Image`` or Pillow image used as the pixel base.
+
+    Returns:
+        Image: New Simetri image containing the drawn sketches.
+    """
+    target = _normalize_target_image(image)
+    source_mode = target.pil_img.mode
+    base_rgba = target.pil_img.convert(ImageMode.RGBA)
+    overlay = PIL_Image.new(ImageMode.RGBA, base_rgba.size, (0, 0, 0, 0))
+    drawer = ImageDraw.Draw(overlay, ImageMode.RGBA)
+    bounds = _image_bounds(target)
+
+    for sketch in _flatten_sketches(sketches):
+        _draw_sketch_on_image(drawer, sketch, bounds)
+
+    drawn_rgba = PIL_Image.alpha_composite(base_rgba, overlay)
+    if source_mode == ImageMode.RGBA:
+        drawn_pil = drawn_rgba
+    else:
+        drawn_pil = drawn_rgba.convert(source_mode)
+
+    result = Image(img=drawn_pil, pos=target.pos)
+    result.primary_points = target.primary_points.copy()
+    result.xform_matrix = target.xform_matrix
+    result.file_path = target.file_path
+    result.anchor = target.anchor
+
+    return result

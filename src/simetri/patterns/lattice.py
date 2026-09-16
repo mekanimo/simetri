@@ -359,7 +359,12 @@ class Lattice:
             dy = self.b
             self.pattern = pattern.translate(0, dy, reps=reps)
 
-    def expand(self, kernel, reps: int = 1) -> Group:
+    def expand(
+        self,
+        kernel,
+        reps1: int = 1,
+        reps2: int | None = None,
+    ) -> "Lattice":
         """Replace ``pattern`` by expanding a fresh copy of ``kernel``.
 
         Stores a clean copy on ``self.kernel`` and builds ``self.pattern`` from
@@ -368,16 +373,23 @@ class Lattice:
 
         Args:
             kernel: Motif ``Shape`` or ``Group``.
-            reps: Expansion repetitions; must be ``> 0``. Defaults to 1.
+            reps1: Extra copies along the first lattice axis (``a`` / ``u``).
+                Must be ``> 0``. Defaults to 1.
+            reps2: Extra copies along the second lattice axis (``b`` / ``v``).
+                If None, uses ``reps1``. Must be ``> 0``. Defaults to None.
 
         Returns:
             Lattice: ``self``, for chaining.
 
         Raises:
-            ValueError: If ``reps`` is not greater than 0.
+            ValueError: If ``reps1`` or ``reps2`` is not greater than 0.
         """
-        if reps <= 0:
-            raise ValueError("expand requires reps > 0")
+        if reps2 is None:
+            reps2 = reps1
+        if reps1 <= 0:
+            raise ValueError("expand requires reps1 > 0")
+        if reps2 <= 0:
+            raise ValueError("expand requires reps2 > 0")
 
         self.kernel = kernel.copy()
         self.populate_unit(self.kernel.copy())
@@ -385,19 +397,21 @@ class Lattice:
         subtype = self.subtype
         if subtype in (LatType.HEX, LatType.PAR):
             pattern.translate(dx=self.bx, dy=self.by, reps=1)
-            pattern.translate(dx=0, dy=2 * self.by, reps=reps).translate(
-                dx=self.a, reps=reps
+            pattern.translate(dx=0, dy=2 * self.by, reps=reps2).translate(
+                dx=self.a, reps=reps1
             )
 
         elif subtype in [LatType.SQR, LatType.RECT]:
-            pattern.translate(self.a, reps=reps).translate(0, self.b, reps=reps)
+            pattern.translate(self.a, reps=reps1).translate(
+                0, self.b, reps=reps2
+            )
 
         elif subtype == LatType.RHOMB:
             width = self.unit.width
             height = self.unit.height
             pattern.translate(dx=self.bx, dy=self.by, reps=1).translate(
-                dx=0, dy=height, reps=reps
-            ).translate(dx=width, reps=reps)
+                dx=0, dy=height, reps=reps2
+            ).translate(dx=width, reps=reps1)
 
         return self
 
@@ -863,10 +877,14 @@ def get_unit(lat, group, vertical=False, **kwargs):
     # canvas.draw(
     #     Shape(points, closed=True), color=light_gold, fill=True
     # )
-    unit.append(Shape(points, closed=True, color=light_gold, fill=True))
+    fund_shape = Shape(points, closed=True, color=light_gold, fill=True)
+    unit.append(fund_shape)
 
     # canvas.draw(lat.unit)
-    unit.append(lat.unit)
+    # p1's fund domain is the unit parallelogram; appending both
+    # is the same geometry twice (Group.append compares Shape.__eq__).
+    if fund_shape != lat.unit:
+        unit.append(lat.unit)
 
     for line in hairlines:
         p1, p2 = line

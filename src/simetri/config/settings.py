@@ -20,6 +20,9 @@ __all__ = [
     "resolve_save_filepath",
     "resume_warning",
     "resume_warnings",
+    "save_user_defaults",
+    "save_user_style",
+    "save_user_warning",
     "set_all_warnings_off",
     "set_all_warnings_on",
     "set_defaults",
@@ -43,6 +46,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from math import pi
+from pathlib import Path
 
 import numpy as np
 
@@ -76,6 +80,8 @@ from .user_config import (
     apply_user_config,
     generate_shared_toml,
     resolve_save_filepath,
+    save_user_defaults,
+    save_user_style,
     set_user_settings_path,
     use_settings,
     user_config_path,
@@ -209,9 +215,7 @@ def issue_warning(
     if warning_type in _disabled_warning_types:
         return
 
-    type_tag = (
-        f"[to turn it off use: sg.set_warning_off({_warning_type_label(warning_type)})]"
-    )
+    type_tag = f"[to turn it off use: sg.set_warning_off({_warning_type_label(warning_type)})]"
     tagged_message = f"{message} {type_tag}"
 
     caller = sys._getframe(1)
@@ -304,6 +308,31 @@ def set_warning_on(warning: StrEnum | type[StrEnum]) -> None:
     defaults["show_warnings"] = True
     persist_warnings_on_flag(True)
     persist_warning_leaves(leaves, True)
+
+
+def save_user_warning(
+    warning: StrEnum | type[StrEnum], enabled: bool = True
+) -> Path:
+    """Write a warning leaf or group to the personal ``simetri_config.toml``.
+
+    Same session effect as ``set_warning_on`` / ``set_warning_off``.
+
+    Args:
+        warning: ``WarningType.group`` or ``WarningType.group.duplicate``.
+        enabled: ``True`` to enable, ``False`` to disable.
+
+    Returns:
+        Path to the personal config file.
+
+    Examples:
+        sg.save_user_warning(sg.WarningType.style.line_fill_color, enabled=False)
+        sg.save_user_warning(sg.WarningType.group)
+    """
+    if enabled:
+        set_warning_on(warning)
+    else:
+        set_warning_off(warning)
+    return user_config_path()
 
 
 @dataclass
@@ -1341,6 +1370,13 @@ def set_defaults():
         "Default width for non-deferred help lines. Positive float. Length in <points>."
     )
 
+    defaults["help_suggestion_limit"] = 8
+    default_types["help_suggestion_limit"] = int
+    defaults_help["help_suggestion_limit"] = (
+        "Maximum number of similar-name suggestions shown by sg.help and sg.doc. "
+        "Positive integer."
+    )
+
     defaults["image_align"] = Align.CENTER
     default_types["image_align"] = Align
     defaults_help["image_align"] = (
@@ -2041,9 +2077,7 @@ def set_defaults():
         "Relative tolerance. Positive float. Length in <points>. "
     )
 
-    defaults["render"] = (
-        "SVG"  # Render.TEX, Render.SVG use string values
-    )
+    defaults["render"] = "SVG"  # Render.TEX, Render.SVG use string values
     default_types["render"] = str
     defaults_help["render"] = (
         "Render output format. Render enum. Valid values: EPS, PDF, SVG, TEX."

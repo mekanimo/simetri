@@ -11,9 +11,10 @@ Examples:
 
 import re
 from collections import deque
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from enum import Enum
 from math import acos, atan2, cos, degrees, pi, radians, sin, sqrt
-from collections.abc import Callable
 from typing import Any, Self
 
 import numpy as np
@@ -31,7 +32,7 @@ from ...base.all_enums import (
 from ...base.all_enums import PathOperation as PathOps
 from ...base.common import PointType
 from ...base.common_style import CommonStyle
-from ...base.core import _Targets, _next_xform_matrix
+from ...base.core import _next_xform_matrix, _Targets
 from ...coloring.colors import Color
 from ...config.settings import defaults
 from ...group.batch import Group
@@ -53,7 +54,7 @@ from .bezier import Bezier
 
 # Path operations whose objects are dense samples; labels use endpoints only.
 _CURVE_PATH_OPS = frozenset(
-    {
+    (
         PathOps.ARC,
         PathOps.ARC_TO,
         PathOps.BLEND_ARC,
@@ -64,7 +65,38 @@ _CURVE_PATH_OPS = frozenset(
         PathOps.HOBBY_TO,
         PathOps.QUAD_TO,
         PathOps.SINE,
-    }
+    )
+)
+_ARC_CODE_PATH_OPS = frozenset(
+    (PathOps.ARC, PathOps.ARC_TO, PathOps.BLEND_ARC)
+)
+_ARC_PATH_OPS = frozenset((PathOps.ARC, PathOps.BLEND_ARC))
+_BEZIER_PATH_OPS = frozenset((PathOps.CUBIC_TO, PathOps.QUAD_TO))
+_CUBIC_PATH_OPS = frozenset((PathOps.BLEND_CUBIC, PathOps.CUBIC_TO))
+_LINE_PATH_OPS = frozenset(
+    (
+        PathOps.FORWARD,
+        PathOps.H_LINE_TO,
+        PathOps.LINE_TO,
+        PathOps.R_H_LINE,
+        PathOps.R_LINE,
+        PathOps.R_V_LINE,
+        PathOps.V_LINE_TO,
+    )
+)
+_LINE_TO_FORWARD_OPS = frozenset((PathOps.FORWARD, PathOps.LINE_TO))
+_MOVE_PATH_OPS = frozenset((PathOps.MOVE_TO, PathOps.R_MOVE))
+_POLYLINE_PATH_OPS = frozenset((PathOps.HOBBY_TO, PathOps.SEGMENTS))
+_QUAD_PATH_OPS = frozenset((PathOps.BLEND_QUAD, PathOps.QUAD_TO))
+_SINE_PATH_OPS = frozenset((PathOps.BLEND_SINE, PathOps.SINE))
+_BEZIER_BLEND_PATH_OPS = _CUBIC_PATH_OPS | _QUAD_PATH_OPS
+_HEADING_FROM_DATA_OPS = _ARC_PATH_OPS | _SINE_PATH_OPS
+_OPEN_SUBPATH_OPS = (
+    _ARC_PATH_OPS
+    | _BEZIER_PATH_OPS
+    | _LINE_PATH_OPS
+    | _SINE_PATH_OPS
+    | frozenset((PathOps.SEGMENTS,))
 )
 from .ellipse import (
     ellipse_tangent,
@@ -284,28 +316,23 @@ class Path2D(Group, CommonStyle):
         op = self.operations[-1]
         op_type = op.subtype
         data = op.data
-        if op_type in (PO.MOVE_TO, PO.R_MOVE):
+        if op_type in _OPEN_SUBPATH_OPS and self.cur_shape.closed:
+            self.cur_shape = Shape([self.pos])
+            self.append(self.cur_shape)
+        if op_type in _MOVE_PATH_OPS:
             self.cur_shape = Shape([data])
             self.append(self.cur_shape)
             self.objects.append(None)
-        elif op_type in [
-            PO.LINE_TO,
-            PO.R_LINE,
-            PO.R_H_LINE,
-            PO.R_V_LINE,
-            PO.H_LINE_TO,
-            PO.V_LINE_TO,
-            PO.FORWARD,
-        ]:
+        elif op_type in _LINE_PATH_OPS:
             self.objects.append(Shape(data))
             self.cur_shape.append(data[1])
-        elif op_type in [PO.SEGMENTS]:
+        elif op_type == PO.SEGMENTS:
             self.objects.append(Shape(data[1]))
             self.cur_shape.extend(data[1])
-        elif op_type in [PO.SINE, PO.BLEND_SINE]:
+        elif op_type in _SINE_PATH_OPS:
             self.objects.append(Shape(data[0]))
             self.cur_shape.extend(data[0])
-        elif op_type in [PO.CUBIC_TO, PO.QUAD_TO]:
+        elif op_type in _BEZIER_PATH_OPS:
             n_points = defaults["n_bezier_points"]
             curve = Bezier(data, n_points=n_points)
             self.objects.append(curve)
@@ -315,18 +342,16 @@ class Path2D(Group, CommonStyle):
             else:
                 self.handles.append((data[0], data[1]))
                 self.handles.append((data[1], data[2]))
-        elif op_type in [PO.HOBBY_TO]:
+        elif op_type == PO.HOBBY_TO:
             n_points = defaults["n_hobby_points"]
             curve = hobby_shape(data[1], n_points=n_points)
             self.objects.append(Shape(curve.vertices))
-        elif op_type in [PO.ARC, PO.BLEND_ARC]:
+        elif op_type in _ARC_PATH_OPS:
             self.objects.append(Shape(data[-1]))
             self.cur_shape.extend(data[-1][1:])
-        elif op_type in [PO.CLOSE]:
+        elif op_type == PO.CLOSE:
             self.cur_shape.closed = True
-            self.cur_shape = Shape([self.pos])
             self.objects.append(None)
-            self.append(self.cur_shape)
         else:
             raise ValueError(f"Invalid operation type: {op_type}")
 
@@ -387,12 +412,7 @@ class Path2D(Group, CommonStyle):
                 overrides applied to the segment.
         """
         self.operations.append(Operation(op, data))
-        if op in [
-            PathOps.ARC,
-            PathOps.BLEND_ARC,
-            PathOps.SINE,
-            PathOps.BLEND_SINE,
-        ]:
+        if op in _HEADING_FROM_DATA_OPS:
             self.angle = data[1]
         else:
             if pnt2 is not None:
@@ -995,10 +1015,7 @@ class Path2D(Group, CommonStyle):
         # Get previous control point from last operation if it was a cubic
         prev_c2 = self.pos
         last_op = self.operations[-1] if self.operations else None
-        if last_op and last_op.subtype in [
-            PathOps.CUBIC_TO,
-            PathOps.BLEND_CUBIC,
-        ]:
+        if last_op and last_op.subtype in _CUBIC_PATH_OPS:
             # data: (start, c1, c2, end)
             prev_c2 = last_op.data[2]
 
@@ -1064,7 +1081,7 @@ class Path2D(Group, CommonStyle):
         # Get previous control point from last operation if it was a quad
         prev_c1 = self.pos
         last_op = self.operations[-1] if self.operations else None
-        if last_op and last_op.subtype in (PathOps.QUAD_TO, PathOps.BLEND_QUAD):
+        if last_op and last_op.subtype in _QUAD_PATH_OPS:
             # data: (start, c1, end)
             prev_c1 = last_op.data[1]
 
@@ -1456,6 +1473,8 @@ class Path2D(Group, CommonStyle):
             >>> p = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 10)).close()
             >>> p.closed
             True
+            >>> len(p[-1].vertices) > 1
+            True
         """
         self.closed = True
         self._add(self.pos, PathOps.CLOSE, None, **kwargs)
@@ -1698,35 +1717,24 @@ def _transform_path_operation(
     data = operation.data
     transformed_data = data
 
-    if subtype in (PathOps.MOVE_TO, PathOps.R_MOVE):
+    if subtype in _MOVE_PATH_OPS:
         transformed_data = _transform_path_point(data, xform_matrix)
-    elif subtype in [
-        PathOps.LINE_TO,
-        PathOps.R_LINE,
-        PathOps.H_LINE_TO,
-        PathOps.R_H_LINE,
-        PathOps.V_LINE_TO,
-        PathOps.R_V_LINE,
-        PathOps.FORWARD,
-    ]:
+    elif subtype in _LINE_PATH_OPS:
         transformed_data = tuple(
             _transform_path_point(point, xform_matrix) for point in data
         )
-    elif subtype in [PathOps.SEGMENTS, PathOps.HOBBY_TO]:
+    elif subtype in _POLYLINE_PATH_OPS:
         transformed_data = (
             _transform_path_point(data[0], xform_matrix),
             _transform_path_points(data[1], xform_matrix),
         )
-    elif subtype in [PathOps.CUBIC_TO, PathOps.BLEND_CUBIC] or subtype in [
-        PathOps.QUAD_TO,
-        PathOps.BLEND_QUAD,
-    ]:
+    elif subtype in _BEZIER_BLEND_PATH_OPS:
         transformed_data = tuple(
             _transform_path_point(point, xform_matrix) for point in data
         )
-    elif subtype in [PathOps.ARC, PathOps.BLEND_ARC]:
+    elif subtype in _ARC_PATH_OPS:
         transformed_data = _transform_arc_data(data, xform_matrix)
-    elif subtype in [PathOps.SINE, PathOps.BLEND_SINE]:
+    elif subtype in _SINE_PATH_OPS:
         transformed_points = _transform_path_points(data[0], xform_matrix)
         transformed_data = (
             transformed_points,
@@ -1787,19 +1795,11 @@ def lin_path_svg(lin_path):
             else None
         )
 
-        if st in (PO.MOVE_TO, PO.R_MOVE):
+        if st in _MOVE_PATH_OPS:
             # data is point (x,y)
             parts.append(f"M {fmt(data[0])},{fmt(data[1])}")
 
-        elif st in [
-            PO.LINE_TO,
-            PO.R_LINE,
-            PO.H_LINE_TO,
-            PO.R_H_LINE,
-            PO.V_LINE_TO,
-            PO.R_V_LINE,
-            PO.FORWARD,
-        ]:
+        elif st in _LINE_PATH_OPS:
             # data is (start, end)
             end = data[1]
             parts.append(f"L {fmt(end[0])},{fmt(end[1])}")
@@ -1809,21 +1809,21 @@ def lin_path_svg(lin_path):
             for p in data[1]:
                 parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
 
-        elif st in [PO.CUBIC_TO, PO.BLEND_CUBIC]:
+        elif st in _CUBIC_PATH_OPS:
             # data: (start, c1, c2, end)
             c1, c2, end = data[1], data[2], data[3]
             parts.append(
                 f"C {fmt(c1[0])},{fmt(c1[1])} {fmt(c2[0])},{fmt(c2[1])} {fmt(end[0])},{fmt(end[1])}"
             )
 
-        elif st in [PO.QUAD_TO, PO.BLEND_QUAD]:
+        elif st in _QUAD_PATH_OPS:
             # data: (start, c1, end)
             c1, end = data[1], data[2]
             parts.append(
                 f"Q {fmt(c1[0])},{fmt(c1[1])} {fmt(end[0])},{fmt(end[1])}"
             )
 
-        elif st in [PO.ARC, PO.BLEND_ARC]:
+        elif st in _ARC_PATH_OPS:
             # data: (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points)
             rx, ry = data[2], data[3]
             span = data[5]
@@ -1844,7 +1844,7 @@ def lin_path_svg(lin_path):
         elif st == PO.CLOSE:
             parts.append("Z")
 
-        elif st in [PO.SINE, PO.BLEND_SINE]:
+        elif st in _SINE_PATH_OPS:
             # data[0] is points
             for p in data[0]:
                 parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
@@ -1858,6 +1858,268 @@ def lin_path_svg(lin_path):
         obj_idx += 1
 
     return " ".join(parts)
+
+
+def _format_path_code_number(value: Any, n_round: int | None = None) -> str:
+    """Return a Python numeric literal for path-code generation."""
+    if n_round is None:
+        if isinstance(value, (int, np.integer)):
+            return repr(int(value))
+        number = float(value)
+    else:
+        number = round(float(value), n_round)
+    if number.is_integer():
+        return repr(int(number))
+    return repr(number)
+
+
+def _format_path_code_point(point: PointType, n_round: int) -> str:
+    """Return a ``(x, y)`` literal. ``point`` may be length 2 or 3."""
+    x, y = point[:2]
+    return (
+        f"({_format_path_code_number(x, n_round)}, "
+        f"{_format_path_code_number(y, n_round)})"
+    )
+
+
+def _format_path_code_points(points: Sequence, n_round: int) -> str:
+    """Return a ``[(x, y), ...]`` literal."""
+    items = ", ".join(
+        _format_path_code_point(point, n_round) for point in points
+    )
+    return f"[{items}]"
+
+
+def _format_path_code_value(value: Any) -> str:
+    """Return a Python literal for a style or scalar path-code value."""
+    if value is None:
+        return "None"
+    if isinstance(value, bool):
+        return "True" if value else "False"
+    if isinstance(value, Enum):
+        return f"sg.{type(value).__name__}.{value.name}"
+    if isinstance(value, Color):
+        red = _format_path_code_number(value.red)
+        green = _format_path_code_number(value.green)
+        blue = _format_path_code_number(value.blue)
+        if value.alpha == 1:
+            return f"sg.Color({red}, {green}, {blue})"
+        alpha = _format_path_code_number(value.alpha)
+        return f"sg.Color({red}, {green}, {blue}, {alpha})"
+    if isinstance(value, str):
+        return repr(value)
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        return _format_path_code_number(value)
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        items = ", ".join(_format_path_code_value(item) for item in value)
+        return f"[{items}]"
+    raise TypeError(
+        f"Cannot generate path code for value of type {type(value).__name__}: "
+        f"{value!r}"
+    )
+
+
+def _format_path_code_call(method_name: str, *args: str) -> str:
+    """Return ``path.method(arg, ...)`` from already-formatted argument strings."""
+    return f"path.{method_name}({', '.join(args)})"
+
+
+def path_code(path2d: Path2D, n_round: int | None = None) -> str:
+    """Return Python source that reconstructs ``path2d``.
+
+    The snippet assumes ``import simetri.graphics as sg``. Geometry comes from
+    ``path2d.start``, ``path2d.angle``, and ``path2d.operations``. ``turn``,
+    ``orient``, ``push``, and ``pop`` are not stored; ``forward`` is emitted as
+    ``line_to`` so the replay does not depend on a lost heading.
+
+    Args:
+        path2d: Path to serialize.
+        n_round: Decimal places for coordinates and lengths derived from them.
+            ``None`` uses ``defaults['n_round']``.
+
+    Returns:
+        Python source that builds an equivalent ``Path2D``.
+
+    Raises:
+        ValueError: If an operation subtype has no code mapping, or
+            ``n_round`` is negative.
+        TypeError: If a style value cannot be serialized.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sample = sg.Path2D((0, 0), angle=0).line_to((10, 0)).close()
+        >>> print(sg.path_code(sample))
+        path = sg.Path2D(start=(0, 0), angle=0)
+        path.line_to((10, 0))
+        path.close()
+        >>> messy = sg.Path2D((0, 0), angle=0).line_to((10.126, 0))
+        >>> print(sg.path_code(messy, n_round=2))
+        path = sg.Path2D(start=(0, 0), angle=0)
+        path.line_to((10.13, 0))
+    """
+    if n_round is None:
+        n_round = defaults["n_round"]
+    if n_round < 0:
+        raise ValueError("n_round must be a nonnegative integer.")
+    start_x, start_y = path2d.start[:2]
+    lines = [
+        (
+            "path = sg.Path2D("
+            f"start={_format_path_code_point((start_x, start_y), n_round)}, "
+            f"angle={_format_path_code_number(path2d.angle)}"
+            ")"
+        )
+    ]
+
+    for operation in path2d.operations:
+        if isinstance(operation, tuple):
+            _opcode, payload = operation
+            name, value, style_kwargs = payload
+            arguments = [
+                _format_path_code_value(name),
+                _format_path_code_value(value),
+            ]
+            for key, style_value in style_kwargs.items():
+                arguments.append(
+                    f"{key}={_format_path_code_value(style_value)}"
+                )
+            lines.append(_format_path_code_call("set_style", *arguments))
+            continue
+
+        subtype = operation.subtype
+        data = operation.data
+
+        if subtype in _LINE_TO_FORWARD_OPS:
+            _start, end = data
+            lines.append(
+                _format_path_code_call(
+                    "line_to", _format_path_code_point(end, n_round)
+                )
+            )
+        elif subtype in _MOVE_PATH_OPS:
+            lines.append(
+                _format_path_code_call(
+                    "move_to", _format_path_code_point(data, n_round)
+                )
+            )
+        elif subtype == PathOps.R_LINE:
+            start_point, end_point = data
+            start_x, start_y = start_point[:2]
+            end_x, end_y = end_point[:2]
+            lines.append(
+                _format_path_code_call(
+                    "r_line",
+                    _format_path_code_number(end_x - start_x, n_round),
+                    _format_path_code_number(end_y - start_y, n_round),
+                )
+            )
+        elif subtype == PathOps.H_LINE_TO:
+            _start, end_point = data
+            end_x, _end_y = end_point[:2]
+            lines.append(
+                _format_path_code_call(
+                    "h_line_to", _format_path_code_number(end_x, n_round)
+                )
+            )
+        elif subtype == PathOps.R_H_LINE:
+            start_point, end_point = data
+            start_x, _start_y = start_point[:2]
+            end_x, _end_y = end_point[:2]
+            lines.append(
+                _format_path_code_call(
+                    "r_h_line",
+                    _format_path_code_number(end_x - start_x, n_round),
+                )
+            )
+        elif subtype == PathOps.V_LINE_TO:
+            _start, end_point = data
+            _end_x, end_y = end_point[:2]
+            lines.append(
+                _format_path_code_call(
+                    "v_line_to", _format_path_code_number(end_y, n_round)
+                )
+            )
+        elif subtype == PathOps.R_V_LINE:
+            start_point, end_point = data
+            _start_x, start_y = start_point[:2]
+            _end_x, end_y = end_point[:2]
+            lines.append(
+                _format_path_code_call(
+                    "r_v_line",
+                    _format_path_code_number(end_y - start_y, n_round),
+                )
+            )
+        elif subtype == PathOps.SEGMENTS:
+            _start, points = data
+            lines.append(
+                _format_path_code_call(
+                    "segments", _format_path_code_points(points, n_round)
+                )
+            )
+        elif subtype in _CUBIC_PATH_OPS:
+            _start, control1, control2, end = data
+            lines.append(
+                _format_path_code_call(
+                    "cubic_to",
+                    _format_path_code_point(control1, n_round),
+                    _format_path_code_point(control2, n_round),
+                    _format_path_code_point(end, n_round),
+                )
+            )
+        elif subtype in _QUAD_PATH_OPS:
+            _start, control, end = data
+            lines.append(
+                _format_path_code_call(
+                    "quad_to",
+                    _format_path_code_point(control, n_round),
+                    _format_path_code_point(end, n_round),
+                )
+            )
+        elif subtype == PathOps.HOBBY_TO:
+            _start, points = data
+            lines.append(
+                _format_path_code_call(
+                    "hobby_to", _format_path_code_points(points, n_round)
+                )
+            )
+        elif subtype in _ARC_CODE_PATH_OPS:
+            (
+                _end,
+                _tangent_angle,
+                radius_x,
+                radius_y,
+                start_angle,
+                span_angle,
+                rot_angle,
+                _points,
+            ) = data
+            arguments = [
+                _format_path_code_number(radius_x, n_round),
+                _format_path_code_number(radius_y, n_round),
+                _format_path_code_number(start_angle),
+                _format_path_code_number(span_angle),
+            ]
+            if rot_angle != 0:
+                arguments.append(
+                    f"rot_angle={_format_path_code_number(rot_angle)}"
+                )
+            lines.append(_format_path_code_call("arc", *arguments))
+        elif subtype in _SINE_PATH_OPS:
+            points, _angle = data
+            remaining = list(points[1:])
+            lines.append(
+                _format_path_code_call(
+                    "segments", _format_path_code_points(remaining, n_round)
+                )
+            )
+        elif subtype == PathOps.CLOSE:
+            lines.append("path.close()")
+        else:
+            raise ValueError(
+                f"Cannot generate path code for operation {subtype!r}"
+            )
+
+    return "\n".join(lines)
 
 
 def svg_path_to_path2d(svg_path: str) -> Path2D:
@@ -2022,10 +2284,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                 prev_c2 = lp.pos
                 last_op = lp.operations[-1] if lp.operations else None
                 # Check for Cubic/BlendCubic
-                if last_op and last_op.subtype in [
-                    PathOps.CUBIC_TO,
-                    PathOps.BLEND_CUBIC,
-                ]:
+                if last_op and last_op.subtype in _CUBIC_PATH_OPS:
                     # data: (start, c1, c2, end)
                     prev_c2 = last_op.data[2]
 
@@ -2059,10 +2318,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
 
                 prev_c1 = lp.pos
                 last_op = lp.operations[-1] if lp.operations else None
-                if last_op and last_op.subtype in [
-                    PathOps.QUAD_TO,
-                    PathOps.BLEND_QUAD,
-                ]:
+                if last_op and last_op.subtype in _QUAD_PATH_OPS:
                     # data: (start, c1, end) or similar?
                     # quad_to adds: PathOps.QUAD_TO, (pos, c1, end)
                     prev_c1 = last_op.data[1]

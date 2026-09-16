@@ -245,7 +245,11 @@ def arc(
         vertices = homogenize(vertices) @ rotation_matrix(rot_angle, center)
     self._all_vertices.extend(vertices.tolist() + [center])
 
-    sketch = ArcSketch(vertices=vertices, xform_matrix=self.xform_matrix)
+    self._sketch_xform_matrix = self.xform_matrix
+    sketch = ArcSketch(
+        vertices=vertices, xform_matrix=self._sketch_xform_matrix
+    )
+    self._sketch_xform_matrix = identity_matrix()
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
@@ -284,7 +288,9 @@ def bezier(self, control_points: Sequence[PointType], **kwargs) -> Self:
         1
     """
     self._all_vertices.extend(control_points)
-    sketch = BezierSketch(control_points, self.xform_matrix)
+    self._sketch_xform_matrix = self.xform_matrix
+    sketch = BezierSketch(control_points, self._sketch_xform_matrix)
+    self._sketch_xform_matrix = identity_matrix()
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
@@ -330,7 +336,9 @@ def circle(
     p3 = x - radius, y + radius
     p4 = x + radius, y - radius
     self._all_vertices.extend([p1, p2, p3, p4])
-    sketch = CircleSketch(center, radius, self.xform_matrix)
+    self._sketch_xform_matrix = self.xform_matrix
+    sketch = CircleSketch(center, radius, self._sketch_xform_matrix)
+    self._sketch_xform_matrix = identity_matrix()
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
@@ -386,7 +394,11 @@ def ellipse(
     p3 = x - x_radius, y + y_radius
     p4 = x + x_radius, y - y_radius
     self._all_vertices.extend([p1, p2, p3, p4])
-    sketch = EllipseSketch(center, x_radius, y_radius, angle, self.xform_matrix)
+    self._sketch_xform_matrix = self.xform_matrix
+    sketch = EllipseSketch(
+        center, x_radius, y_radius, angle, self._sketch_xform_matrix
+    )
+    self._sketch_xform_matrix = identity_matrix()
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
@@ -455,9 +467,8 @@ def text(
     # extend vertices with the Tag's bounding box
     self._sketch_xform_matrix = self.xform_matrix
     extend_vertices(self, tag_obj)
-    self._sketch_xform_matrix = identity_matrix()
-    # then call get_tag_sketch to create a TagSketch object
     sketch = create_sketch(tag_obj, self, **kwargs)
+    self._sketch_xform_matrix = identity_matrix()
     self.active_page.sketches.append(sketch)
 
     return self
@@ -595,7 +606,9 @@ def lines(self, points: Sequence[PointType], **kwargs) -> Self:
         1
     """
     self._all_vertices.extend(points)
-    sketch = LineSketch(points, self.xform_matrix, **kwargs)
+    self._sketch_xform_matrix = self.xform_matrix
+    sketch = LineSketch(points, self._sketch_xform_matrix, **kwargs)
+    self._sketch_xform_matrix = identity_matrix()
     for attrib_name in line_style_map:
         attrib_value = self.resolve_property(sketch, attrib_name)
         setattr(sketch, attrib_name, attrib_value)
@@ -720,6 +733,7 @@ def draw_latex(
         >>> canvas.active_page.sketches[-1].visible
         False
     """
+    self._sketch_xform_matrix = self.xform_matrix
     sketch = LatexSketch(
         formula=formula,
         pos=pos,
@@ -728,8 +742,9 @@ def draw_latex(
         font_color=font_color,
         bold=bold,
         anchor=anchor,
-        xform_matrix=self.xform_matrix,
+        xform_matrix=self._sketch_xform_matrix,
     )
+    self._sketch_xform_matrix = identity_matrix()
     for name, value in kwargs.items():
         setattr(sketch, name, value)
     # Measure the formula's rendered bounding box so we can register the
@@ -1522,6 +1537,7 @@ def draw_image(
     if scale is None:
         scale = decomposed_scale
 
+    self._sketch_xform_matrix = self.xform_matrix
     sketch = ImageSketch(
         image,
         pos=pos,
@@ -1530,8 +1546,9 @@ def draw_image(
         size=image.size,
         file_path=image.file_path,
         anchor=image.anchor,
-        xform_matrix=self.xform_matrix,
+        xform_matrix=self._sketch_xform_matrix,
     )
+    self._sketch_xform_matrix = identity_matrix()
     for attrib_name in shape_style_map:
         attrib_value = self.resolve_property(image, attrib_name)
         setattr(sketch, attrib_name, attrib_value)
@@ -1637,15 +1654,19 @@ def draw_dimension(self, item: Dimension, **kwargs) -> Self:
     if item.arrow2:
         _add_sketch(create_sketch(item.arrow2, self, **kwargs))
     x, y = item.text_pos[:2]
-
-    tag = Tag(item.text, (x, y), font_size=item.font_size, **kwargs)
-    if item.aligned_text:
-        tag.rotate(item.text_angle, about=(x, y))
+    tag = Tag(
+        item.text,
+        (x, y),
+        font_size=item.font_size,
+        fill=True,
+        anchor=item.text_anchor,
+        align=item.text_align,
+        **kwargs,
+    )
     # extend vertices with the Tag's bounding box
     extend_vertices(self, tag)
     tag_sketch = create_sketch(tag, self, **kwargs)
-    tag_sketch.draw_frame = False
-    tag_sketch.frame_shape = FrameShape.CIRCLE
+    tag_sketch.draw_frame = True
     tag_sketch.fill = True
     tag_sketch.font_color = colors.black
     tag_sketch.back_style = BackStyle.COLOR
@@ -1810,6 +1831,10 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
+    Raises:
+        TypeError: If ``item`` is a ``Lattice``. Draw ``lattice.pattern``
+            after ``expand`` or ``populate_unit``.
+
     Examples:
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
@@ -1817,6 +1842,12 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
         True
         >>> len(canvas.active_page.sketches)
         1
+        >>> lattice = sg.lattice_p1(40, 40)
+        >>> lattice.expand(sg.letter_F(), 1)
+        >>> canvas.draw(lattice)
+        Traceback (most recent call last):
+            ...
+        TypeError: Cannot draw a Lattice. Draw lattice.pattern instead.
     """
     try:
         draw_list = item.draw_list
@@ -1833,6 +1864,11 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
     # check if the item has any points
     if not item:
         return self
+
+    if item.type is Types.LATTICE:
+        raise TypeError(
+            "Cannot draw a Lattice. Draw lattice.pattern instead."
+        )
 
     active_sketches = self.active_page.sketches
     subtype = item.subtype
@@ -2250,14 +2286,12 @@ def create_sketch(
         Returns:
             EllipseSketch: Created EllipseSketch.
         """
-        center = kwargs.get("pos", item.center)
-
         sketch = EllipseSketch(
-            center,
+            item.center,
             item.a,
             item.b,
             item.angle,
-            xform_matrix=canvas.xform_matrix,
+            xform_matrix=canvas._sketch_xform_matrix,
             **kwargs,
         )
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
@@ -2275,7 +2309,7 @@ def create_sketch(
         Returns:
             PatternSketch: Created PatternSketch.
         """
-        sketch = PatternSketch(item, xform_matrix=canvas.xform_matrix)
+        sketch = PatternSketch(item, xform_matrix=canvas._sketch_xform_matrix)
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
         return sketch
@@ -2291,13 +2325,10 @@ def create_sketch(
         Returns:
             CircleSketch: Created CircleSketch.
         """
-        center = item.center
-        try:
-            center = kwargs["pos"]
-        except KeyError:
-            pass
         sketch = CircleSketch(
-            center, item.radius, xform_matrix=canvas.xform_matrix
+            item.center,
+            item.radius,
+            xform_matrix=canvas._sketch_xform_matrix,
         )
         set_shape_sketch_style(sketch, item, canvas, **kwargs)
 
@@ -2564,7 +2595,7 @@ def create_sketch(
             anchor=item.anchor,
             size=item.size,
             file_path=item.file_path,
-            xform_matrix=canvas.xform_matrix,
+            xform_matrix=canvas._sketch_xform_matrix,
             **kwargs,
         )
         set_shape_sketch_style(sketch, item, canvas, **kwargs)

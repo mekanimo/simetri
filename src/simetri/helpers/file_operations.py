@@ -21,6 +21,9 @@ from ..config.user_config import (
     user_config_path,
 )
 
+if platform.system() == "Windows":
+    import winreg
+
 # Win32 CREATE_BREAKAWAY_FROM_JOB: child is not killed with the parent job.
 _WINDOWS_CREATE_BREAKAWAY_FROM_JOB = 0x01000000
 
@@ -76,13 +79,65 @@ def _substitute_viewer_placeholders(template: str, filepath: str) -> str:
     )
 
 
+def _windows_app_path(program: str) -> str | None:
+    """Return the Windows App Paths executable for ``program``.
+
+    ``CreateProcess`` (``shell = false``) does not search App Paths, so a
+    name such as ``msedge`` fails with WinError 2 even though it works in
+    a shell. Returns None when no registered executable exists.
+    """
+    executable_name = Path(program).name
+    if Path(executable_name).suffix.lower() != ".exe":
+        executable_name = f"{executable_name}.exe"
+    subkey = (
+        rf"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{executable_name}"
+    )
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            key = winreg.OpenKey(hive, subkey)
+        except FileNotFoundError:
+            continue
+        try:
+            value, _value_type = winreg.QueryValueEx(key, "")
+        except FileNotFoundError:
+            continue
+        finally:
+            winreg.CloseKey(key)
+        resolved = Path(value)
+        if resolved.is_file():
+            return str(resolved)
+    return None
+
+
 def _resolve_viewer_program(program: str) -> str:
-    """Return an executable path for ``program`` when it is on PATH."""
+    """Return an executable path for ``program``.
+
+    Looks on PATH, then (Windows) App Paths. Raises ``FileNotFoundError``
+    if the program cannot be resolved.
+
+    Args:
+        program: Executable name or path from ``[viewer].command``.
+
+    Returns:
+        str: Path to the executable.
+
+    Raises:
+        FileNotFoundError: ``program`` is not a file, not on PATH, and not
+            in Windows App Paths.
+    """
     candidate = Path(program)
     if candidate.is_file():
         return str(candidate)
     found = shutil.which(program)
-    return found if found else program
+    if found is not None:
+        return found
+    if platform.system() == "Windows":
+        found = _windows_app_path(program)
+        if found is not None:
+            return found
+    raise FileNotFoundError(
+        f"Viewer program {program!r} was not found on PATH"
+    )
 
 
 def open_saved_file(filepath: str | Path) -> None:
@@ -701,10 +756,12 @@ def convert_pdf(pdf_path: str, extension: str):
     Raises:
         RuntimeError: If PDF-to-PS conversion fails.
     """
+    parent_dir, file_name = os.path.split(pdf_path)
+    file_name, _ = os.path.splitext(file_name)
+    output_path = os.path.join(parent_dir, file_name + extension)
     if extension in (".eps", ".ps"):
-        ps_path = os.path.join(parent_dir, file_name + extension)
         os.chdir(parent_dir)
-        cmd = f"pdf2ps {pdf_path} {ps_path}"
+        cmd = f"pdf2ps {pdf_path} {output_path}"
         res = subprocess.run(cmd, shell=True, check=False)
         if res.returncode != 0:
             raise RuntimeError("Failed to convert pdf to ps.")

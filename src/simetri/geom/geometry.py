@@ -28,10 +28,7 @@ import numpy as np
 from numpy import array
 from numpy.typing import NDArray
 
-from ..base.common import (
-    PointType,
-    get_defaults,
-)
+from ..base.common import PointType
 from ..config.settings import defaults, issue_warning
 from .geom_utils import close_points_square
 from .vectors import *
@@ -62,13 +59,17 @@ def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
         >>> sg.positive_angle(-90, radians=False)
         270
     """
-    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     if radians:
-        if angle < 0:
-            angle += 2 * pi
+        full_turn = 2 * pi
     else:
-        if angle < 0:
-            angle += 360
+        full_turn = 360
+
+    angle = angle % full_turn
+    if rel_tol is not None or abs_tol is not None:
+        rel_tol = 0 if rel_tol is None else rel_tol
+        abs_tol = 0 if abs_tol is None else abs_tol
+        if isclose(angle, full_turn, rel_tol=rel_tol, abs_tol=abs_tol):
+            angle = 0
 
     return angle
 
@@ -92,17 +93,21 @@ def equal_angles(
     Returns:
         bool: True if the angles match within tolerance.
     """
-    angle_tol, angle_rel_tol, angle_abs_tol = get_defaults(
-        ["angle_tol", "angle_rel_tol", "angle_abs_tol"],
-        [angle_tol, angle_rel_tol, angle_abs_tol],
-    )
+    if angle_tol is not None:
+        angle_rel_tol = 0
+        angle_abs_tol = angle_tol
+    else:
+        if angle_rel_tol is None:
+            angle_rel_tol = 0
+        if angle_abs_tol is None:
+            angle_abs_tol = defaults["angle_tol"]
 
-    angle1 = positive_angle(angle1)
-    angle2 = positive_angle(angle2)
+    diff = abs(positive_angle(angle1) - positive_angle(angle2))
+    circular_diff = min(diff, 2 * pi - diff)
 
     return isclose(
-        angle1,
-        angle2,
+        circular_diff,
+        0,
         rel_tol=angle_rel_tol,
         abs_tol=angle_abs_tol,
     )
@@ -163,9 +168,11 @@ def close_angles(angle1: float, angle2: float, angtol=None) -> bool:
         bool: True if the angles are close to each other, False otherwise.
     """
     if angtol is None:
-        angtol = defaults["angtol"]
+        angtol = defaults["angle_tol"]
 
-    return (abs(angle1 - angle2) % (2 * pi)) < angtol
+    diff = abs(angle1 - angle2) % (2 * pi)
+    circular_diff = min(diff, 2 * pi - diff)
+    return circular_diff < angtol
 
 
 def connect2(
@@ -188,10 +195,16 @@ def connect2(
     Returns:
         list[PointType]: Connected list of points.
     """
-    dist_tol, dist_rel_tol, dist_abs_tol = get_defaults(
-        ["dist_tol", "dist_rel_tol", "dist_abs_tol"],
-        [dist_tol, dist_rel_tol, dist_abs_tol],
-    )
+    if dist_tol is not None:
+        if dist_abs_tol is not None and dist_abs_tol != dist_tol:
+            raise ValueError(
+                "Use either dist_tol or both dist_rel_tol and dist_abs_tol."
+            )
+        dist_abs_tol = dist_tol
+    elif dist_abs_tol is None:
+        dist_abs_tol = defaults["dist_tol"]
+    if dist_rel_tol not in (None, 0):
+        raise ValueError("connect2 uses absolute distance tolerance.")
     dist_tol2 = dist_abs_tol * dist_abs_tol
     start1, end1 = poly_point1[0], poly_point1[-1]
     start2, end2 = poly_point2[0], poly_point2[-1]
@@ -349,7 +362,7 @@ def tokenize_svg_path(path: str) -> list[str]:
     Returns:
         list[str]: List of tokens.
     """
-    return re.findall(r"[a-zA-Z]|[-+]?\d*\.\d+|\d+", path)
+    return re.findall(r"[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+)", path)
 
 
 def law_of_cosines(a: float, b: float, c: float) -> float:
