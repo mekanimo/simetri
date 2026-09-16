@@ -267,9 +267,7 @@ class PatternTransformation:
         """
         if len(self.components) == 0:
             return identity_matrix()
-        matrices = []
-        for component in self.components:
-            matrices.append(component.partitions)
+        matrices = [component.partitions for component in self.components]
         res = []
         if len(matrices) == 1:
             if len(matrices[0]) == 1:
@@ -277,8 +275,7 @@ class PatternTransformation:
             else:
                 return np.concatenate(matrices[0], axis=1)
         else:
-            for mats in product(*matrices):
-                res.append(np.linalg.multi_dot(mats))
+            res.extend(np.linalg.multi_dot(mats) for mats in product(*matrices))
 
         return np.concatenate(res, axis=1)
 

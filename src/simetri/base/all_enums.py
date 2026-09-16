@@ -536,7 +536,7 @@ class ImageMode(StrEnum):
     LAB = "LAB"  # 3x8 bits per pixel (CIE L*a*b* color space)
     HSV = "HSV"  # 3x8 bits per pixel (Hue, Saturation, Value color space)
     # * Hue's range of 0-255 is a scaled version of 0 degrees <= Hue < 360 degrees
-    I = "I"  # 32 bits per pixel (32-bit signed integer pixels)
+    I = "I"  # 32 bits per pixel (32-bit signed integer pixels)  # noqa: E741
     F = "F"  # 32 bits per pixel (floating point pixels)
     # limited support for the following modes:
     LA = "LA"  # L with alpha

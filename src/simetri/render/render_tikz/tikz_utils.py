@@ -183,9 +183,7 @@ def get_clip_code(sketch: "Sketch") -> str:
         return ""
 
     if isinstance(mask, list):
-        res = []
-        for clip_sketch in mask:
-            res.append(get_clip_code(clip_sketch))
+        res = [get_clip_code(clip_sketch) for clip_sketch in mask]
         return "".join(res)
 
     if mask.subtype in (Types.CIRCLE, Types.CIRCLE_SKETCH):

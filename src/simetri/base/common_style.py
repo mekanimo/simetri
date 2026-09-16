@@ -156,10 +156,8 @@ def coerce_style_overlay(mapping: Any = None, kwargs: dict | None = None) -> dic
                 "Style overlay must be a Style, a dict, or keyword arguments, "
                 f"got {type(mapping).__name__}"
             )
-        for key, value in source_items:
-            overlay[key] = value
-    for key, value in kwargs.items():
-        overlay[key] = value
+        overlay = dict(source_items)
+    overlay.update(kwargs)
     for key in overlay:
         if key not in STYLE_ALIAS_KEYS:
             raise ValueError(f"Unknown style key {key!r}")

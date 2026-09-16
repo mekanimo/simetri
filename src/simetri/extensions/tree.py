@@ -382,19 +382,21 @@ def tree_from_class(
             field_match = field_pattern.search(doc)
             if field_match:
                 desc = field_match.group(1)
-                names = []
+                names = [
+                    match.group(1)
+                    for match in re.finditer(
+                        r"\bList\[([A-Za-z_][A-Za-z0-9_]*)\]", desc
+                    )
+                ]
 
-                for match in re.finditer(
-                    r"\bList\[([A-Za-z_][A-Za-z0-9_]*)\]", desc
-                ):
-                    names.append(match.group(1))
-
-                for match in re.finditer(
-                    r"\b(?:list|sequence|tuple|set)\s+of\s+([A-Za-z_][A-Za-z0-9_]*)",
-                    desc,
-                    flags=re.IGNORECASE,
-                ):
-                    names.append(match.group(1))
+                names.extend(
+                    match.group(1)
+                    for match in re.finditer(
+                        r"\b(?:list|sequence|tuple|set)\s+of\s+([A-Za-z_][A-Za-z0-9_]*)",
+                        desc,
+                        flags=re.IGNORECASE,
+                    )
+                )
 
                 for type_name in names:
                     ref_type = _resolve_type_name_in_context(type_name, cls)

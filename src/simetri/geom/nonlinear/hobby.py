@@ -1,10 +1,10 @@
-from typing import Self
-
 """John Hobby's cubic Bezier spline algorithm (METAFONT-style).
 
 Implementation details follow Knuth's METAFONT: The Program (pp. 112–113).
 Adapted from https://github.com/ltrujello/Hobby_Curve_Algorithm (2025-02-07).
 """
+
+from typing import Self
 
 import cmath
 

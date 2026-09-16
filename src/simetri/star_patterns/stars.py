@@ -402,16 +402,18 @@ class Star(Group):
 
         # Check combinations with sqrt, pi, etc.
 
-        for val in _COMMON_ANGLES_RAD:
-            if abs(val - target_value) < tolerance:
-                representations.append(
-                    f"π/{6 * val / pi:.0f}" if val < pi else f"{val / pi:.3f}π"
-                )
+        representations.extend(
+            f"π/{6 * val / pi:.0f}" if val < pi else f"{val / pi:.3f}π"
+            for val in _COMMON_ANGLES_RAD
+            if abs(val - target_value) < tolerance
+        )
 
         # Check sqrt combinations
-        for i in range(1, 10):
-            if abs(sqrt(i) - target_value) < tolerance:
-                representations.append(f"√{i}")
+        representations.extend(
+            f"√{i}"
+            for i in range(1, 10)
+            if abs(sqrt(i) - target_value) < tolerance
+        )
 
         # For 1.847759, check specific combinations
         if abs(target_value - 1.847759) < tolerance:

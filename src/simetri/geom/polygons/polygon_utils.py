@@ -98,11 +98,10 @@ def is_simple(
         [vertices[i], vertices[i + 1]] for i in range(len(vertices) - 1)
     ]
 
-    segment_coords = []
-    for segment in segments:
-        segment_coords.append(
-            [segment[0][0], segment[0][1], segment[1][0], segment[1][1]]
-        )
+    segment_coords = [
+        [segment[0][0], segment[0][1], segment[1][0], segment[1][1]]
+        for segment in segments
+    ]
     seg_arr = np.array(segment_coords)
     n_rows = seg_arr.shape[0]
     xmin = np.minimum(seg_arr[:, 0], seg_arr[:, 2]).reshape(n_rows, 1)

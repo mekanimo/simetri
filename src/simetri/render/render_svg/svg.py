@@ -132,14 +132,12 @@ style="{style_options}"/>'
 
 def _svg_insert_snippets(canvas, location: SvgLoc) -> str:
     """Return joined raw SVG fragments stored at ``location``."""
-    snippets = []
-    for page in canvas.pages:
-        for sketch in page.sketches:
-            if (
-                sketch.subtype == Types.SVG_SKETCH
-                and sketch.location == location
-            ):
-                snippets.append(sketch.code)
+    snippets = [
+        sketch.code
+        for page in canvas.pages
+        for sketch in page.sketches
+        if sketch.subtype == Types.SVG_SKETCH and sketch.location == location
+    ]
     return "\n".join(snippets)
 
 
@@ -166,9 +164,9 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
     svg_sketch_utils_module.set_active_svg_style_ids(sketch_style_ids)
 
     def render_sketches(sketches, ind):
-        code = []
-        for sketch in sketches:
-            code.append(get_sketch_code(sketch, canvas, ind, []))
+        code = [
+            get_sketch_code(sketch, canvas, ind, []) for sketch in sketches
+        ]
         return "\n".join(code)
 
     def get_sketch_code(sketch, canvas, ind, suppressed_style_keys):
@@ -725,21 +723,19 @@ def generate_defs(canvas, styles_dict):
                 )
 
     # Generate mask definitions from scope_groups (MASK_GROUP)
-    for page in canvas.pages:
-        for scope_group in page.scope_groups:
-            if (
-                scope_group.subtype == Types.MASK_GROUP
-                and scope_group.mask is not None
-            ):
-                defs_content.append(
-                    generate_mask_def(
-                        scope_group,
-                        scope_group.mask,
-                        f"mask_{scope_group.id}",
-                        canvas,
-                        styles_dict,
-                    )
-                )
+    defs_content.extend(
+        generate_mask_def(
+            scope_group,
+            scope_group.mask,
+            f"mask_{scope_group.id}",
+            canvas,
+            styles_dict,
+        )
+        for page in canvas.pages
+        for scope_group in page.scope_groups
+        if scope_group.subtype == Types.MASK_GROUP
+        and scope_group.mask is not None
+    )
 
     # Generate clipPath definitions (must come before shapes that use them)
     for sketch_id, (sketch, clip_shape) in clip_paths.items():

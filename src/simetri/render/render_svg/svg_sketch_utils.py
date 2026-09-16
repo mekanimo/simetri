@@ -876,9 +876,9 @@ def generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict):
     from ..draw import create_sketch
 
     if isinstance(clip_shape, list):
-        clip_contents = []
-        for clip_sketch in clip_shape:
-            clip_contents.append(svg_shape(clip_sketch, styles_dict))
+        clip_contents = [
+            svg_shape(clip_sketch, styles_dict) for clip_sketch in clip_shape
+        ]
         clip_content = "\n    ".join(clip_contents)
     elif clip_shape.type == Types.GROUP:
         # Handle group - multiple shapes in clipPath

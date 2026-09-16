@@ -818,10 +818,7 @@ def all_close_points(
                     pairs.append((id1, id2, distance(point, point2)))
                 else:
                     pairs.append((id1, id2))
-    res = {}
-    for k, v in d_connections.items():
-        if v:
-            res[k] = v
+    res = {node_id: connections for node_id, connections in d_connections.items() if connections}
     return res, pairs
 
 
@@ -982,9 +979,7 @@ def segment_cycles(
         ]
     else:
         cycles = list(nx.simple_cycles(nx_graph, length_bound=length_bound))
-    res = []
-    for cycle in cycles:
-        res.append([d_node_coord[node] for node in cycle])
+    res = [[d_node_coord[node] for node in cycle] for cycle in cycles]
 
     return res, cycles
 

@@ -412,11 +412,12 @@ def all_cells_connected(
             if i in visited:
                 continue
             visited.add(i)
-            for j in cells:
-                if j not in visited and connected(
-                    i, j, n_rows, n_cols, diagonal_neighbors
-                ):
-                    stack.append(j)
+            stack.extend(
+                j
+                for j in cells
+                if j not in visited
+                and connected(i, j, n_rows, n_cols, diagonal_neighbors)
+            )
 
         res = len(visited) == len(cells)
     return res
@@ -510,9 +511,9 @@ def get_island_cells(
         visited.add(i)
         indices_list.append(i)
         values_list.append(value)
-        for j in range(n_cells):
-            if j not in visited and cells_neighbors(i, j):
-                stack.append(j)
+        stack.extend(
+            j for j in range(n_cells) if j not in visited and cells_neighbors(i, j)
+        )
 
     res = (tuple(values_list), tuple(indices_list))
     return res

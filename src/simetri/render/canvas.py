@@ -565,12 +565,12 @@ class Canvas:
         Returns:
             Self: The canvas object.
         """
-        sketches = []
         if target.type == Types.GROUP:
-            for item in target:
-                sketches.append(draw.get_sketches(item, self))
+            sketches = [
+                draw.get_sketches(item, self) for item in target
+            ]
         else:
-            sketches.append(draw.get_sketches(target, self))
+            sketches = [draw.get_sketches(target, self)]
 
         self.active_page.sketches.append(
             MaskedSketch(sketches=sketches, mask=mask)

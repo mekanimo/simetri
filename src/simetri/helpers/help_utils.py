@@ -7,8 +7,10 @@
   return similar topic names.
 - Classes (and instances of Simetri types) return the constructor
   signature, class docstring, and ``__init__`` docstring.
-- Functions, methods, modules, and other objects return
-  ``inspect.getdoc(obj)``.
+- Simetri functions and methods return a signature (with resolved
+  ``defaults`` where applicable), accepted ``**kwargs`` names when
+  known, then the docstring.
+- Other modules and objects return ``inspect.getdoc(obj)``.
 
 ``d_help_topic`` maps topic names to short descriptions and lists of
 related ``sg.*`` names. ``sg.help('help')`` loads the help-utilities
@@ -28,7 +30,7 @@ from __future__ import annotations
 import inspect
 import sys
 import unicodedata
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -904,36 +906,48 @@ Callables / classes
 -------------------
 - sg.help(sg.Shape) or sg.help(sg.Shape(...))
   -> constructor signature, class docstring, __init__ docstring
-- sg.help(sg.distance)
-  -> function docstring
+- sg.help(sg.distance) or sg.help(sg.Canvas.draw)
+  -> callable signature, accepted ``**kwargs`` when known, docstring,
+  and any extra notes
 
 Missing defaults keys return an empty string.
 Unknown names list similar topics, settings, and public ``sg`` names.
 """
 )
 
+_SIGNATURE_DEFAULT_SKIP_NAMES = frozenset({"page_size"})
+
+
+def _default_overrides_for_signature(
+    signature: inspect.Signature,
+    *,
+    skip_names: frozenset[str] = _SIGNATURE_DEFAULT_SKIP_NAMES,
+) -> dict[str, object]:
+    """Return ``defaults`` values to display for ``None``-default parameters."""
+    overrides: dict[str, object] = {}
+    for parameter in signature.parameters.values():
+        if parameter.default is not None:
+            continue
+        name = parameter.name
+        if name in skip_names:
+            continue
+        if name not in defaults.defaults:
+            continue
+        default_value = defaults[name]
+        if default_value is VOID:
+            continue
+        overrides[name] = default_value
+    return overrides
+
 
 def _class_signature(cls: type) -> str:
     """Return ``ClassName(...)`` with constructor signature when available."""
     try:
         signature = inspect.signature(cls)
-        default_overrides = {}
-        if (
-            cls.__module__ == "simetri.render.canvas"
-            and cls.__name__ == "Canvas"
-        ):
-            for parameter in signature.parameters.values():
-                if (
-                    parameter.default is None
-                    and parameter.name in defaults.defaults
-                    and defaults[parameter.name] is not VOID
-                    and parameter.name != "page_size"
-                ):
-                    default_overrides[parameter.name] = defaults[parameter.name]
         return _format_signature(
             cls.__name__,
             signature,
-            default_overrides=default_overrides,
+            default_overrides=_default_overrides_for_signature(signature),
         )
     except (TypeError, ValueError):
         return cls.__name__
@@ -1036,8 +1050,7 @@ def _format_signature(
         return text
 
     lines = [f"{name}("]
-    for part in parts:
-        lines.append(f"    {part},")
+    lines.extend(f"    {part}," for part in parts)
 
     closing = ")"
     if signature.return_annotation is not inspect.Signature.empty:
@@ -1047,35 +1060,150 @@ def _format_signature(
     return "\n".join(lines)
 
 
-def _resolved_default_lines(signature: inspect.Signature) -> list[str]:
-    """Return displayed resolved defaults for parameters whose default is None."""
-    return [
-        f"{parameter.name} = {_format_default(defaults[parameter.name])}"
-        for parameter in signature.parameters.values()
-        if parameter.default is None
-        and parameter.name in defaults.defaults
-        and defaults[parameter.name] is not VOID
-    ]
+def _signature_accepts_kwargs(signature: inspect.Signature) -> bool:
+    """Return True when ``signature`` includes ``**kwargs``."""
+    for parameter in signature.parameters.values():
+        if parameter.kind == inspect.Parameter.VAR_KEYWORD:
+            return True
+    return False
 
 
-def _canvas_draw_help(obj) -> str:
-    """Return the help text for ``Canvas.draw``."""
-    parts: list[str] = []
+def _explicit_parameter_names(signature: inspect.Signature) -> frozenset[str]:
+    """Return named parameters, excluding ``self``, ``cls``, and ``*`` forms."""
+    names: set[str] = set()
+    for parameter in signature.parameters.values():
+        if parameter.name in ("self", "cls"):
+            continue
+        if parameter.kind in (
+            inspect.Parameter.VAR_KEYWORD,
+            inspect.Parameter.VAR_POSITIONAL,
+        ):
+            continue
+        names.add(parameter.name)
+    return frozenset(names)
 
+
+def _format_kwarg_default_line(name: str) -> str:
+    """Return one accepted-kwarg line, with a default value when available."""
+    if name not in defaults.defaults:
+        return name
+    value = defaults[name]
+    if value is VOID:
+        return name
+    return f"{name} = {_format_default(value)}"
+
+
+def _format_accepted_kwargs_section(
+    heading: str,
+    key_names: Sequence[str],
+) -> str:
+    """Format accepted ``**kwargs`` names and their defaults."""
+    if not key_names:
+        return ""
+    lines = [heading]
+    lines.extend(f"  {_format_kwarg_default_line(name)}" for name in key_names)
+    return "\n".join(lines)
+
+
+def _canvas_init_kwargs_keys(signature: inspect.Signature) -> list[str]:
+    """Return ``Canvas`` constructor kwargs from ``canvas_args``."""
+    from ..render.style_map import canvas_args
+
+    explicit_names = _explicit_parameter_names(signature)
+    return sorted(
+        name for name in canvas_args if name not in explicit_names
+    )
+
+
+def _canvas_draw_kwargs_keys(signature: inspect.Signature) -> list[str]:
+    """Return ``Canvas.draw`` kwargs from ``get_draw_valid_kwargs()``."""
+    from ..render.style_map import get_draw_valid_kwargs
+
+    explicit_names = _explicit_parameter_names(signature)
+    return sorted(
+        name
+        for name in get_draw_valid_kwargs()
+        if name not in explicit_names and not name.startswith("_")
+    )
+
+
+_CLASS_KWARGS_KEY_SOURCES: dict[
+    tuple[str, str], Callable[[inspect.Signature], Sequence[str]]
+] = {
+    ("simetri.render.canvas", "Canvas"): _canvas_init_kwargs_keys,
+}
+
+_CALLABLE_KWARGS_KEY_SOURCES: dict[
+    str, Callable[[inspect.Signature], Sequence[str]]
+] = {
+    "Canvas.draw": _canvas_draw_kwargs_keys,
+}
+
+
+def _append_accepted_kwargs_help(
+    parts: list[str],
+    signature: inspect.Signature,
+    key_source: Callable[[inspect.Signature], Sequence[str]],
+) -> None:
+    """Append accepted ``**kwargs`` documentation when the signature has them."""
+    if not _signature_accepts_kwargs(signature):
+        return
+    key_names = key_source(signature)
+    section = _format_accepted_kwargs_section(
+        "Accepted **kwargs (defaults from settings)",
+        key_names,
+    )
+    if section:
+        parts.append(section)
+
+
+_CANVAS_DRAW_HELP_NOTES = (
+    "How canvas.draw works\n"
+    "style kwargs override the drawn object's corresponding style attributes\n"
+    "for Shape and Group, pos / angle / scale are applied to the drawn snapshot\n"
+    "pos, rotocenter, and about use canvas units (points); angles use radians\n"
+    "canvas.translate/rotate/scale change the canvas coordinate system for later drawing"
+)
+
+_CALLABLE_HELP_NOTES: dict[str, str] = {
+    "Canvas.draw": _CANVAS_DRAW_HELP_NOTES,
+}
+
+
+def _callable_signature(obj) -> inspect.Signature:
+    """Return a display signature, omitting ``self`` / ``cls`` when present."""
     signature = inspect.signature(obj)
-    parts.append(_format_signature("Canvas.draw", signature))
+    parameters = list(signature.parameters.values())
+    if parameters and parameters[0].name in ("self", "cls"):
+        parameters = parameters[1:]
+    return signature.replace(parameters=parameters)
+
+
+def _callable_help(obj) -> str:
+    """Build help text for a function or method: signature, doc, and notes."""
+    parts: list[str] = []
+    signature = _callable_signature(obj)
+    parts.append(
+        _format_signature(
+            obj.__qualname__,
+            signature,
+            default_overrides=_default_overrides_for_signature(signature),
+        )
+    )
+
+    if obj.__qualname__ in _CALLABLE_KWARGS_KEY_SOURCES:
+        _append_accepted_kwargs_help(
+            parts,
+            signature,
+            _CALLABLE_KWARGS_KEY_SOURCES[obj.__qualname__],
+        )
 
     doc = inspect.getdoc(obj)
     if doc:
         parts.append(doc)
 
-    parts.append(
-        "How canvas.draw works\n"
-        "style kwargs override the drawn object's corresponding style attributes\n"
-        "for Shape and Group, pos / angle / scale are applied to the drawn snapshot\n"
-        "pos, rotocenter, and about use canvas units (points); angles use radians\n"
-        "canvas.translate/rotate/scale change the canvas coordinate system for later drawing"
-    )
+    if obj.__qualname__ in _CALLABLE_HELP_NOTES:
+        parts.append(_CALLABLE_HELP_NOTES[obj.__qualname__])
 
     return "\n\n".join(parts)
 
@@ -1094,42 +1222,25 @@ def _class_help(cls: type) -> str:
         if init_doc:
             parts.append("__init__\n" + init_doc)
 
-    if cls.__module__ == "simetri.shapes.shape" and cls.__name__ == "Shape":
-        signature = inspect.signature(cls)
-        resolved_default_lines = _resolved_default_lines(signature)
-        if resolved_default_lines:
-            parts.append(
-                "Resolved defaults used when a constructor argument is None\n"
-                + "\n".join(resolved_default_lines)
-            )
+    class_key = (cls.__module__, cls.__name__)
+    if class_key in _CLASS_KWARGS_KEY_SOURCES:
+        _append_accepted_kwargs_help(
+            parts,
+            inspect.signature(cls),
+            _CLASS_KWARGS_KEY_SOURCES[class_key],
+        )
 
     if cls.__module__ == "simetri.render.canvas" and cls.__name__ == "Canvas":
-        signature = inspect.signature(cls)
-        resolved_default_lines = [
-            line
-            for line in _resolved_default_lines(signature)
-            if not line.startswith("page_size = ")
+        canvas_default_lines = [
+            "page_size = calculated automatically when omitted",
+            "canvas.draw(...) snapshots objects into sketch objects on the active page",
+            "canvas.draw(..., style=value) overrides the drawn object's corresponding style attributes",
+            "for Shape and Group, canvas.draw(..., pos=..., angle=...) moves or rotates the drawn snapshot",
+            "canvas.translate/rotate/scale change the canvas coordinate system for later drawing",
+            "see also: sg.doc(sg.Canvas.draw)",
         ]
-        canvas_default_lines = resolved_default_lines[:]
-        canvas_default_lines.append(
-            "page_size = calculated automatically when omitted"
-        )
-        canvas_default_lines.append(
-            "canvas.draw(...) snapshots objects into sketch objects on the active page"
-        )
-        canvas_default_lines.append(
-            "canvas.draw(..., style=value) overrides the drawn object's corresponding style attributes"
-        )
-        canvas_default_lines.append(
-            "for Shape and Group, canvas.draw(..., pos=..., angle=...) moves or rotates the drawn snapshot"
-        )
-        canvas_default_lines.append(
-            "canvas.translate/rotate/scale change the canvas coordinate system for later drawing"
-        )
-        canvas_default_lines.append("see also: sg.doc(sg.Canvas.draw)")
         parts.append(
-            "Constructor behavior and resolved defaults\n"
-            + "\n".join(canvas_default_lines)
+            "Constructor behavior\n" + "\n".join(canvas_default_lines)
         )
 
     if cls.__module__ == "simetri.group.batch" and cls.__name__ == "Group":
@@ -1243,10 +1354,11 @@ def _similar_sg_attribute_names(
     if suggestions:
         return suggestions[:limit]
 
-    exact_token_matches = []
-    for name in names:
-        if set(query_tokens).intersection(_help_name_tokens(name)):
-            exact_token_matches.append(name)
+    exact_token_matches = [
+        name
+        for name in names
+        if set(query_tokens).intersection(_help_name_tokens(name))
+    ]
 
     for name in sorted(exact_token_matches, key=lambda item: (len(item), item)):
         add(name)
@@ -1381,10 +1493,11 @@ def _similar_help_names(query: str, limit: int | None = None) -> list[str]:
     if suggestions:
         return suggestions[:limit]
 
-    exact_token_matches = []
-    for name in lookup_names:
-        if set(query_tokens).intersection(_help_name_tokens(name)):
-            exact_token_matches.append(name)
+    exact_token_matches = [
+        name
+        for name in lookup_names
+        if set(query_tokens).intersection(_help_name_tokens(name))
+    ]
 
     for name in sorted(exact_token_matches, key=sort_key):
         add(name)
@@ -1424,8 +1537,7 @@ def _unknown_topic_help(query: str) -> str:
             "Use sg.help('topics') for topics, or pass an sg object directly."
         )
     lines = [f"No help entry named {query!r}. Similar names:"]
-    for name in matches:
-        lines.append(f"  {name}")
+    lines.extend(f"  {name}" for name in matches)
     return "\n".join(lines)
 
 
@@ -1437,10 +1549,12 @@ def help(obj) -> str:
     ``sg`` names such as ``Canvas.draw`` and ``Shape.translate``.
     Reserved topic
     strings (``points``, ``lines``, ``topics``, ``help``, …) return
-    topic listings from ``d_help_topic``. For classes (and instances of
+    topic listings from ``d_help_topic``.     For classes (and instances of
     Simetri types), returns the constructor signature, class docstring,
-    and ``__init__`` docstring. For functions, methods, modules, and
-    other objects, returns ``inspect.getdoc(obj)``.
+    and ``__init__`` docstring.     For Simetri functions and methods,
+    returns a signature with resolved ``defaults``, accepted ``**kwargs``
+    when known, then the docstring.
+    For other modules and objects, returns ``inspect.getdoc(obj)``.
 
     Args:
         obj: Object to document, a defaults setting name, or a help topic.
@@ -1494,11 +1608,11 @@ def help(obj) -> str:
     if inspect.isclass(obj):
         return _class_help(obj)
 
-    if (
-        getattr(obj, "__module__", None) == "simetri.render.canvas"
-        and getattr(obj, "__qualname__", None) == "Canvas.draw"
-    ):
-        return _canvas_draw_help(obj)
+    if inspect.isroutine(obj):
+        if obj.__module__.startswith("simetri."):
+            return _callable_help(obj)
+        doc = inspect.getdoc(obj)
+        return doc if doc is not None else ""
 
     if not isinstance(obj, (bytes, int, float, bool, complex)):
         cls = type(obj)

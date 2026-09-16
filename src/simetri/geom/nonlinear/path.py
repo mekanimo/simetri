@@ -56,6 +56,12 @@ from ..segments.line_utils import (
     line_by_point_angle_length,
 )
 from .bezier import Bezier
+from .ellipse import (
+    ellipse_tangent,
+    elliptic_arc_points,
+)
+from .hobby import hobby_shape
+from .sine import sine_points
 
 # Path operations whose objects are dense samples; labels use endpoints only.
 _CURVE_PATH_OPS = frozenset(
@@ -101,12 +107,6 @@ _OPEN_SUBPATH_OPS = (
     | _SINE_PATH_OPS
     | frozenset((PathOps.SEGMENTS,))
 )
-from .ellipse import (
-    ellipse_tangent,
-    elliptic_arc_points,
-)
-from .hobby import hobby_shape
-from .sine import sine_points
 
 array = np.array
 
@@ -1860,8 +1860,7 @@ def lin_path_svg(lin_path):
 
         elif st == PO.SEGMENTS:
             # data is (start, points_list)
-            for p in data[1]:
-                parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
+            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in data[1])
 
         elif st in _CUBIC_PATH_OPS:
             # data: (start, c1, c2, end)
@@ -1900,14 +1899,12 @@ def lin_path_svg(lin_path):
 
         elif st in _SINE_PATH_OPS:
             # data[0] is points
-            for p in data[0]:
-                parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
+            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in data[0])
 
         elif st == PO.HOBBY_TO and current_obj:
             # Skip the first point since it should match current pos.
             verts = current_obj.vertices
-            for p in verts[1:]:
-                parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
+            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in verts[1:])
 
         obj_idx += 1
 

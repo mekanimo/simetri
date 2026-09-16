@@ -784,8 +784,7 @@ def _upsert_toml_table(config_path: Path, table_header: str, body_lines: list[st
         if section == table_header:
             start = index
     replacement = [f"[{table_header}]{newline}"]
-    for body_line in body_lines:
-        replacement.append(f"{body_line}{newline}")
+    replacement.extend(f"{body_line}{newline}" for body_line in body_lines)
     replacement.append(newline)
     if start is not None:
         if end is None:
@@ -1081,8 +1080,10 @@ def _write_shared_toml(
         "",
         "[defaults]",
     ]
-    for key in sorted(defaults_table):
-        lines.append(f"{key} = {_format_toml_value(defaults_table[key])}")
+    lines.extend(
+        f"{key} = {_format_toml_value(defaults_table[key])}"
+        for key in sorted(defaults_table)
+    )
     lines.append("")
     output_path.write_text("\n".join(lines), encoding="utf-8")
 

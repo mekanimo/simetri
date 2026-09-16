@@ -213,8 +213,7 @@ def _points_to_svg(points: list[PointType], closed: bool) -> str:
     if not points:
         return ""
     parts = [f"M {fmt(points[0][0])},{fmt(points[0][1])}"]
-    for p in points[1:]:
-        parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
+    parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in points[1:])
     if closed:
         parts.append("Z")
     return " ".join(parts)
@@ -237,8 +236,7 @@ def double_lines(
     if closed:
         if offset_side == "centered" or offset_side == "both":
             polys = double_offset_polygons(points, offset)
-            for p in polys:
-                res_paths.append(_points_to_svg(p, True))
+            res_paths.extend(_points_to_svg(p, True) for p in polys)
         elif offset_side == "outer":
             # Geometry module uses offset for outer?
             # offset_polygon uses -offset internally if passed positive.
@@ -693,8 +691,7 @@ def path2d_to_svg_path(path2d: "Path2D") -> str:
 
         elif st == PO.SEGMENTS:
             # data is (start, points_list)
-            for p in data[1]:
-                parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
+            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in data[1])
 
         elif st in [PO.CUBIC_TO, PO.BLEND_CUBIC]:
             # data: (start, c1, c2, end)
@@ -730,13 +727,11 @@ def path2d_to_svg_path(path2d: "Path2D") -> str:
 
         elif st in [PO.SINE, PO.BLEND_SINE]:
             # data[0] is points
-            for p in data[0]:
-                parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
+            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in data[0])
 
         elif st == PO.HOBBY_TO and current_obj:
             verts = current_obj.vertices
-            for p in verts[1:]:
-                parts.append(f"L {fmt(p[0])},{fmt(p[1])}")
+            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in verts[1:])
 
         obj_idx += 1
 

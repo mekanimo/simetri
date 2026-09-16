@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Lightweight NumPy-backed polygon/polyline geometry (no style)."""
+
+from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Self
@@ -521,9 +521,7 @@ def get_polygons(
 
     nested_point_ids = []
     for points in nested_rounded_points:
-        point_ids = []
-        for point in points:
-            point_ids.append(d_point__id[point])
+        point_ids = [d_point__id[point] for point in points]
         nested_point_ids.append(point_ids)
 
     graph_edges = []

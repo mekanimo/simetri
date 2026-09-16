@@ -739,17 +739,17 @@ def ellipse_intersection(x1, y1, a, b, phi, x2, y2, c, d, phi2):
     # Gx^2 + Hx + Ixy + Jy + K = 0, x = cos(t2), y = sin(t2)
     G = B * B + E * E - C * C - F * F
     H = 2 * (A * B + D * E)
-    I = 2 * (B * C + E * F)
+    coeff_i = 2 * (B * C + E * F)
     J = 2 * (A * C + D * F)
     K = A * A + D * D + C * C + F * F - 1
 
     roots = []
-    L = G * G + I * I
+    L = G * G + coeff_i * coeff_i
     if isclose(L, 0, rel_tol=0, abs_tol=1e-7):
         # Gx + Hy + K = 0
         roots = solve_quadratic_eq(G, H, K)
 
-    elif isclose(I, 0, rel_tol=0, abs_tol=1e-7):
+    elif isclose(coeff_i, 0, rel_tol=0, abs_tol=1e-7):
         # Gx^2 + Hx + K = 0
         roots = solve_quadratic_eq(G, H, K)
 
@@ -759,27 +759,27 @@ def ellipse_intersection(x1, y1, a, b, phi, x2, y2, c, d, phi2):
 
     else:
         # Lx^4 + Mx^3 + Nx^2 + Ox + P = 0
-        M = 2 * (G * H + I * J)
-        N = H * H + 2 * G * K + J * J - I * I
-        O = 2 * (K * H - I * J)
+        M = 2 * (G * H + coeff_i * J)
+        N = H * H + 2 * G * K + J * J - coeff_i * coeff_i
+        coeff_o = 2 * (K * H - coeff_i * J)
         P = K * K - J * J
 
         iL = 1 / L
-        roots = solve_quartic_equation(M * iL, N * iL, O * iL, P * iL)
+        roots = solve_quartic_equation(M * iL, N * iL, coeff_o * iL, P * iL)
 
     points = []
     # for(i = 0 i < roots.length i++)
     # for i in range(len(roots)):
     for i, x in enumerate(roots):
         # x = roots[i]
-        if isclose(I * x + J, rel_tol=0, abs_tol=1e-7):
+        if isclose(coeff_i * x + J, rel_tol=0, abs_tol=1e-7):
             y = sqrt(1 - x * x)
             points.append((x, y))
 
             if not isclose(y, 0, rel_tol=0, abs_tol=1e-7):
                 points.append((x, -y))
         else:
-            y = -(G * x * x + H * x + K) / (I * x + J)
+            y = -(G * x * x + H * x + K) / (coeff_i * x + J)
             if abs(y) < 1e-2:
                 y = sqrt(1 - x * x)
                 points.append((x, y))
@@ -875,12 +875,12 @@ def Qbrt(complex_):
 
     angle = cmath.phase(complex_) * 0.33333333333
     # angle = atan2(complex.y, complex.x)  *  0.33333333333
-    l = pow(
+    magnitude = pow(
         complex_.real * complex_.real + complex_.imag * complex_.imag,
         0.16666666666,
     )
-    # return Complex(l * cos(angle), l * sin(angle))
-    return complex(l * cos(angle), l * sin(angle))
+    # return Complex(magnitude * cos(angle), magnitude * sin(angle))
+    return complex(magnitude * cos(angle), magnitude * sin(angle))
 
 
 # x^2 + bx + c = 0

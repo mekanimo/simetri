@@ -857,14 +857,12 @@ def get_interior_points(start, end, n_points):
     rot_angle = line_angle(start, end)
     length_ = distance(start, end)
     seg_length = length_ / (n_points + 1.0)
-    points = []
-    for i in range(n_points):
-        points.append(
-            rotate_point(
-                [start[0] + seg_length * (i + 1), start[1]], start, rot_angle
-            )
+    return [
+        rotate_point(
+            [start[0] + seg_length * (i + 1), start[1]], start, rot_angle
         )
-    return points
+        for i in range(n_points)
+    ]
 
 
 def project_point_on_line(point: PointType, line: LineType):

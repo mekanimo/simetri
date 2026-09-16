@@ -1338,14 +1338,12 @@ def draw_fragments(
         palette (optional): Color palette; ``kwargs['swatch']`` overrides it.
         **kwargs: Style overrides forwarded to ``draw``.
     """
-    areas = []
     if lace is None:
         fragments = kwargs["fragments"]
     else:
         fragments = lace.fragments
 
-    for fragment in fragments:
-        areas.append((fragment.area, fragment.id))
+    areas = [(fragment.area, fragment.id) for fragment in fragments]
     bins = group_into_bins(areas, 2)
 
     if "swatch" in kwargs:
@@ -1970,12 +1968,12 @@ def get_clipped_sketch(
     Returns:
         ClippedSketch: Composite sketch with clipper attached.
     """
-    sketches = []
     if target.type == Types.GROUP:
-        for item in target:
-            sketches.append(get_sketches(item, canvas, **kwargs))
+        sketches = [
+            get_sketches(item, canvas, **kwargs) for item in target
+        ]
     else:
-        sketches.append(get_sketches(target, canvas, **kwargs))
+        sketches = [get_sketches(target, canvas, **kwargs)]
     clipper = get_sketches(clipper, canvas)
     return ClippedSketch(sketches=sketches, clipper=clipper)
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Color related operations.
 
 Provides the ``Color`` class, conversion helpers, blend utilities, and
@@ -11,6 +9,8 @@ Examples:
     >>> color.rgb255
     (255, 0, 0)
 """
+
+from __future__ import annotations
 
 import colorsys
 from collections.abc import Sequence
@@ -740,7 +740,7 @@ def rgb2hls(r, g, b):
     return rgb_to_hls(r, g, b)
 
 
-def hls2rgb(h, l, s):
+def hls2rgb(h, l, s):  # noqa: E741
     """Convert HLS to RGB.
 
     Args:

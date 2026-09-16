@@ -228,9 +228,7 @@ def offset_lines(
         res.append(line2[-1])
         return res
 
-    poly = []
-    for line in polylines:
-        poly.append(offset_line(line, offset))
+    poly = [offset_line(line, offset) for line in polylines]
     poly = stitch_(poly)
     return poly
 
@@ -1124,8 +1122,7 @@ def all_segments_sorted(
     intersection_map, _ = all_intersections(edges, rel_tol, abs_tol)
 
     intersections_by_edge = {edge_id: [] for edge_id in range(len(edges))}
-    for edge_id, intersections in intersection_map.items():
-        intersections_by_edge[edge_id] = intersections
+    intersections_by_edge.update(intersection_map)
 
     sorted_segments = []
     for edge_id, edge in enumerate(edges):

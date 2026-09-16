@@ -1135,13 +1135,15 @@ def random_polygon(
         constructions = []
         for edge_count in range(n_min_edges, n_max_edges + 1):
             required_sum = (edge_count - 2) * pi
-            for interior_angles in product(candidates, repeat=edge_count):
+            constructions.extend(
+                (edge_count, interior_angles)
+                for interior_angles in product(candidates, repeat=edge_count)
                 if isclose(
                     sum(interior_angles),
                     required_sum,
                     abs_tol=angle_tolerance,
-                ):
-                    constructions.append((edge_count, interior_angles))
+                )
+            )
 
         if not constructions:
             raise ValueError(

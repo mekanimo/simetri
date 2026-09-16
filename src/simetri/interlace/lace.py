@@ -1063,11 +1063,15 @@ class ParallelPolyline(Group):
             )
         polylines = []
         if self.closed:
-            for polygon in offset_polygons:
-                polylines.append(Polyline(polygon, closed=self.closed))
+            polylines.extend(
+                Polyline(polygon, closed=self.closed)
+                for polygon in offset_polygons
+            )
         else:
-            for polyline in offset_polylines:
-                polylines.append(Polyline(polyline, closed=self.closed))
+            polylines.extend(
+                Polyline(polyline, closed=self.closed)
+                for polyline in offset_polylines
+            )
 
         self.offset_poly_list = polylines
 
@@ -1283,9 +1287,7 @@ class Lace(Group):
     @property
     def fragments_by_area(self):
         """Groups fragments into bins by using their areas."""
-        areas = []
-        for fragment in self.fragments:
-            areas.append((fragment.area, fragment.id))
+        areas = [(fragment.area, fragment.id) for fragment in self.fragments]
         delta = max([x[0] for x in areas]) / 100
         bins = group_into_bins(areas, delta)
 
@@ -1471,9 +1473,7 @@ class Lace(Group):
     # To do: This doesn't work if we have polyline shapes!
     def _set_outline(self):
         # outline is a special fragment that covers the whole lace
-        areas = []
-        for fragment in self.fragments:
-            areas.append((fragment.area, fragment))
+        areas = [(fragment.area, fragment) for fragment in self.fragments]
         areas.sort(reverse=True, key=lambda x: x[0])
         self.outline = areas[0][1]
         self.fragments.remove(self.outline)
@@ -2138,9 +2138,9 @@ class Lace(Group):
             for i_start, i_end in plait.connections:
                 start = plait[i_start][:2]
                 end = plait[i_end][:2]
-                offsets = []
-                for offset in percent_offsets:
-                    offsets.append(lerp_point(start, end, offset))
+                offsets = [
+                    lerp_point(start, end, offset) for offset in percent_offsets
+                ]
                 lerps.append(offsets)
             plait.lerp_points = lerps
 
@@ -2159,8 +2159,9 @@ class Lace(Group):
         plait_sections = []
         for division in self.iter_offset_divisions():
             merged_sections = division._merged_sections()
-            for merged in merged_sections:
-                plait_sections.append((merged[0], merged[-1]))
+            plait_sections.extend(
+                (merged[0], merged[-1]) for merged in merged_sections
+            )
 
         # connect the open ends of the polyline_shapes
         for ppoly in self.parallel_poly_list:
@@ -2174,9 +2175,11 @@ class Lace(Group):
 
                 plait_sections.append((p1_start_x, p2_start_x))
                 plait_sections.append((p1_end_x, p2_end_x))
-        for sec in self.iter_offset_sections():
-            if not sec.is_over and sec.is_overlap:
-                plait_sections.append((sec.start, sec.end))
+        plait_sections.extend(
+            (sec.start, sec.end)
+            for sec in self.iter_offset_sections()
+            if not sec.is_over and sec.is_overlap
+        )
 
         graph_edges = [(r[0].id, r[1].id) for r in plait_sections]
         cycles = get_cycles(graph_edges)
@@ -2384,8 +2387,10 @@ class Lace(Group):
 
         neighbours = []
         for fragment in self.fragments:
-            for intersection in fragment.intersections:
-                neighbours.append(get_neighbours(intersection))
+            neighbours.extend(
+                get_neighbours(intersection)
+                for intersection in fragment.intersections
+            )
         G = self.fragment_edge_graph()
         G2 = nx.Graph()
         for n in neighbours:

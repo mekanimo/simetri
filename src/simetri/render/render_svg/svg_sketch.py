@@ -172,8 +172,9 @@ def draw_arc_sketch(
         vertices = list(vertices) + [vertices[0]]
 
     path_parts = [f"M {vertices[0][0]},{vertices[0][1]}"]
-    for vertex in vertices[1:]:
-        path_parts.append(f"L {vertex[0]},{vertex[1]}")
+    path_parts.extend(
+        f"L {vertex[0]},{vertex[1]}" for vertex in vertices[1:]
+    )
     if closed:
         path_parts.append("Z")
     path_data = " ".join(path_parts)

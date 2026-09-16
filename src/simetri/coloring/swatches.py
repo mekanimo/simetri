@@ -944,9 +944,9 @@ swatches_255 = [
 
 swatches = []
 for swatch_255 in swatches_255:
-    swatch = []
-    for color in swatch_255:
-        swatch.append([color[0] / 255, color[1] / 255, color[2] / 255])
+    swatch = [
+        [color[0] / 255, color[1] / 255, color[2] / 255] for color in swatch_255
+    ]
     swatches.append(swatch)
 
 

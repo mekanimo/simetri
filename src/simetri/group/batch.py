@@ -191,9 +191,9 @@ class Group(Base):
             _elements = []
             for element in elements[0]:
                 if isinstance(element, (list, tuple)):
-                    for elem in flatten_elements(element):
-                        if elem:
-                            _elements.append(elem)
+                    _elements.extend(
+                        elem for elem in flatten_elements(element) if elem
+                    )
                 else:
                     if element:
                         _elements.append(element)
@@ -204,9 +204,9 @@ class Group(Base):
             _elements = []
             for element in elements:
                 if isinstance(element, (list, tuple)):
-                    for elem in flatten_elements(element):
-                        if elem:
-                            _elements.append(elem)
+                    _elements.extend(
+                        elem for elem in flatten_elements(element) if elem
+                    )
                 else:
                     if element:
                         _elements.append(element)
@@ -674,11 +674,9 @@ class Group(Base):
             list[Shape]: A list of all shapes in the group.
         """
         elements = self.all_elements
-        shapes = []
-        for element in elements:
-            if element.type == Types.SHAPE:
-                shapes.append(element)
-        return shapes
+        return [
+            element for element in elements if element.type == Types.SHAPE
+        ]
 
     @property
     def all_vertices(self) -> list[PointType]:
@@ -871,12 +869,11 @@ class Group(Base):
                 points, dist_tol=dist_tol, closed=element.closed
             )
             polylines.append(points)
-        fixed_polylines = []
         if polylines:
-            for polyline in polylines:
-                fixed_polylines.append(
-                    fix_degen_points(polyline, dist_tol=dist_tol, closed=True)
-                )
+            fixed_polylines = [
+                fix_degen_points(polyline, dist_tol=dist_tol, closed=True)
+                for polyline in polylines
+            ]
             polygons = get_polygons(fixed_polylines, dist_tol=dist_tol)
             res = polygons + exclude
         else:

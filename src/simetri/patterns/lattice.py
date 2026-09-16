@@ -582,15 +582,10 @@ def get_unit(lat, group, vertical=False, **kwargs):
     diamond = Shape(
         [(-5, 0), (0, 9), (5, 0), (0, -9)], closed=True, fill_color=purple
     ).scale(0.75)
-    points = []
-    for x in (0, 0.25, 0.5, 0.75, 1):
-        points.append((x, 0))
-    for y in (0.25, 0.5, 0.75, 1):
-        points.append((1, y))
-    for x in [0.75, 0.5, 0.25, 0]:
-        points.append((x, 1))
-    for y in (0.75, 0.5, 0.25):
-        points.append((0, y))
+    points = [(x, 0) for x in (0, 0.25, 0.5, 0.75, 1)]
+    points.extend((1, y) for y in (0.25, 0.5, 0.75, 1))
+    points.extend((x, 1) for x in [0.75, 0.5, 0.25, 0])
+    points.extend((0, y) for y in (0.75, 0.5, 0.25))
 
     p = points
 

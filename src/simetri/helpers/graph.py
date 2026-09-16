@@ -105,9 +105,11 @@ def find_all_paths(graph, node):
     """
     paths = []
     for node_ in graph.nodes():
-        for path in nx.all_simple_paths(graph, node, node_):
-            if len(path) > 1:
-                paths.append(path)
+        paths.extend(
+            path
+            for path in nx.all_simple_paths(graph, node, node_)
+            if len(path) > 1
+        )
     return paths
 
 
@@ -321,11 +323,11 @@ class Graph:
         Returns:
             List: List of open walks.
         """
-        res = []
-        for island in self.islands:
-            if is_open_walk(self.nx_graph, island):
-                res.append(island)
-        return res
+        return [
+            island
+            for island in self.islands
+            if is_open_walk(self.nx_graph, island)
+        ]
 
     @property
     def edges(self):

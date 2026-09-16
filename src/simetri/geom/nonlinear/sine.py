@@ -136,10 +136,10 @@ def damping_function(amplitude, duration, sample_rate):
     Returns:
         list: A list of float values representing the damping function over time.
     """
-    damping = []
-    for i in range(int(duration * sample_rate)):
-        damping.append(amplitude * exp(-i / (duration * sample_rate)))
-    return damping
+    return [
+        amplitude * exp(-i / (duration * sample_rate))
+        for i in range(int(duration * sample_rate))
+    ]
 
 
 def sine_points(

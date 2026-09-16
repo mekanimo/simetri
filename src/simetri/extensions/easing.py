@@ -14,6 +14,8 @@ Examples:
 
 import math
 
+from numpy import array
+
 
 class EasingBase:
     """Base class for Penner-style easing functions.
@@ -437,8 +439,6 @@ def cubicInterpolation(p0, p1, p2, p3, t):
         + (-p0 + 3 * p1 - 3 * p2 + p3) * t3
     )
 
-
-from numpy import array
 
 p1 = array([0, 0])
 p2 = array([1, 1])
