@@ -31,6 +31,13 @@ from ..config.settings import (
     issue_warning,
 )
 
+_format_type_handlers: dict[type, object] = {}
+
+
+def register_format_handler(type_cls: type, handler) -> None:
+    """Register a ``format_data`` handler for ``type_cls``."""
+    _format_type_handlers[type_cls] = handler
+
 
 # from https://peps.python.org/pep-0661/
 class sentinel:
@@ -85,6 +92,15 @@ def print_options(**kwargs):
         >>> sg.format_data(1 / 3)
         '0.3333'
     """
+    unknown_keys = sorted(set(kwargs) - set(_print_options))
+    if unknown_keys:
+        valid_keys = ", ".join(sorted(_print_options))
+        unknown_text = ", ".join(unknown_keys)
+        raise TypeError(
+            "Unknown print_options keyword(s): "
+            f"{unknown_text}. Valid options: {valid_keys}"
+        )
+
     # Save the current state
     old_options = _print_options.copy()
 
@@ -97,11 +113,36 @@ def print_options(**kwargs):
         _print_options.update(old_options)
 
 
-def format_data(data):
+def _format_float(
+    value: float,
+    *,
+    n_digits: int | None = None,
+    n_sig_digits: int | None = None,
+) -> str:
+    if n_sig_digits is not None:
+        return format(value, f".{n_sig_digits}g")
+    suppress = _print_options["suppress"]
+    if suppress and abs(value) < 1e-4:
+        return "0.0"
+    decimal_places = (
+        n_digits if n_digits is not None else _print_options["precision"]
+    )
+    return f"{value:.{decimal_places}f}"
+
+
+def format_data(
+    data,
+    *,
+    n_digits: int | None = None,
+    n_sig_digits: int | None = None,
+):
     """Format a value using the current print options.
 
     Args:
         data: Scalar, sequence, or mapping to format.
+        n_digits: Optional number of digits after the decimal point.
+        n_sig_digits: Optional number of significant digits. When set, this
+            takes precedence over ``n_digits`` and default ``precision``.
 
     Returns:
         str: Formatted representation.
@@ -110,50 +151,98 @@ def format_data(data):
         >>> import simetri.graphics as sg
         >>> sg.format_data(1 / 3)
         '0.3333'
+        >>> sg.format_data(1 / 3, n_digits=2)
+        '0.33'
+        >>> sg.format_data(1234.567, n_sig_digits=3)
+        '1.23e+03'
         >>> sg.format_data((1.0, 2.5))
         '(1.0000, 2.5000)'
     """
-    # Get current formatting options
-    precision = _print_options["precision"]
-    suppress = _print_options["suppress"]
+    type_handler = _format_type_handlers.get(type(data))
+    if type_handler is not None:
+        return type_handler(
+            data,
+            n_digits=n_digits,
+            n_sig_digits=n_sig_digits,
+        )
 
     # Handle floats
     if isinstance(data, float):
-        if suppress and abs(data) < 1e-4:
-            return "0.0"
-        return f"{data:.{precision}f}"
+        return _format_float(
+            data,
+            n_digits=n_digits,
+            n_sig_digits=n_sig_digits,
+        )
 
     # Handle tuples (must convert to string representation)
     if isinstance(data, tuple):
-        return f"({', '.join(format_data(x) for x in data)})"
+        formatted_items = [
+            format_data(
+                item,
+                n_digits=n_digits,
+                n_sig_digits=n_sig_digits,
+            )
+            for item in data
+        ]
+        return f"({', '.join(formatted_items)})"
 
     # Handle lists, arrays, or sequences (excluding strings)
     if isinstance(data, collections.abc.Sequence) and not isinstance(
         data, (str, bytes)
     ):
-        return f"[{', '.join(format_data(x) for x in data)}]"
+        formatted_items = [
+            format_data(
+                item,
+                n_digits=n_digits,
+                n_sig_digits=n_sig_digits,
+            )
+            for item in data
+        ]
+        return f"[{', '.join(formatted_items)}]"
 
     # Handle dictionaries
     if isinstance(data, dict):
-        items = [f"{k!r}: {format_data(v)}" for k, v in data.items()]
+        items = [
+            (
+                f"{key!r}: "
+                f"{format_data(value, n_digits=n_digits, n_sig_digits=n_sig_digits)}"
+            )
+            for key, value in data.items()
+        ]
         return f"{{{', '.join(items)}}}"
 
     # Return everything else (ints, strings, etc.) as their default string
     return str(data)
 
 
-def p_print(*data):
+def p_print(
+    *data,
+    n_digits: int | None = None,
+    n_sig_digits: int | None = None,
+):
     """Print values using ``format_data`` and current print options.
 
     Args:
         *data: Values to print.
+        n_digits: Optional number of digits after the decimal point.
+        n_sig_digits: Optional number of significant digits. When set, this
+            takes precedence over ``n_digits`` and default ``precision``.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.p_print(1 / 3)
         0.3333
+        >>> sg.p_print(1 / 3, n_digits=2)
+        0.33
     """
-    output = " ".join(format_data(item) for item in data)
+    output = " ".join(
+        format_data(
+            item,
+            n_digits=n_digits,
+            n_sig_digits=n_sig_digits,
+        )
+        for item in data
+    )
     print(output)
 
 

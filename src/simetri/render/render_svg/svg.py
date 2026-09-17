@@ -400,7 +400,21 @@ def svg_shape(sketch, styles_dict, exceptions=None):
             fill_style = get_fill_style_options(
                 sketch, style_shape_type, exceptions=exceptions
             )
-        outer_style = f"stroke: {outer_stroke}; stroke-width: {outer_stroke_width}; {fill_style}"
+        double_line_exceptions = list(exceptions) if exceptions is not None else []
+        double_line_exceptions.extend(["stroke", "line_color", "line_width"])
+        extra_line_style = get_line_style_options(
+            sketch,
+            exceptions=double_line_exceptions,
+        )
+        outer_style_parts = [
+            f"stroke: {outer_stroke};",
+            f"stroke-width: {outer_stroke_width};",
+            fill_style,
+            extra_line_style,
+        ]
+        outer_style = " ".join(
+            part for part in outer_style_parts if part
+        ).strip()
         outer_element = (
             f"<{shape_type}\n"
             f'style="{outer_style}"{fill_rule_attr}{clip_attr}{mask_attr}\n'

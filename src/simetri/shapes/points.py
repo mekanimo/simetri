@@ -22,6 +22,7 @@ from ..base.all_enums import Types
 from ..base.common import PointType
 from ..config.settings import defaults
 from ..geom.homogenize import homogenize
+from ..helpers.utilities import format_data, register_format_handler
 
 
 class _GroupUpdateContext:
@@ -350,3 +351,20 @@ class Points:
             list[tuple[PointType, PointType]]: A list where each element is a tuple containing two consecutive points.
         """
         return list(zip(self.coords[:-1], self.coords[1:]))
+
+
+def _format_points_for_display(
+    points: Points,
+    *,
+    n_digits: int | None = None,
+    n_sig_digits: int | None = None,
+) -> str:
+    formatted_coords = format_data(
+        points.coords,
+        n_digits=n_digits,
+        n_sig_digits=n_sig_digits,
+    )
+    return f"Points({formatted_coords})"
+
+
+register_format_handler(Points, _format_points_for_display)

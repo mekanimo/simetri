@@ -196,6 +196,7 @@ d_help_topic: dict[str, list[str]] = {
     ],
     "canvas": [
         "Canvas.draw",
+        "Canvas.draw_lace",
         "Canvas.save",
         "sg.Canvas",
         "sg.set_defaults",
@@ -230,6 +231,7 @@ d_help_topic: dict[str, list[str]] = {
     "canvas_doc": [
         "sg.Canvas",
         "Canvas.draw",
+        "Canvas.draw_lace",
         "Canvas.save",
         "Canvas.display",
         "Canvas.insert_svg",
@@ -290,6 +292,26 @@ d_help_topic: dict[str, list[str]] = {
         "sg.defaults['landing_length']",
         "sg.defaults['rev_arrow_length']",
         "See also: sg.help('canvas_doc'), sg.help('tags')",
+    ],
+    "drawing_laces_doc": [
+        "sg.Lace",
+        "sg.Canvas.draw_lace",
+        "Canvas.draw_fragments",
+        "Canvas.draw_plaits",
+        "Canvas.draw_lace_with_fillets",
+        "sg.FragmentColoring",
+        "sg.PlaitStyle",
+        "sg.Star",
+        "sg.stars.Star",
+        "sg.rosette",
+        "sg.defaults['fragment_coloring']",
+        "sg.defaults['lace_plait_style']",
+        "sg.defaults['shade_plaits']",
+        "sg.defaults['fillet_radii']",
+        (
+            "See also: sg.help('canvas_doc'), sg.help('groups_doc'), "
+            "sg.help('shapes_doc'), sg.help('patterns')"
+        ),
     ],
     "dynamic_references_doc": [
         "sg.DynRef",
@@ -362,7 +384,7 @@ d_help_topic: dict[str, list[str]] = {
         (
             "See also: sg.help('shapes_doc'), sg.help('canvas_doc'), "
             "sg.help('style_definitions'), sg.help('boolean_ops'), "
-            "sg.help('tag_objects')"
+            "sg.help('tag_objects'), sg.help('drawing_laces_doc')"
         ),
     ],
     "help_doc": [
@@ -467,7 +489,8 @@ d_help_topic: dict[str, list[str]] = {
         "sg.frieze",
         "sg.reg_star_polygon",
         "sg.rosette",
-        "See also: sg.help('grids'), sg.help('lattices_doc')",
+        "See also: sg.help('grids'), sg.help('lattices_doc'), "
+        "sg.help('drawing_laces_doc')",
     ],
     "path_objects_doc": [
         "sg.Path2D",
@@ -782,6 +805,11 @@ _TOPIC_ALIASES = {
     "dimensioning": "dimensioning_doc",
     "Dimensioning": "dimensioning_doc",
     "dimensions": "dimensioning_doc",
+    "draw_lace": "drawing_laces_doc",
+    "drawing-laces": "drawing_laces_doc",
+    "drawing-laces-doc": "drawing_laces_doc",
+    "drawing_laces": "drawing_laces_doc",
+    "drawing_laces_doc": "drawing_laces_doc",
     "dynamic_references": "dynamic_references_doc",
     "DynamicReferences": "dynamic_references_doc",
     "Edges": "edges",
@@ -816,6 +844,9 @@ _TOPIC_ALIASES = {
     "Lines": "lines",
     "latex-engine": "latex_engine",
     "LatexEngine": "latex_engine",
+    "Lace": "drawing_laces_doc",
+    "lace": "drawing_laces_doc",
+    "laces": "drawing_laces_doc",
     "Lattice": "lattices_doc",
     "lattice": "lattices_doc",
     "lattices": "lattices_doc",
@@ -915,7 +946,9 @@ Unknown names list similar topics, settings, and public ``sg`` names.
 """
 )
 
-_SIGNATURE_DEFAULT_SKIP_NAMES = frozenset({"page_size"})
+_SIGNATURE_DEFAULT_SKIP_NAMES = frozenset(
+    {"page_size", "plait_style", "swatch"}
+)
 
 
 def _default_overrides_for_signature(
@@ -1137,6 +1170,7 @@ _CALLABLE_KWARGS_KEY_SOURCES: dict[
     str, Callable[[inspect.Signature], Sequence[str]]
 ] = {
     "Canvas.draw": _canvas_draw_kwargs_keys,
+    "Canvas.draw_lace": _canvas_draw_kwargs_keys,
 }
 
 
@@ -1165,8 +1199,18 @@ _CANVAS_DRAW_HELP_NOTES = (
     "canvas.translate/rotate/scale change the canvas coordinate system for later drawing"
 )
 
+_CANVAS_DRAW_LACE_HELP_NOTES = (
+    "Lace-specific options belong on canvas.draw_lace, not canvas.draw.\n"
+    "None on a named argument means use the matching defaults entry.\n"
+    "fragment_coloring uses FragmentColoring.AREA or FragmentColoring.RADIUS.\n"
+    "plait_style uses PlaitStyle.EMBOSS1, EMBOSS2, DIAMOND, INNERLINES, or "
+    "DOUBLE_LINES; INNERLOOPS raises until implemented.\n"
+    "Generic shape styles in **kwargs are forwarded to fragment and plait draws."
+)
+
 _CALLABLE_HELP_NOTES: dict[str, str] = {
     "Canvas.draw": _CANVAS_DRAW_HELP_NOTES,
+    "Canvas.draw_lace": _CANVAS_DRAW_LACE_HELP_NOTES,
 }
 
 

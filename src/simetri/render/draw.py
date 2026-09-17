@@ -13,6 +13,7 @@ from ..base.all_enums import (
     BackStyle,
     Connection,
     Drawable,
+    FragmentColoring,
     MarkerType,
     PlaitStyle,
     SvgLoc,
@@ -20,16 +21,16 @@ from ..base.all_enums import (
     Types,
     drawable_types,
 )
-from ..base.common import PointType, d_id_obj
+from ..base.common import PointType
 from ..coloring import colors
 from ..coloring.colors import Color, change_lightness
-from ..coloring.palettes import d_name_palette
 from ..config.settings import defaults
 from ..geom.affine import (
     rotation_matrix,
     translation_matrix,
 )
 from ..geom.geom_utils import midpoint
+from ..geom.points.point_utils import distance
 from ..geom.homogenize import homogenize
 from ..geom.matrices import identity_matrix
 from ..geom.nonlinear.bezier import bezier_points
@@ -939,6 +940,56 @@ def draw_hobby(
     return self
 
 
+_LACE_DRAW_OPTION_NAMES = frozenset(
+    (
+        "draw_fragments",
+        "draw_plaits",
+        "fillet_radii",
+        "fragment_coloring",
+        "fragments",
+        "line_widths",
+        "palette",
+        "percent_offsets",
+        "plait_color",
+        "plait_fill_color",
+        "plait_style",
+        "plaits",
+        "shade_plaits",
+        "swatch",
+    )
+)
+
+
+def _lace_style_kwargs(kwargs: dict) -> dict:
+    """Return draw kwargs with lace-only option names removed."""
+    return {
+        name: value
+        for name, value in kwargs.items()
+        if name not in _LACE_DRAW_OPTION_NAMES
+    }
+
+
+def _resolved_plait_fill_color(lace: Lace | None, kwargs: dict):
+    """Return the plait fill color from draw options, then the lace, then defaults."""
+    if "plait_color" in kwargs:
+        return kwargs["plait_color"]
+    if "plait_fill_color" in kwargs:
+        return kwargs["plait_fill_color"]
+    if "fill_color" in kwargs:
+        return kwargs["fill_color"]
+    if lace is not None:
+        if lace.plait_color is not None:
+            return lace.plait_color
+    return defaults["plait_color"]
+
+
+def _resolved_shade_plaits(kwargs: dict) -> bool:
+    """Return whether plaits should be shaded for this draw call."""
+    if "shade_plaits" in kwargs:
+        return kwargs["shade_plaits"]
+    return defaults["shade_plaits"]
+
+
 def shade_value(angle: float) -> float:
     """Return a shade weight from an angle.
 
@@ -976,9 +1027,7 @@ def plait_emboss1(self, lace: Lace, **kwargs) -> None:
         **kwargs: Style overrides such as ``fill_color``.
     """
     if "fill_color" not in kwargs:
-        if lace.plait_color is None:
-            lace.plait_color = defaults["plait_color"]
-        kwargs["fill_color"] = lace.plait_color
+        kwargs["fill_color"] = _resolved_plait_fill_color(lace, kwargs)
     lace._set_plait_ends()
     all_quads = []
     for plait in lace.plaits:
@@ -1033,15 +1082,12 @@ def plait_emboss1(self, lace: Lace, **kwargs) -> None:
 
         all_quads.extend(quads)
 
-    if lace.shade_plaits:
-        kwargs.pop("fill_color")
+    style_kwargs = _lace_style_kwargs(kwargs)
+    if _resolved_shade_plaits(kwargs):
         dist = lace.width * 3
         cx, cy = lace.midpoint
         far_point = cx - dist, cy + dist
-        if lace.plait_color is None:
-            color = defaults["plait_color"]
-        else:
-            color = lace.plait_color
+        color = _resolved_plait_fill_color(lace, kwargs)
         for quad in all_quads:
             quad1 = Shape(quad[0], closed=True)
             quad2 = Shape(quad[1], closed=True)
@@ -1067,11 +1113,18 @@ def plait_emboss1(self, lace: Lace, **kwargs) -> None:
                 color2 = change_lightness(color, shade_factor * -shade_step)
             else:
                 color1 = color2 = color
-            draw(self, quad1, fill_color=color1, **kwargs)
-            draw(self, quad2, fill_color=color2, **kwargs)
+            quad1_kwargs = dict(style_kwargs)
+            quad1_kwargs["fill_color"] = color1
+            quad2_kwargs = dict(style_kwargs)
+            quad2_kwargs["fill_color"] = color2
+            draw(self, quad1, **quad1_kwargs)
+            draw(self, quad2, **quad2_kwargs)
     else:
         for quad in all_quads:
-            draw(self, quad, **kwargs)
+            quad1 = Shape(quad[0], closed=True)
+            quad2 = Shape(quad[1], closed=True)
+            draw(self, quad1, **style_kwargs)
+            draw(self, quad2, **style_kwargs)
 
 
 def plait_emboss2(self, lace: Lace, **kwargs) -> None:
@@ -1082,9 +1135,7 @@ def plait_emboss2(self, lace: Lace, **kwargs) -> None:
         **kwargs: Style overrides such as ``fill_color``.
     """
     if "fill_color" not in kwargs:
-        if lace.plait_color is None:
-            lace.plait_color = defaults["plait_color"]
-        kwargs["fill_color"] = lace.plait_color
+        kwargs["fill_color"] = _resolved_plait_fill_color(lace, kwargs)
     quads = []
     for ppoly in lace.parallel_poly_list:
         for poly in ppoly.offset_poly_list:
@@ -1142,13 +1193,13 @@ def plait_emboss2(self, lace: Lace, **kwargs) -> None:
                         )
                     )
                     quad1 = []
-    if lace.shade_plaits:
-        kwargs.pop("fill_color")
+    style_kwargs = _lace_style_kwargs(kwargs)
+    if _resolved_shade_plaits(kwargs):
         dist = lace.width * 3
         cx, cy = lace.midpoint
         far_point = cx - dist, cy + dist
 
-        color = lace.plait_color
+        color = _resolved_plait_fill_color(lace, kwargs)
         for quad in quads:
             quad1 = Shape(quad[0], closed=True)
             quad2 = Shape(quad[1], closed=True)
@@ -1174,11 +1225,18 @@ def plait_emboss2(self, lace: Lace, **kwargs) -> None:
                 color2 = change_lightness(color, shade_factor * -shade_step)
             else:
                 color1 = color2 = color
-            draw(self, quad1, fill_color=color1, **kwargs)
-            draw(self, quad2, fill_color=color2, **kwargs)
+            quad1_kwargs = dict(style_kwargs)
+            quad1_kwargs["fill_color"] = color1
+            quad2_kwargs = dict(style_kwargs)
+            quad2_kwargs["fill_color"] = color2
+            draw(self, quad1, **quad1_kwargs)
+            draw(self, quad2, **quad2_kwargs)
     else:
         for quad in quads:
-            draw(self, quad, **kwargs)
+            quad1 = Shape(quad[0], closed=True)
+            quad2 = Shape(quad[1], closed=True)
+            draw(self, quad1, **style_kwargs)
+            draw(self, quad2, **style_kwargs)
 
 
 def plait_diamond(self, lace: Lace, **kwargs) -> None:
@@ -1193,9 +1251,7 @@ def plait_diamond(self, lace: Lace, **kwargs) -> None:
     end_quads = []
     inner_loops = []
     if "fill_color" not in kwargs:
-        if lace.plait_color is None:
-            lace.plait_color = defaults["plait_color"]
-        kwargs["fill_color"] = lace.plait_color
+        kwargs["fill_color"] = _resolved_plait_fill_color(lace, kwargs)
     for plait in lace.plaits:
         vertices = list(plait.vertices)
         e1, e2 = plait.ends
@@ -1227,74 +1283,85 @@ def plait_diamond(self, lace: Lace, **kwargs) -> None:
             shp = Shape(quad, closed=True)
             quads.append(shp)
         n2 = int(len(quads) / 2) - 1
+        style_kwargs = _lace_style_kwargs(kwargs)
         for i in range(n2):
-            draw(self, quads[i], **kwargs)
-            draw(self, quads[-(i + 2)], **kwargs)
+            draw(self, quads[i], **style_kwargs)
+            draw(self, quads[-(i + 2)], **style_kwargs)
             quad_pairs.append((quads[i], quads[-(i + 2)]))
         end_quads.extend([quads[-1], quads[n2]])
 
     dist = lace.width * 3
     cx, cy = lace.midpoint
     far_point = cx - dist, cy + dist
+    plait_fill_color = _resolved_plait_fill_color(lace, kwargs)
+    style_kwargs = _lace_style_kwargs(kwargs)
 
-    kwargs.pop("fill_color")
-    color = lace.plait_color
-    for quad1, quad2 in quad_pairs:
-        angle = inclination_angle(*quad1[:2])
-        shade_angle = abs(radians(135) - angle)
-        shade_factor = shade_value(shade_angle)
+    if _resolved_shade_plaits(kwargs):
+        color = plait_fill_color
+        for quad1, quad2 in quad_pairs:
+            angle = inclination_angle(*quad1[:2])
+            shade_angle = abs(radians(135) - angle)
+            shade_factor = shade_value(shade_angle)
 
-        mid1 = midpoint(*quad1[:2])
-        line1 = (far_point, mid1)
-        line2 = quad1[:2]
-        line3 = quad2[:2]
+            mid1 = midpoint(*quad1[:2])
+            line1 = (far_point, mid1)
+            line2 = quad1[:2]
+            line3 = quad2[:2]
 
-        x1, _ = intersect(line1, line2)
-        x2, _ = intersect(line1, line3)
-        shade_step = 0.2
+            x1, _ = intersect(line1, line2)
+            x2, _ = intersect(line1, line3)
+            shade_step = 0.2
 
-        if x2 < x1:
-            color1 = change_lightness(color, shade_factor * -shade_step)
-            color2 = change_lightness(color, shade_factor * shade_step)
-        elif x1 < x2:
-            color1 = change_lightness(color, shade_factor * shade_step)
-            color2 = change_lightness(color, shade_factor * -shade_step)
-        else:
-            color1 = color2 = color
+            if x2 < x1:
+                color1 = change_lightness(color, shade_factor * -shade_step)
+                color2 = change_lightness(color, shade_factor * shade_step)
+            elif x1 < x2:
+                color1 = change_lightness(color, shade_factor * shade_step)
+                color2 = change_lightness(color, shade_factor * -shade_step)
+            else:
+                color1 = color2 = color
 
-        draw(self, quad1, fill_color=color1, **kwargs)
-        draw(self, quad2, fill_color=color2, **kwargs)
+            quad1_kwargs = dict(style_kwargs)
+            quad1_kwargs["fill_color"] = color1
+            quad2_kwargs = dict(style_kwargs)
+            quad2_kwargs["fill_color"] = color2
+            draw(self, quad1, **quad1_kwargs)
+            draw(self, quad2, **quad2_kwargs)
 
-    color = change_lightness(lace.plait_color, -0.1)
+        color = change_lightness(plait_fill_color, -0.1)
+        for quad in end_quads:
+            end_kwargs = dict(style_kwargs)
+            end_kwargs["fill_color"] = color
+            draw(self, quad, **end_kwargs)
+
+        color = change_lightness(plait_fill_color, 0.1)
+        for loop in inner_loops:
+            loop_kwargs = dict(style_kwargs)
+            loop_kwargs["fill_color"] = color
+            draw(self, loop, **loop_kwargs)
+        return
+
     for quad in end_quads:
-        draw(self, quad, fill_color=color, **kwargs)
-
-    color = change_lightness(lace.plait_color, 0.1)
+        draw(self, quad, **style_kwargs)
     for loop in inner_loops:
-        draw(self, loop, fill_color=color, **kwargs)
+        draw(self, loop, **style_kwargs)
 
 
 def draw_lace_with_fillets(self, lace: Lace, **kwargs) -> None:
-    """Draw lace fragments and plaits with fillet radii applied.
+    """Draw a lace with filleted geometry, then apply draw_lace options.
 
     Args:
         lace: Lace object to draw.
-        **kwargs: Must include ``fillet_radii``; may also include
-            ``palette`` and ``plait_fill_color``.
+        **kwargs: Must include ``fillet_radii``. Other names are forwarded
+            to ``draw_lace``.
     """
-    r1, r2 = kwargs["fillet_radii"]
-    rounded_fragments = lace._fillet_fragments(r1, r2)
-    palette = kwargs.get("palette")
-    self.draw_fragments(palette=palette, fragments=rounded_fragments, **kwargs)
-
-    rounded_plaits = lace._fillet_plaits(r1, r2)
-    # We do not handle other plait options for rounded plaits yet!
-    if "plait_fill_color" not in kwargs:
-        fill_color = defaults["plait_color"]
-    else:
-        fill_color = kwargs["plait_fill_color"]
-    for plait in rounded_plaits:
-        draw(self, plait, fill_color=fill_color, **kwargs)
+    fillet_radii = kwargs["fillet_radii"]
+    remaining = {
+        name: value
+        for name, value in kwargs.items()
+        if name != "fillet_radii"
+    }
+    draw_lace(self, lace, fillet_radii=fillet_radii, **remaining)
 
 
 def draw_plaits(self, lace: Lace | None = None, **kwargs) -> None:
@@ -1303,22 +1370,22 @@ def draw_plaits(self, lace: Lace | None = None, **kwargs) -> None:
     Args:
         lace (optional): Lace object providing ``plaits``. If omitted,
             ``kwargs['plaits']`` is used.
-        **kwargs: Style overrides such as ``plait_fill_color`` and
+        **kwargs: Style overrides such as ``plait_color`` and
             ``plait_style``.
     """
-    if lace is None:
+    if "plaits" in kwargs:
         plaits = kwargs["plaits"]
-    else:
+    elif lace is not None:
         plaits = lace.plaits
+    else:
+        raise KeyError("plaits")
 
     if "plait_fill_color" not in kwargs:
-        color = defaults["plait_color"]
-        if color is not None:
-            kwargs["plait_fill_color"] = color
+        kwargs["plait_fill_color"] = _resolved_plait_fill_color(lace, kwargs)
     for plait in plaits:
         self._all_vertices.extend(plait.corners)  # This may be redundant!!!
 
-    if "plait_style" in kwargs:
+    if "plait_style" in kwargs and kwargs["plait_style"] is not None:
         _handle_plait_style(self, lace, kwargs)
     else:
         _draw_default_plaits(self, lace, kwargs)
@@ -1330,56 +1397,92 @@ def draw_fragments(
     palette: Sequence[Sequence[float]] | None = None,
     **kwargs,
 ) -> None:
-    """Draw lace fragments colored by area bins from a palette.
+    """Draw lace fragments colored by area or radius bins from a palette.
 
     Args:
-        lace (optional): Lace object providing ``fragments``. If omitted,
-            ``kwargs['fragments']`` is used.
-        palette (optional): Color palette; ``kwargs['swatch']`` overrides it.
-        **kwargs: Style overrides forwarded to ``draw``.
+        lace (optional): Lace object providing ``fragments`` and, for
+            ``FragmentColoring.RADIUS``, the lace center.
+        palette (optional): Color palette; ``swatch`` in ``kwargs``
+            overrides it.
+        **kwargs: May include ``fragments``, ``fragment_coloring``, and
+            style overrides forwarded to ``draw``.
     """
-    if lace is None:
+    if "fragments" in kwargs:
         fragments = kwargs["fragments"]
-    else:
+    elif lace is not None:
         fragments = lace.fragments
+    else:
+        raise KeyError("fragments")
 
-    areas = [(fragment.area, fragment.id) for fragment in fragments]
-    bins = group_into_bins(areas, 2)
+    fragments_by_id = {fragment.id: fragment for fragment in fragments}
+    if "fragment_coloring" in kwargs:
+        fragment_coloring = kwargs["fragment_coloring"]
+    else:
+        fragment_coloring = defaults["fragment_coloring"]
+    if fragment_coloring == FragmentColoring.AREA:
+        items = [(fragment.area, fragment.id) for fragment in fragments]
+        if lace is not None:
+            threshold = lace.area_threshold
+        else:
+            threshold = defaults["area_threshold"]
+    elif fragment_coloring == FragmentColoring.RADIUS:
+        if lace is None:
+            raise ValueError(
+                "FragmentColoring.RADIUS requires a Lace object."
+            )
+        center = lace.center
+        items = [
+            (distance(center, fragment.CG), fragment.id)
+            for fragment in fragments
+        ]
+        threshold = lace.radius_threshold
+    else:
+        raise ValueError(
+            f"Unknown fragment_coloring: {fragment_coloring!r}"
+        )
+
+    bins = group_into_bins(items, threshold)
 
     if "swatch" in kwargs:
         palette = kwargs["swatch"]
-    else:
-        if palette is None:
-            palette = d_name_palette["div_ROMA_256"]
+    elif palette is None:
+        palette = defaults["swatch"]
 
     n_palette = len(palette)
     n_bins = len(bins)
     palette = palette[:: n_palette // n_bins]
     palette = [Color(*c) for c in palette]
     n = len(palette)
+    style_kwargs = _lace_style_kwargs(kwargs)
     for i, bin_ in enumerate(bins):
         color = palette[i % n]
         for _, fragment_id in bin_:
-            fragment = d_id_obj[fragment_id]
-            draw_kwargs = dict(kwargs)
+            fragment = fragments_by_id[fragment_id]
+            draw_kwargs = dict(style_kwargs)
             draw_kwargs["fill_color"] = color
             draw(self, fragment, **draw_kwargs)
 
 
 def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs) -> None:
     """Handle INNERLINES plait style."""
+    style_kwargs = _lace_style_kwargs(kwargs)
     for plait in lace.plaits:
         canvas.active_page.sketches.append(
-            create_sketch(plait, canvas, **kwargs)
+            create_sketch(plait, canvas, **style_kwargs)
         )
 
     if not lace.plaits[0].lerp_points:
-        offsets = kwargs.get("percent_offsets", [0.5])
-        widths = kwargs.get("line_widths", [1])
+        if "percent_offsets" in kwargs:
+            offsets = kwargs["percent_offsets"]
+        else:
+            offsets = defaults["percent_offsets"]
+        if "line_widths" in kwargs:
+            widths = kwargs["line_widths"]
+        else:
+            widths = defaults["line_widths"]
 
         lace._set_plait_inner_lines(offsets, widths)
 
-        # Check if line widths match the number of lerp points
         if "line_widths" in kwargs and len(kwargs["line_widths"]) == len(
             lace.plaits[0].lerp_points[0]
         ):
@@ -1391,12 +1494,29 @@ def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs) -> None:
             for i in range(len(plait.lerp_points[0])):
                 points = [pnts[i] for pnts in plait.lerp_points]
                 shape = Shape(points)
-                line_width = plait.line_widths[i] if widths else 1
+                sketch_kwargs = dict(style_kwargs)
+                if widths:
+                    sketch_kwargs["line_width"] = plait.line_widths[i]
+                else:
+                    sketch_kwargs["line_width"] = defaults["line_width"]
                 canvas.active_page.sketches.append(
-                    create_sketch(
-                        shape, canvas, line_width=line_width, **kwargs
-                    )
+                    create_sketch(shape, canvas, **sketch_kwargs)
                 )
+
+
+def _handle_plait_double_lines(canvas: Canvas, lace: Lace, kwargs: dict) -> None:
+    """Draw plaits with ``draw_double=True``."""
+    if "plaits" in kwargs:
+        plaits = kwargs["plaits"]
+    else:
+        plaits = lace.plaits
+    style_kwargs = _lace_style_kwargs(kwargs)
+    fill_color = _resolved_plait_fill_color(lace, kwargs)
+    for plait in plaits:
+        draw_kwargs = dict(style_kwargs)
+        draw_kwargs["fill_color"] = fill_color
+        draw_kwargs["draw_double"] = True
+        draw(canvas, plait, **draw_kwargs)
 
 
 def _handle_plait_style(
@@ -1408,52 +1528,129 @@ def _handle_plait_style(
     if p_style == PlaitStyle.INNERLINES:
         _handle_plait_innerlines(canvas, lace, **kwargs)
     elif p_style == PlaitStyle.INNERLOOPS:
-        pass  # No implementation yet
+        raise ValueError("PlaitStyle.INNERLOOPS is not implemented.")
     elif p_style == PlaitStyle.DIAMOND:
         plait_diamond(canvas, lace, **kwargs)
     elif p_style == PlaitStyle.EMBOSS1:
         plait_emboss1(canvas, lace, **kwargs)
     elif p_style == PlaitStyle.EMBOSS2:
         plait_emboss2(canvas, lace, **kwargs)
+    elif p_style == PlaitStyle.DOUBLE_LINES:
+        _handle_plait_double_lines(canvas, lace, kwargs)
+    else:
+        raise ValueError(f"Unknown plait_style: {p_style!r}")
 
 
 def _draw_default_plaits(canvas: Canvas, lace: Lace, kwargs: dict) -> None:
     """Draw plaits with default style."""
-    for plait in lace.plaits:
+    if "plaits" in kwargs:
+        plaits = kwargs["plaits"]
+    else:
+        plaits = lace.plaits
+    style_kwargs = _lace_style_kwargs(kwargs)
+    fill_color = _resolved_plait_fill_color(lace, kwargs)
+    for plait in plaits:
+        draw_kwargs = dict(style_kwargs)
+        draw_kwargs["fill_color"] = fill_color
         canvas.active_page.sketches.append(
-            create_sketch(plait, canvas, **kwargs)
+            create_sketch(plait, canvas, **draw_kwargs)
         )
 
 
-def draw_lace(self, lace: Lace, **kwargs) -> Self:
+def draw_lace(
+    self,
+    lace: Lace,
+    *,
+    fragment_coloring: FragmentColoring | None = None,
+    plait_style: PlaitStyle | None = None,
+    shade_plaits: bool | None = None,
+    fillet_radii: tuple[float, float] | None = None,
+    palette=None,
+    swatch=None,
+    plait_color=None,
+    draw_fragments: bool | None = None,
+    draw_plaits: bool | None = None,
+    percent_offsets=None,
+    line_widths=None,
+    **kwargs,
+) -> Self:
     """Draw the lace object.
+
+    Lace-specific options belong here, not on ``canvas.draw``. Generic
+    shape styles in ``kwargs`` are forwarded to fragment and plait draws.
 
     Args:
         lace: Lace object to be drawn.
-        **kwargs: Additional keyword arguments.
+        fragment_coloring: Color equivalent fragments by area, or by
+            distance from the lace center.
+        plait_style: Plait drawing style. ``None`` uses filled plaits.
+        shade_plaits: Shade embossed or diamond plaits.
+        fillet_radii: ``(inner, outer)`` fillet radii. ``None`` does not
+            fillet.
+        palette: Fragment color palette.
+        swatch: Overrides ``palette`` when given.
+        plait_color: Fill color for plaits.
+        draw_fragments: Draw fragment regions.
+        draw_plaits: Draw plaits.
+        percent_offsets: Inner-line positions for ``PlaitStyle.INNERLINES``.
+        line_widths: Inner-line widths for ``PlaitStyle.INNERLINES``.
+        **kwargs: Generic shape style overrides.
 
     Returns:
         Self: The canvas object.
     """
-    # keys = list(lace.fragment_groups.keys())
-    # keys.sort()
-    # if lace.swatch is not None:
-    #     n_colors = len(lace.swatch)
-    # for i, key in enumerate(keys):
-    #     if lace.swatch is not None:
-    #         fill_color = colors.Color(*lace.swatch[i % n_colors])
-    #         kwargs["fill_color"] = fill_color
-    #     for fragment in lace.fragment_groups[key]:
-    #         self.active_page.sketches.append(create_sketch(fragment, self, **kwargs))
-    if "fillet_radii" in kwargs:
-        self.draw_lace_with_fillets(lace, **kwargs)
-        return self
+    if fragment_coloring is None:
+        fragment_coloring = defaults["fragment_coloring"]
+    if plait_style is None:
+        plait_style = defaults["lace_plait_style"]
+    if shade_plaits is None:
+        shade_plaits = defaults["shade_plaits"]
+    if fillet_radii is None:
+        fillet_radii = defaults["fillet_radii"]
+    if swatch is not None:
+        palette = swatch
+    elif palette is None:
+        if lace.palette is not None:
+            palette = lace.palette
+        elif lace.swatch is not None:
+            palette = lace.swatch
+        else:
+            palette = defaults["swatch"]
+    if plait_color is None:
+        plait_color = _resolved_plait_fill_color(lace, kwargs)
+    if draw_fragments is None:
+        draw_fragments = defaults["draw_fragments"]
+    if draw_plaits is None:
+        draw_plaits = defaults["draw_plaits"]
+    if percent_offsets is None:
+        percent_offsets = defaults["percent_offsets"]
+    if line_widths is None:
+        line_widths = defaults["line_widths"]
 
-    palette = kwargs.get("palette", None)
+    style_kwargs = _lace_style_kwargs(kwargs)
+    fragments = lace.fragments
+    plaits = lace.plaits
+    if fillet_radii is not None:
+        inner_radius, outer_radius = fillet_radii
+        fragments = lace._fillet_fragments(inner_radius, outer_radius)
+        plaits = lace._fillet_plaits(inner_radius, outer_radius)
 
-    self.draw_fragments(lace, palette=palette, **kwargs)
+    if draw_fragments:
+        fragment_kwargs = dict(style_kwargs)
+        fragment_kwargs["fragments"] = fragments
+        fragment_kwargs["fragment_coloring"] = fragment_coloring
+        self.draw_fragments(lace, palette=palette, **fragment_kwargs)
 
-    self.draw_plaits(lace, **kwargs)
+    if draw_plaits:
+        plait_kwargs = dict(style_kwargs)
+        plait_kwargs["plaits"] = plaits
+        plait_kwargs["plait_color"] = plait_color
+        plait_kwargs["shade_plaits"] = shade_plaits
+        plait_kwargs["percent_offsets"] = percent_offsets
+        plait_kwargs["line_widths"] = line_widths
+        if plait_style is not None:
+            plait_kwargs["plait_style"] = plait_style
+        self.draw_plaits(lace, **plait_kwargs)
 
     return self
 

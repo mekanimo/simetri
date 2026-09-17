@@ -437,6 +437,19 @@ class FontWeight(StrEnum):
     NORMAL = "normal"
 
 
+class FragmentColoring(StrEnum):
+    """How ``canvas.draw_lace`` assigns colors to lace fragments.
+
+    Valid values are: AREA, RADIUS.
+
+    AREA colors equivalent fragments (same-area bins) with the same palette
+    color. RADIUS colors fragments by distance from the lace center.
+    """
+
+    AREA = "AREA"
+    RADIUS = "RADIUS"
+
+
 class FragmentStyle(StrEnum):
     """FragmentStyle is used to set the way lace fragments are drawn.
     See the documentation for further explanation.

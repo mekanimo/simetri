@@ -623,17 +623,15 @@ def collinear_segments(
     )
 
 
-_TOLERANCES = frozenset(
-    (
-        "rel_tol",
-        "abs_tol",
-        "dist_tol",
-        "dist_rel_tol",
-        "dist_abs_tol",
-        "area_tol",
-        "area_rel_tol",
-        "area_abs_tol",
-    )
+_TOLERANCES = (
+    "rel_tol",
+    "abs_tol",
+    "dist_tol",
+    "dist_rel_tol",
+    "dist_abs_tol",
+    "area_tol",
+    "area_rel_tol",
+    "area_abs_tol",
 )
 
 

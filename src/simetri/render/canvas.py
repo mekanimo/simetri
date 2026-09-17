@@ -24,7 +24,9 @@ from simetri.base.all_enums import (
     Anchor,
     Axis,
     Drawable,
+    FragmentColoring,
     ImageMode,
+    PlaitStyle,
     Renderer,
     SvgLoc,
     TexLoc,
@@ -81,6 +83,7 @@ from simetri.helpers.validation import (
     warn_unknown_kwargs,
 )
 from simetri.images.image import Image, draw_on_image as draw_sketches_on_image
+from simetri.interlace.lace import Lace
 from simetri.notebook import display
 from simetri.render import draw
 from simetri.render.render_tikz.tikz import get_tex_code
@@ -1223,18 +1226,64 @@ class Canvas:
         draw.lines(self, points, **kwargs)
         return self
 
-    def draw_lace(self, lace: Group, **kwargs) -> Self:
-        """
-        Draw the lace.
+    def draw_lace(
+        self,
+        lace: Lace,
+        *,
+        fragment_coloring: FragmentColoring | None = None,
+        plait_style: PlaitStyle | None = None,
+        shade_plaits: bool | None = None,
+        fillet_radii: tuple[float, float] | None = None,
+        palette=None,
+        swatch=None,
+        plait_color=None,
+        draw_fragments: bool | None = None,
+        draw_plaits: bool | None = None,
+        percent_offsets=None,
+        line_widths=None,
+        **kwargs,
+    ) -> Self:
+        """Draw the lace object.
+
+        Lace-specific options belong here, not on ``canvas.draw``. Generic
+        shape styles in ``kwargs`` are forwarded to fragment and plait draws.
 
         Args:
-            lace (Group): The lace to draw.
-            kwargs (dict): Additional keyword arguments.
+            lace: Lace object to be drawn.
+            fragment_coloring: Color equivalent fragments by area, or by
+                distance from the lace center.
+            plait_style: Plait drawing style. ``None`` uses filled plaits.
+            shade_plaits: Shade embossed or diamond plaits.
+            fillet_radii: ``(inner, outer)`` fillet radii. ``None`` does not
+                fillet.
+            palette: Fragment color palette.
+            swatch: Overrides ``palette`` when given.
+            plait_color: Fill color for plaits.
+            draw_fragments: Draw fragment regions.
+            draw_plaits: Draw plaits.
+            percent_offsets: Inner-line positions for ``PlaitStyle.INNERLINES``.
+            line_widths: Inner-line widths for ``PlaitStyle.INNERLINES``.
+            **kwargs: Generic shape style overrides.
 
         Returns:
             Self: The canvas object.
         """
-        draw.draw_lace(self, lace, **kwargs)
+        draw.draw_lace(
+            self,
+            lace,
+            fragment_coloring=fragment_coloring,
+            plait_style=plait_style,
+            shade_plaits=shade_plaits,
+            fillet_radii=fillet_radii,
+            palette=palette,
+            swatch=swatch,
+            plait_color=plait_color,
+            draw_fragments=draw_fragments,
+            draw_plaits=draw_plaits,
+            percent_offsets=percent_offsets,
+            line_widths=line_widths,
+            **kwargs,
+        )
         return self
 
     def draw_dimension(self, dim: Shape, **kwargs) -> Self:

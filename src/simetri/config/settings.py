@@ -60,6 +60,7 @@ from ..base.all_enums import (
     DocumentClass,
     FillMode,
     FontFamily,
+    FragmentColoring,
     FrameShape,
     GradientType,
     LineCap,
@@ -945,6 +946,12 @@ def set_defaults():
         "If True, a frame is drawn."
     )
 
+    defaults["draw_fragments"] = True
+    default_types["draw_fragments"] = bool
+    defaults_help["draw_fragments"] = (
+        "If True, canvas.draw_lace draws lace fragments."
+    )
+
     defaults["draw_markers"] = (
         False  # draw markers at each vertex of a Shape object
     )
@@ -953,6 +960,12 @@ def set_defaults():
         "Boolean property for drawing markers at each vertex "
         "of a Shape object. "
         "If True, markers are drawn."
+    )
+
+    defaults["draw_plaits"] = True
+    default_types["draw_plaits"] = bool
+    defaults_help["draw_plaits"] = (
+        "If True, canvas.draw_lace draws lace plaits."
     )
 
     defaults["ellipse_width_height"] = (
@@ -1028,6 +1041,13 @@ def set_defaults():
         "Radius for rounded corners (fillets). Positive float. Length in <points>."
     )
 
+    defaults["fillet_radii"] = None
+    default_types["fillet_radii"] = tuple
+    defaults_help["fillet_radii"] = (
+        "Inner and outer fillet radii for canvas.draw_lace, as "
+        "(inner, outer). None means do not fillet."
+    )
+
     defaults["filter_color_matrix_hue_rotate"] = 0.0
     default_types["filter_color_matrix_hue_rotate"] = float
     defaults_help["filter_color_matrix_hue_rotate"] = (
@@ -1093,6 +1113,14 @@ def set_defaults():
     default_types["font_style"] = str
     defaults_help["font_style"] = (
         "Font style. String. Font style for the text objects."
+    )
+
+    defaults["fragment_coloring"] = FragmentColoring.AREA
+    default_types["fragment_coloring"] = FragmentColoring
+    defaults_help["fragment_coloring"] = (
+        "How canvas.draw_lace colors fragments. FragmentColoring enum. "
+        "Valid values: AREA (equivalent fragments share a color), "
+        "RADIUS (color by distance from the lace center)."
     )
 
     defaults["frame_active"] = True
@@ -1541,6 +1569,14 @@ def set_defaults():
         "Lace offset. Positive float. Length in <points>."
     )
 
+    defaults["lace_plait_style"] = None
+    default_types["lace_plait_style"] = object
+    defaults_help["lace_plait_style"] = (
+        "Default PlaitStyle for canvas.draw_lace. None means filled plaits "
+        "with no special plait style. Valid values: EMBOSS1, EMBOSS2, "
+        "DIAMOND, INNERLINES, DOUBLE_LINES."
+    )
+
     defaults["landing_length"] = 20
     default_types["landing_length"] = float
     defaults_help["landing_length"] = (
@@ -1601,7 +1637,14 @@ def set_defaults():
     defaults["line_width"] = 1
     default_types["line_width"] = float
     defaults_help["line_width"] = (
-        "Line width. Positive float. Length in <points>."
+        "Line width. Positive float. Length in <points>. Line width for the shapes."
+    )
+
+    defaults["line_widths"] = (defaults["line_width"],)
+    default_types["line_widths"] = Sequence
+    defaults_help["line_widths"] = (
+        "Line widths for PlaitStyle.INNERLINES in canvas.draw_lace. "
+        "Sequence of positive floats."
     )
 
     defaults["lualatex_run_options"] = None
@@ -2067,6 +2110,13 @@ def set_defaults():
     default_types["pdflatex_run_options"] = str
     defaults_help["pdflatex_run_options"] = "PDFLaTeX run options. String."
 
+    defaults["percent_offsets"] = (0.5,)
+    default_types["percent_offsets"] = Sequence
+    defaults_help["percent_offsets"] = (
+        "Relative positions along plait connections for PlaitStyle.INNERLINES "
+        "in canvas.draw_lace. Sequence of floats in [0, 1]."
+    )
+
     defaults["plait_color"] = colors.white
     default_types["plait_color"] = colors.Color
     defaults_help["plait_color"] = "Plait color. Color object."
@@ -2251,6 +2301,13 @@ def set_defaults():
     default_types["shade_outer_color"] = colors.Color
     defaults_help["shade_outer_color"] = (
         "Outer color for shading. Color object."
+    )
+
+    defaults["shade_plaits"] = True
+    default_types["shade_plaits"] = bool
+    defaults_help["shade_plaits"] = (
+        "If True, canvas.draw_lace shades embossed or diamond plaits. "
+        "If False, those styles are drawn without lightness variation."
     )
 
     defaults["shade_right_color"] = colors.white
