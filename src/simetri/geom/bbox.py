@@ -3,13 +3,16 @@
 Provides reference anchors (corners, mid-sides, diagonals) and placement
 helpers such as ``left_of``, ``above``, and ``polar_pos``.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> box = sg.BoundingBox((0, 0), (100, 50))
-    >>> box.width, box.height
-    (100, 50)
-    >>> box.midpoint
-    (50.0, 25.0)
+**Examples**
+
+```python
+import simetri.graphics as sg
+box = sg.BoundingBox((0, 0), (100, 50))
+box.width, box.height
+# (100, 50)
+box.midpoint
+# (50.0, 25.0)
+```
 """
 
 from __future__ import annotations
@@ -72,12 +75,15 @@ class BoundingBox:
         type: Always ``Types.BOUNDING_BOX``.
         id: Unique object id.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> bb = sg.BoundingBox((0, 0), (10, 20))
-        >>> bb.northwest
-        (0, 20)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    bb = sg.BoundingBox((0, 0), (10, 20))
+    bb.northwest
+    # (0, 20)
+    ```
+"""
 
     def __init__(
         self, southwest: PointType = None, northeast: PointType = None
@@ -752,12 +758,15 @@ def bounding_box(points):
     Raises:
         ValueError: If ``points`` is empty.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> bb = sg.bounding_box([(0, 0), (10, 5), (3, 8)])
-        >>> bb.southwest, bb.northeast  # doctest: +SKIP
-        ((0, 0), (10, 8))
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    bb = sg.bounding_box([(0, 0), (10, 5), (3, 8)])
+    bb.southwest, bb.northeast  # doctest: +SKIP
+    # ((0, 0), (10, 8))
+    ```
+"""
     if isinstance(points, np.ndarray):
         points = points[:, :2]
     else:

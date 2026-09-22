@@ -352,18 +352,21 @@ def draw_shape_sketch_with_indices(
     Returns:
         str: The SVG code for the shape sketch with vertex labels.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.render.render_svg.svg_sketch import (
-        ...     draw_shape_sketch_with_indices,
-        ... )
-        >>> canvas = sg.Canvas()
-        >>> canvas.draw(sg.Shape([(0, 0), (1, 0), (1, 1)])) is canvas
-        True
-        >>> sketch = canvas.active_page.sketches[-1]
-        >>> "nodestyle3" in draw_shape_sketch_with_indices(sketch, index=3)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.render.render_svg.svg_sketch import (
+            draw_shape_sketch_with_indices,
+        )
+    canvas = sg.Canvas()
+    canvas.draw(sg.Shape([(0, 0), (1, 0), (1, 1)])) is canvas
+    # True
+    sketch = canvas.active_page.sketches[-1]
+    "nodestyle3" in draw_shape_sketch_with_indices(sketch, index=3)
+    # True
+    ```
+"""
     vertices = sketch_attrib(sketch, "vertices")
 
     shape_type = "polygon" if sketch_attrib(sketch, "closed") else "polyline"

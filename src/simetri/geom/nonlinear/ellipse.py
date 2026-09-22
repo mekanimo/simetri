@@ -44,12 +44,14 @@ class Arc(Shape):
         span_angle: Arc span in radians (negative draws clockwise).
         n_points: Number of sampled points.
 
-    Examples:
-        ::
+    **Examples**
 
-            import simetri.graphics as sg
-            from math import pi
+    ```python
+    import simetri.graphics as sg
 
+    from math import pi
+
+    ```
             arc = sg.Arc((0, 0), 40, start_angle=0, span_angle=pi / 2)
             canvas = sg.Canvas()
             canvas.draw(arc)
@@ -235,11 +237,12 @@ class Ellipse(Shape):
         height: Full height.
         angle: Rotation angle in radians.
 
-    Examples:
-        ::
+    **Examples**
 
-            import simetri.graphics as sg
+    ```python
+    import simetri.graphics as sg
 
+    ```
             ell = sg.Ellipse(80, 40)
             canvas = sg.Canvas()
             canvas.draw(ell)

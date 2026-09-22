@@ -5,10 +5,13 @@ arguments control fill, stroke, markers, and related rendering options.
 Boolean helpers such as ``clip``, ``polygon_diff``, and ``polygon_xor``
 operate on closed shapes.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> tri = sg.Shape([(0, 0), (50, 0), (25, 40)], closed=True)
-    >>> tri.translate(10, 0)
+**Examples**
+
+```python
+import simetri.graphics as sg
+tri = sg.Shape([(0, 0), (50, 0), (25, 40)], closed=True)
+tri.translate(10, 0)
+```
 """
 
 from __future__ import annotations
@@ -118,12 +121,15 @@ class Shape(Base, CommonStyle):
         subtype: Shape subtype (``Types.SHAPE``, ``Types.CIRCLE``, …).
         id: Unique object id.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> s = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-        >>> s.width > 0
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    s = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+    s.width > 0
+    # True
+    ```
+"""
 
     __slots__ = [
         "_alpha",
@@ -1695,12 +1701,15 @@ def clip(
     Raises:
         TypeError: If ``item`` is neither Shape nor Group.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> subject = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
-        >>> window = sg.Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
-        >>> clip(subject, window)  # doctest: +SKIP
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    subject = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+    window = sg.Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
+    clip(subject, window)  # doctest: +SKIP
+    ```
+"""
     if isinstance(item, Group):
         return _clip_group(item, clipper, exclude_clipper, rel_tol, abs_tol)
     elif isinstance(item, Shape):
@@ -1897,12 +1906,15 @@ def polygon_diff(
     Raises:
         Warning: If either shape is not closed (raised as ``Warning``).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> a = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
-        >>> b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
-        >>> polygon_diff(a, b)  # doctest: +SKIP
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    a = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+    b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
+    polygon_diff(a, b)  # doctest: +SKIP
+    ```
+"""
     exclude_clipper = False
     if not (shape1.closed and shape2.closed):
         raise Warning("Both shapes must be closed")

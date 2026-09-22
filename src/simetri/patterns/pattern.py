@@ -5,11 +5,14 @@ A ``Pattern`` stores a kernel Shape/Group plus a
 repetitions). Calling transform helpers such as ``translate`` / ``rotate``
 appends transforms rather than baking them into the kernel.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> kernel = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-    >>> p = sg.Pattern(kernel)
-    >>> p.rotate(sg.pi / 3, about=(0, 0), reps=5)
+**Examples**
+
+```python
+import simetri.graphics as sg
+kernel = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+p = sg.Pattern(kernel)
+p.rotate(sg.pi / 3, about=(0, 0), reps=5)
+```
 """
 
 from collections.abc import Callable
@@ -306,11 +309,14 @@ class Pattern(Group, CommonStyle):
         transformation: Accumulated ``PatternTransformation``.
         subtype: Always ``Types.PATTERN``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> p = sg.Pattern(sg.Shape([(0, 0), (5, 0), (5, 5)], closed=True))
-        >>> p.translate(10, 0, reps=3)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    p = sg.Pattern(sg.Shape([(0, 0), (5, 0), (5, 5)], closed=True))
+    p.translate(10, 0, reps=3)
+    ```
+"""
 
     # Group.__setattr__ adds a frame above the color/alpha property setters.
     _style_warning_stacklevel: int = 4

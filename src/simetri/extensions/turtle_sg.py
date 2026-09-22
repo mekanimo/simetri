@@ -37,13 +37,16 @@ class Turtle(Group):
         in_degrees: If True, angles are in degrees; otherwise radians.
         **kwargs: Keyword arguments forwarded to ``Group``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> t = sg.Turtle(in_degrees=True)
-        >>> t.forward(40)
-        >>> t.right(90)
-        >>> t.forward(40)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    t = sg.Turtle(in_degrees=True)
+    t.forward(40)
+    t.right(90)
+    t.forward(40)
+    ```
+"""
 
     def __init__(
         self, *args: Any, in_degrees: bool = False, **kwargs: Any
@@ -275,12 +278,15 @@ def add_digits(n: int) -> int:
     Returns:
         int: The sum of all digits in n.
 
-    Examples:
-        >>> add_digits(10)
-        1
-        >>> add_digits(123)
-        6
-    """
+    **Examples**
+
+    ```python
+    add_digits(10)
+    # 1
+    add_digits(123)
+    # 6
+    ```
+"""
     return sum(int(x) for x in str(n))
 
 
@@ -298,10 +304,13 @@ def spirolateral(
     Returns:
         The ``Turtle`` used for drawing.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> t = sg.spirolateral([1, 2, 3], angle=90, cycles=12)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    t = sg.spirolateral([1, 2, 3], angle=90, cycles=12)
+    ```
+"""
     turtle = Turtle(in_degrees=True)
     count = 0
     while count < cycles:
@@ -327,11 +336,14 @@ def spiral(
     Returns:
         The turtle used for drawing.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> t = sg.Turtle(in_degrees=True)
-        >>> sg.spiral(t, side=10, angle=20, delta=2, cycles=30)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    t = sg.Turtle(in_degrees=True)
+    sg.spiral(t, side=10, angle=20, delta=2, cycles=30)
+    ```
+"""
     t = turtle
     count = 0
     while count < cycles:

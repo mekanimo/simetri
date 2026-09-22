@@ -3,15 +3,18 @@
 A Group applies transforms to its members and supports set-like geometry
 operations (union, intersection, …) and edge merging.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> g = sg.Group([
-    ...     sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True),
-    ...     sg.Shape([(20, 0), (30, 0)]),
-    ... ])
-    >>> len(g)
-    2
-    >>> g.translate(5, 0)
+**Examples**
+
+```python
+import simetri.graphics as sg
+g = sg.Group([
+        sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True),
+        sg.Shape([(20, 0), (30, 0)]),
+    ])
+len(g)
+# 2
+g.translate(5, 0)
+```
 """
 
 from __future__ import annotations
@@ -71,19 +74,22 @@ def check_dist_tol(
     Returns:
         set[float]: Up to ``n`` smallest positive rounded distances.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> values = sg.check_dist_tol(
-        ...     [
-        ...         sg.Shape([(0, 0), (5e-14, 0)]),
-        ...         sg.Shape([(0, 0), (1, 0)]),
-        ...     ],
-        ...     2,
-        ...     n_round=12,
-        ... )
-        >>> values == {1.0}
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    values = sg.check_dist_tol(
+            [
+                sg.Shape([(0, 0), (5e-14, 0)]),
+                sg.Shape([(0, 0), (1, 0)]),
+            ],
+            2,
+            n_round=12,
+        )
+    values == {1.0}
+    # True
+    ```
+"""
     return Group(shapes_groups).check_dist_tol(n, n_round=n_round)
 
 
@@ -103,19 +109,22 @@ def check_angle_tol(
     Returns:
         set[float]: Up to ``n`` smallest positive rounded angle differences.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> values = sg.check_angle_tol(
-        ...     [
-        ...         sg.Shape([(0, 0), (1, 0)]),
-        ...         sg.Shape([(0, 0), (0, 1)]),
-        ...     ],
-        ...     1,
-        ...     n_round=2,
-        ... )
-        >>> values == {1.57}
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    values = sg.check_angle_tol(
+            [
+                sg.Shape([(0, 0), (1, 0)]),
+                sg.Shape([(0, 0), (0, 1)]),
+            ],
+            1,
+            n_round=2,
+        )
+    values == {1.57}
+    # True
+    ```
+"""
     return Group(shapes_groups).check_angle_tol(n, n_round=n_round)
 
 
@@ -135,13 +144,16 @@ class Group(Base):
         visible: Whether the group is drawn.
         id: Unique object id.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-        >>> g.append(sg.Shape([(2, 0), (3, 0)]))
-        >>> len(g)
-        2
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+    g.append(sg.Shape([(2, 0), (3, 0)]))
+    len(g)
+    # 2
+    ```
+"""
 
     # __slots__ = [
     #     "elements",
@@ -276,11 +288,14 @@ class Group(Base):
         Returns:
             Self: The group object.
 
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-            >>> g.set_attribs("line_width", 2)
-        """
+        **Examples**
+
+        ```python
+        import simetri.graphics as sg
+        g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+        g.set_attribs("line_width", 2)
+        ```
+"""
         for element in self.elements:
             if key is not None:
                 if key(element):
@@ -462,14 +477,17 @@ class Group(Base):
         Returns:
             set[float]: Up to ``n`` smallest positive rounded distances.
 
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> group = sg.Group(
-            ...     [sg.Shape([(0, 0), (5e-14, 0), (1, 0)])]
-            ... )
-            >>> group.check_dist_tol(2, n_round=12) == {1.0}
-            True
-        """
+        **Examples**
+
+        ```python
+        import simetri.graphics as sg
+        group = sg.Group(
+                [sg.Shape([(0, 0), (5e-14, 0), (1, 0)])]
+            )
+        group.check_dist_tol(2, n_round=12) == {1.0}
+        # True
+        ```
+"""
         if n <= 0:
             raise ValueError("n must be a positive integer.")
         if n_round is None:
@@ -507,17 +525,20 @@ class Group(Base):
         Returns:
             set[float]: Up to ``n`` smallest positive rounded angle differences.
 
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> group = sg.Group(
-            ...     [
-            ...         sg.Shape([(0, 0), (1, 0)]),
-            ...         sg.Shape([(0, 0), (0, 1)]),
-            ...     ]
-            ... )
-            >>> group.check_angle_tol(1, n_round=2) == {1.57}
-            True
-        """
+        **Examples**
+
+        ```python
+        import simetri.graphics as sg
+        group = sg.Group(
+                [
+                    sg.Shape([(0, 0), (1, 0)]),
+                    sg.Shape([(0, 0), (0, 1)]),
+                ]
+            )
+        group.check_angle_tol(1, n_round=2) == {1.57}
+        # True
+        ```
+"""
         if n <= 0:
             raise ValueError("n must be a positive integer.")
         if n_round is None:
@@ -771,18 +792,21 @@ class Group(Base):
         Returns:
             Group: New group of merged shapes.
 
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> g = sg.Group([
-            ...     sg.Shape([(0, 0), (10, 0)]),
-            ...     sg.Shape([(10, 0), (0, 0)]),
-            ... ])
-            >>> merged = g.merge_shapes()
-            >>> len(merged)
-            1
-            >>> len(merged[0])
-            2
-        """
+        **Examples**
+
+        ```python
+        import simetri.graphics as sg
+        g = sg.Group([
+                sg.Shape([(0, 0), (10, 0)]),
+                sg.Shape([(10, 0), (0, 0)]),
+            ])
+        merged = g.merge_shapes()
+        len(merged)
+        # 1
+        len(merged[0])
+        # 2
+        ```
+"""
         return _merge_shapes(
             self,
             dist_tol=dist_tol,

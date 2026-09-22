@@ -6,14 +6,17 @@ helpers such as ``square``, ``circle_points``, and ``reg_poly_shape``.
 Size (side, width/height, radius) is the first argument. Center defaults
 to ``(0, 0)``.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> c = sg.Circle(radius=25, center=(0, 0))
-    >>> c.radius
-    25.0
-    >>> sq = sg.square(40)
-    >>> sq.closed
-    True
+**Examples**
+
+```python
+import simetri.graphics as sg
+c = sg.Circle(radius=25, center=(0, 0))
+c.radius
+# 25.0
+sq = sg.square(40)
+sq.closed
+# True
+```
 """
 
 from collections.abc import Callable, Sequence
@@ -72,14 +75,17 @@ def offset_box(
         ValueError: If neither ``offsets`` nor ``offset`` is given, if ``offsets``
             has length other than four, or if ``corners`` does not have four points.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> box = sg.offset_box([(0, 0), (10, 0), (10, 5), (0, 5)], offset=1)
-        >>> box.closed
-        True
-        >>> [round(coord, 6) for coord in box.vertices[0][:2]]
-        [-1.0, 6.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    box = sg.offset_box([(0, 0), (10, 0), (10, 5), (0, 5)], offset=1)
+    box.closed
+    # True
+    [round(coord, 6) for coord in box.vertices[0][:2]]
+    # [-1.0, 6.0]
+    ```
+"""
 
     # Handle the single offset case
     if offset is not None:
@@ -138,14 +144,17 @@ def square(
     Returns:
         Square: Closed square.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sq = sg.square(50)
-        >>> len(sq.vertices)
-        4
-        >>> [round(coord, 6) for coord in sq.vertices[0][:2]]
-        [-25.0, -25.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sq = sg.square(50)
+    len(sq.vertices)
+    # 4
+    [round(coord, 6) for coord in sq.vertices[0][:2]]
+    # [-25.0, -25.0]
+    ```
+"""
     return Square(size, center, angle, **kwargs)
 
 
@@ -163,12 +172,15 @@ class Line(Shape):
     Parametric evaluation: ``parametric_function`` or ``t(t)`` returns
     ``start + t * (end - start)``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> line = sg.Line((0, 0), (10, 0))
-        >>> line.extent.name
-        'SEGMENT'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    line = sg.Line((0, 0), (10, 0))
+    line.extent.name
+    # 'SEGMENT'
+    ```
+"""
 
     def __init__(
         self,
@@ -190,12 +202,15 @@ class Line(Shape):
         Raises:
             ValueError: If start and end points are the same.
 
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> line = sg.Line((0, 0), (1, 0), draw_type=sg.Extent.RAY)
-            >>> line.extent.name
-            'RAY'
-        """
+        **Examples**
+
+        ```python
+        import simetri.graphics as sg
+        line = sg.Line((0, 0), (1, 0), draw_type=sg.Extent.RAY)
+        line.extent.name
+        # 'RAY'
+        ```
+"""
         dist_tol2 = defaults["dist_tol"] ** 2
         if close_points_square(start, end, dist2=dist_tol2):
             raise ValueError("Line: start and end points are the same!")
@@ -340,12 +355,15 @@ class Line(Shape):
         Returns:
             PointType: The point at parameter ``t``.
 
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> line = sg.Line((0, 0), (10, 0))
-            >>> [round(coord, 6) for coord in line.t(0.5)[:2]]
-            [5.0, 0.0]
-        """
+        **Examples**
+
+        ```python
+        import simetri.graphics as sg
+        line = sg.Line((0, 0), (10, 0))
+        [round(coord, 6) for coord in line.t(0.5)[:2]]
+        # [5.0, 0.0]
+        ```
+"""
         direction = v_diff(self.end, self.start)
 
         return v_sum(self.start, v_scale(direction, t))
@@ -356,14 +374,17 @@ class Rectangle(Shape):
 
     Size comes first so ``Rectangle(40, 20)`` is a 40×20 box at the origin.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> r = sg.Rectangle(40, 20)
-        >>> r.subtype.name
-        'RECTANGLE'
-        >>> r.width
-        40.0
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    r = sg.Rectangle(40, 20)
+    r.subtype.name
+    # 'RECTANGLE'
+    r.width
+    # 40.0
+    ```
+"""
 
     def __init__(
         self,
@@ -517,14 +538,17 @@ class Square(Rectangle):
 
     Size comes first so ``Square(40)`` is a 40×40 box at the origin.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sq = sg.Square(40)
-        >>> sq.subtype.name
-        'SQUARE'
-        >>> sq.width
-        40.0
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sq = sg.Square(40)
+    sq.subtype.name
+    # 'SQUARE'
+    sq.width
+    # 40.0
+    ```
+"""
 
     def __init__(
         self,
@@ -550,14 +574,17 @@ class Square(Rectangle):
 class Rectangle2(Rectangle):
     """A rectangle defined by two opposite corners.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> rect = sg.Rectangle2((0, 0), (10, 4))
-        >>> rect.width
-        10.0
-        >>> rect.height
-        4.0
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    rect = sg.Rectangle2((0, 0), (10, 4))
+    rect.width
+    # 10.0
+    rect.height
+    # 4.0
+    ```
+"""
 
     def __init__(
         self, corner1: PointType, corner2: PointType, **kwargs
@@ -590,12 +617,15 @@ class Circle(Shape):
         radius: Circle radius.
         subtype: Always ``Types.CIRCLE``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> c = sg.Circle(radius=10, center=(5, 5))
-        >>> c.center
-        (5.0, 5.0)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    c = sg.Circle(radius=10, center=(5, 5))
+    c.center
+    # (5.0, 5.0)
+    ```
+"""
 
     def __init__(
         self,
@@ -746,12 +776,15 @@ class Segment(Shape):
 
     Prefer ``Line`` with ``extent=Extent.SEGMENT`` for new code.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> seg = sg.Segment((0, 0), (10, 0))
-        >>> seg.subtype.name
-        'SEGMENT'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    seg = sg.Segment((0, 0), (10, 0))
+    seg.subtype.name
+    # 'SEGMENT'
+    ```
+"""
 
     def __init__(self, start: PointType, end: PointType, **kwargs) -> None:
         """Initialize a Segment.
@@ -866,14 +899,17 @@ def circle_points(
     Returns:
         list[PointType]: A list of points that form a circle.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> pts = sg.circle_points((0, 0), 1, n=4)
-        >>> len(pts)
-        4
-        >>> [round(coord, 6) for coord in pts[0][:2]]
-        [1.0, 0.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    pts = sg.circle_points((0, 0), 1, n=4)
+    len(pts)
+    # 4
+    [round(coord, 6) for coord in pts[0][:2]]
+    # [1.0, 0.0]
+    ```
+"""
     return arc_points(center, radius, 0, 2 * pi, n=n)
 
 
@@ -898,12 +934,15 @@ def arc_points(
     Returns:
         list[PointType]: A list of points that form a circular arc.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> pts = sg.arc_points((0, 0), 1, 0, sg.pi / 2, clockwise=True, n=2)
-        >>> [round(coord, 6) for coord in pts[0][:2]]
-        [0.0, 1.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    pts = sg.arc_points((0, 0), 1, 0, sg.pi / 2, clockwise=True, n=2)
+    [round(coord, 6) for coord in pts[0][:2]]
+    # [0.0, 1.0]
+    ```
+"""
     x, y = center[:2]
     points = []
     if clockwise:
@@ -924,14 +963,17 @@ def hex_points(side_length: float) -> list[PointType]:
     Returns:
         list[PointType]: A list of points that define the hexagon.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> pts = sg.hex_points(1)
-        >>> len(pts)
-        6
-        >>> [round(coord, 6) for coord in pts[0][:2]]
-        [1.0, 0.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    pts = sg.hex_points(1)
+    len(pts)
+    # 6
+    [round(coord, 6) for coord in pts[0][:2]]
+    # [1.0, 0.0]
+    ```
+"""
     points = []
     for i in range(6):
         x = side_length * cos(i * 2 * pi / 6)
@@ -957,14 +999,17 @@ def rectangle_points(
     Returns:
         Sequence[PointType]: Corner points in order (not closed).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> pts = sg.rectangle_points((0, 0), 10, 4)
-        >>> len(pts)
-        4
-        >>> [round(coord, 6) for coord in pts[0][:2]]
-        [-5.0, -2.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    pts = sg.rectangle_points((0, 0), 10, 4)
+    len(pts)
+    # 4
+    [round(coord, 6) for coord in pts[0][:2]]
+    # [-5.0, -2.0]
+    ```
+"""
     from ..geom.affine import rotate
 
     x, y = pos[:2]
@@ -993,12 +1038,15 @@ def reg_poly_points_side_length(
         Sequence[PointType]: Vertices of the polygon (not closed; first vertex
         is not repeated).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> pts = sg.reg_poly_points_side_length(4, 2, angle=sg.pi / 2)
-        >>> abs(pts[0][0]) < 1e-9
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    pts = sg.reg_poly_points_side_length(4, 2, angle=sg.pi / 2)
+    abs(pts[0][0]) < 1e-9
+    # True
+    ```
+"""
     rad = side_len_to_radius(n, side_len)
     sector = 2 * pi / n
     x, y = pos[:2]
@@ -1028,14 +1076,17 @@ def reg_poly_points(
         Sequence[PointType]: Vertices of the polygon (closed; first vertex is
         repeated at the end).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> pts = sg.reg_poly_points(4, 1)
-        >>> len(pts)
-        5
-        >>> pts[0] == pts[-1]
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    pts = sg.reg_poly_points(4, 1)
+    len(pts)
+    # 5
+    pts[0] == pts[-1]
+    # True
+    ```
+"""
     points = regular_polygon_points(pos, n, r)
 
     if angle != 0:
@@ -1055,12 +1106,15 @@ def di_star(points: Sequence[PointType], n: int) -> Group:
     Returns:
         Group: A Group instance (dihedral star with n petals).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> star = sg.di_star([(1, 0), (0.5, 0.2)], 2)
-        >>> star.type.name
-        'GROUP'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    star = sg.di_star([(1, 0), (0.5, 0.2)], 2)
+    star.type.name
+    # 'GROUP'
+    ```
+"""
     group = Group(Shape(points))
     return group.mirror(axis_x, reps=1).rotate(2 * pi / n, reps=n - 1)
 
@@ -1084,11 +1138,14 @@ def hex_grid_centers(
     Returns:
         list[PointType]: A list of points that define the centers of the hexagons.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.hex_grid_centers(0, 0, 1, 1, 1)
-        [(0, 0)]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.hex_grid_centers(0, 0, 1, 1, 1)
+    # [(0, 0)]
+    ```
+"""
     centers = []
     for row in range(n_rows):
         for col in range(n_cols):
@@ -1124,12 +1181,15 @@ def rect_grid(
     Returns:
         Group: A Group object representing the grid.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> grid = sg.rect_grid(0, 0, 10, 10, 1, 1, [[True]])
-        >>> len(grid) > 1
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    grid = sg.rect_grid(0, 0, 10, 10, 1, 1, [[True]])
+    len(grid) > 1
+    # True
+    ```
+"""
     width = cell_width * n_cols
     height = cell_height * n_rows
     horiz_line = line_shape((x, y), (x + width, y))
@@ -1170,12 +1230,15 @@ def reg_star_polygon(n: int, step: int, rad: float, **kwargs) -> Shape | Group:
         ``Shape`` or ``Group``: A single star polygon, or a ``Group`` of rotated
         copies when ``gcd(n, step) > 1``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> star = sg.reg_star_polygon(5, 2, 10)
-        >>> star.subtype.name
-        'SHAPE'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    star = sg.reg_star_polygon(5, 2, 10)
+    star.subtype.name
+    # 'SHAPE'
+    ```
+"""
     angle = 2 * pi / n
     points = [(cos(angle * i) * rad, sin(angle * i) * rad) for i in range(n)]
     if n % step:
@@ -1208,12 +1271,15 @@ def star_shape(
     Returns:
         Group: A Group object representing the star.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> star = sg.star_shape([(1, 0), (0.2, 0.2)], reps=2, scale=2)
-        >>> star.type.name
-        'GROUP'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    star = sg.star_shape([(1, 0), (0.2, 0.2)], reps=2, scale=2)
+    star.type.name
+    # 'GROUP'
+    ```
+"""
     shape = Shape(points, subtype=Types.STAR)
     group = Group(shape)
     group.mirror(axis_x, reps=1)
@@ -1241,14 +1307,17 @@ def dot_shape(
     Returns:
         Shape: A point shape with ``marker`` set to ``radius``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> dot = sg.dot_shape(radius=3, pos=(1, 2))
-        >>> dot.marker
-        3
-        >>> [round(coord, 6) for coord in dot.vertices[0][:2]]
-        [1.0, 2.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    dot = sg.dot_shape(radius=3, pos=(1, 2))
+    dot.marker
+    # 3
+    [round(coord, 6) for coord in dot.vertices[0][:2]]
+    # [1.0, 2.0]
+    ```
+"""
     fill_color, line_color, line_width = get_defaults(
         ["fill_color", "line_color", "line_width"],
         [fill_color, line_color, line_width],
@@ -1285,14 +1354,17 @@ def rect_shape(
     Returns:
         Rectangle: A closed rectangle.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> rect = sg.rect_shape(10, 4, center=(1, 2), fill=False)
-        >>> rect.fill
-        False
-        >>> [round(coord, 6) for coord in rect.vertices[0][:2]]
-        [-4.0, 0.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    rect = sg.rect_shape(10, 4, center=(1, 2), fill=False)
+    rect.fill
+    # False
+    [round(coord, 6) for coord in rect.vertices[0][:2]]
+    # [-4.0, 0.0]
+    ```
+"""
     return Rectangle(width, height, center, angle, **kwargs)
 
 
@@ -1319,12 +1391,15 @@ def arc_shape(
     Returns:
         Shape: A Shape object with points that form a circular arc.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> arc = sg.arc_shape(0, 0, 1, 0, sg.pi / 2, clockwise=True, n=2)
-        >>> [round(coord, 6) for coord in arc.vertices[0][:2]]
-        [0.0, 1.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    arc = sg.arc_shape(0, 0, 1, 0, sg.pi / 2, clockwise=True, n=2)
+    [round(coord, 6) for coord in arc.vertices[0][:2]]
+    # [0.0, 1.0]
+    ```
+"""
     points = arc_points(
         (x, y), radius, start_angle, end_angle, clockwise=clockwise, n=n
     )
@@ -1346,14 +1421,17 @@ def circle_shape(
     Returns:
         Circle: A circle.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> circ = sg.circle_shape(2, center=(3, 4), fill=False)
-        >>> circ.fill
-        False
-        >>> circ.center
-        (3.0, 4.0)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    circ = sg.circle_shape(2, center=(3, 4), fill=False)
+    circ.fill
+    # False
+    circ.center
+    # (3.0, 4.0)
+    ```
+"""
     return Circle(radius, center, **kwargs)
 
 
@@ -1372,14 +1450,17 @@ def reg_poly_shape(
     Returns:
         Shape: A closed regular polygon.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> poly = sg.reg_poly_shape(4, r=1, fill=False)
-        >>> poly.fill
-        False
-        >>> poly.closed
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    poly = sg.reg_poly_shape(4, r=1, fill=False)
+    poly.fill
+    # False
+    poly.closed
+    # True
+    ```
+"""
     x, y = pos[:2]
     points = reg_poly_points(n=n, r=r, pos=(x, y), angle=angle)
 
@@ -1401,12 +1482,15 @@ def reg_poly_shape_side_length(
     Returns:
         Shape: A closed regular polygon.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> poly = sg.reg_poly_shape_side_length(4, 2, angle=sg.pi / 2)
-        >>> abs(poly.vertices[0][0]) < 1e-9
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    poly = sg.reg_poly_shape_side_length(4, 2, angle=sg.pi / 2)
+    abs(poly.vertices[0][0]) < 1e-9
+    # True
+    ```
+"""
 
     x, y = pos[:2]
     points = reg_poly_points_side_length(
@@ -1435,14 +1519,17 @@ def ellipse_shape(
     Returns:
         Ellipse: An ellipse.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> ell = sg.ellipse_shape(10, 6, center=(1, 2))
-        >>> ell.subtype.name
-        'ELLIPSE'
-        >>> ell.center
-        (1, 2)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    ell = sg.ellipse_shape(10, 6, center=(1, 2))
+    ell.subtype.name
+    # 'ELLIPSE'
+    ell.center
+    # (1, 2)
+    ```
+"""
     return Ellipse(width, height, center, angle, **kwargs)
 
 
@@ -1465,14 +1552,17 @@ def line_shape(
     Returns:
         Line: A line segment between ``p1`` and ``p2``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> line = sg.line_shape((0, 0), (4, 0), line_width=2)
-        >>> line.line_width
-        2
-        >>> line.extent.name
-        'SEGMENT'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    line = sg.line_shape((0, 0), (4, 0), line_width=2)
+    line.line_width
+    # 2
+    line.extent.name
+    # 'SEGMENT'
+    ```
+"""
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
     return Line(
@@ -1504,26 +1594,29 @@ def inflate(item: Shape, offset: float) -> Shape:
         ValueError: If ``item`` is an open or degenerate ``Shape``, or if the
             result would have a non-positive size.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sq = sg.square(40)
-        >>> out = sg.inflate(sq, 5)
-        >>> type(out).__name__
-        'Square'
-        >>> out.width
-        50.0
-        >>> sq.width
-        40.0
-        >>> sg.inflate(sg.Circle(20), 5).radius
-        25.0
-        >>> sg.inflate(sg.Rectangle(80, 40), -10).width
-        60.0
-        >>> sg.inflate(sg.Ellipse(80, 40), 10).width
-        100.0
-        >>> poly = sg.Shape([(-5, -5), (5, -5), (5, 5), (-5, 5)], closed=True)
-        >>> [round(coord, 6) for coord in sg.inflate(poly, 5).vertices[0][:2]]
-        [-10.0, -10.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sq = sg.square(40)
+    out = sg.inflate(sq, 5)
+    type(out).__name__
+    # 'Square'
+    out.width
+    # 50.0
+    sq.width
+    # 40.0
+    sg.inflate(sg.Circle(20), 5).radius
+    # 25.0
+    sg.inflate(sg.Rectangle(80, 40), -10).width
+    # 60.0
+    sg.inflate(sg.Ellipse(80, 40), 10).width
+    # 100.0
+    poly = sg.Shape([(-5, -5), (5, -5), (5, 5), (-5, 5)], closed=True)
+    [round(coord, 6) for coord in sg.inflate(poly, 5).vertices[0][:2]]
+    # [-10.0, -10.0]
+    ```
+"""
     if not isinstance(item, Shape):
         raise TypeError(
             f"inflate does not support {type(item).__name__}"
@@ -1622,15 +1715,18 @@ def offset_polygon_shape(
     Returns:
         Shape: A new closed polygon with offset vertices.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> src = sg.square(size=10)
-        >>> out = sg.offset_polygon_shape(src, offset=2)
-        >>> out is not src
-        True
-        >>> [round(coord, 6) for coord in out.vertices[0][:2]]
-        [-7.0, -7.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    src = sg.square(size=10)
+    out = sg.offset_polygon_shape(src, offset=2)
+    out is not src
+    # True
+    [round(coord, 6) for coord in out.vertices[0][:2]]
+    # [-7.0, -7.0]
+    ```
+"""
     vertices = offset_polygon(polygon_shape.vertices, offset, dist_tol)
 
     return Shape(vertices)
@@ -1664,16 +1760,18 @@ def snap(
         angle: Target angle in radians between adjacent edges at the snap point.
             Defaults to 0 (edge-to-edge alignment).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> free = sg.square(center=(0, 0), size=2)
-        >>> fixed = sg.square(center=(10, 0), size=2)
-        >>> snapped = sg.snap(free, 1, fixed, 0)
-        >>> snapped is free
-        True
-        >>> abs(snapped[1][0] - fixed[0][0]) < 1e-9
-        True
+    **Examples**
 
+    ```python
+    import simetri.graphics as sg
+    free = sg.square(center=(0, 0), size=2)
+    fixed = sg.square(center=(10, 0), size=2)
+    snapped = sg.snap(free, 1, fixed, 0)
+    snapped is free
+    # True
+    abs(snapped[1][0] - fixed[0][0]) < 1e-9
+    # True
+    ```
     Returns:
         The transformed ``free_shape`` (same object, mutated in place).
     """
@@ -1777,15 +1875,18 @@ def fillet_shape_corners(
     Returns:
         A copy of ``shape`` with fillet vertices substituted.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> src = sg.square(size=10)
-        >>> rounded = sg.fillet_shape_corners(src, {0: 1}, n=4)
-        >>> rounded is not src
-        True
-        >>> len(rounded.vertices) > len(src.vertices)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    src = sg.square(size=10)
+    rounded = sg.fillet_shape_corners(src, {0: 1}, n=4)
+    rounded is not src
+    # True
+    len(rounded.vertices) > len(src.vertices)
+    # True
+    ```
+"""
     vertices = fillet_corners(shape.vertices, d_vert_radius, n)
 
     new_shape = shape.copy()

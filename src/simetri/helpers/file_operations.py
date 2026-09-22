@@ -630,10 +630,13 @@ def path_exists(path: str | os.PathLike[str]) -> bool:
     Returns:
         bool: True if the path exists.
 
-    Examples:
-        >>> path_exists("/tmp/test.txt")
-        False
-    """
+    **Examples**
+
+    ```python
+    path_exists("/tmp/test.txt")
+    # False
+    ```
+"""
     return Path(path).exists()
 
 

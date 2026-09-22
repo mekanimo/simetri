@@ -543,11 +543,12 @@ def circle_flower(n, radius=25, layers=6, ratio=None):
     Raises:
         ValueError: If ``n`` is less than 8.
 
-    Examples:
-        ::
+    **Examples**
 
-            import simetri.graphics as sg
+    ```python
+    import simetri.graphics as sg
 
+    ```
             flowers = sg.circle_flower(n=8, radius=20, layers=4)
             canvas = sg.Canvas()
             canvas.draw(flowers)

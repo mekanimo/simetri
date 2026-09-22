@@ -29,16 +29,19 @@ def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
         Sequence[PointType]: Vertices, with the first vertex repeated at
         the end.
 
-    Examples:
-        >>> from simetri.geom.geom_utils import reg_poly_points
-        >>> points = reg_poly_points((0, 0), 4, 1)
-        >>> len(points)
-        5
-        >>> points[0] == points[-1]
-        True
-        >>> [round(coord, 10) for coord in points[0]]
-        [1.0, 0.0]
-    """
+    **Examples**
+
+    ```python
+    from simetri.geom.geom_utils import reg_poly_points
+    points = reg_poly_points((0, 0), 4, 1)
+    len(points)
+    # 5
+    points[0] == points[-1]
+    # True
+    [round(coord, 10) for coord in points[0]]
+    # [1.0, 0.0]
+    ```
+"""
     step = 2 * pi / n
     x, y = pos[:2]
     points = [[cos(step * i) * r + x, sin(step * i) * r + y] for i in range(n)]

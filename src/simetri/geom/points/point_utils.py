@@ -27,11 +27,14 @@ def distance(p1: PointType, p2: PointType) -> float:
     Returns:
         float: Distance between the two points.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.distance((0, 0), (3, 4))
-        5.0
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.distance((0, 0), (3, 4))
+    # 5.0
+    ```
+"""
     return hypot(p2[0] - p1[0], p2[1] - p1[1])
 
 
@@ -54,13 +57,16 @@ def equal_points(
     Returns:
         bool: True if the points are within the given distance.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.equal_points((0, 0), (0.0005, 0))
-        True
-        >>> sg.equal_points((0, 0), (1, 0))
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.equal_points((0, 0), (0.0005, 0))
+    # True
+    sg.equal_points((0, 0), (1, 0))
+    # False
+    ```
+"""
     dist_tol, dist_rel_tol, dist_abs_tol = get_defaults(
         ["dist_tol", "dist_rel_tol", "dist_abs_tol"],
         [dist_tol, dist_rel_tol, dist_abs_tol],
@@ -88,13 +94,16 @@ def congruent_points(
     Returns:
         bool: True if the points are within the given distance.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.congruent_points((0, 0), (0.0005, 0))
-        True
-        >>> sg.congruent_points((0, 0), (1, 0))
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.congruent_points((0, 0), (0.0005, 0))
+    # True
+    sg.congruent_points((0, 0), (1, 0))
+    # False
+    ```
+"""
     return equal_points(
         point1,
         point2,
@@ -117,11 +126,14 @@ def offset_point_on_line(
     Returns:
         PointType: Offset point on the line.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.offset_point_on_line((0, 0), [(0, 0), (1, 0)], 2)
-        (2.0, 0.0)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.offset_point_on_line((0, 0), [(0, 0), (1, 0)], 2)
+    # (2.0, 0.0)
+    ```
+"""
     x, y = point[:2]
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -147,11 +159,14 @@ def perp_offset_point(
     Returns:
         PointType: Perpendicular offset point.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.perp_offset_point((0, 0), [(0, 0), (1, 0)], 1)
-        [0.0, 1.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.perp_offset_point((0, 0), [(0, 0), (1, 0)], 1)
+    # [0.0, 1.0]
+    ```
+"""
     unit_vec = perp_unit_vector(line)
     dx = unit_vec[0] * offset
     dy = unit_vec[1] * offset
@@ -190,14 +205,17 @@ def fix_degen_points(
     Returns:
         list[PointType]: List of points with duplicate and collinear points removed.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.fix_degen_points(
-        ...     [(0, 0), (0, 0), (1, 0), (2, 0)],
-        ...     check_collinear=False,
-        ... )
-        [(0, 0), (1, 0), (2, 0)]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.fix_degen_points(
+            [(0, 0), (0, 0), (1, 0), (2, 0)],
+            check_collinear=False,
+        )
+    # [(0, 0), (1, 0), (2, 0)]
+    ```
+"""
     dist_tol, dist_rel_tol, dist_abs_tol, area_tol, area_rel_tol, area_abs_tol = get_defaults(
         [
             "dist_tol",
@@ -257,11 +275,14 @@ def round_point(point: list[float], n_digits: int = 2) -> list[float]:
     Returns:
         list[float]: Rounded point.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.round_point([1.234, 5.678], 2)
-        (1.23, 5.68)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.round_point([1.234, 5.678], 2)
+    # (1.23, 5.68)
+    ```
+"""
     x, y = point[:2]
     x = round(x, n_digits)
     y = round(y, n_digits)
@@ -279,11 +300,14 @@ def round_points(points: list[PointType], n_digits: int = 2) -> list[PointType]:
     Returns:
         list[PointType]: Rounded points list.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.round_points([(1.234, 5.678)], 1)
-        [(1.2, 5.7)]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.round_points([(1.234, 5.678)], 1)
+    # [(1.2, 5.7)]
+    ```
+"""
 
     return [round_point(p, n_digits) for p in points]
 
@@ -300,13 +324,16 @@ def direction3(p, q, r):
     Returns:
         int: 0 if collinear, >0 if counter-clockwise, <0 if clockwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.direction3((0, 0), (1, 0), (1, 1))
-        -1
-        >>> sg.direction3((0, 0), (1, 0), (1, -1))
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.direction3((0, 0), (1, 0), (1, 1))
+    # -1
+    sg.direction3((0, 0), (1, 0), (1, -1))
+    # 1
+    ```
+"""
     return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
 
 
@@ -321,13 +348,16 @@ def between3(a, b, c):
     Returns:
         bool: True if c is between a and b, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.between3((0, 0), (2, 0), (1, 0))
-        True
-        >>> sg.between3((0, 0), (2, 0), (3, 0))
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.between3((0, 0), (2, 0), (1, 0))
+    # True
+    sg.between3((0, 0), (2, 0), (3, 0))
+    # False
+    ```
+"""
     from simetri.geom.segments.line_utils import collinear3
 
     if not collinear3(a, b, c):

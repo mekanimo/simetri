@@ -3,13 +3,16 @@
 ``Points`` stores ``(x, y)`` vertices and lazily builds a homogeneous
 ``ndarray`` for affine transforms.
 
-Examples:
-    >>> from simetri.shapes.points import Points
-    >>> pts = Points([(0, 0), (1, 0), (1, 1)])
-    >>> len(pts)
-    3
-    >>> pts.nd_array.shape
-    (3, 3)
+**Examples**
+
+```python
+from simetri.shapes.points import Points
+pts = Points([(0, 0), (1, 0), (1, 1)])
+len(pts)
+# 3
+pts.nd_array.shape
+# (3, 3)
+```
 """
 
 import copy
@@ -61,12 +64,15 @@ class Points:
         type: Always ``Types.POINTS``.
         nd_array_changed: Set when the cache should be refreshed by Shape.
 
-    Examples:
-        >>> pts = Points([(0, 0), (10, 0)])
-        >>> pts.append((10, 10))
-        >>> list(pts)
-        [(0, 0), (10, 0), (10, 10)]
-    """
+    **Examples**
+
+    ```python
+    pts = Points([(0, 0), (10, 0)])
+    pts.append((10, 10))
+    list(pts)
+    # [(0, 0), (10, 0), (10, 10)]
+    ```
+"""
 
     def __init__(self, coords: Sequence[PointType] | None = None) -> None:
         """Initialize a Points container.

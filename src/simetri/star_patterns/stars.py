@@ -1,10 +1,13 @@
 """Classes and functions for creating stars and rosettes.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> from simetri.star_patterns.stars import rosette, Star
-    >>> petal = sg.Shape([(0, 0), (20, 5), (0, 10)])
-    >>> pattern = rosette(8, petal)
+**Examples**
+
+```python
+import simetri.graphics as sg
+from simetri.star_patterns.stars import rosette, Star
+petal = sg.Shape([(0, 0), (20, 5), (0, 10)])
+pattern = rosette(8, petal)
+```
 """
 
 from math import cos, pi, sin, sqrt, tan

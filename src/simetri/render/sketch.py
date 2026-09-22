@@ -7,11 +7,14 @@ Note:
     Prefer creating sketches through canvas draw APIs rather than constructing
     them by hand unless writing a backend.
 
-Examples:
-    >>> from simetri.graphics.sketch import CircleSketch
-    >>> sk = CircleSketch(center=(0, 0), radius=10)
-    >>> sk.subtype.name
-    'CIRCLE_SKETCH'
+**Examples**
+
+```python
+from simetri.graphics.sketch import CircleSketch
+sk = CircleSketch(center=(0, 0), radius=10)
+sk.subtype.name
+# 'CIRCLE_SKETCH'
+```
 """
 
 from collections.abc import Sequence

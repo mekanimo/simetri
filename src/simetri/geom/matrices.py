@@ -1,12 +1,15 @@
 """Small matrix helpers shared across geometry and rendering.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> matrix = sg.identity_matrix()
-    >>> points = sg.homogenize([[1, 2], [3, 4]])
-    >>> print(points @ matrix)
-    [[1. 2. 1.]
-     [3. 4. 1.]]
+**Examples**
+
+```python
+import simetri.graphics as sg
+matrix = sg.identity_matrix()
+points = sg.homogenize([[1, 2], [3, 4]])
+print(points @ matrix)
+# [[1. 2. 1.]
+# [3. 4. 1.]]
+```
 """
 
 from __future__ import annotations

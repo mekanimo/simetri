@@ -4,13 +4,16 @@ Bound onto ``Group`` as ``merge_shapes`` and
 ``merge_collinears``. Prefer calling those methods on a group rather than
 importing these private functions directly.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> g = sg.Group([
-    ...     sg.Shape([(0, 0), (10, 0)]),
-    ...     sg.Shape([(10, 0), (20, 0)]),
-    ... ])
-    >>> merged = g.merge_shapes()  # doctest: +SKIP
+**Examples**
+
+```python
+import simetri.graphics as sg
+g = sg.Group([
+        sg.Shape([(0, 0), (10, 0)]),
+        sg.Shape([(10, 0), (20, 0)]),
+    ])
+merged = g.merge_shapes()  # doctest: +SKIP
+```
 """
 
 from __future__ import annotations

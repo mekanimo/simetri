@@ -4,11 +4,14 @@ Unit constants convert physical lengths to PostScript points (1 inch = 72 pt).
 Type aliases such as ``PointType`` and ``LineType`` are used throughout the
 graphics and geometry APIs.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> print(sg.INCH, sg.CM, sg.phi
-    72 28.3464 1.618033988749895
-    >>> width_pt = 2 * INCH  # 144 points
+**Examples**
+
+```python
+import simetri.graphics as sg
+print(sg.INCH, sg.CM, sg.phi
+# 72 28.3464 1.618033988749895
+width_pt = 2 * INCH  # 144 points
+```
 """
 
 from __future__ import annotations
@@ -58,11 +61,14 @@ def gen_unique_ids() -> Iterator[int]:
     Yields:
         int: The next unique identifier, starting at 0.
 
-    Examples:
-        >>> gen = gen_unique_ids()
-        >>> next(gen), next(gen)
-        (0, 1)
-    """
+    **Examples**
+
+    ```python
+    gen = gen_unique_ids()
+    next(gen), next(gen)
+    # (0, 1)
+    ```
+"""
     id_ = 0
     while True:
         yield id_
@@ -83,11 +89,14 @@ def get_unique_id(item) -> int:
     Returns:
         int: Newly assigned unique identifier.
 
-    Examples:
-        >>> class _T: pass
-        >>> get_unique_id(_T())  # doctest: +SKIP
-        0
-    """
+    **Examples**
+
+    ```python
+    class _T: pass
+    get_unique_id(_T())  # doctest: +SKIP
+    # 0
+    ```
+"""
     id_ = next(unique_id)
     d_id_obj[id_] = item
     return id_

@@ -2,11 +2,14 @@
 
 ``Lines`` stores segments as parallel start/end ``Points`` sequences.
 
-Examples:
-    >>> from simetri.shapes.lines import Lines
-    >>> lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
-    >>> len(lines)
-    2
+**Examples**
+
+```python
+from simetri.shapes.lines import Lines
+lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
+len(lines)
+# 2
+```
 """
 
 from collections.abc import Sequence
@@ -25,12 +28,15 @@ class Lines:
         starts / ends: Parallel ``Points`` for segment endpoints.
         type: Always ``Types.LINES`` when set by callers.
 
-    Examples:
-        >>> from simetri.shapes.lines import Lines
-        >>> lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
-        >>> len(lines)
-        2
-    """
+    **Examples**
+
+    ```python
+    from simetri.shapes.lines import Lines
+    lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
+    len(lines)
+    # 2
+    ```
+"""
 
     def __init__(
         self,

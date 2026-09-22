@@ -594,16 +594,19 @@ def extract_glyph_svg_path(font_path, character):
     Raises:
         ValueError: If ``character`` is not in the font's character map.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> glyph_name, svg_d = sg.extract_glyph_svg_path(
-        ...     "c:/windows/fonts/times.ttf", "S"
-        ... )
-        >>> glyph_name
-        'S'
-        >>> svg_d.startswith("M")
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    glyph_name, svg_d = sg.extract_glyph_svg_path(
+            "c:/windows/fonts/times.ttf", "S"
+        )
+    glyph_name
+    # 'S'
+    svg_d.startswith("M")
+    # True
+    ```
+"""
     font = TTFont(font_path)
     cmap = font.getBestCmap()
     char_code = ord(character)
@@ -636,16 +639,19 @@ def extract_glyph_path(font_path, character, scale=0.1):
     Raises:
         ValueError: If ``character`` is not in the font's character map.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> glyph_name, path = sg.extract_glyph_path(
-        ...     "c:/windows/fonts/times.ttf", "S", scale=0.1
-        ... )
-        >>> glyph_name
-        'S'
-        >>> isinstance(path, sg.Path2D)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    glyph_name, path = sg.extract_glyph_path(
+            "c:/windows/fonts/times.ttf", "S", scale=0.1
+        )
+    glyph_name
+    # 'S'
+    isinstance(path, sg.Path2D)
+    # True
+    ```
+"""
     glyph_name, svg_path = extract_glyph_svg_path(font_path, character)
     path = svg_path_to_path2d(svg_path).scale(scale)
     return glyph_name, path

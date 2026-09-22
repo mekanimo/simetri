@@ -1,8 +1,11 @@
 """Illustration helpers for annotations, tags, arrows, and dimensions.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> tag = sg.Tag("Hello", (0, 0))
+**Examples**
+
+```python
+import simetri.graphics as sg
+tag = sg.Tag("Hello", (0, 0))
+```
 """
 
 from collections.abc import Callable, Sequence
@@ -559,27 +562,30 @@ class AnnotationArrow(Group):
             (``defaults["font_size"]``).
         **kwargs: Passed to the leader ``Arrow`` and landing ``Shape``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> note = sg.AnnotationArrow((0, 0), "A", landing=(40, 20))
-        >>> note.tip
-        (0, 0)
-        >>> note.elbow
-        (20, 20)
-        >>> note.landing
-        (40, 20)
-        >>> balloon = sg.AnnotationArrow(
-        ...     (0, 0), 1, landing=(40, 20), circled=True
-        ... )
-        >>> balloon.text
-        '1'
-        >>> balloon.tag.frame_shape == sg.FrameShape.CIRCLE
-        True
-        >>> sg.AnnotationArrow((0, 0), "A")
-        Traceback (most recent call last):
-            ...
-        ValueError: AnnotationArrow requires landing or elbow.
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    note = sg.AnnotationArrow((0, 0), "A", landing=(40, 20))
+    note.tip
+    # (0, 0)
+    note.elbow
+    # (20, 20)
+    note.landing
+    # (40, 20)
+    balloon = sg.AnnotationArrow(
+            (0, 0), 1, landing=(40, 20), circled=True
+        )
+    balloon.text
+    # '1'
+    balloon.tag.frame_shape == sg.FrameShape.CIRCLE
+    # True
+    sg.AnnotationArrow((0, 0), "A")
+    # Traceback (most recent call last):
+        
+    # ValueError: AnnotationArrow requires landing or elbow.
+    ```
+"""
 
     def __init__(
         self,
@@ -1626,26 +1632,29 @@ def vec_arrow(
             is given, or if both are given and ``end - start`` does not
             match ``vec``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> arrow = sg.vec_arrow(sg.Vector(3, 4), start=(10, 20))
-        >>> arrow.p1
-        (10, 20)
-        >>> arrow.p2
-        (13, 24)
-        >>> arrow = sg.vec_arrow(sg.Vector(3, 4), end=(13, 24))
-        >>> arrow.p1
-        (10, 20)
-        >>> arrow.p2
-        (13, 24)
-        >>> sg.vec_arrow(sg.Vector(0, 0), start=(1, 1))
-        Traceback (most recent call last):
-            ...
-        ValueError: Cannot create an Arrow from a zero-length Vector.
-        >>> sg.vec_arrow(sg.Vector(3, 4), start=(0, 0), end=(1, 0))
-        Traceback (most recent call last):
-            ...
-        ValueError: start and end are not consistent with the Vector displacement (3, 4).
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    arrow = sg.vec_arrow(sg.Vector(3, 4), start=(10, 20))
+    arrow.p1
+    # (10, 20)
+    arrow.p2
+    # (13, 24)
+    arrow = sg.vec_arrow(sg.Vector(3, 4), end=(13, 24))
+    arrow.p1
+    # (10, 20)
+    arrow.p2
+    # (13, 24)
+    sg.vec_arrow(sg.Vector(0, 0), start=(1, 1))
+    # Traceback (most recent call last):
+        
+    # ValueError: Cannot create an Arrow from a zero-length Vector.
+    sg.vec_arrow(sg.Vector(3, 4), start=(0, 0), end=(1, 0))
+    # Traceback (most recent call last):
+        
+    # ValueError: start and end are not consistent with the Vector displacement (3, 4).
+    ```
     """
     vector_x, vector_y = vec[:2]
     if vector_x == 0 and vector_y == 0:

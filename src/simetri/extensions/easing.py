@@ -4,9 +4,12 @@ Adapted from https://github.com/semitable/easing-functions. Each ease class
 maps a progress value in ``[0, 1]`` (or a custom duration) to an eased value
 between ``start`` and ``end``.
 
-Examples:
-    >>> ease = QuadEaseInOut(start=0, end=100, duration=1)
-    >>> ease(0.5)  # mid-progress eased value
+**Examples**
+
+```python
+ease = QuadEaseInOut(start=0, end=100, duration=1)
+ease(0.5)  # mid-progress eased value
+```
 """
 
 # Penner's easing functions

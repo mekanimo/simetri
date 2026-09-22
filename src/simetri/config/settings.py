@@ -3,9 +3,12 @@
 Do not edit values in this module. Override them in your own code so
 shared scripts stay portable.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> sg.defaults["line_width"] = 1.5
+**Examples**
+
+```python
+import simetri.graphics as sg
+sg.defaults["line_width"] = 1.5
+```
 """
 
 __all__ = [
@@ -325,10 +328,15 @@ def save_user_warning(
     Returns:
         Path to the personal config file.
 
-    Examples:
-        sg.save_user_warning(sg.WarningType.style.line_fill_color, enabled=False)
-        sg.save_user_warning(sg.WarningType.group)
-    """
+    **Examples**
+
+    ```python
+    sg.save_user_warning(sg.WarningType.style.line_fill_color, enabled=False)
+
+    sg.save_user_warning(sg.WarningType.group)
+
+    ```
+"""
     if enabled:
         set_warning_on(warning)
     else:

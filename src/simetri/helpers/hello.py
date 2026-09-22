@@ -9,11 +9,14 @@ import simetri.graphics as sg
 def hello():
     """Draw a greeting SVG to verify the Simetri install works.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> # Opens a temporary SVG with a greeting (side-effecting).
-        >>> # sg.hello()
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    # Opens a temporary SVG with a greeting (side-effecting).
+    # sg.hello()
+    ```
+"""
 
     canvas = sg.Canvas()
 

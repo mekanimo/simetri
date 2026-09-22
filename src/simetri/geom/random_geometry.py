@@ -85,25 +85,28 @@ def random_angle(
         ValueError: If ``min_angle`` exceeds ``max_angle`` or ``incr`` is
             not positive.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> angle = sg.random_angle()
-        >>> -sg.pi < angle <= sg.pi
-        True
-        >>> stepped = sg.random_angle(
-        ...     0, sg.pi, incr=sg.pi / 2, normalized=False
-        ... )
-        >>> any(
-        ...     sg.isclose(stepped, option)
-        ...     for option in (0, sg.pi / 2, sg.pi)
-        ... )
-        True
-        >>> deg_incr_rand_angle = sg.random_angle(incr=sg.radians(1))
-        >>> sg.degrees(deg_incr_rand_angle).is_integer()
-        True
-        >>> sg.random_angle(seed=1) == sg.random_angle(seed=1)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    angle = sg.random_angle()
+    -sg.pi < angle <= sg.pi
+    # True
+    stepped = sg.random_angle(
+            0, sg.pi, incr=sg.pi / 2, normalized=False
+        )
+    any(
+            sg.isclose(stepped, option)
+            for option in (0, sg.pi / 2, sg.pi)
+        )
+    # True
+    deg_incr_rand_angle = sg.random_angle(incr=sg.radians(1))
+    sg.degrees(deg_incr_rand_angle).is_integer()
+    # True
+    sg.random_angle(seed=1) == sg.random_angle(seed=1)
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     if min_angle > max_angle:
         raise ValueError(f"min_angle ({min_angle}) > max_angle ({max_angle})")
@@ -150,14 +153,17 @@ def random_point(
     Returns:
         tuple: A point ``(x, y)`` with each coordinate in its range.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> x, y = sg.random_point(0, 0, 10, 20)
-        >>> 0 <= x <= 10 and 0 <= y <= 20
-        True
-        >>> sg.random_point(seed=7) == sg.random_point(seed=7)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    x, y = sg.random_point(0, 0, 10, 20)
+    0 <= x <= 10 and 0 <= y <= 20
+    # True
+    sg.random_point(seed=7) == sg.random_point(seed=7)
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     return (rng.uniform(min_x, max_x), rng.uniform(min_y, max_y))
 
@@ -187,16 +193,19 @@ def random_points(
     Returns:
         list[tuple]: ``n`` points ``(x, y)``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> points = sg.random_points(5, 0, 0, 1, 1)
-        >>> len(points)
-        5
-        >>> all(0 <= x <= 1 and 0 <= y <= 1 for x, y in points)
-        True
-        >>> sg.random_points(seed=3) == sg.random_points(seed=3)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    points = sg.random_points(5, 0, 0, 1, 1)
+    len(points)
+    # 5
+    all(0 <= x <= 1 and 0 <= y <= 1 for x, y in points)
+    # True
+    sg.random_points(seed=3) == sg.random_points(seed=3)
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     return [
         random_point(min_x, min_y, max_x, max_y, rng=rng) for _ in range(n)
@@ -242,16 +251,19 @@ def random_circle(
     Raises:
         ValueError: If ``min_radius`` exceeds ``max_radius``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> circle = sg.random_circle(2, 8, 0, 0, 20, 20)
-        >>> 2 <= circle.radius <= 8
-        True
-        >>> isinstance(circle, sg.Circle)
-        True
-        >>> sg.random_circle(seed=1).radius == sg.random_circle(seed=1).radius
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    circle = sg.random_circle(2, 8, 0, 0, 20, 20)
+    2 <= circle.radius <= 8
+    # True
+    isinstance(circle, sg.Circle)
+    # True
+    sg.random_circle(seed=1).radius == sg.random_circle(seed=1).radius
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     if min_radius > max_radius:
         raise ValueError(
@@ -293,14 +305,17 @@ def random_circles(
     Returns:
         Group: ``n`` circle shapes.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> circles = sg.random_circles(4, 2, 8, 0, 0, 30, 30)
-        >>> len(circles)
-        4
-        >>> all(isinstance(circle, sg.Circle) for circle in circles)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    circles = sg.random_circles(4, 2, 8, 0, 0, 30, 30)
+    len(circles)
+    # 4
+    all(isinstance(circle, sg.Circle) for circle in circles)
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     return Group(
         [
@@ -362,18 +377,21 @@ def random_ellipse(
     Raises:
         ValueError: If ``min_axis`` exceeds ``max_axis``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> ellipse = sg.random_ellipse(20, 80, 0, 0, 200, 150)
-        >>> 20 <= ellipse.width <= 80
-        True
-        >>> 20 <= ellipse.height <= 80
-        True
-        >>> isinstance(ellipse, sg.Ellipse)
-        True
-        >>> sg.random_ellipse(seed=1).width == sg.random_ellipse(seed=1).width
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    ellipse = sg.random_ellipse(20, 80, 0, 0, 200, 150)
+    20 <= ellipse.width <= 80
+    # True
+    20 <= ellipse.height <= 80
+    # True
+    isinstance(ellipse, sg.Ellipse)
+    # True
+    sg.random_ellipse(seed=1).width == sg.random_ellipse(seed=1).width
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     if min_axis > max_axis:
         raise ValueError(
@@ -423,14 +441,17 @@ def random_ellipses(
     Returns:
         Group: ``n`` ellipse shapes.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> ellipses = sg.random_ellipses(4, 20, 80, 0, 0, 200, 150)
-        >>> len(ellipses)
-        4
-        >>> all(isinstance(ellipse, sg.Ellipse) for ellipse in ellipses)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    ellipses = sg.random_ellipses(4, 20, 80, 0, 0, 200, 150)
+    len(ellipses)
+    # 4
+    all(isinstance(ellipse, sg.Ellipse) for ellipse in ellipses)
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     return Group(
         [
@@ -496,14 +517,17 @@ def random_segment(
         ValueError: If ``min_length`` exceeds ``max_length``, or if the
             inclination-angle range does not intersect ``[0, pi]``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> segment = sg.random_segment(1, 5, 0, 0, 10, 10)
-        >>> len(segment.vertices)
-        2
-        >>> 1 <= sg.distance(segment.vertices[0], segment.vertices[1]) <= 5
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    segment = sg.random_segment(1, 5, 0, 0, 10, 10)
+    len(segment.vertices)
+    # 2
+    1 <= sg.distance(segment.vertices[0], segment.vertices[1]) <= 5
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     if min_length > max_length:
         raise ValueError(
@@ -569,28 +593,31 @@ def random_segments(
     Returns:
         Group: ``n`` segment shapes.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> segments = sg.random_segments(3, 1, 5, 0, 0, 10, 10)
-        >>> len(segments)
-        3
-        >>> fixed = sg.random_segments(5, 1, 8, 0, 0, 20, 20, angles=[sg.pi / 4])
-        >>> len(fixed)
-        5
-        >>> all(
-        ...     sg.isclose(
-        ...         sg.atan2(
-        ...             segment.vertices[1][1] - segment.vertices[0][1],
-        ...             segment.vertices[1][0] - segment.vertices[0][0],
-        ...         )
-        ...         % sg.pi,
-        ...         sg.pi / 4,
-        ...         abs_tol=1e-9,
-        ...     )
-        ...     for segment in fixed
-        ... )
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    segments = sg.random_segments(3, 1, 5, 0, 0, 10, 10)
+    len(segments)
+    # 3
+    fixed = sg.random_segments(5, 1, 8, 0, 0, 20, 20, angles=[sg.pi / 4])
+    len(fixed)
+    # 5
+    all(
+            sg.isclose(
+                sg.atan2(
+                    segment.vertices[1][1] - segment.vertices[0][1],
+                    segment.vertices[1][0] - segment.vertices[0][0],
+                )
+                % sg.pi,
+                sg.pi / 4,
+                abs_tol=1e-9,
+            )
+            for segment in fixed
+        )
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     segments = []
     for _ in range(n):
@@ -661,14 +688,17 @@ def random_rectangle(
     Raises:
         ValueError: If ``min_edge_length`` exceeds ``max_edge_length``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> rectangle = sg.random_rectangle(2, 8, 0, 0, 20, 20)
-        >>> len(rectangle.vertices)
-        4
-        >>> rectangle.closed
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    rectangle = sg.random_rectangle(2, 8, 0, 0, 20, 20)
+    len(rectangle.vertices)
+    # 4
+    rectangle.closed
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     if min_edge_length > max_edge_length:
         raise ValueError(
@@ -726,12 +756,15 @@ def random_rectangles(
     Returns:
         Group: ``n`` closed rectangle shapes.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> rectangles = sg.random_rectangles(4, 2, 8, 0, 0, 30, 30)
-        >>> len(rectangles)
-        4
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    rectangles = sg.random_rectangles(4, 2, 8, 0, 0, 30, 30)
+    len(rectangles)
+    # 4
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     return Group(
         [
@@ -805,25 +838,28 @@ def random_triangle(
             or if no three allowed angles can form a triangle satisfying
             the edge-length constraints.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> triangle = sg.random_triangle(1, 8, 0, 0, 20, 20)
-        >>> len(triangle.vertices)
-        3
-        >>> triangle.closed
-        True
-        >>> angles = sg.polygon_internal_angles(triangle.vertices)
-        >>> all(sg.pi / 8 <= angle <= 5 * sg.pi / 6 for angle in angles)
-        True
-        >>> equilateral = sg.random_triangle(
-        ...     1, 8, 0, 0, 20, 20, angles=[sg.pi / 3]
-        ... )
-        >>> all(
-        ...     sg.isclose(angle, sg.pi / 3, abs_tol=1e-6)
-        ...     for angle in sg.polygon_internal_angles(equilateral.vertices)
-        ... )
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    triangle = sg.random_triangle(1, 8, 0, 0, 20, 20)
+    len(triangle.vertices)
+    # 3
+    triangle.closed
+    # True
+    angles = sg.polygon_internal_angles(triangle.vertices)
+    all(sg.pi / 8 <= angle <= 5 * sg.pi / 6 for angle in angles)
+    # True
+    equilateral = sg.random_triangle(
+            1, 8, 0, 0, 20, 20, angles=[sg.pi / 3]
+        )
+    all(
+            sg.isclose(angle, sg.pi / 3, abs_tol=1e-6)
+            for angle in sg.polygon_internal_angles(equilateral.vertices)
+        )
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     if min_edge_length > max_edge_length:
         raise ValueError(
@@ -969,17 +1005,20 @@ def random_triangles(
     Returns:
         Group: ``n`` closed triangle shapes.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> triangles = sg.random_triangles(3, 1, 8, 0, 0, 20, 20)
-        >>> len(triangles)
-        3
-        >>> equilateral = sg.random_triangles(
-        ...     2, 1, 8, 0, 0, 20, 20, angles=[sg.pi / 3]
-        ... )
-        >>> len(equilateral)
-        2
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    triangles = sg.random_triangles(3, 1, 8, 0, 0, 20, 20)
+    len(triangles)
+    # 3
+    equilateral = sg.random_triangles(
+            2, 1, 8, 0, 0, 20, 20, angles=[sg.pi / 3]
+        )
+    len(equilateral)
+    # 2
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     return Group(
         [
@@ -1072,33 +1111,36 @@ def random_polygon(
             ``closed=False``, or if no edge count in the requested range
             can close with interior angles from ``angles``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> polygon = sg.random_polygon(
-        ...     3, 6, 1, 8, 0, 0, 20, 20
-        ... )
-        >>> 3 <= len(polygon.vertices) <= 6
-        True
-        >>> polygon.closed
-        True
-        >>> interior = sg.polygon_internal_angles(polygon.vertices)
-        >>> all(sg.pi / 8 <= angle <= 9 * sg.pi / 8 for angle in interior)
-        True
-        >>> angled = sg.random_polygon(
-        ...     4, 4, 1, 8, 0, 0, 50, 50, angles=[sg.pi / 2]
-        ... )
-        >>> len(angled.vertices)
-        4
-        >>> angled.closed
-        True
-        >>> try:
-        ...     sg.random_polygon(
-        ...         5, 5, 1, 8, 0, 0, 50, 50, angles=[sg.pi / 3]
-        ...     )
-        ... except ValueError as exc:
-        ...     "can close" in str(exc)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    polygon = sg.random_polygon(
+            3, 6, 1, 8, 0, 0, 20, 20
+        )
+    3 <= len(polygon.vertices) <= 6
+    # True
+    polygon.closed
+    # True
+    interior = sg.polygon_internal_angles(polygon.vertices)
+    all(sg.pi / 8 <= angle <= 9 * sg.pi / 8 for angle in interior)
+    # True
+    angled = sg.random_polygon(
+            4, 4, 1, 8, 0, 0, 50, 50, angles=[sg.pi / 2]
+        )
+    len(angled.vertices)
+    # 4
+    angled.closed
+    # True
+    try:
+            sg.random_polygon(
+                5, 5, 1, 8, 0, 0, 50, 50, angles=[sg.pi / 3]
+            )
+        except ValueError as exc:
+            "can close" in str(exc)
+    # True
+    ```
+"""
     rng = _resolve_rng(seed, rng)
     if n_min_edges < 3:
         raise ValueError(f"n_min_edges ({n_min_edges}) must be >= 3")
@@ -1321,19 +1363,22 @@ def random_polygons(
     Returns:
         Group: ``n`` polygon shapes.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> polygons = sg.random_polygons(
-        ...     3, 3, 5, 1, 8, 0, 0, 30, 30
-        ... )
-        >>> len(polygons)
-        3
-        >>> angled = sg.random_polygons(
-        ...     2, 4, 4, 1, 8, 0, 0, 40, 40, angles=[sg.pi / 2]
-        ... )
-        >>> len(angled)
-        2
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    polygons = sg.random_polygons(
+            3, 3, 5, 1, 8, 0, 0, 30, 30
+        )
+    len(polygons)
+    # 3
+    angled = sg.random_polygons(
+            2, 4, 4, 1, 8, 0, 0, 40, 40, angles=[sg.pi / 2]
+        )
+    len(angled)
+    # 2
+    ```
+"""
     rng = _resolve_rng(seed, rng)
 
     return Group(

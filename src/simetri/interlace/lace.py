@@ -3,9 +3,12 @@
 Provides ``Lace``, ``Polyline``, ``ParallelPolyline``, and related helpers
 for building over/under weaving patterns that can be drawn on a canvas.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> from simetri.interlace.lace import Lace, Polyline
+**Examples**
+
+```python
+import simetri.graphics as sg
+from simetri.interlace.lace import Lace, Polyline
+```
 """
 
 from collections import OrderedDict
@@ -1083,11 +1086,14 @@ class Lace(Group):
     colors (``plait_color``, ``palette``, swatch) and the child fragment/plait
     shapes.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.interlace.lace import Lace
-        >>> lace = Lace([sg.Shape([(0, 0), (40, 0), (40, 40)])], offset=3)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.interlace.lace import Lace
+    lace = Lace([sg.Shape([(0, 0), (40, 0), (40, 40)])], offset=3)
+    ```
+"""
 
     def __init__(
         self,

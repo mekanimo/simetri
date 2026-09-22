@@ -1,10 +1,13 @@
 """Gradient stops and fill gradients for rendering backends.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> gradient = sg.Gradient(stops=((0, sg.gray), (1, sg.white)))
-    >>> gradient.subtype.name
-    'LINEAR'
+**Examples**
+
+```python
+import simetri.graphics as sg
+gradient = sg.Gradient(stops=((0, sg.gray), (1, sg.white)))
+gradient.subtype.name
+# 'LINEAR'
+```
 """
 
 from __future__ import annotations

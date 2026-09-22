@@ -316,11 +316,12 @@ def hobby_ctrl_points(
     Returns:
         A list of (x, y) tuples representing the Bezier control points.
 
-    Examples:
-        ::
+    **Examples**
 
-            from simetri.geom.hobby import hobby_ctrl_points
+    ```python
+    from simetri.geom.hobby import hobby_ctrl_points
 
+    ```
             pts = [(0, 0), (1, 1), (2, 0)]
             hobby_ctrl_points(pts, tension=1)
     """
@@ -407,11 +408,12 @@ def hobby_shape(
     Returns:
         Shape: Polyline vertices along the smooth Hobby curve.
 
-    Examples:
-        ::
+    **Examples**
 
-            import simetri.graphics as sg
+    ```python
+    import simetri.graphics as sg
 
+    ```
             shape = sg.hobby_shape([(0, 0), (40, 30), (80, 0)], tension=1)
             canvas = sg.Canvas()
             canvas.draw(shape)

@@ -3,9 +3,12 @@
 Each swatch is a list of nine RGB colors. Use ``get_swatch`` or
 ``random_swatch`` to obtain ``Color`` instances for drawings.
 
-Examples:
-    >>> from simetri.coloring.swatches import get_swatch
-    >>> colors = get_swatch(0)
+**Examples**
+
+```python
+from simetri.coloring.swatches import get_swatch
+colors = get_swatch(0)
+```
 """
 
 from datetime import UTC, datetime

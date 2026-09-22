@@ -1,8 +1,11 @@
 """Property modifiers applied over time to Group objects.
 
-Examples:
-    >>> from simetri.helpers.modifiers import Modifier
-    >>> mod = Modifier(lambda obj: setattr(obj, "alpha", 0.5), life_span=10)
+**Examples**
+
+```python
+from simetri.helpers.modifiers import Modifier
+mod = Modifier(lambda obj: setattr(obj, "alpha", 0.5), life_span=10)
+```
 """
 
 import inspect

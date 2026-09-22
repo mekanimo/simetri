@@ -37,11 +37,12 @@ class Bezier(Shape):
         cubic (bool): True if cubic, False if quadratic.
         matrix (array): Polynomial matrix for the Bezier curve.
 
-    Examples:
-        ::
+    **Examples**
 
-            import simetri.graphics as sg
+    ```python
+    import simetri.graphics as sg
 
+    ```
             curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)])
             canvas = sg.Canvas()
             canvas.draw(curve)
@@ -397,11 +398,12 @@ def bezier_points(p0, p1: PointType, p2: PointType, p3: PointType, n_points=10):
     Raises:
         ValueError: If ``n_points`` is less than 5.
 
-    Examples:
-        ::
+    **Examples**
 
-            from simetri.geom.bezier import bezier_points
+    ```python
+    from simetri.geom.bezier import bezier_points
 
+    ```
             pts = bezier_points((0, 0), (1, 2), (2, 2), (3, 0), n_points=20)
     """
     if n_points < 5:

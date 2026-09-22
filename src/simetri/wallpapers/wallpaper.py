@@ -4,11 +4,14 @@ Note:
     Prefer ``lattice`` for newer lattice-based APIs.
     This module remains for the classic wallpaper group helpers.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> import simetri.wallpapers as wp
-    >>> motif = sg.letter_F()
-    >>> pattern = wp.wallpaper_p1(motif, (40, 0), (0, 50), reps1=3, reps2=2)
+**Examples**
+
+```python
+import simetri.graphics as sg
+import simetri.wallpapers as wp
+motif = sg.letter_F()
+pattern = wp.wallpaper_p1(motif, (40, 0), (0, 50), reps1=3, reps2=2)
+```
 """
 
 # This is obsolete now! Replaced by lattice.py
@@ -286,14 +289,17 @@ def wallpaper_p2_rect_lattice(
     Returns:
         Group: Wallpaper pattern as a Group.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> import simetri.wallpapers as wp
-        >>> F = sg.letter_F()
-        >>> pattern = wp.wallpaper_p2_rect_lattice(
-        ...     F, (0, 0), (F.width * 2, 0), (0, F.height * 2), reps1=2, reps2=2
-        ... )
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    import simetri.wallpapers as wp
+    F = sg.letter_F()
+    pattern = wp.wallpaper_p2_rect_lattice(
+            F, (0, 0), (F.width * 2, 0), (0, F.height * 2), reps1=2, reps2=2
+        )
+    ```
+"""
 
     rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)

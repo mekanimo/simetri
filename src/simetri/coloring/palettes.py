@@ -4,9 +4,12 @@ Palette names may be prefixed with ``div``, ``qual``, or ``seq`` for
 diverging, qualitative, and sequential palettes. Lookup helpers return
 ``Color`` instances suitable for Simetri drawings.
 
-Examples:
-    >>> from simetri.coloring.palettes import get_palette
-    >>> colors = get_palette(3, 0)
+**Examples**
+
+```python
+from simetri.coloring.palettes import get_palette
+colors = get_palette(3, 0)
+```
 """
 
 from datetime import UTC, datetime

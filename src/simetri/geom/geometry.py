@@ -52,13 +52,16 @@ def positive_angle(angle, radians=True, rel_tol=None, abs_tol=None):
     Returns:
         float: Positive angle.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.positive_angle(-sg.pi / 2) == 1.5 * sg.pi
-        True
-        >>> sg.positive_angle(-90, radians=False)
-        270
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.positive_angle(-sg.pi / 2) == 1.5 * sg.pi
+    # True
+    sg.positive_angle(-90, radians=False)
+    # 270
+    ```
+"""
     if radians:
         full_turn = 2 * pi
     else:
@@ -472,13 +475,16 @@ def bbox_overlap(
     Returns:
         bool: True if the bounding boxes overlap, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.bbox_overlap(0, 0, 2, 2, 1, 1, 3, 3)
-        True
-        >>> sg.bbox_overlap(0, 0, 1, 1, 2, 2, 3, 3)
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.bbox_overlap(0, 0, 2, 2, 1, 1, 3, 3)
+    # True
+    sg.bbox_overlap(0, 0, 1, 1, 2, 2, 3, 3)
+    # False
+    ```
+"""
     return not (
         max_x2 < min_x3 or max_x4 < min_x1 or max_y2 < min_y3 or max_y4 < min_y1
     )
@@ -494,14 +500,17 @@ def polar_to_cartesian(r, theta, center=(0, 0)):
     Returns:
         PointType: Cartesian coordinates.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.polar_to_cartesian(1, 0)
-        (1.0, 0.0)
-        >>> x, y = sg.polar_to_cartesian(1, sg.pi / 2)
-        >>> round(x, 10), round(y, 10)
-        (0.0, 1.0)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.polar_to_cartesian(1, 0)
+    # (1.0, 0.0)
+    x, y = sg.polar_to_cartesian(1, sg.pi / 2)
+    round(x, 10), round(y, 10)
+    # (0.0, 1.0)
+    ```
+"""
     dx, dy = center
     return (r * cos(theta) + dx, r * sin(theta) + dy)
 
@@ -516,14 +525,17 @@ def cartesian_to_polar(x, y, center=(0, 0)):
     Returns:
         tuple: Polar coordinates (r, theta).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.cartesian_to_polar(1, 0)
-        (1.0, 0.0)
-        >>> r, theta = sg.cartesian_to_polar(0, 1)
-        >>> r, theta == sg.pi / 2
-        (1.0, True)
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.cartesian_to_polar(1, 0)
+    # (1.0, 0.0)
+    r, theta = sg.cartesian_to_polar(0, 1)
+    r, theta == sg.pi / 2
+    # (1.0, True)
+    ```
+"""
     dx, dy = center
     x -= dx
     y -= dy
@@ -554,13 +566,16 @@ def double_area3(a, b, c):
     Returns:
         float: Twice the signed triangle area (parallelogram cross product).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.double_area3((0, 0), (1, 0), (0, 1))
-        1
-        >>> sg.double_area3((0, 0), (1, 0), (0, 1)) / 2  # geometric triangle area
-        0.5
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.double_area3((0, 0), (1, 0), (0, 1))
+    # 1
+    sg.double_area3((0, 0), (1, 0), (0, 1)) / 2  # geometric triangle area
+    # 0.5
+    ```
+"""
     return (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])
 
 
@@ -575,19 +590,22 @@ def normalize_angle(angle: float) -> float:
     Returns:
         float: Equivalent angle in ``(-pi, pi]``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.normalize_angle(0)
-        0.0
-        >>> sg.normalize_angle(3 * sg.pi / 2) == -sg.pi / 2
-        True
-        >>> sg.normalize_angle(-sg.pi) == sg.pi
-        True
-        >>> sg.normalize_angle(sg.pi) == sg.pi
-        True
-        >>> sg.normalize_angle(2 * sg.pi)
-        0.0
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.normalize_angle(0)
+    # 0.0
+    sg.normalize_angle(3 * sg.pi / 2) == -sg.pi / 2
+    # True
+    sg.normalize_angle(-sg.pi) == sg.pi
+    # True
+    sg.normalize_angle(sg.pi) == sg.pi
+    # True
+    sg.normalize_angle(2 * sg.pi)
+    # 0.0
+    ```
+"""
     normalized = (angle + pi) % (2 * pi) - pi
     if isclose(normalized, -pi):
         return pi
@@ -606,15 +624,18 @@ def add_angles(angle1: float, angle2: float) -> float:
     Returns:
         float: ``angle1 + angle2`` normalized into ``(-pi, pi]``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.add_angles(sg.pi / 4, sg.pi / 4) == sg.pi / 2
-        True
-        >>> sg.add_angles(sg.pi, sg.pi / 2) == -sg.pi / 2
-        True
-        >>> sg.add_angles(sg.pi, sg.pi)
-        0.0
-        >>> sg.add_angles(sg.pi / 2, sg.pi / 2) == sg.pi
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.add_angles(sg.pi / 4, sg.pi / 4) == sg.pi / 2
+    # True
+    sg.add_angles(sg.pi, sg.pi / 2) == -sg.pi / 2
+    # True
+    sg.add_angles(sg.pi, sg.pi)
+    # 0.0
+    sg.add_angles(sg.pi / 2, sg.pi / 2) == sg.pi
+    # True
+    ```
+"""
     return normalize_angle(angle1 + angle2)

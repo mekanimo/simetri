@@ -33,15 +33,18 @@ def right_handed(polygon: Sequence[PointType], dist_tol=None) -> float:
     Returns:
         bool: True if the walk is counter-clockwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.right_handed([(0, 0), (1, 0), (1, 1), (0, 1)])
-        True
-        >>> sg.right_handed([(0, 0), (0, 1), (1, 1), (1, 0)])
-        False
-        >>> sg.right_handed([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.right_handed([(0, 0), (1, 0), (1, 1), (0, 1)])
+    # True
+    sg.right_handed([(0, 0), (0, 1), (1, 1), (1, 0)])
+    # False
+    sg.right_handed([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
+    # True
+    ```
+"""
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     dist_tol2 = dist_tol * dist_tol
@@ -76,19 +79,22 @@ def is_simple(
     Returns:
         bool: True if the polygon is simple, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.geom.polygons.polygon_utils import is_simple
-        >>> is_simple([(0, 0), (2, 0), (2, 2), (0, 2)])
-        True
-        >>> is_simple([(0, 0), (2, 2), (2, 0), (0, 2)])
-        False
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-        >>> is_simple(square)
-        True
-        >>> square
-        [(0, 0), (1, 0), (1, 1), (0, 1)]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.geom.polygons.polygon_utils import is_simple
+    is_simple([(0, 0), (2, 0), (2, 2), (0, 2)])
+    # True
+    is_simple([(0, 0), (2, 2), (2, 0), (0, 2)])
+    # False
+    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+    is_simple(square)
+    # True
+    square
+    # [(0, 0), (1, 0), (1, 1), (0, 1)]
+    ```
+"""
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
 
     vertices = [point[:2] for point in polygon]
@@ -177,15 +183,18 @@ def get_polygon_grid_point(n, line1, line2, circumradius=100):
     Returns:
         PointType: Intersection of the two chords.
 
-    Examples:
-        >>> from math import isclose
-        >>> from simetri.geom.polygons.polygon_utils import get_polygon_grid_point
-        >>> x, y = get_polygon_grid_point(4, (0, 2), (1, 3))[:2]
-        >>> isclose(x, 0.0, abs_tol=1e-9) and isclose(y, 0.0, abs_tol=1e-9)
-        True
-        >>> get_polygon_grid_point(4, (0, 1), (1, 2), circumradius=100)[1]
-        100.0
-    """
+    **Examples**
+
+    ```python
+    from math import isclose
+    from simetri.geom.polygons.polygon_utils import get_polygon_grid_point
+    x, y = get_polygon_grid_point(4, (0, 2), (1, 3))[:2]
+    isclose(x, 0.0, abs_tol=1e-9) and isclose(y, 0.0, abs_tol=1e-9)
+    # True
+    get_polygon_grid_point(4, (0, 1), (1, 2), circumradius=100)[1]
+    # 100.0
+    ```
+"""
     points = reg_poly_points((0, 0), n, circumradius)[:-1]
     p1 = points[line1[0]]
     p2 = points[line1[1]]
@@ -211,19 +220,22 @@ def is_ccw(vertices, *, eps=0.0):
     Raises:
         ValueError: If fewer than 3 vertices are provided.
 
-    Examples:
-        >>> from simetri.geom.polygons.polygon_utils import is_ccw
-        >>> is_ccw([(0, 0), (1, 0), (1, 1), (0, 1)])
-        True
-        >>> is_ccw([(0, 0), (0, 1), (1, 1), (1, 0)])
-        False
-        >>> is_ccw([(0, 0), (1, 0), (2, 1e-12)], eps=1.0)
-        False
-        >>> is_ccw([(0, 0), (1, 0)])
-        Traceback (most recent call last):
-            ...
-        ValueError: Need at least 3 vertices
-    """
+    **Examples**
+
+    ```python
+    from simetri.geom.polygons.polygon_utils import is_ccw
+    is_ccw([(0, 0), (1, 0), (1, 1), (0, 1)])
+    # True
+    is_ccw([(0, 0), (0, 1), (1, 1), (1, 0)])
+    # False
+    is_ccw([(0, 0), (1, 0), (2, 1e-12)], eps=1.0)
+    # False
+    is_ccw([(0, 0), (1, 0)])
+    # Traceback (most recent call last):
+        
+    # ValueError: Need at least 3 vertices
+    ```
+"""
     n = len(vertices)
     if n < 3:
         raise ValueError("Need at least 3 vertices")
@@ -250,13 +262,16 @@ def calc_area(points):
         tuple[float, bool]: Absolute area, and True if the walk is
         counter-clockwise.
 
-    Examples:
-        >>> from simetri.geom.polygons.polygon_utils import calc_area
-        >>> calc_area([(0, 0), (1, 0), (1, 1), (0, 1)])
-        (1.0, True)
-        >>> calc_area([(0, 0), (0, 1), (1, 1), (1, 0)])
-        (1.0, False)
-    """
+    **Examples**
+
+    ```python
+    from simetri.geom.polygons.polygon_utils import calc_area
+    calc_area([(0, 0), (1, 0), (1, 1), (0, 1)])
+    # (1.0, True)
+    calc_area([(0, 0), (0, 1), (1, 1), (1, 0)])
+    # (1.0, False)
+    ```
+"""
     area_ = 0
     n_points = len(points)
     for i in range(n_points):
@@ -281,13 +296,16 @@ def is_convex(points):
     Returns:
         bool: True if every turn has the same sense.
 
-    Examples:
-        >>> from simetri.geom.polygons.polygon_utils import is_convex
-        >>> is_convex([(0, 0), (1, 0), (1, 1), (0, 1)])
-        True
-        >>> is_convex([(0, 0), (3, 0), (1, 1), (0, 3)])
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.geom.polygons.polygon_utils import is_convex
+    is_convex([(0, 0), (1, 0), (1, 1), (0, 1)])
+    # True
+    is_convex([(0, 0), (3, 0), (1, 1), (0, 3)])
+    # False
+    ```
+"""
     points = points.copy()
     points = remove_bad_points(points)
     n_checks = len(points)

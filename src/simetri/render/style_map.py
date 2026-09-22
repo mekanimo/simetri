@@ -2,7 +2,6 @@
 and tags. Shape and Tag objects use the maps to create aliases for style attributes.
 
 Examples:
-shape.style.line_style.color is aliased by shape.line_color
 tag.style.fill_style.pattern_style.line_style.width is aliased by tag.pattern_line_width
 Documentation list all aliases for each style class.
 """
@@ -1995,10 +1994,13 @@ def line_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    Examples:
-        >>> line_obj = line_style_obj(line_color="red", line_width=2)
-        >>> line_obj.line_dash_array = [5, 2]
-    """
+    **Examples**
+
+    ```python
+    line_obj = line_style_obj(line_color="red", line_width=2)
+    line_obj.line_dash_array = [5, 2]
+    ```
+"""
     return _get_style_obj(
         line_style_map, validate_types=validate_types, **kwargs
     )
@@ -2013,10 +2015,13 @@ def fill_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    Examples:
-        >>> fill_obj = fill_style_obj(color="blue", alpha=0.5)
-        >>> fill_obj.mode = "solid"
-    """
+    **Examples**
+
+    ```python
+    fill_obj = fill_style_obj(color="blue", alpha=0.5)
+    fill_obj.mode = "solid"
+    ```
+"""
     return _get_style_obj(
         fill_style_map, validate_types=validate_types, **kwargs
     )
@@ -2031,9 +2036,12 @@ def shape_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    Examples:
-        >>> shape_obj = shape_style_obj(line_color="red", fill_color="blue")
-    """
+    **Examples**
+
+    ```python
+    shape_obj = shape_style_obj(line_color="red", fill_color="blue")
+    ```
+"""
     return _get_style_obj(
         shape_style_map, validate_types=validate_types, **kwargs
     )
@@ -2048,9 +2056,12 @@ def frame_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    Examples:
-        >>> frame_obj = frame_style_obj(frame_inner_sep=5, frame_shape="rectangle")
-    """
+    **Examples**
+
+    ```python
+    frame_obj = frame_style_obj(frame_inner_sep=5, frame_shape="rectangle")
+    ```
+"""
     return _get_style_obj(
         frame_style_map, validate_types=validate_types, **kwargs
     )
@@ -2065,9 +2076,12 @@ def image_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    Examples:
-        >>> img_obj = image_style_obj(alpha=0.8, blend_mode="normal")
-    """
+    **Examples**
+
+    ```python
+    img_obj = image_style_obj(alpha=0.8, blend_mode="normal")
+    ```
+"""
     return _get_style_obj(
         image_style_map, validate_types=validate_types, **kwargs
     )
@@ -2082,9 +2096,12 @@ def tag_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    Examples:
-        >>> tag_obj = tag_style_obj(font_color="black", font_size=12)
-    """
+    **Examples**
+
+    ```python
+    tag_obj = tag_style_obj(font_color="black", font_size=12)
+    ```
+"""
     return _get_style_obj(
         tag_style_map, validate_types=validate_types, **kwargs
     )
@@ -2099,9 +2116,12 @@ def marker_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    Examples:
-        >>> marker_obj = marker_style_obj(marker_color="red", marker_size=3)
-    """
+    **Examples**
+
+    ```python
+    marker_obj = marker_style_obj(marker_color="red", marker_size=3)
+    ```
+"""
     return _get_style_obj(
         marker_style_map, validate_types=validate_types, **kwargs
     )
@@ -2116,11 +2136,14 @@ def pattern_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    Examples:
-        >>> pattern_obj = pattern_style_obj(
-        ...     pattern_color="green", pattern_type="lines"
-        ... )
-    """
+    **Examples**
+
+    ```python
+    pattern_obj = pattern_style_obj(
+            pattern_color="green", pattern_type="lines"
+        )
+    ```
+"""
     return _get_style_obj(
         pattern_style_map, validate_types=validate_types, **kwargs
     )

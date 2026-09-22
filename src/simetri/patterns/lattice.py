@@ -4,11 +4,12 @@ Provides ``Lattice`` / ``Isometry`` plus factory functions for the
 seventeen wallpaper groups (``lattice_p1``, ``lattice_p6m``, …). Motifs are
 typically ``Shape`` / ``Group`` instances from ``simetri.graphics``.
 
-Examples:
-    ::
+**Examples**
 
-        import simetri.graphics as sg
+```python
+import simetri.graphics as sg
 
+```
         lat = sg.lattice_p4(a=40)
         motif = sg.Circle(5, (10, 10))
         lat.populate_unit(motif)

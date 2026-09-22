@@ -3,10 +3,13 @@
 Re-exports shapes, groups, transforms, colors, canvas helpers, and related
 utilities so callers can use ``import simetri.graphics as sg``.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> square = sg.Shape([(0, 0), (50, 0), (50, 50), (0, 50)], closed=True)
-    >>> square.translate(10, 20)
+**Examples**
+
+```python
+import simetri.graphics as sg
+square = sg.Shape([(0, 0), (50, 0), (50, 50), (0, 50)], closed=True)
+square.translate(10, 20)
+```
 """
 
 # status: prototype
@@ -65,6 +68,7 @@ from ..coloring.pastels import *
 from ..coloring.swatches import *
 from ..extensions.easing import *
 from ..extensions.l_system import l_system
+from ..extensions.string_patterns import string_star
 from ..extensions.tree import TreeNode, make_tree
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..friezes.frieze_patterns import *

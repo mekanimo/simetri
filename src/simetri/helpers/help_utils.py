@@ -17,12 +17,15 @@ related ``sg.*`` names. ``sg.help('help')`` loads the help-utilities
 guide. ``sg.help(sg.help)`` summarizes how help lookup works.
 ``sg.help('topics')`` lists available topics.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> 'distance' in sg.help('points')
-    True
-    >>> 'Shape' in sg.help('shapes')
-    True
+**Examples**
+
+```python
+import simetri.graphics as sg
+'distance' in sg.help('points')
+# True
+'Shape' in sg.help('shapes')
+# True
+```
 """
 
 from __future__ import annotations
@@ -1608,15 +1611,18 @@ def help(obj) -> str:
         known topic, setting, or public ``sg`` name, or an empty string
         if none is available.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.help('topics').splitlines()[0]
-        'Available help topics:'
-        >>> 'sg.distance' in sg.help('points')
-        True
-        >>> 'shapes' in sg.help('shapess')
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.help('topics').splitlines()[0]
+    # 'Available help topics:'
+    'sg.distance' in sg.help('points')
+    # True
+    'shapes' in sg.help('shapess')
+    # True
+    ```
+"""
     if obj is help:
         return _HELP_ABOUT_HELP
 
@@ -1718,10 +1724,13 @@ def doc(obj) -> None:
     Args:
         obj: Object to document, a defaults setting name, or a help topic.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.doc('topics')
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.doc('topics')
+    ```
+"""
     title = _doc_title(obj)
     text = help(obj)
     if text:

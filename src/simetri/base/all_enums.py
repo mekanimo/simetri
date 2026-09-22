@@ -4,12 +4,15 @@ Most enums are ``StrEnum`` members whose ``.value`` is the string
 written to SVG/TikZ or used for style resolution. Use ``get_enum_value``
 to accept either an enum member or a case-insensitive name string.
 
-Examples:
-    >>> from simetri.graphics.all_enums import Anchor, get_enum_value
-    >>> get_enum_value(Anchor, "center")
-    'center'
-    >>> Anchor.NORTHWEST.value
-    'northwest'
+**Examples**
+
+```python
+from simetri.graphics.all_enums import Anchor, get_enum_value
+get_enum_value(Anchor, "center")
+# 'center'
+Anchor.NORTHWEST.value
+# 'northwest'
+```
 """
 
 from enum import StrEnum
@@ -36,13 +39,16 @@ def get_enum_value(enum_class: StrEnum, value: str) -> str:
     Raises:
         KeyError: If ``value`` is a string that does not match a member name.
 
-    Examples:
-        >>> from simetri.graphics.all_enums import Types, get_enum_value
-        >>> get_enum_value(Types, Types.SHAPE)
-        'SHAPE'
-        >>> get_enum_value(Types, "circle")
-        'CIRCLE'
-    """
+    **Examples**
+
+    ```python
+    from simetri.graphics.all_enums import Types, get_enum_value
+    get_enum_value(Types, Types.SHAPE)
+    # 'SHAPE'
+    get_enum_value(Types, "circle")
+    # 'CIRCLE'
+    ```
+"""
     if isinstance(value, enum_class):
         res = value.value
     else:

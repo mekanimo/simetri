@@ -32,16 +32,19 @@ def check_version(required_version: str) -> bool:
     Returns:
         bool: True if the current version is compatible.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.check_version("0.0.0")
-        True
-        >>> sg.check_version("99.0.0")  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        simetri.helpers.validation.VersionConflict: Version conflict: Minimum required version is 99.0.0. This version is 0.0.9
-        Please update the simetri package using: pip install -U simetri
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.check_version("0.0.0")
+    # True
+    sg.check_version("99.0.0")  # doctest: +ELLIPSIS
+    # Traceback (most recent call last):
+        
+    # simetri.helpers.validation.VersionConflict: Version conflict: Minimum required version is 99.0.0. This version is 0.0.9
+    # Please update the simetri package using: pip install -U simetri
+    ```
+"""
 
     def version_value(str_version: str) -> int:
         digits = str_version.split(".")
@@ -68,13 +71,16 @@ def check_str(value: Any) -> bool:
     Returns:
         bool: True if the value is a string, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_str
-        >>> check_str("a")
-        True
-        >>> check_str(1)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_str
+    check_str("a")
+    # True
+    check_str(1)
+    # False
+    ```
+"""
     return isinstance(value, str)
 
 
@@ -88,13 +94,16 @@ def check_int(value: Any) -> bool:
     Returns:
         bool: True if the value is an integer, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_int
-        >>> check_int(3)
-        True
-        >>> check_int(1.0)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_int
+    check_int(3)
+    # True
+    check_int(1.0)
+    # False
+    ```
+"""
     return isinstance(value, numbers.Integral) and not isinstance(value, bool)
 
 
@@ -108,13 +117,16 @@ def check_number(number: Any) -> bool:
     Returns:
         bool: True if the number is a valid number, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_number
-        >>> check_number(1)
-        True
-        >>> check_number("1")
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_number
+    check_number(1)
+    # True
+    check_number("1")
+    # False
+    ```
+"""
     return isinstance(number, numbers.Real) and not isinstance(number, bool)
 
 
@@ -127,13 +139,16 @@ def check_alpha(alpha: Any) -> bool:
     Returns:
         bool: True if ``alpha`` is a valid opacity.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_alpha
-        >>> check_alpha(0.5)
-        True
-        >>> check_alpha(1.5)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_alpha
+    check_alpha(0.5)
+    # True
+    check_alpha(1.5)
+    # False
+    ```
+"""
     return is_numeric(alpha) and alpha >= 0 and alpha <= 1.0
 
 
@@ -147,13 +162,16 @@ def check_color(color: Any) -> bool:
     Returns:
         bool: True if the color is a valid color, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_color
-        >>> check_color("red")
-        True
-        >>> check_color(1)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_color
+    check_color("red")
+    # True
+    check_color(1)
+    # False
+    ```
+"""
     return isinstance(color, (Color, str, tuple, list, ndarray))
 
 
@@ -167,18 +185,21 @@ def check_dash_array(dash_array: Any) -> bool:
     Returns:
         bool: True if the dash array is valid, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.helpers.validation import check_dash_array
-        >>> check_dash_array([1, 2])
-        True
-        >>> check_dash_array(sg.LineDashArray.DASHED)
-        True
-        >>> check_dash_array(None)
-        True
-        >>> check_dash_array("nope")
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.helpers.validation import check_dash_array
+    check_dash_array([1, 2])
+    # True
+    check_dash_array(sg.LineDashArray.DASHED)
+    # True
+    check_dash_array(None)
+    # True
+    check_dash_array("nope")
+    # False
+    ```
+"""
     if dash_array is None:
         res = True
     elif isinstance(dash_array, (list, tuple, ndarray)):
@@ -207,20 +228,23 @@ def check_truthiness(value: Any) -> bool:
     Returns:
         bool: True if ``bool(value)`` succeeds, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_truthiness
-        >>> check_truthiness(True)
-        True
-        >>> check_truthiness(False)
-        True
-        >>> check_truthiness(0)
-        True
-        >>> check_truthiness(1)
-        True
-        >>> from numpy import array
-        >>> check_truthiness(array([1, 2]))
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_truthiness
+    check_truthiness(True)
+    # True
+    check_truthiness(False)
+    # True
+    check_truthiness(0)
+    # True
+    check_truthiness(1)
+    # True
+    from numpy import array
+    check_truthiness(array([1, 2]))
+    # False
+    ```
+"""
     try:
         bool(value)
     except (TypeError, ValueError):
@@ -242,16 +266,19 @@ def check_enum(value: Any, enum: Any) -> bool:
     Returns:
         bool: True if ``value`` is valid for ``enum``, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.helpers.validation import check_enum
-        >>> check_enum(sg.Anchor.CENTER, sg.Anchor)
-        True
-        >>> check_enum("center", sg.Anchor)
-        True
-        >>> check_enum("nope", sg.Anchor)
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.helpers.validation import check_enum
+    check_enum(sg.Anchor.CENTER, sg.Anchor)
+    # True
+    check_enum("center", sg.Anchor)
+    # True
+    check_enum("nope", sg.Anchor)
+    # False
+    ```
+"""
     if isinstance(value, enum):
         return True
     if isinstance(value, str):
@@ -273,14 +300,17 @@ def check_blend_mode(blend_mode: Any) -> bool:
     Returns:
         bool: True if the blend mode is valid, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.helpers.validation import check_blend_mode
-        >>> check_blend_mode(sg.BlendMode.NORMAL)
-        True
-        >>> check_blend_mode("normal")
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.helpers.validation import check_blend_mode
+    check_blend_mode(sg.BlendMode.NORMAL)
+    # True
+    check_blend_mode("normal")
+    # False
+    ```
+"""
     return isinstance(blend_mode, BlendMode)
 
 
@@ -294,13 +324,16 @@ def check_position(pos: Any) -> bool:
     Returns:
         bool: True if the position is valid, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_position
-        >>> check_position((1, 2))
-        True
-        >>> check_position((1,))
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_position
+    check_position((1, 2))
+    # True
+    check_position((1,))
+    # False
+    ```
+"""
     return (
         isinstance(pos, (list, tuple, ndarray))
         and len(pos) >= 2
@@ -321,13 +354,16 @@ def check_points(points: Any) -> bool:
     Returns:
         bool: True if the points are valid, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_points
-        >>> check_points([(0, 0), (1, 1)])
-        True
-        >>> check_points([(0, 0), 1])
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_points
+    check_points([(0, 0), (1, 1)])
+    # True
+    check_points([(0, 0), 1])
+    # False
+    ```
+"""
     return isinstance(points, (list, tuple, ndarray)) and all(
         isinstance(x, (list, tuple, ndarray)) for x in points
     )
@@ -343,13 +379,16 @@ def check_xform_matrix(matrix: Any) -> bool:
     Returns:
         bool: True if the matrix is valid, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_xform_matrix
-        >>> check_xform_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        True
-        >>> check_xform_matrix(1)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_xform_matrix
+    check_xform_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    # True
+    check_xform_matrix(1)
+    # False
+    ```
+"""
     return isinstance(matrix, (list, tuple, ndarray))
 
 
@@ -362,14 +401,17 @@ def check_subtype(subtype: Any) -> bool:
     Returns:
         bool: True if ``subtype`` is a ``Types`` member, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.helpers.validation import check_subtype
-        >>> check_subtype(sg.Types.CIRCLE)
-        True
-        >>> check_subtype("CIRCLE")
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.helpers.validation import check_subtype
+    check_subtype(sg.Types.CIRCLE)
+    # True
+    check_subtype("CIRCLE")
+    # False
+    ```
+"""
     return isinstance(subtype, Types)
 
 
@@ -382,12 +424,15 @@ def check_mask(mask: Any) -> bool:
     Returns:
         bool: True if ``mask`` is a Shape, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.helpers.validation import check_mask
-        >>> check_mask(sg.Shape([(0, 0), (1, 0)]))
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.helpers.validation import check_mask
+    check_mask(sg.Shape([(0, 0), (1, 0)]))
+    # True
+    ```
+"""
     try:
         return mask.type == Types.SHAPE
     except AttributeError:
@@ -404,16 +449,19 @@ def check_line_width(line_width: Any) -> bool:
     Returns:
         bool: True if the line width is valid, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.helpers.validation import check_line_width
-        >>> check_line_width(1)
-        True
-        >>> check_line_width(-1)
-        False
-        >>> check_line_width(sg.LineWidth.THIN)
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.helpers.validation import check_line_width
+    check_line_width(1)
+    # True
+    check_line_width(-1)
+    # False
+    check_line_width(sg.LineWidth.THIN)
+    # True
+    ```
+"""
     if isinstance(line_width, numbers.Real) and not isinstance(line_width, bool):
         res = line_width >= 0
     elif isinstance(line_width, all_enums.LineWidth):
@@ -434,14 +482,17 @@ def check_anchor(anchor: Any) -> bool:
     Returns:
         bool: True if the anchor is valid, False otherwise.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.helpers.validation import check_anchor
-        >>> check_anchor(sg.Anchor.CENTER)
-        True
-        >>> check_anchor("center")
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.helpers.validation import check_anchor
+    check_anchor(sg.Anchor.CENTER)
+    # True
+    check_anchor("center")
+    # False
+    ```
+"""
     return isinstance(anchor, Anchor)
 
 
@@ -477,13 +528,16 @@ def is_positive_integer(value):
     Returns:
         bool: True if ``value`` is a positive integer.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_positive_integer
-        >>> is_positive_integer(2)
-        True
-        >>> is_positive_integer(0)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_positive_integer
+    is_positive_integer(2)
+    # True
+    is_positive_integer(0)
+    # False
+    ```
+"""
     return isinstance(value, int) and value > 0
 
 
@@ -496,13 +550,16 @@ def is_float(value):
     Returns:
         bool: True if ``value`` is a float.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_float
-        >>> is_float(1.0)
-        True
-        >>> is_float(1)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_float
+    is_float(1.0)
+    # True
+    is_float(1)
+    # False
+    ```
+"""
     return isinstance(value, float)
 
 
@@ -515,13 +572,16 @@ def is_greater_than_zero(value):
     Returns:
         bool: True if ``value`` is ``> 0``.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_greater_than_zero
-        >>> is_greater_than_zero(0.1)
-        True
-        >>> is_greater_than_zero(0)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_greater_than_zero
+    is_greater_than_zero(0.1)
+    # True
+    is_greater_than_zero(0)
+    # False
+    ```
+"""
     return isinstance(value, (int, float)) and value > 0
 
 
@@ -534,13 +594,16 @@ def is_positive(value):
     Returns:
         bool: True if ``value`` is ``>= 0``.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_positive
-        >>> is_positive(0)
-        True
-        >>> is_positive(-1)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_positive
+    is_positive(0)
+    # True
+    is_positive(-1)
+    # False
+    ```
+"""
     return isinstance(value, (int, float)) and value >= 0
 
 
@@ -553,13 +616,16 @@ def is_numeric(value):
     Returns:
         bool: True if ``value`` is an instance of ``numbers.Number``.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_numeric
-        >>> is_numeric(1 + 0j)
-        True
-        >>> is_numeric("1")
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_numeric
+    is_numeric(1 + 0j)
+    # True
+    is_numeric("1")
+    # False
+    ```
+"""
     return isinstance(value, numbers.Number)
 
 
@@ -572,13 +638,16 @@ def check_percent(value):
     Returns:
         bool: True if ``value`` is numeric and in ``[0, 1]``.
 
-    Examples:
-        >>> from simetri.helpers.validation import check_percent
-        >>> check_percent(0.25)
-        True
-        >>> check_percent(2)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import check_percent
+    check_percent(0.25)
+    # True
+    check_percent(2)
+    # False
+    ```
+"""
     return is_numeric(value) and value >= 0 and value <= 1.0
 
 
@@ -591,11 +660,14 @@ def is_gradient(value):
     Returns:
         bool: True if ``value`` is a gradient.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_gradient
-        >>> is_gradient(1)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_gradient
+    is_gradient(1)
+    # False
+    ```
+"""
     # Fix this import!!!!
     from ..render.gradient import Gradient
 
@@ -726,21 +798,24 @@ def validate_args(args: dict[str, Any], valid_args: list[str]) -> None:
     Returns:
         None
 
-    Examples:
-        >>> from simetri.helpers.validation import validate_args
-        >>> args = {"fill": True}
-        >>> validate_args(args, ["fill"])
-        >>> args
-        {'fill': True}
-        >>> validate_args({"nope": 1}, ["fill"])  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        ValueError: Invalid key: nope
-        >>> validate_args({"radius": "wide"}, ["radius"])  # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        ValueError: Invalid value for radius: wide
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import validate_args
+    args = {"fill": True}
+    validate_args(args, ["fill"])
+    args
+    # {'fill': True}
+    validate_args({"nope": 1}, ["fill"])  # doctest: +ELLIPSIS
+    # Traceback (most recent call last):
+        
+    # ValueError: Invalid key: nope
+    validate_args({"radius": "wide"}, ["radius"])  # doctest: +ELLIPSIS
+    # Traceback (most recent call last):
+        
+    # ValueError: Invalid value for radius: wide
+    ```
+"""
     for key, value in args.items():
         if (key not in valid_args) and (key not in d_validators):
             raise ValueError(f"Invalid key: {key}")
@@ -774,13 +849,16 @@ def warn_unknown_kwargs(
     Returns:
         None
 
-    Examples:
-        >>> from simetri.helpers.validation import warn_unknown_kwargs
-        >>> kwargs = {"fill": True}
-        >>> warn_unknown_kwargs(kwargs, {"fill"})
-        >>> kwargs
-        {'fill': True}
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import warn_unknown_kwargs
+    kwargs = {"fill": True}
+    warn_unknown_kwargs(kwargs, {"fill"})
+    kwargs
+    # {'fill': True}
+    ```
+"""
     unknown = sorted(k for k in kwargs if k not in valid_keys)
     if not unknown:
         return
@@ -803,13 +881,16 @@ def is_number(x: Any) -> bool:
     Returns:
         bool: True if x is a number, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_number
-        >>> is_number(3.5)
-        True
-        >>> is_number(True)
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_number
+    is_number(3.5)
+    # True
+    is_number(True)
+    # False
+    ```
+"""
     return isinstance(x, numbers.Number) and not isinstance(x, bool)
 
 
@@ -822,13 +903,16 @@ def is_point(pnt: Any) -> bool:
     Returns:
         bool: True if ``pnt`` has numeric x and y.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_point
-        >>> is_point((1, 2))
-        True
-        >>> is_point("ab")
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_point
+    is_point((1, 2))
+    # True
+    is_point("ab")
+    # False
+    ```
+"""
     try:
         x, y = pnt[:2]
         return is_number(x) and is_number(y)
@@ -845,13 +929,16 @@ def is_line(line_: Any) -> bool:
     Returns:
         bool: True if the input is a line, False otherwise.
 
-    Examples:
-        >>> from simetri.helpers.validation import is_line
-        >>> is_line([(0, 0), (1, 1)])
-        True
-        >>> is_line((0, 0))
-        False
-    """
+    **Examples**
+
+    ```python
+    from simetri.helpers.validation import is_line
+    is_line([(0, 0), (1, 1)])
+    # True
+    is_line((0, 0))
+    # False
+    ```
+"""
     try:
         p1, p2 = line_
         return is_point(p1) and is_point(p2)

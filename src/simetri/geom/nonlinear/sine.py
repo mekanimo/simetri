@@ -21,11 +21,12 @@ class SineWave(Shape):
         damping: Exponential damping coefficient (typical range 0.001–0.005).
         rot_angle: Rotation angle stored with the instance.
 
-    Examples:
-        ::
+    **Examples**
 
-            import simetri.graphics as sg
+    ```python
+    import simetri.graphics as sg
 
+    ```
             wave = sg.SineWave(period=40, amplitude=20, duration=80)
             canvas = sg.Canvas()
             canvas.draw(wave)

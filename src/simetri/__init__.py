@@ -5,9 +5,12 @@ Simetri is a 2D geometry and pattern library. Import the main API via
 rendering, frieze/wallpaper symmetries, lace, stars, SVG/TikZ backends,
 and related helpers.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> shape = sg.Circle(50)
+**Examples**
+
+```python
+import simetri.graphics as sg
+shape = sg.Circle(50)
+```
 """
 
 __version__ = "0.0.9"

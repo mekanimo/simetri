@@ -5,11 +5,14 @@ for one frieze symmetry (hop, step, jump, sidle, and spinning variants).
 Factory helpers ``hop_def``, ``step_def``, ``jump_def``, and ``sidle_def``
 return plain ``PatternDef`` objects.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> from simetri.friezes.frieze_patterns import HopDef
-    >>> motif = sg.Circle(10)
-    >>> HopDef(dx=40, reps=4).apply(motif)
+**Examples**
+
+```python
+import simetri.graphics as sg
+from simetri.friezes.frieze_patterns import HopDef
+motif = sg.Circle(10)
+HopDef(dx=40, reps=4).apply(motif)
+```
 """
 
 from dataclasses import dataclass

@@ -44,13 +44,13 @@ def convex_hull(points: Sequence, on_edge: bool = False) -> list[Point]:
         Hull vertices starting at the leftmost point, without repeating the
         start point at the end.
 
-    Examples:
-        ::
+    **Examples**
 
-            from simetri.geom.convex_hull import convex_hull
-
-            hull = convex_hull([(0, 0), (1, 0), (0.5, 0.5), (0, 1)])
-            # [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]
+    ```python
+    from simetri.geom.polygons.convex_hull import convex_hull
+    hull = convex_hull([(0, 0), (1, 0), (0.5, 0.5), (0, 1)])
+    # [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]
+    ```
     """
     if not points:
         return []

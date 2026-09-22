@@ -1,11 +1,14 @@
 """Dot and Dots classes for creating circular markers.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> d = sg.Dot((10, 20), radius=3)
-    >>> d.pos
-    (10, 20)
-    >>> cluster = sg.Dots((0, 0), radius=2)
+**Examples**
+
+```python
+import simetri.graphics as sg
+d = sg.Dot((10, 20), radius=3)
+d.pos
+# (10, 20)
+cluster = sg.Dots((0, 0), radius=2)
+```
 """
 
 __all__ = ["Dot", "Dots"]
@@ -35,12 +38,15 @@ class Dot(Shape):
         color: Fill/stroke color for the marker.
         subtype: Always ``Types.DOT``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> dot = sg.Dot((5, 5), radius=2)
-        >>> dot.subtype.name
-        'DOT'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    dot = sg.Dot((5, 5), radius=2)
+    dot.subtype.name
+    # 'DOT'
+    ```
+"""
 
     def __init__(
         self,
@@ -137,12 +143,15 @@ class Dots(Group):
         elements: List of contained ``Dot`` (and nested) elements.
         subtype: Always ``Types.DOTS``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> dots = sg.Dots((0, 0), radius=1)
-        >>> len(dots)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    dots = sg.Dots((0, 0), radius=1)
+    len(dots)
+    # 1
+    ```
+"""
 
     def __init__(
         self,

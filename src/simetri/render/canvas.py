@@ -235,12 +235,15 @@ class Canvas:
     Canvas units are points (1 in = 72 pt), and all angles are in radians
     (2 pi = 360 degrees).
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.draw(sg.Circle(20)) is canvas
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.draw(sg.Circle(20)) is canvas
+    # True
+    ```
+"""
 
     def __init__(
         self,

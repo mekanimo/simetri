@@ -816,11 +816,17 @@ def save_user_style(name: str, mapping: Any = None, **kwargs) -> Path:
     Returns:
         Path to the personal config file.
 
-    Examples:
-        sg.save_user_style(
-            "outline", fill=False, line_width=3, line_color=sg.blue
-        )
-    """
+    **Examples**
+
+    ```python
+    sg.save_user_style(
+
+    "outline", fill=False, line_width=3, line_color=sg.blue
+
+    )
+
+    ```
+"""
     from ..base.common_style import Style, coerce_style_overlay
 
     if mapping is None and not kwargs:
@@ -870,10 +876,15 @@ def save_user_defaults(mapping: Any = None, **kwargs) -> Path:
         TypeError: No mapping or kwargs, or a value cannot be serialized.
         KeyError: Unknown defaults key, or the key has no registered type.
 
-    Examples:
-        sg.save_user_defaults(line_width=1.5, page_size="A4")
-        sg.save_user_defaults({"fill_color": sg.blue})
-    """
+    **Examples**
+
+    ```python
+    sg.save_user_defaults(line_width=1.5, page_size="A4")
+
+    sg.save_user_defaults({"fill_color": sg.blue})
+
+    ```
+"""
     from .settings import default_types, defaults
 
     if mapping is None and not kwargs:

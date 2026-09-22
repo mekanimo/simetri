@@ -128,14 +128,17 @@ def help_lines(
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.help_lines((0, 0), 20, 20, spacing=10, cs_size=0, deferred=False) is canvas
-        True
-        >>> len(canvas.active_page.sketches) > 0
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.help_lines((0, 0), 20, 20, spacing=10, cs_size=0, deferred=False) is canvas
+    # True
+    len(canvas.active_page.sketches) > 0
+    # True
+    ```
+"""
     if deferred:
         style_source = SimpleNamespace(type=Types.SKETCH)
 
@@ -238,14 +241,17 @@ def arc(
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.arc((0, 0), 10, 10, 0, sg.pi / 2, 0) is canvas
-        True
-        >>> canvas.active_page.sketches[-1].subtype.name
-        'ARC_SKETCH'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.arc((0, 0), 10, 10, 0, sg.pi / 2, 0) is canvas
+    # True
+    canvas.active_page.sketches[-1].subtype.name
+    # 'ARC_SKETCH'
+    ```
+"""
     if radius_y is None:
         radius_y = radius_x
     vertices = elliptic_arc_points(
@@ -282,14 +288,17 @@ def bezier(self, control_points: Sequence[PointType], **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.bezier([(0, 0), (5, 10), (10, 0)]) is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.bezier([(0, 0), (5, 10), (10, 0)]) is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    ```
+"""
     self._all_vertices.extend(control_points)
     self._sketch_xform_matrix = self.xform_matrix
     sketch = BezierSketch(control_points, self._sketch_xform_matrix)
@@ -316,14 +325,17 @@ def circle(self, radius: float, center: PointType = (0, 0), **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.circle(10, (0, 0)) is canvas
-        True
-        >>> canvas.active_page.sketches[-1].subtype.name
-        'CIRCLE_SKETCH'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.circle(10, (0, 0)) is canvas
+    # True
+    canvas.active_page.sketches[-1].subtype.name
+    # 'CIRCLE_SKETCH'
+    ```
+"""
     x, y = center[:2]
     p1 = x - radius, y - radius
     p2 = x + radius, y + radius
@@ -365,14 +377,17 @@ def ellipse(
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.ellipse(20, 10) is canvas
-        True
-        >>> canvas.active_page.sketches[-1].subtype.name
-        'ELLIPSE_SKETCH'
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.ellipse(20, 10) is canvas
+    # True
+    canvas.active_page.sketches[-1].subtype.name
+    # 'ELLIPSE_SKETCH'
+    ```
+"""
     x, y = center[:2]
     x_radius = width / 2
     y_radius = height / 2
@@ -424,14 +439,17 @@ def text(
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.text("A", (0, 0)) is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.text("A", (0, 0)) is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    ```
+"""
     # first create a Tag object
     tag_obj = Tag(
         txt,
@@ -465,14 +483,17 @@ def line(self, start: PointType, end: PointType, **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.line((0, 0), (10, 0)) is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.line((0, 0), (10, 0)) is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    ```
+"""
     self._sketch_xform_matrix = self.xform_matrix
     line_shape = Shape([start, end], closed=False, **kwargs)
     line_sketch = create_sketch(line_shape, self, **kwargs)
@@ -501,14 +522,17 @@ def rectangle(
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.rectangle(10, 6) is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.rectangle(10, 6) is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    ```
+"""
     x, y = center[:2]
     w2 = width / 2
     h2 = height / 2
@@ -540,14 +564,17 @@ def draw_CS(self, size: float | None = None, **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.draw_CS(10) is canvas
-        True
-        >>> len(canvas.active_page.sketches) >= 2
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.draw_CS(10) is canvas
+    # True
+    len(canvas.active_page.sketches) >= 2
+    # True
+    ```
+"""
     if size is None:
         size = defaults["CS_size"]
     if "colors" in kwargs:
@@ -577,14 +604,17 @@ def lines(self, points: Sequence[PointType], **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.lines([(0, 0), (10, 0), (10, 5)]) is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.lines([(0, 0), (10, 0), (10, 5)]) is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    ```
+"""
     self._all_vertices.extend(points)
     self._sketch_xform_matrix = self.xform_matrix
     sketch = LineSketch(points, self._sketch_xform_matrix, **kwargs)
@@ -705,14 +735,17 @@ def draw_latex(
     Returns:
         Self: The canvas object.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.draw_latex("x", (0, 0), visible=False) is canvas
-        True
-        >>> canvas.active_page.sketches[-1].visible
-        False
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.draw_latex("x", (0, 0), visible=False) is canvas
+    # True
+    canvas.active_page.sketches[-1].visible
+    # False
+    ```
+"""
     self._sketch_xform_matrix = self.xform_matrix
     sketch = LatexSketch(
         formula=formula,
@@ -772,14 +805,17 @@ def insert_svg(self, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.insert_svg('<circle cx="0" cy="0" r="10"/>') is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.insert_svg('<circle cx="0" cy="0" r="10"/>') is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    ```
+"""
     active_sketches = self.active_page.sketches
     sketch = SvgSketch(code, location=location)
     active_sketches.append(sketch)
@@ -797,14 +833,17 @@ def insert_tex(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.insert_tex("% note") is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.insert_tex("% note") is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    ```
+"""
     active_sketches = self.active_page.sketches
     sketch = TexSketch(code, location=location)
     active_sketches.append(sketch)
@@ -863,15 +902,18 @@ def draw_group(self, group: Group, **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> group = sg.Group([sg.Shape([(0, 0), (1, 0), (1, 1)])])
-        >>> canvas.draw(group) is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    group = sg.Group([sg.Shape([(0, 0), (1, 0), (1, 1)])])
+    canvas.draw(group) is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    ```
+"""
     sketch = create_sketch(group, self, **kwargs)
     self.active_page.sketches.append(sketch)
 
@@ -1005,14 +1047,17 @@ def shade_value(angle: float) -> float:
     Raises:
         ValueError: If ``angle`` is outside ``[0, 2 * pi]``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.render.draw import shade_value
-        >>> shade_value(sg.pi / 2)
-        1.0
-        >>> shade_value(0)
-        0.0
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.render.draw import shade_value
+    shade_value(sg.pi / 2)
+    # 1.0
+    shade_value(0)
+    # 0.0
+    ```
+"""
     if not 0 <= angle <= 2 * pi:
         raise ValueError("Angle must be between 0 and 2 pi radians.")
 
@@ -1873,14 +1918,17 @@ def grid(
     Returns:
         Self: The canvas.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.grid((0, 0), 20, 20, 10) is canvas
-        True
-        >>> len(canvas.active_page.sketches) > 0
-        True
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.grid((0, 0), 20, 20, 10) is canvas
+    # True
+    len(canvas.active_page.sketches) > 0
+    # True
+    ```
+"""
     x, y = pos[:2]
     if width is None:
         width = defaults["grid_size"]
@@ -2009,20 +2057,23 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
         TypeError: If ``item`` is a ``Lattice``. Draw ``lattice.pattern``
             after ``expand`` or ``populate_unit``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> canvas = sg.Canvas()
-        >>> canvas.draw(sg.Shape([(0, 0), (10, 0), (10, 10)])) is canvas
-        True
-        >>> len(canvas.active_page.sketches)
-        1
-        >>> lattice = sg.lattice_p1(40, 40)
-        >>> lattice.expand(sg.letter_F(), 1)
-        >>> canvas.draw(lattice)
-        Traceback (most recent call last):
-            ...
-        TypeError: Cannot draw a Lattice. Draw lattice.pattern instead.
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    canvas = sg.Canvas()
+    canvas.draw(sg.Shape([(0, 0), (10, 0), (10, 10)])) is canvas
+    # True
+    len(canvas.active_page.sketches)
+    # 1
+    lattice = sg.lattice_p1(40, 40)
+    lattice.expand(sg.letter_F(), 1)
+    canvas.draw(lattice)
+    # Traceback (most recent call last):
+        
+    # TypeError: Cannot draw a Lattice. Draw lattice.pattern instead.
+    ```
+"""
     try:
         draw_list = item.draw_list
     except AttributeError:
@@ -2375,13 +2426,16 @@ def get_verts_in_new_pos(item: Shape, **kwargs) -> list[PointType]:
         list: Vertices in the new position, or the item's current
         vertices when ``pos`` is not given.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> from simetri.render.draw import get_verts_in_new_pos
-        >>> shape = sg.Shape([(0, 0), (2, 0), (2, 2)])
-        >>> get_verts_in_new_pos(shape, pos=(3, 1))[0]
-        [2.0, 0.0]
-    """
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    from simetri.render.draw import get_verts_in_new_pos
+    shape = sg.Shape([(0, 0), (2, 0), (2, 2)])
+    get_verts_in_new_pos(shape, pos=(3, 1))[0]
+    # [2.0, 0.0]
+    ```
+"""
     if "pos" in kwargs:
         x, y = item.midpoint[:2]
         x1, y1 = kwargs["pos"][:2]
