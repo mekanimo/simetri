@@ -145,6 +145,7 @@ class Shape(Base, CommonStyle):
         "draw_double",
         "draw_fillets",
         "draw_markers",
+        "even_odd",
         "fill",
         "fill_mode",
         "fillet_radius",
@@ -190,6 +191,7 @@ class Shape(Base, CommonStyle):
         draw_double: bool | None = None,
         draw_fillets: bool | None = None,
         draw_markers: bool | None = None,
+        even_odd: bool | None = None,
         back_style: Any = None,
         double_distance: float | None = None,
         double_color: Color | None = None,
@@ -228,6 +230,8 @@ class Shape(Base, CommonStyle):
                 line_dash_phase / line_join / line_miter_limit / line_width:
                 Stroke style.
             marker_*: Marker drawing options.
+            even_odd: If True, use even-odd fill rule; ``None`` uses
+                ``defaults["even_odd"]`` at draw time.
             markers_only: If True, draw markers without the path.
             smooth: Prefer smooth curve rendering when applicable.
             subtype: Shape subtype. Defaults to ``Types.SHAPE``.
@@ -275,6 +279,7 @@ class Shape(Base, CommonStyle):
                 "fillet_radius": fillet_radius,
                 "gradient": gradient,
                 "draw_markers": draw_markers,
+                "even_odd": even_odd,
                 "marker_type": marker_type,
                 "marker_size": marker_size,
                 "marker_radius": marker_radius,

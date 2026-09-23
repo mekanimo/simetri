@@ -336,7 +336,7 @@ def save_user_warning(
     sg.save_user_warning(sg.WarningType.group)
 
     ```
-"""
+    """
     if enabled:
         set_warning_on(warning)
     else:
@@ -1482,7 +1482,7 @@ def set_defaults():
     )
 
     defaults["index_font_size"] = (
-        "footnotesize"  # tiny, scriptsize, footnotesize, small,
+        "small"  # tiny, scriptsize, footnotesize, small,
     )
     # normalsize, large, Large, LARGE, huge, Huge
     default_types["index_font_size"] = (str, int, float)
@@ -1504,13 +1504,6 @@ def set_defaults():
     default_types["index_font_family"] = (str, FontFamily)
     defaults_help["index_font_family"] = (
         "Vertex index label font family. TeX switch name "
-        "(ttfamily, rmfamily, sffamily) or FontFamily enum."
-    )
-
-    defaults["vertex_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
-    default_types["vertex_font_family"] = (str, FontFamily)
-    defaults_help["vertex_font_family"] = (
-        "Vertex coordinate label font family. TeX switch name "
         "(ttfamily, rmfamily, sffamily) or FontFamily enum."
     )
 
@@ -2571,8 +2564,15 @@ def set_defaults():
         "Vertex coordinate label text color. Dark fill with a light halo for contrast."
     )
 
+    defaults["vertex_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    default_types["vertex_font_family"] = (str, FontFamily)
+    defaults_help["vertex_font_family"] = (
+        "Vertex coordinate label font family. TeX switch name "
+        "(ttfamily, rmfamily, sffamily) or FontFamily enum."
+    )
+
     defaults["vertex_font_size"] = (
-        "footnotesize"  # miniscule, tiny, scriptsize, footnotesize, small,
+        "small"  # miniscule, tiny, scriptsize, footnotesize, small,
     )
     # normalsize, large, Large, LARGE, huge, Huge
     default_types["vertex_font_size"] = (str, int, float)

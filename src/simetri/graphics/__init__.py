@@ -69,6 +69,7 @@ from ..coloring.swatches import *
 from ..extensions.easing import *
 from ..extensions.l_system import l_system
 from ..extensions.string_patterns import string_star
+from ..extensions.table import Table as Table
 from ..extensions.tree import TreeNode, make_tree
 from ..extensions.turtle_sg import Turtle, spirolateral
 from ..friezes.frieze_patterns import *

@@ -220,6 +220,20 @@ def draw_lace_sketch(item):
             draw_shape_sketch(plait)
 
 
+def draw_table_sketch(sketch, render_sketches, ind):
+    """Render a ``TableSketch`` by serializing its child sketches to TikZ.
+
+    Args:
+        sketch: Table sketch with grid and cell content sketches.
+        render_sketches: Callable ``(sketches, ind) -> (str, int)`` for children.
+        ind: Style index passed through to child rendering.
+
+    Returns:
+        tuple[str, int]: Combined TikZ code and updated style index.
+    """
+    return render_sketches(sketch.sketches, ind)
+
+
 def draw_tag_sketch(sketch):
     """Converts a TagSketch to TikZ code.
 

@@ -34,11 +34,7 @@ from ...base.all_enums import (
 )
 from ...base.all_enums import PathOperation as PathOps
 from ...base.common import PointType
-from ...base.common_style import (
-    COLOR_ALPHA_ATTRS,
-    STYLE_COPY_ATTRS,
-    CommonStyle,
-)
+from ...base.common_style import CommonStyle
 from ...base.core import _next_xform_matrix, _Targets
 from ...coloring.colors import Color
 from ...config.settings import defaults
@@ -188,6 +184,7 @@ class Path2D(Group, CommonStyle):
         draw_double: bool = False,
         draw_fillets: bool = False,
         draw_markers: bool = False,
+        even_odd: bool | None = None,
         back_style: Any = None,
         double_distance: float | None = None,
         double_color: Color | None = None,
@@ -225,6 +222,8 @@ class Path2D(Group, CommonStyle):
             draw_double: Draw a double stroke if True.
             draw_fillets: Draw fillets at corners if True.
             draw_markers: Draw markers along the path if True.
+            even_odd: If True, use even-odd fill rule; ``None`` uses
+                ``defaults["even_odd"]`` at draw time.
             back_style: Background style.
             double_distance: Spacing for double stroke.
             double_color: Color for the second stroke.
@@ -260,7 +259,6 @@ class Path2D(Group, CommonStyle):
         self.angle = angle  # heading angle
         self.operations = []
         self.objects = []
-        self.even_odd = True  # False is non-zero winding rule
         super().__init__()
         self.subtype = Types.PATH2D
         self.cur_shape = Shape([start])
@@ -271,11 +269,40 @@ class Path2D(Group, CommonStyle):
         self.stack = deque()
 
         self.closed = False
-        init_locals = locals()
         self._init_from_style_kwargs(
             {
-                name: init_locals[name]
-                for name in (*COLOR_ALPHA_ATTRS, *STYLE_COPY_ATTRS)
+                "color": color,
+                "alpha": alpha,
+                "line_color": line_color,
+                "fill_color": fill_color,
+                "line_alpha": line_alpha,
+                "fill_alpha": fill_alpha,
+                "line_width": line_width,
+                "fill": fill,
+                "stroke": stroke,
+                "line_dash_array": line_dash_array,
+                "line_dash_phase": line_dash_phase,
+                "line_cap": line_cap,
+                "line_join": line_join,
+                "line_miter_limit": line_miter_limit,
+                "smooth": smooth,
+                "back_style": back_style,
+                "draw_double": draw_double,
+                "draw_fillets": draw_fillets,
+                "double_distance": double_distance,
+                "double_color": double_color,
+                "fill_mode": fill_mode,
+                "fillet_radius": fillet_radius,
+                "gradient": gradient,
+                "draw_markers": draw_markers,
+                "even_odd": even_odd,
+                "marker_type": marker_type,
+                "marker_size": marker_size,
+                "marker_radius": marker_radius,
+                "marker_alpha": marker_alpha,
+                "marker_color": marker_color,
+                "marker_shape": marker_shape,
+                "markers_only": markers_only,
             }
         )
         self.visible = True

@@ -599,6 +599,20 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
     return content
 
 
+def draw_table_sketch(sketch, render_sketches, ind) -> str:
+    """Render a ``TableSketch`` by serializing its child sketches to SVG.
+
+    Args:
+        sketch: Table sketch with grid and cell content sketches.
+        render_sketches: Callable ``(sketches, ind) -> str`` used for children.
+        ind: Style index passed through to child rendering.
+
+    Returns:
+        str: Combined SVG markup for the table.
+    """
+    return render_sketches(sketch.sketches, ind)
+
+
 def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
     """Serialize help-line / grid sketch geometry to SVG markup.
 

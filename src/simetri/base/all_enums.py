@@ -1356,6 +1356,7 @@ class Types(StrEnum):
     SVG_PATH_SKETCH = "SVG_PATH_SKETCH"
     SVG_SKETCH = "SVG_SKETCH"
     TABLE = "TABLE"
+    TABLE_SKETCH = "TABLE_SKETCH"
     TAG = "TAG"
     TAG_SKETCH = "TAG_SKETCH"
     TAG_STYLE = "TAG_STYLE"
@@ -1678,6 +1679,7 @@ drawable_types = {
     Types.SQUARE_GRID,
     Types.STAR,
     Types.SVG_PATH,
+    Types.TABLE,
     Types.TAG,
     Types.TURTLE,
 }

@@ -2477,6 +2477,38 @@ def best_fit_exponent(pairs):
     return exponent
 
 
+def factors(number: int) -> list:
+    """Return all positive divisors of ``number`` in ascending order.
+
+    Args:
+        number: Integer whose divisors are listed (typically ``number >= 1``).
+
+    Returns:
+        list[int]: Sorted unique factors, always including ``1`` and ``number``
+        when ``number >= 1``.
+
+    **Examples**
+
+    ```python
+    import simetri.graphics as sg
+    sg.factors(12)
+    # [1, 2, 3, 4, 6, 12]
+    sg.factors(17)
+    # [1, 17]
+    sg.factors(36)
+    # [1, 2, 3, 4, 6, 9, 12, 18, 36]
+    ```
+    """
+    factors = set()
+
+    for i in range(1, int(sqrt(number)) + 1):
+        if number % i == 0:
+            factors.add(i)  # Add the divisor
+            factors.add(number // i)  # Add its matching pair
+
+    return sorted(list(factors))
+
+
 def get_cycle_size(values: list, with_values=False) -> int:
     """Length of the longest prefix that tiles the whole list.
 

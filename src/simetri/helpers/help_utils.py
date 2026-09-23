@@ -650,6 +650,34 @@ d_help_topic: dict[str, list[str]] = {
             "sg.help('dimensioning_doc')"
         ),
     ],
+    "tables": [
+        "simetri.extensions.table.Table",
+        "simetri.extensions.table.Range",
+        "Table.display",
+        "Table.build_rich_table",
+        "Canvas.draw",
+        (
+            "See also: sg.help('tables_doc'), sg.help('text_doc'), "
+            "sg.help('canvas_doc'), sg.help('tag_objects')"
+        ),
+    ],
+    "tables_doc": [
+        "simetri.extensions.table.Table",
+        "simetri.extensions.table.Range",
+        "Table.columns",
+        "Table.rows",
+        "Table.cells",
+        "Table.range",
+        "Range.width",
+        "Range.height",
+        "Range.size",
+        "Range.set_format",
+        "Canvas.draw",
+        (
+            "See also: sg.help('text_doc'), sg.help('canvas_doc'), "
+            "sg.help('tag_objects'), sg.help('bounding_box_doc')"
+        ),
+    ],
     "text": [
         "sg.Tag",
         "sg.TagFrame",
@@ -897,6 +925,10 @@ _TOPIC_ALIASES = {
     "TagFrame": "tag_objects",
     "Tags": "tag_objects",
     "tags": "tag_objects",
+    "Table": "tables_doc",
+    "table": "tables_doc",
+    "tables": "tables_doc",
+    "tables-doc": "tables_doc",
     "Text": "text_doc",
     "text": "text_doc",
     "text-doc": "text_doc",

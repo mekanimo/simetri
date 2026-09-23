@@ -879,6 +879,34 @@ class CompositeSketch:
             self.xform_matrix = identity_matrix()
 
 
+@dataclass
+class TableSketch:
+    """Sketch for a laid-out table (grid lines and cell content sketches).
+
+    Attributes:
+        pos: Northwest (top-left) corner of the table grid in canvas coordinates.
+        column_widths: Outer width of each column.
+        row_heights: Outer height of each row (downward in decreasing y).
+        sketches: Grid and cell sketches in draw order.
+        show_lines: Whether grid line shapes were included.
+    """
+
+    pos: PointType
+    column_widths: list[float]
+    row_heights: list[float]
+    sketches: list
+    show_lines: bool = True
+    xform_matrix: NDArray = None
+
+    def __post_init__(self):
+        """Initialize the TableSketch object."""
+        self.type = Types.SKETCH
+        self.subtype = Types.TABLE_SKETCH
+        self.id = get_unique_id(self)
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+
+
 Sketch: TypeAlias = (
     ArcSketch
     | BezierSketch
@@ -902,5 +930,6 @@ Sketch: TypeAlias = (
     | RectangleSketch
     | RectSketch
     | ShapeSketch
+    | TableSketch
     | TagSketch
 )

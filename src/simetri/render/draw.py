@@ -1980,6 +1980,7 @@ regular_sketch_types = [
     Types.SQUARE,
     Types.SQUARE_GRID,
     Types.STAR,
+    Types.TABLE,
     Types.TAG,
 ]
 
@@ -2002,6 +2003,12 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         vertices = [item.pos]
         vertices = [
             x[:2] for x in homogenize(vertices) @ canvas._sketch_xform_matrix
+        ]
+        all_vertices.extend(vertices)
+    elif item.subtype == Types.TABLE:
+        vertices = [
+            x[:2]
+            for x in homogenize(item.all_vertices) @ canvas._sketch_xform_matrix
         ]
         all_vertices.extend(vertices)
     elif item.subtype == Types.TAG:
@@ -2332,7 +2339,7 @@ def set_shape_sketch_style(
     if "_mask_axis" in item.__dict__:
         sketch._mask_axis = item._mask_axis
 
-    if "even_odd" in item.__dict__:
+    if hasattr(item, "even_odd") and item.even_odd is not None:
         sketch.even_odd = item.even_odd
 
     for k, v in kwargs.items():
@@ -2832,6 +2839,13 @@ def _get_image_sketch(item, canvas, **kwargs):
     return sketch
 
 
+def _get_table_sketch(item, canvas, **kwargs):
+    """Create a TableSketch from a ``Table`` drawable."""
+    from ..extensions.table import build_table_sketch
+
+    return build_table_sketch(item, canvas, **kwargs)
+
+
 _d_subtype_sketch = {
     Types.ANNOTATION: _get_composite_sketch,
     Types.ARC: _get_arc_sketch,
@@ -2871,6 +2885,7 @@ _d_subtype_sketch = {
     Types.SQUARE: _get_sketch,
     Types.SQUARE_GRID: _get_composite_sketch,
     Types.STAR: _get_composite_sketch,
+    Types.TABLE: _get_table_sketch,
     Types.TAG: _get_tag_sketch,
 }
 

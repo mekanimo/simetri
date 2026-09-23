@@ -2229,7 +2229,7 @@ def fillet_corners(
     return new_vertices
 
 
-def subdivide_segment(p1, p2, n_divs, as_vertices=False):
+def subdivide_segment(p1, p2, n_subdivs, as_vertices=False):
     """Split one segment into ``n_divs`` equal subsegments.
 
     Args:
@@ -2254,8 +2254,8 @@ def subdivide_segment(p1, p2, n_divs, as_vertices=False):
     ```
     """
     vertices = [p1]
-    t = 1 / n_divs
-    for i in range(n_divs - 1):
+    t = 1 / n_subdivs
+    for i in range(n_subdivs - 1):
         vertices.append(lerp_point(p1, p2, t * (i + 1)))  # noqa: PERF401
     vertices.append(p2)
 
@@ -2267,34 +2267,40 @@ def subdivide_segment(p1, p2, n_divs, as_vertices=False):
     return res
 
 
-def subdivide_segments(vertices, n_divs: int, as_vertices=False):
-    """Subdivide every edge in a vertex path into ``n_divs`` equal parts.
+def subdivide_segments(segments: Sequence[LineType], n_subdivs: int, as_vertices=False):
+    """Subdivide each segment into ``n_subdivs`` equal parts.
 
     Args:
-        vertices: Ordered vertices; consecutive pairs are subdivided via
-            ``connected_pairs(vertices)``.
-        n_divs: Number of equal parts per edge.
+        segments: Segments ``((x1, y1), (x2, y2))``, e.g. ``shape.edges`` or
+            ``connected_pairs(vertices, closed=True)``.
+        n_subdivs: Number of equal parts per segment.
         as_vertices: If True, return one flat vertex list (shared junctions
             appear once); if False, return ``connected_pairs`` of that list.
             Defaults to False.
 
     Returns:
-        list: Subdivided vertex path or edge list, depending on ``as_vertices``.
+        list: Subdivided vertex path or segment list, depending on
+            ``as_vertices``.
 
     **Examples**
 
     ```python
     import simetri.graphics as sg
-    sg.subdivide_segments([(0, 0), (10, 0)], 4)
+    sg.subdivide_segments([((0, 0), (10, 0))], 4)
     # [(0, 0), (2.5, 0.0), (5.0, 0.0), (7.5, 0.0), (10, 0)]
-    sg.subdivide_segments([(0, 0), (10, 0), (0, 10)], 2)
+    sg.subdivide_segments(
+        [((0, 0), (10, 0)), ((10, 0), (0, 10))], 2
+    )
     # [(0, 0), (5.0, 0.0), (10, 0), (5.0, 5.0), (0, 10)]
     ```
     """
-    edges = connected_pairs(vertices)
-    all_vertices = [vertices[0]]
-    for edge in edges:
-        divisions = subdivide_segment(*edge, n_divs=n_divs, as_vertices=True)
+    if not segments:
+        return []
+    all_vertices = [segments[0][0]]
+    for segment in segments:
+        divisions = subdivide_segment(
+            *segment, n_subdivs=n_subdivs, as_vertices=True
+        )
         all_vertices.extend(divisions[1:])
 
     if as_vertices:

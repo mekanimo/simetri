@@ -33,6 +33,7 @@ STYLE_COPY_ATTRS: tuple[str, ...] = (
     "fillet_radius",
     "gradient",
     "draw_markers",
+    "even_odd",
     "marker_type",
     "marker_size",
     "marker_radius",
