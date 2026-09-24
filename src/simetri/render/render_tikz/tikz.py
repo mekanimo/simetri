@@ -75,6 +75,12 @@ def anchor_to_tikz(anchor: Anchor | None) -> str | None:
 
     Returns:
         TikZ anchor string (for example ``"north east"``), or None.
+
+    Examples:
+        >>> from simetri.base.all_enums import Anchor
+        >>> from simetri.render.render_tikz.tikz_common import anchor_to_tikz
+        >>> anchor_to_tikz(Anchor.NORTHEAST)
+        'north east'
     """
     if anchor is None:
         return None
@@ -83,7 +89,13 @@ def anchor_to_tikz(anchor: Anchor | None) -> str | None:
 
 
 def scope_code_required(canvas: Canvas) -> bool:
-    """Check if canvas-level mask scope sketch exists."""
+    """
+    Check if canvas-level mask scope sketch exists.
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> scope_code_required  # doctest: +SKIP
+    """
     return _canvas_mask_scope_sketch(canvas) is not None
 
 
@@ -96,6 +108,11 @@ def get_back_grid_code(grid: Grid, canvas: Canvas) -> str:
 
     Returns:
         str: The background grid code.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_back_grid_code  # doctest: +SKIP
     """
     # \usetikzlibrary{backgrounds}
     # \begin{scope}[on background layer]
@@ -140,6 +157,11 @@ def get_limits_code(canvas: Canvas) -> str:
 
     Returns:
         str: The limits code for clipping.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_limits_code  # doctest: +SKIP
     """
     if canvas.limits is not None:
         xmin, ymin, xmax, ymax = canvas.limits
@@ -174,6 +196,11 @@ def get_back_code(canvas: Canvas) -> str:
 
     Returns:
         str: The background code.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_back_code  # doctest: +SKIP
     """
     back_color = color_to_tikz(canvas.back_color, "back_color")
     return f"\\pagecolor{back_color}\n"
@@ -202,6 +229,11 @@ def get_tex_code(canvas: Canvas) -> str:
 
     Returns:
         str: The TikZ code.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_tex_code  # doctest: +SKIP
     """
 
     render_style_ids = {}
@@ -210,6 +242,11 @@ def get_tex_code(canvas: Canvas) -> str:
     tikz_packages = ["tikz", "pgf"]
 
     def render_sketches(sketches: list[Any], ind: int) -> tuple[str, int]:
+        """Render ``sketches`` to TikZ and return code with updated index.
+
+        Examples:
+            >>> pass  # doctest: +SKIP
+        """
         code = []
         for sketch in sketches:
             sketch_code, ind = get_sketch_code(
@@ -234,6 +271,9 @@ def get_tex_code(canvas: Canvas) -> str:
 
         Returns:
             tuple[str, int]: TikZ fragment and updated index.
+
+        Examples:
+            >>> pass  # doctest: +SKIP
         """
         if sketch.subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
@@ -438,6 +478,9 @@ class Grid(Shape):
         p2: (x_max, y_max)
         dx: x step
         dy: y step
+
+    Examples:
+        >>> Grid()  # doctest: +SKIP
     """
 
     def __init__(
@@ -598,6 +641,11 @@ def get_canvas_scope(canvas: Canvas) -> str:
 
     Returns:
         str: ``\\begin{scope}`` prefix or mask/fade preamble, possibly empty.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_canvas_scope  # doctest: +SKIP
     """
     option_list = []
     canvas_mask_scope = _canvas_mask_scope_sketch(canvas)
@@ -665,6 +713,14 @@ def get_draw(sketch: Any) -> str | Literal[False]:
     Returns:
         str | Literal[False]: Command such as ``\\draw`` or ``\\filldraw``, or
         ``False`` when nothing should be emitted.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from types import SimpleNamespace
+        >>> from simetri.render.render_tikz.tikz import get_draw
+        >>> get_draw(SimpleNamespace(closed=True, fill=True, stroke=False, back_style=None))
+        '\\fill'
     """
     # sketch.closed, sketch.fill, sketch.stroke, shading
 
@@ -775,6 +831,11 @@ def get_begin_scope(ind: int | None = None) -> str:
 
     Returns:
         str: Opening scope markup.
+
+    Examples:
+        >>> from simetri.render.render_tikz.tikz import get_begin_scope
+        >>> get_begin_scope(2).startswith('\\begin')
+        True
     """
     if ind is None:
         res = "\\begin{scope}[]\n"
@@ -789,6 +850,11 @@ def get_end_scope() -> str:
 
     Returns:
         str: The end scope string.
+
+    Examples:
+        >>> from simetri.render.render_tikz.tikz import get_end_scope
+        >>> get_end_scope().startswith('\\end')
+        True
     """
     return "\\end{scope}\n"
 

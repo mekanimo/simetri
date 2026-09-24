@@ -332,17 +332,20 @@ class Turtle(Group):
         self.current_list = [self.pos]
 
     def reset(self) -> None:
-        """Reset the turtle to its initial state.
+        """Reset position, heading, pen, and start a new path.
 
-        Appends the current shape to the batch and resets position, angle,
-        and pen state.
+        Does not flush ``current_list`` into ``lists`` or add shapes to the
+        group.
 
         Examples:
             >>> t = Turtle(in_degrees=True)
             >>> t.forward(5)
-            >>> t.reset()  # doctest: +SKIP
+            >>> t.reset()
+            >>> t.pos
+            (0, 0)
+            >>> t.pen_is_down
+            True
         """
-        self.append(self.current_shape)
         self.pos = (0, 0)
         if self.in_degrees:
             self._angle = 0

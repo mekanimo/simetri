@@ -355,8 +355,6 @@ def wallpaper_p2_rect_lattice(
         >>> len(pattern)
         8
     """
-
-    rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
     dx1, dy1 = vector1
     wallpaper.translate(dx1, dy1, reps=reps1)

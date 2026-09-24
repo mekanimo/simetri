@@ -18,6 +18,12 @@ def color_to_matplotlib(color: Color) -> str:
 
     Returns:
         str: Hex color string such as ``#rrggbb``.
+
+    Examples:
+        >>> from simetri.coloring.colors import red
+        >>> from simetri.render.render_svg.svg_colors import color_to_matplotlib
+        >>> color_to_matplotlib(red)
+        '#e50000'
     """
     red, green, blue = color.rgb255
     return f"#{red:02x}{green:02x}{blue:02x}"
@@ -36,6 +42,14 @@ def color_to_svg(
 
     Returns:
         str: SVG color string (``rgb(...)`` or ``rgba(...)``).
+
+    Examples:
+        >>> from simetri.coloring.colors import red
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.render.render_svg.svg_colors import color_to_svg
+        >>> color_to_svg(red).startswith('rgb')
+        True
     """
     if color is None:
         color = defaults[property_name]

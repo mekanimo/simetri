@@ -449,6 +449,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             int: The index of the point.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> int(rect.index((0, 0)))
+            0
         """
         point = tuple(point[:2])
 
@@ -465,6 +473,16 @@ class Shape(Base, CommonStyle):
 
         Args:
             point (PointType): The point to remove.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0), (1, 0), (2, 0)])
+            >>> line.remove((0, 0))
+            Shape(((np.float64(1.0), np.float64(0.0)), (np.float64(2.0), np.float64(0.0))))
+            >>> len(line)
+            2
         """
         ind = self.vertices.index(point)
         self.primary_points.pop(ind)
@@ -476,6 +494,15 @@ class Shape(Base, CommonStyle):
 
         Args:
             point (PointType): The point to append.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0)])
+            >>> line.append((1, 0))
+            >>> len(line)
+            2
         """
         point = homogenize([point]) @ inv(self.xform_matrix)
         self.primary_points.append(tuple(point[0][:2]))
@@ -486,6 +513,15 @@ class Shape(Base, CommonStyle):
         Args:
             index (int): The index to insert the point at.
             point (PointType): The point to insert.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0), (2, 0)])
+            >>> _ = line.insert(1, (1, 0))
+            >>> len(line)
+            3
         """
         point = homogenize([point]) @ inv(self.xform_matrix)
         self.primary_points.insert(index, tuple(point[0][:2]))
@@ -497,6 +533,15 @@ class Shape(Base, CommonStyle):
 
         Args:
             values (list[PointType]): The points to extend the shape with.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0)])
+            >>> _ = line.extend([(1, 0), (2, 0)])
+            >>> len(line)
+            3
         """
         homogenized = homogenize(points) @ inv(self.xform_matrix)
         self.primary_points.extend([tuple(x[:2]) for x in homogenized])
@@ -511,6 +556,16 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The popped point.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0), (1, 0)])
+            >>> line.pop()
+            (np.float64(1.0), np.float64(0.0))
+            >>> len(line)
+            1
         """
         point = self.vertices[index]
         self.primary_points.pop(index)
@@ -642,6 +697,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             bool: True if the shape is oriented clockwise, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> bool(rect.is_clockwise())
+            False
         """
         if not self.closed:
             raise ValueError("Shape must be closed to check orientation")
@@ -658,6 +721,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             Shape: The shape with the starting point set.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> reordered = rect.reordered(1)
+            >>> tuple(float(x) for x in reordered.vertices[0][:2])
+            (10.0, 0.0)
         """
         if not isinstance(index, int):
             raise TypeError("Index must be an integer")
@@ -677,11 +749,29 @@ class Shape(Base, CommonStyle):
     def lerp(self, edge: int, t: float) -> PointType:
         """Given an edge index and t value (between 0 and 1)
         returns the corresponding interpolated point.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.lerp(0, 0.5)[:2])
+            (5.0, 0.0)
         """
         return lerp_point(*self.edges[edge], t)
 
     def merge_collinears(self) -> Shape:
-        """Merge collinear edges into a single polyline."""
+        """Merge collinear edges into a single polyline.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0), (5, 0)])
+            >>> merged = line.merge_collinears()
+            >>> len(merged.vertices)
+            2
+        """
         return Group([self]).merge_shapes()[0]
 
     def merge(self, other: Shape, dist_tol: float | None = None) -> Self | None:
@@ -694,6 +784,18 @@ class Shape(Base, CommonStyle):
 
         Returns:
             Shape or None: The merged shape or None if the shapes cannot be merged.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> a = Shape([(0, 0), (5, 0)])
+            >>> b = Shape([(5, 0), (10, 0)])
+            >>> merged = a.merge(b)
+            >>> merged is not None
+            True
+            >>> len(merged.vertices)
+            3
         """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
@@ -720,6 +822,17 @@ class Shape(Base, CommonStyle):
 
         Args:
             other: Shape whose vertices are appended.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> a = Shape([(0, 0), (5, 0)])
+            >>> b = Shape([(5, 0), (10, 0)])
+            >>> a.connect(b)
+            Shape([(np.float64(0.0), np.float64(0.0)), ..., (np.float64(10.0), np.float64(0.0))])
+            >>> len(a)
+            4
         """
         self.extend(other.vertices)
 
@@ -798,6 +911,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             ndarray: The vertices as an array.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.as_array().shape
+            (4, 2)
         """
         if homogeneous:
             # Use cached final_coords to avoid redundant matrix multiplication
@@ -811,6 +932,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             list[tuple]: The vertices as a list of tuples.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0), (10, 0)])
+            >>> len(line.as_list())
+            2
         """
         return list(self.vertices)
 
@@ -820,6 +949,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             ndarray: The final coordinates of the shape.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.final_coords.shape[0]
+            4
         """
         if self.primary_points:
             # Cache the expensive matrix multiplication
@@ -838,13 +975,31 @@ class Shape(Base, CommonStyle):
 
     @property
     def angle(self) -> float:
-        """Orientation angle of the shape (radians)."""
+        """Orientation angle of the shape (radians).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0), (10, 0)])
+            >>> float(line.angle)
+            0.0
+        """
         res = decompose_transformations(self.xform_matrix)[1]
         return positive_angle(res)
 
     @property
     def orientation(self) -> float:
-        """Orientation angle of the shape (alias of ``angle``)."""
+        """Orientation angle of the shape (alias of ``angle``).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0), (10, 0)])
+            >>> float(line.orientation)
+            0.0
+        """
         return self.angle
 
     @property
@@ -853,6 +1008,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             tuple: The final coordinates of the shape.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.vertices)
+            4
         """
 
         if self.primary_points:
@@ -877,6 +1040,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             list[tuple[PointType, PointType]]: A list of connected pairs of vertices.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.vertex_pairs)
+            4
         """
         vertices = list(self.vertices)
         if self.closed:
@@ -889,6 +1060,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             ndarray: The primary points in homogeneous coordinates.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.orig_coords.shape[0]
+            4
         """
         return self.primary_points.homogen_coords
 
@@ -898,6 +1077,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             BoundingBox: The bounding box of the shape.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> float(rect.b_box.width)
+            10.0
         """
         if self.primary_points:
             self._b_box = bounding_box(self.final_coords)
@@ -911,6 +1098,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             float: The area of the shape.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> float(rect.area)
+            100.0
         """
         if self.closed:
             vertices = self.vertices[:]
@@ -931,6 +1126,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             float: The total length of the shape.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> line = Shape([(0, 0), (10, 0), (10, 10)])
+            >>> line.total_length
+            10.0
         """
         return polyline_length(self.vertices[:-1], self.closed)
 
@@ -940,6 +1143,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             bool: True if the shape is closed, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.is_polygon
+            True
         """
         return self.closed
 
@@ -948,6 +1159,16 @@ class Shape(Base, CommonStyle):
 
         Returns:
             None
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.clear()
+            Shape()
+            >>> len(rect)
+            0
         """
         self.primary_points = Points()
         self.xform_matrix = identity_matrix()
@@ -968,6 +1189,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             int: The number of times the point is found in the shape.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.count((0, 0))
+            1
         """
         verts = self.orig_coords @ self.xform_matrix
         verts = verts[:, :2]
@@ -986,6 +1215,17 @@ class Shape(Base, CommonStyle):
 
         Returns:
             Shape: A copy of the shape.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> copy = rect.copy()
+            >>> copy == rect
+            True
+            >>> copy is rect
+            False
         """
         self._b_box = None
         return deepcopy(self)
@@ -996,6 +1236,17 @@ class Shape(Base, CommonStyle):
         """Returns a line segment with shape[i] and shape[j] endpoints.
         If midpoints is True then returns a line segment between midpoints
         of the shape.edges[i] and shape.edges[j]
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> p0, p1 = rect.segment(0, 2)
+            >>> tuple(float(x) for x in p0[:2])
+            (0.0, 0.0)
+            >>> tuple(float(x) for x in p1[:2])
+            (10.0, 10.0)
         """
         if midpoints:
             res = (self.edge_midpoint(i), self.edge_midpoint(j))
@@ -1005,7 +1256,16 @@ class Shape(Base, CommonStyle):
         return res
 
     def edge_midpoint(self, i: int) -> PointType:
-        """Return the midpoint of shape.edges[i]."""
+        """Return the midpoint of shape.edges[i].
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.edge_midpoint(0)[:2])
+            (5.0, 0.0)
+        """
 
         n = len(self)
         edge = (self[i], self[(i + 1) % n])
@@ -1014,7 +1274,16 @@ class Shape(Base, CommonStyle):
 
     @property
     def edge_midpoints(self) -> list[PointType]:
-        """Return a list of the edge midpoints."""
+        """Return a list of the edge midpoints.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.edge_midpoints)
+            4
+        """
         edges = self.edges
 
         return [midpoint(*edge) for edge in edges]
@@ -1029,6 +1298,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             list[tuple[PointType, PointType]]: A list of edges.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.edges)
+            4
         """
         vertices = list(self.vertices[:])
         if self.closed:
@@ -1038,7 +1315,16 @@ class Shape(Base, CommonStyle):
 
     @property
     def midpoints(self) -> list[PointType]:
-        """Returns a list of the midpoints of the edges."""
+        """Returns a list of the midpoints of the edges.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.midpoints)
+            4
+        """
         return [midpoint(*edge) for edge in self.edges]
 
     @property
@@ -1051,6 +1337,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             list[tuple[PointType, PointType]]: A list of edges.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.segments)
+            4
         """
 
         return self.edges
@@ -1060,6 +1354,16 @@ class Shape(Base, CommonStyle):
 
         Returns:
             None
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> tri = Shape([(0, 0), (1, 0), (1, 1)])
+            >>> tri.reverse()
+            Shape(((np.float64(1.0), np.float64(1.0)), (np.float64(1.0), np.float64(0.0)), (np.float64(0.0), np.float64(0.0))))
+            >>> tuple(float(x) for x in tri.vertices[0][:2])
+            (1.0, 1.0)
         """
         self.primary_points.reverse()
 
@@ -1069,37 +1373,100 @@ class Shape(Base, CommonStyle):
 
     @property
     def left(self) -> tuple[PointType, PointType]:
-        """Left edge of the axis-aligned bounding box."""
+        """Left edge of the axis-aligned bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.left[0][:2])
+            (0.0, 10.0)
+        """
         return self.b_box.left
 
     @property
     def right(self) -> tuple[PointType, PointType]:
-        """Right edge of the axis-aligned bounding box."""
+        """Right edge of the axis-aligned bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.right[0][:2])
+            (10.0, 10.0)
+        """
         return self.b_box.right
 
     @property
     def top(self) -> tuple[PointType, PointType]:
-        """Top edge of the axis-aligned bounding box."""
+        """Top edge of the axis-aligned bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.top[0][:2])
+            (0.0, 10.0)
+        """
         return self.b_box.top
 
     @property
     def bottom(self) -> tuple[PointType, PointType]:
-        """Bottom edge of the axis-aligned bounding box."""
+        """Bottom edge of the axis-aligned bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.bottom[0][:2])
+            (0.0, 0.0)
+        """
         return self.b_box.bottom
 
     @property
     def vert_centerline(self) -> tuple[PointType, PointType]:
-        """Vertical centerline (north and south midpoints)."""
+        """Vertical centerline (north and south midpoints).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.vert_centerline)
+            2
+        """
         return (self.b_box.north, self.b_box.south)
 
     @property
     def horiz_centerline(self) -> tuple[PointType, PointType]:
-        """Horizontal centerline (west and east midpoints)."""
+        """Horizontal centerline (west and east midpoints).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.horiz_centerline)
+            2
+        """
         return (self.b_box.west, self.b_box.east)
 
     @property
     def midpoint(self) -> PointType:
-        """Center of the axis-aligned bounding box."""
+        """Center of the axis-aligned bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.midpoint[:2])
+            (5.0, 5.0)
+        """
         x1, y1 = self.southwest
         x2, y2 = self.northeast
 
@@ -1112,19 +1479,46 @@ class Shape(Base, CommonStyle):
     def corners(
         self,
     ) -> tuple[PointType, PointType, PointType, PointType]:
-        """Four bounding-box corners (nw, sw, se, ne)."""
+        """Four bounding-box corners (nw, sw, se, ne).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.corners)
+            4
+        """
         return (self.northwest, self.southwest, self.southeast, self.northeast)
 
     @property
     def diamond(
         self,
     ) -> tuple[PointType, PointType, PointType, PointType]:
-        """Edge midpoints in order north, west, south, east."""
+        """Edge midpoints in order north, west, south, east.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.diamond)
+            4
+        """
         return (self.north, self.west, self.south, self.east)
 
     @property
     def all_anchors(self) -> tuple[PointType, ...]:
-        """Named anchor points derived from the bounding box."""
+        """Named anchor points derived from the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.all_anchors)
+            9
+        """
         return (
             self.west,
             self.southwest,
@@ -1150,7 +1544,16 @@ class Shape(Base, CommonStyle):
         tuple[PointType, PointType],
         tuple[PointType, PointType],
     ]:
-        """Edges, centerlines, and diagonals of the bounding box."""
+        """Edges, centerlines, and diagonals of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> len(rect.all_lines)
+            8
+        """
         return (
             self.left,
             self.bottom,
@@ -1164,67 +1567,184 @@ class Shape(Base, CommonStyle):
 
     @property
     def width(self) -> float:
-        """Width of the axis-aligned bounding box."""
+        """Width of the axis-aligned bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.width
+            10.0
+        """
         return distance(self.northwest, self.northeast)
 
     @property
     def height(self) -> float:
-        """Height of the axis-aligned bounding box."""
+        """Height of the axis-aligned bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.height
+            10.0
+        """
         return distance(self.northwest, self.southwest)
 
     @property
     def size(self) -> tuple[float, float]:
-        """``(width, height)`` of the axis-aligned bounding box."""
+        """``(width, height)`` of the axis-aligned bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> rect.size
+            (10.0, 10.0)
+        """
         return (self.width, self.height)
 
     @property
     def west(self) -> PointType:
-        """Midpoint of the left edge."""
+        """Midpoint of the left edge.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.west[:2])
+            (0.0, 5.0)
+        """
         return midpoint(*self.left)
 
     @property
     def south(self) -> PointType:
-        """Midpoint of the bottom edge."""
+        """Midpoint of the bottom edge.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.south[:2])
+            (5.0, 0.0)
+        """
         return midpoint(*self.bottom)
 
     @property
     def east(self) -> PointType:
-        """Midpoint of the right edge."""
+        """Midpoint of the right edge.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.east[:2])
+            (10.0, 5.0)
+        """
         return midpoint(*self.right)
 
     @property
     def north(self) -> PointType:
-        """Midpoint of the top edge."""
+        """Midpoint of the top edge.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.north[:2])
+            (5.0, 10.0)
+        """
         return midpoint(*self.top)
 
     @property
     def northwest(self) -> PointType:
-        """Top-left corner of the bounding box."""
+        """Top-left corner of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.northwest[:2])
+            (0.0, 10.0)
+        """
         return self.b_box.northwest
 
     @property
     def northeast(self) -> PointType:
-        """Top-right corner of the bounding box."""
+        """Top-right corner of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.northeast[:2])
+            (10.0, 10.0)
+        """
         return self.b_box.northeast
 
     @property
     def southwest(self) -> PointType:
-        """Bottom-left corner of the bounding box."""
+        """Bottom-left corner of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.southwest[:2])
+            (0.0, 0.0)
+        """
         return self.b_box.southwest
 
     @property
     def southeast(self) -> PointType:
-        """Bottom-right corner of the bounding box."""
+        """Bottom-right corner of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.southeast[:2])
+            (10.0, 0.0)
+        """
         return self.b_box.southeast
 
     @property
     def diagonal1(self) -> tuple[PointType, PointType]:
-        """Diagonal from southwest to northeast."""
+        """Diagonal from southwest to northeast.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.diagonal1[0][:2])
+            (0.0, 0.0)
+        """
         return (self.southwest, self.northeast)
 
     @property
     def diagonal2(self) -> tuple[PointType, PointType]:
-        """Diagonal from southeast to northwest."""
+        """Diagonal from southeast to northwest.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.diagonal2[0][:2])
+            (10.0, 0.0)
+        """
         return (self.southeast, self.northwest)
 
     def get_inflated_b_box(
@@ -1244,6 +1764,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             Inflated ``BoundingBox``.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> inflated = rect.get_inflated_b_box(1)
+            >>> float(inflated.width)
+            12.0
         """
 
         if bottom_margin is None:
@@ -1272,6 +1801,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             Offset segment as two points.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> p0, _ = rect.offset_line('left', 1)
+            >>> float(p0[0])
+            -1.0
         """
         return self.b_box.offset_line(side, offset)
 
@@ -1287,6 +1825,14 @@ class Shape(Base, CommonStyle):
 
         Returns:
             Offset point in canvas coordinates.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> tuple(float(x) for x in rect.offset_point('midpoint', 1, 0)[:2])
+            (6.0, 5.0)
         """
         return self.b_box.offset_point(anchor, dx, dy)
 
@@ -1303,6 +1849,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.midpoint of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.centered(ref)[:2])
+            (5.0, 5.0)
         """
 
         x, y = item.midpoint[:2]
@@ -1323,6 +1878,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.west of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.left_of(ref)[:2])
+            (-1.0, 5.0)
         """
         x, y = item.west[:2]
         w2 = self.width / 2
@@ -1343,6 +1907,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.east of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.right_of(ref)[:2])
+            (11.0, 5.0)
         """
         x, y = item.east[:2]
         w2 = self.width / 2
@@ -1363,6 +1936,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.north of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.above(ref)[:2])
+            (5.0, 11.0)
         """
         x, y = item.north[:2]
         h2 = self.height / 2
@@ -1383,6 +1965,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.south of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.below(ref)[:2])
+            (5.0, -1.0)
         """
         x, y = item.south[:2]
         h2 = self.height / 2
@@ -1403,6 +1994,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.northwest of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.above_left(ref)[:2])
+            (-1.0, 11.0)
         """
         x, y = item.northwest[:]
         w2 = self.width / 2
@@ -1425,6 +2025,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.northeast of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.above_right(ref)[:2])
+            (11.0, 11.0)
         """
         x, y = item.northeast[:2]
         w2 = self.width / 2
@@ -1447,6 +2056,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.southwest of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.below_left(ref)[:2])
+            (-1.0, -1.0)
         """
         x, y = item.southwest[:2]
         w2 = self.width / 2
@@ -1469,6 +2087,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The item.southeast of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.below_right(ref)[:2])
+            (11.0, -1.0)
         """
         x, y = item.southeast[:2]
         w2 = self.width / 2
@@ -1491,6 +2118,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             PointType: The polar position of the reference item.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> tuple(float(x) for x in small.polar_pos(ref, 0, 5)[:2])
+            (10.0, 5.0)
         """
 
         x, y = item.midpoint[:2]
@@ -1520,6 +2156,15 @@ class Shape(Base, CommonStyle):
 
         Returns:
             Shape: A new shape with the adjusted vertices.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> reordered = rect.reorder_vertices((10, 10))
+            >>> tuple(float(x) for x in reordered.vertices[0][:2])
+            (10.0, 10.0)
         """
 
         if not isinstance(value, Sequence) or len(value) < 2:

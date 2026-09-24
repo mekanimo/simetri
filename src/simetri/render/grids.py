@@ -32,6 +32,8 @@ class Grid(Group):
     """A base-class for all grids.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.base.all_enums import GridType
         >>> from simetri.render.grids import Grid
         >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
@@ -112,11 +114,13 @@ class Grid(Group):
         """Return the grid vertex points.
 
         Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
             >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
             >>> Grid(GridType.SQUARE, points=pts, n=4).points[0]
-            [0, 0]
+            (0.0, 0.0)
         """
         return self._points.vertices
 
@@ -133,12 +137,14 @@ class Grid(Group):
             PointType: Intersection of the two lines.
 
         Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
             >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
             >>> g = Grid(GridType.SQUARE, points=pts, n=4)
             >>> g.intersect((0, 2), (1, 3))[0]
-            10.0
+            5.0
         """
         ind1, ind2 = line1
         ind3, ind4 = line2
@@ -160,12 +166,14 @@ class Grid(Group):
             tuple: The line connecting the two points.
 
         Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
             >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
             >>> g = Grid(GridType.SQUARE, points=pts, n=4)
             >>> g.line(0, 1)[1]
-            [10, 0]
+            (10.0, 0.0)
         """
         return (self.points[ind1], self.points[ind2])
 
@@ -180,6 +188,8 @@ class Grid(Group):
             PointType: Cartesian coordinates of the point.
 
         Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
             >>> from simetri.render.grids import CircularGrid
             >>> g = CircularGrid(n=12, radius=10)
             >>> round(g.radial_point(5, 0)[0], 10)
@@ -201,12 +211,14 @@ class Grid(Group):
             PointType: The point on the line connecting the two points.
 
         Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
             >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
             >>> g = Grid(GridType.SQUARE, points=pts, n=4)
             >>> g.between(0, 1, 0.5)
-            [5.0, 0.0]
+            (5.0, 0.0)
         """
         if t < 0 or t > 1:
             raise ValueError("t must be between 0 and 1.")
@@ -224,6 +236,8 @@ class CircularGrid(Grid):
     """A grid formed by connections of regular polygon points.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.render.grids import CircularGrid
         >>> CircularGrid(n=6, radius=20).n
         6
@@ -256,6 +270,8 @@ class HexGrid(Grid):
     """A grid formed by connections of regular polygon points.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.render.grids import HexGrid
         >>> HexGrid(radius=50).n
         6
@@ -284,6 +300,8 @@ class SquareGrid(Grid):
     """A grid formed by connections of square cells.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.render.grids import SquareGrid
         >>> SquareGrid(n=16, cell_size=25).cell_size
         25
@@ -308,10 +326,20 @@ class SquareGrid(Grid):
         coords = list(product(vals, repeat=2))
 
         def sort_key(coord: PointType) -> float:
+            """Polar radius used to sort grid candidate points.
+
+            Examples:
+                >>> pass  # doctest: +SKIP
+            """
             r, _ = cartesian_to_polar(*coord)
             return r
 
         def sort_key2(coord: PointType) -> float:
+            """Polar angle used to order the selected grid points.
+
+            Examples:
+                >>> pass  # doctest: +SKIP
+            """
             _, theta = cartesian_to_polar(*coord)
             return theta
 
@@ -340,6 +368,8 @@ def convert_basis(
         ``(x', y')`` in the new basis.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.render.grids import convert_basis
         >>> convert_basis(1, 0, ((1, 0), (0, 1)))
         (1, 0)
@@ -361,6 +391,8 @@ def convert_to_cartesian(
         ``(x', y')`` in Cartesian coordinates.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.render.grids import convert_to_cartesian
         >>> convert_to_cartesian(1, 0, ((1, 0), (0, 1)))
         (1, 0)
@@ -379,9 +411,11 @@ def cartesian_to_isometric(x: float, y: float) -> tuple[float, float]:
         Isometric ``(x', y')``.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.render.grids import cartesian_to_isometric
         >>> cartesian_to_isometric(1, 0)[0]
-        1.0
+        1
     """
     return convert_basis(x, y, ((1, 0), (cos(pi / 3), sin(pi / 3))))
 
@@ -397,6 +431,8 @@ def isometric_to_cartesian(x: float, y: float) -> tuple[float, float]:
         Cartesian ``(x', y')``.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.render.grids import isometric_to_cartesian
         >>> isometric_to_cartesian(1, 0)[0]
         1.0

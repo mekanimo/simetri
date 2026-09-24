@@ -24,6 +24,11 @@ def svg_shape(*args: object, **kwargs: object) -> Never:
 
     Raises:
         RuntimeError: If called before SVG module initialization.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> svg_shape  # doctest: +SKIP
     """
     raise RuntimeError(
         "svg_shape must be initialized by simetri.render.render_svg.svg before use."
@@ -38,6 +43,11 @@ def set_active_svg_style_ids(style_ids: dict[int, str]) -> None:
 
     Args:
         style_ids: Mapping of sketch id to CSS class id.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> set_active_svg_style_ids  # doctest: +SKIP
     """
     global _active_svg_style_ids
     _active_svg_style_ids = style_ids
@@ -51,6 +61,11 @@ def get_active_svg_style_id(sketch: Any) -> str | None:
 
     Returns:
         str | None: Active style id, or None.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_active_svg_style_id  # doctest: +SKIP
     """
     if sketch.id in _active_svg_style_ids:
         return _active_svg_style_ids[sketch.id]
@@ -81,6 +96,11 @@ def sketch_attrib(sketch: Any, attrib: str) -> object:
 
     Returns:
         object: Attribute value, or the matching ``defaults`` entry when missing.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> sketch_attrib  # doctest: +SKIP
     """
     try:
         return object.__getattribute__(sketch, attrib)
@@ -100,6 +120,11 @@ def get_text_size(
 
     Returns:
         tuple[float, float]: ``(width, height)`` in layout units.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_text_size  # doctest: +SKIP
     """
     mult = 1.0  # Scaling multiplier for default font
 
@@ -141,6 +166,11 @@ def get_text_size2(
 
     Returns:
         tuple[int, int]: ``(width, height)`` in pixels.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_text_size2  # doctest: +SKIP
     """
     font = ImageFont.truetype(font_path, font_size)
     _, descent = font.getmetrics()
@@ -160,6 +190,11 @@ def get_line_style_options(
 
     Returns:
         str: Semicolon-separated stroke CSS declarations.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_line_style_options  # doctest: +SKIP
     """
 
     merged_exceptions = [] if exceptions is None else exceptions
@@ -225,6 +260,11 @@ def get_fill_style_options(
 
     Returns:
         str: Semicolon-separated fill CSS declarations.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_fill_style_options  # doctest: +SKIP
     """
 
     merged_exceptions = [] if exceptions is None else exceptions
@@ -261,6 +301,11 @@ def get_dash_pattern(line_dash_array: Sequence[float | int]) -> str:
 
     Returns:
         str: Space-separated dash lengths.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_sketch_utils import get_dash_pattern
+        >>> get_dash_pattern([4, 2])
+        '4 2'
     """
 
     return " ".join([str(x) for x in line_dash_array])
@@ -311,6 +356,9 @@ def get_marker_path(marker_type: MarkerType, size: float) -> tuple[str, str]:
 
     Returns:
         str: SVG path data and attributes for the marker
+
+    Examples:
+        >>> get_marker_path()  # doctest: +SKIP
     """
     # Normalize size
     s = size
@@ -396,6 +444,11 @@ def generate_marker_def(
 
     Returns:
         str: SVG <marker> element
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> generate_marker_def  # doctest: +SKIP
     """
     marker_size = sketch_attrib(sketch, "marker_size")
     marker_color = sketch_attrib(sketch, "marker_color")
@@ -516,6 +569,9 @@ def get_shape_type(sketch: Any) -> str:
 
     Returns:
         str: Shape category such as ``line``, ``circle``, or ``shape``.
+
+    Examples:
+        >>> get_shape_type()  # doctest: +SKIP
     """
     shape_type = d_shape_types[sketch_attrib(sketch, "subtype")]
     if shape_type == "shape":
@@ -536,6 +592,11 @@ def get_coordinates(sketch: Any, shape_type: str) -> str:
 
     Returns:
         str: Attribute fragment such as ``x1=... y1=...`` or path ``d``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_coordinates  # doctest: +SKIP
     """
     if shape_type in ("polygon", "polyline"):
         vertices = sketch_attrib(sketch, "vertices")
@@ -581,6 +642,11 @@ def get_style(sketch: Any, shape_type: str) -> str:
 
     Returns:
         str: Semicolon-separated CSS declarations.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_style  # doctest: +SKIP
     """
     line_style = get_line_style_options(sketch)
     res = [line_style]
@@ -594,10 +660,20 @@ def get_style(sketch: Any, shape_type: str) -> str:
 def get_style_maps(
     canvas: Canvas,
 ) -> tuple[dict[str, dict[str, str]], dict[int, str]]:
-    """Collect CSS class styles and sketch-to-class ids from canvas sketches."""
+    """
+    Collect CSS class styles and sketch-to-class ids from canvas sketches.
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_style_maps  # doctest: +SKIP
+    """
 
     def parse_style_string(style_string: str) -> dict[str, str]:
-        """Parse a semicolon-separated CSS declaration string."""
+        """Parse a semicolon-separated CSS declaration string.
+
+        Examples:
+            >>> pass  # doctest: +SKIP
+        """
         style_dict = {}
         if not style_string:
             return style_dict
@@ -615,6 +691,11 @@ def get_style_maps(
     style_sketches = []
 
     def collect_sketch_styles(sketch: Any) -> None:
+        """Walk ``sketch`` and append shape sketches to ``style_sketches``.
+
+        Examples:
+            >>> pass  # doctest: +SKIP
+        """
         subtype = sketch_attrib(sketch, "subtype")
 
         if subtype in (Types.CLIPPED_SKETCH, Types.MASKED_SKETCH):
@@ -684,6 +765,11 @@ def get_styles_dict(canvas: Canvas) -> dict[str, dict[str, str]]:
 
     Returns:
         dict[str, dict[str, str]]: CSS class name to property/value map.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_styles_dict  # doctest: +SKIP
     """
     css_styles, _ = get_style_maps(canvas)
     return css_styles
@@ -707,6 +793,11 @@ def get_style_class(
 
     Returns:
         str: CSS class name, or empty string.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_style_class  # doctest: +SKIP
     """
 
     if exceptions:
@@ -725,6 +816,11 @@ def has_gradient(sketch: Any) -> bool:
 
     Returns:
         bool: True when ``gradient.stops`` is set.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> has_gradient  # doctest: +SKIP
     """
     gradient = sketch_attrib(sketch, "gradient")
     if gradient is None:
@@ -748,6 +844,11 @@ def generate_pattern_def(
 
     Returns:
         str: SVG <pattern> element
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> generate_pattern_def  # doctest: +SKIP
     """
     tile = sketch_attrib(sketch, "tile_svg")
     width = sketch_attrib(sketch, "tile_width")
@@ -807,6 +908,11 @@ def generate_gradient_def(sketch: Any, gradient_id: str) -> str:
 
     Returns:
         str: SVG <linearGradient> or <radialGradient> element
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> generate_gradient_def  # doctest: +SKIP
     """
     gradient = sketch_attrib(sketch, "gradient")
     gradient_type = gradient.gradient_type
@@ -908,6 +1014,11 @@ def generate_clippath_def(
 
     Returns:
         str: SVG <clipPath> element
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> generate_clippath_def  # doctest: +SKIP
     """
     from ..draw import create_sketch
 

@@ -856,6 +856,11 @@ class Vertex(list):
             x: X coordinate.
             y: Y coordinate.
             z: Z coordinate. Defaults to 0.
+
+        Examples:
+            >>> from simetri.geom.points.point_utils import Vertex
+            >>> Vertex(1, 2).coords
+            (1, 2, 0)
         """
         self.x = x
         self.y = y

@@ -45,7 +45,13 @@ def _set_attrib(el: ET.Element, name: str, value: Any) -> None:
 
 @dataclass
 class SVGElement:
-    """Base element with common SVG-ish attributes."""
+    """
+    Base element with common SVG-ish attributes.
+    Examples:
+        >>> from simetri.render.render_svg.filters import SVGElement
+        >>> SVGElement(id='n').id
+        'n'
+    """
 
     id: str | None = None
     class_: str | None = None  # maps to "class"
@@ -66,6 +72,12 @@ class SVGElement:
 @dataclass
 class SVG_Filter(SVGElement):
     """SVG ``<filter>`` element containing filter primitives.
+
+    Examples:
+        >>> from simetri.render.render_svg.filters import SVG_Filter, feGaussianBlur
+        >>> filt = SVG_Filter(id='blur')
+        >>> filt.add(feGaussianBlur(stdDeviation=1)).id
+        'blur'
 
     Attributes:
         x: Filter region x.
@@ -104,6 +116,11 @@ class SVG_Filter(SVGElement):
 
         Returns:
             SVG_Filter: This filter, for fluent calls.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import SVG_Filter, feGaussianBlur
+            >>> SVG_Filter().add(feGaussianBlur()).primitives[0].to_element().tag
+            'feGaussianBlur'
         """
         self.primitives.extend(prims)
         return self
@@ -113,6 +130,11 @@ class SVG_Filter(SVGElement):
 
         Returns:
             ET.Element: ``<filter>`` element with child primitives.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import SVG_Filter
+            >>> SVG_Filter().to_element().tag
+            'filter'
         """
         # Note: ElementTree namespaces are easiest if we emit plain tags here and
         # include xmlns at the top-level string creation (see to_string()).
@@ -160,6 +182,11 @@ class SVG_Filter(SVGElement):
 
         Returns:
             str: SVG markup for the filter (optionally wrapped in ``<defs>``).
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import SVG_Filter
+            >>> '<filter' in SVG_Filter(id='f').to_string(include_defs=False)
+            True
         """
         # Register xlink prefix if we might use it
         ET.register_namespace("xlink", XLINK_NS)
@@ -209,7 +236,13 @@ def _indent_xml(elem: ET.Element, level: int = 0) -> None:
 # -----------------------------------
 @dataclass
 class FilterPrimitive(SVGElement):
-    """Base class for primitives with common primitive-region attributes."""
+    """
+    Base class for primitives with common primitive-region attributes.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feBlend
+        >>> feBlend().__class__.__mro__[1].__name__
+        'FilterPrimitive'
+    """
 
     # Common filter primitive attributes
     x: NumOrStr | None = None
@@ -227,6 +260,11 @@ class FilterPrimitive(SVGElement):
 
         Returns:
             FilterType: Primitive type for this filter element.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feGaussianBlur
+            >>> feGaussianBlur().type.name
+            'GAUSSIAN_BLUR'
         """
         return self.primitive_type
 
@@ -245,7 +283,13 @@ class FilterPrimitive(SVGElement):
 # -------------------
 @dataclass
 class feBlend(FilterPrimitive):
-    """SVG ``<feBlend>`` filter primitive."""
+    """
+    SVG ``<feBlend>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feBlend
+        >>> feBlend().to_element().tag
+        'feBlend'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.BLEND
     in2: str | None = None
@@ -256,6 +300,11 @@ class feBlend(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feBlend
+            >>> feBlend().to_element().tag
+            'feBlend'
         """
         el = ET.Element("feBlend")
         self._apply_primitive_common(el)
@@ -269,7 +318,16 @@ class feBlend(FilterPrimitive):
 # -------------------
 @dataclass
 class feColorMatrix(FilterPrimitive):
-    """SVG ``<feColorMatrix>`` filter primitive."""
+    """
+    SVG ``<feColorMatrix>`` filter primitive.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.render.render_svg.filters import feColorMatrix
+        >>> feColorMatrix().to_element().tag
+        'feColorMatrix'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.COLOR_MATRIX
     matrix_type: ColorMatrix | None = None
@@ -292,6 +350,13 @@ class feColorMatrix(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.render.render_svg.filters import feColorMatrix
+            >>> feColorMatrix().to_element().tag
+            'feColorMatrix'
         """
         el = ET.Element("feColorMatrix")
         self._apply_primitive_common(el)
@@ -305,7 +370,14 @@ class feColorMatrix(FilterPrimitive):
 # -------------------
 @dataclass
 class feFunc(SVGElement):
-    """Base for feFuncR/G/B/A channel transfer functions."""
+    """
+    Base for feFuncR/G/B/A channel transfer functions.
+
+    Examples:
+        >>> from simetri.render.render_svg.filters import feFuncR
+        >>> feFuncR().to_element().tag
+        'feFuncR'
+    """
 
     type: str | None = None  # identity|table|discrete|linear|gamma
     tableValues: MaybeSeq | None = None
@@ -322,6 +394,11 @@ class feFunc(SVGElement):
 
         Returns:
             ET.Element: ``feFunc*`` element.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feFuncR
+            >>> feFuncR().to_element().tag
+            'feFuncR'
         """
         el = ET.Element(self.TAG)
         self._apply_common(el)
@@ -337,35 +414,65 @@ class feFunc(SVGElement):
 
 @dataclass
 class feFuncR(feFunc):
-    """Transfer function for the red channel (``<feFuncR>``)."""
+    """
+    Transfer function for the red channel (``<feFuncR>``).
+    Examples:
+        >>> from simetri.render.render_svg.filters import feFuncR
+        >>> feFuncR().to_element().tag
+        'feFuncR'
+    """
 
     TAG: str = "feFuncR"
 
 
 @dataclass
 class feFuncG(feFunc):
-    """Transfer function for the green channel (``<feFuncG>``)."""
+    """
+    Transfer function for the green channel (``<feFuncG>``).
+    Examples:
+        >>> from simetri.render.render_svg.filters import feFuncG
+        >>> feFuncG().to_element().tag
+        'feFuncG'
+    """
 
     TAG: str = "feFuncG"
 
 
 @dataclass
 class feFuncB(feFunc):
-    """Transfer function for the blue channel (``<feFuncB>``)."""
+    """
+    Transfer function for the blue channel (``<feFuncB>``).
+    Examples:
+        >>> from simetri.render.render_svg.filters import feFuncB
+        >>> feFuncB().to_element().tag
+        'feFuncB'
+    """
 
     TAG: str = "feFuncB"
 
 
 @dataclass
 class feFuncA(feFunc):
-    """Transfer function for the alpha channel (``<feFuncA>``)."""
+    """
+    Transfer function for the alpha channel (``<feFuncA>``).
+    Examples:
+        >>> from simetri.render.render_svg.filters import feFuncA
+        >>> feFuncA().to_element().tag
+        'feFuncA'
+    """
 
     TAG: str = "feFuncA"
 
 
 @dataclass
 class feComponentTransfer(FilterPrimitive):
-    """SVG ``<feComponentTransfer>`` filter primitive."""
+    """
+    SVG ``<feComponentTransfer>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feComponentTransfer
+        >>> feComponentTransfer().to_element().tag
+        'feComponentTransfer'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.COMPONENT_TRANSFER
     funcR: feFuncR | None = None
@@ -378,6 +485,11 @@ class feComponentTransfer(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feComponentTransfer
+            >>> feComponentTransfer().to_element().tag
+            'feComponentTransfer'
         """
         el = ET.Element("feComponentTransfer")
         self._apply_primitive_common(el)
@@ -392,7 +504,13 @@ class feComponentTransfer(FilterPrimitive):
 # -------------------
 @dataclass
 class feComposite(FilterPrimitive):
-    """SVG ``<feComposite>`` filter primitive."""
+    """
+    SVG ``<feComposite>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feComposite
+        >>> feComposite().to_element().tag
+        'feComposite'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.COMPOSITE
     in2: str | None = None
@@ -407,6 +525,11 @@ class feComposite(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feComposite
+            >>> feComposite().to_element().tag
+            'feComposite'
         """
         el = ET.Element("feComposite")
         self._apply_primitive_common(el)
@@ -424,7 +547,13 @@ class feComposite(FilterPrimitive):
 # -------------------
 @dataclass
 class feConvolveMatrix(FilterPrimitive):
-    """SVG ``<feConvolveMatrix>`` filter primitive."""
+    """
+    SVG ``<feConvolveMatrix>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feConvolveMatrix
+        >>> feConvolveMatrix().to_element().tag
+        'feConvolveMatrix'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.CONVOLVE_MATRIX
     order: int | tuple[int, int] | None = None
@@ -442,6 +571,11 @@ class feConvolveMatrix(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feConvolveMatrix
+            >>> feConvolveMatrix().to_element().tag
+            'feConvolveMatrix'
         """
         el = ET.Element("feConvolveMatrix")
         self._apply_primitive_common(el)
@@ -476,7 +610,13 @@ class feConvolveMatrix(FilterPrimitive):
 # -------------------
 @dataclass
 class feDistantLight(SVGElement):
-    """SVG ``<feDistantLight>`` light source."""
+    """
+    SVG ``<feDistantLight>`` light source.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feDistantLight
+        >>> feDistantLight().to_element().tag
+        'feDistantLight'
+    """
 
     azimuth: Number | None = None
     elevation: Number | None = None
@@ -486,6 +626,11 @@ class feDistantLight(SVGElement):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feDistantLight
+            >>> feDistantLight().to_element().tag
+            'feDistantLight'
         """
         el = ET.Element("feDistantLight")
         self._apply_common(el)
@@ -496,7 +641,13 @@ class feDistantLight(SVGElement):
 
 @dataclass
 class fePointLight(SVGElement):
-    """SVG ``<fePointLight>`` light source."""
+    """
+    SVG ``<fePointLight>`` light source.
+    Examples:
+        >>> from simetri.render.render_svg.filters import fePointLight
+        >>> fePointLight().to_element().tag
+        'fePointLight'
+    """
 
     x: Number | None = None
     y: Number | None = None
@@ -507,6 +658,11 @@ class fePointLight(SVGElement):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import fePointLight
+            >>> fePointLight().to_element().tag
+            'fePointLight'
         """
         el = ET.Element("fePointLight")
         self._apply_common(el)
@@ -518,7 +674,13 @@ class fePointLight(SVGElement):
 
 @dataclass
 class feSpotLight(SVGElement):
-    """SVG ``<feSpotLight>`` light source."""
+    """
+    SVG ``<feSpotLight>`` light source.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feSpotLight
+        >>> feSpotLight().to_element().tag
+        'feSpotLight'
+    """
 
     x: Number | None = None
     y: Number | None = None
@@ -534,6 +696,11 @@ class feSpotLight(SVGElement):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feSpotLight
+            >>> feSpotLight().to_element().tag
+            'feSpotLight'
         """
         el = ET.Element("feSpotLight")
         self._apply_common(el)
@@ -553,7 +720,13 @@ class feSpotLight(SVGElement):
 # -------------------
 @dataclass
 class feDiffuseLighting(FilterPrimitive):
-    """SVG ``<feDiffuseLighting>`` filter primitive."""
+    """
+    SVG ``<feDiffuseLighting>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feDiffuseLighting
+        >>> feDiffuseLighting().to_element().tag
+        'feDiffuseLighting'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.DIFFUSE_LIGHTING
     surfaceScale: Number | None = None
@@ -568,6 +741,11 @@ class feDiffuseLighting(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feDiffuseLighting
+            >>> feDiffuseLighting().to_element().tag
+            'feDiffuseLighting'
         """
         el = ET.Element("feDiffuseLighting")
         self._apply_primitive_common(el)
@@ -596,7 +774,13 @@ class feDiffuseLighting(FilterPrimitive):
 # -------------------
 @dataclass
 class feDisplacementMap(FilterPrimitive):
-    """SVG ``<feDisplacementMap>`` filter primitive."""
+    """
+    SVG ``<feDisplacementMap>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feDisplacementMap
+        >>> feDisplacementMap().to_element().tag
+        'feDisplacementMap'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.DISPLACEMENT_MAP
     in2: str | None = None
@@ -609,6 +793,11 @@ class feDisplacementMap(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feDisplacementMap
+            >>> feDisplacementMap().to_element().tag
+            'feDisplacementMap'
         """
         el = ET.Element("feDisplacementMap")
         self._apply_primitive_common(el)
@@ -624,7 +813,13 @@ class feDisplacementMap(FilterPrimitive):
 # -------------------
 @dataclass
 class feDropShadow(FilterPrimitive):
-    """SVG ``<feDropShadow>`` filter primitive."""
+    """
+    SVG ``<feDropShadow>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feDropShadow
+        >>> feDropShadow().to_element().tag
+        'feDropShadow'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.DROP_SHADOW
     dx: Number | None = None
@@ -638,6 +833,11 @@ class feDropShadow(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feDropShadow
+            >>> feDropShadow().to_element().tag
+            'feDropShadow'
         """
         el = ET.Element("feDropShadow")
         self._apply_primitive_common(el)
@@ -661,7 +861,13 @@ class feDropShadow(FilterPrimitive):
 # -------------------
 @dataclass
 class feFlood(FilterPrimitive):
-    """SVG ``<feFlood>`` filter primitive."""
+    """
+    SVG ``<feFlood>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feFlood
+        >>> feFlood().to_element().tag
+        'feFlood'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.FLOOD
     flood_color: str | None = None
@@ -672,6 +878,11 @@ class feFlood(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feFlood
+            >>> feFlood().to_element().tag
+            'feFlood'
         """
         el = ET.Element("feFlood")
         # feFlood doesn't use "in" in the usual sense, but allowing it doesn't hurt.
@@ -686,7 +897,13 @@ class feFlood(FilterPrimitive):
 # -------------------
 @dataclass
 class feGaussianBlur(FilterPrimitive):
-    """SVG ``<feGaussianBlur>`` filter primitive."""
+    """SVG ``<feGaussianBlur>`` filter primitive.
+
+    Examples:
+        >>> from simetri.render.render_svg.filters import feGaussianBlur
+        >>> feGaussianBlur().to_element().tag
+        'feGaussianBlur'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.GAUSSIAN_BLUR
     stdDeviation: Number | tuple[Number, Number] | None = None
@@ -697,6 +914,11 @@ class feGaussianBlur(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feGaussianBlur
+            >>> feGaussianBlur().to_element().tag
+            'feGaussianBlur'
         """
         el = ET.Element("feGaussianBlur")
         self._apply_primitive_common(el)
@@ -717,7 +939,13 @@ class feGaussianBlur(FilterPrimitive):
 # -------------------
 @dataclass
 class feImage(FilterPrimitive):
-    """SVG ``<feImage>`` filter primitive."""
+    """
+    SVG ``<feImage>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feImage
+        >>> feImage().to_element().tag
+        'feImage'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.IMAGE
     href: str | None = None  # SVG2
@@ -730,6 +958,11 @@ class feImage(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feImage
+            >>> feImage().to_element().tag
+            'feImage'
         """
         el = ET.Element("feImage")
         self._apply_primitive_common(el)
@@ -746,7 +979,13 @@ class feImage(FilterPrimitive):
 # -------------------
 @dataclass
 class feMergeNode(SVGElement):
-    """SVG ``<feMergeNode>`` child of ``<feMerge>``."""
+    """
+    SVG ``<feMergeNode>`` child of ``<feMerge>``.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feMergeNode
+        >>> feMergeNode().to_element().tag
+        'feMergeNode'
+    """
 
     in_: str | None = None
 
@@ -755,6 +994,11 @@ class feMergeNode(SVGElement):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feMergeNode
+            >>> feMergeNode().to_element().tag
+            'feMergeNode'
         """
         el = ET.Element("feMergeNode")
         self._apply_common(el)
@@ -764,7 +1008,13 @@ class feMergeNode(SVGElement):
 
 @dataclass
 class feMerge(FilterPrimitive):
-    """SVG ``<feMerge>`` filter primitive."""
+    """
+    SVG ``<feMerge>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feMerge
+        >>> feMerge().to_element().tag
+        'feMerge'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.MERGE
     nodes: list[feMergeNode] = field(default_factory=list)
@@ -777,6 +1027,11 @@ class feMerge(FilterPrimitive):
 
         Returns:
             feMerge: This merge primitive.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feMerge, feMergeNode
+            >>> feMerge().add_node(feMergeNode()).to_element().tag
+            'feMerge'
         """
         self.nodes.append(feMergeNode(in_=in_))
         return self
@@ -786,6 +1041,11 @@ class feMerge(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feMerge
+            >>> feMerge().to_element().tag
+            'feMerge'
         """
         el = ET.Element("feMerge")
         self._apply_primitive_common(el)
@@ -799,7 +1059,13 @@ class feMerge(FilterPrimitive):
 # -------------------
 @dataclass
 class feMorphology(FilterPrimitive):
-    """SVG ``<feMorphology>`` filter primitive."""
+    """
+    SVG ``<feMorphology>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feMorphology
+        >>> feMorphology().to_element().tag
+        'feMorphology'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.MORPHOLOGY
     operator: str | None = None  # erode|dilate
@@ -810,6 +1076,11 @@ class feMorphology(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feMorphology
+            >>> feMorphology().to_element().tag
+            'feMorphology'
         """
         el = ET.Element("feMorphology")
         self._apply_primitive_common(el)
@@ -826,7 +1097,13 @@ class feMorphology(FilterPrimitive):
 # -------------------
 @dataclass
 class feOffset(FilterPrimitive):
-    """SVG ``<feOffset>`` filter primitive."""
+    """
+    SVG ``<feOffset>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feOffset
+        >>> feOffset().to_element().tag
+        'feOffset'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.OFFSET
     dx: Number | None = None
@@ -837,6 +1114,11 @@ class feOffset(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feOffset
+            >>> feOffset().to_element().tag
+            'feOffset'
         """
         el = ET.Element("feOffset")
         self._apply_primitive_common(el)
@@ -850,7 +1132,13 @@ class feOffset(FilterPrimitive):
 # -------------------
 @dataclass
 class feSpecularLighting(FilterPrimitive):
-    """SVG ``<feSpecularLighting>`` filter primitive."""
+    """
+    SVG ``<feSpecularLighting>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feSpecularLighting
+        >>> feSpecularLighting().to_element().tag
+        'feSpecularLighting'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.SPECULAR_LIGHTING
     surfaceScale: Number | None = None
@@ -866,6 +1154,11 @@ class feSpecularLighting(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feSpecularLighting
+            >>> feSpecularLighting().to_element().tag
+            'feSpecularLighting'
         """
         el = ET.Element("feSpecularLighting")
         self._apply_primitive_common(el)
@@ -895,7 +1188,13 @@ class feSpecularLighting(FilterPrimitive):
 # -------------------
 @dataclass
 class feTile(FilterPrimitive):
-    """SVG ``<feTile>`` filter primitive."""
+    """
+    SVG ``<feTile>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feTile
+        >>> feTile().to_element().tag
+        'feTile'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.TILE
 
@@ -904,6 +1203,11 @@ class feTile(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feTile
+            >>> feTile().to_element().tag
+            'feTile'
         """
         el = ET.Element("feTile")
         self._apply_primitive_common(el)
@@ -915,7 +1219,13 @@ class feTile(FilterPrimitive):
 # -------------------
 @dataclass
 class feTurbulence(FilterPrimitive):
-    """SVG ``<feTurbulence>`` filter primitive."""
+    """
+    SVG ``<feTurbulence>`` filter primitive.
+    Examples:
+        >>> from simetri.render.render_svg.filters import feTurbulence
+        >>> feTurbulence().to_element().tag
+        'feTurbulence'
+    """
 
     primitive_type: ClassVar[FilterType] = FilterType.TURBULENCE
     baseFrequency: Number | tuple[Number, Number] | None = None
@@ -929,6 +1239,11 @@ class feTurbulence(FilterPrimitive):
 
         Returns:
             ET.Element: XML element ready for serialization.
+
+        Examples:
+            >>> from simetri.render.render_svg.filters import feTurbulence
+            >>> feTurbulence().to_element().tag
+            'feTurbulence'
         """
         el = ET.Element("feTurbulence")
         self._apply_primitive_common(el)

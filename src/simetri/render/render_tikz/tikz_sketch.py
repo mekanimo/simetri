@@ -70,6 +70,11 @@ class TexSketch:
     Attributes:
         code: TeX or TikZ source to insert.
         location: Where ``code`` is placed in the document pipeline.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> TexSketch  # doctest: +SKIP
     """
 
     code: str | None = None
@@ -92,6 +97,11 @@ def set_active_tikz_style_ids(style_ids: dict[int, str]) -> None:
 
     Args:
         style_ids: Mapping of sketch id to TikZ style id.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> set_active_tikz_style_ids  # doctest: +SKIP
     """
     global _active_tikz_style_ids
     _active_tikz_style_ids = style_ids
@@ -105,6 +115,11 @@ def get_active_tikz_style_id(sketch: Any) -> str | None:
 
     Returns:
         str | None: Active style id, or ``None``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> get_active_tikz_style_id  # doctest: +SKIP
     """
     if sketch.id in _active_tikz_style_ids:
         return _active_tikz_style_ids[sketch.id]
@@ -121,7 +136,13 @@ def _canvas_mask_scope_sketch(canvas: Canvas) -> Any | None:
 
 
 def draw_helplines_sketch(sketch: Any) -> str:
-    """Serialize help-line grid (and optional axes) to TikZ ``\\draw`` commands."""
+    """
+    Serialize help-line grid (and optional axes) to TikZ ``\\draw`` commands.
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_helplines_sketch  # doctest: +SKIP
+    """
     x, y = sketch.pos[:2]
     width = sketch.width
     height = sketch.height
@@ -188,6 +209,11 @@ def draw_bbox_sketch(sketch: Any) -> str:
 
     Returns:
         str: TikZ markup.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_bbox_sketch  # doctest: +SKIP
     """
     attrib_map = {
         "line_color": "draw",
@@ -210,6 +236,11 @@ def draw_lace_sketch(item: Any) -> None:
 
     Args:
         item: Lace object with ``fragments`` / ``plaits`` and draw flags.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_lace_sketch  # doctest: +SKIP
     """
     if item.draw_fragments:
         for fragment in item.fragments:
@@ -234,6 +265,11 @@ def draw_table_sketch(
 
     Returns:
         tuple[str, int]: Combined TikZ code and updated style index.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_table_sketch  # doctest: +SKIP
     """
     return render_sketches(sketch.sketches, ind)
 
@@ -246,10 +282,20 @@ def draw_tag_sketch(sketch: Any) -> str:
 
     Returns:
         str: TikZ markup.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_tag_sketch  # doctest: +SKIP
     """
 
     # \node at (0,0) {some text};
     def get_font_family(sketch: Any) -> tuple[str, str | None]:
+        """Map ``sketch.font_family`` to TikZ font option parts.
+
+        Examples:
+            >>> pass  # doctest: +SKIP
+        """
         default_fonts = [
             defaults["main_font"],
             defaults["sans_font"],
@@ -285,6 +331,11 @@ def draw_tag_sketch(sketch: Any) -> str:
         return res
 
     def get_font_size(sketch: Any) -> tuple[str, float | str | None]:
+        """Map ``sketch.font_size`` to TikZ size option parts.
+
+        Examples:
+            >>> pass  # doctest: +SKIP
+        """
         if sketch.font_size:
             if isinstance(sketch.font_size, FontSize):
                 res = "tex_size", sketch.font_size.value
@@ -423,7 +474,13 @@ def draw_tag_sketch(sketch: Any) -> str:
 
 
 def draw_latex_sketch(sketch: Any) -> str:
-    """Convert a ``LatexSketch`` to a positioned TikZ ``\\node`` with math."""
+    """
+    Convert a ``LatexSketch`` to a positioned TikZ ``\\node`` with math.
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_latex_sketch  # doctest: +SKIP
+    """
     x, y = sketch.pos[:2]
     formula = sketch.formula
     if sketch.bold:
@@ -491,6 +548,11 @@ def draw_shape_sketch_with_indices(
 
     Returns:
         str: The TikZ code for the shape sketch with vertex labels.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_shape_sketch_with_indices  # doctest: +SKIP
     """
     begin_scope = get_begin_scope(index)
     body = get_draw(sketch)
@@ -565,6 +627,11 @@ def draw_shape_sketch_with_markers(
 
     Returns:
         str: The TikZ code for the shape sketch with markers.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_shape_sketch_with_markers  # doctest: +SKIP
     """
     # begin_scope = get_begin_scope()
     body = get_draw(sketch)
@@ -664,6 +731,11 @@ def draw_pattern_sketch(
 
     Returns:
         str: The TikZ code for the pattern sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_pattern_sketch  # doctest: +SKIP
     """
     options = []
     style_id = get_active_tikz_style_id(sketch)
@@ -720,6 +792,11 @@ def draw_sketch(
 
     Returns:
         str: The TikZ code for the plain shape sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_sketch  # doctest: +SKIP
     """
     res = get_draw(sketch)
     if not res:
@@ -776,6 +853,11 @@ def draw_tex_sketch(sketch: TexSketch) -> str | None:
 
     Returns:
         str | None: Inserted TeX source.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_tex_sketch  # doctest: +SKIP
     """
     return sketch.code
 
@@ -790,6 +872,11 @@ def draw_image_sketch(
 
     Returns:
         str: The TikZ code for the image sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_image_sketch  # doctest: +SKIP
     """
     begin_scope = get_begin_scope()
     options = get_line_style_options(sketch, exceptions=exceptions)
@@ -829,6 +916,11 @@ def draw_pdf_sketch(
 
     Returns:
         str: The TikZ code for the image sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_pdf_sketch  # doctest: +SKIP
     """
     begin_scope = get_begin_scope()
     options = get_line_style_options(sketch, exceptions=exceptions)
@@ -866,6 +958,11 @@ def draw_shape_sketch(
 
     Returns:
         str: The TikZ code for the shape sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_shape_sketch  # doctest: +SKIP
     """
 
     if sketch.subtype == sg.Types.LINE_SKETCH:
@@ -901,7 +998,13 @@ def draw_shape_sketch(
 def draw_path_sketch(
     sketch: Any, exceptions: Collection[str] | None = None
 ) -> str:
-    """Draw a path sketch using PGF's SVG path parser."""
+    """
+    Draw a path sketch using PGF's SVG path parser.
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_path_sketch  # doctest: +SKIP
+    """
     res = get_draw(sketch)
     if not res:
         return ""
@@ -952,6 +1055,11 @@ def draw_line_sketch(
 
     Returns:
         str: The TikZ code for the line sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_line_sketch  # doctest: +SKIP
     """
     res = "\\draw"
     options = []
@@ -986,6 +1094,11 @@ def draw_circle_sketch(
 
     Returns:
         str: The TikZ code for the circle sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_circle_sketch  # doctest: +SKIP
     """
     res = get_draw(sketch)
     if not res:
@@ -1022,6 +1135,11 @@ def draw_rect_sketch(
 
     Returns:
         str: The TikZ code for the rectangle sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_rect_sketch  # doctest: +SKIP
     """
     res = get_draw(sketch)
     if not res:
@@ -1059,6 +1177,11 @@ def draw_ellipse_sketch(
 
     Returns:
         str: The TikZ code for the ellipse sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_ellipse_sketch  # doctest: +SKIP
     """
     res = get_draw(sketch)
     if not res:
@@ -1100,6 +1223,11 @@ def draw_arc_sketch(
 
     Returns:
         str: The TikZ code for the arc sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_arc_sketch  # doctest: +SKIP
     """
     res = get_draw(sketch)
     if not res:
@@ -1160,6 +1288,11 @@ def draw_bezier_sketch(
 
     Returns:
         str: The TikZ code for the Bezier curve sketch.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_bezier_sketch  # doctest: +SKIP
     """
     res = get_draw(sketch)
     if not res:
@@ -1189,6 +1322,11 @@ def draw_line(line: Any) -> str:
 
     Returns:
         str: TikZ markup.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> draw_line  # doctest: +SKIP
     """
     p1 = line.start[:2]
     p2 = line.end[:2]

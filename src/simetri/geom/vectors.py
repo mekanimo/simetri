@@ -71,6 +71,13 @@ class Vector:
 
         Raises:
             ValueError: If the arguments do not form a valid 2D/3D vector.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Vector(3, 4).mag()
+            5.0
+            >>> sg.Vector([1, 2, 3]).coords
+            (1, 2, 3)
         """
         if not args:
             raise ValueError(
@@ -1085,7 +1092,7 @@ def v_evaluate(line: Vec, point: Vec) -> float:
         >>> sg.v_evaluate([1, 0, -2], [2, 5])
         0
         >>> sg.v_evaluate([1, 0, -2], [0, 0])
-    # -2
+        -2
 """
     ln = _as_data(line)
     p = _as_data(point)
@@ -1221,7 +1228,7 @@ def v_string(vec: Vec) -> str:
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.v_string([1, 2])
-    # '[ 1, 2 ]'
+        '[ 1, 2 ]'
 """
     return "[ " + ", ".join(str(x) for x in _as_data(vec)) + " ]"
 
@@ -1556,7 +1563,7 @@ def cross_product_sense3(a: PointType, b: PointType, c: PointType) -> int:
         >>> sg.cross_product_sense3((1, 0), (0, 0), (0, 1))
         1
         >>> sg.cross_product_sense3((0, 1), (0, 0), (1, 0))
-    # -1
+        -1
 """
     cross_product = cross_product3(a, b, c)
     return 1 if cross_product >= 0 else -1
@@ -1846,8 +1853,12 @@ def surface_normal3(p1: PointType, p2: PointType, p3: PointType) -> VecType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.surface_normal3((0, 0, 0), (1, 0, 0), (0, 1, 0))
-    # array([0., 0., 1.])
+        >>> import numpy as np
+        >>> np.allclose(
+        ...     sg.surface_normal3((0, 0, 0), (1, 0, 0), (0, 1, 0)),
+        ...     [0.0, 0.0, 1.0],
+        ... )
+        True
 """
     v1 = np.array(p1)
     v2 = np.array(p2)

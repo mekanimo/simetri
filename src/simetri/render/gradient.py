@@ -1,6 +1,9 @@
 """Gradient stops and fill gradients for rendering backends.
 
 Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg
         >>> gradient = sg.Gradient(stops=((0, sg.gray), (1, sg.white)))
         >>> gradient.subtype.name
         'LINEAR'
@@ -22,7 +25,15 @@ __all__ = ["Gradient", "Stop", "normalize_stops"]
 
 @dataclass(init=False)
 class Stop:
-    """A gradient stop with color and/or opacity data."""
+    """A gradient stop with color and/or opacity data.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg
+        >>> Stop(0.0, color=sg.gray).offset
+        0.0
+    """
 
     offset: float
     color: Color | None = None
@@ -45,6 +56,9 @@ class Stop:
             ValueError: If validation of offset, color, or opacity fails.
 
         Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
             >>> stop = Stop(0.0, color=sg.gray)
             >>> stop.offset
             0.0
@@ -113,6 +127,9 @@ def normalize_stops(
         list[Stop] | tuple[Stop, ...]: Validated stops.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg
         >>> from simetri.render.gradient import normalize_stops
         >>> stops = normalize_stops([(0, sg.gray), (1, sg.white)])
         >>> len(stops)
@@ -126,6 +143,9 @@ class Gradient:
     """Linear or radial gradient for shape fills.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg
         >>> grad = sg.Gradient(stops=((0, sg.gray), (1, sg.white)))
         >>> grad.subtype.name
         'LINEAR'

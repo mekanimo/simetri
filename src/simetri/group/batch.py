@@ -1343,13 +1343,17 @@ class Group(Base):
                 "Invalid object. Only Group objects can be unioned!"
             )
 
-        self_ids = {item.id for item in self.elements}
-        other_ids = {item.id for item in other.elements}
-
-        union_ids = self_ids.union(other_ids)
+        seen: set[Any] = set()
+        merged: list[Any] = []
+        for item in (*self.elements, *other.elements):
+            key = item.id if hasattr(item, "id") else id(item)
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(item)
 
         return Group(
-            elements=[item for item in self.elements if item.id in union_ids],
+            merged,
             modifiers=self.modifiers,
             subtype=self.subtype,
         )
@@ -1385,7 +1389,7 @@ class Group(Base):
         intersection_ids = self_ids.intersection(other_ids)
 
         return Group(
-            elements=[
+            [
                 item for item in self.elements if item.id in intersection_ids
             ],
             modifiers=self.modifiers,
@@ -1423,7 +1427,7 @@ class Group(Base):
         difference_ids = self_ids.difference(other_ids)
 
         return Group(
-            elements=[
+            [
                 item for item in self.elements if item.id in difference_ids
             ],
             modifiers=self.modifiers,
@@ -1460,12 +1464,17 @@ class Group(Base):
 
         symmetric_difference_ids = self_ids.symmetric_difference(other_ids)
 
+        seen: set[Any] = set()
+        merged: list[Any] = []
+        for item in (*self.elements, *other.elements):
+            key = item.id if hasattr(item, "id") else id(item)
+            if key not in symmetric_difference_ids or key in seen:
+                continue
+            seen.add(key)
+            merged.append(item)
+
         return Group(
-            elements=[
-                item
-                for item in self.elements
-                if item.id in symmetric_difference_ids
-            ],
+            merged,
             modifiers=self.modifiers,
             subtype=self.subtype,
         )
@@ -1530,6 +1539,58 @@ class Group(Base):
 
         return self_ids.issuperset(other_ids)
 
+    @property
+    def ids(self) -> list[Any]:
+        """Return a list of ids of the elements in the group.
+
+        If the element has an ``id`` attribute, it is used; otherwise ``id(element)``.
+
+        Returns:
+            list[Any]: Element ids for top-level members.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)]), Shape([(2, 0), (3, 0)])])
+            >>> len(g.ids)
+            2
+        """
+        return [
+            item.id if hasattr(item, "id") else id(item)
+            for item in self.elements
+        ]
+
+    @property
+    def all_ids(self) -> list[Any]:
+        """Return ids for all elements, including nested groups.
+
+        If the element has an ``id`` attribute, it is used; otherwise ``id(element)``.
+
+        Returns:
+            list[Any]: Flattened element ids.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> nested = Group(
+            ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+            ... )
+            >>> len(nested.all_ids)
+            2
+        """
+        ids = []
+        for item in self.elements:
+            if hasattr(item, "type") and item.type == Types.GROUP:
+                ids.extend(item.all_ids)
+            else:
+                ids.append(item.id if hasattr(item, "id") else id(item))
+
+        return ids
+
     def __hash__(self) -> int:
         """Return the hash of the group.
 
@@ -1579,59 +1640,6 @@ class Group(Base):
             self.elements == other.elements
             and self.modifiers == other.modifiers
         )
-
-
-@property
-def ids(self: Group) -> list[Any]:
-    """Return a list of ids of the elements in the group.
-
-    If the element has an ``id`` attribute, it is used; otherwise ``id(element)``.
-
-    Returns:
-        list[Any]: Element ids for top-level members.
-
-    Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> g = Group([Shape([(0, 0), (1, 0)]), Shape([(2, 0), (3, 0)])])
-        >>> len(g.ids)
-        2
-    """
-    return [
-        item.id if hasattr(item, "id") else id(item) for item in self.elements
-    ]
-
-
-@property
-def all_ids(self: Group) -> list[Any]:
-    """Return ids for all elements, including nested groups.
-
-    If the element has an ``id`` attribute, it is used; otherwise ``id(element)``.
-
-    Returns:
-        list[Any]: Flattened element ids.
-
-    Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> nested = Group(
-        ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
-        ... )
-        >>> len(nested.all_ids)
-        2
-    """
-    ids = []
-    for item in self.elements:
-        if hasattr(item, "type") and item.type == Types.GROUP:
-            ids.extend(item.all_ids)
-        else:
-            ids.append(item.id if hasattr(item, "id") else id(item))
-
-    return ids
 
 
 def custom_group_attributes(item: Group) -> list[str]:

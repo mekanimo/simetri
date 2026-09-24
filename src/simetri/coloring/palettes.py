@@ -18024,7 +18024,8 @@ def random_palette(seed: int | None = None) -> list[list[int]]:
     except FileNotFoundError:
         pass
 
-    return list(d_n_palette[256].values())[i]
+    name = d_n_palette[256][i]
+    return list(d_name_palette[name])
 
 
 def get_palette(n_colors: int, ind: int) -> list[Color]:

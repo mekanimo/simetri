@@ -91,6 +91,17 @@ class BoundingBox:
         Args:
             southwest: Southwest (min-x, min-y) corner.
             northeast: Northeast (max-x, max-y) corner.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.southwest, bb.northeast
+            ((0, 0), (10, 20))
+            >>> empty = sg.BoundingBox()
+            >>> empty.southwest is None
+            True
         """
         # define the four corners
         if southwest is None or northeast is None:
@@ -121,6 +132,14 @@ class BoundingBox:
 
         Returns:
             Any: The attribute with the given name.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((-2, -1), (4, 5))
+            >>> bb.sw
+            (-2, -1)
         """
         if name in self._aliases:
             if name == "center":
@@ -195,6 +214,14 @@ class BoundingBox:
 
         Returns:
             tuple: The right edge.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.right == ((10, 20), (10, 0))
+            True
         """
         return (self.northeast, self.southeast)
 
@@ -205,6 +232,14 @@ class BoundingBox:
 
         Returns:
             tuple: The top edge.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.top == ((0, 20), (10, 20))
+            True
         """
         return (self.northwest, self.northeast)
 
@@ -215,6 +250,14 @@ class BoundingBox:
 
         Returns:
             tuple: The bottom edge.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.bottom == ((0, 0), (10, 0))
+            True
         """
         return (self.southwest, self.southeast)
 
@@ -225,6 +268,14 @@ class BoundingBox:
 
         Returns:
             tuple: The vertical centerline.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.vert_centerline == ((5.0, 20.0), (5.0, 0.0))
+            True
         """
         return (self.north, self.south)
 
@@ -235,6 +286,14 @@ class BoundingBox:
 
         Returns:
             tuple: The horizontal centerline.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.horiz_centerline == ((0.0, 10.0), (10.0, 10.0))
+            True
         """
         return (self.west, self.east)
 
@@ -268,6 +327,14 @@ class BoundingBox:
 
         Returns:
             tuple: The four corners of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.corners
+            ((0, 20), (0, 0), (10, 0), (10, 20))
         """
         return (self.northwest, self.southwest, self.southeast, self.northeast)
 
@@ -280,6 +347,14 @@ class BoundingBox:
 
         Returns:
             tuple: The four center points of the bounding box in a diamond shape.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.diamond
+            ((5.0, 20.0), (0.0, 10.0), (5.0, 0.0), (10.0, 10.0))
         """
         return (self.north, self.west, self.south, self.east)
 
@@ -290,6 +365,14 @@ class BoundingBox:
 
         Returns:
             tuple: All anchors of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.all_anchors
+            ((0.0, 10.0), (0, 0), (5.0, 0.0), (10, 20), (10.0, 10.0), (10, 20), (5.0, 20.0), (0, 20), (5.0, 10.0))
         """
         return (
             self.west,
@@ -321,6 +404,16 @@ class BoundingBox:
 
         Returns:
             tuple: All lines of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> len(bb.all_lines)
+            8
+            >>> bb.all_lines[0] == bb.left
+            True
         """
 
         return (
@@ -371,6 +464,13 @@ class BoundingBox:
 
         Returns:
             tuple: The size of the bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).size
+            (10.0, 20.0)
         """
         return (self.width, self.height)
 
@@ -381,6 +481,13 @@ class BoundingBox:
 
         Returns:
             tuple: The left edge midpoint.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).west
+            (0.0, 10.0)
         """
         return midpoint(*self.left)
 
@@ -391,6 +498,13 @@ class BoundingBox:
 
         Returns:
             tuple: The bottom edge midpoint.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).south
+            (5.0, 0.0)
         """
         return midpoint(*self.bottom)
 
@@ -401,6 +515,13 @@ class BoundingBox:
 
         Returns:
             tuple: The right edge midpoint.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).east
+            (10.0, 10.0)
         """
         return midpoint(*self.right)
 
@@ -411,6 +532,13 @@ class BoundingBox:
 
         Returns:
             tuple: The top edge midpoint.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).north
+            (5.0, 20.0)
         """
         return midpoint(*self.top)
 
@@ -421,6 +549,13 @@ class BoundingBox:
 
         Returns:
             tuple: The top left corner.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).northwest
+            (0, 20)
         """
         return self.__dict__["northwest"]
 
@@ -431,6 +566,13 @@ class BoundingBox:
 
         Returns:
             tuple: The top right corner.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).northeast
+            (10, 20)
         """
         return self.__dict__["northeast"]
 
@@ -441,6 +583,13 @@ class BoundingBox:
 
         Returns:
             tuple: The bottom left corner.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).southwest
+            (0, 0)
         """
         return self.__dict__["southwest"]
 
@@ -451,6 +600,13 @@ class BoundingBox:
 
         Returns:
             tuple: The bottom right corner.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).southeast
+            (10, 0)
         """
         return self.__dict__["southeast"]
 
@@ -461,6 +617,13 @@ class BoundingBox:
 
         Returns:
             tuple: The first diagonal.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).diagonal1
+            ((0, 0), (10, 20))
         """
         return (self.southwest, self.northeast)
 
@@ -471,6 +634,13 @@ class BoundingBox:
 
         Returns:
             tuple: The second diagonal.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> sg.BoundingBox((0, 0), (10, 20)).diagonal2
+            ((10, 0), (0, 20))
         """
         return (self.southeast, self.northwest)
 
@@ -492,6 +662,15 @@ class BoundingBox:
 
         Returns:
             BoundingBox: The inflated bounding box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> inflated = bb.get_inflated_b_box(1, 2, 3, 4)
+            >>> inflated.southwest, inflated.northeast
+            ((-1, -2), (13, 24))
         """
 
         if bottom_margin is None:
@@ -521,6 +700,15 @@ class BoundingBox:
 
         Returns:
             tuple: The offset line.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.base.all_enums import Side
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.offset_line(Side.LEFT, 2)
+            ((-2, 0), (-2, 20))
         """
         if isinstance(side, str):
             side = Side[side.upper()]
@@ -567,6 +755,15 @@ class BoundingBox:
 
         Returns:
             list: The offset point.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.base.all_enums import Anchor
+            >>> import simetri.graphics as sg
+            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb.offset_point(Anchor.NORTHWEST, 1, -2)
+            [1, 18]
         """
         if isinstance(anchor, str):
             anchor = Anchor[anchor.upper()]
@@ -590,6 +787,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.midpoint of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.centered(ref)
+            (25.0, 5.0)
         """
 
         x, y = item.midpoint[:2]
@@ -610,6 +816,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.west of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.left_of(ref)
+            (15.0, 5.0)
         """
         x, y = item.west[:2]
         w2 = self.width / 2
@@ -630,6 +845,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.east of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.right_of(ref)
+            (35.0, 5.0)
         """
         x, y = item.east[:2]
         w2 = self.width / 2
@@ -650,6 +874,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.north of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.above(ref)
+            (25.0, 20.0)
         """
         x, y = item.north[:2]
         h2 = self.height / 2
@@ -670,6 +903,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.south of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.below(ref)
+            (25.0, -10.0)
         """
         x, y = item.south[:2]
         h2 = self.height / 2
@@ -690,6 +932,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.northwest of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.above_left(ref)
+            (15.0, 20.0)
         """
         x, y = item.northwest[:]
         w2 = self.width / 2
@@ -712,6 +963,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.northeast of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.above_right(ref)
+            (35.0, 20.0)
         """
         x, y = item.northeast[:2]
         w2 = self.width / 2
@@ -734,6 +994,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.southwest of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.below_left(ref)
+            (15.0, -10.0)
         """
         x, y = item.southwest[:2]
         w2 = self.width / 2
@@ -756,6 +1025,15 @@ class BoundingBox:
 
         Returns:
             PointType: The item.southeast of the reference item's bounding-box.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.below_right(ref)
+            (35.0, -10.0)
         """
         x, y = item.southeast[:2]
         w2 = self.width / 2
@@ -779,6 +1057,15 @@ class BoundingBox:
 
         Returns:
             PointType: Target ``(x, y)`` for this box's midpoint.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
+            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> tag.polar_pos(ref, 0, 5)
+            (30.0, 5.0)
         """
 
         x, y = item.midpoint[:2]
@@ -803,9 +1090,11 @@ def bounding_box(points: Sequence[PointType]) -> BoundingBox:
         ValueError: If ``points`` is empty.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> bb = sg.bounding_box([(0, 0), (10, 5), (3, 8)])
-        >>> bb.southwest, bb.northeast  # doctest: +SKIP
+        >>> bb.southwest, bb.northeast
         ((0, 0), (10, 8))
 """
     if isinstance(points, np.ndarray):

@@ -29,6 +29,11 @@ def circle_intersections(
 
     Returns:
         list[tuple[float, float]]: Zero or two intersection points.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_circle import circle_intersections
+        >>> len(circle_intersections(((0, 0), 2), ((3, 0), 2)))
+        2
     """
     x1, y1 = circ1[0][:2]
     x2, y2 = circ2[0][:2]
@@ -64,6 +69,11 @@ def svg_arc_to(x: float, y: float, r: float, sweep: int) -> str:
 
     Returns:
         str: ``A …`` path fragment.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_circle import svg_arc_to
+        >>> svg_arc_to(1, 0, 1, 1).startswith('A')
+        True
     """
     return f"A {r} {r} 0 0 {sweep} {x:.4f} {y:.4f}"
 
@@ -77,6 +87,11 @@ def is_inside(p: PointType, circle: CircleSpec) -> bool:
 
     Returns:
         bool: True if the point is within the circle (with a small tolerance).
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_circle import is_inside
+        >>> is_inside((0, 0), ((0, 0), 1))
+        True
     """
     return (
         math.hypot(p[0] - circle[0][0], p[1] - circle[0][1]) < circle[1] + 1e-6
@@ -92,6 +107,11 @@ def union_of_circles(circles: Sequence[CircleSpec]) -> str:
 
     Returns:
         str: SVG path ``d`` string, or empty if no outline is produced.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_circle import union_of_circles
+        >>> union_of_circles([((0, 0), 1), ((0.5, 0), 1)]).startswith('M')
+        True
     """
     if not circles:
         return ""
@@ -156,6 +176,11 @@ def arc_arc_intersection(
 
     Returns:
         list[tuple[float, float]]: Points lying on both arcs.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_circle import arc_arc_intersection
+        >>> arc_arc_intersection(((0, 0), 1, 0, 0), ((1, 0), 1, 0, 0))  # doctest: +SKIP
+        []
     """
     c1, r1, start1, sweep1 = arc1
     c2, r2, start2, sweep2 = arc2
@@ -223,6 +248,12 @@ def convert_arc(
 
     Returns:
         str: SVG path ``d`` string starting with ``M`` then ``A``.
+
+    Examples:
+        >>> from math import pi
+        >>> from simetri.render.render_svg.svg_circle import convert_arc
+        >>> convert_arc((0, 0), 1, 0, pi / 2).startswith('M')
+        True
     """
     # Calculate start point
     start_x = center[0] + radius * math.cos(start_angle)
@@ -268,6 +299,11 @@ def convert_svg_arc(
     Returns:
         tuple[tuple[float, float], float, float]: ``((cx, cy), start_angle,
         sweep_angle)`` in radians.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_circle import convert_svg_arc
+        >>> convert_svg_arc((1, 0), (0, 1), 1, 1, 0, 0, 1)[1]
+        0.0
     """
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
@@ -340,6 +376,11 @@ def circles_to_arcs(
     Returns:
         list[str]: Four SVG path strings, or empty if the circles do not
         intersect at exactly two points.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_circle import circles_to_arcs
+        >>> len(circles_to_arcs(((0, 0), 2), ((3, 0), 2)))
+        4
     """
     # Find intersection points
     intersections = circle_intersections(circle1, circle2)
@@ -400,6 +441,11 @@ def invert(p: PointType, center: PointType, radius: float) -> np.ndarray:
 
     Returns:
         np.ndarray: Inverted point as a 2-vector (unchanged if ``p`` is the center).
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_circle import invert
+        >>> tuple(round(x, 4) for x in invert((2, 0), (0, 0), 1))
+        (0.5, 0.0)
     """
     dist = distance(p, center)
     if dist == 0:

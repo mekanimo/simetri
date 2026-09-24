@@ -49,7 +49,6 @@ import warnings
 from collections import defaultdict
 from collections.abc import ItemsView, KeysView, Sequence, ValuesView
 from typing import Any
-from warnings import Warning
 from dataclasses import dataclass
 from enum import StrEnum
 from math import pi

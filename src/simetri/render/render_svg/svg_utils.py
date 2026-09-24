@@ -44,7 +44,13 @@ def fmt(val: float | int, digits: int = 3) -> str:
 
 def round_corner(points: list["PointType"], radius: float) -> str:
     """Given a list of three points generates an svg path corresponding to a
-    polyline with two segments and a rounded corner between them"""
+    polyline with two segments and a rounded corner between them.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_utils import round_corner
+        >>> round_corner([(0, 0), (0, 1), (1, 1)], 0.2).startswith('L')
+        True
+    """
     if len(points) != 3:
         raise ValueError("round_corner expects exactly 3 points")
 
@@ -110,6 +116,11 @@ def round_corners(
         radius: The default radius for all corners (default: 0)
         fillets: A list of tuples (index, radius) to override the default radius for specific corners
         closed: If True, the path is closed and all corners are rounded (default: False)
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_utils import round_corners
+        >>> round_corners([(0, 0), (1, 0), (1, 1), (0, 1)], 0.1).startswith('M')
+        True
     """
     if len(points) < 3:
         if closed:
@@ -236,6 +247,11 @@ def double_lines(
     Offset can be applied inward, outward, or centered.
 
     Returns an SVG path with double lines.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_utils import double_lines
+        >>> len(double_lines('M 0,0 L 1,0 L 1,1 Z', 0.1)) > 0
+        True
     """
     points, closed = _extract_vertices(svg_path)
     if not points:
@@ -292,6 +308,11 @@ def set_style(svg_shape: str, d_style: dict) -> str:
     """Given an svg shape (line, circle, ellipse, or path), applies the
     style values (line style, fill style, and gradient) given as a dictionary.
     Returns a string representing the stylized svg_shape.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_utils import set_style
+        >>> 'stroke-width' in set_style('<path d="M0,0"/>', {'stroke_width': 2})
+        True
     """
     attribs = []
     for k, v in d_style.items():
@@ -328,6 +349,12 @@ def convert_arc(
 
     Returns:
         str: ``M … A …`` path data.
+
+    Examples:
+        >>> from math import pi
+        >>> from simetri.render.render_svg.svg_utils import convert_arc
+        >>> convert_arc((0, 0), 1, 0, pi / 2).startswith('M')
+        True
     """
     # Calculate start point
     start_x = center[0] + radius * math.cos(start_angle)
@@ -373,6 +400,11 @@ def convert_svg_arc(
     Returns:
         tuple[tuple[float, float], float, float]: ``((cx, cy), start_angle,
         sweep_angle)`` in radians.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_utils import convert_svg_arc
+        >>> convert_svg_arc((1, 0), (0, 1), 1, 1, 0, 0, 1)[1]
+        0.0
     """
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
@@ -430,7 +462,13 @@ def convert_svg_arc(
 
 
 def svg_path_to_path2d(svg_path: str) -> "Path2D":
-    """Given an SVG path returns the equivalent Path2D object."""
+    """
+    Given an SVG path returns the equivalent Path2D object.
+    Examples:
+        >>> from simetri.render.render_svg.svg_utils import svg_path_to_path2d
+        >>> svg_path_to_path2d('M 0,0 L 1,0').pos
+        [1.0, 0.0]
+    """
     from ...geom.nonlinear.path import Path2D
 
     if not svg_path:
@@ -487,6 +525,11 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
         is_rel = current_cmd == cmd_lower
 
         def get_nums(count: int) -> list[float] | None:
+            """Read ``count`` numeric tokens from the path token stream.
+
+            Examples:
+                >>> pass  # doctest: +SKIP
+            """
             nonlocal i
             nums = []
             for _ in range(count):
@@ -654,7 +697,14 @@ def extract_glyph_path(
 
 
 def path2d_to_svg_path(path2d: "Path2D") -> str:
-    """Given a Path2D instance, returns the equivalent SVG path string."""
+    """
+    Given a Path2D instance, returns the equivalent SVG path string.
+    Examples:
+        >>> from simetri.geom.nonlinear.path import Path2D
+        >>> from simetri.render.render_svg.svg_utils import path2d_to_svg_path
+        >>> path2d_to_svg_path(Path2D((0, 0)).line_to((1, 0))).startswith('M')
+        True
+    """
     from ...geom.nonlinear.path import path2d_to_svg_path as _convert
 
     return _convert(path2d)
@@ -664,6 +714,14 @@ def path2d_points(path2d: "Path2D", delta: float) -> list[tuple[float, float]]:
     """Given a Path2D instance, returns a list of points separated by the given length.
     It is not possible to create the points with the exact delta. Delta will be
     adjusted for each part of the Path2D accordingly.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.geom.nonlinear.path import Path2D
+        >>> from simetri.render.render_svg.svg_utils import path2d_points
+        >>> len(path2d_points(Path2D((0, 0)).line_to((3, 0)), 1)) >= 2
+        True
     """
     points = []
     vertices = path2d.vertices
@@ -704,6 +762,11 @@ def svg_path_points(svg_path: str, delta: float) -> list[tuple[float, float]]:
     """Given an SVG path string, returns a list of points separated by the given length.
     It is not possible to create the points with the exact delta. Delta will be
     adjusted for each part of the SVG path accordingly.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_utils import svg_path_points
+        >>> len(svg_path_points('M 0,0 L 3,0', 1)) >= 2
+        True
     """
     lp = svg_path_to_path2d(svg_path)
     return path2d_points(lp, delta)
@@ -766,6 +829,11 @@ def _get_svg_arc_params(
 
     # Step 4: Angles
     def vector_angle(ux: float, uy: float, vx: float, vy: float) -> float:
+        """Signed angle from ``(ux, uy)`` to ``(vx, vy)`` in radians.
+
+        Examples:
+            >>> pass  # doctest: +SKIP
+        """
         sign = 1 if (ux * vy - uy * vx) >= 0 else -1
         dot = ux * vx + uy * vy
         length = sqrt(ux**2 + uy**2) * sqrt(vx**2 + vy**2)

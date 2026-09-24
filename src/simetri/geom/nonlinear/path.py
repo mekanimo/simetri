@@ -2588,6 +2588,9 @@ def shape_to_path(shape: Shape) -> Path2D:
     return path
 
 
+shape_to_path2d = shape_to_path
+
+
 def group_to_path(group: Group) -> Path2D:
     """Convert a ``Group`` of shapes into a single ``Path2D``.
 

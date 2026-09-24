@@ -100,6 +100,11 @@ def set_styles(
         tuple: ``(d_styles, d_sketch_style)`` where ``d_styles`` maps style
         ids to property dicts and ``d_sketch_style`` maps sketch ids to
         style ids.
+
+    Examples:
+        >>> from simetri.render.pre_render import set_styles
+        >>> set_styles([])
+        ({}, {})
     """
     d_styles = {}
     d_sketch_style = {}
@@ -212,6 +217,18 @@ def collect_tikz_preamble_requirements_for_sketch(
         sketch: Sketch to inspect.
         tikz_libraries: Mutable list of TikZ library names (mutated).
         tikz_packages: Mutable list of TeX package names (mutated).
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.render.pre_render import collect_tikz_preamble_requirements_for_sketch
+        >>> from simetri.render.sketch import CircleSketch
+        >>> libs, pkgs = [], []
+        >>> collect_tikz_preamble_requirements_for_sketch(
+        ...     CircleSketch(center=(0, 0), radius=10), libs, pkgs,
+        ... )
+        >>> isinstance(libs, list)
+        True
     """
     sketch_dict = sketch.__dict__
 
@@ -301,6 +318,14 @@ def canvas_uses_label_halos(canvas: Canvas) -> bool:
 
     Returns:
         bool: True if label rendering needs contour/halo support.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg
+        >>> from simetri.render.pre_render import canvas_uses_label_halos
+        >>> canvas_uses_label_halos(sg.Canvas())
+        False
     """
     for page in canvas.pages:
         sketches_to_inspect = list(page.sketches)
@@ -317,7 +342,13 @@ def canvas_uses_label_halos(canvas: Canvas) -> bool:
 
 
 def label_halo_preamble_line() -> str:
-    """Preamble line for TikZ/PDF label halos via the contour package."""
+    """Preamble line for TikZ/PDF label halos via the contour package.
+
+    Examples:
+        >>> from simetri.render.pre_render import label_halo_preamble_line
+        >>> 'contour' in label_halo_preamble_line()
+        True
+    """
     return "\\usepackage[outline]{contour}\n"
 
 
@@ -331,6 +362,15 @@ def collect_tikz_preamble_requirements(
 
     Returns:
         tuple[list, list]: ``(tikz_libraries, tikz_packages)``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg
+        >>> from simetri.render.pre_render import collect_tikz_preamble_requirements
+        >>> libs, pkgs = collect_tikz_preamble_requirements(sg.Canvas())
+        >>> 'tikz' in pkgs
+        True
     """
     tikz_libraries = []
     tikz_packages = ["tikz", "pgf"]

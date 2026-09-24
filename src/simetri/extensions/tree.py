@@ -79,7 +79,7 @@ class TreeNode:
         self.font_color = font_color
         self.bold = bold
 
-    def add_child(self, child: TreeNode) -> None:
+    def add_child(self, child: "TreeNode") -> None:
         """Add a child node if it is not already present.
 
         Args:

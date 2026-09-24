@@ -19,12 +19,11 @@ from __future__ import annotations
 from collections import OrderedDict
 from collections.abc import Callable, Iterator, Sequence
 from itertools import combinations
-from math import ceil, log10, pi, sqrt
+from math import ceil, isclose, log10, pi, sqrt
 from typing import Any, Self
 
 import networkx as nx
 import numpy as np
-from numpy import isclose
 
 from ..base.all_enums import Connection, InPlace, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults

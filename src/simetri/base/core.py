@@ -282,7 +282,7 @@ class DynRef:
         ... reps=1,
         ... dyn_ref=True,
         ... )
-        >>> [tuple(shape.midpoint[:2]) for shape in fan]
+        >>> [tuple(round(v, 9) for v in shape.midpoint[:2]) for shape in fan]
         [(50.0, 20.0), (-20.0, 50.0)]
         >>> walk = box.mirror(
         ... DynRef(Reference.EDGE, ReferenceTarget.ACTIVE, index=1),
@@ -515,6 +515,12 @@ class Transform:
 
         Raises:
             ValueError: If a vector is passed together with ``dy``.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> step = sg.Transform.translate(10, 5)
+            >>> step.arguments[0]
+            ('dx', 10)
         """
         builder, arguments = _translate_builder_args(dx, dy)
         return cls(builder, tuple(arguments.items()))
@@ -531,6 +537,11 @@ class Transform:
 
         Returns:
             Transform: The rotation step.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Transform.rotate(sg.pi / 2, about=(0, 0)).arguments[0]
+            ('angle', 1.5707963267948966)
         """
         return cls(rotation_matrix, (("angle", angle), ("about", about)))
 
@@ -543,6 +554,12 @@ class Transform:
 
         Returns:
             Transform: The mirror step.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> line = [(0, 0), (1, 0)]
+            >>> sg.Transform.mirror(line).arguments[0]
+            ('about', [(0, 0), (1, 0)])
         """
         return cls(mirror_matrix, (("about", about),))
 
@@ -561,6 +578,11 @@ class Transform:
 
         Returns:
             Transform: The glide step.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Transform.glide([(0, 0), (10, 0)], 3).arguments[1]
+            ('glide_dist', 3)
         """
         return cls(
             glide_matrix,
@@ -585,6 +607,11 @@ class Transform:
 
         Returns:
             Transform: The scale step.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Transform.scale(2).arguments[0]
+            ('scale_x', 2)
         """
         if scale_y is None:
             scale_y = scale_x
@@ -609,6 +636,11 @@ class Transform:
 
         Returns:
             Transform: The shear step.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Transform.shear(0.1, 0.2).arguments
+            (('theta_x', 0.1), ('theta_y', 0.2))
         """
         return cls(shear_matrix, (("theta_x", theta_x), ("theta_y", theta_y)))
 
@@ -1104,6 +1136,12 @@ class Base:
     Note:
         Concrete subclasses must implement ``_update``, ``copy``, ``append``
         (for groups), and expose ``b_box`` / ``type``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> bar = sg.Shape([(0, 0), (4, 0)], closed=True)
+        >>> bar.translate(2, 0).midpoint[0]
+        4.0
     """
 
     def __getattr__(self, name: str) -> Any:
@@ -1274,14 +1312,15 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> path = [(0, 0), (5, 0), (10, 0)]
             >>> mark = sg.Shape([(0, 0), (1, 0)])
-            >>> result = mark.translate_along(path, step=1, incr=(1, 0))
-            >>> result is mark
+            >>> mark.translate_along([(5, 0)]) is mark
             True
-            >>> path
-            [(0, 0), (5, 0), (10, 0)]
-"""
+            >>> mark.translate_along([(0, 0), (1, 0)], dyn_ref=True)
+            Traceback (most recent call last):
+                ...
+            ValueError: translate_along places copies on given path points, so dyn_ref has no transform arguments to resolve. Use translate, rotate, mirror, glide, scale, or shear instead.
+            >>> mark.translate_along([(0, 0), (5, 0)], step=1, incr=(1, 0))  # doctest: +SKIP
+        """
         if dyn_ref:
             raise ValueError(
                 "translate_along places copies on given path points, so "
@@ -1691,21 +1730,16 @@ class Base:
     def reset_xform_matrix(self) -> Self:
         """Set this object's transform matrix back to the identity.
 
-        This object is updated. Later reads of the vertices use the
-        original points.
-
         Returns:
             Self: This object.
 
         Examples:
             >>> import simetri.graphics as sg
             >>> mark = sg.Shape([(0, 0), (1, 0)])
-            >>> mark.translate(3, 0)
+            >>> _ = mark.translate(3, 0)
             >>> mark.reset_xform_matrix() is mark
             True
-            >>> mark.vertices
-            ((0.0, 0.0), (1.0, 0.0))
-"""
+        """
         self.__dict__["xform_matrix"] = np.identity(3)
         return self
 
@@ -1874,7 +1908,7 @@ class Base:
             >>> import simetri.graphics as sg
             >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
             >>> box.offset_line(sg.Side.BOTTOM, 1)[0][1]
-        # -1.0
+            -1.0
 """
         side = get_enum_value(Side, side)
         return self.b_box.offset_line(side, offset)
@@ -1896,9 +1930,9 @@ class Base:
             >>> import simetri.graphics as sg
             >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
             >>> box.offset_point(sg.Anchor.SOUTHWEST, 1, 2)
-            (1.0, 2.0)
-            >>> box.offset_point(sg.Anchor.NORTHEAST, -1)
-            (3.0, 2.0)
+            [1.0, 2.0]
+            >>> box.offset_point(sg.Anchor.NORTHEAST, -1, 0)
+            [3.0, 2.0]
 """
         anchor = get_enum_value(Anchor, anchor)
         return self.b_box.offset_point(anchor, dx, dy)

@@ -111,6 +111,11 @@ from ..render.grids import *
 from ..render.mask import Mask
 from ..render.render_svg.filters import *
 from ..render.render_svg.svg import *
+from ..geom.nonlinear.path import (
+    path2d_svg,
+    path2d_to_svg_path,
+    shape_to_path2d,
+)
 from ..render.render_tikz.tikz import *
 from ..render.sketch import *
 from ..render.style_map import *

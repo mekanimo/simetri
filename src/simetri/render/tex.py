@@ -71,6 +71,10 @@ def remove_aux_files(file_path: str | os.PathLike[str]) -> None:
 
     Args:
         file_path: Path to the main TeX or output file (extension drives cleanup).
+
+    Examples:
+        >>> from simetri.render.tex import remove_aux_files
+        >>> remove_aux_files('missing.tex')  # doctest: +SKIP
     """
     time_out = 1  # seconds
     parent_dir, file_name = os.path.split(file_path)
@@ -137,6 +141,10 @@ def run_job(
         file_name: Base name without extension.
         extension: Desired output extension (e.g. ``.pdf``, ``.svg``).
         tex_path: Full path to the ``.tex`` source file.
+
+    Examples:
+        >>> from simetri.render.tex import run_job
+        >>> run_job('.', 'test', '.pdf', 'test.tex')  # doctest: +SKIP
     """
     output_path = os.path.join(parent_dir, file_name + extension)
     pdf_path = os.path.join(parent_dir, file_name + ".pdf")
@@ -186,6 +194,11 @@ def compile_tex(
 
     Returns:
         _CompileTexResult: Captured stdout, stderr, and process exit code.
+
+    Examples:
+        >>> from simetri.render.tex import compile_tex
+        >>> compile_tex('echo ok', '.', False).returncode  # doctest: +SKIP
+        0
     """
     os.chdir(parent_dir)
     with subprocess.Popen(
@@ -217,6 +230,13 @@ class Tex:
         tikz_libraries (list[str]): List of required TikZ libraries.
         tikz_code (str): The generated TikZ code.
         sketches (list["Sketch"]): List of Sketch objects.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.render.tex import Tex
+        >>> 'document' in Tex().begin_document
+        True
     """
 
     begin_document: str = defaults["begin_doc"]
@@ -243,6 +263,13 @@ class Tex:
 
         Returns:
             str: The final TeX code.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> from simetri.render.tex import Tex
+            >>> Tex().tex_code(sg.Canvas(), '')  # doctest: +SKIP
         """
         doc_code = "\n".join(
             sketch.code
@@ -302,6 +329,11 @@ class Tex:
 
         Returns:
             str: The document class string.
+
+        Examples:
+            >>> from simetri.render.tex import Tex
+            >>> 'standalone' in Tex().get_doc_class(0, 11)
+            True
         """
         if isinstance(border, str):
             border_value = border
@@ -314,6 +346,11 @@ class Tex:
 
         Returns:
             str: The TikZ code.
+
+        Examples:
+            >>> from simetri.render.tex import Tex
+            >>> Tex().get_tikz_code()
+            ''
         """
         code = ""
         for sketch in self.sketches:
@@ -327,6 +364,12 @@ class Tex:
 
         Returns:
             str: The TikZ libraries string.
+
+        Examples:
+            >>> from simetri.render.tex import Tex
+            >>> tex = Tex(tikz_libraries=['calc'])
+            >>> 'calc' in tex.get_tikz_libraries()
+            True
         """
         return f"\\usetikzlibrary{{{','.join(self.tikz_libraries)}}}\n"
 
@@ -340,6 +383,15 @@ class Tex:
 
         Returns:
             tuple[list[str], list[str]]: ``(tikz_libraries, packages)``.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> from simetri.render.tex import Tex
+            >>> libs, pkgs = Tex().get_packages(sg.Canvas())
+            >>> 'tikz' in pkgs
+            True
         """
         if self.tikz_libraries is not None and self.packages is not None:
             return self.tikz_libraries, self.packages
@@ -354,6 +406,14 @@ class Tex:
 
         Returns:
             str: The TeX preamble.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> import simetri.graphics as sg
+            >>> from simetri.render.tex import Tex
+            >>> len(Tex().get_preamble(sg.Canvas())) > 0
+            True
         """
         libraries, packages = self.get_packages(canvas)
 

@@ -109,6 +109,13 @@ class Style:
     """Validated mapping of draw-alias names (``line_width``, ``fill_color``, …).
 
     Unknown keys raise. ``None`` on a field means unset.
+
+    Examples:
+        >>> from simetri.base.common_style import Style
+        >>> Style(line_width=1.5)["line_width"]
+        1.5
+        >>> "stroke" in Style(stroke=True)
+        True
     """
 
     def __init__(self, mapping: Any = None, **kwargs: object) -> None:
@@ -144,6 +151,13 @@ def coerce_style_overlay(mapping: Any = None, kwargs: dict | None = None) -> dic
     """Return a dict of draw-alias keys from a Style, a dict, and/or kwargs.
 
     Keyword arguments overwrite keys from ``mapping``. Unknown keys raise.
+
+    Examples:
+        >>> from simetri.base.common_style import Style, coerce_style_overlay
+        >>> coerce_style_overlay({"line_width": 2.0})
+        {'line_width': 2.0}
+        >>> coerce_style_overlay(Style(stroke=True), {"line_width": 1.0})
+        {'stroke': True, 'line_width': 1.0}
     """
     if kwargs is None:
         kwargs = {}
@@ -178,7 +192,15 @@ class CommonStyle:
       (e.g. Path2D under ``Group`` uses ``4``; default is ``3``).
 
     ``color`` / ``alpha`` fan out to line and fill when set to a non-``None``
-    value. Unset line/fill color and alpha resolve to ``defaults[...]``.
+    value.     Unset line/fill color and alpha resolve to ``defaults[...]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (1, 0)], closed=True)
+        >>> mark.style["line_width"] is None
+        True
+        >>> mark.reset_style() is mark
+        True
     """
 
     _style_warning_stacklevel: int = 3

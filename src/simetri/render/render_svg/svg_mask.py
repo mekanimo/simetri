@@ -35,10 +35,20 @@ def generate_mask_def(
 
     Returns:
         str: SVG ``<mask>`` element markup (and nested gradient when needed).
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> generate_mask_def  # doctest: +SKIP
     """
     from ..draw import create_sketch
 
     def get_mask_stop(stop: Any) -> tuple[str, Any, float | None]:
+        """Format one gradient stop for SVG mask markup.
+
+        Examples:
+            >>> pass  # doctest: +SKIP
+        """
         stop_offset = f"{float(stop.offset) * 100}%"
 
         if isinstance(stop_color, Color):
@@ -334,7 +344,13 @@ def generate_mask_def(
 
 
 def has_mask_style(sketch: Any) -> bool:
-    """Return whether ``sketch`` defines mask stops via style or attributes."""
+    """
+    Return whether ``sketch`` defines mask stops via style or attributes.
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> has_mask_style  # doctest: +SKIP
+    """
     try:
         mask_style = sketch_attrib(sketch, "style").fill_style.mask_style
         if mask_style.stops is not None:

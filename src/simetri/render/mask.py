@@ -45,6 +45,9 @@ class Mask:
         ValueError: If ``opacity`` is outside ``[0, 1]``.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg
         >>> from simetri.render.mask import Mask
         >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)])
         >>> mask = Mask(shape=shape)
@@ -83,6 +86,8 @@ def normalize_axis(axis: Axis | tuple[float, float] | None) -> tuple[float, floa
         Two endpoints ``((x0, y0), (x1, y1))`` for linear mask gradients.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
         >>> from simetri.render.mask import normalize_axis
         >>> len(normalize_axis(None))
         2
@@ -171,6 +176,9 @@ def clip_mask_(
         ValueError: If opacity or unsupported units are invalid.
 
     Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg
         >>> from simetri.render.mask import Mask, clip_mask_
         >>> canvas = sg.Canvas()
         >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)])

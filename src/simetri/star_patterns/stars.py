@@ -443,6 +443,7 @@ class Star(Group):
 
         return star
 
+    @staticmethod
     def find_trig_representation(
         target_value: float, tolerance: float = 1e-6
     ) -> str:

@@ -27,6 +27,7 @@ from colorsys import (
 )
 from dataclasses import dataclass
 import random
+from typing import TypeAlias
 
 import numpy as np
 from coloraide import Color as Color_aide
@@ -328,7 +329,7 @@ def rgb_to_hex(r: int, g: int, b: int) -> str:
         >>> sg.rgb_to_hex(255, 255, 255)
         'FFFFFF'
 """
-    return f"{r:X}{g:X}{b:X}"
+    return f"{r:02X}{g:02X}{b:02X}"
 
 
 @dataclass
@@ -572,6 +573,9 @@ class Color:
         return tuple(round(i * 255) for i in self.rgba)
 
 
+ColorLike: TypeAlias = Color | str | Sequence[int | float]
+
+
 def hex_color(hex_value: str) -> Color:
     """Return a ``Color`` from a hex string.
 
@@ -694,7 +698,7 @@ def get_color(value: object) -> Color:
         raise TypeError("Invalid color value")
 
 
-def check_color(color: object) -> Color:
+def check_color(color: ColorLike) -> Color:
     """Validate and normalize a color-like value.
 
     Args:

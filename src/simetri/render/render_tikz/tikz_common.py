@@ -38,6 +38,12 @@ def anchor_to_tikz(anchor: Anchor | None) -> str | None:
 
     Returns:
         TikZ anchor string (for example ``"north east"``), or None.
+
+    Examples:
+        >>> from simetri.base.all_enums import Anchor
+        >>> from simetri.render.render_tikz.tikz_common import anchor_to_tikz
+        >>> anchor_to_tikz(Anchor.NORTHEAST)
+        'north east'
     """
     if anchor is None:
         return None
@@ -214,7 +220,16 @@ _decision_table = {
 
 
 def get_draw(sketch: Any) -> str | Literal[False]:
-    """Return the TikZ path command for a sketch, or ``False`` if none."""
+    """
+    Return the TikZ path command for a sketch, or ``False`` if none.
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from types import SimpleNamespace
+        >>> from simetri.render.render_tikz.tikz_common import get_draw
+        >>> get_draw(SimpleNamespace(closed=True, fill=True, stroke=False, back_style=None))
+        '\\fill'
+    """
 
     if hasattr(sketch, "markers_only") and sketch.markers_only:
         result = "\\draw"
@@ -248,7 +263,13 @@ def get_draw(sketch: Any) -> str | Literal[False]:
 
 
 def get_begin_scope(ind: int | None = None) -> str:
-    """Return ``\\begin{scope}`` with optional ``nodestyle{ind}`` node hook."""
+    """
+    Return ``\\begin{scope}`` with optional ``nodestyle{ind}`` node hook.
+    Examples:
+        >>> from simetri.render.render_tikz.tikz_common import get_begin_scope
+        >>> get_begin_scope(2).startswith('\\begin')
+        True
+    """
     if ind is None:
         result = ""
     else:
@@ -258,7 +279,13 @@ def get_begin_scope(ind: int | None = None) -> str:
 
 
 def get_end_scope() -> str:
-    """Return \\end{scope}."""
+    """
+    Return \\end{scope}.
+    Examples:
+        >>> from simetri.render.render_tikz.tikz_common import get_end_scope
+        >>> get_end_scope().startswith('\\end')
+        True
+    """
     return "\\end{scope}\n"
 
 

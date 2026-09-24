@@ -476,9 +476,10 @@ class Image(Rectangle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Image(size=(2, 2), mode="RGB").category  # doctest: +SKIP
+            >>> sg.Image(size=(2, 2), mode="RGB").category
+            'image'
         """
-        return self.pil_img.category
+        return "image"
 
     @property
     def readonly(self) -> bool:
@@ -524,7 +525,7 @@ class Image(Rectangle):
         im: Image,
         dest: Sequence[int] = (0, 0),
         source: Sequence[int] = (0, 0),
-    ) -> PIL_Image.Image:
+    ) -> Image:
         """
         Blend two images together using alpha compositing.
         This method is a wrapper around the PIL alpha_composite method.
@@ -535,16 +536,17 @@ class Image(Rectangle):
             source (Sequence[int], optional): The source coordinates. Defaults to (0, 0).
 
         Returns:
-            Image: The resulting image after alpha compositing.
+            Image: This image after alpha compositing (in place).
 
         Examples:
             >>> import simetri.graphics as sg
             >>> base = sg.Image(size=(4, 4), mode="RGBA")
             >>> over = sg.Image(size=(4, 4), mode="RGBA")
-            >>> base.alpha_composite(over).size  # doctest: +SKIP
+            >>> base.alpha_composite(over).size
             (4, 4)
         """
-        return self.pil_img.alpha_composite(im, dest, source)
+        self.pil_img.alpha_composite(im.pil_img, dest, source)
+        return self
 
     def apply_transparency(self) -> None:
         """Apply transparency to the image.

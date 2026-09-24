@@ -36,7 +36,7 @@ class Figure(Group):
         if skin is not None and isinstance(skin, (list, tuple)):
             skin = Group(list(skin))
         elements = [geometry] if skin is None else [geometry, skin]
-        super().__init__(elements=elements, subtype=Types.FIGURE)
+        super().__init__(elements, subtype=Types.FIGURE)
         self.draw_geometry = True
         self.draw_skin = True
 

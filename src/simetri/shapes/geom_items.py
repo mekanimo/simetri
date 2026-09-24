@@ -1652,7 +1652,7 @@ def inflate(item: Shape, offset: float) -> Shape:
 def offset_polygon_shape(
     polygon_shape: Shape,
     offset: float = 1,
-    dist_tol: float = defaults["dist_tol"],
+    dist_tol: float | None = None,
 ) -> Shape:
     """Return a polygon ``Shape`` with offset edges.
 
@@ -1675,6 +1675,8 @@ def offset_polygon_shape(
         >>> [float(round(coord, 6)) for coord in out.vertices[0][:2]]
         [-7.0, -7.0]
 """
+    if dist_tol is None:
+        dist_tol = defaults["dist_tol"]
     vertices = offset_polygon(polygon_shape.vertices, offset, dist_tol)
 
     return Shape(vertices)

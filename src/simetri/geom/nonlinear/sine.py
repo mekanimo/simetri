@@ -74,7 +74,7 @@ class SineWave(Shape):
         self.damping = (damping,)
         self.rot_angle = (rot_angle,)
 
-    def copy_(self) -> SineWave:
+    def copy_(self) -> "SineWave":
         """Return a new ``SineWave`` with the same parameters.
 
         Returns:

@@ -41,11 +41,14 @@ def hop(
         >>> set_defaults()
         >>> from simetri.shapes.shape import Shape
         >>> mark = Shape([(0, 0), (10, 0)])
-        >>> hop(mark, vector=(20, 0), reps=2) is mark
-        True
+        >>> row = hop(mark, vector=(20, 0), reps=2)
+        >>> row.__class__.__name__
+        'Group'
+        >>> len(row)
+        3
     """
     dx, dy = vector[:2]
-    return design.translate(dx, dy, reps)
+    return design.translate(dx, dy, reps=reps)
 
 
 def p1(design: Group | Shape, vector: VecType = (1, 0), reps: int = 3) -> Group:
@@ -65,8 +68,9 @@ def p1(design: Group | Shape, vector: VecType = (1, 0), reps: int = 3) -> Group:
         >>> set_defaults()
         >>> from simetri.shapes.shape import Shape
         >>> mark = Shape([(0, 0), (10, 0)])
-        >>> p1(mark, vector=(15, 0), reps=1) is mark
-        True
+        >>> row = p1(mark, vector=(15, 0), reps=1)
+        >>> len(row)
+        2
     """
     return hop(design, vector, reps)
 
@@ -96,12 +100,16 @@ def jump(
         >>> from simetri.shapes.shape import Shape
         >>> band = Group([Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
-        >>> jump(band, axis, 20, reps=1)  # doctest: +SKIP
+        >>> row = jump(band, axis, 20, reps=1)
+        >>> len(row)
+        4
+        >>> row is band
+        True
     """
     dx, dy = vec_along_line(mirror_line, dist)[:2]
     design.mirror(mirror_line, reps=1)
     if reps > 0:
-        design.translate(dx, dy, reps)
+        design.translate(dx, dy, reps=reps)
     return design
 
 
@@ -165,10 +173,14 @@ def sidle(
         >>> from simetri.shapes.shape import Shape
         >>> band = Group([Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
-        >>> sidle(band, axis, 20, reps=1)  # doctest: +SKIP
+        >>> row = sidle(band, axis, 20, reps=1)
+        >>> len(row)
+        4
+        >>> row is band
+        True
     """
 
-    return design.mirror(mirror_line, reps=1).translate(dist, 0, reps)
+    return design.mirror(mirror_line, reps=1).translate(dist, 0, reps=reps)
 
 
 def sidle_along(
@@ -230,11 +242,15 @@ def spinning_hop(
         >>> from simetri.group.batch import Group
         >>> from simetri.shapes.shape import Shape
         >>> band = Group([Shape([(0, 0), (10, 0)])])
-        >>> spinning_hop(band, (5, 0), 20, 0, reps=1)  # doctest: +SKIP
+        >>> row = spinning_hop(band, (5, 0), 20, 0, reps=1)
+        >>> len(row)
+        4
+        >>> row is band
+        True
     """
     design.rotate(pi, rotocenter, reps=1)
     if reps > 0:
-        design.translate(dx, dy, reps)
+        design.translate(dx, dy, reps=reps)
     return design
 
 
@@ -264,18 +280,22 @@ def spinning_jump(
         >>> from simetri.group.batch import Group
         >>> from simetri.shapes.shape import Shape
         >>> band = Group([Shape([(0, 0), (10, 0)])])
-        >>> spinning_jump(  # doctest: +SKIP
+        >>> row = spinning_jump(
         ...     band,
         ...     ((0, -5), (100, -5)),
         ...     ((0, 0), (0, 100)),
         ...     20,
         ...     reps=1,
         ... )
+        >>> len(row)
+        8
+        >>> row is band
+        True
     """
     dx, dy = vec_along_line(mirror1, dist)[:2]
     design.mirror(mirror1, reps=1).mirror(mirror2, reps=1)
     if reps > 0:
-        design.translate(dx, dy, reps)
+        design.translate(dx, dy, reps=reps)
     return design
 
 
@@ -307,7 +327,7 @@ def spinning_sidle(
         >>> from simetri.group.batch import Group
         >>> from simetri.shapes.shape import Shape
         >>> band = Group([Shape([(0, 0), (10, 0)])])
-        >>> spinning_sidle(  # doctest: +SKIP
+        >>> row = spinning_sidle(
         ...     band,
         ...     ((0, -5), (100, -5)),
         ...     ((0, -5), (100, -5)),
@@ -315,11 +335,15 @@ def spinning_sidle(
         ...     20,
         ...     reps=1,
         ... )
+        >>> len(row)
+        8
+        >>> row is band
+        True
     """
     dx, dy = vec_along_line(glide_line, trans_dist)[:2]
     design.mirror(mirror_line, reps=1).glide(glide_line, glide_dist, reps=1)
     if reps > 0:
-        design.translate(dx, dy, reps)
+        design.translate(dx, dy, reps=reps)
     return design
 
 
@@ -389,9 +413,13 @@ def step_along(
         >>> band = Group([Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
         >>> path = [(0, 0), (30, 0)]
-        >>> step_along(band, axis, 10, path, reps=1)  # doctest: +SKIP
+        >>> row = step_along(band, axis, 10, path, reps=1)
+        >>> len(row)
+        3
+        >>> row is band
+        True
     """
-    design.glide(glide_dist, glide_line, reps=1)
+    design.glide(glide_line, glide_dist, reps=1)
     if reps > 0:
         design.translate_along(path, reps)
     return design
