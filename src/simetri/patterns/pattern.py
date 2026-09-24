@@ -5,15 +5,17 @@ A ``Pattern`` stores a kernel Shape/Group plus a
 repetitions). Calling transform helpers such as ``translate`` / ``rotate``
 appends transforms rather than baking them into the kernel.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-kernel = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-p = sg.Pattern(kernel)
-p.rotate(sg.pi / 3, about=(0, 0), reps=5)
-```
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> kernel = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+    >>> pattern = Pattern(kernel)
+    >>> _ = pattern.rotate(1.0471975511965976, about=(0, 0), reps=2)
+    >>> pattern.count
+    3
 """
+
+from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -54,6 +56,15 @@ class TransformMat:
         reps: Number of repetitions (0 means identity only in partitions).
         incr: Optional increment between repetitions.
         take: Optional slice for selective application.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> step = TransformMat(translation_matrix(5, 0), reps=1)
+        >>> len(step.partitions)
+        2
+        >>> step.reps
+        1
     """
 
     xform_matrix: NDArray
@@ -67,23 +78,23 @@ class TransformMat:
     ) = None
     take: slice = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.TRANSFORM
         self.subtype = Types.TRANSFORM
         self.__dict__["_xform_matrix"] = self.xform_matrix
         self.__dict__["_reps"] = self.reps
         self._update()
 
-    def _update(self):
+    def _update(self) -> None:
         self.hash = md5(self.xform_matrix.tobytes()).hexdigest()
         self._set_partitions()
         self._composite = np.concatenate(self._partitions, axis=1)
         self._reps = self.reps
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"TransformMat(xform_matrix={self.xform_matrix}, reps={self.reps})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"TransformMat(xform_matrix={self.xform_matrix}, reps={self.reps})"
 
     # @property
@@ -96,19 +107,26 @@ class TransformMat:
     #         raise ValueError("x cannot be negative")
     #     self._reps = value
 
-    def _changed(self):
+    def _changed(self) -> bool:
         """
         Checks if the transformation matrix or reps value has changed.
 
         Returns:
             bool: True if the transformation state has changed, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> step = TransformMat(identity_matrix(), reps=0)
+            >>> step._changed()
+            False
         """
         return not (
             (self.hash == md5(self.xform_matrix.tobytes()).hexdigest())
             and (self.reps == self._reps)
         )
 
-    def _set_partitions(self):
+    def _set_partitions(self) -> None:
         if self.reps == 0:
             partition_list = [identity_matrix()]
         elif self.reps == 1:
@@ -123,8 +141,18 @@ class TransformMat:
 
         self._partitions = partition_list
 
-    def update(self):
-        """Recompute ``partitions`` and ``composite`` from the current matrix."""
+    def update(self) -> None:
+        """Recompute ``partitions`` and ``composite`` from the current matrix.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> step = TransformMat(translation_matrix(1, 0), reps=2)
+            >>> step.reps = 2
+            >>> step.update()
+            >>> len(step.partitions)
+            3
+        """
         self._update()
 
     @property
@@ -134,12 +162,19 @@ class TransformMat:
 
         Returns:
             ndarray: The transformation matrix.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> step = TransformMat(translation_matrix(3, 4), reps=0)
+            >>> float(step.xform_matrix[2, 0])
+            3.0
         """
 
         return self._xform_matrix
 
     @xform_matrix.setter
-    def xform_matrix(self, value: object):
+    def xform_matrix(self, value: object) -> None:
         """Set the base transform matrix.
 
         Args:
@@ -147,6 +182,14 @@ class TransformMat:
 
         Raises:
             ValueError: If ``value`` is not a NumPy array.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> step = TransformMat(identity_matrix(), reps=0)
+            >>> step.xform_matrix = identity_matrix()
+            >>> step.xform_matrix.shape
+            (3, 3)
         """
         if not isinstance(value, np.ndarray):
             raise TypeError("xform_matrix must be a numpy array")
@@ -159,6 +202,13 @@ class TransformMat:
 
         Returns:
             list: A list of submatrices.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> step = TransformMat(translation_matrix(2, 0), reps=2)
+            >>> len(step.partitions)
+            3
         """
         if self._changed():
             self.update()
@@ -172,6 +222,13 @@ class TransformMat:
 
         Returns:
             ndarray: The compound transformation matrix.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> step = TransformMat(translation_matrix(1, 0), reps=1)
+            >>> step.composite.shape
+            (3, 6)
         """
         if self._changed():
             self.update()
@@ -184,6 +241,16 @@ class TransformMat:
 
         Returns:
             TransformMat: A new TransformMat instance with the same attributes.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> step = TransformMat(translation_matrix(1, 0), reps=1)
+            >>> copy = step.copy()
+            >>> copy.reps
+            1
+            >>> copy is step
+            False
         """
         return TransformMat(self.xform_matrix.copy(), self.reps)
 
@@ -195,30 +262,50 @@ class PatternTransformation:
     Attributes:
         components: List of ``TransformMat`` instances applied in order.
         type: Always ``Types.TRANSFORMATION``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> stack = PatternTransformation(
+        ...     [TransformMat(translation_matrix(10, 0), reps=1)]
+        ... )
+        >>> stack.count
+        2
     """
 
     components: list[TransformMat] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.TRANSFORMATION
         self.subtype = Types.TRANSFORMATION
         if self.components is None:
             self.components = []
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"PatternTransformation(components={self.components})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"PatternTransformation(components={self.components})"
 
-    def apply(self, kernel: Shape) -> list[Shape]:
+    def apply(self, kernel: Shape) -> Group:
         """Apply the composite transform to ``kernel`` and return copies.
 
         Args:
             kernel: Source shape whose ``final_coords`` are transformed.
 
         Returns:
-            Group: Group of shapes, one per transform partition.
+            Group: One shape per transform partition, with kernel style copied.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> kernel = Shape([(0, 0), (5, 0), (5, 5)], closed=True)
+            >>> stack = PatternTransformation(
+            ...     [TransformMat(translation_matrix(10, 0), reps=1)]
+            ... )
+            >>> expanded = stack.apply(kernel)
+            >>> len(expanded)
+            2
         """
         all_vertices = kernel.final_coords @ self.composite
         vertices_list = np.hsplit(all_vertices, self.count)
@@ -231,14 +318,24 @@ class PatternTransformation:
         return res
 
     @property
-    def count(self):
-        """
-        Returns the number of individual shapes.
+    def count(self) -> int:
+        """Return the number of shapes produced by this transformation stack.
 
         Returns:
-            int: The total number of shapes in the pattern.
-        """
+            int: Product of ``(reps + 1)`` over all components.
 
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> stack = PatternTransformation(
+            ...     [
+            ...         TransformMat(translation_matrix(1, 0), reps=1),
+            ...         TransformMat(translation_matrix(0, 1), reps=1),
+            ...     ]
+            ... )
+            >>> stack.count
+            4
+        """
         return prod([comp.reps + 1 for comp in self.components])
 
     @property
@@ -248,6 +345,13 @@ class PatternTransformation:
 
         Returns:
             list of ndarrays.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> stack = PatternTransformation()
+            >>> len(stack.partitions)
+            1
         """
         if len(self.components) == 0:
             return [identity_matrix()]
@@ -267,6 +371,15 @@ class PatternTransformation:
 
         Returns:
             ndarray: The compound transformation matrix.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> stack = PatternTransformation(
+            ...     [TransformMat(translation_matrix(5, 0), reps=0)]
+            ... )
+            >>> stack.composite.shape
+            (3, 3)
         """
         if len(self.components) == 0:
             return identity_matrix()
@@ -289,6 +402,18 @@ class PatternTransformation:
         Returns:
             PatternTransformation: A new PatternTransformation with the same
             components.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> stack = PatternTransformation(
+            ...     [TransformMat(translation_matrix(1, 0), reps=1)]
+            ... )
+            >>> copy = stack.copy()
+            >>> copy.count
+            2
+            >>> copy is stack
+            False
         """
         return PatternTransformation(
             [component.copy() for component in self.components]
@@ -309,14 +434,14 @@ class Pattern(Group, CommonStyle):
         transformation: Accumulated ``PatternTransformation``.
         subtype: Always ``Types.PATTERN``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    p = sg.Pattern(sg.Shape([(0, 0), (5, 0), (5, 5)], closed=True))
-    p.translate(10, 0, reps=3)
-    ```
-"""
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> pattern = Pattern(Shape([(0, 0), (5, 0), (5, 5)], closed=True))
+        >>> _ = pattern.translate(10, 0, reps=3)
+        >>> pattern.count
+        4
+    """
 
     # Group.__setattr__ adds a frame above the color/alpha property setters.
     _style_warning_stacklevel: int = 4
@@ -325,14 +450,24 @@ class Pattern(Group, CommonStyle):
         self,
         kernel: Shape | Group = None,
         transformation: PatternTransformation = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Initialize a Pattern.
 
         Args:
             kernel: Shape or Group to repeat.
             transformation: Optional existing PatternTransformation.
             **kwargs: Style attributes (``CommonStyle`` / ``STYLE_COPY_ATTRS``).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> kernel = Shape([(0, 0), (1, 0), (1, 1)], closed=True)
+            >>> pattern = Pattern(kernel)
+            >>> pattern.kernel is kernel
+            True
+            >>> pattern.count
+            1
         """
         self.kernel = kernel
         if transformation is None:
@@ -350,10 +485,10 @@ class Pattern(Group, CommonStyle):
                 f"Unexpected keyword arguments: {sorted(kwargs)}"
             )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Pattern(kernel={self.kernel}, transformation={self.transformation})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Pattern(kernel={self.kernel}, transformation={self.transformation})"
 
     @property
@@ -363,25 +498,49 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             bool: True if the pattern is closed, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0), (1, 1)], closed=True))
+            >>> pattern.closed
+            True
         """
         return self.kernel.closed
 
     @closed.setter
-    def closed(self, value: bool):
+    def closed(self, value: bool) -> None:
         """
         Sets the closed property of the pattern.
 
         Args:
             value (bool): True to set the pattern as closed, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0), (1, 1)], closed=True))
+            >>> pattern.closed = False
+            >>> pattern.kernel.closed
+            False
         """
         self.kernel.closed = value
 
     @property
     def composite(self) -> NDArray:
-        """Return the pattern's composite transform from ``transformation``."""
+        """Return the pattern's composite transform from ``transformation``.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.translate(5, 0, reps=0)
+            >>> pattern.composite.shape[0]
+            3
+        """
         return self.transformation.composite
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.kernel)
 
     @property
@@ -391,6 +550,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             ndarray: Array of shape (n_verts * count, 2) with all (x, y) positions.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.translate(10, 0, reps=1)
+            >>> pattern.all_vertices.shape
+            (4, 2)
         """
         raw = self.kernel.final_coords @ self.composite
         splits = np.hsplit(raw, self.count)
@@ -403,6 +570,13 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             BoundingBox: The bounding box of the pattern.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (10, 0), (10, 10)], closed=True))
+            >>> pattern.b_box.width
+            10.0
         """
         return bounding_box(self.all_vertices)
 
@@ -412,6 +586,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             list: A list of ndarrays of shape (n_verts, 3), one per copy.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.translate(2, 0, reps=1)
+            >>> len(pattern.get_vertices_list())
+            2
         """
         raw = self.kernel.final_coords @ self.composite
         return np.hsplit(raw, self.count)
@@ -422,6 +604,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Group: A new Group instance with the expanded shapes.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.translate(3, 0, reps=2)
+            >>> len(pattern.get_shapes())
+            3
         """
         vertices_list = self.get_vertices_list()
         res = Group()
@@ -434,14 +624,20 @@ class Pattern(Group, CommonStyle):
         return res
 
     @property
-    def count(self):
-        """
-        Returns the total number of shapes in the pattern.
+    def count(self) -> int:
+        """Return the total number of expanded shapes in the pattern.
 
         Returns:
-            int: The total number of shapes in the pattern.
-        """
+            int: Same as ``transformation.count``.
 
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.rotate(1.5707963267948966, reps=1)
+            >>> pattern.count
+            2
+        """
         return self.transformation.count
 
     def copy(self) -> "Pattern":
@@ -450,6 +646,17 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Pattern: A new Pattern instance with the same attributes.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.translate(1, 0, reps=1)
+            >>> duplicate = pattern.copy()
+            >>> duplicate.count
+            2
+            >>> duplicate is pattern
+            False
         """
         kernel = None
         if self.kernel is not None:
@@ -474,6 +681,15 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Self: The transformed object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern.translate(10, 0, reps=2) is pattern
+            True
+            >>> pattern.count
+            3
         """
 
         component = TransformMat(translation_matrix(dx, dy), reps)
@@ -494,6 +710,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Self: The rotated object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.rotate(1.5707963267948966, about=(0, 0), reps=1)
+            >>> pattern.count
+            2
         """
         component = TransformMat(rotation_matrix(angle, about), reps)
         self.transformation.components.append(component)
@@ -510,6 +734,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Self: The mirrored object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.mirror(((0, 0), (1, 0)), reps=1)
+            >>> pattern.count
+            2
         """
         component = TransformMat(mirror_matrix(about), reps)
         self.transformation.components.append(component)
@@ -530,6 +762,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Self: The glided object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.glide(((0, 0), (10, 0)), 5, reps=1)
+            >>> pattern.count
+            2
         """
         component = TransformMat(glide_matrix(glide_line, glide_dist), reps)
         self.transformation.components.append(component)
@@ -554,6 +794,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Self: The scaled object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.scale(2, reps=1)
+            >>> pattern.count
+            2
         """
         if scale_y is None:
             scale_y = scale_x
@@ -575,6 +823,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Self: The sheared object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.shear(0.1, 0.0, reps=0)
+            >>> pattern.count
+            1
         """
         component = TransformMat(shear_matrix(theta_x, theta_y), reps)
         self.transformation.components.append(component)
@@ -591,6 +847,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Self: The transformed pattern.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> _ = pattern.transform(translation_matrix(4, 0), reps=1)
+            >>> pattern.count
+            1
         """
         return self._update(transform_matrix, reps=reps)
 
@@ -604,6 +868,14 @@ class Pattern(Group, CommonStyle):
 
         Returns:
             Self: The moved object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> pattern = Pattern(Shape([(0, 0), (10, 0), (10, 10)], closed=True))
+            >>> _ = pattern.move_to((50, 50))
+            >>> len(pattern.transformation.components)
+            1
         """
         x, y = pos[:2]
         anchor = get_enum_value(Anchor, anchor)
@@ -657,6 +929,13 @@ class TransformDef:
         incr: Optional increment between repetitions.
         reps: Number of repetitions.
         modifier: Optional callable applied to the transform.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> step = TransformDef(TransformationType.TRANSLATE, None, (1, 0), reps=2)
+        >>> step.reps
+        2
     """
 
     type: TransformationType  # translation, rotation, ...
@@ -667,8 +946,22 @@ class TransformDef:
     reps: int = 0
     modifier: Callable = None
 
-    def copy(self):
-        """Return a copy of this transform definition."""
+    def copy(self) -> TransformDef:
+        """Return a copy of this transform definition.
+
+        Returns:
+            TransformDef: Shallow copy with ``DynRef`` kwargs duplicated.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> step = TransformDef(TransformationType.ROTATE, (0, 0), 1.0, reps=1)
+            >>> copy = step.copy()
+            >>> copy.reps
+            1
+            >>> copy is step
+            False
+        """
         if isinstance(self.ref, DynRef):
             ref = replace(
                 self.ref,
@@ -705,19 +998,39 @@ class PatternDef:
     Attributes:
         transform_defs: Ordered list of transform definition steps.
         modifier: Optional callable applied to the finished pattern.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> definition = PatternDef(
+        ...     [TransformDef(TransformationType.TRANSLATE, None, (5, 0), reps=1)]
+        ... )
+        >>> len(definition.transform_defs)
+        1
     """
 
     transform_defs: list[TransformDef]
     modifier: Callable = None
 
-    def apply(self, kernel) -> Group:
+    def apply(self, kernel: Shape | Group) -> Group:
         """Apply transform defs to ``kernel`` and return a pattern ``Group``.
 
         Args:
             kernel: Seed shape or group to transform.
 
         Returns:
-            Group containing the transformed copies.
+            Group: Transformed copies after all definition steps.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> kernel = Shape([(0, 0), (1, 0)])
+            >>> definition = PatternDef(
+            ...     [TransformDef(TransformationType.TRANSLATE, None, (10, 0), reps=1)]
+            ... )
+            >>> group = definition.apply(kernel)
+            >>> len(group)
+            2
         """
         pattern = Group(kernel)
         for t_def in self.transform_defs:
@@ -749,7 +1062,12 @@ class PatternDef:
 
         return pattern
 
-    def resolve_reference(self, reference, kernel, pattern):
+    def resolve_reference(
+        self,
+        reference: DynRef | Any,
+        kernel: Shape | Group,
+        pattern: Group,
+    ) -> Any:
         """Resolve a ``DynRef`` against ``kernel`` / ``pattern``.
 
         Args:
@@ -758,11 +1076,25 @@ class PatternDef:
             pattern: Growing pattern group for ``ReferenceTarget.PATTERN``.
 
         Returns:
-            Resolved point, line, or numeric value.
+            Any: Resolved point, line, or numeric value.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> kernel = Shape([(0, 0), (10, 0)])
+            >>> pattern = Group(kernel)
+            >>> definition = PatternDef([])
+            >>> definition.resolve_reference((0, 0), kernel, pattern)
+            (0, 0)
         """
         return resolve_dyn_ref(reference, kernel=kernel, pattern=pattern)
 
-    def resolve_tuple(self, args, kernel, pattern):
+    def resolve_tuple(
+        self,
+        args: DynRef | tuple[Any, ...] | list[Any],
+        kernel: Shape | Group,
+        pattern: Group,
+    ) -> Any:
         """Resolve a 2-tuple argument (or ``DynRef``) for transforms.
 
         Args:
@@ -771,7 +1103,16 @@ class PatternDef:
             pattern: Pattern group used for nested resolution.
 
         Returns:
-            Resolved ``(x, y)`` or other 2-value result.
+            Any: Resolved ``(x, y)`` or other two-value result.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> kernel = Shape([(0, 0), (10, 0)])
+            >>> pattern = Group(kernel)
+            >>> definition = PatternDef([])
+            >>> definition.resolve_tuple((3, 4), kernel, pattern)
+            (3, 4)
         """
         if isinstance(args, DynRef):
             res = self.resolve_reference(args, kernel, pattern)
@@ -786,7 +1127,12 @@ class PatternDef:
 
         return res
 
-    def resolve_value(self, value, kernel, pattern):
+    def resolve_value(
+        self,
+        value: DynRef | Callable[..., Any] | Any,
+        kernel: Shape | Group,
+        pattern: Group,
+    ) -> Any:
         """Resolve a scalar/reference argument for a transform.
 
         Args:
@@ -795,7 +1141,16 @@ class PatternDef:
             pattern: Pattern group used for nested resolution.
 
         Returns:
-            Resolved numeric or geometric value.
+            Any: Resolved numeric or geometric value.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> kernel = Shape([(0, 0), (10, 0)])
+            >>> pattern = Group(kernel)
+            >>> definition = PatternDef([])
+            >>> definition.resolve_value(7, kernel, pattern)
+            7
         """
         if isinstance(value, DynRef):
             res = self.resolve_reference(value, kernel, pattern)
@@ -806,8 +1161,24 @@ class PatternDef:
 
         return res
 
-    def copy(self):
-        """Return a deep-enough copy of transform defs and modifier."""
+    def copy(self) -> PatternDef:
+        """Return a deep-enough copy of transform defs and modifier.
+
+        Returns:
+            PatternDef: New instance with copied ``TransformDef`` entries.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> definition = PatternDef(
+            ...     [TransformDef(TransformationType.TRANSLATE, None, (1, 0))]
+            ... )
+            >>> copy = definition.copy()
+            >>> len(copy.transform_defs)
+            1
+            >>> copy is definition
+            False
+        """
         return PatternDef(
             transform_defs=[t_def.copy() for t_def in self.transform_defs],
             modifier=self.modifier,

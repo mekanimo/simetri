@@ -51,16 +51,13 @@ def xform_matrix(
     Returns:
         np.ndarray: The transformation matrix.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.xform_matrix(1, 0, 0, 1, 3, 4)
-    points = sg.homogenize([[0, 0], [1, 2]])
-    print(points @ M)
-    # [[3. 4. 1.]
-    # [4. 6. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.xform_matrix(1, 0, 0, 1, 3, 4)
+        >>> points = sg.homogenize([[0, 0], [1, 2]])
+        >>> print(points @ M)
+        [[3. 4. 1.]
+        [4. 6. 1.]]
 """
     return np.array([[a, b, 0], [c, d, 0], [e, f, 1.0]])
 
@@ -77,16 +74,13 @@ def translation_matrix(dx: float, dy: float) -> NDArray:
     Returns:
         np.ndarray: The translation matrix.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.translation_matrix(5, -2)
-    points = sg.homogenize([[0, 0], [1, 1]])
-    print(points @ M)
-    # [[ 5. -2.  1.]
-    # [ 6. -1.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.translation_matrix(5, -2)
+        >>> points = sg.homogenize([[0, 0], [1, 1]])
+        >>> print(points @ M)
+        [[ 5. -2.  1.]
+        [ 6. -1.  1.]]
 """
     return np.array([[1.0, 0, 0], [0, 1.0, 0], [dx, dy, 1.0]])
 
@@ -103,16 +97,13 @@ def inv_translation_matrix(dx: float, dy: float) -> NDArray:
     Returns:
         np.ndarray: The inverse translation matrix.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.inv_translation_matrix(5, -2)
-    points = sg.homogenize([[5, -2], [6, -1]])
-    print(points @ M)
-    # [[0. 0. 1.]
-    # [1. 1. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.inv_translation_matrix(5, -2)
+        >>> points = sg.homogenize([[5, -2], [6, -1]])
+        >>> print(points @ M)
+        [[0. 0. 1.]
+        [1. 1. 1.]]
 """
     return np.array([[1.0, 0, 0], [0, 1.0, 0], [-dx, -dy, 1.0]])
 
@@ -128,24 +119,21 @@ def rot_about_origin_matrix(angle: float) -> NDArray:
     Returns:
         np.ndarray: The rotation matrix.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    import numpy as np
-    M = sg.rot_about_origin_matrix(sg.pi / 2)
-    points = sg.homogenize([[1, 0], [0, 1]])
-    print(np.round(points @ M, 10))
-    # [[ 0.  1.  1.]
-    # [-1.  0.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> M = sg.rot_about_origin_matrix(sg.pi / 2)
+        >>> points = sg.homogenize([[1, 0], [0, 1]])
+        >>> print(np.round(points @ M, 10))
+        [[ 0.  1.  1.]
+        [-1.  0.  1.]]
 """
     c = cos(angle)
     s = sin(angle)
     return np.array([[c, s, 0], [-s, c, 0], [0, 0, 1.0]])
 
 
-def rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
+def rotation_matrix(angle: float, about: PointType = (0, 0)) -> NDArray:
     """Return a rotation matrix about a point.
 
     Composes translate-to-origin, rotate by ``angle`` (radians), then
@@ -158,17 +146,14 @@ def rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
     Returns:
         np.ndarray: The rotation matrix.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    import numpy as np
-    M = sg.rotation_matrix(sg.pi / 2, about=(1, 1))
-    points = sg.homogenize([[2, 1], [1, 2]])
-    print(np.round(points @ M, 10))
-    # [[1. 2. 1.]
-    # [0. 1. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> M = sg.rotation_matrix(sg.pi / 2, about=(1, 1))
+        >>> points = sg.homogenize([[2, 1], [1, 2]])
+        >>> print(np.round(points @ M, 10))
+        [[1. 2. 1.]
+        [0. 1. 1.]]
 """
     dx, dy = about[:2]
     # translate 'about' to the origin
@@ -181,7 +166,7 @@ def rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
     return trans_mat @ rot_mat @ inv_trans_mat
 
 
-def inv_rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
+def inv_rotation_matrix(angle: float, about: PointType = (0, 0)) -> NDArray:
     """
     Construct the inverse of a rotation matrix that can be used to rotate a point
     about another point by angle float.
@@ -198,17 +183,14 @@ def inv_rotation_matrix(angle: float, about=(0, 0)) -> NDArray:
     Returns:
         np.ndarray: The inverse rotation matrix.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    import numpy as np
-    M = sg.inv_rotation_matrix(sg.pi / 2)
-    points = sg.homogenize([[0, 1], [-1, 0]])
-    print(np.round(points @ M, 10))
-    # [[ 1.  0.  1.]
-    # [-0.  1.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> M = sg.inv_rotation_matrix(sg.pi / 2)
+        >>> points = sg.homogenize([[0, 1], [-1, 0]])
+        >>> print(np.round(points @ M, 10))
+        [[ 1.  0.  1.]
+        [-0.  1.  1.]]
 """
     dx, dy = about[:2]
     # translate 'about' to the origin
@@ -234,16 +216,13 @@ def glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
     Returns:
         np.ndarray: The glide-reflection matrix.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.glide_matrix([(0, 0), (1, 0)], 5)
-    points = sg.homogenize([[0, 1], [2, 3]])
-    print(points @ M)
-    # [[ 5. -1.  1.]
-    # [ 7. -3.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.glide_matrix([(0, 0), (1, 0)], 5)
+        >>> points = sg.homogenize([[0, 1], [2, 3]])
+        >>> print(points @ M)
+        [[ 5. -1.  1.]
+        [ 7. -3.  1.]]
 """
     mirror_mat = mirror_about_line_matrix(mirror_line)
     x, y = vec_along_line(mirror_line, distance)[:2]
@@ -264,16 +243,13 @@ def inv_glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
     Returns:
         np.ndarray: The inverse glide-reflection matrix.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.inv_glide_matrix([(0, 0), (1, 0)], 5)
-    points = sg.homogenize([[5, -1], [7, -3]])
-    print(points @ M)
-    # [[0. 1. 1.]
-    # [2. 3. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.inv_glide_matrix([(0, 0), (1, 0)], 5)
+        >>> points = sg.homogenize([[5, -1], [7, -3]])
+        >>> print(points @ M)
+        [[0. 1. 1.]
+        [2. 3. 1.]]
 """
     mirror_mat = mirror_about_line_matrix(mirror_line)
     x, y = vec_along_line(mirror_line, distance)[:2]
@@ -293,18 +269,15 @@ def scale_matrix(scale_x: float, scale_y: float | None = None) -> NDArray:
     Returns:
         np.ndarray: A scale matrix in row-major form.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.scale_matrix(2, 3)
-    points = sg.homogenize([[1, 1], [2, 3]])
-    print(points @ M)
-    # [[2. 3. 1.]
-    # [4. 9. 1.]]
-    sg.scale_matrix(2)[1, 1]
-    # 2.0
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.scale_matrix(2, 3)
+        >>> points = sg.homogenize([[1, 1], [2, 3]])
+        >>> print(points @ M)
+        [[2. 3. 1.]
+        [4. 9. 1.]]
+        >>> sg.scale_matrix(2)[1, 1]
+        2.0
 """
     if scale_y is None:
         scale_y = scale_x
@@ -322,16 +295,13 @@ def inv_scale_matrix(scale_x: float, scale_y: float | None = None) -> NDArray:
     Returns:
         np.ndarray: The inverse of a scale matrix in row-major form.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.inv_scale_matrix(2, 4)
-    points = sg.homogenize([[2, 4], [4, 8]])
-    print(points @ M)
-    # [[1. 1. 1.]
-    # [2. 2. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.inv_scale_matrix(2, 4)
+        >>> points = sg.homogenize([[2, 4], [4, 8]])
+        >>> print(points @ M)
+        [[1. 1. 1.]
+        [2. 2. 1.]]
 """
     if scale_y is None:
         scale_y = scale_x
@@ -352,16 +322,13 @@ def scale_in_place_matrix(
     Returns:
         np.ndarray: A scale matrix in row-major form that scales about a point.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.scale_in_place_matrix(2, 2, about=(1, 1))
-    points = sg.homogenize([[2, 1], [1, 2]])
-    print(points @ M)
-    # [[3. 1. 1.]
-    # [1. 3. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.scale_in_place_matrix(2, 2, about=(1, 1))
+        >>> points = sg.homogenize([[2, 1], [1, 2]])
+        >>> print(points @ M)
+        [[3. 1. 1.]
+        [1. 3. 1.]]
 """
     dx, dy = about[:2]
     trans_mat = translation_matrix(-dx, -dy)
@@ -381,17 +348,14 @@ def shear_matrix(angle_x: float, angle_y: float = 0) -> NDArray:
     Returns:
         np.ndarray: A shear matrix in row-major form.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    import numpy as np
-    M = sg.shear_matrix(sg.pi / 4)
-    points = sg.homogenize([[0, 1], [1, 0]])
-    print(np.round(points @ M, 10))
-    # [[1. 1. 1.]
-    # [1. 0. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> M = sg.shear_matrix(sg.pi / 4)
+        >>> points = sg.homogenize([[0, 1], [1, 0]])
+        >>> print(np.round(points @ M, 10))
+        [[1. 1. 1.]
+        [1. 0. 1.]]
 """
     return np.array([[1, tan(angle_y), 0], [tan(angle_x), 1, 0], [0, 0, 1.0]])
 
@@ -407,17 +371,14 @@ def inv_shear_matrix(angle_x: float, angle_y: float = 0) -> NDArray:
     Returns:
         np.ndarray: The inverse of a shear matrix in row-major form.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    import numpy as np
-    M = sg.inv_shear_matrix(sg.pi / 4)
-    points = sg.homogenize([[1, 1], [1, 0]])
-    print(np.round(points @ M, 10))
-    # [[0. 1. 1.]
-    # [1. 0. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> M = sg.inv_shear_matrix(sg.pi / 4)
+        >>> points = sg.homogenize([[1, 1], [1, 0]])
+        >>> print(np.round(points @ M, 10))
+        [[0. 1. 1.]
+        [1. 0. 1.]]
 """
     tan_x = tan(angle_x)
     tan_y = tan(angle_y)
@@ -444,21 +405,18 @@ def mirror_matrix(about: LineType | PointType) -> NDArray:
     Raises:
         RuntimeError: If about is not a line or a point.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.mirror_matrix((0, 0))
-    points = sg.homogenize([[1, 2], [3, 4]])
-    print(points @ M)
-    # [[-1. -2.  1.]
-    # [-3. -4.  1.]]
-    M = sg.mirror_matrix([(0, 0), (1, 0)])
-    points = sg.homogenize([[15, 5], [20, -5]])
-    print(points @ M)
-    # [[15. -5.  1.]
-    # [20.  5.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.mirror_matrix((0, 0))
+        >>> points = sg.homogenize([[1, 2], [3, 4]])
+        >>> print(points @ M)
+        [[-1. -2.  1.]
+        [-3. -4.  1.]]
+        >>> M = sg.mirror_matrix([(0, 0), (1, 0)])
+        >>> points = sg.homogenize([[15, 5], [20, -5]])
+        >>> print(points @ M)
+        [[15. -5.  1.]
+        [20.  5.  1.]]
 """
     if is_line(about):
         res = mirror_about_line_matrix(about)
@@ -476,16 +434,13 @@ def mirror_about_x_matrix() -> NDArray:
     Returns:
         np.ndarray: A matrix to perform reflection about the x-axis.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.mirror_about_x_matrix()
-    points = sg.homogenize([[15, 5], [20, -5]])
-    print(points @ M)
-    # [[15. -5.  1.]
-    # [20.  5.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.mirror_about_x_matrix()
+        >>> points = sg.homogenize([[15, 5], [20, -5]])
+        >>> print(points @ M)
+        [[15. -5.  1.]
+        [20.  5.  1.]]
 """
     return np.array([[1.0, 0, 0], [0, -1.0, 0], [0, 0, 1.0]])
 
@@ -497,16 +452,13 @@ def mirror_about_y_matrix() -> NDArray:
     Returns:
         np.ndarray: A matrix to perform reflection about the y-axis.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.mirror_about_y_matrix()
-    points = sg.homogenize([[15, 5], [20, -5]])
-    print(points @ M)
-    # [[-15.   5.   1.]
-    # [-20.  -5.   1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.mirror_about_y_matrix()
+        >>> points = sg.homogenize([[15, 5], [20, -5]])
+        >>> print(points @ M)
+        [[-15.   5.   1.]
+        [-20.  -5.   1.]]
 """
     return np.array([[-1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]])
 
@@ -521,17 +473,14 @@ def mirror_about_line_matrix(line: LineType) -> NDArray:
     Returns:
         np.ndarray: A matrix to perform reflection about a line.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.mirror_about_line_matrix([(0, 0), (1, 0)])
-    points = sg.homogenize([[15, 5], [20, -5]])
-    mirrored_points = points @ M
-    print(mirrored_points)
-    # [[15. -5.  1.]
-    # [20.  5.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.mirror_about_line_matrix([(0, 0), (1, 0)])
+        >>> points = sg.homogenize([[15, 5], [20, -5]])
+        >>> mirrored_points = points @ M
+        >>> print(mirrored_points)
+        [[15. -5.  1.]
+        [20.  5.  1.]]
 """
     p1, p2 = line
     x1, y1 = p1[:2]
@@ -565,16 +514,13 @@ def mirror_about_origin_matrix() -> NDArray:
     Returns:
         np.ndarray: A matrix to perform reflection about the origin.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.mirror_about_origin_matrix()
-    points = sg.homogenize([[1, 2], [3, 4]])
-    print(points @ M)
-    # [[-1. -2.  1.]
-    # [-3. -4.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.mirror_about_origin_matrix()
+        >>> points = sg.homogenize([[1, 2], [3, 4]])
+        >>> print(points @ M)
+        [[-1. -2.  1.]
+        [-3. -4.  1.]]
 """
     return np.array([[-1.0, 0, 0], [0, -1.0, 0], [0, 0, 1.0]])
 
@@ -589,16 +535,13 @@ def mirror_about_point_matrix(point: PointType) -> NDArray:
     Returns:
         np.ndarray: A matrix to perform reflection about a point.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    M = sg.mirror_about_point_matrix((1, 2))
-    points = sg.homogenize([[1, 0], [3, 2]])
-    print(points @ M)
-    # [[ 1.  4.  1.]
-    # [-1.  2.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> M = sg.mirror_about_point_matrix((1, 2))
+        >>> points = sg.homogenize([[1, 0], [3, 2]])
+        >>> print(points @ M)
+        [[ 1.  4.  1.]
+        [-1.  2.  1.]]
 """
     x, y = point[:2]
     # T = translation_matrix(-x, -y)
@@ -623,16 +566,13 @@ def rotate(
     Returns:
         np.ndarray: Homogeneous rotated points.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    import numpy as np
-    pts = sg.rotate([(1, 0), (0, 1)], sg.pi / 2)
-    print(np.round(pts, 10))
-    # [[ 0.  1.  1.]
-    # [-1.  0.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> pts = sg.rotate([(1, 0), (0, 1)], sg.pi / 2)
+        >>> print(np.round(pts, 10))
+        [[ 0.  1.  1.]
+        [-1.  0.  1.]]
 """
     points = homogenize(points)
     return points @ rotation_matrix(angle, about)
@@ -650,15 +590,12 @@ def translate(points: Sequence[PointType], dx: float, dy: float) -> NDArray:
     Returns:
         np.ndarray: The translated points.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    pts = sg.translate(sg.homogenize([(1, 2), (0, 0)]), 3, 4)
-    print(pts)
-    # [[4. 6. 1.]
-    # [3. 4. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.translate(sg.homogenize([(1, 2), (0, 0)]), 3, 4)
+        >>> print(pts)
+        [[4. 6. 1.]
+        [3. 4. 1.]]
 """
     return points @ translation_matrix(dx, dy)
 
@@ -674,15 +611,12 @@ def mirror(points: Sequence[PointType], about: LineType) -> NDArray:
     Returns:
         np.ndarray: The mirrored points.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    pts = sg.mirror(sg.homogenize([(1, 2), (3, 4)]), [(0, 0), (1, 0)])
-    print(pts)
-    # [[ 1. -2.  1.]
-    # [ 3. -4.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.mirror(sg.homogenize([(1, 2), (3, 4)]), [(0, 0), (1, 0)])
+        >>> print(pts)
+        [[ 1. -2.  1.]
+        [ 3. -4.  1.]]
 """
     return points @ mirror_matrix(about)
 
@@ -701,15 +635,12 @@ def glide(
     Returns:
         np.ndarray: The glided points.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    pts = sg.glide(sg.homogenize([(0, 1), (2, 3)]), [(0, 0), (1, 0)], 3)
-    print(pts)
-    # [[ 3. -1.  1.]
-    # [ 5. -3.  1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.glide(sg.homogenize([(0, 1), (2, 3)]), [(0, 0), (1, 0)], 3)
+        >>> print(pts)
+        [[ 3. -1.  1.]
+        [ 5. -3.  1.]]
 """
     return points @ glide_matrix(mirror_line, distance)
 
@@ -728,16 +659,13 @@ def shear(
     Returns:
         np.ndarray: The sheared points.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    import numpy as np
-    pts = sg.shear(sg.homogenize([(0, 1), (2, 0)]), sg.pi / 4)
-    print(np.round(pts, 10))
-    # [[1. 1. 1.]
-    # [2. 0. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> import numpy as np
+        >>> pts = sg.shear(sg.homogenize([(0, 1), (2, 0)]), sg.pi / 4)
+        >>> print(np.round(pts, 10))
+        [[1. 1. 1.]
+        [2. 0. 1.]]
 """
     return points @ shear_matrix(angle_x, angle_y)
 
@@ -756,15 +684,12 @@ def scale(
     Returns:
         np.ndarray: The scaled points.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    pts = sg.scale(sg.homogenize([(2, 3), (1, 1)]), 2, 3)
-    print(pts)
-    # [[4. 9. 1.]
-    # [2. 3. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.scale(sg.homogenize([(2, 3), (1, 1)]), 2, 3)
+        >>> print(pts)
+        [[4. 9. 1.]
+        [2. 3. 1.]]
 """
     return points @ scale_matrix(scale_x, scale_y)
 
@@ -787,15 +712,12 @@ def scale_in_place(
     Returns:
         np.ndarray: The scaled points.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    pts = sg.scale_in_place(sg.homogenize([(2, 1), (1, 2)]), 2, 2, (1, 1))
-    print(pts)
-    # [[3. 1. 1.]
-    # [1. 3. 1.]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.scale_in_place(sg.homogenize([(2, 1), (1, 2)]), 2, 2, (1, 1))
+        >>> print(pts)
+        [[3. 1. 1.]
+        [1. 3. 1.]]
 """
     return points @ scale_in_place_matrix(scale_x, scale_y, about)
 
@@ -815,13 +737,10 @@ def rotate_point_3D(
     Returns:
         PointType: Rotated point ``(x, y)`` in the plane projection.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rotate_point_3D((0, 1), [(0, 0), (1, 0)], sg.pi)
-    # (0.0, -1.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rotate_point_3D((0, 1), [(0, 0), (1, 0)], sg.pi)
+        (0.0, -1.0)
 """
 
     p1, p2 = line
@@ -853,13 +772,10 @@ def rotate_line_3D(line: LineType, about: LineType, angle: float) -> LineType:
     Returns:
         LineType: Rotated line.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rotate_line_3D([(0, 1), (0, 2)], [(0, 0), (1, 0)], sg.pi)
-    # [(0.0, -1.0), (0.0, -2.0)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rotate_line_3D([(0, 1), (0, 2)], [(0, 0), (1, 0)], sg.pi)
+        [(0.0, -1.0), (0.0, -2.0)]
 """
     p1 = rotate_point_3D(line[0], about, angle)
     p2 = rotate_point_3D(line[1], about, angle)
@@ -880,14 +796,11 @@ def rotate_point(
     Returns:
         PointType: Rotated point as ``(x, y)``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    x, y = sg.rotate_point((1, 0), sg.pi / 2)
-    round(x, 10), round(y, 10)
-    # (0.0, 1.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> x, y = sg.rotate_point((1, 0), sg.pi / 2)
+        >>> round(x, 10), round(y, 10)
+        (0.0, 1.0)
 """
     x, y = point[:2]
     cx, cy = center[:2]

@@ -11,6 +11,8 @@ sg.defaults["line_width"] = 1.5
 ```
 """
 
+from __future__ import annotations
+
 __all__ = [
     "SimetriWarning",
     "WarningType",
@@ -45,7 +47,9 @@ __all__ = [
 import sys
 import warnings
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import ItemsView, KeysView, Sequence, ValuesView
+from typing import Any
+from warnings import Warning
 from dataclasses import dataclass
 from enum import StrEnum
 from math import pi
@@ -120,11 +124,24 @@ _print_options = {"precision": 4, "suppress": True}
 
 
 class SimetriWarning(UserWarning):
-    """Project warning category for warning messages emitted by simetri."""
+    """Project warning category for warning messages emitted by simetri.
+
+    Examples:
+
+        >>> issubclass(sg.SimetriWarning, UserWarning)
+        True
+    """
 
 
 class SettingsSingletonError(RuntimeError):
-    """Raised when the settings singleton is instantiated more than once."""
+    """Raised when the settings singleton is instantiated more than once.
+
+    Examples:
+
+        >>> from simetri.config.settings import SettingsSingletonError
+        >>> issubclass(SettingsSingletonError, RuntimeError)
+        True
+    """
 
 
 # Counts per ``issue_warning`` call site (filename, lineno).
@@ -174,7 +191,13 @@ def _apply_warning_enabled_session(
 _original_formatwarning = warnings.formatwarning
 
 
-def _formatwarning(message, category, filename, lineno, line=None):
+def _formatwarning(
+    message: str,
+    category: type[Warning],
+    filename: str,
+    lineno: int,
+    line: str | None = None,
+) -> str:
     """Format warnings; omit the source snippet for ``SimetriWarning``."""
     if issubclass(category, SimetriWarning):
         return f"{filename}:{lineno}: {category.__name__}: {message}\n"
@@ -209,6 +232,12 @@ def issue_warning(
         warning_type: Leaf member such as ``WarningType.group.duplicate``.
         category: Warning category class.
         stacklevel: Stack level passed to ``warn``.
+
+    Examples:
+
+        >>> sg.pause_warnings()
+        >>> sg.issue_warning("doctest probe", sg.WarningType.file.config)
+        >>> sg.resume_warnings()
     """
     if _warnings_paused_all:
         return
@@ -237,13 +266,25 @@ def issue_warning(
 
 
 def pause_warnings() -> None:
-    """Temporarily mute all warnings without changing config."""
+    """Temporarily mute all warnings without changing config.
+
+    Examples:
+
+        >>> sg.pause_warnings()
+        >>> sg.resume_warnings()
+    """
     global _warnings_paused_all
     _warnings_paused_all = True
 
 
 def resume_warnings() -> None:
-    """Clear the global pause and all per-type pauses."""
+    """Clear the global pause and all per-type pauses.
+
+    Examples:
+
+        >>> sg.pause_warnings()
+        >>> sg.resume_warnings()
+    """
     global _warnings_paused_all
     _warnings_paused_all = False
     _paused_warning_types.clear()
@@ -254,6 +295,11 @@ def pause_warning(warning: StrEnum | type[StrEnum]) -> None:
 
     Args:
         warning: ``WarningType.group`` or ``WarningType.group.duplicate``.
+
+    Examples:
+
+        >>> sg.pause_warning(sg.WarningType.style)
+        >>> sg.resume_warning(sg.WarningType.style)
     """
     _paused_warning_types.update(_resolve_warning_types(warning))
 
@@ -265,12 +311,28 @@ def resume_warning(warning: StrEnum | type[StrEnum]) -> None:
 
     Args:
         warning: ``WarningType.group`` or ``WarningType.group.duplicate``.
+
+    Examples:
+
+        >>> sg.pause_warning(sg.WarningType.file)
+        >>> sg.resume_warning(sg.WarningType.file)
     """
     _paused_warning_types.difference_update(_resolve_warning_types(warning))
 
 
 def set_all_warnings_off() -> None:
-    """Permanently disable all warnings and write ``simetri_config.toml``."""
+    """Permanently disable all warnings and write ``simetri_config.toml``.
+
+    Examples:
+
+        >>> sg.set_all_warnings_on()
+        >>> sg.set_all_warnings_off()
+        >>> sg.defaults["show_warnings"]
+        False
+        >>> sg.set_all_warnings_on()
+        >>> sg.defaults["show_warnings"]
+        True
+    """
     from .user_config import persist_all_warnings
 
     defaults["show_warnings"] = False
@@ -278,7 +340,14 @@ def set_all_warnings_off() -> None:
 
 
 def set_all_warnings_on() -> None:
-    """Permanently enable all warnings and write ``simetri_config.toml``."""
+    """Permanently enable all warnings and write ``simetri_config.toml``.
+
+    Examples:
+
+        >>> sg.set_all_warnings_on()
+        >>> sg.defaults["show_warnings"]
+        True
+    """
     from .user_config import persist_all_warnings
 
     defaults["show_warnings"] = True
@@ -291,6 +360,12 @@ def set_warning_off(warning: StrEnum | type[StrEnum]) -> None:
 
     Args:
         warning: ``WarningType.group`` or ``WarningType.group.duplicate``.
+
+    Examples:
+
+        >>> sg.set_all_warnings_on()
+        >>> sg.set_warning_off(sg.WarningType.style.line_fill_color)
+        >>> sg.set_warning_on(sg.WarningType.style.line_fill_color)
     """
     from .user_config import persist_warning_leaves
 
@@ -304,6 +379,10 @@ def set_warning_on(warning: StrEnum | type[StrEnum]) -> None:
 
     Args:
         warning: ``WarningType.style`` or ``WarningType.style.line_fill_color``.
+
+    Examples:
+
+        >>> sg.set_warning_on(sg.WarningType.style.line_fill_color)
     """
     from .user_config import persist_warning_leaves, persist_warnings_on_flag
 
@@ -328,14 +407,15 @@ def save_user_warning(
     Returns:
         Path to the personal config file.
 
-    **Examples**
+    Examples:
 
-    ```python
-    sg.save_user_warning(sg.WarningType.style.line_fill_color, enabled=False)
-
-    sg.save_user_warning(sg.WarningType.group)
-
-    ```
+        >>> path = sg.save_user_warning(
+        ...     sg.WarningType.style.line_fill_color, enabled=False
+        ... )
+        >>> path.name
+        'simetri_config.toml'
+        >>> sg.save_user_warning(sg.WarningType.group).suffix
+        '.toml'
     """
     if enabled:
         set_warning_on(warning)
@@ -355,6 +435,12 @@ class Default:
         help (str): A description of the default value.
         user_value (any): The user-defined value for the default value.
 
+    Examples:
+
+        >>> from simetri.config.settings import Default
+        >>> entry = Default("line_width", 1.0, float, "stroke width")
+        >>> entry.value
+        1.0
     """
 
     name: str
@@ -364,11 +450,19 @@ class Default:
     user_value: any = None
 
     @property
-    def value(self):
+    def value(self) -> Any:
         """Return the effective default (user override or library value).
 
         Returns:
             The ``user_value`` when set, otherwise ``simetri_value``.
+
+        Examples:
+
+            >>> from simetri.config.settings import Default
+            >>> entry = Default("line_width", 1.0, float, "stroke width")
+            >>> entry.user_value = 2.5
+            >>> entry.value
+            2.5
         """
         res = self.simetri_value
         if self.user_value is not None:
@@ -386,7 +480,7 @@ class _Defaults:
 
     _instance = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes the _Defaults singleton instance."""
         if _Defaults._instance is not None:
             raise SettingsSingletonError("This class is a singleton!")
@@ -396,7 +490,7 @@ class _Defaults:
         self.suppress_user_overrides = False
         self.log = set()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         """Gets the value associated with the key.
 
         Lookup order: ``shared_overrides`` (from ``use_settings``), then user
@@ -409,6 +503,11 @@ class _Defaults:
 
         Returns:
             The value associated with the key.
+
+        Examples:
+
+            >>> sg.defaults["line_width"] >= 0
+            True
         """
         if key in self.shared_overrides:
             value = self.shared_overrides[key]
@@ -420,12 +519,18 @@ class _Defaults:
         self.log.add((key, str_value))
         return value
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         """Sets the value for the given key.
 
         Args:
             key: The key to set.
             value: The value to associate with the key.
+
+        Examples:
+
+            >>> sg.defaults["line_width"] = 1.0
+            >>> sg.defaults["line_width"]
+            1.0
         """
         self.defaults[key] = value
         if key in self.user_overrides:
@@ -433,11 +538,19 @@ class _Defaults:
         if key in self.shared_overrides:
             del self.shared_overrides[key]
 
-    def __contains__(self, key):
-        """Return True if ``key`` is a registered default."""
+    def __contains__(self, key: object) -> bool:
+        """Return True if ``key`` is a registered default.
+
+        Examples:
+
+            >>> "line_width" in sg.defaults
+            True
+            >>> "not_a_registered_default_key" in sg.defaults
+            False
+        """
         return key in self.defaults
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         """Gets the value of a key. If the key does not exist, return the default value.
 
         Args:
@@ -446,6 +559,13 @@ class _Defaults:
 
         Returns:
             The value associated with the key, or the default value.
+
+        Examples:
+
+            >>> sg.defaults.get("line_width") >= 0
+            True
+            >>> sg.defaults.get("not_a_registered_default_key", 99)
+            99
         """
         if key in self.defaults:
             res = self[key]
@@ -454,27 +574,42 @@ class _Defaults:
 
         return res
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
         """Returns the keys of the dictionary.
 
         Returns:
             A view object that displays a list of all the keys.
+
+        Examples:
+
+            >>> "line_width" in sg.defaults.keys()
+            True
         """
         return self.defaults.keys()
 
-    def items(self):
+    def items(self) -> ItemsView[str, Any]:
         """Returns the items of the dictionary.
 
         Returns:
             A view object that displays a list of dictionary's key-value tuple pairs.
+
+        Examples:
+
+            >>> any(key == "line_width" for key, _value in sg.defaults.items())
+            True
         """
         return self.defaults.items()
 
-    def values(self):
+    def values(self) -> ValuesView[Any]:
         """Returns the values of the dictionary.
 
         Returns:
             A view object that displays a list of all the values.
+
+        Examples:
+
+            >>> len(sg.defaults.values()) > 0
+            True
         """
         return self.defaults.values()
 
@@ -493,11 +628,17 @@ from ..render.style_map import (
 )
 
 
-def set_defaults():
+def set_defaults() -> None:
     """Register the core Simetri default values into ``defaults``.
 
     Call once at import time; users should prefer assigning through
     ``defaults[key] = value`` rather than editing this function.
+
+    Examples:
+
+        >>> sg.set_defaults()
+        >>> "line_width" in sg.defaults
+        True
     """
     # tol, rel_tol, and rel_tol are used for comparing floats
     # These are used in numpy.isclose and numpy.allclose
@@ -2667,8 +2808,15 @@ tikz_defaults = defaultdict(str)
 svg_defaults = defaultdict(str)
 
 
-def set_tikz_defaults():
-    """Register TikZ-specific default style values in ``tikz_defaults``."""
+def set_tikz_defaults() -> None:
+    """Register TikZ-specific default style values in ``tikz_defaults``.
+
+    Examples:
+
+        >>> sg.set_tikz_defaults()
+        >>> sg.tikz_defaults["line width"]
+        1
+    """
     tikz_defaults.update(
         {
             "color": colors.black,
@@ -2692,8 +2840,15 @@ def set_tikz_defaults():
     )
 
 
-def set_svg_defaults():
-    """Register SVG-specific default style values in ``svg_defaults``."""
+def set_svg_defaults() -> None:
+    """Register SVG-specific default style values in ``svg_defaults``.
+
+    Examples:
+
+        >>> sg.set_svg_defaults()
+        >>> sg.svg_defaults["stroke-width"]
+        1
+    """
     svg_defaults.update(
         {
             "stroke": colors.black,

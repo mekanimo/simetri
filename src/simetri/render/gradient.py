@@ -1,18 +1,16 @@
 """Gradient stops and fill gradients for rendering backends.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-gradient = sg.Gradient(stops=((0, sg.gray), (1, sg.white)))
-gradient.subtype.name
-# 'LINEAR'
-```
+Examples:
+        >>> gradient = sg.Gradient(stops=((0, sg.gray), (1, sg.white)))
+        >>> gradient.subtype.name
+        'LINEAR'
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from ..base.all_enums import GradientType, SvgUnits, Types
 from ..coloring.colors import Color, gray, white
@@ -35,7 +33,7 @@ class Stop:
         offset: float,
         color: Color | None = None,
         opacity: float | None = None,
-    ):
+    ) -> None:
         """Create a gradient stop.
 
         Args:
@@ -45,6 +43,11 @@ class Stop:
 
         Raises:
             ValueError: If validation of offset, color, or opacity fails.
+
+        Examples:
+            >>> stop = Stop(0.0, color=sg.gray)
+            >>> stop.offset
+            0.0
         """
         if not check_percent(offset):
             raise ValueError("Stop offset must be between 0 and 1.0")
@@ -59,12 +62,14 @@ class Stop:
         self.opacity = opacity
         self.__post_init__()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.STOP
         self.subtype = Types.STOP
 
 
-def _resolve_stops(stops):
+def _resolve_stops(
+    stops: Sequence[Stop] | Sequence[tuple[Any, ...]],
+) -> list[Stop] | tuple[Stop, ...]:
     """Normalize stop sequences to a list of ``Stop`` instances."""
     if not isinstance(stops, (list, tuple)) or len(stops) < 2:
         raise ValueError("Invalid stop values.")
@@ -96,7 +101,9 @@ def _resolve_stops(stops):
     return stops_list
 
 
-def normalize_stops(stops):
+def normalize_stops(
+    stops: Sequence[Stop] | Sequence[tuple[Any, ...]],
+) -> list[Stop] | tuple[Stop, ...]:
     """Return validated gradient stops as ``Stop`` instances.
 
     Args:
@@ -104,13 +111,25 @@ def normalize_stops(stops):
 
     Returns:
         list[Stop] | tuple[Stop, ...]: Validated stops.
+
+    Examples:
+        >>> from simetri.render.gradient import normalize_stops
+        >>> stops = normalize_stops([(0, sg.gray), (1, sg.white)])
+        >>> len(stops)
+        2
     """
     return _resolve_stops(stops)
 
 
 @dataclass
 class Gradient:
-    """Linear or radial gradient for shape fills."""
+    """Linear or radial gradient for shape fills.
+
+    Examples:
+        >>> grad = sg.Gradient(stops=((0, sg.gray), (1, sg.white)))
+        >>> grad.subtype.name
+        'LINEAR'
+    """
 
     gradient_type: GradientType = GradientType.LINEAR
     stops: tuple = ((0, gray), (1, white))
@@ -123,7 +142,7 @@ class Gradient:
     transform: str | None = None
     subtype: Types = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.GRADIENT
 
         if self.spread_method is None:

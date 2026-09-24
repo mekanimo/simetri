@@ -1,4 +1,15 @@
-"""Curated RGB color palettes for pattern and fill experiments."""
+"""Curated RGB color palettes for pattern and fill experiments.
+
+**Examples**
+
+```python
+from simetri.coloring.pattern_palette import palettes
+len(palettes)
+# 169
+len(palettes[0])
+# 5
+```
+"""
 
 palettes = [
     [(255, 122, 0), (255, 227, 77), (150, 255, 224), (164, 213, 0), (78, 45, 12)],

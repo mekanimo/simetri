@@ -1,21 +1,31 @@
 """Shared helper utilities for SVG rendering modules."""
 
+from __future__ import annotations
+
+from typing import Any
+
 from ...base.all_enums import Extent
+from ...base.common import PointType
 from .svg_mask import has_mask_style
 from .svg_sketch_utils import sketch_attrib
 
 
-def _clip_line_to_rect(start, end, rect, draw_type):
-    """Clip a line segment/ray/infinite line to a rectangle.
+def _clip_line_to_rect(
+    start: PointType,
+    end: PointType,
+    rect: tuple[float, float, float, float] | None,
+    draw_type: Extent,
+) -> tuple[PointType, PointType]:
+    """Clip a line segment, ray, or infinite line to a rectangle.
 
     Args:
         start: Line start point.
         end: Line end point.
-        rect: ``(xmin, ymin, xmax, ymax)`` clip rectangle, or None.
-        draw_type: ``Extent`` value.
+        rect: ``(xmin, ymin, xmax, ymax)`` clip rectangle, or ``None``.
+        draw_type: ``Extent`` describing segment vs ray vs infinite line.
 
     Returns:
-        tuple: Possibly clipped ``(start, end)`` points.
+        tuple[PointType, PointType]: Clipped or original endpoints.
     """
     if rect is None:
         return start, end
@@ -66,14 +76,14 @@ def _clip_line_to_rect(start, end, rect, draw_type):
     return p0, p1
 
 
-def get_clip_mask_attrs(sketch):
-    """Build SVG ``clip-path`` / ``mask`` attribute strings for a sketch.
+def get_clip_mask_attrs(sketch: Any) -> tuple[str, str]:
+    """Build SVG ``clip-path`` and ``mask`` attribute strings for a sketch.
 
     Args:
         sketch: Sketch that may reference a clip path or opacity mask.
 
     Returns:
-        tuple: ``(clip_attr, mask_attr)`` strings (possibly empty).
+        tuple[str, str]: ``(clip_attr, mask_attr)`` (possibly empty strings).
     """
     clip_attr = ""
     clip = sketch_attrib(sketch, "clip")

@@ -1,5 +1,9 @@
 """SVG opacity-mask and clip-path definition helpers."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
 
 from ...base.all_enums import SvgMaskType, SvgUnits, Types
@@ -9,23 +13,32 @@ from ...geom.bbox import bounding_box
 from .svg_colors import color_to_svg
 from .svg_sketch_utils import get_coordinates, get_shape_type, sketch_attrib
 
+if TYPE_CHECKING:
+    from ..canvas import Canvas
 
-def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
-    """Generate SVG mask definition for a shape's mask property.
+
+def generate_mask_def(
+    sketch: Any,
+    mask_shape: Any,
+    mask_id: str,
+    canvas: Canvas,
+    styles_dict: dict[str, Any],
+) -> str:
+    """Generate an SVG ``<mask>`` definition for a sketch's mask property.
 
     Args:
-        sketch: The shape that has mask property
-        mask_shape: The shape/group used for masking
-        mask_id: Unique ID for this mask
-        canvas: The canvas object for property resolution
-        styles_dict: Styles dictionary for rendering the mask shape
+        sketch: Sketch that owns the mask (or style-based mask source).
+        mask_shape: Shape or group geometry used as mask content.
+        mask_id: Unique element id for the mask.
+        canvas: Canvas used to resolve geometry and bounds.
+        styles_dict: Style maps passed through when rasterizing mask shapes.
 
     Returns:
-        str: SVG <mask> element
+        str: SVG ``<mask>`` element markup (and nested gradient when needed).
     """
     from ..draw import create_sketch
 
-    def get_mask_stop(stop):
+    def get_mask_stop(stop: Any) -> tuple[str, Any, float | None]:
         stop_offset = f"{float(stop.offset) * 100}%"
 
         if isinstance(stop_color, Color):
@@ -33,7 +46,9 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
 
         return stop_offset, stop_color, stop.opacity
 
-    def _stops_to_svg(stops, indent="      "):
+    def _stops_to_svg(
+        stops: Any | None, indent: str = "      "
+    ) -> tuple[str, bool]:
         stop_lines = []
         has_color = False
         for stop in stops or []:
@@ -51,7 +66,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             )
         return "\n".join(stop_lines), has_color
 
-    def _normalize_svg_units(value):
+    def _normalize_svg_units(value: SvgUnits | str | None) -> SvgUnits:
         if isinstance(value, SvgUnits):
             return value
         if value is None:
@@ -70,7 +85,7 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             return SvgUnits.OBJECT_BOUNDING_BOX
         return SvgUnits.USER_SPACE_ON_USE
 
-    def _mask_bounds_in_user_space():
+    def _mask_bounds_in_user_space() -> tuple[float, float, float, float]:
         if canvas.page_size is not None:
             x_min, y_min, x_max, y_max = canvas.limits
             return x_min, y_min, x_max - x_min, y_max - y_min
@@ -184,7 +199,11 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
             f"  </mask>"
         )
 
-    def _mask_shape_svg(mask_sketch, fill_value="white", fill_opacity=None):
+    def _mask_shape_svg(
+        mask_sketch: Any,
+        fill_value: str = "white",
+        fill_opacity: float | None = None,
+    ) -> str:
         shape_type = get_shape_type(mask_sketch)
         coordinates = get_coordinates(mask_sketch, shape_type)
         fill_opacity_attr = (
@@ -314,8 +333,8 @@ def generate_mask_def(sketch, mask_shape, mask_id, canvas, styles_dict):
     )
 
 
-def has_mask_style(sketch):
-    """Check if a sketch has mask style configuration."""
+def has_mask_style(sketch: Any) -> bool:
+    """Return whether ``sketch`` defines mask stops via style or attributes."""
     try:
         mask_style = sketch_attrib(sketch, "style").fill_style.mask_style
         if mask_style.stops is not None:
@@ -325,7 +344,7 @@ def has_mask_style(sketch):
     return sketch_attrib(sketch, "msk_stops") is not None
 
 
-def _canvas_mask_scope_sketch(canvas):
+def _canvas_mask_scope_sketch(canvas: Canvas) -> Any | None:
     for sketch in reversed(canvas.active_page.sketches):
         if sketch.subtype == Types.MASK_SKETCH:
             return sketch

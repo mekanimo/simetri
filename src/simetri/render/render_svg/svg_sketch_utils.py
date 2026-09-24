@@ -1,5 +1,10 @@
 """Helpers that assemble and update SVG sketch elements."""
 
+from __future__ import annotations
+
+from collections.abc import Collection, Sequence
+from typing import TYPE_CHECKING, Any, Never
+
 import numpy as np
 from PIL import ImageFont
 
@@ -10,8 +15,11 @@ from ...geom.bbox import bounding_box
 from ..pre_render import set_styles
 from .svg_colors import color_to_svg
 
+if TYPE_CHECKING:
+    from ..canvas import Canvas
 
-def svg_shape(*args, **kwargs):
+
+def svg_shape(*args: object, **kwargs: object) -> Never:
     """Placeholder replaced by ``svg`` at import time.
 
     Raises:
@@ -25,7 +33,7 @@ def svg_shape(*args, **kwargs):
 _active_svg_style_ids = {}
 
 
-def set_active_svg_style_ids(style_ids):
+def set_active_svg_style_ids(style_ids: dict[int, str]) -> None:
     """Set the active sketch-id to CSS-class-id mapping.
 
     Args:
@@ -35,7 +43,7 @@ def set_active_svg_style_ids(style_ids):
     _active_svg_style_ids = style_ids
 
 
-def get_active_svg_style_id(sketch):
+def get_active_svg_style_id(sketch: Any) -> str | None:
     """Return the CSS class id for ``sketch``, if any.
 
     Args:
@@ -64,7 +72,7 @@ d_shape_types = {
 }
 
 
-def sketch_attrib(sketch, attrib):
+def sketch_attrib(sketch: Any, attrib: str) -> object:
     """Read a sketch attribute, falling back to library defaults.
 
     Args:
@@ -72,7 +80,7 @@ def sketch_attrib(sketch, attrib):
         attrib: Attribute name.
 
     Returns:
-        The attribute value, or the matching default when missing.
+        object: Attribute value, or the matching ``defaults`` entry when missing.
     """
     try:
         return object.__getattribute__(sketch, attrib)
@@ -80,16 +88,18 @@ def sketch_attrib(sketch, attrib):
         return defaults.get(attrib)
 
 
-def get_text_size(text, font_name, font_size):
-    """Get accurate text dimensions using PIL.
+def get_text_size(
+    text: str, font_name: FontFamily | str, font_size: float
+) -> tuple[float, float]:
+    """Measure text dimensions using PIL.
 
     Args:
-        text: The text to measure
-        font_name: Font family name or FontFamily enum
-        font_size: Font size in points
+        text: Text to measure.
+        font_name: Font family name or ``FontFamily`` enum.
+        font_size: Font size in points.
 
     Returns:
-        tuple: (width, height) of the text
+        tuple[float, float]: ``(width, height)`` in layout units.
     """
     mult = 1.0  # Scaling multiplier for default font
 
@@ -119,7 +129,9 @@ def get_text_size(text, font_name, font_size):
     return (width, height)
 
 
-def get_text_size2(text, font_path, font_size):
+def get_text_size2(
+    text: str, font_path: str, font_size: int | float
+) -> tuple[int, int]:
     """Measure text size using a TrueType font file path.
 
     Args:
@@ -128,7 +140,7 @@ def get_text_size2(text, font_path, font_size):
         font_size: Font size in points.
 
     Returns:
-        tuple: ``(width, height)`` of the text.
+        tuple[int, int]: ``(width, height)`` in pixels.
     """
     font = ImageFont.truetype(font_path, font_size)
     _, descent = font.getmetrics()
@@ -137,15 +149,17 @@ def get_text_size2(text, font_path, font_size):
     return text_width, text_height
 
 
-def get_line_style_options(sketch, exceptions=None):
-    """Returns the options for the line style.
+def get_line_style_options(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
+    """Build inline CSS declarations for a sketch's stroke style.
 
     Args:
-        sketch: The sketch object.
-        exceptions: Optional exceptions for the line style options.
+        sketch: Sketch whose line properties are read.
+        exceptions: Property names to omit from the CSS string.
 
     Returns:
-        list: The line style options as a list.
+        str: Semicolon-separated stroke CSS declarations.
     """
 
     merged_exceptions = [] if exceptions is None else exceptions
@@ -195,16 +209,22 @@ def get_line_style_options(sketch, exceptions=None):
     return " ".join(options)
 
 
-def get_fill_style_options(sketch, shape_type, exceptions=None, frame=False):
-    """Returns the options for the fill style.
+def get_fill_style_options(
+    sketch: Any,
+    shape_type: str,
+    exceptions: Collection[str] | None = None,
+    frame: bool = False,
+) -> str:
+    """Build inline CSS declarations for a sketch's fill style.
 
     Args:
-        sketch: The sketch object.
-        exceptions: Optional exceptions for the fill style options.
-        frame: Optional flag for frame fill style.
+        sketch: Sketch whose fill properties are read.
+        shape_type: SVG shape category (e.g. ``polygon``, ``line``).
+        exceptions: Property names to omit from the CSS string.
+        frame: Reserved for frame fill styling (currently unused).
 
     Returns:
-        list: The fill style options as a list.
+        str: Semicolon-separated fill CSS declarations.
     """
 
     merged_exceptions = [] if exceptions is None else exceptions
@@ -233,20 +253,22 @@ def get_fill_style_options(sketch, shape_type, exceptions=None, frame=False):
     return " ".join(options)
 
 
-def get_dash_pattern(line_dash_array):
-    """Returns the dash pattern for a line.
+def get_dash_pattern(line_dash_array: Sequence[float | int]) -> str:
+    """Format a stroke dash array for SVG/CSS.
 
     Args:
-        line_dash_array: The dash array for the line.
+        line_dash_array: Dash lengths for ``stroke-dasharray``.
 
     Returns:
-        str: The dash pattern as a string.
+        str: Space-separated dash lengths.
     """
 
     return " ".join([str(x) for x in line_dash_array])
 
 
-def _line_limits(canvas):
+def _line_limits(
+    canvas: Canvas | None,
+) -> tuple[float, float, float, float] | None:
     if canvas is None:
         return None
     limits = None
@@ -280,7 +302,7 @@ def _line_limits(canvas):
     return limits
 
 
-def get_marker_path(marker_type, size):
+def get_marker_path(marker_type: MarkerType, size: float) -> tuple[str, str]:
     """Get the SVG path data for a specific marker type.
 
     Args:
@@ -357,8 +379,12 @@ def get_marker_path(marker_type, size):
 
 
 def generate_marker_def(
-    marker_id, marker_type, sketch, canvas=None, styles_dict=None
-):
+    marker_id: str,
+    marker_type: MarkerType,
+    sketch: Any,
+    canvas: Canvas | None = None,
+    styles_dict: dict[str, Any] | None = None,
+) -> str:
     """Generate SVG marker definition.
 
     Args:
@@ -482,7 +508,7 @@ def generate_marker_def(
   </marker>'''
 
 
-def get_shape_type(sketch):
+def get_shape_type(sketch: Any) -> str:
     """Map a sketch type enum to an SVG shape category string.
 
     Args:
@@ -501,7 +527,7 @@ def get_shape_type(sketch):
     return shape_type
 
 
-def get_coordinates(sketch, shape_type):
+def get_coordinates(sketch: Any, shape_type: str) -> str:
     """Build SVG coordinate attributes for a sketch and shape type.
 
     Args:
@@ -546,7 +572,7 @@ def get_coordinates(sketch, shape_type):
     return res
 
 
-def get_style(sketch, shape_type):
+def get_style(sketch: Any, shape_type: str) -> str:
     """Build a CSS style attribute string for a sketch.
 
     Args:
@@ -565,19 +591,13 @@ def get_style(sketch, shape_type):
     return "; ".join(res)
 
 
-def get_style_maps(canvas):
-    """Get all line and fill styles from the sketches and create a dictionary.
-      Name them line_style_1, line_style_2, ...
-      fill_style_1, fill_style_2, ...
-      Then create a style selector class section:
-      <style type="text/css"><![CDATA[
-      .line_style_1 {line_width: 2; stroke-dasharray: 2, 4;}
-      .fill_style_1 { fill: yellow; stroke: red; }
-      .fill_style_2 { fill-opacity: 0.25; fill-rule: evenodd; }
-    ]]></style>"""
+def get_style_maps(
+    canvas: Canvas,
+) -> tuple[dict[str, dict[str, str]], dict[int, str]]:
+    """Collect CSS class styles and sketch-to-class ids from canvas sketches."""
 
-    def parse_style_string(style_string):
-        """Parse a style string into a dictionary."""
+    def parse_style_string(style_string: str) -> dict[str, str]:
+        """Parse a semicolon-separated CSS declaration string."""
         style_dict = {}
         if not style_string:
             return style_dict
@@ -594,7 +614,7 @@ def get_style_maps(canvas):
 
     style_sketches = []
 
-    def collect_sketch_styles(sketch):
+    def collect_sketch_styles(sketch: Any) -> None:
         subtype = sketch_attrib(sketch, "subtype")
 
         if subtype in (Types.CLIPPED_SKETCH, Types.MASKED_SKETCH):
@@ -656,32 +676,37 @@ def get_style_maps(canvas):
     return css_styles, sketch_style_ids
 
 
-def get_styles_dict(canvas):
-    """Return the CSS class dictionary for a canvas.
+def get_styles_dict(canvas: Canvas) -> dict[str, dict[str, str]]:
+    """Return CSS class property maps for a canvas.
 
     Args:
         canvas: Canvas whose sketches are styled.
 
     Returns:
-        dict: Mapping of CSS class name to property dictionaries.
+        dict[str, dict[str, str]]: CSS class name to property/value map.
     """
     css_styles, _ = get_style_maps(canvas)
     return css_styles
 
 
 def get_style_class(
-    sketch, shape_type, styles_dict, skip_fill=False, exceptions=None
-):
-    """Find the style class names that match the sketch's styles.
+    sketch: Any,
+    shape_type: str,
+    styles_dict: dict[str, Any],
+    skip_fill: bool = False,
+    exceptions: Collection[str] | None = None,
+) -> str:
+    """Return the active CSS class name for a sketch, if any.
 
     Args:
-        sketch: The sketch object.
-        shape_type: The SVG shape type.
-        styles_dict: Dictionary of style class names to style dictionaries.
-        skip_fill: If True, skip adding fill style class (used when gradient/pattern is applied).
+        sketch: Sketch being rendered.
+        shape_type: SVG shape category (unused; kept for call-site parity).
+        styles_dict: Canvas CSS style maps (unused when active id is set).
+        skip_fill: Unused; gradients/patterns skip fill at call sites.
+        exceptions: When set, returns an empty class string.
 
     Returns:
-        str: Space-separated class names.
+        str: CSS class name, or empty string.
     """
 
     if exceptions:
@@ -692,14 +717,14 @@ def get_style_class(
     return ""
 
 
-def has_gradient(sketch):
-    """Check if a sketch has gradient configuration.
+def has_gradient(sketch: Any) -> bool:
+    """Return whether ``sketch`` has gradient stops configured.
 
     Args:
-        sketch: The sketch object to check
+        sketch: Sketch to inspect.
 
     Returns:
-        bool: True if sketch has gradient configuration
+        bool: True when ``gradient.stops`` is set.
     """
     gradient = sketch_attrib(sketch, "gradient")
     if gradient is None:
@@ -707,7 +732,12 @@ def has_gradient(sketch):
     return gradient.stops is not None
 
 
-def generate_pattern_def(sketch, pattern_id, canvas, styles_dict):
+def generate_pattern_def(
+    sketch: Any,
+    pattern_id: str,
+    canvas: Canvas,
+    styles_dict: dict[str, Any],
+) -> str:
     """Generate SVG pattern definition for a shape's tile_svg.
 
     Args:
@@ -768,7 +798,7 @@ def generate_pattern_def(sketch, pattern_id, canvas, styles_dict):
   </pattern>'''
 
 
-def generate_gradient_def(sketch, gradient_id):
+def generate_gradient_def(sketch: Any, gradient_id: str) -> str:
     """Generate SVG gradient definition for a shape's gradient.
 
     Args:
@@ -860,7 +890,13 @@ def generate_gradient_def(sketch, gradient_id):
     return f"{gradient_start}\n{stops_str}\n{gradient_end}"
 
 
-def generate_clippath_def(sketch, clip_shape, clippath_id, canvas, styles_dict):
+def generate_clippath_def(
+    sketch: Any,
+    clip_shape: Any,
+    clippath_id: str,
+    canvas: Canvas,
+    styles_dict: dict[str, Any],
+) -> str:
     """Generate SVG clipPath definition for a shape's clip property.
 
     Args:

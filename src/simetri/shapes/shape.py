@@ -5,13 +5,11 @@ arguments control fill, stroke, markers, and related rendering options.
 Boolean helpers such as ``clip``, ``polygon_diff``, and ``polygon_xor``
 operate on closed shapes.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-tri = sg.Shape([(0, 0), (50, 0), (25, 40)], closed=True)
-tri.translate(10, 0)
-```
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> tri = Shape([(0, 0), (50, 0), (25, 40)], closed=True)
+    >>> _ = tri.translate(10, 0)
 """
 
 from __future__ import annotations
@@ -46,7 +44,7 @@ __all__ = [
 ]
 
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from math import floor, isclose, pi
@@ -59,10 +57,12 @@ from numpy.linalg import inv
 from numpy.typing import NDArray
 
 from ..base.all_enums import (
+    Anchor,
     FillMode,
     InPlace,
     LineCap,
     LineJoin,
+    Side,
     TransformationType,
     Types,
     shape_attributes,
@@ -121,14 +121,12 @@ class Shape(Base, CommonStyle):
         subtype: Shape subtype (``Types.SHAPE``, ``Types.CIRCLE``, …).
         id: Unique object id.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    s = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-    s.width > 0
-    # True
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> s = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> s.width > 0
+        True
 """
 
     __slots__ = [
@@ -239,6 +237,15 @@ class Shape(Base, CommonStyle):
 
         Raises:
             ValueError: If ``subtype`` is not a ``Types`` member.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> s = Shape([(0, 0), (1, 0), (1, 1)], closed=True)
+            >>> len(s)
+            3
+            >>> s.closed
+            True
         """
 
         self.id = get_unique_id(self)
@@ -296,17 +303,18 @@ class Shape(Base, CommonStyle):
 
         self._b_box = None
 
-    def _get_closed(self, points: Sequence[PointType], closed: bool):
+    def _get_closed(
+        self, points: Sequence[PointType], closed: bool
+    ) -> tuple[bool, list[PointType]]:
         """Determine whether the shape should be considered closed.
 
         Args:
-            points (Sequence[PointType]): The points that define the shape.
-            closed (bool): The user-specified closed flag.
+            points: Vertices defining the shape.
+            closed: User-specified closed flag.
 
         Returns:
-            tuple: A tuple consisting of:
-                - bool: True if the shape is closed, False otherwise.
-                - list: The (possibly modified) list of points.
+            ``(is_closed, vertices)`` with duplicate closing vertex removed
+            when detected as a polygon.
         """
 
         n = len(points)
@@ -320,7 +328,7 @@ class Shape(Base, CommonStyle):
                 points.pop()
         return res, points
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the number of points in the shape.
 
         Returns:
@@ -328,7 +336,7 @@ class Shape(Base, CommonStyle):
         """
         return len(self.primary_points)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the shape.
 
         Returns:
@@ -342,7 +350,7 @@ class Shape(Base, CommonStyle):
             res = f"Shape([{self.vertices[0]}, ..., {self.vertices[-1]}])"
         return res
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of the shape.
 
         Returns:
@@ -350,14 +358,17 @@ class Shape(Base, CommonStyle):
         """
         return self.__str__()
 
-    def __getitem__(self, subscript: float | slice):
+    def __getitem__(
+        self, subscript: int | float | slice
+    ) -> PointType | list[PointType]:
         """Retrieve point(s) from the shape by index or slice.
 
         Args:
-            subscript (int, float or slice): The index or slice specifying the point(s) to retrieve. If float then the point is compute by interpolation/extrapolation.
+            subscript: Integer index, fractional index (lerp along an edge),
+                or slice over transformed vertices.
 
         Returns:
-            PointType or list[PointType]: The requested point or list of points (after applying the transformation).
+            Transformed vertex or list of vertices.
 
         Raises:
             TypeError: If the subscript type is invalid.
@@ -391,12 +402,16 @@ class Shape(Base, CommonStyle):
             res = (coord[0], coord[1])
         return res
 
-    def __setitem__(self, subscript, value):
+    def __setitem__(
+        self,
+        subscript: int | slice,
+        value: PointType | Sequence[PointType] | Any,
+    ) -> None:
         """Set the point(s) at the given subscript.
 
         Args:
-            subscript (int or slice): The subscript to set the point(s) at.
-            value (PointType or list[PointType]): The value to set the point(s) to.
+            subscript: Index or slice into ``primary_points``.
+            value: Point(s) in canvas space (inverse-transformed before storage).
 
         Raises:
             TypeError: If the subscript type is invalid.
@@ -417,20 +432,20 @@ class Shape(Base, CommonStyle):
         else:
             raise TypeError("Invalid subscript type")
 
-    def __delitem__(self, subscript) -> Self:
+    def __delitem__(self, subscript: int | slice) -> Self:
         """Delete the point(s) at the given subscript.
 
         Args:
-            subscript (int or slice): The subscript to delete the point(s) from.
+            subscript: Index or slice into ``primary_points``.
         """
         del self.primary_points[subscript]
 
-    def index(self, point: PointType, abs_tol=None) -> int:
+    def index(self, point: PointType, abs_tol: float | None = None) -> int:
         """Return the index of the given point.
 
         Args:
-            point (PointType): The point to find the index of.
-            abs_tol (float, optional): Absolute tolerance for comparison. Defaults to None.
+            point: Vertex to locate in transformed coordinates.
+            abs_tol: Absolute tolerance; defaults to ``defaults['abs_tol']``.
 
         Returns:
             int: The index of the point.
@@ -502,11 +517,11 @@ class Shape(Base, CommonStyle):
 
         return point
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[PointType]:
         """Return an iterator over the vertices of the shape.
 
         Returns:
-            Iterator[PointType]: An iterator over the vertices of the shape.
+            Iterator over transformed ``vertices``.
         """
         return iter(self.vertices)
 
@@ -574,14 +589,14 @@ class Shape(Base, CommonStyle):
 
         return res
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.id)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Check if the shape is equal to another shape.
 
         Args:
-            other (Shape): The other shape to compare to.
+            other: Object to compare (must be a ``Shape`` with matching data).
 
         Returns:
             bool: True if the shapes are equal, False otherwise.
@@ -614,7 +629,7 @@ class Shape(Base, CommonStyle):
 
         return res
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         """Return whether the shape has any points.
 
         Returns:
@@ -634,12 +649,12 @@ class Shape(Base, CommonStyle):
         area = polygon_area(vertices)
         return area < 0
 
-    def reordered(self, index) -> Self:
+    def reordered(self, index: int) -> Self:
         """Return a copy of the shape starting from a point
         at the given index.
 
         Args:
-            point (PointType): The point to start from.
+            index: Vertex index that becomes the new start (closed shapes only).
 
         Returns:
             Shape: The shape with the starting point set.
@@ -665,11 +680,11 @@ class Shape(Base, CommonStyle):
         """
         return lerp_point(*self.edges[edge], t)
 
-    def merge_collinears(self):
-        """Merges collinear edges."""
+    def merge_collinears(self) -> Shape:
+        """Merge collinear edges into a single polyline."""
         return Group([self]).merge_shapes()[0]
 
-    def merge(self, other, dist_tol: float | None = None) -> Self | None:
+    def merge(self, other: Shape, dist_tol: float | None = None) -> Self | None:
         """Merge two shapes if they are connected. Does not work for polygons.
         Only polyline shapes can be merged together.
 
@@ -700,11 +715,11 @@ class Shape(Base, CommonStyle):
 
         return res
 
-    def connect(self, other) -> Self:
+    def connect(self, other: Shape) -> Self:
         """Connect two shapes by adding the other shape's vertices to self.
 
         Args:
-            other (Shape): The other shape to connect.
+            other: Shape whose vertices are appended.
         """
         self.extend(other.vertices)
 
@@ -775,11 +790,11 @@ class Shape(Base, CommonStyle):
             vertices[0][:2], vertices[-1][:2], dist2=dist_tol2
         )
 
-    def as_array(self, homogeneous=False) -> NDArray:
+    def as_array(self, homogeneous: bool = False) -> NDArray:
         """Return the vertices as an array.
 
         Args:
-            homogeneous (bool, optional): Whether to return homogeneous coordinates, defaults to False.
+            homogeneous: If True, return homogeneous ``final_coords``.
 
         Returns:
             ndarray: The vertices as an array.
@@ -822,14 +837,14 @@ class Shape(Base, CommonStyle):
         return res
 
     @property
-    def angle(self):
-        """Orientation angle of the shape."""
+    def angle(self) -> float:
+        """Orientation angle of the shape (radians)."""
         res = decompose_transformations(self.xform_matrix)[1]
         return positive_angle(res)
 
     @property
-    def orientation(self):
-        """Orientation angle of the shape."""
+    def orientation(self) -> float:
+        """Orientation angle of the shape (alias of ``angle``)."""
         return self.angle
 
     @property
@@ -1053,73 +1068,38 @@ class Shape(Base, CommonStyle):
     ##################################################################
 
     @property
-    def left(self):
-        """
-        Return the left edge.
-
-        Returns:
-            tuple: The left edge.
-        """
+    def left(self) -> tuple[PointType, PointType]:
+        """Left edge of the axis-aligned bounding box."""
         return self.b_box.left
 
     @property
-    def right(self):
-        """
-        Return the right edge.
-
-        Returns:
-            tuple: The right edge.
-        """
+    def right(self) -> tuple[PointType, PointType]:
+        """Right edge of the axis-aligned bounding box."""
         return self.b_box.right
 
     @property
-    def top(self):
-        """
-        Return the top edge.
-
-        Returns:
-            tuple: The top edge.
-        """
+    def top(self) -> tuple[PointType, PointType]:
+        """Top edge of the axis-aligned bounding box."""
         return self.b_box.top
 
     @property
-    def bottom(self):
-        """
-        Return the bottom edge.
-
-        Returns:
-            tuple: The bottom edge.
-        """
+    def bottom(self) -> tuple[PointType, PointType]:
+        """Bottom edge of the axis-aligned bounding box."""
         return self.b_box.bottom
 
     @property
-    def vert_centerline(self):
-        """
-        Return the vertical centerline.
-
-        Returns:
-            tuple: The vertical centerline.
-        """
+    def vert_centerline(self) -> tuple[PointType, PointType]:
+        """Vertical centerline (north and south midpoints)."""
         return (self.b_box.north, self.b_box.south)
 
     @property
-    def horiz_centerline(self):
-        """
-        Return the horizontal centerline.
-
-        Returns:
-            tuple: The horizontal centerline.
-        """
+    def horiz_centerline(self) -> tuple[PointType, PointType]:
+        """Horizontal centerline (west and east midpoints)."""
         return (self.b_box.west, self.b_box.east)
 
     @property
-    def midpoint(self):
-        """
-        Return the center of the bounding box.
-
-        Returns:
-            tuple: The center of the bounding box.
-        """
+    def midpoint(self) -> PointType:
+        """Center of the axis-aligned bounding box."""
         x1, y1 = self.southwest
         x2, y2 = self.northeast
 
@@ -1129,33 +1109,22 @@ class Shape(Base, CommonStyle):
         return (xc, yc)
 
     @property
-    def corners(self):
-        """
-        Return the four corners of the bounding box.
-
-        Returns:
-            tuple: The four corners of the bounding box.
-        """
+    def corners(
+        self,
+    ) -> tuple[PointType, PointType, PointType, PointType]:
+        """Four bounding-box corners (nw, sw, se, ne)."""
         return (self.northwest, self.southwest, self.southeast, self.northeast)
 
     @property
-    def diamond(self):
-        """
-        Return the four center points of the bounding box in a diamond shape.
-
-        Returns:
-            tuple: The four center points of the bounding box in a diamond shape.
-        """
+    def diamond(
+        self,
+    ) -> tuple[PointType, PointType, PointType, PointType]:
+        """Edge midpoints in order north, west, south, east."""
         return (self.north, self.west, self.south, self.east)
 
     @property
-    def all_anchors(self):
-        """
-        Return all anchors of the bounding box.
-
-        Returns:
-            tuple: All anchors of the bounding box.
-        """
+    def all_anchors(self) -> tuple[PointType, ...]:
+        """Named anchor points derived from the bounding box."""
         return (
             self.west,
             self.southwest,
@@ -1169,14 +1138,19 @@ class Shape(Base, CommonStyle):
         )
 
     @property
-    def all_lines(self):
-        """
-        Return all lines of the bounding box.
-
-        Returns:
-            tuple: All lines of the bounding box.
-        """
-
+    def all_lines(
+        self,
+    ) -> tuple[
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+    ]:
+        """Edges, centerlines, and diagonals of the bounding box."""
         return (
             self.left,
             self.bottom,
@@ -1189,153 +1163,87 @@ class Shape(Base, CommonStyle):
         )
 
     @property
-    def width(self):
-        """
-        Return the width of the bounding box.
-
-        Returns:
-            float: The width of the bounding box.
-        """
+    def width(self) -> float:
+        """Width of the axis-aligned bounding box."""
         return distance(self.northwest, self.northeast)
 
     @property
-    def height(self):
-        """
-        Return the height of the bounding box.
-
-        Returns:
-            float: The height of the bounding box.
-        """
+    def height(self) -> float:
+        """Height of the axis-aligned bounding box."""
         return distance(self.northwest, self.southwest)
 
     @property
-    def size(self):
-        """
-        Return the size of the bounding box.
-
-        Returns:
-            tuple: The size of the bounding box.
-        """
+    def size(self) -> tuple[float, float]:
+        """``(width, height)`` of the axis-aligned bounding box."""
         return (self.width, self.height)
 
     @property
-    def west(self):
-        """
-        Return the left edge midpoint.
-
-        Returns:
-            tuple: The left edge midpoint.
-        """
+    def west(self) -> PointType:
+        """Midpoint of the left edge."""
         return midpoint(*self.left)
 
     @property
-    def south(self):
-        """
-        Return the bottom edge midpoint.
-
-        Returns:
-            tuple: The bottom edge midpoint.
-        """
+    def south(self) -> PointType:
+        """Midpoint of the bottom edge."""
         return midpoint(*self.bottom)
 
     @property
-    def east(self):
-        """
-        Return the right edge midpoint.
-
-        Returns:
-            tuple: The right edge midpoint.
-        """
+    def east(self) -> PointType:
+        """Midpoint of the right edge."""
         return midpoint(*self.right)
 
     @property
-    def north(self):
-        """
-        Return the top edge midpoint.
-
-        Returns:
-            tuple: The top edge midpoint.
-        """
+    def north(self) -> PointType:
+        """Midpoint of the top edge."""
         return midpoint(*self.top)
 
     @property
-    def northwest(self):
-        """
-        Return the top left corner.
-
-        Returns:
-            tuple: The top left corner.
-        """
+    def northwest(self) -> PointType:
+        """Top-left corner of the bounding box."""
         return self.b_box.northwest
 
     @property
-    def northeast(self):
-        """
-        Return the top right corner.
-
-        Returns:
-            tuple: The top right corner.
-        """
+    def northeast(self) -> PointType:
+        """Top-right corner of the bounding box."""
         return self.b_box.northeast
 
     @property
-    def southwest(self):
-        """
-        Return the bottom left corner.
-
-        Returns:
-            tuple: The bottom left corner.
-        """
+    def southwest(self) -> PointType:
+        """Bottom-left corner of the bounding box."""
         return self.b_box.southwest
 
     @property
-    def southeast(self):
-        """
-        Return the bottom right corner.
-
-        Returns:
-            tuple: The bottom right corner.
-        """
+    def southeast(self) -> PointType:
+        """Bottom-right corner of the bounding box."""
         return self.b_box.southeast
 
     @property
-    def diagonal1(self):
-        """
-        Return the first diagonal. From the top left to the bottom right.
-
-        Returns:
-            tuple: The first diagonal.
-        """
+    def diagonal1(self) -> tuple[PointType, PointType]:
+        """Diagonal from southwest to northeast."""
         return (self.southwest, self.northeast)
 
     @property
-    def diagonal2(self):
-        """
-        Return the second diagonal. From the top right to the bottom left.
-
-        Returns:
-            tuple: The second diagonal.
-        """
+    def diagonal2(self) -> tuple[PointType, PointType]:
+        """Diagonal from southeast to northwest."""
         return (self.southeast, self.northwest)
 
     def get_inflated_b_box(
         self,
-        left_margin=None,
-        bottom_margin=None,
-        right_margin=None,
-        top_margin=None,
-    ):
-        """
-        Return a bounding box with offset edges.
+        left_margin: float | None = None,
+        bottom_margin: float | None = None,
+        right_margin: float | None = None,
+        top_margin: float | None = None,
+    ) -> BoundingBox:
+        """Return a bounding box expanded by the given margins.
 
         Args:
-            left_margin (float, optional): The left margin.
-            bottom_margin (float, optional): The bottom margin.
-            right_margin (float, optional): The right margin.
-            top_margin (float, optional): The top margin.
+            left_margin: Outward offset on the left; other margins default from it.
+            bottom_margin: Outward offset on the bottom.
+            right_margin: Outward offset on the right.
+            top_margin: Outward offset on the top.
 
         Returns:
-            BoundingBox: The inflated bounding box.
+            Inflated ``BoundingBox``.
         """
 
         if bottom_margin is None:
@@ -1353,30 +1261,32 @@ class Shape(Base, CommonStyle):
 
         return BoundingBox(southwest, northeast)
 
-    def offset_line(self, side, offset):
-        """
-        Offset is applied outwards. Use negative values for inward offset.
+    def offset_line(
+        self, side: Side | str, offset: float
+    ) -> tuple[PointType, PointType]:
+        """Offset a bounding-box edge outward (negative ``offset`` goes inward).
 
         Args:
-            side (Side): The side to offset.
-            offset (float): The offset distance.
+            side: ``Side`` enum member or name accepted by ``BoundingBox``.
+            offset: Perpendicular offset distance.
 
         Returns:
-            tuple: The offset line.
+            Offset segment as two points.
         """
         return self.b_box.offset_line(side, offset)
 
-    def offset_point(self, anchor, dx, dy):
-        """
-        Return an offset point from the given corner.
+    def offset_point(
+        self, anchor: Anchor | str, dx: float, dy: float
+    ) -> PointType:
+        """Return a point offset from a bounding-box anchor.
 
         Args:
-            anchor (Anchor): The anchor point.
-            dx (float): The x offset.
-            dy (float): The y offset.
+            anchor: ``Anchor`` enum member or alias.
+            dx: Horizontal offset.
+            dy: Vertical offset.
 
         Returns:
-            list: The offset point.
+            Offset point in canvas coordinates.
         """
         return self.b_box.offset_point(anchor, dx, dy)
 
@@ -1673,6 +1583,14 @@ def trim_margins(
 
     Returns:
         Shape | Group: The trimmed Shape or Group.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> square = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> trimmed = trim_margins(square)
+        >>> trimmed.type.name
+        'GROUP'
     """
     corners = item.b_box.get_inflated_b_box(
         -left, -bottom, -right, -top
@@ -1689,7 +1607,7 @@ def clip(
     rel_tol: float | None = None,
     abs_tol: float | None = None,
     merge: bool = True,
-):
+) -> Shape | Group:
     """Clip a Shape or Group against a closed clipper polygon.
 
     Args:
@@ -1706,14 +1624,12 @@ def clip(
     Raises:
         TypeError: If ``item`` is neither Shape nor Group.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    subject = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
-    window = sg.Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
-    clip(subject, window)  # doctest: +SKIP
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> subject = Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> window = Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
+        >>> clip(subject, window)  # doctest: +SKIP
 """
     if isinstance(item, Group):
         return _clip_group(item, clipper, exclude_clipper, rel_tol, abs_tol)
@@ -1743,12 +1659,8 @@ def _clip_group(
     exclude_clipper: bool = True,
     rel_tol: float | None = None,
     abs_tol: float | None = None,
-):
-    """
-    group Group: group to be clipped
-    clipper Shape: clipping region
-    exclude_clipper bool: If True, clipper's edges are excluded.
-    """
+) -> Group:
+    """Clip each element of ``group`` against ``clipper`` and collect results."""
     res = Group()
 
     for item in group.elements:
@@ -1791,12 +1703,8 @@ def _clip_shape(
     exclude_clipper: bool = False,
     rel_tol: float | None = None,
     abs_tol: float | None = None,
-):
-    """
-    shape Shape: shape to be clipped
-    clipper Shape: clipping region
-    exclude_clipper bool: If True, clipper's edges are excluded.
-    """
+) -> Shape | Group:
+    """Clip a single shape to the interior of ``clipper``."""
     if not clipper.closed:
         raise ValueError("Clipper shape is not closed")
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
@@ -1811,7 +1719,7 @@ def _clip_shape(
         points = [point_data[0] for point_data in value]
         split_points_by_index[key] = remove_duplicate_points(points)
 
-    def split_segment(segment_index: int):
+    def split_segment(segment_index: int) -> list[LineType]:
         points = split_points_by_index.get(segment_index, [])
         if points:
             return multi_split_segment(segments[segment_index], points)
@@ -1860,6 +1768,13 @@ def custom_attributes(item: Shape) -> list[str]:
         item (Shape): The Shape or Group instanc
     Returns:
         list[str]: A list of custom attribute names.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> poly = Shape([(0, 0), (1, 0), (1, 1)], closed=True)
+        >>> 'closed' not in custom_attributes(poly)
+        True
     """
     dummy = Shape([(0, 0), (1, 0)])
     native_attribs = set(dir(dummy))
@@ -1880,12 +1795,21 @@ class Clipping:
         target: Shape or Group to be clipped.
         clipper: Closed Shape used as the clipping region.
         type: Always ``Types.CLIPPING``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> subject = Shape([(0, 0), (10, 0), (10, 10)], closed=True)
+        >>> window = Shape([(0, 0), (5, 0), (5, 5), (0, 5)], closed=True)
+        >>> pair = Clipping(subject, window)
+        >>> pair.type.name
+        'CLIPPING'
     """
 
     target: Shape | Group
     clipper: Shape
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.CLIPPING
         self.subtype = Types.CLIPPING
 
@@ -1895,7 +1819,7 @@ def polygon_diff(
     shape2: Shape,
     dist_tol: float = 0.01,
     merge: bool = True,
-):
+) -> Group:
     """Return the difference of two closed polygons (``shape1 \\ shape2``).
 
     Args:
@@ -1911,14 +1835,12 @@ def polygon_diff(
     Raises:
         Warning: If either shape is not closed (raised as ``Warning``).
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    a = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
-    b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
-    polygon_diff(a, b)  # doctest: +SKIP
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> a = Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> b = Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
+        >>> polygon_diff(a, b)  # doctest: +SKIP
 """
     exclude_clipper = False
     if not (shape1.closed and shape2.closed):
@@ -1959,7 +1881,7 @@ def polygon_difference(
     shape2: Shape,
     dist_tol: float = 0.01,
     merge: bool = True,
-):
+) -> Group:
     """Alias for ``polygon_diff``.
 
     Args:
@@ -1970,11 +1892,20 @@ def polygon_difference(
 
     Returns:
         Group: Difference result.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> a = Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> b = Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
+        >>> polygon_difference(a, b)  # doctest: +SKIP
     """
     return polygon_diff(shape1, shape2, dist_tol=dist_tol, merge=merge)
 
 
-def polygon_intersection(shape1: Shape, shape2: Shape, merge: bool = True):
+def polygon_intersection(
+    shape1: Shape, shape2: Shape, merge: bool = True
+) -> Shape | Group:
     """Return the intersection of two closed polygons.
 
     Args:
@@ -1984,6 +1915,13 @@ def polygon_intersection(shape1: Shape, shape2: Shape, merge: bool = True):
 
     Returns:
         Group: Intersection fragments or merged shapes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> a = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> b = Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
+        >>> polygon_intersection(a, b)  # doctest: +SKIP
     """
     if not (shape1.closed and shape2.closed):
         raise ValueError("Invalid input: shape1 and shape2 must be closed!")
@@ -1995,7 +1933,7 @@ def polygon_xor(
     shape2: Shape,
     dist_tol: float = 0.01,
     merge: bool = True,
-):
+) -> Group:
     """Return the symmetric difference of two closed polygons.
 
     Args:
@@ -2006,6 +1944,13 @@ def polygon_xor(
 
     Returns:
         Group: Symmetric difference fragments or merged shapes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> a = Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> b = Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
+        >>> polygon_xor(a, b)  # doctest: +SKIP
     """
     res1 = polygon_diff(shape1, shape2)
     res2 = polygon_diff(shape2, shape1)
@@ -2023,7 +1968,7 @@ def all_segments(
     n_round: int = 1,
     rel_tol: float | None = None,
     abs_tol: float | None = None,
-):
+) -> list[tuple[PointType, PointType]]:
     """Collect unique line segments from a Shape or Group.
 
     Args:
@@ -2034,6 +1979,13 @@ def all_segments(
 
     Returns:
         list[LineType]: Deduplicated line segments.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> tri = Shape([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> len(all_segments(tri)) >= 3
+        True
     """
 
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
@@ -2066,14 +2018,26 @@ def all_segments(
     return edges
 
 
-def get_loop(edges: Sequence[LineType], start_edge: LineType, ccw: bool = True):
-    """
-    Find a loop in a set of edges starting from a given edge.
-        Args:
-            edges (Sequence[LineType]): The set of edges to search.
-            start_edge (LineType): The edge to start the search from.
-        Returns:
-            Shape: A shape representing the found loop, or an empty shape if no loop is found.
+def get_loop(
+    edges: Sequence[LineType], start_edge: LineType, ccw: bool = True
+) -> Shape:
+    """Trace a closed loop through ``edges`` starting from ``start_edge``.
+
+    Args:
+        edges: Segment graph to search.
+        start_edge: Initial directed edge.
+        ccw: If True, prefer counterclockwise turns at each node.
+
+    Returns:
+        Closed ``Shape`` when a loop is found, otherwise an open polyline.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> edges = [((0, 0), (1, 0)), ((1, 0), (1, 1)), ((1, 1), (0, 0))]
+        >>> loop = get_loop(edges, ((0, 0), (1, 0)))
+        >>> loop.closed
+        True
     """
     G = nx.Graph()
     G.add_edges_from(edges)
@@ -2124,6 +2088,14 @@ def get_partition(
 
     Returns:
         The resulting shape object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> square = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> part = get_partition(square, 0)
+        >>> part.closed
+        True
     """
 
     edges = all_segments(item)

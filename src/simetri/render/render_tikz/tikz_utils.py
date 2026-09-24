@@ -1,6 +1,10 @@
 """TikZ helper functions for styles, colors, paths, and shading."""
 
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 from math import degrees
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -18,6 +22,9 @@ from ...config.settings import defaults, tikz_defaults
 from ...shapes.shape import Shape
 from ..sketch import ShapeSketch, TagSketch
 from ..style_map import line_style_map, marker_style_map, shape_style_map
+
+if TYPE_CHECKING:
+    from ..sketch import Sketch
 
 axis_shading_types = [
     ShadeType.AXIS_LEFT_RIGHT,
@@ -38,14 +45,14 @@ radial_shading_types = [
 NumberOrTex = int | float | str
 
 
-def get_min_size(sketch: ShapeSketch) -> str:
-    """Returns the minimum size of the tag node.
+def get_min_size(sketch: ShapeSketch) -> list[str]:
+    """Return TikZ ``minimum width/height`` or ``minimum size`` options.
 
     Args:
-        sketch (ShapeSketch): The shape sketch object.
+        sketch: Tag or shape sketch with frame sizing attributes.
 
     Returns:
-        str: The minimum size of the tag node.
+        list[str]: TikZ key/value option strings.
     """
     options = []
     if sketch.frame_shape == "rectangle":
@@ -95,14 +102,19 @@ def frame_options(sketch: TagSketch) -> list[str]:
     return options
 
 
-def color_to_tikz(color, property_name=None):
-    """Converts a Color object to a TikZ color string.
+def color_to_tikz(
+    color: Color | str | None,
+    property_name: str | None = None,
+) -> str:
+    """Convert a ``Color`` to a TikZ ``rgb,255:…`` color specification.
 
     Args:
-        color (Color): The color object.
+        color: Simetri color, color string, or ``None`` to read from
+            ``defaults[property_name]``.
+        property_name: Key in ``defaults`` when ``color`` is ``None``.
 
     Returns:
-        str: The TikZ color string.
+        str: TikZ color (optionally with ``opacity=``).
     """
     # \usepackage{xcolor}
     # \tikz\node[rounded corners, fill={rgb,255:red,21; green,66; blue,128},
@@ -227,7 +239,7 @@ def get_clip_code(sketch: "Sketch") -> str:
     return res
 
 
-def _parse_mask_offset(offset):
+def _parse_mask_offset(offset: float | int | str) -> float:
     if isinstance(offset, (int, float)):
         return float(offset)
     if isinstance(offset, str) and offset.endswith("%"):
@@ -235,7 +247,7 @@ def _parse_mask_offset(offset):
     return float(offset)
 
 
-def _luminance_from_stop_color(stop_color):
+def _luminance_from_stop_color(stop_color: Any) -> float:
     if isinstance(stop_color, Color):
         red, green, blue = stop_color.rgb255
     elif isinstance(stop_color, str):
@@ -256,7 +268,7 @@ def _luminance_from_stop_color(stop_color):
     return (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255.0
 
 
-def _effective_alpha_from_stop(stop):
+def _effective_alpha_from_stop(stop: Any) -> tuple[float, float]:
     if isinstance(stop, dict):
         offset = _parse_mask_offset(stop["offset"])
         stop_color = stop.get("stop-color", stop.get("stop_color", "white"))
@@ -294,7 +306,7 @@ def _pgf_gray(transparency: int) -> str:
     return f"black!{transparency}"
 
 
-def _extract_gradient_stop_color(stop):
+def _extract_gradient_stop_color(stop: Any) -> Any:
     if isinstance(stop, sg.Stop):
         return stop.color
 
@@ -312,7 +324,7 @@ def _extract_gradient_stop_color(stop):
     return "black"
 
 
-def _extract_gradient_stop_offset(stop):
+def _extract_gradient_stop_offset(stop: Any) -> float:
     if isinstance(stop, sg.Stop):
         return stop.offset
 
@@ -335,7 +347,7 @@ def _extract_gradient_stop_offset(stop):
         return 0.0
 
 
-def _resolve_color_token(color_value):
+def _resolve_color_token(color_value: Any) -> Color | None:
     if isinstance(color_value, Color):
         return color_value
 
@@ -357,7 +369,7 @@ def _resolve_color_token(color_value):
     return None
 
 
-def _color_at_offset(stops, t):
+def _color_at_offset(stops: Sequence[Any], t: float) -> Color | None:
     parsed = []
     for stop in stops:
         offset = max(0.0, min(1.0, _extract_gradient_stop_offset(stop)))
@@ -394,7 +406,7 @@ def _color_at_offset(stops, t):
     return parsed[-1][1]
 
 
-def get_dash_pattern(line_dash_array):
+def get_dash_pattern(line_dash_array: Sequence[float | int]) -> str:
     """Returns the dash pattern for a line.
 
     Args:
@@ -424,9 +436,13 @@ _converters = {
 
 
 def sg_to_tikz(
-    sketch, attrib_list, attrib_map, conditions=None, exceptions=None
-):
-    """Convert resolved sketch attributes to TikZ options."""
+    sketch: Any,
+    attrib_list: Sequence[str],
+    attrib_map: Mapping[str, str],
+    conditions: Mapping[str, bool] | None = None,
+    exceptions: Sequence[str] | None = None,
+) -> list[str]:
+    """Convert resolved sketch attributes to TikZ option strings."""
     boolean_attribs = ["smooth"]
     tikz_enum_attribs = {
         "line_width": LineWidth,
@@ -493,15 +509,17 @@ _attrib_map_line_style = {
 }
 
 
-def get_line_style_options(sketch, exceptions=None):
-    """Returns the options for the line style.
+def get_line_style_options(
+    sketch: Any, exceptions: Sequence[str] | None = None
+) -> list[str]:
+    """Build TikZ stroke options for a sketch.
 
     Args:
-        sketch: The sketch object.
-        exceptions: Optional exceptions for the line style options.
+        sketch: Sketch with line style attributes.
+        exceptions: Attribute names to omit.
 
     Returns:
-        list: The line style options as a list.
+        list[str]: TikZ option strings.
     """
     if exceptions is None:
         exceptions = []
@@ -549,16 +567,20 @@ _attrib_map_fill_style = {
 }
 
 
-def get_fill_style_options(sketch, exceptions=None, frame=False):
-    """Returns the options for the fill style.
+def get_fill_style_options(
+    sketch: Any,
+    exceptions: Sequence[str] | None = None,
+    frame: bool = False,
+) -> list[str]:
+    """Build TikZ fill options for a sketch.
 
     Args:
-        sketch: The sketch object.
-        exceptions: Optional exceptions for the fill style options.
-        frame: Optional flag for frame fill style.
+        sketch: Sketch with fill style attributes.
+        exceptions: Attribute names to omit.
+        frame: When True, prepend frame back-color fill.
 
     Returns:
-        list: The fill style options as a list.
+        list[str]: TikZ option strings.
     """
     if exceptions is None:
         exceptions = []
@@ -590,7 +612,7 @@ def get_fill_style_options(sketch, exceptions=None, frame=False):
     return res
 
 
-def get_axis_shading_colors(sketch):
+def get_axis_shading_colors(sketch: Any) -> str:
     """Returns the shading colors for the axis.
 
     Args:
@@ -600,7 +622,7 @@ def get_axis_shading_colors(sketch):
         str: The shading colors for the axis.
     """
 
-    def get_color(color, color_key):
+    def get_color(color: Any, color_key: str) -> str:
         if isinstance(color, Color):
             res = color_to_tikz(color)
         else:
@@ -632,7 +654,7 @@ def get_axis_shading_colors(sketch):
     return res
 
 
-def get_bilinear_shading_colors(sketch):
+def get_bilinear_shading_colors(sketch: Any) -> str:
     """Returns the shading colors for the bilinear shading.
 
     Args:
@@ -662,7 +684,7 @@ def get_bilinear_shading_colors(sketch):
     return ", ".join(res)
 
 
-def get_radial_shading_colors(sketch):
+def get_radial_shading_colors(sketch: Any) -> str:
     """Returns the shading colors for the radial shading.
 
     Args:
@@ -683,14 +705,14 @@ def get_radial_shading_colors(sketch):
     return ", ".join(res)
 
 
-def get_shading_options(sketch):
-    """Returns the options for the shading.
+def get_shading_options(sketch: Any) -> list[str]:
+    """Return a one-element list of TikZ shading option strings.
 
     Args:
-        sketch: The sketch object.
+        sketch: Sketch with ``shade_type`` and related colors.
 
     Returns:
-        list: The shading options as a list.
+        list[str]: Shading declaration for TikZ path options.
     """
     shade_type = sketch.shade_type
     if shade_type in axis_shading_types:
@@ -713,7 +735,7 @@ def get_shading_options(sketch):
     return [res]
 
 
-def get_pattern_options(sketch):
+def get_pattern_options(sketch: Any) -> list[str]:
     """Returns the options for the patterns.
 
     Args:
@@ -778,7 +800,7 @@ _attrib_map_marker_style = {
 }
 
 
-def get_marker_options(sketch):
+def get_marker_options(sketch: Any) -> list[str]:
     """Returns the options for the markers.
 
     Args:
@@ -814,7 +836,7 @@ def _format_translation(value: NumberOrTex, unit: str) -> str:
 
 
 def transform_image(
-    transform_matrix,
+    transform_matrix: np.ndarray,
     image_url: str,
     *,
     translation_unit: str = "",  # "bp",
@@ -884,14 +906,14 @@ def is_stroked(shape: Shape) -> bool:
     return stroke and line_color is not None and line_width > 0
 
 
-def get_frame_options(sketch):
-    """Returns the options for the frame of a TagSketch.
+def get_frame_options(sketch: TagSketch) -> list[str]:
+    """Return combined line and fill TikZ options for a tag frame.
 
     Args:
-        sketch: The TagSketch object.
+        sketch: Tag sketch with frame attributes.
 
     Returns:
-        list: The options for the frame of the TagSketch.
+        list[str]: TikZ node options (may include minimum size keys).
     """
     options = get_line_style_options(sketch)
     options += get_fill_style_options(sketch)
@@ -912,7 +934,7 @@ def get_frame_options(sketch):
     return options
 
 
-def _get_gradient_shading_options(sketch):
+def _get_gradient_shading_options(sketch: Any) -> list[str] | None:
     if "gradient" not in sketch.__dict__:
         return None
     gradient = sketch.gradient

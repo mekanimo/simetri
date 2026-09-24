@@ -3,14 +3,14 @@
 ``Base`` provides ``translate``, ``rotate``, ``mirror``, ``glide``,
 ``scale``, ``shear``, ``move``, and ``move_to``.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-s = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
-s.translate(5, 0).rotate(sg.pi / 4, about=s.midpoint)
-```
+Examples:
+    >>> import simetri.graphics as sg
+    >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
+    >>> shape.translate(5, 0).rotate(sg.pi / 4, about=shape.midpoint).midpoint[0] > 5
+    True
 """
+
+from __future__ import annotations
 
 __all__ = ["Base", "DynRef", "Transform", "Transformation", "resolve_dyn_ref"]
 
@@ -76,7 +76,7 @@ def _update_inplace(
     | tuple[callable, Any]
     | tuple[InPlace, Any]
     | None = None,
-):
+) -> NDArray:
     """Update a transformation matrix for one more repetition.
 
     Supported ``incr`` forms:
@@ -121,7 +121,7 @@ def _update_inplace(
     def _replace_matrix(updated: NDArray) -> None:
         xform_matrix[:, :] = updated
 
-    def _scale_factors(parts) -> tuple[float, float]:
+    def _scale_factors(parts: Any) -> tuple[float, float]:
         if xform_matrix[0, 1] == 0 and xform_matrix[1, 0] == 0:
             return float(xform_matrix[0, 0]), float(xform_matrix[1, 1])
         return float(parts.scale[0]), float(parts.scale[1])
@@ -254,66 +254,63 @@ class DynRef:
         index: Vertex or edge index for ``Reference.VERTEX`` and
             ``Reference.EDGE``. Defaults to None.
 
-    **Examples**
+    A ``ReferenceTarget.PATTERN`` gap steps by everything placed so far.
+    ``Reference.VERTEX`` and ``Reference.EDGE`` use ``index``. In a point
+    argument an edge reference is its midpoint; in a length argument it is
+    the edge length; one ``EDGE`` argument to ``translate`` is the edge
+    vector ``(end - start)``.
 
-    ```python
-    import simetri.graphics as sg
-    DynRef = sg.DynRef
-    Reference = sg.Reference
-    ReferenceTarget = sg.ReferenceTarget
-    box = sg.Shape([(0, 0), (100, 0), (100, 40)], closed=True)
-    gap = DynRef(Reference.WIDTH, ReferenceTarget.KERNEL)
-    row = box.translate(gap, 0, reps=2, dyn_ref=True)
-    [shape.midpoint[0] for shape in row]
-    # [50.0, 150.0, 250.0]
-    # Aimed at the pattern instead, each step clears everything placed
-    # so far.
-    box = sg.Shape([(0, 0), (100, 0), (100, 40)], closed=True)
-    gap = DynRef(Reference.WIDTH, ReferenceTarget.PATTERN)
-    row = box.translate(gap, 0, reps=3, dyn_ref=True)
-    [shape.midpoint[0] for shape in row]
-    # [50.0, 150.0, 350.0, 750.0]
-    # Vertex and edge references take ``index``.
-    box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
-    fan = box.rotate(
-            sg.pi / 2,
-            about=DynRef(Reference.VERTEX, ReferenceTarget.ACTIVE, index=0),
-            reps=1,
-            dyn_ref=True,
-        )
-    [tuple(shape.midpoint[:2]) for shape in fan]
-    # [(50.0, 20.0), (-20.0, 50.0)]
-    walk = box.mirror(
-            DynRef(Reference.EDGE, ReferenceTarget.ACTIVE, index=1),
-            reps=1,
-            dyn_ref=True,
-        )
-    [shape.midpoint[0] for shape in walk]
-    # [50.0, 150.0]
-    # In a point argument the same edge is its midpoint.
-    spun = box.rotate(
-            sg.pi,
-            about=DynRef(Reference.EDGE, ReferenceTarget.ACTIVE, index=1),
-            reps=1,
-            dyn_ref=True,
-        )
-    [shape.midpoint[0] for shape in spun]
-    # [50.0, 150.0]
-    # An edge in a length argument is its length. One ``EDGE``
-    # argument to ``translate`` is the edge vector.
-    row = box.translate(
-            DynRef(Reference.EDGE, ReferenceTarget.KERNEL, index=1),
-            0,
-            reps=1,
-            dyn_ref=True,
-        )
-    [shape.midpoint[0] for shape in row]
-    # [50.0, 90.0]
-    step = DynRef(Reference.EDGE, ReferenceTarget.KERNEL, index=1)
-    climb = box.translate(step, reps=1, dyn_ref=True)
-    [shape.midpoint[1] for shape in climb]
-    # [20.0, 60.0]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> DynRef = sg.DynRef
+        >>> Reference = sg.Reference
+        >>> ReferenceTarget = sg.ReferenceTarget
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40)], closed=True)
+        >>> gap = DynRef(Reference.WIDTH, ReferenceTarget.KERNEL)
+        >>> row = box.translate(gap, 0, reps=2, dyn_ref=True)
+        >>> [shape.midpoint[0] for shape in row]
+        [50.0, 150.0, 250.0]
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40)], closed=True)
+        >>> gap = DynRef(Reference.WIDTH, ReferenceTarget.PATTERN)
+        >>> row = box.translate(gap, 0, reps=3, dyn_ref=True)
+        >>> [shape.midpoint[0] for shape in row]
+        [50.0, 150.0, 350.0, 750.0]
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+        >>> fan = box.rotate(
+        ... sg.pi / 2,
+        ... about=DynRef(Reference.VERTEX, ReferenceTarget.ACTIVE, index=0),
+        ... reps=1,
+        ... dyn_ref=True,
+        ... )
+        >>> [tuple(shape.midpoint[:2]) for shape in fan]
+        [(50.0, 20.0), (-20.0, 50.0)]
+        >>> walk = box.mirror(
+        ... DynRef(Reference.EDGE, ReferenceTarget.ACTIVE, index=1),
+        ... reps=1,
+        ... dyn_ref=True,
+        ... )
+        >>> [shape.midpoint[0] for shape in walk]
+        [50.0, 150.0]
+        >>> spun = box.rotate(
+        ... sg.pi,
+        ... about=DynRef(Reference.EDGE, ReferenceTarget.ACTIVE, index=1),
+        ... reps=1,
+        ... dyn_ref=True,
+        ... )
+        >>> [shape.midpoint[0] for shape in spun]
+        [50.0, 150.0]
+        >>> row = box.translate(
+        ... DynRef(Reference.EDGE, ReferenceTarget.KERNEL, index=1),
+        ... 0,
+        ... reps=1,
+        ... dyn_ref=True,
+        ... )
+        >>> [shape.midpoint[0] for shape in row]
+        [50.0, 90.0]
+        >>> step = DynRef(Reference.EDGE, ReferenceTarget.KERNEL, index=1)
+        >>> climb = box.translate(step, reps=1, dyn_ref=True)
+        >>> [shape.midpoint[1] for shape in climb]
+        [20.0, 60.0]
 """
 
     reference: Reference | Callable
@@ -340,7 +337,7 @@ class _Targets:
         pattern: The result accumulated so far.
     """
 
-    def __init__(self, kernel: Any, pattern: Any):
+    def __init__(self, kernel: Any, pattern: Any) -> None:
         self.kernel = kernel
         self.pattern = pattern
         self.active = kernel
@@ -474,19 +471,16 @@ class Transform:
         builder: Matrix constructor from ``geom.affine``.
         arguments: ``(name, value)`` pairs for the builder, in order.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
-    xform = sg.Transformation(
-            sg.Transform.translate(40, 0),
-            sg.Transform.rotate(sg.pi / 2, about=(0, 0)),
-        )
-    moved = box.transform(xform)
-    tuple(round(value, 10) for value in moved.midpoint[:2])
-    # (-20.0, 90.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+        >>> xform = sg.Transformation(
+        ... sg.Transform.translate(40, 0),
+        ... sg.Transform.rotate(sg.pi / 2, about=(0, 0)),
+        ... )
+        >>> moved = box.transform(xform)
+        >>> tuple(round(value, 10) for value in moved.midpoint[:2])
+        (-20.0, 90.0)
 """
 
     builder: Callable
@@ -639,36 +633,33 @@ class Transformation:
         ValueError: If no steps are given.
         TypeError: If a step is not a ``Transform``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    DynRef = sg.DynRef
-    Transform = sg.Transform
-    Transformation = sg.Transformation
-    Reference = sg.Reference
-    ReferenceTarget = sg.ReferenceTarget
-    box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
-    xform = Transformation(
-            Transform.translate(
-                DynRef(Reference.WIDTH, ReferenceTarget.KERNEL), 0
-            ),
-            Transform.rotate(
-                sg.pi / 2,
-                about=DynRef(
-                    Reference.MIDPOINT, ReferenceTarget.ACTIVE
-                ),
-            ),
-        )
-    copies = box.transform(xform, reps=1, dyn_ref=True)
-    [tuple(shape.midpoint[:2]) for shape in copies]
-    # [(50.0, 20.0), (50.0, 120.0)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> DynRef = sg.DynRef
+        >>> Transform = sg.Transform
+        >>> Transformation = sg.Transformation
+        >>> Reference = sg.Reference
+        >>> ReferenceTarget = sg.ReferenceTarget
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+        >>> xform = Transformation(
+        ... Transform.translate(
+        ... DynRef(Reference.WIDTH, ReferenceTarget.KERNEL), 0
+        ... ),
+        ... Transform.rotate(
+        ... sg.pi / 2,
+        ... about=DynRef(
+        ... Reference.MIDPOINT, ReferenceTarget.ACTIVE
+        ... ),
+        ... ),
+        ... )
+        >>> copies = box.transform(xform, reps=1, dyn_ref=True)
+        >>> [tuple(shape.midpoint[:2]) for shape in copies]
+        [(50.0, 20.0), (50.0, 120.0)]
 """
 
     steps: tuple[Transform, ...]
 
-    def __init__(self, *steps: Transform):
+    def __init__(self, *steps: Transform) -> None:
         if not steps:
             raise ValueError("Transformation needs at least one Transform.")
         for step in steps:
@@ -885,17 +876,14 @@ def resolve_dyn_ref(
     Returns:
         The resolved value, or ``value`` if it is not a ``DynRef``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
-    gap = sg.DynRef(sg.Reference.WIDTH, sg.ReferenceTarget.KERNEL)
-    sg.resolve_dyn_ref(gap, kernel=box, pattern=box)
-    # 100.0
-    sg.resolve_dyn_ref(40, kernel=box, pattern=box)
-    # 40
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+        >>> gap = sg.DynRef(sg.Reference.WIDTH, sg.ReferenceTarget.KERNEL)
+        >>> sg.resolve_dyn_ref(gap, kernel=box, pattern=box)
+        100.0
+        >>> sg.resolve_dyn_ref(40, kernel=box, pattern=box)
+        40
 """
     if active is None:
         active = kernel
@@ -1131,16 +1119,13 @@ class Base:
         Raises:
             AttributeError: If the name is unknown and not a style attribute.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        square = sg.Shape([(0, 0), (2, 0), (2, 2)], closed=True)
-        square.southwest
-        # (0.0, 0.0)
-        square.midpoint
-        # (1.0, 1.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> square = sg.Shape([(0, 0), (2, 0), (2, 2)], closed=True)
+            >>> square.southwest
+            (0.0, 0.0)
+            >>> square.midpoint
+            (1.0, 1.0)
 """
         if name in anchors:
             if name.startswith("bbox_"):
@@ -1207,21 +1192,18 @@ class Base:
         Raises:
             ValueError: If a vector is passed together with ``dy``.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        square = sg.Shape([(0, 0), (1, 0)])
-        square.translate(10, 5) is square
-        # True
-        square.vertices
-        # ((10.0, 5.0), (11.0, 5.0))
-        square.translate(0, -5).vertices[0]
-        # (10.0, 0.0)
-        mark = sg.Shape([(0, 0)])
-        mark.translate((80, 40)).vertices[0][:2]
-        # (80.0, 40.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> square = sg.Shape([(0, 0), (1, 0)])
+            >>> square.translate(10, 5) is square
+            True
+            >>> square.vertices
+            ((10.0, 5.0), (11.0, 5.0))
+            >>> square.translate(0, -5).vertices[0]
+            (10.0, 0.0)
+            >>> mark = sg.Shape([(0, 0)])
+            >>> mark.translate((80, 40)).vertices[0][:2]
+            (80.0, 40.0)
 """
         builder, arguments = _translate_builder_args(dx, dy)
         transform, dyn_ref = _make_xform(builder, dyn_ref, self, **arguments)
@@ -1290,18 +1272,15 @@ class Base:
         Raises:
             ValueError: If ``dyn_ref`` is True.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        path = [(0, 0), (5, 0), (10, 0)]
-        mark = sg.Shape([(0, 0), (1, 0)])
-        result = mark.translate_along(path, step=1, incr=(1, 0))
-        result is mark
-        # True
-        path
-        # [(0, 0), (5, 0), (10, 0)]
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> path = [(0, 0), (5, 0), (10, 0)]
+            >>> mark = sg.Shape([(0, 0), (1, 0)])
+            >>> result = mark.translate_along(path, step=1, incr=(1, 0))
+            >>> result is mark
+            True
+            >>> path
+            [(0, 0), (5, 0), (10, 0)]
 """
         if dyn_ref:
             raise ValueError(
@@ -1370,18 +1349,15 @@ class Base:
         Returns:
             Self: This object after the rotation is applied.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        arm = sg.Shape([(1, 0)])
-        arm.rotate(sg.pi / 2) is arm
-        # True
-        abs(arm.vertices[0][0]) < 1e-9 and abs(arm.vertices[0][1] - 1) < 1e-9
-        # True
-        arm.rotate(-sg.pi / 2).vertices[0][0]
-        # 1.0
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> arm = sg.Shape([(1, 0)])
+            >>> arm.rotate(sg.pi / 2) is arm
+            True
+            >>> abs(arm.vertices[0][0]) < 1e-9 and abs(arm.vertices[0][1] - 1) < 1e-9
+            True
+            >>> arm.rotate(-sg.pi / 2).vertices[0][0]
+            1.0
 """
         transform, dyn_ref = _make_xform(
             rotation_matrix, dyn_ref, self, angle=angle, about=about
@@ -1444,23 +1420,20 @@ class Base:
         Raises:
             ValueError: If ``incr`` is given and ``about`` is not a line.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        mark = sg.Shape([(0, 40)])
-        axis = [(0, 0), (100, 0)]
-        mark.mirror(axis) is mark
-        # True
-        abs(mark.vertices[0][1] + 40) < 1e-9
-        # True
-        axis
-        # [(0, 0), (100, 0)]
-        mark = sg.Shape([(0, 40)])
-        row = mark.mirror([(0, 0), (100, 0)], reps=2, incr=40)
-        [round(shape.vertices[0][1], 10) for shape in row]
-        # [40.0, -40.0, 120.0]
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 40)])
+            >>> axis = [(0, 0), (100, 0)]
+            >>> mark.mirror(axis) is mark
+            True
+            >>> abs(mark.vertices[0][1] + 40) < 1e-9
+            True
+            >>> axis
+            [(0, 0), (100, 0)]
+            >>> mark = sg.Shape([(0, 40)])
+            >>> row = mark.mirror([(0, 0), (100, 0)], reps=2, incr=40)
+            >>> [round(shape.vertices[0][1], 10) for shape in row]
+            [40.0, -40.0, 120.0]
 """
         transform, dyn_ref = _make_xform(
             mirror_matrix, dyn_ref, self, about=about
@@ -1534,21 +1507,18 @@ class Base:
         Returns:
             Self: This object after the glide is applied.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        mark = sg.Shape([(0, 1)])
-        line = [(0, 0), (1, 0)]
-        mark.glide(line, 2) is mark
-        # True
-        abs(mark.vertices[0][0] - 2) < 1e-9
-        # True
-        abs(mark.vertices[0][1] + 1) < 1e-9
-        # True
-        line
-        # [(0, 0), (1, 0)]
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 1)])
+            >>> line = [(0, 0), (1, 0)]
+            >>> mark.glide(line, 2) is mark
+            True
+            >>> abs(mark.vertices[0][0] - 2) < 1e-9
+            True
+            >>> abs(mark.vertices[0][1] + 1) < 1e-9
+            True
+            >>> line
+            [(0, 0), (1, 0)]
 """
         transform, dyn_ref = _make_xform(
             glide_matrix,
@@ -1613,18 +1583,15 @@ class Base:
         Returns:
             Self: This object after the scale is applied.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        bar = sg.Shape([(1, 0)])
-        bar.scale(2) is bar
-        # True
-        bar.vertices
-        # ((2.0, 0.0),)
-        bar.scale(1, 3).vertices[0][1]
-        # 0.0
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> bar = sg.Shape([(1, 0)])
+            >>> bar.scale(2) is bar
+            True
+            >>> bar.vertices
+            ((2.0, 0.0),)
+            >>> bar.scale(1, 3).vertices[0][1]
+            0.0
 """
         if scale_y is None:
             scale_y = scale_x
@@ -1688,16 +1655,13 @@ class Base:
         Returns:
             Self: This object after the shear is applied.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        mark = sg.Shape([(1, 1)])
-        mark.shear(0, 0) is mark
-        # True
-        mark.vertices
-        # ((1.0, 1.0),)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(1, 1)])
+            >>> mark.shear(0, 0) is mark
+            True
+            >>> mark.vertices
+            ((1.0, 1.0),)
 """
         transform, dyn_ref = _make_xform(
             shear_matrix, dyn_ref, self, theta_x=theta_x, theta_y=theta_y
@@ -1733,17 +1697,14 @@ class Base:
         Returns:
             Self: This object.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        mark = sg.Shape([(0, 0), (1, 0)])
-        mark.translate(3, 0)
-        mark.reset_xform_matrix() is mark
-        # True
-        mark.vertices
-        # ((0.0, 0.0), (1.0, 0.0))
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (1, 0)])
+            >>> mark.translate(3, 0)
+            >>> mark.reset_xform_matrix() is mark
+            True
+            >>> mark.vertices
+            ((0.0, 0.0), (1.0, 0.0))
 """
         self.__dict__["xform_matrix"] = np.identity(3)
         return self
@@ -1783,23 +1744,20 @@ class Base:
                 matrix, or if a ``Transformation`` contains a ``DynRef``
                 while ``dyn_ref`` is False.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        mark = sg.Shape([(0, 0), (1, 0)])
-        mark.transform(mark.xform_matrix) is mark
-        # True
-        mark.vertices
-        # ((0.0, 0.0), (1.0, 0.0))
-        box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
-        xform = sg.Transformation(
-                sg.Transform.translate(40, 0),
-                sg.Transform.rotate(sg.pi / 2, about=(0, 0)),
-            )
-        tuple(round(value, 10) for value in box.transform(xform).midpoint[:2])
-        # (-20.0, 90.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (1, 0)])
+            >>> mark.transform(mark.xform_matrix) is mark
+            True
+            >>> mark.vertices
+            ((0.0, 0.0), (1.0, 0.0))
+            >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
+            >>> xform = sg.Transformation(
+            ... sg.Transform.translate(40, 0),
+            ... sg.Transform.rotate(sg.pi / 2, about=(0, 0)),
+            ... )
+            >>> tuple(round(value, 10) for value in box.transform(xform).midpoint[:2])
+            (-20.0, 90.0)
 """
         if isinstance(xform, Transformation):
             transform, dyn_ref = _make_composite_xform(xform, dyn_ref, self)
@@ -1839,7 +1797,7 @@ class Base:
         return res
 
     def move(
-        self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs
+        self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs: object
     ) -> Self:
         """Move this object so the chosen anchor lands on ``pos``.
 
@@ -1854,21 +1812,18 @@ class Base:
         Returns:
             Self: This object after the move.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        mark = sg.Shape([(0, 0), (2, 0)])
-        mark.move((10, 0)) is mark
-        # True
-        mark.midpoint
-        # (10.0, 0.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (2, 0)])
+            >>> mark.move((10, 0)) is mark
+            True
+            >>> mark.midpoint
+            (10.0, 0.0)
 """
         return self.move_to(pos, anchor, **kwargs)
 
     def move_to(
-        self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs
+        self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs: object
     ) -> Self:
         """Move this object so the chosen anchor lands on ``pos``.
 
@@ -1884,19 +1839,16 @@ class Base:
         Returns:
             Self: This object after the move.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        mark = sg.Shape([(0, 0), (2, 0)])
-        target = (10, 4)
-        mark.move_to(target, anchor=sg.Anchor.SOUTHWEST) is mark
-        # True
-        mark.southwest
-        # (10.0, 4.0)
-        target
-        # (10, 4)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> mark = sg.Shape([(0, 0), (2, 0)])
+            >>> target = (10, 4)
+            >>> mark.move_to(target, anchor=sg.Anchor.SOUTHWEST) is mark
+            True
+            >>> mark.southwest
+            (10.0, 4.0)
+            >>> target
+            (10, 4)
 """
         x, y = pos[:2]
         anchor = get_enum_value(Anchor, anchor)
@@ -1918,14 +1870,11 @@ class Base:
         Returns:
             LineType: The shifted side.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
-        box.offset_line(sg.Side.BOTTOM, 1)[0][1]
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
+            >>> box.offset_line(sg.Side.BOTTOM, 1)[0][1]
         # -1.0
-        ```
 """
         side = get_enum_value(Side, side)
         return self.b_box.offset_line(side, offset)
@@ -1943,16 +1892,13 @@ class Base:
         Returns:
             PointType: The shifted anchor.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
-        box.offset_point(sg.Anchor.SOUTHWEST, 1, 2)
-        # (1.0, 2.0)
-        box.offset_point(sg.Anchor.NORTHEAST, -1)
-        # (3.0, 2.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
+            >>> box.offset_point(sg.Anchor.SOUTHWEST, 1, 2)
+            (1.0, 2.0)
+            >>> box.offset_point(sg.Anchor.NORTHEAST, -1)
+            (3.0, 2.0)
 """
         anchor = get_enum_value(Anchor, anchor)
         return self.b_box.offset_point(anchor, dx, dy)

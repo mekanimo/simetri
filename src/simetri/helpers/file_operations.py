@@ -1,5 +1,7 @@
 """File-path and I/O helpers used by the GUI and exporters."""
 
+from __future__ import annotations
+
 import os
 import platform
 import shutil
@@ -28,7 +30,9 @@ if platform.system() == "Windows":
 _WINDOWS_CREATE_BREAKAWAY_FROM_JOB = 0x01000000
 
 
-def validate_filepath(filepath: Path, overwrite: bool):
+def validate_filepath(
+    filepath: Path, overwrite: bool
+) -> tuple[str, str, str]:
     """
     Validate the file path.
 
@@ -38,6 +42,13 @@ def validate_filepath(filepath: Path, overwrite: bool):
 
     Returns:
         Result: The parent directory, file name, and extension.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> from simetri.helpers.file_operations import validate_filepath
+        >>> parent, stem, ext = validate_filepath(Path('README.md'), True)
+        >>> ext
+        '.md'
     """
     path_exists = os.path.exists(filepath)
     if path_exists and not overwrite:
@@ -150,6 +161,10 @@ def open_saved_file(filepath: str | Path) -> None:
 
     Args:
         filepath: Saved output path (not a ``file://`` URL).
+
+    Examples:
+        >>> from simetri.helpers.file_operations import open_saved_file
+        >>> open_saved_file('README.md')  # doctest: +SKIP
     """
     path = str(Path(filepath).resolve())
     viewer = get_viewer_settings()
@@ -260,6 +275,10 @@ def run_external_converter(
         RuntimeError: Converter process failed or did not create the output.
         ValueError: ``shell`` is false but ``command`` is a string (or the
             reverse expectation is violated in a way that cannot run safely).
+
+    Examples:
+        >>> from simetri.helpers.file_operations import run_external_converter
+        >>> run_external_converter('a.svg', '.png')  # doctest: +SKIP
     """
     input_path = str(Path(input_path).resolve())
     output_path = str(Path(output_path).resolve())
@@ -345,6 +364,10 @@ def run_tex_compiler(
         RuntimeError: ``[tex].command`` is unset, the process failed, or
             the PDF was not created.
         ValueError: ``shell`` does not match the ``command`` type.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import run_tex_compiler
+        >>> run_tex_compiler('doc.tex')  # doctest: +SKIP
     """
     input_path = str(Path(input_path).resolve())
     output_path = str(Path(output_path).resolve())
@@ -413,8 +436,8 @@ def run_tex_compiler(
 
 
 def inject_snippet(
-    code: str, snippet: list[str], mark: str, before=True
-) -> str:
+    code: str, snippet: list[str], mark: str, before: bool = True
+) -> str | None:
     """Insert the given snippet before/after the line that contains the mark.
 
     Args:
@@ -426,6 +449,11 @@ def inject_snippet(
 
     Returns:
         str: Modified source code, or None if the mark was not found.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import inject_snippet
+        >>> inject_snippet('a\nMARK\nb', ['X'], 'MARK')
+        'a\nX\nb'
     """
 
     lines = code.split("\n")
@@ -462,6 +490,11 @@ def replace_token(code: str, token: str, replace: str) -> str:
 
     Returns:
         str: Modified source code, or None if the token was not found.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import replace_token
+        >>> replace_token('a TOKEN b', 'TOKEN', 'X')
+        'a X b'
     """
     lines = code.split("\n")
     res_lines = []
@@ -492,6 +525,11 @@ def inject_filepath(code: str, pic_path: str) -> str:
 
     Returns:
         str: Modified source code, or None if ``canvas.display()`` was not found.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import inject_filepath
+        >>> 'out.svg' in inject_filepath('canvas.display()', 'out.svg')
+        True
     """
     lines = code.split("\n")
     res_lines = []
@@ -520,7 +558,7 @@ def inject_border(
     caption: str,
     width: float | None = None,
     height: float | None = None,
-):
+) -> str | None:
     """Inject an ``auto_border`` call before ``canvas.save(``.
 
     Args:
@@ -531,6 +569,11 @@ def inject_border(
 
     Returns:
         str: Modified source code with the border snippet inserted.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import inject_border
+        >>> 'auto_border' in inject_border('canvas.save(x)', 'cap')
+        True
     """
     # inject auto_border(canvas)
     w, h = width, height
@@ -568,6 +611,11 @@ def inject_border_and_filepath(
 
     Returns:
         str: Modified source code.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import inject_border_and_filepath
+        >>> 'auto_border' in inject_border_and_filepath('canvas.display()', 'out.svg', 'cap')
+        True
     """
     w, h = width, height
     mark = "canvas.display()"
@@ -590,7 +638,9 @@ def inject_border_and_filepath(
     return code_save
 
 
-def path_join(path, *paths):
+def path_join(
+    path: str | os.PathLike[str], *paths: str | os.PathLike[str]
+) -> str:
     """Join path segments using ``os.path.join``.
 
     Args:
@@ -599,6 +649,11 @@ def path_join(path, *paths):
 
     Returns:
         str: Joined path string.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import path_join
+        >>> path_join('a', 'b', 'c.txt')
+        'a/b/c.txt'
     """
     joined_path = os.path.join(path, *paths)
     joined_path.replace(os.sep, "/")
@@ -606,7 +661,9 @@ def path_join(path, *paths):
     return joined_path
 
 
-def join_path_with_ext(*folders, filename, ext):
+def join_path_with_ext(
+    *folders: str | os.PathLike[str], filename: str, ext: str
+) -> str:
     """Build a full path from folders, filename, and extension.
 
     Args:
@@ -616,6 +673,11 @@ def join_path_with_ext(*folders, filename, ext):
 
     Returns:
         str: Joined path (intended to use forward slashes).
+
+    Examples:
+        >>> from simetri.helpers.file_operations import join_path_with_ext
+        >>> join_path_with_ext('out', 'fig', '.svg')
+        'out/fig.svg'
     """
 
     return path_join(*folders, filename + ext)
@@ -630,17 +692,19 @@ def path_exists(path: str | os.PathLike[str]) -> bool:
     Returns:
         bool: True if the path exists.
 
-    **Examples**
-
-    ```python
-    path_exists("/tmp/test.txt")
-    # False
-    ```
-"""
+    Examples:
+        >>> from simetri.helpers.file_operations import path_exists
+        >>> path_exists('__no_such_path__')
+        False
+    """
     return Path(path).exists()
 
 
-def wait_for_file_availability(filepath, timeout=None, check_interval=1):
+def wait_for_file_availability(
+    filepath: str | os.PathLike[str],
+    timeout: float | None = None,
+    check_interval: float = 1,
+) -> bool | None:
     """Check if a file is available for writing.
 
     Args:
@@ -650,6 +714,11 @@ def wait_for_file_availability(filepath, timeout=None, check_interval=1):
 
     Returns:
         True if the file is available, False otherwise.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import wait_for_file_availability
+        >>> wait_for_file_availability('__missing__', timeout=0.01)
+        False
     """
     start_time = time.monotonic()
     while True:
@@ -674,12 +743,16 @@ def wait_for_file_availability(filepath, timeout=None, check_interval=1):
             return False
 
 
-def remove_aux_files(filepath):
+def remove_aux_files(filepath: str | Path | os.PathLike[str]) -> None:
     """
     Remove auxiliary files generated during compilation.
 
     Args:
         filepath (Path): The path to the file.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import remove_aux_files
+        >>> remove_aux_files('doc.tex')  # doctest: +SKIP
     """
     time_out = 1  # seconds
     folder, filename = os.path.split(filepath)
@@ -743,11 +816,16 @@ def replace_extension(filepath: str, ext: str) -> str:
 
     Returns:
         str: Path with the new extension.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import replace_extension
+        >>> replace_extension('a.b.tex', '.pdf')
+        'a.b.pdf'
     """
     return os.path.splitext(filepath)[0] + ext
 
 
-def convert_pdf(pdf_path: str, extension: str):
+def convert_pdf(pdf_path: str, extension: str) -> None:
     """Convert a PDF file to another supported vector format.
 
     Only ``.ps``, ``.eps``, and ``.svg`` extensions are supported.
@@ -758,6 +836,10 @@ def convert_pdf(pdf_path: str, extension: str):
 
     Raises:
         RuntimeError: If PDF-to-PS conversion fails.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import convert_pdf
+        >>> convert_pdf('a.pdf', '.svg')  # doctest: +SKIP
     """
     parent_dir, file_name = os.path.split(pdf_path)
     file_name, _ = os.path.splitext(file_name)

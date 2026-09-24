@@ -41,7 +41,7 @@ from ...config.settings import defaults
 from ...group.batch import Group
 from ...shapes.shape import Shape
 from ..affine import rotation_matrix, translation_matrix
-from ..bbox import bounding_box
+from ..bbox import BoundingBox, bounding_box
 from ..geom_utils import close_points_square
 from ..geometry import (
     polar_to_cartesian,
@@ -120,21 +120,18 @@ class Operation:
         name: Optional label.
         type: Always ``Types.PATH_OPERATION`` after init.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    op = sg.Operation(sg.PathOps.LINE_TO, ((0, 0), (10, 0)))
-    op.type.name
-    # 'PATH_OPERATION'
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> op = sg.Operation(sg.PathOps.LINE_TO, ((0, 0), (10, 0)))
+        >>> op.type.name
+        'PATH_OPERATION'
 """
 
     subtype: Types
     data: tuple
     name: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set ``type`` to ``Types.PATH_OPERATION``."""
         self.type = Types.PATH_OPERATION
 
@@ -159,15 +156,12 @@ class Path2D(Group, CommonStyle):
         operations: List of ``Operation`` records.
         subtype: ``Types.PATH2D``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    path = sg.Path2D((0, 0), angle=0)
-    _ = path.forward(10).turn(sg.pi / 2).forward(5)
-    round(path.pos[0], 6), round(path.pos[1], 6)
-    # (10.0, 5.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> path = sg.Path2D((0, 0), angle=0)
+        >>> _ = path.forward(10).turn(sg.pi / 2).forward(5)
+        >>> round(path.pos[0], 6), round(path.pos[1], 6)
+        (10.0, 5.0)
 """
 
     # Group.__setattr__ adds a frame above the color/alpha property setters.
@@ -209,7 +203,7 @@ class Path2D(Group, CommonStyle):
         marker_type: Any = None,
         markers_only: bool | None = None,
         smooth: bool | None = None,
-    ):
+    ) -> None:
         """Initialize a Path2D.
 
         Args:
@@ -244,14 +238,11 @@ class Path2D(Group, CommonStyle):
             markers_only: If True, draw markers without the path.
             smooth: Prefer smooth curve rendering when applicable.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=sg.pi / 2, line_width=2)
-        p.angle == sg.pi / 2
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=sg.pi / 2, line_width=2)
+            >>> p.angle == sg.pi / 2
+            True
 """
 
         self.pos = start
@@ -307,7 +298,7 @@ class Path2D(Group, CommonStyle):
         )
         self.visible = True
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         """Return True if the path has recorded operations.
 
         A path may still be truthy when the group has no drawable elements yet.
@@ -315,19 +306,16 @@ class Path2D(Group, CommonStyle):
         Returns:
             True if ``operations`` is non-empty.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        bool(sg.Path2D((0, 0)))
-        # False
-        bool(sg.Path2D((0, 0)).line_to((1, 0)))
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> bool(sg.Path2D((0, 0)))
+            False
+            >>> bool(sg.Path2D((0, 0)).line_to((1, 0)))
+            True
 """
         return bool(self.operations)
 
-    def _create_object(self):
+    def _create_object(self) -> None:
         """Build geometry for the most recently appended operation."""
         PO = PathOps
         op = self.operations[-1]
@@ -378,16 +366,13 @@ class Path2D(Group, CommonStyle):
         Returns:
             Path2D: Copied path with cloned elements and operations.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).line_to((10, 0))
-        q = p.copy()
-        _ = q.line_to((10, 5))
-        len(p.operations), len(q.operations)
-        # (1, 2)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).line_to((10, 0))
+            >>> q = p.copy()
+            >>> _ = q.line_to((10, 5))
+            >>> len(p.operations), len(q.operations)
+            (1, 2)
 """
 
         new_path = Path2D(start=self.start)
@@ -420,7 +405,14 @@ class Path2D(Group, CommonStyle):
         new_path.copy_style(self)
         return new_path
 
-    def _add(self, pos, op, data, pnt2=None, **kwargs):
+    def _add(
+        self,
+        pos: PointType,
+        op: PathOps,
+        data: object,
+        pnt2: PointType | None = None,
+        **kwargs: object,
+    ) -> None:
         """Add an operation and update pen state.
 
         Args:
@@ -457,20 +449,17 @@ class Path2D(Group, CommonStyle):
         self.pos = pos
 
     @property
-    def all_vertices(self):
+    def all_vertices(self) -> list:
         """Return all vertices of the path after applying transforms.
 
         Returns:
             list: Flattened vertex list.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 5))
-        len(p.all_vertices) >= 2
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 5))
+            >>> len(p.all_vertices) >= 2
+            True
 """
         all_vertices = []
         for obj in self.objects:
@@ -480,7 +469,7 @@ class Path2D(Group, CommonStyle):
         return all_vertices
 
     @property
-    def all_elements(self):
+    def all_elements(self) -> list:
         """Return the transformed geometric objects that make up the path.
 
         Returns:
@@ -489,61 +478,52 @@ class Path2D(Group, CommonStyle):
         return [obj for obj in self.objects if obj is not None]
 
     @property
-    def b_box(self):
+    def b_box(self) -> BoundingBox:
         """Return the axis-aligned bounding box of the path.
 
         Returns:
             Bounding box of all path vertices.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        box = sg.Path2D((0, 0)).line_to((10, 5)).b_box
-        box.width > 0 and box.height > 0
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> box = sg.Path2D((0, 0)).line_to((10, 5)).b_box
+            >>> box.width > 0 and box.height > 0
+            True
 """
 
         return bounding_box(self.all_vertices)
 
-    def push(self):
+    def push(self) -> None:
         """Push the current pen position and heading onto the stack.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=0)
-        p.push()
-        _ = p.forward(10)
-        p.pop()
-        p.pos
-        # (0, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=0)
+            >>> p.push()
+            >>> _ = p.forward(10)
+            >>> p.pop()
+            >>> p.pos
+            (0, 0)
 """
         self.stack.append((self.pos, self.angle))
 
-    def pop(self):
+    def pop(self) -> None:
         """Restore the pen position and heading from the stack.
 
         Starts a new subpath at the restored position so later drawing is
         not connected to the segment that was drawn after ``push``. Does
         nothing if the stack is empty.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=0)
-        p.push()
-        _ = p.forward(5).turn(sg.pi / 2)
-        p.pop()
-        p.angle
-        # 0
-        p.pos
-        # (0, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=0)
+            >>> p.push()
+            >>> _ = p.forward(5).turn(sg.pi / 2)
+            >>> p.pop()
+            >>> p.angle
+            0
+            >>> p.pos
+            (0, 0)
 """
         if not self.stack:
             return
@@ -565,15 +545,12 @@ class Path2D(Group, CommonStyle):
         Returns:
             PointType: Absolute point.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=sg.pi / 2)
-        x, y = p.r_coord(0, 10)
-        round(x, 6), round(y, 6)
-        # (0.0, 10.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=sg.pi / 2)
+            >>> x, y = p.r_coord(0, 10)
+            >>> round(x, 6), round(y, 6)
+            (0.0, 10.0)
 """
         x, y = self.pos[:2]
         theta = self.angle - pi / 2
@@ -594,22 +571,19 @@ class Path2D(Group, CommonStyle):
         Returns:
             PointType: Absolute point.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=sg.pi / 2)
-        x, y = p.r_polar(10, 0)
-        round(x, 6), round(y, 6)
-        # (10.0, 0.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=sg.pi / 2)
+            >>> x, y = p.r_polar(10, 0)
+            >>> round(x, 6), round(y, 6)
+            (10.0, 0.0)
 """
         x, y = polar_to_cartesian(r, angle + self.angle - pi / 2)[:2]
         x1, y1 = self.pos[:2]
 
         return x1 + x, y1 + y
 
-    def line_to(self, point: PointType, **kwargs) -> Self:
+    def line_to(self, point: PointType, **kwargs: object) -> Self:
         """Draw a straight segment from the current position to ``point``.
 
         Args:
@@ -619,20 +593,17 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path (for chaining).
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).line_to((10, 0))
-        p.pos
-        # (10, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).line_to((10, 0))
+            >>> p.pos
+            (10, 0)
 """
         self._add(point, PathOps.LINE_TO, (self.pos, point), **kwargs)
 
         return self
 
-    def forward(self, length: float, **kwargs) -> Self:
+    def forward(self, length: float, **kwargs: object) -> Self:
         """Advance the pen ``length`` units along the current heading.
 
         Args:
@@ -642,14 +613,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path (for chaining).
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=0).forward(10)
-        p.pos
-        # (10.0, 0.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=0).forward(10)
+            >>> p.pos
+            (10.0, 0.0)
 """
 
         x, y = line_by_point_angle_length(self.pos, self.angle, length)[1][:2]
@@ -666,14 +634,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).orient(sg.pi)
-        p.angle == sg.pi
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).orient(sg.pi)
+            >>> p.angle == sg.pi
+            True
 """
         self.angle = angle
 
@@ -689,14 +654,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=0).turn(sg.pi / 2, distance=10)
-        round(p.pos[0], 6), round(p.pos[1], 6)
-        # (0.0, 10.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=0).turn(sg.pi / 2, distance=10)
+            >>> round(p.pos[0], 6), round(p.pos[1], 6)
+            (0.0, 10.0)
 """
 
         self.angle += angle
@@ -706,7 +668,10 @@ class Path2D(Group, CommonStyle):
         return self
 
     def move(
-        self, pos: PointType, anchor: Anchor = Anchor.CENTER, **kwargs
+        self,
+        pos: PointType,
+        anchor: Anchor = Anchor.CENTER,
+        **kwargs: object,
     ) -> Self:
         """Translate the whole path so a bbox anchor sits at ``pos``.
 
@@ -718,15 +683,12 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self or Group: Transformed path (or group when repetitions apply).
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).line_to((10, 0))
-        _ = p.move((50, 50))
-        abs(p.b_box.center[0] - 50) < 1e-6
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).line_to((10, 0))
+            >>> _ = p.move((50, 50))
+            >>> abs(p.b_box.center[0] - 50) < 1e-6
+            True
 """
         x, y = pos[:2]
         anchor = get_enum_value(Anchor, anchor)
@@ -738,7 +700,7 @@ class Path2D(Group, CommonStyle):
 
         return res
 
-    def move_to(self, point: PointType, **kwargs) -> Self:
+    def move_to(self, point: PointType, **kwargs: object) -> Self:
         """Lift the pen and start a new subpath at ``point``.
 
         Args:
@@ -748,20 +710,17 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).line_to((5, 0)).move_to((0, 5))
-        p.pos
-        # (0, 5)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).line_to((5, 0)).move_to((0, 5))
+            >>> p.pos
+            (0, 5)
 """
         self._add(point, PathOps.MOVE_TO, point)
 
         return self
 
-    def r_line(self, dx: float, dy: float, **kwargs) -> Self:
+    def r_line(self, dx: float, dy: float, **kwargs: object) -> Self:
         """Draw a line using relative offsets from the current position.
 
         Args:
@@ -772,21 +731,18 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((1, 1)).r_line(3, 4)
-        p.pos
-        # (4, 5)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((1, 1)).r_line(3, 4)
+            >>> p.pos
+            (4, 5)
 """
         point = self.pos[0] + dx, self.pos[1] + dy
         self._add(point, PathOps.R_LINE, (self.pos, point), **kwargs)
 
         return self
 
-    def r_move(self, dx: float = 0, dy: float = 0, **kwargs) -> Self:
+    def r_move(self, dx: float = 0, dy: float = 0, **kwargs: object) -> Self:
         """Move the pen by relative offsets without drawing.
 
         Args:
@@ -797,21 +753,18 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((1, 1)).r_move(2, 3)
-        p.pos
-        # (3, 4)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((1, 1)).r_move(2, 3)
+            >>> p.pos
+            (3, 4)
 """
         x, y = self.pos[:2]
         point = (x + dx, y + dy)
         self._add(point, PathOps.R_MOVE, point, **kwargs)
         return self
 
-    def h_line_to(self, x: float, **kwargs) -> Self:
+    def h_line_to(self, x: float, **kwargs: object) -> Self:
         """Draw a horizontal line to absolute x, keeping the current y.
 
         Args:
@@ -821,20 +774,17 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 2)).h_line_to(8)
-        p.pos
-        # (8, 2)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 2)).h_line_to(8)
+            >>> p.pos
+            (8, 2)
 """
         y = self.pos[1]
         self._add((x, y), PathOps.H_LINE_TO, (self.pos, (x, y)), **kwargs)
         return self
 
-    def r_h_line(self, length: float, **kwargs) -> Self:
+    def r_h_line(self, length: float, **kwargs: object) -> Self:
         """Draw a horizontal line of the given length.
 
         Args:
@@ -844,20 +794,17 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).r_h_line(5)  # doctest: +SKIP
-        p.pos  # doctest: +SKIP
-        # (5, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).r_h_line(5)  # doctest: +SKIP
+            >>> p.pos  # doctest: +SKIP
+            (5, 0)
 """
         x, y = self.pos[0] + length, self.pos[1]
         self._add((x, y), PathOps.R_H_LINE, (self.pos, (x, y)), **kwargs)
         return self
 
-    def v_line_to(self, y: float, **kwargs) -> Self:
+    def v_line_to(self, y: float, **kwargs: object) -> Self:
         """Draw a vertical line to absolute y, keeping the current x.
 
         Args:
@@ -867,20 +814,17 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((3, 0)).v_line_to(7)
-        p.pos
-        # (3, 7)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((3, 0)).v_line_to(7)
+            >>> p.pos
+            (3, 7)
 """
         x = self.pos[0]
         self._add((x, y), PathOps.V_LINE_TO, (self.pos, (x, y)), **kwargs)
         return self
 
-    def r_v_line(self, length: float, **kwargs) -> Self:
+    def r_v_line(self, length: float, **kwargs: object) -> Self:
         """Draw a vertical line of the given length.
 
         Args:
@@ -890,20 +834,19 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).r_v_line(4)  # doctest: +SKIP
-        p.pos  # doctest: +SKIP
-        # (0, 4)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).r_v_line(4)  # doctest: +SKIP
+            >>> p.pos  # doctest: +SKIP
+            (0, 4)
 """
         x, y = self.pos[0], self.pos[1] + length
         self._add((x, y), PathOps.R_V_LINE, (self.pos, (x, y)), **kwargs)
         return self
 
-    def segments(self, points, **kwargs) -> Self:
+    def segments(
+        self, points: Sequence[PointType], **kwargs: object
+    ) -> Self:
         """Append polyline segments through absolute ``points``.
 
         Args:
@@ -913,14 +856,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).segments([(5, 0), (5, 5)])
-        p.pos
-        # (5, 5)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).segments([(5, 0), (5, 5)])
+            >>> p.pos
+            (5, 5)
 """
 
         self._add(
@@ -937,7 +877,7 @@ class Path2D(Group, CommonStyle):
         control1: PointType,
         control2: PointType,
         end: PointType,
-        **kwargs,
+        **kwargs: object,
     ) -> Self:
         """Append a cubic Bézier from the current position to ``end``.
 
@@ -950,14 +890,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).cubic_to((1, 2), (3, 2), (4, 0))
-        p.pos
-        # (4, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).cubic_to((1, 2), (3, 2), (4, 0))
+            >>> p.pos
+            (4, 0)
 """
         self._add(
             end,
@@ -968,7 +905,9 @@ class Path2D(Group, CommonStyle):
         )
         return self
 
-    def r_segments(self, r_points, **kwargs) -> Self:
+    def r_segments(
+        self, r_points: Sequence[PointType], **kwargs: object
+    ) -> Self:
         """Append polyline segments using successive ``(dx, dy)`` offsets.
 
         Args:
@@ -978,14 +917,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).r_segments([(5, 0), (0, 5)])
-        p.pos
-        # (5, 5)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).r_segments([(5, 0), (0, 5)])
+            >>> p.pos
+            (5, 5)
 """
         # Convert relative offsets to absolute points
         points = []
@@ -1004,7 +940,9 @@ class Path2D(Group, CommonStyle):
         )
         return self
 
-    def hobby_to(self, points, **kwargs) -> Self:
+    def hobby_to(
+        self, points: Sequence[PointType], **kwargs: object
+    ) -> Self:
         """Append a Hobby smooth curve through ``points``.
 
         Args:
@@ -1014,20 +952,21 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).hobby_to([(10, 5), (20, 0)])  # doctest: +SKIP
-        p.pos  # doctest: +SKIP
-        # (20, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).hobby_to([(10, 5), (20, 0)])  # doctest: +SKIP
+            >>> p.pos  # doctest: +SKIP
+            (20, 0)
 """
         self._add(points[-1], PathOps.HOBBY_TO, (self.pos, points), **kwargs)
         return self
 
     def quad_to(
-        self, control: PointType, end: PointType, *args, **kwargs
+        self,
+        control: PointType,
+        end: PointType,
+        *args: object,
+        **kwargs: object,
     ) -> Self:
         """Append a quadratic Bézier to ``end`` with control point ``control``.
 
@@ -1045,14 +984,11 @@ class Path2D(Group, CommonStyle):
         Raises:
             ValueError: If an ``*args`` entry does not have exactly two items.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0))  # doctest: +SKIP
-        p.pos  # doctest: +SKIP
-        # (10, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0))  # doctest: +SKIP
+            >>> p.pos  # doctest: +SKIP
+            (10, 0)
 """
         self._add(
             end,
@@ -1085,7 +1021,7 @@ class Path2D(Group, CommonStyle):
         return self
 
     def mirror_cubic_to(
-        self, control2: PointType, end: PointType, **kwargs
+        self, control2: PointType, end: PointType, **kwargs: object
     ) -> Self:
         """Append a smooth cubic Bézier (SVG ``S``).
 
@@ -1100,18 +1036,15 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = (
-                sg.Path2D((0, 0))
-                .cubic_to((1, 2), (3, 2), (4, 0))
-                .mirror_cubic_to((5, -2), (8, 0))
-            )
-        p.pos
-        # (8, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = (
+            ... sg.Path2D((0, 0))
+            ... .cubic_to((1, 2), (3, 2), (4, 0))
+            ... .mirror_cubic_to((5, -2), (8, 0))
+            ... )
+            >>> p.pos
+            (8, 0)
 """
         # Get previous control point from last operation if it was a cubic
         prev_c2 = self.pos
@@ -1136,7 +1069,7 @@ class Path2D(Group, CommonStyle):
         return self
 
     def r_mirror_cubic_to(
-        self, r_control2: PointType, r_end: PointType, **kwargs
+        self, r_control2: PointType, r_end: PointType, **kwargs: object
     ) -> Self:
         """Append a relative smooth cubic Bézier (SVG ``s``).
 
@@ -1148,25 +1081,22 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = (
-                sg.Path2D((0, 0))
-                .cubic_to((1, 2), (3, 2), (4, 0))
-                .r_mirror_cubic_to((1, -2), (4, 0))
-            )
-        p.pos
-        # (8, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = (
+            ... sg.Path2D((0, 0))
+            ... .cubic_to((1, 2), (3, 2), (4, 0))
+            ... .r_mirror_cubic_to((1, -2), (4, 0))
+            ... )
+            >>> p.pos
+            (8, 0)
 """
         cur_x, cur_y = self.pos
         control2 = (cur_x + r_control2[0], cur_y + r_control2[1])
         end = (cur_x + r_end[0], cur_y + r_end[1])
         return self.mirror_cubic_to(control2, end, **kwargs)
 
-    def mirror_quad_to(self, end: PointType, **kwargs) -> Self:
+    def mirror_quad_to(self, end: PointType, **kwargs: object) -> Self:
         """Append a smooth quadratic Bézier (SVG ``T``).
 
         Args:
@@ -1176,14 +1106,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0)).mirror_quad_to((20, 0))  # doctest: +SKIP
-        p.pos  # doctest: +SKIP
-        # (20, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0)).mirror_quad_to((20, 0))  # doctest: +SKIP
+            >>> p.pos  # doctest: +SKIP
+            (20, 0)
 """
         # Get previous control point from last operation if it was a quad
         prev_c1 = self.pos
@@ -1207,7 +1134,7 @@ class Path2D(Group, CommonStyle):
         )
         return self
 
-    def r_mirror_quad_to(self, r_end: PointType, **kwargs) -> Self:
+    def r_mirror_quad_to(self, r_end: PointType, **kwargs: object) -> Self:
         """Append a relative smooth quadratic Bézier (SVG ``t``).
 
         Args:
@@ -1217,21 +1144,22 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0)).r_mirror_quad_to((10, 0))  # doctest: +SKIP
-        p.pos  # doctest: +SKIP
-        # (20, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0)).r_mirror_quad_to((10, 0))  # doctest: +SKIP
+            >>> p.pos  # doctest: +SKIP
+            (20, 0)
 """
         cur_x, cur_y = self.pos
         end = (cur_x + r_end[0], cur_y + r_end[1])
         return self.mirror_quad_to(end, **kwargs)
 
     def blend_cubic(
-        self, control1_length, control2: PointType, end: PointType, **kwargs
+        self,
+        control1_length: float,
+        control2: PointType,
+        end: PointType,
+        **kwargs: object,
     ) -> Self:
         """Append a cubic Bézier whose first control lies along the heading.
 
@@ -1244,14 +1172,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=0).blend_cubic(5, (8, 4), (12, 0))
-        p.pos
-        # (12, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=0).blend_cubic(5, (8, 4), (12, 0))
+            >>> p.pos
+            (12, 0)
 """
         c1 = line_by_point_angle_length(self.pos, self.angle, control1_length)[
             1
@@ -1265,7 +1190,9 @@ class Path2D(Group, CommonStyle):
         )
         return self
 
-    def blend_quad(self, control_length, end: PointType, **kwargs) -> Self:
+    def blend_quad(
+        self, control_length: float, end: PointType, **kwargs: object
+    ) -> Self:
         """Append a quadratic Bézier whose control lies along the heading.
 
         Args:
@@ -1276,14 +1203,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=0).blend_quad(5, (10, 0))  # doctest: +SKIP
-        p.pos  # doctest: +SKIP
-        # (10, 0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=0).blend_quad(5, (10, 0))  # doctest: +SKIP
+            >>> p.pos  # doctest: +SKIP
+            (10, 0)
 """
         pos = list(self.pos[:2])
         c1 = line_by_point_angle_length(pos, self.angle, control_length)[1]
@@ -1297,8 +1221,8 @@ class Path2D(Group, CommonStyle):
         start_angle: float,
         span_angle: float,
         rot_angle: float = 0,
-        n_points=None,
-        **kwargs,
+        n_points: int | None = None,
+        **kwargs: object,
     ) -> Self:
         """Append an elliptic arc starting at the current pen position.
 
@@ -1316,14 +1240,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((10, 0), angle=0).arc(10, 10, 0, sg.pi / 2)
-        round(float(p.pos[0]), 5), round(float(p.pos[1]), 5)
-        # (0.0, 10.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((10, 0), angle=0).arc(10, 10, 0, sg.pi / 2)
+            >>> round(float(p.pos[0]), 5), round(float(p.pos[1]), 5)
+            (0.0, 10.0)
 """
         rx = radius_x
         ry = radius_y
@@ -1377,7 +1298,7 @@ class Path2D(Group, CommonStyle):
         large_arc_flag: bool,
         sweep_flag: bool,
         end: PointType,
-        **kwargs,
+        **kwargs: object,
     ) -> Self:
         """Append an SVG-style elliptical arc to ``end`` (SVG ``A``).
 
@@ -1393,14 +1314,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).arc_to(10, 10, 0, False, True, (10, 10))
-        len(p.operations) >= 1
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).arc_to(10, 10, 0, False, True, (10, 10))
+            >>> len(p.operations) >= 1
+            True
 """
         params = _get_svg_arc_params(
             self.pos, rx, ry, angle, large_arc_flag, sweep_flag, end
@@ -1433,9 +1351,9 @@ class Path2D(Group, CommonStyle):
         radius_y: float,
         start_angle: float,
         span_angle: float,
-        sharp=False,
-        n_points=None,
-        **kwargs,
+        sharp: bool = False,
+        n_points: int | None = None,
+        **kwargs: object,
     ) -> Self:
         """Append an elliptic arc blended to the current heading.
 
@@ -1451,14 +1369,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=0).blend_arc(10, 10, 0, sg.pi / 2)
-        len(p.operations) == 1
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=0).blend_arc(10, 10, 0, sg.pi / 2)
+            >>> len(p.operations) == 1
+            True
 """
         rx = radius_x
         ry = radius_y
@@ -1516,7 +1431,7 @@ class Path2D(Group, CommonStyle):
         rot_angle: float = 0,
         damping: float = 0,
         n_points: int = 100,
-        **kwargs,
+        **kwargs: object,
     ) -> Self:
         """Append a sine-wave polyline from the current pen position.
 
@@ -1533,14 +1448,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).sine(period=20, amplitude=5, duration=20)
-        p.pos[0] > 0
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).sine(period=20, amplitude=5, duration=20)
+            >>> p.pos[0] > 0
+            True
 """
 
         points = sine_points(
@@ -1561,7 +1473,7 @@ class Path2D(Group, CommonStyle):
         phase_angle: float = 0,
         damping: float = 0,
         n_points: int = 100,
-        **kwargs,
+        **kwargs: object,
     ) -> Self:
         """Append a sine wave rotated to match the current heading.
 
@@ -1577,14 +1489,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0), angle=sg.pi / 4).blend_sine(duration=20)
-        len(p.operations) == 1
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0), angle=sg.pi / 4).blend_sine(duration=20)
+            >>> len(p.operations) == 1
+            True
 """
 
         points = sine_points(
@@ -1598,7 +1507,7 @@ class Path2D(Group, CommonStyle):
         self._add(points[-1], PathOps.SINE, (points, angle), **kwargs)
         return self
 
-    def close(self, **kwargs) -> Self:
+    def close(self, **kwargs: object) -> Self:
         """Close the current subpath back to its start.
 
         Args:
@@ -1607,36 +1516,30 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 10)).close()
-        p.closed
-        # True
-        len(p[-1].vertices) > 1
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 10)).close()
+            >>> p.closed
+            True
+            >>> len(p[-1].vertices) > 1
+            True
 """
         self.closed = True
         self._add(self.pos, PathOps.CLOSE, None, **kwargs)
         return self
 
     @property
-    def vertices(self):
+    def vertices(self) -> list[PointType]:
         """Return deduplicated vertices from the path objects.
 
         Returns:
             list: Path vertices in drawing order.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).line_to((5, 0)).line_to((5, 5))
-        len(p.vertices) >= 2
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).line_to((5, 0)).line_to((5, 5))
+            >>> len(p.vertices) >= 2
+            True
 """
         vertices = []
         last_vert = None
@@ -1669,33 +1572,30 @@ class Path2D(Group, CommonStyle):
         Raises:
             ValueError: If the path has no geometric vertices.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        path = (
-                sg.Path2D((0, 0), angle=0)
-                .line_to((10, 0))
-                .line_to((10, 5))
-                .close()
-            )
-        shape = path.as_shape()
-        shape.closed
-        # True
-        len(shape)
-        # 3
-        disjoint = (
-                sg.Path2D((0, 0), angle=0)
-                .line_to((0, 40))
-                .move_to((15, 0))
-                .line_to((15, 40))
-                .line_to((35, 0))
-                .line_to((35, 40))
-            )
-        converted = disjoint.as_shape()
-        isinstance(converted, sg.Group), len(converted)
-        # (True, 2)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> path = (
+            ... sg.Path2D((0, 0), angle=0)
+            ... .line_to((10, 0))
+            ... .line_to((10, 5))
+            ... .close()
+            ... )
+            >>> shape = path.as_shape()
+            >>> shape.closed
+            True
+            >>> len(shape)
+            3
+            >>> disjoint = (
+            ... sg.Path2D((0, 0), angle=0)
+            ... .line_to((0, 40))
+            ... .move_to((15, 0))
+            ... .line_to((15, 40))
+            ... .line_to((35, 0))
+            ... .line_to((35, 40))
+            ... )
+            >>> converted = disjoint.as_shape()
+            >>> isinstance(converted, sg.Group), len(converted)
+            (True, 2)
 """
         shapes = []
         for subpath in self.elements:
@@ -1720,7 +1620,7 @@ class Path2D(Group, CommonStyle):
             return shapes[0]
         return Group(shapes)
 
-    def _label_vertices(self):
+    def _label_vertices(self) -> list[PointType]:
         """Return vertices suitable for index / coordinate labels.
 
         Line and polyline segments keep all corners. Sampled curves (arcs,
@@ -1755,7 +1655,9 @@ class Path2D(Group, CommonStyle):
 
         return vertices
 
-    def set_style(self, name, value, **kwargs) -> Self:
+    def set_style(
+        self, name: str, value: object, **kwargs: object
+    ) -> Self:
         """Record a style change in the path operation list.
 
         Args:
@@ -1766,14 +1668,11 @@ class Path2D(Group, CommonStyle):
         Returns:
             Self: This path.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        p = sg.Path2D((0, 0)).set_style("line_width", 2)  # doctest: +SKIP
-        p.operations[-1][1][0]  # doctest: +SKIP
-        # 'line_width'
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).set_style("line_width", 2)  # doctest: +SKIP
+            >>> p.operations[-1][1][0]  # doctest: +SKIP
+            'line_width'
 """
         self.operations.append((PathOps.STYLE, (name, value, kwargs)))
         return self
@@ -1863,19 +1762,21 @@ class Path2D(Group, CommonStyle):
         return res
 
 
-def _transform_path_point(point, xform_matrix: NDArray) -> PointType:
+def _transform_path_point(point: PointType, xform_matrix: NDArray) -> PointType:
     """Return ``point`` transformed by ``xform_matrix``."""
     transformed_point = homogenize([point]) @ xform_matrix
     return tuple(transformed_point[0][:2])
 
 
-def _transform_path_points(points, xform_matrix: NDArray):
+def _transform_path_points(
+    points: Sequence[PointType], xform_matrix: NDArray
+) -> list[PointType]:
     """Return ``points`` transformed by ``xform_matrix``."""
     transformed_points = homogenize(points) @ xform_matrix
     return [tuple(point[:2]) for point in transformed_points.tolist()]
 
 
-def _transform_arc_data(data, xform_matrix: NDArray) -> tuple:
+def _transform_arc_data(data: tuple, xform_matrix: NDArray) -> tuple:
     """Return arc operation data transformed by ``xform_matrix``."""
     _, _, rx, ry, start_angle, span_angle, rot_angle, points = data
     transformed_points = _transform_path_points(points, xform_matrix)
@@ -1921,7 +1822,7 @@ def _transform_arc_data(data, xform_matrix: NDArray) -> tuple:
 
 def _transform_path_operation(
     operation: Operation | tuple, xform_matrix: NDArray
-):
+) -> Operation | tuple:
     """Return a path operation with geometry transformed by ``xform_matrix``."""
     if isinstance(operation, tuple):
         return operation
@@ -1957,100 +1858,72 @@ def _transform_path_operation(
     return Operation(subtype, transformed_data, operation.name)
 
 
-def lin_path_svg(lin_path):
+def path2d_to_svg_path(path2d: Path2D) -> str:
     """Return the SVG path ``d`` string for a ``Path2D``.
 
     Args:
-    lin_path: Path to convert.
+        path2d: Path to convert.
 
     Returns:
-    str: SVG path data.
+        str: SVG path data.
 
-    **Examples**
+    Examples:
+        >>> d = path2d_to_svg_path(Path2D((0, 0)).line_to((10, 0)))
+        >>> d.startswith("M")
+        True
+    """
 
-    ```python
-    import simetri.graphics as sg
-    from simetri.geom.nonlinear.path import lin_path_svg
-    d = lin_path_svg(sg.Path2D((0, 0)).line_to((10, 0)))
-    d.startswith("M")
-    # True
-    ```
-"""
-
-    def fmt(val):
+    def fmt(val: float) -> str:
         """Format a float to a string with 3 decimal places."""
         return f"{val:.3f}".rstrip("0").rstrip(".")
 
-    parts = [f"M {fmt(lin_path.start[0])},{fmt(lin_path.start[1])}"]
-
-    # We iterate operations. We align with objects by filtering out Style ops
-    # which don't produce objects?
-    # Wait, set_style appends to operations but NOT to objects?
-    # Let's check set_style.
-    # It appends to operations. It does NOT call _create_object or append to objects.
-    # So objects list only corresponds to geometric operations.
-    # I need to maintain an index for objects.
+    parts = [f"M {fmt(path2d.start[0])},{fmt(path2d.start[1])}"]
 
     obj_idx = 0
     PO = PathOps
 
-    for op in lin_path.operations:
+    for op in path2d.operations:
         if isinstance(op, tuple):
-            # Style operation
             continue
 
         st = op.subtype
         data = op.data
 
-        # Current geometry object (if applicable)
-        # Some ops like MOVE_TO append None to objects.
-        # CLOSE appends None.
         current_obj = (
-            lin_path.objects[obj_idx]
-            if obj_idx < len(lin_path.objects)
+            path2d.objects[obj_idx]
+            if obj_idx < len(path2d.objects)
             else None
         )
 
         if st in _MOVE_PATH_OPS:
-            # data is point (x,y)
             parts.append(f"M {fmt(data[0])},{fmt(data[1])}")
 
         elif st in _LINE_PATH_OPS:
-            # data is (start, end)
             end = data[1]
             parts.append(f"L {fmt(end[0])},{fmt(end[1])}")
 
         elif st == PO.SEGMENTS:
-            # data is (start, points_list)
             parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in data[1])
 
         elif st in _CUBIC_PATH_OPS:
-            # data: (start, c1, c2, end)
             c1, c2, end = data[1], data[2], data[3]
             parts.append(
                 f"C {fmt(c1[0])},{fmt(c1[1])} {fmt(c2[0])},{fmt(c2[1])} {fmt(end[0])},{fmt(end[1])}"
             )
 
         elif st in _QUAD_PATH_OPS:
-            # data: (start, c1, end)
             c1, end = data[1], data[2]
             parts.append(
                 f"Q {fmt(c1[0])},{fmt(c1[1])} {fmt(end[0])},{fmt(end[1])}"
             )
 
         elif st in _ARC_PATH_OPS:
-            # data: (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points)
             rx, ry = data[2], data[3]
             span = data[5]
             rot = degrees(data[6])
             points = data[7]
             end = points[-1]
             large_arc = 1 if abs(span) > pi else 0
-            # Simetri convention: span > 0 is CCW.
-            # SVG sweep-flag: 1 is positive-angle direction (CW in y-down).
-            # If we assume Simetri coords map directly to SVG coords:
-            # CCW span (>0) -> Positive SVG angle change -> sweep 1.
-            # CW span (<0) -> Negative SVG angle change -> sweep 0.
             sweep = 1 if span > 0 else 0
             parts.append(
                 f"A {fmt(rx)} {fmt(ry)} {fmt(rot)} {large_arc} {sweep} {fmt(end[0])},{fmt(end[1])}"
@@ -2060,17 +1933,19 @@ def lin_path_svg(lin_path):
             parts.append("Z")
 
         elif st in _SINE_PATH_OPS:
-            # data[0] is points
             parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in data[0])
 
         elif st == PO.HOBBY_TO and current_obj:
-            # Skip the first point since it should match current pos.
             verts = current_obj.vertices
             parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in verts[1:])
 
         obj_idx += 1
 
     return " ".join(parts)
+
+
+lin_path_svg = path2d_to_svg_path
+path2d_svg = path2d_to_svg_path
 
 
 def _format_path_code_number(value: Any, n_round: int | None = None) -> str:
@@ -2158,13 +2033,10 @@ def path_code(path2d: Path2D, n_round: int | None = None) -> str:
             ``n_round`` is negative.
         TypeError: If a style value cannot be serialized.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sample = sg.Path2D((0, 0), angle=0).line_to((10, 0)).close()
-    print(sg.path_code(sample))
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sample = sg.Path2D((0, 0), angle=0).line_to((10, 0)).close()
+        >>> print(sg.path_code(sample))
         path = sg.Path2D(start=(0, 0), angle=0)
         path.line_to((10, 0))
         path.close()
@@ -2347,14 +2219,11 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
         Returns:
         Path2D: Equivalent path.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    p = sg.svg_path_to_path2d("M 0 0 L 10 0 L 10 10 Z")
-    p.closed
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> p = sg.svg_path_to_path2d("M 0 0 L 10 0 L 10 10 Z")
+        >>> p.closed
+        True
 """
     if not svg_path:
         return Path2D()
@@ -2426,7 +2295,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
         cmd_lower = current_cmd.lower()
         is_rel = current_cmd == cmd_lower
 
-        def get_nums(count):
+        def get_nums(count: int) -> list[float] | None:
             nonlocal i
             nums = []
             for _ in range(count):
@@ -2591,7 +2460,15 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
     return lp
 
 
-def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
+def _get_svg_arc_params(
+    start: PointType,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    fA: float,
+    fs: float,
+    end: PointType,
+) -> tuple | None:
     """Convert SVG arc parameters to ``Path2D.arc`` arguments.
 
     Args:
@@ -2657,7 +2534,7 @@ def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
     # but the angles are calculated relative to prime center)
 
     # Step 4: Angles
-    def vector_angle(ux, uy, vx, vy):
+    def vector_angle(ux: float, uy: float, vx: float, vy: float) -> float:
         sign = 1 if (ux * vy - uy * vx) >= 0 else -1
         dot = ux * vx + uy * vy
         mag = sqrt(ux**2 + uy**2) * sqrt(vx**2 + vy**2)
@@ -2693,15 +2570,12 @@ def shape_to_path(shape: Shape) -> Path2D:
     Returns:
     Path2D: Path following the shape vertices.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    from simetri.geom.nonlinear.path import shape_to_path
-    p = shape_to_path(sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True))
-    p.closed
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.geom.nonlinear.path import shape_to_path
+        >>> p = shape_to_path(sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True))
+        >>> p.closed
+        True
 """
     path = Path2D()
     path.move_to(shape[0])
@@ -2723,16 +2597,13 @@ def group_to_path(group: Group) -> Path2D:
     Returns:
     Path2D: Path that visits each shape as a subpath.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    from simetri.geom.nonlinear.path import group_to_path
-    g = sg.Group([sg.Shape([(0, 0), (1, 0)]), sg.Shape([(2, 0), (3, 0)])])
-    p = group_to_path(g)
-    len(p.operations) >= 2
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.geom.nonlinear.path import group_to_path
+        >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)]), sg.Shape([(2, 0), (3, 0)])])
+        >>> p = group_to_path(g)
+        >>> len(p.operations) >= 2
+        True
 """
     shapes = group.all_shapes
     path = Path2D()

@@ -4,20 +4,25 @@ Provides ``Lattice`` / ``Isometry`` plus factory functions for the
 seventeen wallpaper groups (``lattice_p1``, ``lattice_p6m``, …). Motifs are
 typically ``Shape`` / ``Group`` instances from ``simetri.graphics``.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-
-```
-        lat = sg.lattice_p4(a=40)
-        motif = sg.Circle(5, (10, 10))
-        lat.populate_unit(motif)
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> from simetri.patterns.lattice import lattice_p4
+    >>> from simetri.shapes.geom_items import Circle
+    >>> lat = lattice_p4(a=40)
+    >>> _ = lat.populate_unit(Circle(5, (10, 10)))
+    >>> len(lat.pattern)
+    4
 """
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from math import ceil, cos, floor, pi, sin
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..render.canvas import Canvas
 
 import numpy as np
 
@@ -41,7 +46,12 @@ diamond = Shape(
 square = reg_poly_shape(4, r, angle=-pi / 4, fill_color=green).scale(0.6)
 
 
-def basis_to_cart(a_, b_, u, v):
+def basis_to_cart(
+    a_: float,
+    b_: float,
+    u: PointType,
+    v: PointType,
+) -> tuple[float, float]:
     """Convert lattice basis coordinates ``(a_, b_)`` to Cartesian ``(x, y)``.
 
     Args:
@@ -51,7 +61,13 @@ def basis_to_cart(a_, b_, u, v):
         v: Second basis vector ``(vx, vy)``.
 
     Returns:
-        tuple: Cartesian point ``(x, y)``.
+        tuple[float, float]: Cartesian point ``(x, y)``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> basis_to_cart(1, 0, (10, 0), (0, 10))
+        (10, 0)
     """
     ux, uy = u
     vx, vy = v
@@ -60,7 +76,12 @@ def basis_to_cart(a_, b_, u, v):
     return x, y
 
 
-def cart_to_basis(x, y, u, v):
+def cart_to_basis(
+    x: float,
+    y: float,
+    u: PointType,
+    v: PointType,
+) -> tuple[float, float]:
     """Convert Cartesian ``(x, y)`` to lattice basis coordinates.
 
     Args:
@@ -70,10 +91,19 @@ def cart_to_basis(x, y, u, v):
         v: Second basis vector ``(vx, vy)``.
 
     Returns:
-        tuple: Basis coordinates ``(a, b)``.
+        tuple[float, float]: Basis coordinates ``(a, b)``.
 
     Raises:
         ValueError: If ``u`` and ``v`` are linearly dependent.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> cart_to_basis(10, 20, (10, 0), (0, 10))
+        (1.0, 2.0)
+        >>> cart_to_basis(1, 1, (1, 0), (2, 0))  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ValueError: Basis vectors are linearly dependent.
     """
     ux, uy = u
     vx, vy = v
@@ -86,13 +116,19 @@ def cart_to_basis(x, y, u, v):
     return a, b
 
 
-def all_axes():
+def all_axes() -> list[tuple[int, int]]:
     """Return index pairs of unique lattice axes.
 
     A segment is kept if it crosses a corner or both endpoints are corners.
 
     Returns:
         list[tuple[int, int]]: Pairs of axis endpoint indices in ``0..15``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(all_axes())
+        84
     """
     corners = {0, 4, 8, 12}
 
@@ -123,6 +159,13 @@ class Isometry:
         quantifier: Extra parameter (angle, distance, translation components).
         reps: How many times to repeat the isometry when applied.
         take: Optional slice selecting which copies to keep.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> isom = Isometry(IsometryType.TRANSLATION, quantifier=(1, 0), reps=2)
+        >>> isom.reps
+        2
     """
 
     subtype: IsometryType
@@ -131,7 +174,7 @@ class Isometry:
     reps: int = 1
     take: slice = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.ISOMETRY
 
 
@@ -149,16 +192,23 @@ class Lattice:
         unit: Unit-cell parallelogram as a ``Shape``.
         isometries: List of ``Isometry`` objects for the wallpaper group.
         pattern: Motif ``Group`` after ``populate_unit``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> lat = Lattice(LatType.SQR, a=10)
+        >>> lat.a
+        10
     """
 
     def __init__(
         self,
         subtype: LatType = LatType.HEX,
-        a=40,
-        b=None,
-        theta=None,
-        origin=(0, 0),
-    ):
+        a: float = 40,
+        b: float | None = None,
+        theta: float | None = None,
+        origin: PointType = (0, 0),
+    ) -> None:
         """Create a 2D lattice.
 
         Args:
@@ -170,6 +220,13 @@ class Lattice:
 
         Raises:
             ValueError: If the basis vectors are linearly dependent.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> lat = Lattice(LatType.RECT, a=30, b=20)
+            >>> lat.b
+            20
         """
         angles = {
             LatType.HEX: pi / 3,
@@ -230,8 +287,15 @@ class Lattice:
         self.pattern = None
         self.kernel = None
 
-    def _resolve(self, reference: Any):
-        """Resolve a lattice reference to a numeric/geometric value."""
+    def _resolve(self, reference: Any) -> Any:
+        """Resolve a lattice reference to a numeric or geometric value.
+
+        Args:
+            reference: ``(LatRef, quantifier)`` pair describing the reference.
+
+        Returns:
+            Any: Resolved coordinate, axis pair, distance, or numeric value.
+        """
         ref, quantifier = reference
         if is_number(ref):
             res = ref
@@ -259,17 +323,24 @@ class Lattice:
         return res
 
     @property
-    def center(self):
+    def center(self) -> list[float]:
         """Return the Cartesian center of the unit cell.
 
         Returns:
-            list: Center coordinates ``[x, y]``.
+            list[float]: Center coordinates ``[x, y]``.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> lat = Lattice(LatType.SQR, a=10)
+            >>> len(lat.center)
+            2
         """
         orig = Vector(self.origin[:2])
 
         return (orig + self.u / 2 + self.v / 2).data
 
-    def apply(self, isometry):
+    def apply(self, isometry: Isometry) -> Group | Shape | None:
         """Apply an isometry to ``self.pattern`` using lattice references.
 
         Args:
@@ -279,6 +350,16 @@ class Lattice:
         Returns:
             Group | Shape | None: Transformed pattern (or ``self.pattern`` for
             identity).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.geom_items import Circle
+            >>> lat = lattice_p4(a=20)
+            >>> _ = lat.populate_unit(Circle(3, (5, 5)))
+            >>> isom = Isometry(IsometryType.IDENTITY, reps=0)
+            >>> lat.apply(isom) is lat.pattern
+            True
         """
         reference = isometry.reference
         quantifier = isometry.quantifier
@@ -315,7 +396,7 @@ class Lattice:
         elif isometry.subtype == IsometryType.IDENTITY:
             return self.pattern
 
-    def populate_unit(self, kernel):
+    def populate_unit(self, kernel: Shape | Group) -> Lattice:
         """Set ``pattern`` from ``kernel`` and apply configured isometries.
 
         Args:
@@ -326,6 +407,15 @@ class Lattice:
 
         Raises:
             ValueError: If ``kernel`` is not a Shape or Group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.geom_items import Circle
+            >>> lat = lattice_p4(a=20)
+            >>> _ = lat.populate_unit(Circle(3, (5, 5)))
+            >>> len(lat.pattern)
+            4
         """
         if kernel.subtype == "PATH2D" or kernel.type == "SHAPE":
             self.pattern = Group(kernel)
@@ -340,7 +430,12 @@ class Lattice:
 
         return self
 
-    def span(self, kernel, horizontal=True, reps: int = 1) -> Group:
+    def span(
+        self,
+        kernel: Shape | Group,
+        horizontal: bool = True,
+        reps: int = 1,
+    ) -> Group:
         """Populate the unit and translate the pattern along one axis.
 
         Args:
@@ -350,6 +445,15 @@ class Lattice:
 
         Returns:
             Group: Updated pattern (also stored on ``self.pattern``).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> lat = Lattice(LatType.SQR, a=10)
+            >>> row = lat.span(Shape([(0, 0), (1, 0)]), horizontal=True, reps=2)
+            >>> len(row)
+            3
         """
         self.populate_unit(kernel)
         pattern = self.pattern
@@ -359,10 +463,11 @@ class Lattice:
         else:
             dy = self.b
             self.pattern = pattern.translate(0, dy, reps=reps)
+        return self.pattern
 
     def expand(
         self,
-        kernel,
+        kernel: Shape | Group,
         reps1: int = 1,
         reps2: int | None = None,
     ) -> "Lattice":
@@ -384,6 +489,15 @@ class Lattice:
 
         Raises:
             ValueError: If ``reps1`` or ``reps2`` is not greater than 0.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> lat = Lattice(LatType.SQR, a=10)
+            >>> _ = lat.expand(Shape([(0, 0), (1, 0)]), reps1=1, reps2=1)
+            >>> lat.pattern is not None
+            True
         """
         if reps2 is None:
             reps2 = reps1
@@ -424,6 +538,13 @@ class Lattice:
 
         Returns:
             Group: Cell structure visualization (when implemented).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> lat = Lattice(LatType.SQR, a=10)
+            >>> lat.cell_structure() is None
+            True
         """
 
     def cartesian_to_basis(self, point: PointType) -> PointType:
@@ -434,6 +555,13 @@ class Lattice:
 
         Returns:
             PointType: Basis coordinates ``(a, b)``.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> lat = Lattice(LatType.SQR, a=10)
+            >>> lat.cartesian_to_basis((10, 0))
+            (1.0, 0.0)
         """
         x, y = point
         return cart_to_basis(x, y, self.u, self.v)
@@ -446,6 +574,13 @@ class Lattice:
 
         Returns:
             PointType: Cartesian point ``(x, y)``.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> lat = Lattice(LatType.SQR, a=10)
+            >>> lat.basis_to_cartesian((1, 0))
+            (10.0, 0.0)
         """
         a, b = point
         return basis_to_cart(a, b, self.u, self.v)
@@ -461,6 +596,13 @@ class Lattice:
 
         Returns:
             list: Lattice points inside the rectangle.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> lat = Lattice(LatType.SQR, a=10)
+            >>> len(lat.clipped_points((0, 0), (25, 25)))
+            9
         """
         # Define the 4 corners of the rectangle
         x_min, y_min = lower_left[:2]
@@ -520,6 +662,13 @@ class Lattice:
 
         Returns:
             list: Line segments inside the rectangle.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> lat = Lattice(LatType.SQR, a=10)
+            >>> len(lat.clipped_lines((0, 0), (25, 25))) > 0
+            True
         """
         # Define the 4 corners of the rectangle
         x_min, y_min = lower_left[:2]
@@ -566,17 +715,29 @@ class Lattice:
         return clipped_lines
 
 
-def get_unit(lat, group, vertical=False, **kwargs):
+def get_unit(
+    lat: Lattice,
+    group: str,
+    vertical: bool = False,
+    **kwargs: Any,
+) -> Group:
     """Build the fundamental-domain motif for a lattice wallpaper group.
 
     Args:
         lat: ``Lattice`` whose unit cell anchors the motif.
-        group: Wallpaper group name (e.g. ``\"p4\"``) or a motif group.
+        group: Wallpaper group name (e.g. ``"p4"``).
         vertical: Orientation flag for some groups. Defaults to False.
-        **kwargs: Extra style/options passed through to motif construction.
+        **kwargs: Extra style options (e.g. ``u_scale`` for marker sizing).
 
     Returns:
-        Group | Shape: Unit motif for the group.
+        Group: Unit motif for the group.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> lat = lattice_p4(a=40)
+        >>> len(get_unit(lat, "p4"))
+        13
     """
     triangle = reg_poly_shape(3, r, angle=-pi / 6, color=navy).scale(0.6)
     hexagon = reg_poly_shape(6, r, angle=pi / 6, fill_color=blue).scale(0.6)
@@ -968,15 +1129,28 @@ def get_unit(lat, group, vertical=False, **kwargs):
     return unit
 
 
-def draw_unit(canvas, lat, group, vertical=False, **kwargs):
+def draw_unit(
+    canvas: Canvas,
+    lat: Lattice,
+    group: str,
+    vertical: bool = False,
+    **kwargs: Any,
+) -> None:
     """Draw the lattice unit motif on ``canvas``.
 
     Args:
         canvas: Target canvas.
         lat: ``Lattice`` instance.
-        group: Wallpaper group name or motif group.
+        group: Wallpaper group name (e.g. ``"p4m"``).
         vertical: Orientation flag for some groups. Defaults to False.
         **kwargs: Passed to ``get_unit`` and ``canvas.draw``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> import simetri.graphics as sg  # doctest: +SKIP
+        >>> lat = lattice_p4(a=40)
+        >>> sg.draw_unit(sg.Canvas(), lat, "p4")  # doctest: +SKIP
     """
     unit = get_unit(lat, group, vertical, **kwargs)
     canvas.draw(unit, **kwargs)
@@ -990,6 +1164,12 @@ def lattice_p6(a: float) -> Lattice:
 
     Returns:
         Lattice: Lattice with p6 isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p6(a=30).isometries)
+        2
     """
     lat = Lattice(LatType.HEX, a=a)
 
@@ -1017,6 +1197,12 @@ def lattice_p6m(a: float = 40) -> Lattice:
 
     Returns:
         Lattice: Lattice with p6m isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p6m(a=30).isometries)
+        3
     """
     lat = Lattice(LatType.HEX, a=a)
 
@@ -1050,6 +1236,12 @@ def lattice_p31m(a: float = 40) -> Lattice:
 
     Returns:
         Lattice: Lattice with p31m isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p31m(a=30).isometries)
+        2
     """
     lat = Lattice(LatType.HEX, a=a)
 
@@ -1081,6 +1273,12 @@ def lattice_p3m1(a: float = 40) -> Lattice:
 
     Returns:
         Lattice: Lattice with p3m1 isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p3m1(a=30).isometries)
+        3
     """
     lat = Lattice(LatType.HEX, a=a)
 
@@ -1117,6 +1315,12 @@ def lattice_p3(a: float = 40) -> Lattice:
 
     Returns:
         Lattice: Lattice with p3 isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p3(a=30).isometries)
+        2
     """
     lat = Lattice(LatType.HEX, a=a)
 
@@ -1147,6 +1351,12 @@ def lattice_p4(a: float = 40) -> Lattice:
 
     Returns:
         Lattice: Lattice with p4 isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p4(a=30).isometries)
+        1
     """
     lat = Lattice(LatType.SQR, a=a)
 
@@ -1169,6 +1379,12 @@ def lattice_p4m(a: float = 40) -> Lattice:
 
     Returns:
         Lattice: Lattice with p4m isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p4m(a=30).isometries)
+        2
     """
     lat = Lattice(LatType.SQR, a=a)
 
@@ -1197,6 +1413,12 @@ def lattice_p4g(a: float = 40) -> Lattice:
 
     Returns:
         Lattice: Lattice with p4g isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p4g(a=30).isometries)
+        2
     """
     lat = Lattice(LatType.SQR, a=a)
 
@@ -1217,7 +1439,10 @@ def lattice_p4g(a: float = 40) -> Lattice:
 
 
 def lattice_p1(
-    a: float = 40, b: float = 40, theta=pi / 2, lat_type=LatType.PAR
+    a: float = 40,
+    b: float = 40,
+    theta: float = pi / 2,
+    lat_type: LatType = LatType.PAR,
 ) -> Lattice:
     """Return a lattice configured for wallpaper group p1 (translations only).
 
@@ -1229,6 +1454,12 @@ def lattice_p1(
 
     Returns:
         Lattice: Lattice with p1 isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p1(a=20, b=25).isometries)
+        1
     """
     lat = Lattice(lat_type, a=a, b=b, theta=theta)
     # p1 = unit.edge_midpoint(0)
@@ -1248,8 +1479,8 @@ def lattice_p1(
 def lattice_pm(
     a: float = 40,
     b: float | None = None,
-    lat_type=LatType.SQR,
-    vertical=False,
+    lat_type: LatType = LatType.SQR,
+    vertical: bool = False,
 ) -> Lattice:
     """Return a lattice configured for wallpaper group pm (parallel mirrors).
 
@@ -1264,6 +1495,15 @@ def lattice_pm(
 
     Raises:
         ValueError: If ``lat_type`` is not SQR or RECT.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_pm(a=30).isometries)
+        1
+        >>> lattice_pm(lat_type=LatType.HEX)  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ValueError: Invalid lattice type.
     """
     if lat_type == LatType.SQR:
         lat = Lattice(lat_type, a=a)
@@ -1293,7 +1533,9 @@ def lattice_pm(
 
 
 def lattice_pmm(
-    a: float = 40, b: float | None = None, lat_type=LatType.SQR
+    a: float = 40,
+    b: float | None = None,
+    lat_type: LatType = LatType.SQR,
 ) -> Lattice:
     """Return a lattice configured for wallpaper group pmm.
 
@@ -1304,6 +1546,12 @@ def lattice_pmm(
 
     Returns:
         Lattice: Lattice with pmm isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_pmm(a=30).isometries)
+        2
     """
     if b is not None:
         lat_type = LatType.RECT
@@ -1328,7 +1576,7 @@ def lattice_p2(
     a: float = 40,
     b: float | None = None,
     theta: float = 2 * pi / 5,
-    lat_type=LatType.SQR,
+    lat_type: LatType = LatType.SQR,
 ) -> Lattice:
     """Return a lattice configured for wallpaper group p2 (180° rotations).
 
@@ -1340,6 +1588,12 @@ def lattice_p2(
 
     Returns:
         Lattice: Lattice with p2 isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_p2(a=30).isometries)
+        1
     """
     if b is None:
         b = a
@@ -1357,7 +1611,10 @@ def lattice_p2(
 
 
 def lattice_pg(
-    a: float = 40, b: float = 20, glide_dist=10, lat_type=LatType.RECT
+    a: float = 40,
+    b: float = 20,
+    glide_dist: float = 10,
+    lat_type: LatType = LatType.RECT,
 ) -> Lattice:
     """Return a lattice configured for wallpaper group pg (glide reflections).
 
@@ -1369,6 +1626,12 @@ def lattice_pg(
 
     Returns:
         Lattice: Lattice with pg isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_pg(a=30).isometries)
+        1
     """
     lat = Lattice(lat_type, a=a, b=b)
 
@@ -1388,7 +1651,9 @@ def lattice_pg(
     return lat
 
 
-def lattice_pmg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
+def lattice_pmg(
+    a: float = 40, b: float = 30, lat_type: LatType = LatType.RECT
+) -> Lattice:
     """Return a lattice configured for wallpaper group pmg.
 
     Args:
@@ -1398,6 +1663,12 @@ def lattice_pmg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
 
     Returns:
         Lattice: Lattice with pmg isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_pmg(a=30).isometries)
+        2
     """
     lat = Lattice(lat_type, a=a, b=b)
 
@@ -1416,7 +1687,9 @@ def lattice_pmg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
     return lat
 
 
-def lattice_pgg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
+def lattice_pgg(
+    a: float = 40, b: float = 30, lat_type: LatType = LatType.RECT
+) -> Lattice:
     """Return a lattice configured for wallpaper group pgg.
 
     Args:
@@ -1426,6 +1699,12 @@ def lattice_pgg(a: float = 40, b: float = 30, lat_type=LatType.RECT) -> Lattice:
 
     Returns:
         Lattice: Lattice with pgg isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_pgg(a=30).isometries)
+        2
     """
     lat = Lattice(lat_type, a=a, b=b)
 
@@ -1461,6 +1740,12 @@ def lattice_cm(
 
     Returns:
         Lattice: Lattice with cm isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_cm(a=50).isometries)
+        2
     """
     lat_type = LatType.RHOMB
     lat = Lattice(lat_type, a=a, b=a, theta=theta)
@@ -1495,6 +1780,12 @@ def lattice_cmm(a: float = 100, theta: float = 2 * pi / 5) -> Lattice:
 
     Returns:
         Lattice: Lattice with cmm isometries and unit cell.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(lattice_cmm(a=50).isometries)
+        2
     """
     lat_type = LatType.RHOMB
     lat = Lattice(lat_type, a=a, b=a, theta=theta)

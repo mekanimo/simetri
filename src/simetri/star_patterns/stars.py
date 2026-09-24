@@ -1,13 +1,15 @@
 """Classes and functions for creating stars and rosettes.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-from simetri.star_patterns.stars import rosette, Star
-petal = sg.Shape([(0, 0), (20, 5), (0, 10)])
-pattern = rosette(8, petal)
-```
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> from simetri.shapes.shape import Shape
+    >>> from simetri.star_patterns.stars import Star, rosette
+    >>> petal = Shape([(0, 0), (20, 5), (0, 10)])
+    >>> len(rosette(8, petal))
+    4
+    >>> Star(8, circumradius=100).n
+    8
 """
 
 from math import cos, pi, sin, sqrt, tan
@@ -38,6 +40,17 @@ def rosette(
 
     Returns:
         Group: The resulting pattern with n petals.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> from simetri.star_patterns.stars import rosette
+        >>> petal = Shape([(0, 0), (20, 5), (0, 10)])
+        >>> len(rosette(8, petal))
+        4
+        >>> len(rosette(6, petal, cyclic=True, merge=False))
+        6
     """
     if cyclic:
         petal = kernel
@@ -94,6 +107,16 @@ class Star(Group):
         inner_radius (float, optional): Inner radius of the star. Defaults to None.
         circumradius (float, optional): Circumradius of the star. Defaults to None.
         **kwargs: Additional keyword arguments.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.star_patterns.stars import Star
+        >>> star = Star(8, circumradius=100)
+        >>> star.n
+        8
+        >>> len(star.level(0))
+        16
     """
 
     def __init__(
@@ -101,12 +124,25 @@ class Star(Group):
         n: int,
         inner_radius: float | None = None,
         circumradius: float | None = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> None:
         """Create an n-pointed star (see class docstring for radius args).
 
         Raises:
             ValueError: If both ``circumradius`` and ``inner_radius`` are set.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.star_patterns.stars import Star
+            >>> Star(7, circumradius=50).circumradius
+            50
+            >>> Star(7).inner_radius
+            54.12
+            >>> Star(8, circumradius=10, inner_radius=5)
+            Traceback (most recent call last):
+                ...
+            ValueError: Only one of circumradius or inner_radius can be specified.
         """
         if circumradius is not None and inner_radius is not None:
             raise ValueError(
@@ -124,11 +160,11 @@ class Star(Group):
         self._initialize(n)
         super().__init__(**kwargs)
 
-    def _initialize(self, n):
-        """Initializes the star with n points.
+    def _initialize(self, n: int) -> None:
+        """Initialize internal kernel/petal geometry for ``n`` points.
 
         Args:
-            n (int): Number of points of the star.
+            n: Number of star points (must be greater than 5).
 
         Raises:
             ValueError: If n is less than 7.
@@ -179,15 +215,17 @@ class Star(Group):
         self._r1 = distance((0, 0), up1)
         self._circum1 = up1_[0]
 
-    def _calc_kernel(self, segments, n):
-        """Calculates the kernel shape for the star.
+    def _calc_kernel(
+        self, segments: Shape, n: int
+    ) -> tuple[Shape, float, float]:
+        """Calculate the next-level kernel from segment geometry.
 
         Args:
-            segments (Shape): The segments to be used for calculation.
-            n (int): Number of points of the star.
+            segments: Polyline used to derive the kernel.
+            n: Number of star points.
 
         Returns:
-            tuple: A tuple containing the kernel shape, inner radius, and circumradius.
+            Kernel shape, inner radius, and circumradius.
         """
         segments = segments.copy()
         segments.rotate(pi / n)
@@ -200,14 +238,14 @@ class Star(Group):
 
         return (kernel, inner_radius, circumradius)
 
-    def _get_kernel(self, level):
-        """Gets the kernel shape for the specified level.
+    def _get_kernel(self, level: int) -> tuple[Shape, float, float]:
+        """Return kernel geometry for ``level`` (levels above 2 iterate ``_calc_kernel``).
 
         Args:
-            level (int): The level of the star.
+            level: Star construction level.
 
         Returns:
-            tuple: A tuple containing the kernel shape, inner radius, and circumradius.
+            Kernel shape, inner radius, and circumradius.
         """
         kernel = self._kernel2.copy()
         for _ in range(level - 2):
@@ -216,16 +254,21 @@ class Star(Group):
             )
         return kernel, inner_radius, circumradius
 
-    def _get_scale_factor(self, level, inner_radius=None, circumradius=None):
-        """Calculates the scale factor for the specified level.
+    def _get_scale_factor(
+        self,
+        level: int,
+        inner_radius: float | None = None,
+        circumradius: float | None = None,
+    ) -> float:
+        """Scale factor mapping stored level geometry to target radii.
 
         Args:
-            level (int): The level of the star.
-            inner_radius (float, optional): Inner radius of the star. Defaults to None.
-            circumradius (float, optional): Circumradius of the star. Defaults to None.
+            level: Star construction level.
+            inner_radius: Inner radius for high levels when ``self.inner_radius`` is set.
+            circumradius: Circumradius for high levels when ``self.circumradius`` is set.
 
         Returns:
-            float: The scale factor.
+            Multiplicative scale factor for the level.
         """
         if self.inner_radius is None:
             if level == 0:
@@ -261,6 +304,16 @@ class Star(Group):
 
         Raises:
             ValueError: If level is not a positive integer or zero.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.star_patterns.stars import Star
+            >>> star = Star(8, circumradius=100)
+            >>> len(star.kernel(0))
+            2
+            >>> round(float(star.kernel(0)[0][0]), 4)
+            70.7107
         """
         if level < 0 or not isinstance(level, int):
             raise ValueError("level must be a positive integer or zero.")
@@ -293,6 +346,15 @@ class Star(Group):
 
         Raises:
             ValueError: If level is not a positive integer or zero.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.shape import Shape
+            >>> from simetri.star_patterns.stars import Star
+            >>> star = Star(8, circumradius=100)
+            >>> isinstance(star.petal(0), Shape)
+            True
         """
         if level < 0 or not isinstance(level, int):
             raise ValueError("level must be a positive integer or zero.")
@@ -335,6 +397,18 @@ class Star(Group):
 
         Raises:
             ValueError: If level is not a positive integer or zero.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.star_patterns.stars import Star
+            >>> star = Star(8, circumradius=100)
+            >>> level0 = star.level(0)
+            >>> isinstance(level0, Group)
+            True
+            >>> len(level0)
+            16
         """
         if n < 0:
             raise ValueError("level must be a positive integer or zero.")
@@ -380,6 +454,11 @@ class Star(Group):
 
         Returns:
             str: String representation of possible trigonometric forms.
+
+        Examples:
+            >>> from simetri.star_patterns.stars import Star
+            >>> Star.find_trig_representation(99.9)
+            'No simple trig representation found for 99.9'
         """
         representations = []
 

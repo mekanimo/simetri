@@ -17,7 +17,8 @@ box.midpoint
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -75,19 +76,16 @@ class BoundingBox:
         type: Always ``Types.BOUNDING_BOX``.
         id: Unique object id.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    bb = sg.BoundingBox((0, 0), (10, 20))
-    bb.northwest
-    # (0, 20)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> bb = sg.BoundingBox((0, 0), (10, 20))
+        >>> bb.northwest
+        (0, 20)
 """
 
     def __init__(
         self, southwest: PointType = None, northeast: PointType = None
-    ):
+    ) -> None:
         """Initialize a BoundingBox from opposite corners.
 
         Args:
@@ -114,7 +112,7 @@ class BoundingBox:
 
         self.id = get_unique_id(self)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         """
         Get the attribute with the given name.
 
@@ -144,7 +142,13 @@ class BoundingBox:
 
         Returns:
             PointType: Intersection of the ray with the bounding-box edge.
-        """
+
+        Examples:
+            >>> from simetri.geom.bbox import BoundingBox
+            >>> bb = BoundingBox((0, 0), (10, 20))
+            >>> tuple(round(v, 10) for v in bb.angle_point(0))
+            (10.0, 10.0)
+"""
         angle = positive_angle(angle)
         direction_x = np.cos(angle)
         direction_y = np.sin(angle)
@@ -169,17 +173,23 @@ class BoundingBox:
         )
 
     @property
-    def left(self):
+    def left(self) -> tuple[PointType, PointType]:
         """
         Return the left edge.
 
         Returns:
             tuple: The left edge.
-        """
+
+        Examples:
+            >>> from simetri.geom.bbox import BoundingBox
+            >>> bb = BoundingBox((0, 0), (10, 20))
+            >>> bb.left == ((0, 20), (0, 0))
+            True
+"""
         return (self.northwest, self.southwest)
 
     @property
-    def right(self):
+    def right(self) -> tuple[PointType, PointType]:
         """
         Return the right edge.
 
@@ -189,7 +199,7 @@ class BoundingBox:
         return (self.northeast, self.southeast)
 
     @property
-    def top(self):
+    def top(self) -> tuple[PointType, PointType]:
         """
         Return the top edge.
 
@@ -199,7 +209,7 @@ class BoundingBox:
         return (self.northwest, self.northeast)
 
     @property
-    def bottom(self):
+    def bottom(self) -> tuple[PointType, PointType]:
         """
         Return the bottom edge.
 
@@ -209,7 +219,7 @@ class BoundingBox:
         return (self.southwest, self.southeast)
 
     @property
-    def vert_centerline(self):
+    def vert_centerline(self) -> tuple[PointType, PointType]:
         """
         Return the vertical centerline.
 
@@ -219,7 +229,7 @@ class BoundingBox:
         return (self.north, self.south)
 
     @property
-    def horiz_centerline(self):
+    def horiz_centerline(self) -> tuple[PointType, PointType]:
         """
         Return the horizontal centerline.
 
@@ -229,13 +239,18 @@ class BoundingBox:
         return (self.west, self.east)
 
     @property
-    def midpoint(self):
+    def midpoint(self) -> PointType:
         """
         Return the center of the bounding box.
 
         Returns:
             tuple: The center of the bounding box.
-        """
+
+        Examples:
+            >>> from simetri.geom.bbox import BoundingBox
+            >>> BoundingBox((0, 0), (10, 20)).midpoint
+            (5.0, 10.0)
+"""
         x1, y1 = self.southwest
         x2, y2 = self.northeast
 
@@ -245,7 +260,9 @@ class BoundingBox:
         return (xc, yc)
 
     @property
-    def corners(self):
+    def corners(
+        self,
+    ) -> tuple[PointType, PointType, PointType, PointType]:
         """
         Return the four corners of the bounding box.
 
@@ -255,7 +272,9 @@ class BoundingBox:
         return (self.northwest, self.southwest, self.southeast, self.northeast)
 
     @property
-    def diamond(self):
+    def diamond(
+        self,
+    ) -> tuple[PointType, PointType, PointType, PointType]:
         """
         Return the four center points of the bounding box in a diamond shape.
 
@@ -265,7 +284,7 @@ class BoundingBox:
         return (self.north, self.west, self.south, self.east)
 
     @property
-    def all_anchors(self):
+    def all_anchors(self) -> tuple[PointType, ...]:
         """
         Return all anchors of the bounding box.
 
@@ -285,7 +304,18 @@ class BoundingBox:
         )
 
     @property
-    def all_lines(self):
+    def all_lines(
+        self,
+    ) -> tuple[
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+        tuple[PointType, PointType],
+    ]:
         """
         Return all lines of the bounding box.
 
@@ -305,27 +335,37 @@ class BoundingBox:
         )
 
     @property
-    def width(self):
+    def width(self) -> float:
         """
         Return the width of the bounding box.
 
         Returns:
             float: The width of the bounding box.
-        """
+
+        Examples:
+            >>> from simetri.geom.bbox import BoundingBox
+            >>> BoundingBox((0, 0), (10, 20)).width
+            10.0
+"""
         return distance(self.northwest, self.northeast)
 
     @property
-    def height(self):
+    def height(self) -> float:
         """
         Return the height of the bounding box.
 
         Returns:
             float: The height of the bounding box.
-        """
+
+        Examples:
+            >>> from simetri.geom.bbox import BoundingBox
+            >>> BoundingBox((0, 0), (10, 20)).height
+            20.0
+"""
         return distance(self.northwest, self.southwest)
 
     @property
-    def size(self):
+    def size(self) -> tuple[float, float]:
         """
         Return the size of the bounding box.
 
@@ -335,7 +375,7 @@ class BoundingBox:
         return (self.width, self.height)
 
     @property
-    def west(self):
+    def west(self) -> PointType:
         """
         Return the left edge midpoint.
 
@@ -345,7 +385,7 @@ class BoundingBox:
         return midpoint(*self.left)
 
     @property
-    def south(self):
+    def south(self) -> PointType:
         """
         Return the bottom edge midpoint.
 
@@ -355,7 +395,7 @@ class BoundingBox:
         return midpoint(*self.bottom)
 
     @property
-    def east(self):
+    def east(self) -> PointType:
         """
         Return the right edge midpoint.
 
@@ -365,7 +405,7 @@ class BoundingBox:
         return midpoint(*self.right)
 
     @property
-    def north(self):
+    def north(self) -> PointType:
         """
         Return the top edge midpoint.
 
@@ -375,7 +415,7 @@ class BoundingBox:
         return midpoint(*self.top)
 
     @property
-    def northwest(self):
+    def northwest(self) -> PointType:
         """
         Return the top left corner.
 
@@ -385,7 +425,7 @@ class BoundingBox:
         return self.__dict__["northwest"]
 
     @property
-    def northeast(self):
+    def northeast(self) -> PointType:
         """
         Return the top right corner.
 
@@ -395,7 +435,7 @@ class BoundingBox:
         return self.__dict__["northeast"]
 
     @property
-    def southwest(self):
+    def southwest(self) -> PointType:
         """
         Return the bottom left corner.
 
@@ -405,7 +445,7 @@ class BoundingBox:
         return self.__dict__["southwest"]
 
     @property
-    def southeast(self):
+    def southeast(self) -> PointType:
         """
         Return the bottom right corner.
 
@@ -415,7 +455,7 @@ class BoundingBox:
         return self.__dict__["southeast"]
 
     @property
-    def diagonal1(self):
+    def diagonal1(self) -> tuple[PointType, PointType]:
         """
         Return the first diagonal. From the top left to the bottom right.
 
@@ -425,7 +465,7 @@ class BoundingBox:
         return (self.southwest, self.northeast)
 
     @property
-    def diagonal2(self):
+    def diagonal2(self) -> tuple[PointType, PointType]:
         """
         Return the second diagonal. From the top right to the bottom left.
 
@@ -436,11 +476,11 @@ class BoundingBox:
 
     def get_inflated_b_box(
         self,
-        left_margin=None,
-        bottom_margin=None,
-        right_margin=None,
-        top_margin=None,
-    ):
+        left_margin: float | None = None,
+        bottom_margin: float | None = None,
+        right_margin: float | None = None,
+        top_margin: float | None = None,
+    ) -> BoundingBox:
         """
         Return a bounding box with offset edges.
 
@@ -469,7 +509,9 @@ class BoundingBox:
 
         return BoundingBox(southwest, northeast)
 
-    def offset_line(self, side, offset):
+    def offset_line(
+        self, side: Side | str, offset: float
+    ) -> tuple[PointType, PointType]:
         """
         Offset is applied outwards. Use negative values for inward offset.
 
@@ -512,7 +554,9 @@ class BoundingBox:
 
         return res
 
-    def offset_point(self, anchor, dx, dy):
+    def offset_point(
+        self, anchor: Anchor | str | PointType, dx: float, dy: float
+    ) -> list[float]:
         """
         Return an offset point from the given corner.
 
@@ -746,7 +790,7 @@ class BoundingBox:
         return x, y
 
 
-def bounding_box(points):
+def bounding_box(points: Sequence[PointType]) -> BoundingBox:
     """Build a ``BoundingBox`` from a sequence of points.
 
     Args:
@@ -758,14 +802,11 @@ def bounding_box(points):
     Raises:
         ValueError: If ``points`` is empty.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    bb = sg.bounding_box([(0, 0), (10, 5), (3, 8)])
-    bb.southwest, bb.northeast  # doctest: +SKIP
-    # ((0, 0), (10, 8))
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> bb = sg.bounding_box([(0, 0), (10, 5), (3, 8)])
+        >>> bb.southwest, bb.northeast  # doctest: +SKIP
+        ((0, 0), (10, 8))
 """
     if isinstance(points, np.ndarray):
         points = points[:, :2]

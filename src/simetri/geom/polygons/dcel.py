@@ -1,5 +1,7 @@
 """Doubly connected edge list (DCEL) / half-edge data structure helpers."""
 
+from __future__ import annotations
+
 
 class Vertex:
     """A 2D vertex in a DCEL, with one outgoing half-edge.
@@ -10,7 +12,7 @@ class Vertex:
         half_edge: One outgoing half-edge from this vertex.
     """
 
-    def __init__(self, x, y):
+    def __init__(self, x: float, y: float) -> None:
         """Create a vertex at ``(x, y)``.
 
         Args:
@@ -29,7 +31,7 @@ class Face:
         half_edge: One half-edge on the face boundary.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create an empty face with no half-edge yet."""
         self.half_edge = None  # One half-edge bounding this face
 
@@ -45,7 +47,7 @@ class HalfEdge:
         face: Face on the left side of this half-edge.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create an unlinked half-edge."""
         self.vertex = None  # Destination vertex
         self.pair = None  # Opposite half-edge
@@ -54,14 +56,20 @@ class HalfEdge:
         self.face = None  # Face on the left side
 
 
-def get_face_vertices(face):
+def get_face_vertices(face: Face) -> list[tuple[float, float]]:
     """Return origin coordinates walking around ``face``.
 
     Args:
         face: A ``Face`` whose ``half_edge`` cycle is complete.
 
     Returns:
-        List of ``(x, y)`` origin vertices in boundary order.
+        ``(x, y)`` origin vertices in boundary order.
+
+    Examples:
+        >>> from simetri.geom.polygons.dcel import create_square_patch, get_face_vertices
+        >>> face, _ = create_square_patch()
+        >>> get_face_vertices(face)
+        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
     """
     coords = []
     start_he = face.half_edge
@@ -77,11 +85,19 @@ def get_face_vertices(face):
     return coords
 
 
-def create_square_patch():
+def create_square_patch() -> tuple[Face, list[Vertex]]:
     """Build a unit-square DCEL face for testing / illustration.
 
     Returns:
-        Tuple ``(face, vertices)`` for the square ``[0,1] x [0,1]``.
+        ``(face, vertices)`` for the square ``[0, 1] × [0, 1]``.
+
+    Examples:
+        >>> from simetri.geom.polygons.dcel import create_square_patch
+        >>> face, vertices = create_square_patch()
+        >>> len(vertices)
+        4
+        >>> (vertices[0].x, vertices[0].y)
+        (0.0, 0.0)
     """
     # 1. Create vertices
     v0 = Vertex(0.0, 0.0)

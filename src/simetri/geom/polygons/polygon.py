@@ -71,13 +71,10 @@ def _shape(*args: Any, **kwargs: Any) -> Shape:
     Returns:
         Shape: The constructed shape.
 
-    **Examples**
-
-    ```python
-    from simetri.geom.polygons.polygon import _shape
-    _shape([(0, 0), (1, 0)]).vertices
-    # [(0, 0), (1, 0)]
-    ```
+    Examples:
+        >>> from simetri.geom.polygons.polygon import _shape
+        >>> _shape([(0, 0), (1, 0)]).vertices
+        [(0, 0), (1, 0)]
 """
     from simetri.shapes.shape import Shape
 
@@ -94,13 +91,10 @@ def _group(*args: Any, **kwargs: Any) -> Group:
     Returns:
         Group: The constructed group.
 
-    **Examples**
-
-    ```python
-    from simetri.geom.polygons.polygon import _group
-    len(_group([]))
-    # 0
-    ```
+    Examples:
+        >>> from simetri.geom.polygons.polygon import _group
+        >>> len(_group([]))
+        0
 """
     from simetri.group.batch import Group
 
@@ -276,17 +270,14 @@ def polygon_area(
     Returns:
         float: Signed area.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1)])
-    # 1.0
-    sg.polygon_area([(0, 0), (0, 1), (1, 1), (1, 0)])
-    # -1.0
-    sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
-    # 1.0
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1)])
+        1.0
+        >>> sg.polygon_area([(0, 0), (0, 1), (1, 1), (1, 0)])
+        -1.0
+        >>> sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
+        1.0
 """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -316,15 +307,12 @@ def ccw_positive_vertices(
     Returns:
         list[tuple[float, float]]: Counter-clockwise vertex copy.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.ccw_positive_vertices([(0, 0), (1, 0), (1, 1)])
-    # [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
-    sg.ccw_positive_vertices([(0, 0), (0, 1), (1, 0)])
-    # [(1.0, 0.0), (0.0, 1.0), (0.0, 0.0)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.ccw_positive_vertices([(0, 0), (1, 0), (1, 1)])
+        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+        >>> sg.ccw_positive_vertices([(0, 0), (0, 1), (1, 0)])
+        [(1.0, 0.0), (0.0, 1.0), (0.0, 0.0)]
 """
     verts = [(float(x), float(y)) for x, y in vertices]
     if polygon_area(verts) < 0:
@@ -619,14 +607,11 @@ def _segment_containment_counts(
     Returns:
         NDArray[np.int16]: One count per midpoint.
 
-    **Examples**
-
-    ```python
-    from simetri.geom.polygons.polygon import _segment_containment_counts
-    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    list(_segment_containment_counts([(0.5, 0.5), (2, 2)], [square]))
-    # [1, 0]
-    ```
+    Examples:
+        >>> from simetri.geom.polygons.polygon import _segment_containment_counts
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> list(_segment_containment_counts([(0.5, 0.5), (2, 2)], [square]))
+        [1, 0]
 """
     counts = np.zeros(len(midpoints), dtype=np.int16)
     for vertices in shape_vertices:
@@ -651,18 +636,15 @@ def point_inside_polygon(
     Returns:
         bool: True if strictly inside; False on the boundary or outside.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    sg.point_inside_polygon((0.5, 0.5), square)
-    # True
-    sg.point_inside_polygon((0.5, 0), square)
-    # False
-    sg.point_inside_polygon((2, 2), square)
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.point_inside_polygon((0.5, 0.5), square)
+        True
+        >>> sg.point_inside_polygon((0.5, 0), square)
+        False
+        >>> sg.point_inside_polygon((2, 2), square)
+        False
 """
     x, y = p
     n = len(poly)
@@ -716,21 +698,18 @@ def polygons_union(
     Raises:
         ValueError: If ``shapes`` is empty.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
-    outer, holes = sg.polygons_union([square], [], [])
-    len(outer.vertices)
-    # 4
-    len(holes)
-    # 0
-    sg.polygons_union([], [], [])
-    # Traceback (most recent call last):
-        
-    # ValueError: polygons_union requires at least one polygon
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> outer, holes = sg.polygons_union([square], [], [])
+        >>> len(outer.vertices)
+        4
+        >>> len(holes)
+        0
+        >>> sg.polygons_union([], [], [])
+        Traceback (most recent call last):
+        ...
+        ValueError: polygons_union requires at least one polygon
 """
     if len(shapes) == 0:
         raise ValueError("polygons_union requires at least one polygon")
@@ -786,19 +765,16 @@ def all_close_points(
         tuple: ``({id: [nearby ids], ...}, pairs)``. Ids with no neighbor
         are omitted from the dictionary.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    rows = [[0, 0, 1], [0.01, 0, 2], [5, 5, 3]]
-    sg.all_close_points(rows, dist_tol=0.05)
-    # ({1: [2], 2: [1]}, [(1, 2)])
-    links, pairs = sg.all_close_points(rows, dist_tol=0.05, with_dist=True)
-    links
-    # {1: [2], 2: [1]}
-    round(pairs[0][2], 2)
-    # 0.01
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> rows = [[0, 0, 1], [0.01, 0, 2], [5, 5, 3]]
+        >>> sg.all_close_points(rows, dist_tol=0.05)
+        ({1: [2], 2: [1]}, [(1, 2)])
+        >>> links, pairs = sg.all_close_points(rows, dist_tol=0.05, with_dist=True)
+        >>> links
+        {1: [2], 2: [1]}
+        >>> round(pairs[0][2], 2)
+        0.01
 """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -870,20 +846,17 @@ def node_dictionaries(
     Returns:
         tuple: ``(node_to_coord, coord_to_node, rounded_to_original)``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    nodes, coord_node, rounded = sg.node_dictionaries(
-            [(0, 0), (0.01, 0), (5, 5)], 0.05
-        )
-    nodes
-    # {0: (0, 0), 1: (5, 5)}
-    coord_node[(0, 0)] == coord_node[(0.01, 0)]
-    # True
-    rounded[(5, 5)]
-    # (5, 5)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> nodes, coord_node, rounded = sg.node_dictionaries(
+        ... [(0, 0), (0.01, 0), (5, 5)], 0.05
+        ... )
+        >>> nodes
+        {0: (0, 0), 1: (5, 5)}
+        >>> coord_node[(0, 0)] == coord_node[(0.01, 0)]
+        True
+        >>> rounded[(5, 5)]
+        (5, 5)
 """
     n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
     d_rounded_coord = {}
@@ -956,8 +929,11 @@ def node_dictionaries(
 
 
 def segment_cycles(
-    segments, length_bound: int = 10, cycle_basis=False, dist_tol=None
-):
+    segments: Sequence[LineType],
+    length_bound: int = 10,
+    cycle_basis: bool = False,
+    dist_tol: float | None = None,
+) -> tuple[list, list]:
     """Return closed walks formed by line segments.
 
     Args:
@@ -970,22 +946,19 @@ def segment_cycles(
     Returns:
         tuple: ``(coordinate_cycles, node_id_cycles)``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = [
-            ((0, 0), (1, 0)),
-            ((1, 0), (1, 1)),
-            ((1, 1), (0, 1)),
-            ((0, 1), (0, 0)),
-        ]
-    coords, nodes = sg.segment_cycles(square)
-    coords
-    # [[(0, 0), (1, 0), (1, 1), (0, 1)]]
-    len(nodes[0])
-    # 4
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [
+        ... ((0, 0), (1, 0)),
+        ... ((1, 0), (1, 1)),
+        ... ((1, 1), (0, 1)),
+        ... ((0, 1), (0, 0)),
+        ... ]
+        >>> coords, nodes = sg.segment_cycles(square)
+        >>> coords
+        [[(0, 0), (1, 0), (1, 1), (0, 1)]]
+        >>> len(nodes[0])
+        4
 """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -1027,17 +1000,14 @@ def segments_from_points(
         list[tuple[PointType, PointType]] | None: Sorted segments, or
         ``None`` if fewer than two points are given.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.segments_from_points([(2, 0), (0, 0), (1, 0)])
-    # [((0, 0), (1, 0)), ((1, 0), (2, 0))]
-    sg.segments_from_points([(0, 0), (1, 0)])
-    # [((0, 0), (1, 0))]
-    sg.segments_from_points([(0, 0)]) is None
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.segments_from_points([(2, 0), (0, 0), (1, 0)])
+        [((0, 0), (1, 0)), ((1, 0), (2, 0))]
+        >>> sg.segments_from_points([(0, 0), (1, 0)])
+        [((0, 0), (1, 0))]
+        >>> sg.segments_from_points([(0, 0)]) is None
+        True
 """
     n = len(points)
     if n < 2:
@@ -1067,16 +1037,13 @@ def set_fills(
     Returns:
         None: Fills are written onto the partition objects.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    outer = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
-    edges = {frozenset(edge): {outer.id} for edge in outer.edges}
-    sg.set_fills([outer], edges)
-    outer.fill
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> outer = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+        >>> edges = {frozenset(edge): {outer.id} for edge in outer.edges}
+        >>> sg.set_fills([outer], edges)
+        >>> outer.fill
+        True
 """
 
     # To start, find an edge with a single partition.
@@ -1135,18 +1102,15 @@ def any_point_inside_polygon(
     Returns:
         bool: True if at least one point is inside and not on the boundary.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    sg.any_point_inside_polygon([(2, 2), (0.2, 0.2)], square)
-    # True
-    sg.any_point_inside_polygon([(2, 2), (3, 3)], square)
-    # False
-    sg.any_point_inside_polygon([(0.5, 0)], square)
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.any_point_inside_polygon([(2, 2), (0.2, 0.2)], square)
+        True
+        >>> sg.any_point_inside_polygon([(2, 2), (3, 3)], square)
+        False
+        >>> sg.any_point_inside_polygon([(0.5, 0)], square)
+        False
 """
 
     pts = np.asarray(points, dtype=float)
@@ -1205,15 +1169,12 @@ def get_partitions(
     Returns:
         tuple: ``(partition_shapes, membership_map, merged_outline)``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
-    group = sg.Group([square])
-    len(group.all_segments)
-    # 4
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> group = sg.Group([square])
+        >>> len(group.all_segments)
+        4
 """
     n_edges = len(shapes.all_segments)
     intersections = all_intersections(
@@ -1351,25 +1312,22 @@ def equal_sorted_arrays(
     Returns:
         bool: True if every corresponding pair is within tolerance.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    same = [(1, 1), (0, 1), (0, 0), (1, 0)]
-    sg.equal_sorted_arrays(
-            sg.sorted_polygon_xy_array(square),
-            sg.sorted_polygon_xy_array(same),
-            0.05,
-        )
-    # True
-    sg.equal_sorted_arrays(
-            sg.sorted_polygon_xy_array(square),
-            sg.sorted_polygon_xy_array([(0, 0), (2, 0), (0, 2)]),
-            0.05,
-        )
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> same = [(1, 1), (0, 1), (0, 0), (1, 0)]
+        >>> sg.equal_sorted_arrays(
+        ... sg.sorted_polygon_xy_array(square),
+        ... sg.sorted_polygon_xy_array(same),
+        ... 0.05,
+        ... )
+        True
+        >>> sg.equal_sorted_arrays(
+        ... sg.sorted_polygon_xy_array(square),
+        ... sg.sorted_polygon_xy_array([(0, 0), (2, 0), (0, 2)]),
+        ... 0.05,
+        ... )
+        False
 """
     if array1.shape != array2.shape:
         return False
@@ -1413,14 +1371,11 @@ def _build_hole_index(
     Returns:
         tuple: ``(hole_index, sorted_hole_arrays, unused_mask)``.
 
-    **Examples**
-
-    ```python
-    from simetri.geom.polygons.polygon import _build_hole_index
-    index, arrays, unused = _build_hole_index([])
-    len(index), arrays, list(unused)
-    # (0, [], [])
-    ```
+    Examples:
+        >>> from simetri.geom.polygons.polygon import _build_hole_index
+        >>> index, arrays, unused = _build_hole_index([])
+        >>> len(index), arrays, list(unused)
+        (0, [], [])
 """
     n_holes = len(holes)
     hole_dtype = _HOLE_DTYPE
@@ -1466,17 +1421,14 @@ def _candidate_hole_ids(
     Returns:
         NDArray[np.int_]: Matching hole ids.
 
-    **Examples**
-
-    ```python
-    from simetri.geom.polygons.polygon import (
-            _build_hole_index,
-            _candidate_hole_ids,
-        )
-    index, _, unused = _build_hole_index([])
-    list(_candidate_hole_ids(index, unused, 0, 0, 1, 1, 0.05))
-    # []
-    ```
+    Examples:
+        >>> from simetri.geom.polygons.polygon import (
+        ... _build_hole_index,
+        ... _candidate_hole_ids,
+        ... )
+        >>> index, _, unused = _build_hole_index([])
+        >>> list(_candidate_hole_ids(index, unused, 0, 0, 1, 1, 0.05))
+        []
 """
     if len(hole_index) == 0:
         return np.array([], dtype=int)
@@ -1504,15 +1456,12 @@ def polygon_xy_array(
         NDArray[np.float64]: XY coordinates. A ``Shape`` uses
         ``final_coords``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    [tuple(row) for row in sg.polygon_xy_array([(0, 0), (1, 0), (1, 1)])]
-    # [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
-    sg.polygon_xy_array([(3, 4)]).shape
-    # (1, 2)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> [tuple(row) for row in sg.polygon_xy_array([(0, 0), (1, 0), (1, 1)])]
+        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+        >>> sg.polygon_xy_array([(3, 4)]).shape
+        (1, 2)
 """
     from simetri.shapes.shape import Shape
 
@@ -1538,13 +1487,10 @@ def sorted_polygon_xy_array(
     Returns:
         NDArray[np.float64]: Lexicographically sorted XY coordinates.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    [tuple(row) for row in sg.sorted_polygon_xy_array([(1, 1), (0, 0), (0, 1)])]
-    # [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> [tuple(row) for row in sg.sorted_polygon_xy_array([(1, 1), (0, 0), (0, 1)])]
+        [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
 """
     array = polygon_xy_array(polygon)
     order = np.lexsort((array[:, 1], array[:, 0]))
@@ -1562,16 +1508,13 @@ def polygon_vertices(polygon: PolygonLike) -> Sequence[PointType]:
     Returns:
         Sequence[PointType]: Vertex coordinates.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.polygon_vertices([(0, 0), (1, 0), (1, 1), (0, 1)])
-    # [(0, 0), (1, 0), (1, 1), (0, 1)]
-    shape = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
-    len(sg.polygon_vertices(shape))
-    # 3
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_vertices([(0, 0), (1, 0), (1, 1), (0, 1)])
+        [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> shape = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
+        >>> len(sg.polygon_vertices(shape))
+        3
 """
     from ...shapes.shape import Shape
 
@@ -1597,15 +1540,12 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
     Returns:
         list[float]: Alternating side lengths and turn angles.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.polygon_turns([(0, 0), (1, 0), (1, 1), (0, 1)])
-    # [1.0, -1.57, 1.0, -1.57, 1.0, -1.57, 1.0, -1.57]
-    len(sg.polygon_turns([(0, 0), (2, 0), (0, 1)]))
-    # 6
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_turns([(0, 0), (1, 0), (1, 1), (0, 1)])
+        [1.0, -1.57, 1.0, -1.57, 1.0, -1.57, 1.0, -1.57]
+        >>> len(sg.polygon_turns([(0, 0), (2, 0), (0, 1)]))
+        6
 """
     n = len(vertices)
     res = []
@@ -1631,15 +1571,12 @@ def rotate_turns_to_min_edge(turns: Sequence[float]) -> list[float]:
     Returns:
         list[float]: Cycle starting at the shortest edge.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rotate_turns_to_min_edge([3.0, 1.57, 1.0, 1.57, 2.0, 1.57])
-    # [1.0, 1.57, 2.0, 1.57, 3.0, 1.57]
-    sg.rotate_turns_to_min_edge([1.0])
-    # [1.0]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rotate_turns_to_min_edge([3.0, 1.57, 1.0, 1.57, 2.0, 1.57])
+        [1.0, 1.57, 2.0, 1.57, 3.0, 1.57]
+        >>> sg.rotate_turns_to_min_edge([1.0])
+        [1.0]
 """
     if len(turns) < 2:
         return list(turns)
@@ -1667,16 +1604,13 @@ def congruent_polygons(
     Returns:
         bool: True if the polygons are congruent.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    sg.congruent_polygons(square, [(1, 1), (2, 1), (2, 2), (1, 2)])
-    # True
-    sg.congruent_polygons(square, [(0, 0), (2, 0), (0, 2)])
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.congruent_polygons(square, [(1, 1), (2, 1), (2, 2), (1, 2)])
+        True
+        >>> sg.congruent_polygons(square, [(0, 0), (2, 0), (0, 2)])
+        False
 """
     from ...helpers.utilities import equal_cycles
 
@@ -1717,16 +1651,13 @@ def equal_polygons(
     Returns:
         bool: True when the polygons match under congruence.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    sg.equal_polygons(square, [(1, 0), (1, 1), (0, 1), (0, 0)])
-    # True
-    sg.equal_polygons(square, [(0, 0), (2, 0), (0, 2)])
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.equal_polygons(square, [(1, 0), (1, 1), (0, 1), (0, 0)])
+        True
+        >>> sg.equal_polygons(square, [(0, 0), (2, 0), (0, 2)])
+        False
 """
     return congruent_polygons(polygon1, polygon2, mirror)
 
@@ -1746,18 +1677,15 @@ def congruent_shapes(
     Returns:
         bool: True if the shapes are congruent.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    left = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
-    right = sg.Shape([(10, 0), (11, 0), (11, 1), (10, 1)], closed=True)
-    sg.congruent_shapes(left, right)
-    # True
-    other = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
-    sg.congruent_shapes(left, other)
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> left = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> right = sg.Shape([(10, 0), (11, 0), (11, 1), (10, 1)], closed=True)
+        >>> sg.congruent_shapes(left, right)
+        True
+        >>> other = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
+        >>> sg.congruent_shapes(left, other)
+        False
 """
     return congruent_polygons(shape1, shape2, mirror=mirror)
 
@@ -1779,16 +1707,13 @@ def remove_duplicate_edges(
     Returns:
         list[LineType]: Selected edges.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    edges = [((0, 0), (1, 0)), ((1, 0), (0, 0)), ((0, 1), (1, 1))]
-    sg.remove_duplicate_edges(edges)
-    # [((0, 1), (1, 1))]
-    sg.remove_duplicate_edges(edges, keep_one=True)
-    # [((0, 0), (1, 0)), ((0, 1), (1, 1))]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> edges = [((0, 0), (1, 0)), ((1, 0), (0, 0)), ((0, 1), (1, 1))]
+        >>> sg.remove_duplicate_edges(edges)
+        [((0, 1), (1, 1))]
+        >>> sg.remove_duplicate_edges(edges, keep_one=True)
+        [((0, 0), (1, 0)), ((0, 1), (1, 1))]
 """
     dist_tol = defaults["dist_tol"]
 
@@ -1889,18 +1814,15 @@ def polygon_verts_and_bbox(
     Returns:
         tuple: ``(vertices, min_x, min_y, max_x, max_y)``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    verts, min_x, min_y, max_x, max_y = sg.polygon_verts_and_bbox(
-            [(0, 0), (1, 0), (1, 1), (0, 1)]
-        )
-    verts
-    # [(0, 0), (1, 0), (1, 1), (0, 1)]
-    (min_x, min_y, max_x, max_y)
-    # (0, 0, 1, 1)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> verts, min_x, min_y, max_x, max_y = sg.polygon_verts_and_bbox(
+        ... [(0, 0), (1, 0), (1, 1), (0, 1)]
+        ... )
+        >>> verts
+        [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> (min_x, min_y, max_x, max_y)
+        (0, 0, 1, 1)
 """
     from ...group.batch import Group
     from ...shapes.shape import Shape
@@ -1960,18 +1882,15 @@ def remove_duplicate_polygons(
     Returns:
         list[PolygonLike]: Selected polygon objects from ``polygons``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    same = [(1, 0), (1, 1), (0, 1), (0, 0)]
-    tri = [(0, 0), (2, 0), (0, 2)]
-    sg.remove_duplicate_polygons([square, same, tri])
-    # [[(0, 0), (1, 0), (1, 1), (0, 1)], [(0, 0), (2, 0), (0, 2)]]
-    sg.remove_duplicate_polygons([square, same], keep_one=False)
-    # []
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> same = [(1, 0), (1, 1), (0, 1), (0, 0)]
+        >>> tri = [(0, 0), (2, 0), (0, 2)]
+        >>> sg.remove_duplicate_polygons([square, same, tri])
+        [[(0, 0), (1, 0), (1, 1), (0, 1)], [(0, 0), (2, 0), (0, 2)]]
+        >>> sg.remove_duplicate_polygons([square, same], keep_one=False)
+        []
 """
     dist_tol = defaults["dist_tol"]
     entries = []
@@ -2050,15 +1969,12 @@ def symmetric_difference(
         tuple[Sequence[Shape], Shape]: Filled partitions and their union
         outline.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
-    group = sg.Group([square])
-    group.closed
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> group = sg.Group([square])
+        >>> group.closed
+        True
 """
     partitions, d_edge_part, union = get_partitions(shapes, length_bound)
     set_fills(partitions, d_edge_part)
@@ -2087,20 +2003,17 @@ def in_polygon(
     Returns:
         bool: True if inside, else False.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-    sg.in_polygon((0.5, 0.5), square)
-    # True
-    sg.in_polygon((0.5, 0), square)
-    # True
-    sg.in_polygon((0.5, 0), square, exclude_border=True)
-    # False
-    sg.in_polygon((2, 2), square)
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> sg.in_polygon((0.5, 0.5), square)
+        True
+        >>> sg.in_polygon((0.5, 0), square)
+        True
+        >>> sg.in_polygon((0.5, 0), square, exclude_border=True)
+        False
+        >>> sg.in_polygon((2, 2), square)
+        False
 """
     _, y = point[:2]
     n_winding = 0  # Initialize the winding number
@@ -2135,13 +2048,10 @@ def double_offset_lines(
         tuple[LineType, LineType]: The positive-offset line and the
         negative-offset line.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.double_offset_lines(((0, 0), (2, 0)), 1)
-    # ([[0.0, 1.0], [2.0, 1.0]], [[0.0, -1.0], [2.0, -1.0]])
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.double_offset_lines(((0, 0), (2, 0)), 1)
+        ([[0.0, 1.0], [2.0, 1.0]], [[0.0, -1.0], [2.0, -1.0]])
 """
     line1 = offset_line(line, offset)
     line2 = offset_line(line, -offset)
@@ -2168,13 +2078,10 @@ def double_offset_polylines(
     Returns:
         list: ``[positive_offset, negative_offset]``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.double_offset_polylines([(0, 0), (2, 0), (2, 2)], 1)
-    # [[[0.0, 1.0], (1.0, 1.0), [1.0, 2.0]], [[0.0, -1.0], (3.0, -1.0), [3.0, 2.0]]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.double_offset_polylines([(0, 0), (2, 0), (2, 2)], 1)
+        [[[0.0, 1.0], (1.0, 1.0), [1.0, 2.0]], [[0.0, -1.0], (3.0, -1.0), [3.0, 2.0]]]
 """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     lines1 = []
@@ -2201,17 +2108,14 @@ def polygon_cg(points: Sequence[PointType]) -> PointType | None:
     Returns:
         PointType | None: Area center, or ``None`` if the area is zero.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.polygon_cg([(0, 0), (1, 0), (1, 1), (0, 1)])
-    # [0.5, 0.5]
-    sg.polygon_cg([(0, 0), (2, 0), (0, 2)])
-    # [0.6666666666666666, 0.6666666666666666]
-    sg.polygon_cg([(0, 0), (1, 0), (2, 0)]) is None
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_cg([(0, 0), (1, 0), (1, 1), (0, 1)])
+        [0.5, 0.5]
+        >>> sg.polygon_cg([(0, 0), (2, 0), (0, 2)])
+        [0.6666666666666666, 0.6666666666666666]
+        >>> sg.polygon_cg([(0, 0), (1, 0), (2, 0)]) is None
+        True
 """
     cx = cy = 0
     n_points = len(points)
@@ -2252,13 +2156,10 @@ def offset_polygon(
     Returns:
         Sequence[PointType]: Closed offset ring.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.offset_polygon([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
-    # [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.offset_polygon([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
+        [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
 """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -2298,19 +2199,16 @@ def double_offset_polygons(
     Returns:
         list: ``[positive_offset, negative_offset]``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    raw = [(0, 0), (2, 0), (2, 1)]
-    offsets = sg.double_offset_polygons(raw, 0.5)
-    raw
-    # [(0, 0), (2, 0), (2, 1)]
-    offsets[0][0]
-    # (2.118033988749895, 0.5)
-    offsets[1][1]
-    # (2.5, -0.5)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> raw = [(0, 0), (2, 0), (2, 1)]
+        >>> offsets = sg.double_offset_polygons(raw, 0.5)
+        >>> raw
+        [(0, 0), (2, 0), (2, 1)]
+        >>> offsets[0][0]
+        (2.118033988749895, 0.5)
+        >>> offsets[1][1]
+        (2.5, -0.5)
 """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -2361,13 +2259,10 @@ def offset_polygon_points(
     Returns:
         Sequence[PointType]: Offset ring. A clockwise result is reversed.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.offset_polygon_points([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
-    # [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.offset_polygon_points([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
+        [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
 """
     return offset_polygon(polygon, offset, dist_tol)
 
@@ -2389,15 +2284,12 @@ def polyline_length(
     Returns:
         float: Path length.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.polyline_length([(0, 0), (3, 0), (3, 4)])
-    # 7.0
-    sg.polyline_length([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
-    # 4.0
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polyline_length([(0, 0), (3, 0), (3, 4)])
+        7.0
+        >>> sg.polyline_length([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        4.0
 """
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
@@ -2426,15 +2318,12 @@ def polygon_internal_angles(vertices: Sequence[PointType]) -> Sequence[float]:
         Sequence[float]: Interior angles, or an empty list if fewer than
         three vertices are given.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.polygon_internal_angles([(0, 0), (1, 0), (1, 1), (0, 1)])
-    # [1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966]
-    sg.polygon_internal_angles([(0, 0), (1, 0)])
-    # []
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.polygon_internal_angles([(0, 0), (1, 0), (1, 1), (0, 1)])
+        [1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966]
+        >>> sg.polygon_internal_angles([(0, 0), (1, 0)])
+        []
 """
     n = len(vertices)
     if n < 3:

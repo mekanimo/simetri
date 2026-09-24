@@ -4,32 +4,38 @@ Turns Simetri ``Color`` objects into SVG/CSS
 color strings (``rgb``/``rgba``) and related fill/stroke attributes.
 """
 
-from ...coloring.colors import check_color
+from __future__ import annotations
+
+from ...coloring.colors import Color, check_color
 from ...config.settings import defaults
 
 
-def color_to_matplotlib(color):
-    """Converts a Color object to a matplotlib-compatible hex color string.
+def color_to_matplotlib(color: Color) -> str:
+    """Convert a ``Color`` to a matplotlib-compatible hex string.
 
     Args:
-        color (Color): The color object.
+        color: Simetri color object.
 
     Returns:
-        str: A hex color string such as '#rrggbb'.
+        str: Hex color string such as ``#rrggbb``.
     """
     red, green, blue = color.rgb255
     return f"#{red:02x}{green:02x}{blue:02x}"
 
 
-def color_to_svg(color, property_name=None):
-    """Converts a Color object to a SVG color string.
+def color_to_svg(
+    color: Color | str | None,
+    property_name: str | None = None,
+) -> str:
+    """Convert a ``Color`` to an SVG/CSS ``rgb`` or ``rgba`` string.
 
     Args:
-        color (Color): The color object, or None to use a default.
-        property_name: defaults key used when ``color`` is None.
+        color: Simetri color, color string, or ``None`` to read from
+            ``defaults[property_name]``.
+        property_name: Key in ``defaults`` when ``color`` is ``None``.
 
     Returns:
-        str: The SVG color string (``rgb`` or ``rgba``).
+        str: SVG color string (``rgb(...)`` or ``rgba(...)``).
     """
     if color is None:
         color = defaults[property_name]

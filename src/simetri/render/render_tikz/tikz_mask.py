@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from math import atan2, degrees
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from ...base.all_enums import TexLoc, Types
 from ...coloring.colors import Color
@@ -25,7 +26,10 @@ if TYPE_CHECKING:
     from ..canvas import Canvas
 
 
-def _normalize_mask_inputs(mask, **kwargs):
+def _normalize_mask_inputs(
+    mask: Mask | Shape,
+    **kwargs: object,
+) -> tuple[Any, float, Sequence[Any] | None, tuple[tuple[float, float], tuple[float, float]]]:
     mask_opacity = 1.0
     mask_stops = None
     mask_axis = ((0.0, 0.0), (1.0, 0.0))
@@ -76,7 +80,7 @@ def _normalize_mask_inputs(mask, **kwargs):
     return mask_shape, float(mask_opacity), mask_stops, mask_axis
 
 
-def _parse_offset(offset):
+def _parse_offset(offset: float | int | str) -> float:
     if isinstance(offset, (int, float)):
         return float(offset)
     if isinstance(offset, str) and offset.endswith("%"):
@@ -84,7 +88,7 @@ def _parse_offset(offset):
     return float(offset)
 
 
-def _luminance_from_color(stop_color):
+def _luminance_from_color(stop_color: Any) -> float:
     if isinstance(stop_color, Color):
         r, g, b = stop_color.rgb255
     elif isinstance(stop_color, str):
@@ -104,7 +108,7 @@ def _luminance_from_color(stop_color):
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
 
 
-def _effective_alpha_from_stop(stop):
+def _effective_alpha_from_stop(stop: Any) -> tuple[float, float]:
     if isinstance(stop, Stop) or (
         hasattr(stop, "offset") and hasattr(stop, "color")
     ):
@@ -148,7 +152,14 @@ def _pgf_gray(transparency: int) -> str:
     return f"black!{transparency}"
 
 
-def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
+def _build_fading_code(
+    fade_id: str,
+    stops: Sequence[Any],
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+) -> str:
     parsed = [_effective_alpha_from_stop(stop) for stop in stops]
     parsed.sort(key=lambda x: x[0])
     if not parsed:
@@ -180,12 +191,12 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
     )
 
 
-def _get_clip_from_mask(mask_shape):
+def _get_clip_from_mask(mask_shape: Shape | Any) -> str:
     proxy = SimpleNamespace(mask=mask_shape)
     return get_clip_code(proxy)
 
 
-def _get_scope_fading_path(mask_shape, fade_id):
+def _get_scope_fading_path(mask_shape: Any, fade_id: str) -> str:
     bbox = mask_shape.b_box
     x1, y1 = bbox.southwest
     x2, y2 = bbox.northeast
@@ -195,9 +206,9 @@ def _get_scope_fading_path(mask_shape, fade_id):
 def clip_mask(
     self: Canvas,
     target: Shape | Group | None = None,
-    mask: Mask = None,
-    **kwargs,
-):
+    mask: Mask | None = None,
+    **kwargs: object,
+) -> Canvas:
     """Apply a mask for TeX rendering using scope / ``TexSketch`` logic.
 
     Args:

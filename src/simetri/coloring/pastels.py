@@ -2,6 +2,16 @@
 
 Each palette contains 16 soft pastel colors as ``[R, G, B]`` lists
 with component values in 0-255.
+
+**Examples**
+
+```python
+import simetri.graphics as sg
+len(sg.palette0)
+# 16
+sg.palette0[0]
+# [255, 182, 193]
+```
 """
 
 # Palette 0: Soft Spring

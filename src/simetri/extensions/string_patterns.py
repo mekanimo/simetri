@@ -33,15 +33,11 @@ def get_skipped_items(
     Returns:
         list[ItemType]: Items visited in the first repeating cycle.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.get_skipped_items([0, 1, 2, 3], 2)
-    # [0, 2]
-    sg.get_skipped_items([0, 1, 2, 3], [1, 2])
-    # [0, 1, 3, 0, 2, 3, 1, 2]
-    ```
+    Examples:
+        >>> get_skipped_items([0, 1, 2, 3], 2)
+        [0, 2, 0, 2, 0]
+        >>> get_skipped_items([0, 1, 2, 3], [1, 2])
+        [0, 1, 3, 0, 2, 3, 1, 2, 0]
     """
     if isinstance(skip, int):
         skip_cycle = cycle([skip])
@@ -89,16 +85,14 @@ def string_star(
     Returns:
         list[Sequence[float]]: Vertex walk of the resulting string-art star.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    star = sg.string_star(7, 4, 3, 9)
-    len(star)
-    # 8
-    star[0]
-    # [100.0, 0.0]
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> star = string_star(7, 4, 3, 9)
+        >>> len(star)
+        34
+        >>> [round(c, 4) for c in star[0][:2]]
+        [100.0, 0.0]
     """
     reg_poly_vertices = reg_poly_points(n_sides, r=radius)
 

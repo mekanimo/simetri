@@ -1,5 +1,7 @@
 """Line and segment utilities: intersections, offsets, fillets, and angles."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from functools import cmp_to_key
 from itertools import cycle
@@ -46,7 +48,7 @@ from simetri.geom.vectors import (
 from simetri.helpers.validation import is_number, is_point
 
 
-def equal_edges(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
+def equal_edges(edge1: LineType, edge2: LineType, dist_tol: float = 0.001) -> bool:
     """Return True if two edges have matching endpoints (either orientation).
 
     Args:
@@ -57,15 +59,12 @@ def equal_edges(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
     Returns:
         bool: True if endpoints match within ``dist_tol``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.equal_edges([(0, 0), (1, 0)], [(1, 0), (0, 0)])
-    # True
-    sg.equal_edges([(0, 0), (1, 0)], [(0, 0), (1, 1)])
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.equal_edges([(0, 0), (1, 0)], [(1, 0), (0, 0)])
+        True
+        >>> sg.equal_edges([(0, 0), (1, 0)], [(0, 0), (1, 1)])
+        False
     """
     p1, p2 = edge1
     p3, p4 = edge2
@@ -76,7 +75,7 @@ def equal_edges(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
 
 
 # alias for equal_edges
-def equal_segments(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
+def equal_segments(edge1: LineType, edge2: LineType, dist_tol: float = 0.001) -> bool:
     """Alias for ``equal_edges``.
 
     Args:
@@ -86,13 +85,18 @@ def equal_segments(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
 
     Returns:
         bool: True if endpoints match within ``dist_tol``.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.equal_segments(((0, 0), (1, 0)), ((0, 0), (1, 0)))
+        True
+"""
 
     return equal_edges(edge1, edge2, dist_tol=dist_tol)
 
 
 # alias for equal_edges
-def congruent_edges(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
+def congruent_edges(edge1: LineType, edge2: LineType, dist_tol: float = 0.001) -> bool:
     """Alias for ``equal_edges``.
 
     Args:
@@ -102,14 +106,19 @@ def congruent_edges(edge1: LineType, edge2: LineType, dist_tol=0.001) -> bool:
 
     Returns:
         bool: True if endpoints match within ``dist_tol``.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.congruent_edges(((0, 0), (1, 0)), ((1, 0), (0, 0)))
+        True
+"""
 
     return equal_edges(edge1, edge2, dist_tol=dist_tol)
 
 
 # alias for equal_edges
 def congruent_segments(
-    edge1: LineType, edge2: LineType, dist_tol=0.001
+    edge1: LineType, edge2: LineType, dist_tol: float = 0.001
 ) -> bool:
     """Alias for ``equal_edges``.
 
@@ -120,7 +129,12 @@ def congruent_segments(
 
     Returns:
         bool: True if endpoints match within ``dist_tol``.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.congruent_segments(((0, 0), (1, 0)), ((1, 0), (0, 0)))
+        True
+"""
 
     return equal_edges(edge1, edge2, dist_tol=dist_tol)
 
@@ -136,15 +150,12 @@ def line_angle(start_point: PointType, end_point: PointType) -> float:
     Returns:
         float: Orientation angle of the line in radians.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.line_angle((0, 0), (1, 0))
-    # 0.0
-    sg.line_angle((0, 0), (0, 1)) == sg.pi / 2
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.line_angle((0, 0), (1, 0))
+        0.0
+        >>> sg.line_angle((0, 0), (0, 1)) == sg.pi / 2
+        True
     """
     return positive_angle(
         atan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
@@ -162,14 +173,11 @@ def angled_line(line: LineType, theta: float) -> LineType:
     Returns:
         LineType: New line with the given angle.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    p0, p1 = sg.angled_line([(0, 0), (1, 0)], sg.pi / 2)
-    p0, (round(p1[0], 10), round(p1[1], 10))
-    # ((0, 0), (0.0, 1.0))
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> p0, p1 = sg.angled_line([(0, 0), (1, 0)], sg.pi / 2)
+        >>> p0, (round(p1[0], 10), round(p1[1], 10))
+        ((0, 0), (0.0, 1.0))
     """
     # find the angle of the line
     x1, y1 = line[0][:2]
@@ -199,13 +207,10 @@ def offset_line(
     Returns:
         Sequence[PointType]: Offset line.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.offset_line([(0, 0), (1, 0)], 1)
-    # [[0.0, 1.0], [1.0, 1.0]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.offset_line([(0, 0), (1, 0)], 1)
+        [[0.0, 1.0], [1.0, 1.0]]
     """
     unit_vec = perp_unit_vector(line)
     dx = unit_vec[0] * offset
@@ -226,9 +231,14 @@ def offset_lines(
 
     Returns:
         list[LineType]: List of offset lines.
-    """
 
-    def stitch_(polyline):
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.offset_lines([((0, 0), (1, 0))], 1)[0][0][1]
+        1.0
+"""
+
+    def stitch_(polyline: Sequence[LineType]) -> list:
         res = []
         line1 = polyline[0]
         for i, _ in enumerate(polyline):
@@ -256,13 +266,10 @@ def parallel_line(line: LineType, point: PointType) -> LineType:
     Returns:
         LineType: Parallel line.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.parallel_line([(0, 0), (1, 0)], (0, 2))
-    # [[0, 2], [1, 2]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.parallel_line([(0, 0), (1, 0)], (0, 2))
+        [[0, 2], [1, 2]]
     """
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -281,13 +288,10 @@ def perp_bisector(line: LineType) -> LineType:
     Returns:
         LineType: Perpendicular bisector of the line.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.perp_bisector([(0, 0), (2, 0)])
-    # [(1.0, 0.0), [1.0, 2.0]]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.perp_bisector([(0, 0), (2, 0)])
+        [(1.0, 0.0), [1.0, 2.0]]
     """
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -298,13 +302,13 @@ def perp_bisector(line: LineType) -> LineType:
 
 
 def collinear3(
-    a,
-    b,
-    c,
+    a: PointType,
+    b: PointType,
+    c: PointType,
     area_tol: float | None = None,
     area_rel_tol: float | None = None,
     area_abs_tol: float | None = None,
-):
+) -> bool:
     """Return True if a, b, and c are collinear.
 
     Args:
@@ -318,15 +322,12 @@ def collinear3(
     Returns:
         bool: True if the points are collinear, False otherwise.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.collinear3((0, 0), (1, 1), (2, 2))
-    # True
-    sg.collinear3((0, 0), (1, 0), (0, 1))
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.collinear3((0, 0), (1, 1), (2, 2))
+        True
+        >>> sg.collinear3((0, 0), (1, 0), (0, 1))
+        False
     """
     area_tol, area_rel_tol, area_abs_tol = get_defaults(
         ["area_tol", "area_rel_tol", "area_abs_tol"],
@@ -337,12 +338,12 @@ def collinear3(
 
 
 def merge_consecutive_collinear_edges(
-    points,
-    closed=False,
+    points: Sequence[PointType],
+    closed: bool = False,
     area_tol: float | None = None,
     area_rel_tol: float | None = None,
     area_abs_tol: float | None = None,
-):
+) -> list[PointType]:
     """Remove the middle points from collinear edges.
 
     Args:
@@ -394,7 +395,9 @@ def merge_consecutive_collinear_edges(
     return points
 
 
-def round_segment(segment: Sequence[PointType], n_digits: int = 2):
+def round_segment(
+    segment: Sequence[PointType], n_digits: int = 2
+) -> LineType:
     """Round a segment to a given precision.
 
     Args:
@@ -404,13 +407,10 @@ def round_segment(segment: Sequence[PointType], n_digits: int = 2):
     Returns:
         Sequence[PointType]: Rounded segment.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.round_segment([(1.26, 2.34), (3.56, 4.78)], 1)
-    # [(1.3, 2.3), (3.6, 4.8)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.round_segment([(1.26, 2.34), (3.56, 4.78)], 1)
+        [(1.3, 2.3), (3.6, 4.8)]
     """
     p1 = round_point(segment[0], n_digits)
     p2 = round_point(segment[1], n_digits)
@@ -433,13 +433,10 @@ def line_segment_bbox(
     Returns:
         tuple: Bounding box as (min_x, min_y, max_x, max_y).
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.line_segment_bbox(1, 3, 2, 0)
-    # (1, 0, 2, 3)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.line_segment_bbox(1, 3, 2, 0)
+        (1, 0, 2, 3)
     """
     return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
 
@@ -455,13 +452,10 @@ def line_segment_bbox_check(seg1: LineType, seg2: LineType) -> bool:
     Returns:
         bool: True if the bounding boxes overlap, False otherwise.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.line_segment_bbox_check([(0, 0), (2, 0)], [(1, -1), (1, 1)])
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.line_segment_bbox_check([(0, 0), (2, 0)], [(1, -1), (1, 1)])
+        True
     """
     x1, y1 = seg1[0][:2]
     x2, y2 = seg1[1][:2]
@@ -505,13 +499,10 @@ def intersect2(
     Returns:
         PointType: Intersection point of the two lines.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.intersect2(0, 0, 2, 2, 0, 2, 2, 0)
-    # (1.0, 1.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.intersect2(0, 0, 2, 2, 0, 2, 2, 0)
+        (1.0, 1.0)
     """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     x1_x2 = x1 - x2
@@ -548,13 +539,10 @@ def intersect(line1: LineType, line2: LineType) -> PointType:
     Returns:
         PointType: Intersection point of the two lines.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.intersect([(0, 0), (2, 2)], [(0, 2), (2, 0)])
-    # (1.0, 1.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.intersect([(0, 0), (2, 2)], [(0, 2), (2, 0)])
+        (1.0, 1.0)
     """
     x1, y1 = line1[0][:2]
     x2, y2 = line1[1][:2]
@@ -564,8 +552,17 @@ def intersect(line1: LineType, line2: LineType) -> PointType:
 
 
 def segment_connection(
-    x1, y1, x2, y2, x3, y3, x4, y4, rel_tol=None, abs_tol=None
-):
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    x3: float,
+    y3: float,
+    x4: float,
+    y4: float,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
+) -> tuple[Connection, PointType | None]:
     """Return the connection kind and crossing point of two segments.
 
     Args:
@@ -583,17 +580,14 @@ def segment_connection(
     Returns:
         tuple: Connection type and intersection point.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    kind, point = sg.segment_connection(0, 0, 2, 2, 0, 2, 2, 0)
-    kind == sg.Connection.INTERSECT, point
-    # (True, (1.0, 1.0))
-    kind, _ = sg.segment_connection(0, 0, 1, 0, 0, 1, 1, 1)
-    kind == sg.Connection.PARALLEL
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> kind, point = sg.segment_connection(0, 0, 2, 2, 0, 2, 2, 0)
+        >>> kind == sg.Connection.INTERSECT, point
+        (True, (1.0, 1.0))
+        >>> kind, _ = sg.segment_connection(0, 0, 1, 0, 0, 1, 1, 1)
+        >>> kind == sg.Connection.PARALLEL
+        True
     """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     x2_x1 = x2 - x1
@@ -617,12 +611,12 @@ def segment_connection(
 
 
 def collinear_segments(
-    segment1,
-    segment2,
+    segment1: LineType,
+    segment2: LineType,
     area_tol: float | None = None,
     area_rel_tol: float | None = None,
     area_abs_tol: float | None = None,
-):
+) -> bool:
     """
     Checks if two line segments (a1, b1) and (a2, b2) are collinear.
 
@@ -636,15 +630,12 @@ def collinear_segments(
     Returns:
         bool: True if the segments are collinear, False otherwise.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.collinear_segments([(0, 0), (2, 0)], [(1, 0), (3, 0)])
-    # True
-    sg.collinear_segments([(0, 0), (2, 0)], [(0, 1), (2, 1)])
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.collinear_segments([(0, 0), (2, 0)], [(1, 0), (3, 0)])
+        True
+        >>> sg.collinear_segments([(0, 0), (2, 0)], [(0, 1), (2, 1)])
+        False
     """
     area_tol, area_rel_tol, area_abs_tol = get_defaults(
         ["area_tol", "area_rel_tol", "area_abs_tol"],
@@ -726,14 +717,11 @@ def check_intersection(
         for a crossing or joint, a segment for overlap or containment,
         or ``None`` when the segments are disjoint or parallel and do not meet.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    kind, point = sg.check_intersection(0, 0, 2, 2, 0, 2, 2, 0)
-    kind == sg.Connection.INTERSECT, point
-    # (True, (1.0, 1.0))
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> kind, point = sg.check_intersection(0, 0, 2, 2, 0, 2, 2, 0)
+        >>> kind == sg.Connection.INTERSECT, point
+        (True, (1.0, 1.0))
     """
     # collinear check uses area tolerances
 
@@ -889,20 +877,22 @@ def inclination_angle(start_point: PointType, end_point: PointType) -> float:
     Returns:
         float: Inclination angle of the line in radians.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.inclination_angle((0, 0), (1, 1)) == sg.pi / 4
-    # True
-    sg.inclination_angle((1, 1), (0, 0)) == sg.pi / 4
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.inclination_angle((0, 0), (1, 1)) == sg.pi / 4
+        True
+        >>> sg.inclination_angle((1, 1), (0, 0)) == sg.pi / 4
+        True
     """
     return line_angle(start_point, end_point) % pi
 
 
-def clip_line_to_rect(point, direction, lower_left, upper_right):
+def clip_line_to_rect(
+    point: PointType,
+    direction: PointType,
+    lower_left: PointType,
+    upper_right: PointType,
+) -> LineType | None:
     """Clip an infinite line against an axis-aligned rectangle.
 
     The line is defined by a point and a direction vector.
@@ -943,7 +933,7 @@ def clip_line_to_rect(point, direction, lower_left, upper_right):
     return None
 
 
-def sorted_edges(polygon):
+def sorted_edges(polygon: Sequence[PointType]) -> list[LineType]:
     """Return polygon edges sorted for sweep-line processing.
 
     Edges are oriented left-to-right, then sorted by increasing start ``x``
@@ -958,7 +948,7 @@ def sorted_edges(polygon):
 
     # order the edges:increasing x coordinates then increasing y coordinates for the start points
     # this is used for line sweep algorithm to check if the polygon is simple
-    def get_edges(polygon):
+    def get_edges(polygon: Sequence[PointType]) -> list[LineType]:
         edges = []
         for i, p in enumerate(polygon[:-1]):
             np = polygon[i + 1]  # next point
@@ -968,7 +958,7 @@ def sorted_edges(polygon):
         edges.append((p, np))
         return edges
 
-    def compare_edges(edge1, edge2):
+    def compare_edges(edge1: LineType, edge2: LineType) -> int:
         x1 = edge1[0][0]
         x2 = edge2[0][0]
         y1 = edge1[0][1]
@@ -1216,7 +1206,7 @@ def angle_between_lines3(
     return atan2(cross, dot)
 
 
-def trim_right(line, x_value):
+def trim_right(line: LineType, x_value: float) -> LineType | None:
     """
     Trim a line to the right at a given x-coordinate.
 
@@ -1249,7 +1239,7 @@ def trim_right(line, x_value):
     return res
 
 
-def trim_left(line, x_value):
+def trim_left(line: LineType, x_value: float) -> LineType | None:
     """
     Trim a line to the left at a given x-coordinate.
 
@@ -1283,7 +1273,7 @@ def trim_left(line, x_value):
     return res
 
 
-def trim_top(line, y_value):
+def trim_top(line: LineType, y_value: float) -> LineType | None:
     """
     Trim a line to the top at a given y-coordinate.
 
@@ -1317,7 +1307,7 @@ def trim_top(line, y_value):
     return res
 
 
-def trim_bottom(line, y_value):
+def trim_bottom(line: LineType, y_value: float) -> LineType | None:
     """
     Trim a line to the bottom at a given y-coordinate.
 
@@ -1439,12 +1429,19 @@ def length(line: LineType) -> float:
 
     Returns:
         float: Length of the line.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.length(((0, 0), (3, 4)))
+        5.0
+"""
     p1, p2 = line
     return distance(p1, p2)
 
 
-def extended_line(dist: float, line: LineType, extend_both=False) -> LineType:
+def extended_line(
+    dist: float, line: LineType, extend_both: bool = False
+) -> LineType:
     """
     Given a line ((x1, y1), (x2, y2)) and a distance,
     the given line is extended by distance units.
@@ -1459,7 +1456,7 @@ def extended_line(dist: float, line: LineType, extend_both=False) -> LineType:
         LineType: Extended line.
     """
 
-    def extend(dist, line):
+    def extend(dist: float, line: LineType) -> LineType:
         # p = (1-t)*p1 + t*p2 : parametric equation of a line segment (p1, p2)
         line_length = length(line)
         t = (line_length + dist) / line_length
@@ -1481,7 +1478,7 @@ def extended_line(dist: float, line: LineType, extend_both=False) -> LineType:
 
 
 def line_through_point_angle(
-    point: PointType, angle: float, length_: float, both_sides=False
+    point: PointType, angle: float, length_: float, both_sides: bool = False
 ) -> LineType:
     """
     Return a line that passes through the given point
@@ -1507,7 +1504,9 @@ def line_through_point_angle(
     return line
 
 
-def split_segment(segment: LineType, point: PointType):
+def split_segment(
+    segment: LineType, point: PointType
+) -> list[LineType] | None:
     """Split a segment into two pieces at ``point``.
 
     Args:
@@ -1527,7 +1526,9 @@ def split_segment(segment: LineType, point: PointType):
     return [(p1, point), (point, p2)]
 
 
-def multi_split_segment(segment: LineType, points: Sequence, dist_tol=0.1):
+def multi_split_segment(
+    segment: LineType, points: Sequence[PointType], dist_tol: float = 0.1
+) -> list[LineType] | None:
     """Split a segment into multiple pieces at the given points.
 
     Split points are ordered by distance from the segment start.
@@ -1572,7 +1573,7 @@ def multi_split_segment(segment: LineType, points: Sequence, dist_tol=0.1):
     return segments
 
 
-def intersects(seg1, seg2):
+def intersects(seg1: LineType, seg2: LineType) -> bool:
     """Checks if the line segments intersect.
     If they are chained together, they are considered as intersecting.
     Returns True if the segments intersect, False otherwise.
@@ -1603,7 +1604,7 @@ def intersects(seg1, seg2):
     return bool(o4 == 0 and between3(p2, q1, q2))
 
 
-def is_chained(seg1, seg2):
+def is_chained(seg1: LineType, seg2: LineType) -> bool:
     """Checks if the line segments are chained together.
 
     Args:
@@ -1746,7 +1747,10 @@ def is_vertical(line: LineType, eps: float = 0.0001) -> bool:
 
 
 def slope(
-    start_point: PointType, end_point: PointType, rel_tol=None, abs_tol=None
+    start_point: PointType,
+    end_point: PointType,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> float:
     """Return the slope of a line given by two points.
     Order makes a difference.
@@ -1823,19 +1827,16 @@ def rotate_line(
     Returns:
         LineType: Rotated line.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    p0, p1 = sg.rotate_line(
-            [(100, 0), (200, 0)], sg.pi / 2, about=(0, 0)
-        )
-    (round(p0[0], 10), round(p0[1], 10)), (
-            round(p1[0], 10),
-            round(p1[1], 10),
-        )
-    # ((0.0, 100.0), (0.0, 200.0))
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> p0, p1 = sg.rotate_line(
+        ... [(100, 0), (200, 0)], sg.pi / 2, about=(0, 0)
+        ... )
+        >>> (round(p0[0], 10), round(p0[1], 10)), (
+        ... round(p1[0], 10),
+        ... round(p1[1], 10),
+        ... )
+        ((0.0, 100.0), (0.0, 200.0))
     """
     about_x, about_y = about[:2]
     cosine = cos(angle)
@@ -1908,39 +1909,36 @@ def update_line(line: LineType, incr: object) -> LineType:
         TypeError: If ``incr`` is not a recognized line increment.
         ValueError: If ``incr`` is an empty sequence.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.update_line([(0, 0), (100, 0)], 20)
-    # [[0.0, 20.0], [100.0, 20.0]]
-    sg.update_line([(0, 0), (100, 0)], (0, 20))
-    # [[0.0, 20.0], [100.0, 20.0]]
-    p0, p1 = sg.update_line(
-            [(100, 0), (200, 0)], (sg.pi / 2, (0, 0))
-        )
-    (round(p0[0], 10), round(p0[1], 10)), (
-            round(p1[0], 10),
-            round(p1[1], 10),
-        )
-    # ((0.0, 100.0), (0.0, 200.0))
-    p0, p1 = sg.update_line(
-            [(0, 0), (100, 0)], [(0, 20), (sg.pi / 2, (0, 0))]
-        )
-    (round(p0[0], 10), round(p0[1], 10)), (
-            round(p1[0], 10),
-            round(p1[1], 10),
-        )
-    # ((-20.0, 0.0), (-20.0, 100.0))
-    p0, p1 = sg.update_line(
-            [(0, 0), (100, 0)], [(sg.pi / 2, (0, 0)), (0, 20)]
-        )
-    (round(p0[0], 10), round(p0[1], 10)), (
-            round(p1[0], 10),
-            round(p1[1], 10),
-        )
-    # ((0.0, 20.0), (0.0, 120.0))
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.update_line([(0, 0), (100, 0)], 20)
+        [[0.0, 20.0], [100.0, 20.0]]
+        >>> sg.update_line([(0, 0), (100, 0)], (0, 20))
+        [[0.0, 20.0], [100.0, 20.0]]
+        >>> p0, p1 = sg.update_line(
+        ... [(100, 0), (200, 0)], (sg.pi / 2, (0, 0))
+        ... )
+        >>> (round(p0[0], 10), round(p0[1], 10)), (
+        ... round(p1[0], 10),
+        ... round(p1[1], 10),
+        ... )
+        ((0.0, 100.0), (0.0, 200.0))
+        >>> p0, p1 = sg.update_line(
+        ... [(0, 0), (100, 0)], [(0, 20), (sg.pi / 2, (0, 0))]
+        ... )
+        >>> (round(p0[0], 10), round(p0[1], 10)), (
+        ... round(p1[0], 10),
+        ... round(p1[1], 10),
+        ... )
+        ((-20.0, 0.0), (-20.0, 100.0))
+        >>> p0, p1 = sg.update_line(
+        ... [(0, 0), (100, 0)], [(sg.pi / 2, (0, 0)), (0, 20)]
+        ... )
+        >>> (round(p0[0], 10), round(p0[1], 10)), (
+        ... round(p1[0], 10),
+        ... round(p1[1], 10),
+        ... )
+        ((0.0, 20.0), (0.0, 120.0))
     """
     if is_number(incr):
         return offset_line(line, float(incr))
@@ -1995,7 +1993,7 @@ def trim_line(line1: LineType, line2: LineType) -> LineType:
     return [line1[0], intersection_]
 
 
-def angle_between_two_lines(line1, line2):
+def angle_between_two_lines(line1: LineType, line2: LineType) -> float:
     """Return the angle between two lines in radians.
 
     Args:
@@ -2229,7 +2227,12 @@ def fillet_corners(
     return new_vertices
 
 
-def subdivide_segment(p1, p2, n_subdivs, as_vertices=False):
+def subdivide_segment(
+    p1: PointType,
+    p2: PointType,
+    n_subdivs: int,
+    as_vertices: bool = False,
+) -> list:
     """Split one segment into ``n_divs`` equal subsegments.
 
     Args:
@@ -2243,15 +2246,12 @@ def subdivide_segment(p1, p2, n_subdivs, as_vertices=False):
     Returns:
         list: Vertex list or list of edge pairs, depending on ``as_vertices``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.subdivide_segment((0, 0), (10, 0), 4, as_vertices=True)
-    # [(0, 0), (2.5, 0.0), (5.0, 0.0), (7.5, 0.0), (10, 0)]
-    sg.subdivide_segment((0, 0), (10, 0), 4)
-    # [((0, 0), (2.5, 0.0)), ((2.5, 0.0), (5.0, 0.0)), ...]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.subdivide_segment((0, 0), (10, 0), 4, as_vertices=True)
+        [(0, 0), (2.5, 0.0), (5.0, 0.0), (7.5, 0.0), (10, 0)]
+        >>> sg.subdivide_segment((0, 0), (10, 0), 4)
+        [((0, 0), (2.5, 0.0)), ((2.5, 0.0), (5.0, 0.0)), ...]
     """
     vertices = [p1]
     t = 1 / n_subdivs
@@ -2267,7 +2267,9 @@ def subdivide_segment(p1, p2, n_subdivs, as_vertices=False):
     return res
 
 
-def subdivide_segments(segments: Sequence[LineType], n_subdivs: int, as_vertices=False):
+def subdivide_segments(
+    segments: Sequence[LineType], n_subdivs: int, as_vertices: bool = False
+) -> list:
     """Subdivide each segment into ``n_subdivs`` equal parts.
 
     Args:
@@ -2282,17 +2284,14 @@ def subdivide_segments(segments: Sequence[LineType], n_subdivs: int, as_vertices
         list: Subdivided vertex path or segment list, depending on
             ``as_vertices``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.subdivide_segments([((0, 0), (10, 0))], 4)
-    # [(0, 0), (2.5, 0.0), (5.0, 0.0), (7.5, 0.0), (10, 0)]
-    sg.subdivide_segments(
-        [((0, 0), (10, 0)), ((10, 0), (0, 10))], 2
-    )
-    # [(0, 0), (5.0, 0.0), (10, 0), (5.0, 5.0), (0, 10)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.subdivide_segments([((0, 0), (10, 0))], 4)
+        [(0, 0), (2.5, 0.0), (5.0, 0.0), (7.5, 0.0), (10, 0)]
+        >>> sg.subdivide_segments(
+        ... [((0, 0), (10, 0)), ((10, 0), (0, 10))], 2
+        ... )
+        [(0, 0), (5.0, 0.0), (10, 0), (5.0, 5.0), (0, 10)]
     """
     if not segments:
         return []
@@ -2311,7 +2310,9 @@ def subdivide_segments(segments: Sequence[LineType], n_subdivs: int, as_vertices
     return res
 
 
-def line_by_point_angle_length(point, angle, length_):
+def line_by_point_angle_length(
+    point: PointType, angle: float, length_: float
+) -> LineType:
     """
     Given a point, an angle, and a length, return the line
     that starts at the point and has the given angle and length.
@@ -2338,7 +2339,7 @@ class Edge:
         self,
         start_point: PointType | Vertex,
         end_point: PointType | Vertex,
-    ):
+    ) -> None:
         """Create an edge from ``start_point`` to ``end_point``.
 
         Args:
@@ -2366,13 +2367,13 @@ class Edge:
         self.end = end
         self.type = Types.EDGE
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(f"Edge({self.start}, {self.end})")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(f"Edge({self.start.point}, {self.end.point})")
 
-    def __eq__(self, other):
+    def __eq__(self, other: Edge) -> bool:
         start = other.start.point
         end = other.end.point
 
@@ -2404,7 +2405,7 @@ class Edge:
             )
         )
 
-    def __getitem__(self, subscript):
+    def __getitem__(self, subscript: int | slice) -> Vertex | list[Vertex]:
         vertices = self.vertices
         if isinstance(subscript, slice):
             res = vertices[subscript.start : subscript.stop : subscript.step]
@@ -2414,7 +2415,7 @@ class Edge:
             raise TypeError("Invalid subscript.")
         return res
 
-    def __setitem__(self, subscript, value):
+    def __setitem__(self, subscript: int | slice, value: object) -> None:
         vertices = self.vertices
         if isinstance(subscript, slice):
             vertices[subscript.start : subscript.stop : subscript.step] = value
@@ -2423,57 +2424,57 @@ class Edge:
             vertices[subscript] = value
 
     @property
-    def slope(self):
+    def slope(self) -> float:
         """Line slope. The slope of the line passing through the start and end points."""
         return (self.y2 - self.y1) / (self.x2 - self.x1)
 
     @property
-    def angle(self):
+    def angle(self) -> float:
         """Line angle. Angle between the line and the x-axis."""
         return atan2(self.y2 - self.y1, self.x2 - self.x1)
 
     @property
-    def inclination(self):
+    def inclination(self) -> float:
         """Inclination angle. Angle between the line and the x-axis converted to
         a value between zero and pi."""
         return self.angle % pi
 
     @property
-    def length(self):
+    def length(self) -> float:
         """Length of the line segment."""
         return distance(self.start.point, self.end.point)
 
     @property
-    def x1(self):
+    def x1(self) -> float:
         """x-coordinate of the start point."""
         return self.start.x
 
     @property
-    def y1(self):
+    def y1(self) -> float:
         """y-coordinate of the start point."""
         return self.start.y
 
     @property
-    def x2(self):
+    def x2(self) -> float:
         """x-coordinate of the end point."""
         return self.end.x
 
     @property
-    def y2(self):
+    def y2(self) -> float:
         """y-coordinate of the end point."""
         return self.end.y
 
     @property
-    def points(self):
+    def points(self) -> list[PointType]:
         """Start and end"""
         return [self.start.point, self.end.point]
 
     @property
-    def vertices(self):
+    def vertices(self) -> list[Vertex]:
         """Start and end vertices."""
         return [self.start, self.end]
 
     @property
-    def array(self):
+    def array(self) -> np.ndarray:
         """Homogeneous coordinates as a numpy array."""
         return array([self.start.array, self.end.array])

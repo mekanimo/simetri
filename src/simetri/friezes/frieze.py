@@ -35,6 +35,14 @@ def hop(
 
     Returns:
         Group: A Group of Shapes with the p1 symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> hop(mark, vector=(20, 0), reps=2) is mark
+        True
     """
     dx, dy = vector[:2]
     return design.translate(dx, dy, reps)
@@ -51,6 +59,14 @@ def p1(design: Group | Shape, vector: VecType = (1, 0), reps: int = 3) -> Group:
 
     Returns:
         Group: A Group of Shapes with the p1 symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> p1(mark, vector=(15, 0), reps=1) is mark
+        True
     """
     return hop(design, vector, reps)
 
@@ -72,6 +88,15 @@ def jump(
 
     Returns:
         Group: A Group of shapes with the p11m symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> axis = ((0, -5), (100, -5))
+        >>> jump(band, axis, 20, reps=1)  # doctest: +SKIP
     """
     dx, dy = vec_along_line(mirror_line, dist)[:2]
     design.mirror(mirror_line, reps=1)
@@ -97,6 +122,20 @@ def jump_along(
 
     Returns:
         Group: A Group of shapes with the jump along symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> axis = ((0, -5), (100, -5))
+        >>> path = [(0, 0), (30, 0)]
+        >>> row = jump_along(band, axis, path, reps=1)
+        >>> len(row)
+        3
+        >>> row is band
+        True
     """
     design.mirror(mirror_line, reps=1)
     if reps > 0:
@@ -118,6 +157,15 @@ def sidle(
 
     Returns:
         Group: A Group of Shapes with the sidle symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> axis = ((0, -5), (100, -5))
+        >>> sidle(band, axis, 20, reps=1)  # doctest: +SKIP
     """
 
     return design.mirror(mirror_line, reps=1).translate(dist, 0, reps)
@@ -140,6 +188,20 @@ def sidle_along(
 
     Returns:
         Group: A Group of shapes with the sidle along symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> axis = ((0, -5), (100, -5))
+        >>> path = [(0, 0), (30, 0)]
+        >>> row = sidle_along(band, axis, path, reps=1)
+        >>> len(row)
+        3
+        >>> row is band
+        True
     """
 
     design.mirror(mirror_line, reps=1)
@@ -161,6 +223,14 @@ def spinning_hop(
 
     Returns:
         Group: A Group of Shapes with spinning hop symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> spinning_hop(band, (5, 0), 20, 0, reps=1)  # doctest: +SKIP
     """
     design.rotate(pi, rotocenter, reps=1)
     if reps > 0:
@@ -187,6 +257,20 @@ def spinning_jump(
 
     Returns:
         Group: A Group of Shapes with spinning jump symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> spinning_jump(  # doctest: +SKIP
+        ...     band,
+        ...     ((0, -5), (100, -5)),
+        ...     ((0, 0), (0, 100)),
+        ...     20,
+        ...     reps=1,
+        ... )
     """
     dx, dy = vec_along_line(mirror1, dist)[:2]
     design.mirror(mirror1, reps=1).mirror(mirror2, reps=1)
@@ -216,6 +300,21 @@ def spinning_sidle(
 
     Returns:
         Group: A Group of Shapes with spinning sidle symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> spinning_sidle(  # doctest: +SKIP
+        ...     band,
+        ...     ((0, -5), (100, -5)),
+        ...     ((0, -5), (100, -5)),
+        ...     10,
+        ...     20,
+        ...     reps=1,
+        ... )
     """
     dx, dy = vec_along_line(glide_line, trans_dist)[:2]
     design.mirror(mirror_line, reps=1).glide(glide_line, glide_dist, reps=1)
@@ -241,6 +340,19 @@ def step(
 
     Returns:
         Group: A Group of Shapes with step symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> axis = ((0, -5), (100, -5))
+        >>> row = step(band, axis, 10, reps=1)
+        >>> len(row)
+        4
+        >>> row is band
+        True
     """
     design.glide(glide_line, glide_dist, reps=1)
     if reps > 0:
@@ -268,6 +380,16 @@ def step_along(
 
     Returns:
         Group: A Group of shapes with the step along symmetry.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> axis = ((0, -5), (100, -5))
+        >>> path = [(0, 0), (30, 0)]
+        >>> step_along(band, axis, 10, path, reps=1)  # doctest: +SKIP
     """
     design.glide(glide_dist, glide_line, reps=1)
     if reps > 0:

@@ -1,9 +1,14 @@
 """Point utilities: distance, rounding, midpoints, and related helpers."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 from math import atan2, hypot, isclose, sqrt
+from typing import Any
 
 import numpy as np
 from numpy import array
+from numpy.typing import NDArray
 
 from simetri.base.all_enums import Types
 from simetri.base.common import LineType, PointType, get_defaults
@@ -27,13 +32,10 @@ def distance(p1: PointType, p2: PointType) -> float:
     Returns:
         float: Distance between the two points.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.distance((0, 0), (3, 4))
-    # 5.0
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.distance((0, 0), (3, 4))
+        5.0
 """
     return hypot(p2[0] - p1[0], p2[1] - p1[1])
 
@@ -57,15 +59,12 @@ def equal_points(
     Returns:
         bool: True if the points are within the given distance.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.equal_points((0, 0), (0.0005, 0))
-    # True
-    sg.equal_points((0, 0), (1, 0))
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.equal_points((0, 0), (0.0005, 0))
+        True
+        >>> sg.equal_points((0, 0), (1, 0))
+        False
 """
     dist_tol, dist_rel_tol, dist_abs_tol = get_defaults(
         ["dist_tol", "dist_rel_tol", "dist_abs_tol"],
@@ -94,15 +93,12 @@ def congruent_points(
     Returns:
         bool: True if the points are within the given distance.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.congruent_points((0, 0), (0.0005, 0))
-    # True
-    sg.congruent_points((0, 0), (1, 0))
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.congruent_points((0, 0), (0.0005, 0))
+        True
+        >>> sg.congruent_points((0, 0), (1, 0))
+        False
 """
     return equal_points(
         point1,
@@ -126,13 +122,10 @@ def offset_point_on_line(
     Returns:
         PointType: Offset point on the line.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.offset_point_on_line((0, 0), [(0, 0), (1, 0)], 2)
-    # (2.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.offset_point_on_line((0, 0), [(0, 0), (1, 0)], 2)
+        (2.0, 0.0)
 """
     x, y = point[:2]
     x1, y1 = line[0][:2]
@@ -159,13 +152,10 @@ def perp_offset_point(
     Returns:
         PointType: Perpendicular offset point.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.perp_offset_point((0, 0), [(0, 0), (1, 0)], 1)
-    # [0.0, 1.0]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.perp_offset_point((0, 0), [(0, 0), (1, 0)], 1)
+        [0.0, 1.0]
 """
     unit_vec = perp_unit_vector(line)
     dx = unit_vec[0] * offset
@@ -176,24 +166,22 @@ def perp_offset_point(
 
 def fix_degen_points(
     points: list[PointType],
-    loop=False,
-    closed=False,
+    loop: bool = False,
+    closed: bool = False,
     dist_tol: float | None = None,
     dist_rel_tol: float | None = None,
     dist_abs_tol: float | None = None,
     area_tol: float | None = None,
     area_rel_tol: float | None = None,
     area_abs_tol: float | None = None,
-    check_collinear=True,
+    check_collinear: bool = True,
 ) -> list[PointType]:
-    """
-    Return a list of points with duplicate points removed.
-    Remove the middle point from the collinear points.
+    """Return points with duplicates and collinear middles removed.
 
     Args:
-        points (list[PointType]): List of points (mutated).
-        loop (bool, optional): Whether to loop the points. Defaults to False.
-        closed (bool, optional): Whether the points form a closed shape. Defaults to False.
+        points: Point list (mutated in place).
+        loop: Whether to treat the list as a loop. Defaults to False.
+        closed: Whether the polyline is closed. Defaults to False.
         dist_tol (float, optional): Distance tolerance shorthand. Defaults to None.
         dist_rel_tol (float, optional): Relative distance tolerance. Defaults to None.
         dist_abs_tol (float, optional): Absolute distance tolerance. Defaults to None.
@@ -205,16 +193,13 @@ def fix_degen_points(
     Returns:
         list[PointType]: List of points with duplicate and collinear points removed.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.fix_degen_points(
-            [(0, 0), (0, 0), (1, 0), (2, 0)],
-            check_collinear=False,
-        )
-    # [(0, 0), (1, 0), (2, 0)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.fix_degen_points(
+        ...     [(0, 0), (0, 0), (1, 0), (2, 0)],
+        ...     check_collinear=False,
+        ... )
+        [(0, 0), (1, 0), (2, 0)]
 """
     dist_tol, dist_rel_tol, dist_abs_tol, area_tol, area_rel_tol, area_abs_tol = get_defaults(
         [
@@ -275,13 +260,10 @@ def round_point(point: list[float], n_digits: int = 2) -> list[float]:
     Returns:
         list[float]: Rounded point.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.round_point([1.234, 5.678], 2)
-    # (1.23, 5.68)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.round_point([1.234, 5.678], 2)
+        (1.23, 5.68)
 """
     x, y = point[:2]
     x = round(x, n_digits)
@@ -300,63 +282,53 @@ def round_points(points: list[PointType], n_digits: int = 2) -> list[PointType]:
     Returns:
         list[PointType]: Rounded points list.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.round_points([(1.234, 5.678)], 1)
-    # [(1.2, 5.7)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.round_points([(1.234, 5.678)], 1)
+        [(1.2, 5.7)]
 """
 
     return [round_point(p, n_digits) for p in points]
 
 
-def direction3(p, q, r):
-    """
-    Checks the orientation of three points (p, q, r).
+def direction3(p: PointType, q: PointType, r: PointType) -> float:
+    """Return the signed orientation of three points.
 
     Args:
-        p (PointType): First point.
-        q (PointType): Second point.
-        r (PointType): Third point.
+        p: First point.
+        q: Second point.
+        r: Third point.
 
     Returns:
-        int: 0 if collinear, >0 if counter-clockwise, <0 if clockwise.
+        Zero if collinear, positive if counter-clockwise, negative if clockwise.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.direction3((0, 0), (1, 0), (1, 1))
-    # -1
-    sg.direction3((0, 0), (1, 0), (1, -1))
-    # 1
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.direction3((0, 0), (1, 0), (1, 1))
+        -1
+        >>> sg.direction3((0, 0), (1, 0), (1, -1))
+        1
 """
     return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
 
 
-def between3(a, b, c):
-    """Return True if c is between a and b.
+def between3(a: PointType, b: PointType, c: PointType) -> bool:
+    """Return True if ``c`` lies on segment ``ab`` (collinear and in range).
 
     Args:
-        a (PointType): First point.
-        b (PointType): Second point.
-        c (PointType): Third point.
+        a: Segment start.
+        b: Segment end.
+        c: Query point.
 
     Returns:
-        bool: True if c is between a and b, False otherwise.
+        True if ``c`` is between ``a`` and ``b``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.between3((0, 0), (2, 0), (1, 0))
-    # True
-    sg.between3((0, 0), (2, 0), (3, 0))
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.between3((0, 0), (2, 0), (1, 0))
+        True
+        >>> sg.between3((0, 0), (2, 0), (3, 0))
+        False
 """
     from simetri.geom.segments.line_utils import collinear3
 
@@ -373,17 +345,28 @@ def between3(a, b, c):
     return res
 
 
-def check_consecutive_duplicates(points, rel_tol=0, abs_tol=None) -> bool:
-    """Check for consecutive duplicate points in a list of points.
+def check_consecutive_duplicates(
+    points: Sequence[PointType] | NDArray[np.floating],
+    rel_tol: float = 0,
+    abs_tol: float | None = None,
+) -> bool:
+    """Return True if any consecutive vertices match within tolerance.
 
     Args:
-        points (list): List of points to check.
-        rel_tol (float, optional): Relative tolerance. Defaults to 0.
-        abs_tol (float, optional): Absolute tolerance. Defaults to None.
+        points: Points to check.
+        rel_tol: Relative tolerance. Defaults to 0.
+        abs_tol: Absolute tolerance. Defaults to ``defaults['abs_tol']``.
 
     Returns:
         bool: True if consecutive duplicate points are found, False otherwise.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.check_consecutive_duplicates([(0, 0), (0, 0), (1, 0)], abs_tol=0.001)
+        True
+        >>> sg.check_consecutive_duplicates([(0, 0), (1, 0)], abs_tol=0.001)
+        False
+"""
     if abs_tol is None:
         abs_tol = defaults["abs_tol"]
     if isinstance(points, np.ndarray):
@@ -410,7 +393,14 @@ def left3(a: PointType, b: PointType, c: PointType) -> bool:
         c (PointType): The point to test.
     Returns:
         bool: True if point c is left of line ab, False otherwise.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.left3((0, 0), (1, 0), (0, 1))
+        True
+        >>> sg.left3((0, 0), (1, 0), (0, -1))
+        False
+"""
 
     ax, ay = a[:2]
     bx, by = b[:2]
@@ -419,7 +409,7 @@ def left3(a: PointType, b: PointType, c: PointType) -> bool:
 
 
 def remove_duplicate_points(
-    points: list[PointType], dist_tol=None
+    points: list[PointType], dist_tol: float | None = None
 ) -> list[PointType]:
     """
     Return a list of points with duplicate points removed.
@@ -430,7 +420,12 @@ def remove_duplicate_points(
 
     Returns:
         list[PointType]: List of points with duplicate points removed.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.remove_duplicate_points([(0, 0), (0, 0), (1, 0)], dist_tol=0.001)
+        [(0, 0), (1, 0)]
+"""
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
     new_points = []
@@ -459,7 +454,12 @@ def remove_collinear_points(
 
     Returns:
         list[PointType]: List of points with collinear points removed.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.remove_collinear_points([(0, 0), (1, 0), (2, 0)], abs_tol=0.001)
+        [(0, 0), (2, 0)]
+"""
     from simetri.geom.segments.line_utils import collinear3
 
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
@@ -491,7 +491,14 @@ def clockwise3(p: PointType, q: PointType, r: PointType) -> bool:
 
     Returns:
         int: 1 if the points are in clockwise order, -1 if counter-clockwise, 0 if collinear.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.clockwise3((0, 0), (1, 0), (0, 1))
+        -1
+        >>> sg.clockwise3((0, 0), (0, 1), (1, 0))
+        1
+"""
     px, py = p[:2]
     qx, qy = q[:2]
     rx, ry = r[:2]
@@ -506,7 +513,9 @@ def clockwise3(p: PointType, q: PointType, r: PointType) -> bool:
     return res
 
 
-def on_segment(a, b, p, eps=1e-12):
+def on_segment(
+    a: PointType, b: PointType, p: PointType, eps: float = 1e-12
+) -> bool:
     """Return True if point ``p`` lies on segment ``ab`` within ``eps``.
 
     Args:
@@ -517,13 +526,20 @@ def on_segment(a, b, p, eps=1e-12):
 
     Returns:
         bool: True if ``p`` is collinear with ``ab`` and inside its bbox.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.on_segment((0, 0), (2, 0), (1, 0))
+        True
+        >>> sg.on_segment((0, 0), (2, 0), (3, 0))
+        False
+"""
 
     # check collinear + within bbox
-    def cross(ax, ay, bx, by):
+    def cross(ax: float, ay: float, bx: float, by: float) -> float:
         return ax * by - ay * bx
 
-    def orient3(a, b, c):
+    def orient3(a: PointType, b: PointType, c: PointType) -> float:
         # cross((b-a),(c-a))
         return cross(b[0] - a[0], b[1] - a[1], c[0] - a[0], c[1] - a[1])
 
@@ -545,7 +561,12 @@ def lerp_point(p1: PointType, p2: PointType, t: float) -> PointType:
 
     Returns:
         PointType: Interpolated point.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.lerp_point((0, 0), (10, 0), 0.5)
+        (5.0, 0.0)
+"""
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
     return (lerp(x1, x2, t), lerp(y1, y2, t))
@@ -559,7 +580,14 @@ def angle(point: PointType) -> float:
 
     Returns:
         float: Angle of the point in radians.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.angle((1, 0)), 10)
+        0.0
+        >>> round(sg.angle((0, 1)), 10)
+        1.5707963268
+"""
     return atan2(point[1], point[0])
 
 
@@ -579,7 +607,12 @@ def point_on_line(
 
     Returns:
         bool: True if the point is on the line, False otherwise.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.point_on_line((1, 1), [(0, 0), (2, 2)], abs_tol=0.001)
+        True
+"""
     from simetri.geom.segments.line_utils import slope
 
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
@@ -605,7 +638,14 @@ def point_on_line_segment(
 
     Returns:
         bool: True if the point is on the line segment, False otherwise.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.point_on_line_segment((1, 0), [(0, 0), (2, 0)], abs_tol=0.001)
+        True
+        >>> sg.point_on_line_segment((3, 0), [(0, 0), (2, 0)], abs_tol=0.001)
+        False
+"""
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     p1, p2 = line
     return isclose(
@@ -625,7 +665,12 @@ def point_to_line_distance(point: PointType, line: LineType) -> float:
 
     Returns:
         float: Distance from the point to the line.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.point_to_line_distance((0, 1), [(0, 0), (1, 0)])
+        1.0
+"""
     x0, y0 = point
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -634,7 +679,9 @@ def point_to_line_distance(point: PointType, line: LineType) -> float:
     return abs(dx * (y1 - y0) - (x1 - x0) * dy) / sqrt(dx**2 + dy**2)
 
 
-def point_to_line_seg_distance(p, lp1, lp2):
+def point_to_line_seg_distance(
+    p: PointType, lp1: PointType, lp2: PointType
+) -> float | bool:
     """Given a point p and a line segment defined by boundary points
     lp1 and lp2, returns the distance between the line segment and the point.
     If the point is not located in the perpendicular area between the
@@ -647,7 +694,14 @@ def point_to_line_seg_distance(p, lp1, lp2):
 
     Returns:
         float: Distance between the point and the line segment, or False if the point is not in the perpendicular area.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.point_to_line_seg_distance((1, 1), (0, 0), (2, 0))
+        1.0
+        >>> sg.point_to_line_seg_distance((5, 0), (0, 0), (2, 0))
+        False
+"""
     if lp1[:2] == lp2[:2]:
         msg = "Error! Line is ill defined. Start and end points are coincident."
         raise ValueError(msg)
@@ -668,7 +722,7 @@ def point_to_line_seg_distance(p, lp1, lp2):
     return res
 
 
-def flat_points(connected_segments):
+def flat_points(connected_segments: Sequence[LineType]) -> list[PointType]:
     """Return a list of points from a list of connected pairs of points.
 
     Args:
@@ -676,7 +730,12 @@ def flat_points(connected_segments):
 
     Returns:
         list[PointType]: List of points.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.flat_points([((0, 0), (1, 0)), ((1, 0), (1, 1))])
+        [(0, 0), (1, 0), (1, 1)]
+"""
     points = [line[0] for line in connected_segments]
     points.append(connected_segments[-1][1])
     return points
@@ -691,7 +750,15 @@ def point_in_quad(point: PointType, quad: list[PointType]) -> bool:
 
     Returns:
         bool: True if the point is inside the quad, False otherwise.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> quad = [(0, 0), (2, 0), (2, 2), (0, 2)]
+        >>> sg.point_in_quad((1, 1), quad)
+        True
+        >>> sg.point_in_quad((3, 3), quad)
+        False
+"""
     x, y = point[:2]
     x1, y1 = quad[0][:2]
     x2, y2 = quad[1][:2]
@@ -706,7 +773,7 @@ def point_in_quad(point: PointType, quad: list[PointType]) -> bool:
     return min_x <= x <= max_x and min_y <= y <= max_y
 
 
-def remove_bad_points(points):
+def remove_bad_points(points: list[PointType]) -> list[PointType]:
     """Remove redundant and collinear points from a list of points.
 
     Args:
@@ -714,7 +781,12 @@ def remove_bad_points(points):
 
     Returns:
         list[PointType]: List of points with redundant and collinear points removed.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.remove_bad_points([(0, 0), (0, 0), (1, 0), (2, 0)])
+        [(0, 0), (1, 0), (2, 0)]
+"""
     EPSILON = 1e-16
     n_points = len(points)
     # check for redundant points
@@ -766,9 +838,18 @@ def remove_bad_points(points):
 
 
 class Vertex(list):
-    """A 3D vertex."""
+    """A 3D vertex.
 
-    def __init__(self, x, y, z=0):
+    Examples:
+        >>> from simetri.geom.points.point_utils import Vertex
+        >>> v = Vertex(1, 2, 3)
+        >>> v.coords
+        (1, 2, 3)
+        >>> v.copy().coords
+        (1, 2, 3)
+"""
+
+    def __init__(self, x: float, y: float, z: float = 0) -> None:
         """Create a vertex at ``(x, y, z)``.
 
         Args:
@@ -781,43 +862,66 @@ class Vertex(list):
         self.z = z
         self.type = Types.VERTEX
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Vertex({self.x}, {self.y}, {self.z})"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return (
             self[0] == other[0] and self[1] == other[1] and self[2] == other[2]
         )
 
-    def copy(self):
+    def copy(self) -> Vertex:
         """Return a new ``Vertex`` with the same coordinates.
 
         Returns:
             Vertex: Copy of this vertex.
-        """
+
+        Examples:
+            >>> from simetri.geom.points.point_utils import Vertex
+            >>> Vertex(1, 2).copy().coords
+            (1, 2, 0)
+"""
         return Vertex(self.x, self.y, self.z)
 
-    def __add__(self, other):
+    def __add__(self, other: Vertex) -> Vertex:
         return Vertex(self.x + other.x, self.y + other.y, self.z + other.z)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Vertex) -> Vertex:
         return Vertex(self.x - other.x, self.y - other.y, self.z - other.z)
 
     @property
-    def coords(self):
-        """Return the coordinates as a tuple."""
+    def coords(self) -> tuple[float, float, float]:
+        """Return the coordinates as a tuple.
+
+        Examples:
+            >>> from simetri.geom.points.point_utils import Vertex
+            >>> Vertex(3, 4).coords
+            (3, 4, 0)
+"""
         return (self.x, self.y, self.z)
 
     @property
-    def array(self):
-        """Homogeneous coordinates as a numpy array."""
+    def array(self) -> NDArray[np.floating]:
+        """Homogeneous coordinates as a numpy array.
+
+        Examples:
+            >>> from simetri.geom.points.point_utils import Vertex
+            >>> Vertex(2, 3).array.tolist()
+            [2.0, 3.0, 1.0]
+"""
         return array([self.x, self.y, 1])
 
-    def v_tuple(self):
-        """Return the vertex as a tuple."""
+    def v_tuple(self) -> tuple[float, float, float]:
+        """Return the vertex as a tuple.
+
+        Examples:
+            >>> from simetri.geom.points.point_utils import Vertex
+            >>> Vertex(2, 3).v_tuple()
+            (2, 3, 0)
+"""
         return (self.x, self.y, self.z)
 
-    def below(self, other):
+    def below(self, other: Vertex) -> bool:
         """This is for 2D points only
 
         Args:
@@ -825,13 +929,18 @@ class Vertex(list):
 
         Returns:
             bool: True if this vertex is below the other vertex, False otherwise.
-        """
+
+        Examples:
+            >>> from simetri.geom.points.point_utils import Vertex
+            >>> Vertex(0, 0).below(Vertex(0, 1))
+            True
+"""
         res = False
         if self.y < other.y or self.y == other.y and self.x > other.x:
             res = True
         return res
 
-    def above(self, other):
+    def above(self, other: Vertex) -> bool:
         """This is for 2D points only
 
         Args:
@@ -839,7 +948,12 @@ class Vertex(list):
 
         Returns:
             bool: True if this vertex is above the other vertex, False otherwise.
-        """
+
+        Examples:
+            >>> from simetri.geom.points.point_utils import Vertex
+            >>> Vertex(0, 1).above(Vertex(0, 0))
+            True
+"""
         if self.y > other.y or self.y == other.y and self.x < other.x:
             res = True
         else:
@@ -848,12 +962,19 @@ class Vertex(list):
         return res
 
 
-def set_vertices(points):
+def set_vertices(points: list[Vertex]) -> None:
     """Set the next and previous vertices of a list of vertices.
 
     Args:
         points (list[Vertex]): List of vertices.
-    """
+
+    Examples:
+        >>> from simetri.geom.points.point_utils import Vertex, set_vertices
+        >>> verts = [Vertex(0, 0), Vertex(1, 0), Vertex(0, 1)]
+        >>> set_vertices(verts)
+        >>> verts[0].next is verts[1]
+        True
+"""
     if not isinstance(points[0], Vertex):
         points = [Vertex(*p[:]) for p in points]
     n_points = len(points)
@@ -870,7 +991,9 @@ def set_vertices(points):
         p.angle = cross_product_sense3(p.prev, p, p.next)
 
 
-def get_interior_points(start, end, n_points):
+def get_interior_points(
+    start: PointType, end: PointType, n_points: int
+) -> list[PointType]:
     """Given start and end points and number of interior points
     returns the positions of the interior points
 
@@ -881,7 +1004,12 @@ def get_interior_points(start, end, n_points):
 
     Returns:
         list[PointType]: List of interior points.
-    """
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.get_interior_points((0, 0), (4, 0), 1)
+        [(2.0, 0.0)]
+"""
     from simetri.geom.segments.line_utils import line_angle
 
     rot_angle = line_angle(start, end)
@@ -895,16 +1023,23 @@ def get_interior_points(start, end, n_points):
     ]
 
 
-def project_point_on_line(point: PointType, line: LineType):
-    """Given a point and a line, returns the projection of the point on the line
+def project_point_on_line(point: Vertex, line: tuple[Vertex, Vertex]) -> Vertex:
+    """Project ``point`` onto the segment ``line``.
 
     Args:
-        point (Vertex): Input point.
-        line (Edge): Input line.
+        point: Query vertex.
+        line: Segment as ``(start, end)`` vertices.
 
     Returns:
-        Vertex: Projection of the point on the line.
-    """
+        Closest point on the segment.
+
+    Examples:
+        >>> from simetri.geom.points.point_utils import Vertex, project_point_on_line
+        >>> v = Vertex(1, 1)
+        >>> p = project_point_on_line(v, (Vertex(0, 0), Vertex(2, 0)))
+        >>> (p.x, p.y)
+        (1.0, 0.0)
+"""
     v = point
     a, b = line
 

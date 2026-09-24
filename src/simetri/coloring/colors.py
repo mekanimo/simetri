@@ -37,7 +37,9 @@ from ..base.all_enums import ColorSpace, Types
 PointType = Sequence[float]
 
 
-def get_lighter(rgb255_color1: Sequence, rgb255_color2: Sequence):
+def get_lighter(
+    rgb255_color1: Sequence[float], rgb255_color2: Sequence[float]
+) -> Sequence[float]:
     """Return the lighter of two RGB-255 colors.
 
     Args:
@@ -47,15 +49,12 @@ def get_lighter(rgb255_color1: Sequence, rgb255_color2: Sequence):
     Returns:
         Sequence: The lighter of the two colors. Ties keep the first color.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.get_lighter((255, 0, 0), (255, 255, 255))
-    # (255, 255, 255)
-    sg.get_lighter((0, 0, 0), (10, 10, 10))
-    # (10, 10, 10)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.get_lighter((255, 0, 0), (255, 255, 255))
+        (255, 255, 255)
+        >>> sg.get_lighter((0, 0, 0), (10, 10, 10))
+        (10, 10, 10)
 """
     lightness1 = rgb2hls(*rgb255_color1)[1]
     lightness2 = rgb2hls(*rgb255_color2)[1]
@@ -65,7 +64,7 @@ def get_lighter(rgb255_color1: Sequence, rgb255_color2: Sequence):
     return rgb255_color1
 
 
-def get_lightest(rgb255_palette: Sequence):
+def get_lightest(rgb255_palette: Sequence[Sequence[float]]) -> Sequence[float]:
     """Return the lightest color in an RGB-255 palette.
 
     Args:
@@ -74,15 +73,12 @@ def get_lightest(rgb255_palette: Sequence):
     Returns:
         Sequence: The lightest color in the palette.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.get_lightest([(0, 0, 0), (255, 255, 255), (10, 10, 10)])
-    # (255, 255, 255)
-    sg.get_lightest([(0, 0, 0)])
-    # (0, 0, 0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.get_lightest([(0, 0, 0), (255, 255, 255), (10, 10, 10)])
+        (255, 255, 255)
+        >>> sg.get_lightest([(0, 0, 0)])
+        (0, 0, 0)
 """
     lightest = [0, 0, 0]
     for i, color in enumerate(rgb255_palette):
@@ -102,17 +98,14 @@ def change_hue(color: Color, delta: float) -> Color:
     Returns:
         Color: A new color.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    color = sg.Color(1.0, 0.0, 0.0)
-    shifted = sg.change_hue(color, 0)
-    shifted.rgb
-    # (1.0, 0.0, 0.0)
-    color.rgb
-    # (1.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> color = sg.Color(1.0, 0.0, 0.0)
+        >>> shifted = sg.change_hue(color, 0)
+        >>> shifted.rgb
+        (1.0, 0.0, 0.0)
+        >>> color.rgb
+        (1.0, 0.0, 0.0)
 """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
@@ -131,16 +124,13 @@ def change_lightness(color: Color, delta: float) -> Color:
     Returns:
         Color: A new color.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    color = sg.Color(1.0, 0.0, 0.0)
-    sg.change_lightness(color, 0).rgb
-    # (1.0, 0.0, 0.0)
-    color.rgba
-    # (1.0, 0.0, 0.0, 1)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> color = sg.Color(1.0, 0.0, 0.0)
+        >>> sg.change_lightness(color, 0).rgb
+        (1.0, 0.0, 0.0)
+        >>> color.rgba
+        (1.0, 0.0, 0.0, 1)
 """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
@@ -159,16 +149,13 @@ def change_saturation(color: Color, delta: float) -> Color:
     Returns:
         Color: A new color.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    color = sg.Color(1.0, 0.0, 0.0)
-    sg.change_saturation(color, 0).rgb
-    # (1.0, 0.0, 0.0)
-    color.rgb
-    # (1.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> color = sg.Color(1.0, 0.0, 0.0)
+        >>> sg.change_saturation(color, 0).rgb
+        (1.0, 0.0, 0.0)
+        >>> color.rgb
+        (1.0, 0.0, 0.0)
 """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
@@ -176,7 +163,7 @@ def change_saturation(color: Color, delta: float) -> Color:
     return Color(r, g, b, a)
 
 
-def change_alpha(color, delta):
+def change_alpha(color: Color, delta: float) -> Color:
     """Change the alpha channel of a color by ``delta``.
 
     Args:
@@ -186,22 +173,19 @@ def change_alpha(color, delta):
     Returns:
         Color: New color with updated alpha.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    color = sg.Color(1.0, 0.0, 0.0)
-    sg.change_alpha(color, -0.5).rgba
-    # (1.0, 0.0, 0.0, 0.5)
-    color.alpha
-    # 1
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> color = sg.Color(1.0, 0.0, 0.0)
+        >>> sg.change_alpha(color, -0.5).rgba
+        (1.0, 0.0, 0.0, 0.5)
+        >>> color.alpha
+        1
 """
     r, g, b, a = color.rgba
     return Color(r, g, b, a + delta)
 
 
-def change_red(color, delta):
+def change_red(color: Color, delta: float) -> Color:
     """Change the red channel of a color by ``delta``.
 
     Args:
@@ -211,22 +195,19 @@ def change_red(color, delta):
     Returns:
         Color: New color with updated red.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    color = sg.Color(1.0, 0.0, 0.0)
-    sg.change_red(color, 0).rgb
-    # (1.0, 0.0, 0.0)
-    sg.change_red(color, -1.0).rgb
-    # (0.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> color = sg.Color(1.0, 0.0, 0.0)
+        >>> sg.change_red(color, 0).rgb
+        (1.0, 0.0, 0.0)
+        >>> sg.change_red(color, -1.0).rgb
+        (0.0, 0.0, 0.0)
 """
     r, g, b, a = color.rgba
     return Color(r + delta, g, b, a)
 
 
-def change_green(color, delta):
+def change_green(color: Color, delta: float) -> Color:
     """Change the green channel of a color by ``delta``.
 
     Args:
@@ -236,22 +217,19 @@ def change_green(color, delta):
     Returns:
         Color: New color with updated green.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    color = sg.Color(1.0, 0.0, 0.0)
-    sg.change_green(color, 0).rgb
-    # (1.0, 0.0, 0.0)
-    color.green
-    # 0.0
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> color = sg.Color(1.0, 0.0, 0.0)
+        >>> sg.change_green(color, 0).rgb
+        (1.0, 0.0, 0.0)
+        >>> color.green
+        0.0
 """
     r, g, b, a = color.rgba
     return Color(r, g + delta, b, a)
 
 
-def change_blue(color, delta):
+def change_blue(color: Color, delta: float) -> Color:
     """Change the blue channel of a color by ``delta``.
 
     Args:
@@ -261,22 +239,19 @@ def change_blue(color, delta):
     Returns:
         Color: New color with updated blue.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    color = sg.Color(1.0, 0.0, 0.0)
-    sg.change_blue(color, 0).rgb
-    # (1.0, 0.0, 0.0)
-    color.blue
-    # 0.0
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> color = sg.Color(1.0, 0.0, 0.0)
+        >>> sg.change_blue(color, 0).rgb
+        (1.0, 0.0, 0.0)
+        >>> color.blue
+        0.0
 """
     r, g, b, a = color.rgba
     return Color(r, g, b + delta, a)
 
 
-def rgb255_to_1(rgb):
+def rgb255_to_1(rgb: Sequence[float]) -> list[float]:
     """Convert RGB components from 0-255 to 0-1.
 
     Args:
@@ -285,20 +260,17 @@ def rgb255_to_1(rgb):
     Returns:
         list: RGB components scaled to 0-1.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rgb255_to_1((255, 0, 128))
-    # [1.0, 0.0, 0.5019607843137255]
-    sg.rgb255_to_1((0, 0, 0))
-    # [0.0, 0.0, 0.0]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rgb255_to_1((255, 0, 128))
+        [1.0, 0.0, 0.5019607843137255]
+        >>> sg.rgb255_to_1((0, 0, 0))
+        [0.0, 0.0, 0.0]
 """
     return [x / 255 for x in rgb]
 
 
-def rgb1_to_255(rgb):
+def rgb1_to_255(rgb: Sequence[float]) -> list[int]:
     """Convert RGB components from 0-1 to 0-255 integers.
 
     Args:
@@ -307,20 +279,17 @@ def rgb1_to_255(rgb):
     Returns:
         list: RGB components scaled to 0-255.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rgb1_to_255((1, 0, 0.5))
-    # [255, 0, 127]
-    sg.rgb1_to_255((0, 0, 0))
-    # [0, 0, 0]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rgb1_to_255((1, 0, 0.5))
+        [255, 0, 127]
+        >>> sg.rgb1_to_255((0, 0, 0))
+        [0, 0, 0]
 """
     return [int(x * 255) for x in rgb]
 
 
-def hex_to_rgb(hex_val: str):
+def hex_to_rgb(hex_val: str) -> tuple[float, float, float]:
     """Convert a hex color string to an RGB tuple in 0-1 range.
 
     Args:
@@ -329,20 +298,17 @@ def hex_to_rgb(hex_val: str):
     Returns:
         tuple: RGB components in 0-1 range.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.hex_to_rgb("#00ff00")
-    # (0.0, 1.0, 0.0)
-    sg.hex_to_rgb("ff0000")
-    # (1.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.hex_to_rgb("#00ff00")
+        (0.0, 1.0, 0.0)
+        >>> sg.hex_to_rgb("ff0000")
+        (1.0, 0.0, 0.0)
 """
     return hex2rgb(hex_val)
 
 
-def rgb_to_hex(r, g, b):
+def rgb_to_hex(r: int, g: int, b: int) -> str:
     """Convert integer RGB components to a hex string without ``#``.
 
     Each channel is two uppercase hex digits.
@@ -355,15 +321,12 @@ def rgb_to_hex(r, g, b):
     Returns:
         str: Hex color string without a leading ``#``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rgb_to_hex(255, 0, 128)
-    # 'FF0080'
-    sg.rgb_to_hex(255, 255, 255)
-    # 'FFFFFF'
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rgb_to_hex(255, 0, 128)
+        'FF0080'
+        >>> sg.rgb_to_hex(255, 255, 255)
+        'FFFFFF'
 """
     return f"{r:X}{g:X}{b:X}"
 
@@ -382,17 +345,14 @@ class Color:
         alpha: The alpha (transparency) component (0.0 to 1.0), default is 1.
         space: The color space, default is "rgb".
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.Color(1.0, 0.0, 0.0).rgb255
-    # (255, 0, 0)
-    sg.Color(255, 0, 128).rgb
-    # (1.0, 0.0, 0.5019607843137255)
-    sg.Color(0.0, 0.0, 1.0, 0.5).rgba
-    # (0.0, 0.0, 1.0, 0.5)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.Color(1.0, 0.0, 0.0).rgb255
+        (255, 0, 0)
+        >>> sg.Color(255, 0, 128).rgb
+        (1.0, 0.0, 0.5019607843137255)
+        >>> sg.Color(0.0, 0.0, 1.0, 0.5).rgba
+        (0.0, 0.0, 1.0, 0.5)
 """
 
     red: int = 0
@@ -402,11 +362,18 @@ class Color:
     hex_val: str = ""
     space: ColorSpace = "rgb"  # for future use
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Normalize channel values after construction.
 
         A non-empty ``hex_val`` replaces the RGB channels. Otherwise channels
         outside 0-1 are divided by 255. Only this new instance is updated.
+
+        Examples:
+            >>> from simetri.coloring.colors import Color
+            >>> Color(255, 0, 0).rgb
+            (1.0, 0.0, 0.0)
+            >>> Color(hex_val="#00ff00").rgb
+            (0.0, 1.0, 0.0)
         """
         if self.hex_val != "":
             r, g, b = hex_to_rgb(self.hex_val)
@@ -422,115 +389,97 @@ class Color:
         if self.alpha < 0 or self.alpha > 1:
             self.alpha = self.alpha / 255
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a readable string representation.
 
         Returns:
             str: ``Color(r, g, b)``. Alpha is omitted.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        str(sg.Color(1.0, 0.0, 0.0))
-        # 'Color(1.0, 0.0, 0.0)'
-        str(sg.Color(1.0, 0.0, 0.0, 0.5))
-        # 'Color(1.0, 0.0, 0.0)'
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> str(sg.Color(1.0, 0.0, 0.0))
+            'Color(1.0, 0.0, 0.0)'
+            >>> str(sg.Color(1.0, 0.0, 0.0, 0.5))
+            'Color(1.0, 0.0, 0.0)'
 """
         return f"Color({self.red}, {self.green}, {self.blue})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the official string representation.
 
         Returns:
             str: ``Color(r, g, b)``. Alpha is omitted.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        sg.Color(1.0, 0.0, 0.0)
-        # Color(1.0, 0.0, 0.0)
-        ```
-        >>> repr(sg.Color(0, 1, 0))
-        'Color(0, 1, 0)'
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Color(1.0, 0.0, 0.0)
+            Color(1.0, 0.0, 0.0)
+            >>> repr(sg.Color(0, 1, 0))
+            'Color(0, 1, 0)'
         """
         return f"Color({self.red}, {self.green}, {self.blue})"
 
-    def copy(self):
+    def copy(self) -> Color:
         """Return a new color with the same RGBA values.
 
         Returns:
             Color: New ``Color`` with the same RGBA values.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        color = sg.Color(1.0, 0.0, 0.0, 0.5)
-        color.copy().rgba
-        # (1.0, 0.0, 0.0, 0.5)
-        color.copy() == color
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> color = sg.Color(1.0, 0.0, 0.0, 0.5)
+            >>> color.copy().rgba
+            (1.0, 0.0, 0.0, 0.5)
+            >>> color.copy() == color
+            True
 """
         return Color(self.red, self.green, self.blue, self.alpha)
 
     @property
-    def __key__(self):
+    def __key__(self) -> tuple[float, float, float]:
         """Return the RGB tuple used for hashing and equality.
 
         Returns:
             tuple: ``(red, green, blue)``. Alpha is not included.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        sg.Color(1.0, 0.0, 0.0, 0.5).__key__
-        # (1.0, 0.0, 0.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Color(1.0, 0.0, 0.0, 0.5).__key__
+            (1.0, 0.0, 0.0)
 """
         return (self.red, self.green, self.blue)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Return a hash based on RGB components.
 
         Returns:
             int: Hash of the RGB key.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        hash(sg.Color(1, 0, 0)) == hash(sg.Color(1, 0, 0))
-        # True
-        hash(sg.Color(1, 0, 0, 0.2)) == hash(sg.Color(1, 0, 0, 0.8))
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> hash(sg.Color(1, 0, 0)) == hash(sg.Color(1, 0, 0))
+            True
+            >>> hash(sg.Color(1, 0, 0, 0.2)) == hash(sg.Color(1, 0, 0, 0.8))
+            True
 """
         return hash(self.__key__)
 
     @property
-    def name(self):
+    def name(self) -> None:
         """Look up a conventional name for this RGB color.
 
         Returns:
             None: Lookup is not implemented, so this is always ``None``.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        sg.Color(1.0, 0.0, 0.0).name
-        sg.red.name is None
-        # True
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Color(1.0, 0.0, 0.0).name
+            >>> sg.red.name is None
+            True
 """
         # search for the color in the named colors
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Compare two colors by RGB components.
 
         Alpha is ignored. A non-``Color`` value compares unequal.
@@ -541,17 +490,14 @@ class Color:
         Returns:
             bool: True if ``other`` is a ``Color`` with the same RGB.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        sg.Color(1, 0, 0) == sg.Color(1.0, 0.0, 0.0)
-        # True
-        sg.Color(1, 0, 0, 0.2) == sg.Color(1, 0, 0, 0.8)
-        # True
-        sg.Color(1, 0, 0) == (1.0, 0.0, 0.0)
-        # False
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Color(1, 0, 0) == sg.Color(1.0, 0.0, 0.0)
+            True
+            >>> sg.Color(1, 0, 0, 0.2) == sg.Color(1, 0, 0, 0.8)
+            True
+            >>> sg.Color(1, 0, 0) == (1.0, 0.0, 0.0)
+            False
 """
         if isinstance(other, Color):
             return self.__key__ == other.__key__
@@ -559,59 +505,50 @@ class Color:
             return False
 
     @property
-    def rgb(self):
+    def rgb(self) -> tuple[float, float, float]:
         """RGB components in 0-1 range.
 
         Returns:
             tuple: ``(red, green, blue)``.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        sg.Color(255, 0, 0).rgb
-        # (1.0, 0.0, 0.0)
-        sg.Color(1.0, 0.0, 0.0).rgb
-        # (1.0, 0.0, 0.0)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Color(255, 0, 0).rgb
+            (1.0, 0.0, 0.0)
+            >>> sg.Color(1.0, 0.0, 0.0).rgb
+            (1.0, 0.0, 0.0)
 """
         return (self.red, self.green, self.blue)
 
     @property
-    def rgba(self):
+    def rgba(self) -> tuple[float, float, float, float]:
         """RGBA components in 0-1 range.
 
         Returns:
             tuple: ``(red, green, blue, alpha)``.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        sg.Color(1.0, 0.0, 0.0).rgba
-        # (1.0, 0.0, 0.0, 1)
-        sg.Color(1.0, 0.0, 0.0, 0.5).rgba
-        # (1.0, 0.0, 0.0, 0.5)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Color(1.0, 0.0, 0.0).rgba
+            (1.0, 0.0, 0.0, 1)
+            >>> sg.Color(1.0, 0.0, 0.0, 0.5).rgba
+            (1.0, 0.0, 0.0, 0.5)
 """
         return (self.red, self.green, self.blue, self.alpha)
 
     @property
-    def rgb255(self):
+    def rgb255(self) -> tuple[int, int, int]:
         """RGB components in 0-255 range.
 
         Returns:
             tuple: Integer RGB components.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        sg.Color(1.0, 0.0, 0.0).rgb255
-        # (255, 0, 0)
-        sg.Color(0, 128, 255).rgb255
-        # (0, 128, 255)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Color(1.0, 0.0, 0.0).rgb255
+            (255, 0, 0)
+            >>> sg.Color(0, 128, 255).rgb255
+            (0, 128, 255)
 """
         r, g, b = self.rgb
         if r > 1 or g > 1 or b > 1:
@@ -619,26 +556,23 @@ class Color:
         return tuple(round(i * 255) for i in self.rgb)
 
     @property
-    def rgba255(self):
+    def rgba255(self) -> tuple[int, int, int, int]:
         """RGBA components in 0-255 range.
 
         Returns:
             tuple: Integer RGBA components.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        sg.Color(1.0, 0.0, 0.0).rgba255
-        # (255, 0, 0, 255)
-        sg.Color(1.0, 0.0, 0.0, 0.5).rgba255
-        # (255, 0, 0, 128)
-        ```
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Color(1.0, 0.0, 0.0).rgba255
+            (255, 0, 0, 255)
+            >>> sg.Color(1.0, 0.0, 0.0, 0.5).rgba255
+            (255, 0, 0, 128)
 """
         return tuple(round(i * 255) for i in self.rgba)
 
 
-def hex_color(hex_value: str):
+def hex_color(hex_value: str) -> Color:
     """Return a ``Color`` from a hex string.
 
     Args:
@@ -647,15 +581,12 @@ def hex_color(hex_value: str):
     Returns:
         Color: Color constructed from the hex value.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.hex_color("#00ff00").rgb
-    # (0.0, 1.0, 0.0)
-    sg.hex_color("ff0000").rgb
-    # (1.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.hex_color("#00ff00").rgb
+        (0.0, 1.0, 0.0)
+        >>> sg.hex_color("ff0000").rgb
+        (1.0, 0.0, 0.0)
 """
     return Color(*hex2rgb(hex_value))
 
@@ -676,15 +607,12 @@ def map_color(
     Returns:
         Color: Mapped color.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.map_color(128, 0, 0, 256, 256, 256).rgb255
-    # (128, 0, 0)
-    sg.map_color(0, 0, 0, 256, 256, 256).rgb255
-    # (0, 0, 0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.map_color(128, 0, 0, 256, 256, 256).rgb255
+        (128, 0, 0)
+        >>> sg.map_color(0, 0, 0, 256, 256, 256).rgb255
+        (0, 0, 0)
 """
     i_range = range(256)
     r_range = np.arange(0, r_max, r_max / 256)
@@ -698,7 +626,7 @@ def map_color(
     return Color(r_, g_, b_)
 
 
-def blend(color1: Color, percent: int, color2: Color):
+def blend(color1: Color, percent: int, color2: Color) -> Color:
     """Blend two colors using a percentage weight.
 
     ``percent`` percent of ``color1`` is mixed with ``(100 - percent)``
@@ -712,15 +640,12 @@ def blend(color1: Color, percent: int, color2: Color):
     Returns:
         Color: Blended color.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.blend(sg.Color(1, 0, 0), 50, sg.Color(0, 0, 1)).rgb
-    # (0.5, 0.0, 0.5)
-    sg.blend(sg.Color(1, 0, 0), 100, sg.Color(0, 0, 1)).rgb
-    # (1.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.blend(sg.Color(1, 0, 0), 50, sg.Color(0, 0, 1)).rgb
+        (0.5, 0.0, 0.5)
+        >>> sg.blend(sg.Color(1, 0, 0), 100, sg.Color(0, 0, 1)).rgb
+        (1.0, 0.0, 0.0)
 """
     percent = percent / 100
     r1, g1, b1 = color1
@@ -733,7 +658,7 @@ def blend(color1: Color, percent: int, color2: Color):
     return Color(r_blend, g_blend, b_blend)
 
 
-def get_color(value):
+def get_color(value: object) -> Color:
     """Normalize a color-like value to a ``Color`` instance.
 
     A ``Color`` is returned as given. A list or tuple is passed to
@@ -749,18 +674,15 @@ def get_color(value):
     Raises:
         TypeError: If ``value`` cannot be interpreted as a color.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.get_color((1, 0, 0)).rgb
-    # (1, 0, 0)
-    color = sg.Color(0, 1, 0)
-    sg.get_color(color) is color
-    # True
-    sg.get_color("#ff0000").rgb
-    # (1.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.get_color((1, 0, 0)).rgb
+        (1, 0, 0)
+        >>> color = sg.Color(0, 1, 0)
+        >>> sg.get_color(color) is color
+        True
+        >>> sg.get_color("#ff0000").rgb
+        (1.0, 0.0, 0.0)
 """
     if isinstance(value, Color):
         return value
@@ -772,7 +694,7 @@ def get_color(value):
         raise TypeError("Invalid color value")
 
 
-def check_color(color):
+def check_color(color: object) -> Color:
     """Validate and normalize a color-like value.
 
     Args:
@@ -784,17 +706,14 @@ def check_color(color):
     Raises:
         ValueError: If the color cannot be resolved.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.check_color("red").rgb
-    # (0.898, 0.0, 0.0)
-    sg.check_color("#00ff00").rgb
-    # (0.0, 1.0, 0.0)
-    sg.check_color((255, 0, 0)).rgb
-    # (1.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.check_color("red").rgb
+        (0.898, 0.0, 0.0)
+        >>> sg.check_color("#00ff00").rgb
+        (0.0, 1.0, 0.0)
+        >>> sg.check_color((255, 0, 0)).rgb
+        (1.0, 0.0, 0.0)
 """
     if isinstance(color, Color):
         return color
@@ -812,7 +731,7 @@ def check_color(color):
         )
 
 
-def rgb2hls(r, g, b):
+def rgb2hls(r: float, g: float, b: float) -> tuple[float, float, float]:
     """Convert RGB to HLS.
 
     Args:
@@ -823,20 +742,17 @@ def rgb2hls(r, g, b):
     Returns:
         tuple: ``(h, l, s)`` components.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rgb2hls(1, 0, 0)
-    # (0.0, 0.5, 1.0)
-    sg.rgb2hls(0, 0, 0)
-    # (0.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rgb2hls(1, 0, 0)
+        (0.0, 0.5, 1.0)
+        >>> sg.rgb2hls(0, 0, 0)
+        (0.0, 0.0, 0.0)
 """
     return rgb_to_hls(r, g, b)
 
 
-def hls2rgb(h, l, s):  # noqa: E741
+def hls2rgb(h: float, l: float, s: float) -> tuple[float, float, float]:  # noqa: E741
     """Convert HLS to RGB.
 
     Args:
@@ -847,20 +763,17 @@ def hls2rgb(h, l, s):  # noqa: E741
     Returns:
         tuple: ``(r, g, b)`` components in 0-1.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.hls2rgb(0, 0.5, 1)
-    # (1.0, 0.0, 0.0)
-    sg.hls2rgb(0, 0, 0)
-    # (0, 0, 0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.hls2rgb(0, 0.5, 1)
+        (1.0, 0.0, 0.0)
+        >>> sg.hls2rgb(0, 0, 0)
+        (0, 0, 0)
 """
     return hls_to_rgb(h, l, s)
 
 
-def rgb2hsv(r, g, b):
+def rgb2hsv(r: float, g: float, b: float) -> tuple[float, float, float]:
     """Convert RGB to HSV.
 
     Args:
@@ -871,20 +784,17 @@ def rgb2hsv(r, g, b):
     Returns:
         tuple: ``(h, s, v)`` components.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rgb2hsv(1, 0, 0)
-    # (0.0, 1.0, 1)
-    sg.rgb2hsv(0, 0, 0)
-    # (0.0, 0.0, 0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rgb2hsv(1, 0, 0)
+        (0.0, 1.0, 1)
+        >>> sg.rgb2hsv(0, 0, 0)
+        (0.0, 0.0, 0)
 """
     return rgb_to_hsv(r, g, b)
 
 
-def hsv2rgb(h, s, v):
+def hsv2rgb(h: float, s: float, v: float) -> tuple[float, float, float]:
     """Convert HSV to RGB.
 
     Args:
@@ -895,20 +805,17 @@ def hsv2rgb(h, s, v):
     Returns:
         tuple: ``(r, g, b)`` components in 0-1.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.hsv2rgb(0, 1, 1)
-    # (1, 0.0, 0.0)
-    sg.hsv2rgb(0, 0, 0)
-    # (0, 0, 0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.hsv2rgb(0, 1, 1)
+        (1, 0.0, 0.0)
+        >>> sg.hsv2rgb(0, 0, 0)
+        (0, 0, 0)
 """
     return hsv_to_rgb(h, s, v)
 
 
-def rgb2yiq(r, g, b):
+def rgb2yiq(r: float, g: float, b: float) -> tuple[float, float, float]:
     """Convert RGB to YIQ.
 
     Args:
@@ -919,20 +826,17 @@ def rgb2yiq(r, g, b):
     Returns:
         tuple: ``(y, i, q)`` components.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rgb2yiq(1, 0, 0)
-    # (0.3, 0.599, 0.21299999999999997)
-    sg.rgb2yiq(0, 0, 0)
-    # (0.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rgb2yiq(1, 0, 0)
+        (0.3, 0.599, 0.21299999999999997)
+        >>> sg.rgb2yiq(0, 0, 0)
+        (0.0, 0.0, 0.0)
 """
     return rgb_to_yiq(r, g, b)
 
 
-def yiq2rgb(y, i, q):
+def yiq2rgb(y: float, i: float, q: float) -> tuple[float, float, float]:
     """Convert YIQ to RGB.
 
     Args:
@@ -943,20 +847,17 @@ def yiq2rgb(y, i, q):
     Returns:
         tuple: ``(r, g, b)`` components in 0-1.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.yiq2rgb(0.3, 0.599, 0.213)
-    # (1.0, 0.0, 1.1102230246251565e-16)
-    sg.yiq2rgb(0, 0, 0)
-    # (0.0, 0.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.yiq2rgb(0.3, 0.599, 0.213)
+        (1.0, 0.0, 1.1102230246251565e-16)
+        >>> sg.yiq2rgb(0, 0, 0)
+        (0.0, 0.0, 0.0)
 """
     return yiq_to_rgb(y, i, q)
 
 
-def rgb2hex(rgb):
+def rgb2hex(rgb: Sequence[float]) -> str:
     """Convert an RGB tuple to a hex color value.
 
     Args:
@@ -965,21 +866,18 @@ def rgb2hex(rgb):
     Returns:
         str: Hex color string with a leading ``#``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rgb2hex((255, 0, 128))
-    # '#ff0080'
-    sg.rgb2hex((0, 0, 0))
-    # '#000000'
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rgb2hex((255, 0, 128))
+        '#ff0080'
+        >>> sg.rgb2hex((0, 0, 0))
+        '#000000'
 """
     r, g, b = rgb
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
-def hex2rgb(hex_val: str):
+def hex2rgb(hex_val: str) -> tuple[float, float, float]:
     """Convert a hex color value to an RGB tuple in 0-1 range.
 
     Args:
@@ -988,21 +886,25 @@ def hex2rgb(hex_val: str):
     Returns:
         tuple: RGB components in 0-1 range, rounded to 3 decimals.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.hex2rgb("#ff0000")
-    # (1.0, 0.0, 0.0)
-    sg.hex2rgb("00ff00")
-    # (0.0, 1.0, 0.0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.hex2rgb("#ff0000")
+        (1.0, 0.0, 0.0)
+        >>> sg.hex2rgb("00ff00")
+        (0.0, 1.0, 0.0)
 """
     hex_val = hex_val.strip("#")
     return tuple(round(int(hex_val[i : i + 2], 16) / 255, 3) for i in (0, 2, 4))
 
 
-def cmyk2rgb(c, m, y, k, cmyk_scale=100, rgb_scale=255):
+def cmyk2rgb(
+    c: float,
+    m: float,
+    y: float,
+    k: float,
+    cmyk_scale: int = 100,
+    rgb_scale: int = 255,
+) -> tuple[int, int, int]:
     """
     Converts CMYK color values to RGB.
 
@@ -1017,15 +919,12 @@ def cmyk2rgb(c, m, y, k, cmyk_scale=100, rgb_scale=255):
     Returns:
         tuple: A tuple containing the R, G, and B values.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.cmyk2rgb(0, 100, 100, 0)
-    # (255, 0, 0)
-    sg.cmyk2rgb(0, 0, 0, 100)
-    # (0, 0, 0)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.cmyk2rgb(0, 100, 100, 0)
+        (255, 0, 0)
+        >>> sg.cmyk2rgb(0, 0, 0, 100)
+        (0, 0, 0)
 """
 
     # Normalize CMYK values to a 0-1 range
@@ -1047,7 +946,7 @@ def cmyk2rgb(c, m, y, k, cmyk_scale=100, rgb_scale=255):
     return r, g, b
 
 
-def rgb2cmyk(r, g, b):
+def rgb2cmyk(r: int, g: int, b: int) -> tuple[int, int, int, int]:
     """Convert RGB to CMYK color space.
     This function takes RGB values (0-255) and converts them to CMYK values (0-100).
     Args:
@@ -1058,15 +957,12 @@ def rgb2cmyk(r, g, b):
     Returns:
         tuple: A tuple containing the C, M, Y, and K values.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.rgb2cmyk(255, 0, 0)
-    # (0, 100, 100, 0)
-    sg.rgb2cmyk(0, 0, 0)
-    # (0, 0, 0, 100)
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.rgb2cmyk(255, 0, 0)
+        (0, 100, 100, 0)
+        >>> sg.rgb2cmyk(0, 0, 0)
+        (0, 0, 0, 100)
 """
     # Normalize RGB values to the range [0, 1]
     r_norm = r / 255.0
@@ -1094,7 +990,7 @@ def rgb2cmyk(r, g, b):
     return c, m, y, k
 
 
-def random_color(seed: int | None = None):
+def random_color(seed: int | None = None) -> Color:
     """Return a random RGB color with components in 0-1.
 
     Args:
@@ -1103,23 +999,22 @@ def random_color(seed: int | None = None):
     Returns:
         Color: Random color.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    isinstance(sg.random_color(), sg.Color)
-    # True
-    0 <= sg.random_color().red <= 1
-    # True
-    sg.random_color(seed=1) == sg.random_color(seed=1)
-    # True
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> isinstance(sg.random_color(), sg.Color)
+        True
+        >>> 0 <= sg.random_color().red <= 1
+        True
+        >>> sg.random_color(seed=1) == sg.random_color(seed=1)
+        True
 """
     rng = random.Random(seed)
     return Color(rng.random(), rng.random(), rng.random())
 
 
-def expand_palette(rgb255_palette, n):
+def expand_palette(
+    rgb255_palette: Sequence[Sequence[float]], n: int
+) -> list[tuple[float, float, float]]:
     """Interpolate an RGB-255 palette to ``n`` colors.
 
     Args:
@@ -1129,15 +1024,12 @@ def expand_palette(rgb255_palette, n):
     Returns:
         list: Expanded RGB colors (0-1 components from ``hex2rgb``).
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.expand_palette([(255, 0, 0), (0, 0, 255)], 3)
-    # [(1.0, 0.0, 0.0), (0.549, 0.325, 0.635), (0.0, 0.0, 1.0)]
-    sg.expand_palette([(0, 0, 0), (255, 255, 255)], 2)
-    # [(0.0, 0.0, 0.0), (1.0, 1.0, 1.0)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.expand_palette([(255, 0, 0), (0, 0, 255)], 3)
+        [(1.0, 0.0, 0.0), (0.549, 0.325, 0.635), (0.0, 0.0, 1.0)]
+        >>> sg.expand_palette([(0, 0, 0), (255, 255, 255)], 2)
+        [(0.0, 0.0, 0.0), (1.0, 1.0, 1.0)]
 """
     hex_colors = [rgb2hex(c) for c in rgb255_palette]
     interp_func = Color_aide.interpolate(hex_colors)
@@ -1149,7 +1041,9 @@ def expand_palette(rgb255_palette, n):
     return expanded_rgb
 
 
-def show_expanded(rgb255_palette, n, name=""):
+def show_expanded(
+    rgb255_palette: Sequence[Sequence[float]], n: int, name: str = ""
+) -> list[tuple[float, float, float]]:
     """Expand a palette and display a swatch plot.
 
     Args:
@@ -1162,6 +1056,14 @@ def show_expanded(rgb255_palette, n, name=""):
 
     Displays a swatch plot. Use ``expand_palette`` for the same colors
     without a plot.
+
+    Examples:
+        >>> import matplotlib
+        >>> matplotlib.use('Agg')
+        >>> from simetri.coloring.colors import expand_palette, show_expanded
+        >>> pal = [(255, 0, 0), (0, 0, 255)]
+        >>> show_expanded(pal, 3) == expand_palette(pal, 3)
+        True
     """
     hex_colors = [rgb2hex(c) for c in rgb255_palette]
     interp_func = Color_aide.interpolate(hex_colors)
@@ -1175,7 +1077,11 @@ def show_expanded(rgb255_palette, n, name=""):
     return expanded_rgb
 
 
-def show_swatch(rgb255_palette, name="", size=None):
+def show_swatch(
+    rgb255_palette: Sequence[Sequence[float]],
+    name: str = "",
+    size: Sequence[float] | None = None,
+) -> None:
     """Display a swatch plot for an RGB-255 palette.
 
     Args:
@@ -1184,6 +1090,13 @@ def show_swatch(rgb255_palette, name="", size=None):
         size (optional): Optional ``figsize`` passed to ``swatchplot``.
 
     Displays a swatch plot and returns ``None``.
+
+    Examples:
+        >>> import matplotlib
+        >>> matplotlib.use('Agg')
+        >>> from simetri.coloring.colors import show_swatch
+        >>> show_swatch([(255, 0, 0)]) is None
+        True
     """
     hex_colors = [rgb2hex(c) for c in rgb255_palette]
     hex_palette = palette(hex_colors, name=name)
@@ -1208,20 +1121,17 @@ class LinearGradient:
         positions: A sequence of PointType objects defining the gradient positions.
         extend: Whether to extend the gradient beyond its endpoints.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    gradient = sg.LinearGradient(
-            0, 0, 100, 100,
-            [sg.Color(1, 0, 0), sg.Color(0, 0, 1)],
-            [(0, 0), (100, 100)],
-        )
-    gradient.x2
-    # 100
-    gradient.extend
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> gradient = sg.LinearGradient(
+        ... 0, 0, 100, 100,
+        ... [sg.Color(1, 0, 0), sg.Color(0, 0, 1)],
+        ... [(0, 0), (100, 100)],
+        ... )
+        >>> gradient.x2
+        100
+        >>> gradient.extend
+        False
 """
 
     x1: float = 0.0
@@ -1232,8 +1142,17 @@ class LinearGradient:
     positions: Sequence[PointType] | None = None
     extend: bool = False
 
-    def __post_init__(self):
-        """Set ``type`` and ``subtype`` on this new gradient."""
+    def __post_init__(self) -> None:
+        """Set ``type`` and ``subtype`` on this new gradient.
+
+        Examples:
+            >>> from simetri.coloring.colors import LinearGradient
+            >>> grad = LinearGradient()
+            >>> grad.type.name
+            'GRADIENT'
+            >>> grad.subtype.name
+            'LINEAR'
+        """
         self.type = Types.GRADIENT
         self.subtype = Types.LINEAR
 
@@ -1252,20 +1171,17 @@ class RadialGradient:
         positions: A sequence of PointType objects defining the gradient positions.
         extend: Whether to extend the gradient beyond its defined radius.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    gradient = sg.RadialGradient(
-            50, 50, 30,
-            [sg.Color(1, 1, 1), sg.Color(0, 0, 0)],
-            [(50, 50), (80, 50)],
-        )
-    gradient.radius
-    # 30
-    gradient.extend
-    # False
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> gradient = sg.RadialGradient(
+        ... 50, 50, 30,
+        ... [sg.Color(1, 1, 1), sg.Color(0, 0, 0)],
+        ... [(50, 50), (80, 50)],
+        ... )
+        >>> gradient.radius
+        30
+        >>> gradient.extend
+        False
 """
 
     x: float = 0.0
@@ -1275,8 +1191,17 @@ class RadialGradient:
     positions: Sequence[PointType] | None = None
     extend: bool = False
 
-    def __post_init__(self):
-        """Set ``type`` and ``subtype`` on this new gradient."""
+    def __post_init__(self) -> None:
+        """Set ``type`` and ``subtype`` on this new gradient.
+
+        Examples:
+            >>> from simetri.coloring.colors import RadialGradient
+            >>> grad = RadialGradient()
+            >>> grad.type.name
+            'GRADIENT'
+            >>> grad.subtype.name
+            'RADIAL'
+        """
         self.type = Types.GRADIENT
         self.subtype = Types.RADIAL
 

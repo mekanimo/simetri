@@ -4,14 +4,15 @@ Note:
     Prefer ``lattice`` for newer lattice-based APIs.
     This module remains for the classic wallpaper group helpers.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-import simetri.wallpapers as wp
-motif = sg.letter_F()
-pattern = wp.wallpaper_p1(motif, (40, 0), (0, 50), reps1=3, reps2=2)
-```
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> from simetri.shapes.shape import Shape
+    >>> from simetri.wallpapers import wallpaper as wp
+    >>> mark = Shape([(0, 0), (10, 0)])
+    >>> pattern = wp.wallpaper_p1(mark, (20, 0), (0, 15), reps1=1, reps2=1)
+    >>> len(pattern)
+    4
 """
 
 # This is obsolete now! Replaced by lattice.py
@@ -50,6 +51,14 @@ def cover_hex(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> cover_hex(mark, 10, reps1=1, reps2=1) is mark
+        True
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
@@ -86,6 +95,14 @@ def cover_rhombic(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> cover_rhombic(mark, 10, reps1=1, reps2=1) is mark
+        True
     """
     sqrt2 = sqrt(2)
     diag = (sqrt2 / 2) * size
@@ -112,6 +129,12 @@ def hex_grid_pointy(
 
     Returns:
         Group: The resulting grid as a Group of Shapes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> len(hex_grid_pointy(0, 0, 5, 2, 2))
+        4
     """
     height = sqrt(3) * size
     width = 2 * size
@@ -145,6 +168,14 @@ def cover_hex_pointy(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> cover_hex_pointy(mark, 10, reps1=1, reps2=1) is mark
+        True
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
@@ -178,6 +209,14 @@ def cover_hex_flat(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> cover_hex_flat(mark, 10, reps1=1, reps2=1) is mark
+        True
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
@@ -225,6 +264,14 @@ def wallpaper_p1(
 
     Returns:
         Group: The resulting wallpaper pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p1(mark, (20, 0), (0, 15), reps1=1, reps2=1))
+        4
     """
     dx1, dy1 = vector1
     wallpaper = generator.translate(dx1, dy1, reps=reps1)
@@ -257,6 +304,14 @@ def wallpaper_p2(
 
     Returns:
         Group: The resulting wallpaper pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p2(mark, (20, 0), (0, 15), reps1=1, reps2=1))
+        8
     """
     rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
@@ -289,17 +344,17 @@ def wallpaper_p2_rect_lattice(
     Returns:
         Group: Wallpaper pattern as a Group.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    import simetri.wallpapers as wp
-    F = sg.letter_F()
-    pattern = wp.wallpaper_p2_rect_lattice(
-            F, (0, 0), (F.width * 2, 0), (0, F.height * 2), reps1=2, reps2=2
-        )
-    ```
-"""
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> pattern = wallpaper_p2_rect_lattice(
+        ...     mark, (0, 0), (20, 0), (0, 15), reps1=1, reps2=1
+        ... )
+        >>> len(pattern)
+        8
+    """
 
     rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
@@ -336,6 +391,14 @@ def wallpaper_p3(
 
     Returns:
         Group: The resulting wallpaper pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p3(mark, (0, 0), 10, reps1=1, reps2=1))
+        24
     """
     wallpaper = generator.rotate(2 * pi / 3, rotocenter, reps=2)
     if flat_hex:
@@ -369,6 +432,14 @@ def wallpaper_p4(
 
     Returns:
         Group: The resulting wallpaper pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p4(mark, (0, 0), 10, reps1=1, reps2=1))
+        16
     """
     wallpaper = generator.rotate(pi / 2, rotocenter, reps=3)
     wallpaper.translate(distance, 0, reps=reps1)
@@ -383,7 +454,7 @@ def wallpaper_p6(
     hex_size: float,
     reps1: int = 4,
     reps2: int = 4,
-    flat_hex=False,
+    flat_hex: bool = False,
 ) -> Group:
     """
     Six rotations.
@@ -393,15 +464,23 @@ def wallpaper_p6(
     PointType group: C6
 
     Args:
-        generator (Group | Shape | Tag): The repeating motif.
-        rotocenter (PointType): The center of rotation.
-        hex_size (float): The size of the hexagons.
-        reps1 (int, optional): Number of repetitions in the x direction. Defaults to 4.
-        reps2 (int, optional): Number of repetitions in the y direction. Defaults to 4.
-        flat_hex (bool, optional): If True, hexagons are flat-topped. Defaults to False.
+        generator: The repeating motif.
+        rotocenter: The center of rotation.
+        hex_size: Hexagon radius/size passed to ``cover_hex_*``.
+        reps1: Repetitions in the cover grid x direction.
+        reps2: Repetitions in the cover grid y direction.
+        flat_hex: If True, use flat-topped hex cover; otherwise pointy-topped.
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p6(mark, (0, 0), 10, reps1=1, reps2=1))
+        48
     """
     wallpaper = generator.rotate(pi / 3, rotocenter, reps=5)
     if flat_hex:
@@ -438,6 +517,15 @@ def wallpaper_pm(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> axis = ((0, -5), (100, -5))
+        >>> len(wallpaper_pm(mark, axis, 20, 20, reps1=1, reps2=1))
+        8
     """
     wallpaper = generator.mirror(mirror_line, reps=1)
     wallpaper.translate(dx, 0, reps=reps1)
@@ -473,6 +561,15 @@ def wallpaper_pg(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> axis = ((0, -5), (100, -5))
+        >>> len(wallpaper_pg(mark, axis, 5, 20, 20, reps1=1, reps2=1))
+        8
     """
     wallpaper = generator.glide(mirror_line, distance, reps=1)
     wallpaper.translate(dx, 0, reps=reps1)
@@ -506,6 +603,14 @@ def wallpaper_cm(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_cm(mark, (0, 0), 10, reps1=1, reps2=1))
+        16
     """
     x1, y1 = mirror_point[:2]
     if horizontal:
@@ -528,8 +633,8 @@ def wallpaper_pmm(
     mirror_cross: PointType,
     dx: float,
     dy: float,
-    reps1=4,
-    reps2=4,
+    reps1: int = 4,
+    reps2: int = 4,
 ) -> Group:
     """
     Double mirror symmetry.
@@ -548,6 +653,14 @@ def wallpaper_pmm(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_pmm(mark, (0, 0), 20, 20, reps1=1, reps2=1))
+        16
     """
     x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
@@ -565,9 +678,9 @@ def wallpaper_pmg(
     center_point: PointType,
     dx: float,
     dy: float,
-    reps1=4,
-    reps2=4,
-    horizontal=True,
+    reps1: int = 4,
+    reps2: int = 4,
+    horizontal: bool = True,
 ) -> Group:
     """
     Glided staggered symmetry.
@@ -587,6 +700,14 @@ def wallpaper_pmg(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_pmg(mark, (0, 0), 20, 20, reps1=1, reps2=1))
+        16
     """
     x, y = center_point[:2]
     if horizontal:
@@ -610,7 +731,7 @@ def wallpaper_pgg(
     dy: float,
     reps1: int = 4,
     reps2: int = 4,
-    horizontal=True,
+    horizontal: bool = True,
 ) -> Group:
     """
     Double glide symmetry.
@@ -630,6 +751,14 @@ def wallpaper_pgg(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_pgg(mark, (5, 0), 20, 20, reps1=1, reps2=1))
+        16
     """
     if horizontal:
         dist = rotocenter[0] - generator.center[0]
@@ -670,6 +799,14 @@ def wallpaper_cmm(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_cmm(mark, (0, 0), 10, reps1=1, reps2=1))
+        32
     """
     x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
@@ -704,6 +841,14 @@ def wallpaper_p4m(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p4m(mark, (0, 0), 10, reps1=1, reps2=1))
+        32
     """
     x, y = mirror_cross[:2]
     mirror_line = ((x, y), (x, y + 1))
@@ -737,6 +882,14 @@ def wallpaper_p4g(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p4g(mark, 20, reps1=1, reps2=1))
+        64
     """
     # rotocenter should be (0, 0) and mirror_cross should be (d/4,d/4 )
     # translations are (d, d)
@@ -774,6 +927,14 @@ def wallpaper_p3m1(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p3m1(mark, (0, 0), 10, reps1=1, reps2=1))
+        48
     """
     x, y = center_point[:2]
     mirror_line = line_through_point_and_angle((x, y), 2 * pi / 3)
@@ -807,6 +968,14 @@ def wallpaper_p31m(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p31m(mark, (0, 0), 10, reps1=1, reps2=1))
+        144
     """
     x, y = center_point[:2]
     dy = 0.28866 * hex_size
@@ -848,6 +1017,14 @@ def wallpaper_p6m(
 
     Returns:
         Group: The resulting pattern as a Group object.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.shapes.shape import Shape
+        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> len(wallpaper_p6m(mark, (0, 0), (0, 0), 10, reps1=1, reps2=1))
+        24
     """
     x, y = mirror_cross[:2]
     mirror1 = [(x, y), (x + 1, y)]

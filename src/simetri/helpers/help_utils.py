@@ -17,15 +17,7 @@ related ``sg.*`` names. ``sg.help('help')`` loads the help-utilities
 guide. ``sg.help(sg.help)`` summarizes how help lookup works.
 ``sg.help('topics')`` lists available topics.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-'distance' in sg.help('points')
-# True
-'Shape' in sg.help('shapes')
-# True
-```
+Examples:
 """
 
 from __future__ import annotations
@@ -72,7 +64,14 @@ _WARNING_SUBGROUPS = {
 }
 
 
-def normalize(word):
+def normalize(word: str) -> str:
+    """Normalize a string for fuzzy help lookup (NFKC, casefold, strip).
+
+    Examples:
+        >>> from simetri.helpers.help_utils import normalize
+        >>> normalize('  Shape  ')
+        'shape'
+    """
     return unicodedata.normalize("NFKC", word).casefold().strip()
 
 
@@ -83,10 +82,27 @@ def _resolve_help_suggestion_limit(limit: int | None) -> int:
     return limit
 
 
-def find_similar(query, words, threshold=0.75, limit: int | None = None):
-    """Example:
-    words = ["hello", "help", "yellow", "hero", "world"]
-    print(find_similar("hlelo", words))
+def find_similar(
+    query: str,
+    words: Sequence[str],
+    threshold: float = 0.75,
+    limit: int | None = None,
+) -> list[tuple[str, float]]:
+    """Return words similar to ``query`` by Damerau–Levenshtein similarity.
+
+    Args:
+        query: Search string (normalized before comparison).
+        words: Candidate names.
+        threshold: Minimum normalized similarity in ``[0, 1]``. Defaults to 0.75.
+        limit: Maximum matches; ``None`` uses ``defaults['help_suggestion_limit']``.
+
+    Returns:
+        list[tuple[str, float]]: ``(word, score)`` pairs, highest score first.
+
+    Examples:
+        >>> from simetri.helpers.help_utils import find_similar
+        >>> find_similar('shpe', ['shape', 'group'], limit=2)[0][0]
+        'shape'
     """
     limit = _resolve_help_suggestion_limit(limit)
     query_normalized = normalize(query)
@@ -103,7 +119,7 @@ def find_similar(query, words, threshold=0.75, limit: int | None = None):
     return sorted(matches, key=lambda item: item[1], reverse=True)[:limit]
 
 
-def _warning_type_path(obj) -> str | None:
+def _warning_type_path(obj: object) -> str | None:
     """Return ``WarningType…`` path for a subgroup class or leaf member."""
     if obj is WarningType:
         return "WarningType"
@@ -115,7 +131,7 @@ def _warning_type_path(obj) -> str | None:
     return None
 
 
-def _warning_type_help(obj) -> str:
+def _warning_type_help(obj: object) -> str:
     """Return help text for ``WarningType``, a subgroup, or a leaf."""
     if obj is WarningType:
         group_lines = [
@@ -501,8 +517,10 @@ d_help_topic: dict[str, list[str]] = {
         "sg.Operation",
         "sg.PathOps",
         "sg.path_code",
+        "sg.shape_to_path2d",
         "sg.svg_path_to_path2d",
         "sg.path2d_to_svg_path",
+        "sg.path2d_svg",
         (
             "See also: sg.help('shapes_doc'), sg.help('groups_doc'), "
             "sg.help('canvas_doc'), sg.help('style_definitions')"
@@ -891,6 +909,7 @@ _TOPIC_ALIASES = {
     "path": "path_objects_doc",
     "paths": "path_objects_doc",
     "path_code": "path_objects_doc",
+    "shape_to_path2d": "path_objects_doc",
     "path_objects": "path_objects_doc",
     "path_objects_doc": "path_objects_doc",
     "path-objects": "path_objects_doc",
@@ -1249,7 +1268,7 @@ _CALLABLE_HELP_NOTES: dict[str, str] = {
 }
 
 
-def _callable_signature(obj) -> inspect.Signature:
+def _callable_signature(obj: Callable[..., object]) -> inspect.Signature:
     """Return a display signature, omitting ``self`` / ``cls`` when present."""
     signature = inspect.signature(obj)
     parameters = list(signature.parameters.values())
@@ -1258,7 +1277,7 @@ def _callable_signature(obj) -> inspect.Signature:
     return signature.replace(parameters=parameters)
 
 
-def _callable_help(obj) -> str:
+def _callable_help(obj: Callable[..., object]) -> str:
     """Build help text for a function or method: signature, doc, and notes."""
     parts: list[str] = []
     signature = _callable_signature(obj)
@@ -1620,7 +1639,7 @@ def _unknown_topic_help(query: str) -> str:
     return "\n".join(lines)
 
 
-def help(obj) -> str:
+def help(obj: object) -> str:
     """Return documentation text for ``obj``.
 
     For string keys, returns ``defaults_help[obj]`` when ``obj`` is a
@@ -1643,18 +1662,14 @@ def help(obj) -> str:
         known topic, setting, or public ``sg`` name, or an empty string
         if none is available.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.help('topics').splitlines()[0]
-    # 'Available help topics:'
-    'sg.distance' in sg.help('points')
-    # True
-    'shapes' in sg.help('shapess')
-    # True
-    ```
-"""
+    Examples:
+        >>> sg.help('topics').splitlines()[0]
+        'Available help topics:'
+        >>> 'sg.distance' in sg.help('points')
+        True
+        >>> 'shapes' in sg.help('shapess')
+        True
+    """
     if obj is help:
         return _HELP_ABOUT_HELP
 
@@ -1713,7 +1728,7 @@ def help(obj) -> str:
     return doc if doc is not None else ""
 
 
-def _doc_title(obj) -> str:
+def _doc_title(obj: object) -> str:
     """Return the display title used by ``sg.doc`` for ``obj``."""
     warning_path = _warning_type_path(obj)
     if warning_path is not None:
@@ -1750,18 +1765,14 @@ def _doc_title(obj) -> str:
     return type(obj).__qualname__
 
 
-def doc(obj) -> None:
+def doc(obj: object) -> None:
     """Print documentation text for ``obj``.
 
     Args:
         obj: Object to document, a defaults setting name, or a help topic.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.doc('topics')
-    ```
+    Examples:
+        >>> sg.doc('topics')
 """
     title = _doc_title(obj)
     text = help(obj)

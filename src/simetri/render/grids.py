@@ -1,5 +1,7 @@
 """Provides facilities for working with grids of cells."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from itertools import product
 from math import cos, isclose, pi, sin, sqrt
@@ -27,7 +29,16 @@ d_grid_types = {
 
 
 class Grid(Group):
-    """A base-class for all grids."""
+    """A base-class for all grids.
+
+    Examples:
+        >>> from simetri.base.all_enums import GridType
+        >>> from simetri.render.grids import Grid
+        >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+        >>> grid = Grid(GridType.SQUARE, points=pts, n=4)
+        >>> len(grid.points)
+        4
+    """
 
     def __init__(
         self,
@@ -36,8 +47,8 @@ class Grid(Group):
         n: int = 9,
         radius: float = 100,
         points: Sequence[PointType] | None = None,
-        n_circles=1,
-    ):
+        n_circles: int = 1,
+    ) -> None:
         """Initialize a geometric grid of points and connecting lines.
 
         Args:
@@ -97,25 +108,37 @@ class Grid(Group):
                     )
 
     @property
-    def points(self):
-        """
-        Returns the points of the grid.
+    def points(self) -> list[PointType]:
+        """Return the grid vertex points.
 
-        Returns:
-            list: The points of the grid.
+        Examples:
+            >>> from simetri.base.all_enums import GridType
+            >>> from simetri.render.grids import Grid
+            >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+            >>> Grid(GridType.SQUARE, points=pts, n=4).points[0]
+            [0, 0]
         """
         return self._points.vertices
 
-    def intersect(self, line1: Sequence[int], line2: Sequence[int]):
-        """
-        Returns the intersection of the lines connecting the given indices.
+    def intersect(
+        self, line1: Sequence[int], line2: Sequence[int]
+    ) -> PointType:
+        """Return the intersection of two grid chords given by vertex indices.
 
         Args:
-            line1 (Sequence[int]): A sequence containing two indices (ind1, ind2).
-            line2 (Sequence[int]): A sequence containing two indices (ind3, ind4).
+            line1: Two vertex indices ``(ind1, ind2)``.
+            line2: Two vertex indices ``(ind3, ind4)``.
 
         Returns:
-            tuple: (x, y) intersection point of the lines.
+            PointType: Intersection of the two lines.
+
+        Examples:
+            >>> from simetri.base.all_enums import GridType
+            >>> from simetri.render.grids import Grid
+            >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+            >>> g = Grid(GridType.SQUARE, points=pts, n=4)
+            >>> g.intersect((0, 2), (1, 3))[0]
+            10.0
         """
         ind1, ind2 = line1
         ind3, ind4 = line2
@@ -135,25 +158,36 @@ class Grid(Group):
 
         Returns:
             tuple: The line connecting the two points.
+
+        Examples:
+            >>> from simetri.base.all_enums import GridType
+            >>> from simetri.render.grids import Grid
+            >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+            >>> g = Grid(GridType.SQUARE, points=pts, n=4)
+            >>> g.line(0, 1)[1]
+            [10, 0]
         """
         return (self.points[ind1], self.points[ind2])
 
-    def radial_point(self, radius, index: int):
-        """
-        Returns the point on the line connecting the center of the grid to the given index.
-        radius is the distance from the center to the point.
-        The index is the index of the point in the grid.
+    def radial_point(self, radius: float, index: int) -> PointType:
+        """Return a point at ``radius`` from center along the ray to vertex ``index``.
 
         Args:
-            radius (float): The radius.
-            index (int): The index of the point.
+            radius: Distance from the grid center.
+            index: Vertex index defining the ray direction.
 
         Returns:
-            tuple: The polar point.
+            PointType: Cartesian coordinates of the point.
+
+        Examples:
+            >>> from simetri.render.grids import CircularGrid
+            >>> g = CircularGrid(n=12, radius=10)
+            >>> round(g.radial_point(5, 0)[0], 10)
+            5.0
         """
         return polar_to_cartesian(radius, index * (2 * pi / self.n))
 
-    def between(self, ind1: int, ind2, t: float = 0.5) -> PointType:
+    def between(self, ind1: int, ind2: int, t: float = 0.5) -> PointType:
         """
         Returns the point on the line connecting the given indices interpolated
         by using the given t parameter.
@@ -165,6 +199,14 @@ class Grid(Group):
 
         Returns:
             PointType: The point on the line connecting the two points.
+
+        Examples:
+            >>> from simetri.base.all_enums import GridType
+            >>> from simetri.render.grids import Grid
+            >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+            >>> g = Grid(GridType.SQUARE, points=pts, n=4)
+            >>> g.between(0, 1, 0.5)
+            [5.0, 0.0]
         """
         if t < 0 or t > 1:
             raise ValueError("t must be between 0 and 1.")
@@ -179,23 +221,28 @@ class Grid(Group):
 
 
 class CircularGrid(Grid):
-    """A grid formed by connections of regular polygon points."""
+    """A grid formed by connections of regular polygon points.
+
+    Examples:
+        >>> from simetri.render.grids import CircularGrid
+        >>> CircularGrid(n=6, radius=20).n
+        6
+    """
 
     def __init__(
         self,
         center: PointType = (0, 0),
         n: int = 12,
         radius: float = 100,
-        n_circles=1,
-    ):
-        """
-        Initializes the grid with the given center, radius, number of rows, and number of columns.
+        n_circles: int = 1,
+    ) -> None:
+        """Initialize a circular grid from a regular ``n``-gon.
 
         Args:
-            center (PointType): The center point of the grid.
-            n (int): The number of points in the regular polygon.
-            radius (float): The radius of the grid.
-            n_circles (int): The number of circles in the grid. Used for drawing the grid.
+            center: Grid center.
+            n: Number of vertices on the outer polygon.
+            radius: Circumradius.
+            n_circles: Concentric circle count used when drawing the grid.
         """
         points = reg_poly_points(center, n, radius)
         super().__init__(
@@ -206,18 +253,26 @@ class CircularGrid(Grid):
 
 
 class HexGrid(Grid):
-    """A grid formed by connections of regular polygon points."""
+    """A grid formed by connections of regular polygon points.
+
+    Examples:
+        >>> from simetri.render.grids import HexGrid
+        >>> HexGrid(radius=50).n
+        6
+    """
 
     def __init__(
-        self, center: PointType = (0, 0), radius: float = 100, n_circles=1
-    ):
-        """
-        Initializes the grid with the given center, radius, number of rows, and number of columns.
+        self,
+        center: PointType = (0, 0),
+        radius: float = 100,
+        n_circles: int = 1,
+    ) -> None:
+        """Initialize a hexagonal grid (regular 6-gon).
 
         Args:
-            center (PointType): The center point of the hexagon.
-            radius (float): The circumradius of the hexagon.
-            n_circles (int): The number of circles in the grid. Used for drawing the grid.
+            center: Grid center.
+            radius: Hexagon circumradius.
+            n_circles: Concentric circle count used when drawing the grid.
         """
         points = reg_poly_points(center, 6, radius)
         super().__init__(
@@ -226,11 +281,17 @@ class HexGrid(Grid):
 
 
 class SquareGrid(Grid):
-    """A grid formed by connections of square cells."""
+    """A grid formed by connections of square cells.
+
+    Examples:
+        >>> from simetri.render.grids import SquareGrid
+        >>> SquareGrid(n=16, cell_size=25).cell_size
+        25
+    """
 
     def __init__(
         self, center: PointType = (0, 0), n: int = 16, cell_size: float = 25
-    ):
+    ) -> None:
         """
         Initializes the grid with the given center, number of rows, number of columns, and cell size.
 
@@ -246,11 +307,11 @@ class SquareGrid(Grid):
         vals = [c * x for x in range(-hs, hs + 1)]
         coords = list(product(vals, repeat=2))
 
-        def sort_key(coord):
+        def sort_key(coord: PointType) -> float:
             r, _ = cartesian_to_polar(*coord)
             return r
 
-        def sort_key2(coord):
+        def sort_key2(coord: PointType) -> float:
             _, theta = cartesian_to_polar(*coord)
             return theta
 
@@ -265,59 +326,79 @@ class SquareGrid(Grid):
 # change of basis conversion
 
 
-def convert_basis(x: float, y: float, basis: tuple):
-    """
-    Converts the given (x, y) coordinates from the standard basis to the given basis.
+def convert_basis(
+    x: float, y: float, basis: tuple[tuple[float, float], tuple[float, float]]
+) -> tuple[float, float]:
+    """Convert ``(x, y)`` from the standard basis to ``basis``.
 
     Args:
-        x (float): The x-coordinate.
-        y (float): The y-coordinate.
-        basis (tuple): The basis to convert to.
+        x: X coordinate.
+        y: Y coordinate.
+        basis: Two basis vectors as ``((x0, y0), (x1, y1))``.
 
     Returns:
-        tuple: The converted (x, y) coordinates.
+        ``(x', y')`` in the new basis.
+
+    Examples:
+        >>> from simetri.render.grids import convert_basis
+        >>> convert_basis(1, 0, ((1, 0), (0, 1)))
+        (1, 0)
     """
     return basis[0][0] * x + basis[0][1] * y, basis[1][0] * x + basis[1][1] * y
 
 
-def convert_to_cartesian(x: float, y: float, basis: tuple):
-    """
-    Converts the given (x, y) coordinates from the given basis to the standard basis.
+def convert_to_cartesian(
+    x: float, y: float, basis: tuple[tuple[float, float], tuple[float, float]]
+) -> tuple[float, float]:
+    """Convert ``(x, y)`` from ``basis`` to the standard Cartesian basis.
 
     Args:
-        x (float): The x-coordinate.
-        y (float): The y-coordinate.
-        basis (tuple): The basis to convert from.
+        x: X coordinate in ``basis``.
+        y: Y coordinate in ``basis``.
+        basis: Two basis vectors as ``((x0, y0), (x1, y1))``.
 
     Returns:
-        tuple: The converted (x, y) coordinates.
+        ``(x', y')`` in Cartesian coordinates.
+
+    Examples:
+        >>> from simetri.render.grids import convert_to_cartesian
+        >>> convert_to_cartesian(1, 0, ((1, 0), (0, 1)))
+        (1, 0)
     """
     return basis[0][0] * x + basis[1][0] * y, basis[0][1] * x + basis[1][1] * y
 
 
-def cartesian_to_isometric(x: float, y: float):
-    """
-    Converts the given (x, y) coordinates to isometric coordinates.
+def cartesian_to_isometric(x: float, y: float) -> tuple[float, float]:
+    """Convert Cartesian ``(x, y)`` to isometric coordinates.
 
     Args:
-        x (float): The x-coordinate.
-        y (float): The y-coordinate.
+        x: Cartesian x.
+        y: Cartesian y.
 
     Returns:
-        tuple: The isometric (x, y) coordinates.
+        Isometric ``(x', y')``.
+
+    Examples:
+        >>> from simetri.render.grids import cartesian_to_isometric
+        >>> cartesian_to_isometric(1, 0)[0]
+        1.0
     """
     return convert_basis(x, y, ((1, 0), (cos(pi / 3), sin(pi / 3))))
 
 
-def isometric_to_cartesian(x: float, y: float):
-    """
-    Converts the given isometric (x, y) coordinates to Cartesian coordinates.
+def isometric_to_cartesian(x: float, y: float) -> tuple[float, float]:
+    """Convert isometric ``(x, y)`` to Cartesian coordinates.
 
     Args:
-        x (float): The x-coordinate.
-        y (float): The y-coordinate.
+        x: Isometric x.
+        y: Isometric y.
 
     Returns:
-        tuple: The Cartesian (x, y) coordinates.
+        Cartesian ``(x', y')``.
+
+    Examples:
+        >>> from simetri.render.grids import isometric_to_cartesian
+        >>> isometric_to_cartesian(1, 0)[0]
+        1.0
     """
     return convert_to_cartesian(x, y, ((1, 0), (cos(pi / 3), sin(pi / 3))))

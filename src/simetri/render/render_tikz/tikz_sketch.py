@@ -1,7 +1,11 @@
 """Serialize individual sketch types to TikZ/PGF markup."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from math import ceil, degrees
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -55,24 +59,24 @@ from .tikz_utils import (
     sg_to_tikz,
 )
 
+if TYPE_CHECKING:
+    from ..canvas import Canvas
+
 
 @dataclass
 class TexSketch:
-    """TexSketch is a dataclass for inserting code into the tex file.
+    """Raw TeX/TikZ fragment inserted at a chosen document location.
 
     Attributes:
-        code (str, optional): The code to be inserted. Defaults to None.
-        location (TexLoc, optional): The location of the code. Defaults to TexLoc.NONE.
-
-    Returns:
-        None
+        code: TeX or TikZ source to insert.
+        location: Where ``code`` is placed in the document pipeline.
     """
 
     code: str | None = None
     location: TexLoc = TexLoc.NONE
 
-    def __post_init__(self):
-        """Initialize the TexSketch object."""
+    def __post_init__(self) -> None:
+        """Set sketch type tags for inserted TeX fragments."""
         self.type = Types.SKETCH
         self.subtype = Types.TEX_SKETCH
 
@@ -83,7 +87,7 @@ class TexSketch:
 _active_tikz_style_ids = {}
 
 
-def set_active_tikz_style_ids(style_ids):
+def set_active_tikz_style_ids(style_ids: dict[int, str]) -> None:
     """Set the active sketch-id to TikZ style-id mapping.
 
     Args:
@@ -93,21 +97,21 @@ def set_active_tikz_style_ids(style_ids):
     _active_tikz_style_ids = style_ids
 
 
-def get_active_tikz_style_id(sketch):
+def get_active_tikz_style_id(sketch: Any) -> str | None:
     """Return the TikZ style id for ``sketch``, if any.
 
     Args:
         sketch: Sketch whose style id is requested.
 
     Returns:
-        The active style id, or None.
+        str | None: Active style id, or ``None``.
     """
     if sketch.id in _active_tikz_style_ids:
         return _active_tikz_style_ids[sketch.id]
     return None
 
 
-def _canvas_mask_scope_sketch(canvas):
+def _canvas_mask_scope_sketch(canvas: Canvas) -> Any | None:
     page = canvas.active_page
     sketches = page.sketches
     for sketch in reversed(sketches):
@@ -116,8 +120,8 @@ def _canvas_mask_scope_sketch(canvas):
     return None
 
 
-def draw_helplines_sketch(sketch):
-    """Draw deferred help lines (grid + optional coordinate system) for TikZ output."""
+def draw_helplines_sketch(sketch: Any) -> str:
+    """Serialize help-line grid (and optional axes) to TikZ ``\\draw`` commands."""
     x, y = sketch.pos[:2]
     width = sketch.width
     height = sketch.height
@@ -127,7 +131,7 @@ def draw_helplines_sketch(sketch):
     x_axis_style = sketch.x_axis_style
     y_axis_style = sketch.y_axis_style
 
-    def _line_options(style):
+    def _line_options(style: dict[str, Any]) -> str:
         options = [
             f"draw={color_to_tikz(style['line_color'])}",
             f"line width={style['line_width']}",
@@ -176,15 +180,14 @@ def draw_helplines_sketch(sketch):
     return "\n".join(lines) + "\n"
 
 
-def draw_bbox_sketch(sketch):
-    """Converts a BBoxSketch to TikZ code.
+def draw_bbox_sketch(sketch: Any) -> str:
+    """Serialize a bounding-box sketch to a TikZ ``\\draw … rectangle`` command.
 
     Args:
-        sketch: The BBoxSketch object.
-        canvas: The canvas object.
+        sketch: BBox sketch with vertices and line attributes.
 
     Returns:
-        str: The TikZ code for the BBoxSketch.
+        str: TikZ markup.
     """
     attrib_map = {
         "line_color": "draw",
@@ -202,14 +205,11 @@ def draw_bbox_sketch(sketch):
     return res
 
 
-def draw_lace_sketch(item):
-    """Converts a LaceSketch to TikZ code.
+def draw_lace_sketch(item: Any) -> None:
+    """Draw lace fragments and plaits by delegating to ``draw_shape_sketch``.
 
     Args:
-        item: The LaceSketch object.
-
-    Returns:
-        str: The TikZ code for the LaceSketch.
+        item: Lace object with ``fragments`` / ``plaits`` and draw flags.
     """
     if item.draw_fragments:
         for fragment in item.fragments:
@@ -220,7 +220,11 @@ def draw_lace_sketch(item):
             draw_shape_sketch(plait)
 
 
-def draw_table_sketch(sketch, render_sketches, ind):
+def draw_table_sketch(
+    sketch: Any,
+    render_sketches: Callable[[list[Any], int], tuple[str, int]],
+    ind: int,
+) -> tuple[str, int]:
     """Render a ``TableSketch`` by serializing its child sketches to TikZ.
 
     Args:
@@ -234,19 +238,18 @@ def draw_table_sketch(sketch, render_sketches, ind):
     return render_sketches(sketch.sketches, ind)
 
 
-def draw_tag_sketch(sketch):
-    """Converts a TagSketch to TikZ code.
+def draw_tag_sketch(sketch: Any) -> str:
+    """Serialize a ``TagSketch`` to a TikZ ``\\node`` with text and frame options.
 
     Args:
-        sketch: The TagSketch object.
-        canvas: The canvas object.
+        sketch: Tag sketch with text, font, and frame attributes.
 
     Returns:
-        str: The TikZ code for the TagSketch.
+        str: TikZ markup.
     """
 
     # \node at (0,0) {some text};
-    def get_font_family(sketch):
+    def get_font_family(sketch: Any) -> tuple[str, str | None]:
         default_fonts = [
             defaults["main_font"],
             defaults["sans_font"],
@@ -281,7 +284,7 @@ def draw_tag_sketch(sketch):
 
         return res
 
-    def get_font_size(sketch):
+    def get_font_size(sketch: Any) -> tuple[str, float | str | None]:
         if sketch.font_size:
             if isinstance(sketch.font_size, FontSize):
                 res = "tex_size", sketch.font_size.value
@@ -419,8 +422,8 @@ def draw_tag_sketch(sketch):
     return "".join(res)
 
 
-def draw_latex_sketch(sketch):
-    """Convert a LatexSketch to TikZ code."""
+def draw_latex_sketch(sketch: Any) -> str:
+    """Convert a ``LatexSketch`` to a positioned TikZ ``\\node`` with math."""
     x, y = sketch.pos[:2]
     formula = sketch.formula
     if sketch.bold:
@@ -442,7 +445,7 @@ def draw_latex_sketch(sketch):
     return f"\\node{option_str} at ({x}, {y}) {tex_formula};\n"
 
 
-def _label_font_tikz(sketch, label_kind: str) -> str:
+def _label_font_tikz(sketch: Any, label_kind: str) -> str:
     """TikZ node font option for index or vertex-coordinate labels."""
     family = label_font_family_tikz(
         sketch_label_font_family(sketch, label_kind)
@@ -452,7 +455,9 @@ def _label_font_tikz(sketch, label_kind: str) -> str:
     return f"font=\\{family}\\fontsize{{{pt}}}{{{baseline}}}\\selectfont"
 
 
-def _tikz_halo_label_lines(x, y, text, label_kind: str, sketch) -> list[str]:
+def _tikz_halo_label_lines(
+    x: float, y: float, text: str, label_kind: str, sketch: Any
+) -> list[str]:
     """TikZ node with a contour halo for label readability."""
     font = _label_font_tikz(sketch, label_kind)
     text_color = color_to_tikz(sketch_label_font_color(sketch, label_kind))
@@ -469,7 +474,11 @@ def _tikz_halo_label_lines(x, y, text, label_kind: str, sketch) -> list[str]:
     ]
 
 
-def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
+def draw_shape_sketch_with_indices(
+    sketch: Any,
+    index: int = 0,
+    exceptions: Collection[str] | None = None,
+) -> str:
     """Draw a shape sketch with optional vertex indices and coordinate labels.
 
     When ``sketch.indices`` is truthy, index numbers are drawn at offset
@@ -546,7 +555,9 @@ def draw_shape_sketch_with_indices(sketch, index=0, exceptions=None):
     return res
 
 
-def draw_shape_sketch_with_markers(sketch, exceptions=None):
+def draw_shape_sketch_with_markers(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws a shape sketch with markers.
 
     Args:
@@ -643,7 +654,9 @@ def draw_shape_sketch_with_markers(sketch, exceptions=None):
     return body
 
 
-def draw_pattern_sketch(sketch, exceptions=None):
+def draw_pattern_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws a pattern sketch.
 
     Args:
@@ -697,7 +710,9 @@ def draw_pattern_sketch(sketch, exceptions=None):
     return "\n".join(shapes)
 
 
-def draw_sketch(sketch, exceptions=None):
+def draw_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws a plain shape sketch.
 
     Args:
@@ -753,20 +768,21 @@ def draw_sketch(sketch, exceptions=None):
     return res
 
 
-def draw_tex_sketch(sketch):
-    """Draws a TeX sketch.
+def draw_tex_sketch(sketch: TexSketch) -> str | None:
+    """Return raw TeX code from a ``TexSketch``.
 
     Args:
-        sketch: The TeX sketch object.
+        sketch: TeX fragment sketch.
 
     Returns:
-        str: The TeX code for the TeX sketch.
+        str | None: Inserted TeX source.
     """
-
     return sketch.code
 
 
-def draw_image_sketch(sketch, exceptions=None):
+def draw_image_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws an image sketch.
 
     Args:
@@ -803,7 +819,9 @@ def draw_image_sketch(sketch, exceptions=None):
     return res
 
 
-def draw_pdf_sketch(sketch, exceptions=None):
+def draw_pdf_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws a PDF sketch.
 
     Args:
@@ -834,7 +852,12 @@ def draw_pdf_sketch(sketch, exceptions=None):
     return res
 
 
-def draw_shape_sketch(sketch, ind=None, canvas=None, exceptions=None):
+def draw_shape_sketch(
+    sketch: Any,
+    ind: int | None = None,
+    canvas: Canvas | None = None,
+    exceptions: Collection[str] | None = None,
+) -> str:
     """Draws a shape sketch.
 
     Args:
@@ -875,7 +898,9 @@ def draw_shape_sketch(sketch, ind=None, canvas=None, exceptions=None):
     return res
 
 
-def draw_path_sketch(sketch, exceptions=None):
+def draw_path_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draw a path sketch using PGF's SVG path parser."""
     res = get_draw(sketch)
     if not res:
@@ -915,7 +940,11 @@ def draw_path_sketch(sketch, exceptions=None):
     return body + "".join(label_lines)
 
 
-def draw_line_sketch(sketch, canvas=None, exceptions=None):
+def draw_line_sketch(
+    sketch: Any,
+    canvas: Canvas | None = None,
+    exceptions: Collection[str] | None = None,
+) -> str:
     """Draws a line sketch.
 
     Args:
@@ -947,7 +976,9 @@ def draw_line_sketch(sketch, canvas=None, exceptions=None):
     return res
 
 
-def draw_circle_sketch(sketch, exceptions=None):
+def draw_circle_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws a circle sketch.
 
     Args:
@@ -981,7 +1012,9 @@ def draw_circle_sketch(sketch, exceptions=None):
     return res
 
 
-def draw_rect_sketch(sketch, exceptions=None):
+def draw_rect_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws a rectangle sketch.
 
     Args:
@@ -1016,7 +1049,9 @@ def draw_rect_sketch(sketch, exceptions=None):
     return res
 
 
-def draw_ellipse_sketch(sketch, exceptions=None):
+def draw_ellipse_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws an ellipse sketch.
 
     Args:
@@ -1055,7 +1090,9 @@ def draw_ellipse_sketch(sketch, exceptions=None):
     return res
 
 
-def draw_arc_sketch(sketch, exceptions=None):
+def draw_arc_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws an arc sketch.
 
     Args:
@@ -1113,7 +1150,9 @@ def draw_arc_sketch(sketch, exceptions=None):
     return res
 
 
-def draw_bezier_sketch(sketch, exceptions=None):
+def draw_bezier_sketch(
+    sketch: Any, exceptions: Collection[str] | None = None
+) -> str:
     """Draws a Bezier curve sketch.
 
     Args:
@@ -1142,14 +1181,14 @@ def draw_bezier_sketch(sketch, exceptions=None):
     return res
 
 
-def draw_line(line):
-    """Tikz code for a line.
+def draw_line(line: Any) -> str:
+    """Serialize a line drawable to TikZ ``\\draw`` or ``\\path`` markup.
 
     Args:
-        line: The line object.
+        line: Line object with ``start``, ``end``, and stroke attributes.
 
     Returns:
-        str: The TikZ code for the line.
+        str: TikZ markup.
     """
     p1 = line.start[:2]
     p2 = line.end[:2]

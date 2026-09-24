@@ -1,5 +1,7 @@
 """Lindenmayer system (L-system) rewriting and drawing helpers."""
 
+from __future__ import annotations
+
 from math import ceil
 
 from ..group.batch import Group
@@ -8,13 +10,13 @@ from .turtle_sg import Turtle
 
 
 def l_system(
-    rules: dict,
+    rules: dict[str, str],
     axiom: str,
     angle: float,
     dist: float,
     n: int,
-    d_actions: dict | None = None,
-):
+    d_actions: dict[str, str] | None = None,
+) -> Group:
     """Generate a Lindenmayer system (L-system) using the given rules.
 
     An L-system is a parallel rewriting system that uses recursive rules to
@@ -35,12 +37,15 @@ def l_system(
     Returns:
         Group: A group of shapes representing the L-system drawing.
 
-    **Examples**
-
-    ```python
-    rules = {'F': 'F+F-F-F+F'}  # Koch curve
-    group = l_system(rules, 'F', 60, 10, 3)
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> rules = {'F': 'F+F-F-F+F'}
+        >>> group = l_system(rules, 'F', 60, 10, 2)
+        >>> group.__class__.__name__
+        'Group'
+        >>> len(group)
+        1
 """
 
     turtle = Turtle(in_degrees=True)
@@ -62,7 +67,7 @@ def l_system(
             method = getattr(turtle, value)
             actions[key] = method
 
-    def expand(axiom, rules):
+    def expand(axiom: str, rules: dict[str, str]) -> str:
         """Expand the axiom using the provided rules.
 
         Args:

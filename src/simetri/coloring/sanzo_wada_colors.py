@@ -16,6 +16,15 @@ class Color:
         lab: CIELAB components.
         rgb: RGB components.
         hex: Hex color string.
+
+    Examples:
+        >>> from simetri.coloring.sanzo_wada_colors import Hermosa_Pink
+        >>> Hermosa_Pink.name
+        'Hermosa_Pink'
+        >>> Hermosa_Pink.rgb
+        [249, 193, 206]
+        >>> Hermosa_Pink.hex
+        '#f9c1ce'
     """
 
     name: str
@@ -1953,18 +1962,36 @@ for i in range(3):
             colored[i][k] = [[x / 256 for x in color_.rgb] for color_ in v]
 
 
-def randomSwatch2(nColors=4, seed: int | None = None):
+def randomSwatch2(
+    nColors: int = 4, seed: int | None = None
+) -> tuple[object, list[list[float]]]:
     """Return a random Sanzo Wada swatch with ``nColors`` colors.
 
     Args:
         nColors: Number of colors in the swatch (2–4 inclusive).
-        seed (int, optional): Seed for a local RNG. Defaults to None.
+        seed: Seed for a local RNG (default ``None``).
 
     Returns:
-        Selected swatch entry from the ``colored`` tables.
+        ``(swatch_key, colors)`` where ``colors`` are normalized RGB triples.
 
     Raises:
         ValueError: If ``nColors`` is outside 2–4.
+
+    Examples:
+        >>> from simetri.coloring.sanzo_wada_colors import randomSwatch2
+        >>> key, colors = randomSwatch2(2, seed=1)
+        >>> isinstance(key, int)
+        True
+        >>> len(colors)
+        2
+        >>> len(colors[0])
+        3
+        >>> randomSwatch2(2, seed=1)[1] == colors
+        True
+        >>> randomSwatch2(1)
+        Traceback (most recent call last):
+            ...
+        ValueError: nColors must be between 2 and 4 inclusive
     """
     if 1 < nColors < 5:
         randSwatchIndexes = colored[nColors - 2].keys()

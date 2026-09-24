@@ -1,15 +1,14 @@
 """Property modifiers applied over time to Group objects.
 
-**Examples**
-
-```python
-from simetri.helpers.modifiers import Modifier
-mod = Modifier(lambda obj: setattr(obj, "alpha", 0.5), life_span=10)
-```
+Examples:
 """
+
+from __future__ import annotations
 
 import inspect
 import random
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from ..base.all_enums import Control, State
 
@@ -17,6 +16,7 @@ from ..base.all_enums import Control, State
 class Modifier:
     """Used to modify the properties of a Group object.
 
+    Examples:
     Attributes:
         function (callable): The function to modify the property.
         life_span (int): The number of times the modifier can be applied.
@@ -31,14 +31,14 @@ class Modifier:
 
     def __init__(
         self,
-        function,
-        life_span=10000,
-        randomness=1.0,
-        condition=True,
-        *args,
+        function: Callable[..., Any],
+        life_span: int = 10000,
+        randomness: float | Callable[..., Any] | Sequence[Any] = 1.0,
+        condition: bool | Callable[..., Any] = True,
+        *args: object,
         seed: int | None = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> None:
         """
         Args:
             function (callable): The function to modify the property.
@@ -70,7 +70,7 @@ class Modifier:
         self.args = args
         self.kwargs = kwargs
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Returns a string representation of the Modifier object.
 
         Returns:
@@ -81,7 +81,7 @@ class Modifier:
             f"randomness:{self.randomness})"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns a string representation of the Modifier object.
 
         Returns:
@@ -89,15 +89,19 @@ class Modifier:
         """
         return self.__repr__()
 
-    def set_state(self, control):
+    def set_state(self, control: Control) -> None:
         """Sets the state of the modifier based on the control value.
 
         Args:
             control (Control): The control value to set the state.
+
+        Examples:
         """
         self.state = self._d_state[control]
 
-    def get_value(self, obj, target, *args, **kwargs):
+    def get_value(
+        self, obj: object, target: object, *args: object, **kwargs: object
+    ) -> Any:
         """Gets the value from an object or callable.
 
         Args:
@@ -108,6 +112,8 @@ class Modifier:
 
         Returns:
             object: The value obtained from the object or callable.
+
+        Examples:
         """
         if callable(obj):
             res = obj(target, *args, **kwargs)
@@ -117,7 +123,7 @@ class Modifier:
             res = obj
         return res
 
-    def apply(self, element):
+    def apply(self, element: object) -> Any | None:
         """Applies the modifier to an element.
 
         If a function returns a control value, it will be applied to the modifier.
@@ -127,6 +133,8 @@ class Modifier:
 
         Args:
             element (object): The element to apply the modifier to.
+
+        Examples:
         """
         if self.active and self.can_continue(element):
             if self.n_func_args == 1:
@@ -138,7 +146,7 @@ class Modifier:
         else:
             self.state = State.STOPPED
 
-    def can_continue(self, target):
+    def can_continue(self, target: object) -> bool:
         """Checks if the modifier can continue to be applied.
 
         Args:
@@ -146,6 +154,8 @@ class Modifier:
 
         Returns:
             bool: True if the modifier can continue, False otherwise.
+
+        Examples:
         """
         if callable(self.randomness):
             randomness = self.get_value(self.randomness, target)
@@ -173,7 +183,7 @@ class Modifier:
             res = False
         return res
 
-    def _update_state(self):
+    def _update_state(self) -> None:
         """Updates the state of the modifier based on its life span and count."""
         self.count += 1
         if self.count == 1:
@@ -188,6 +198,9 @@ class Modifier:
         else:
             self.state = State.STOPPED
 
-    def stop(self):
-        """Stops the modifier."""
+    def stop(self) -> None:
+        """Stops the modifier.
+
+        Examples:
+        """
         self.state = State.STOPPED

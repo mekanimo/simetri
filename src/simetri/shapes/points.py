@@ -3,20 +3,20 @@
 ``Points`` stores ``(x, y)`` vertices and lazily builds a homogeneous
 ``ndarray`` for affine transforms.
 
-**Examples**
-
-```python
-from simetri.shapes.points import Points
-pts = Points([(0, 0), (1, 0), (1, 1)])
-len(pts)
-# 3
-pts.nd_array.shape
-# (3, 3)
-```
+Examples:
+    >>> from simetri.shapes.points import Points
+    >>> pts = Points([(0, 0), (1, 0), (1, 1)])
+    >>> len(pts)
+    3
+    >>> pts.nd_array.shape
+    (3, 3)
 """
 
+from __future__ import annotations
+
 import copy
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from types import TracebackType
 from typing import Self
 
 from numpy import allclose, ndarray
@@ -31,7 +31,7 @@ from ..helpers.utilities import format_data, register_format_handler
 class _GroupUpdateContext:
     """Context manager for batch operations on Points to avoid redundant cache invalidations."""
 
-    def __init__(self, points_obj):
+    def __init__(self, points_obj: Points) -> None:
         """Bind to a ``Points`` instance for deferred cache invalidation.
 
         Args:
@@ -40,13 +40,18 @@ class _GroupUpdateContext:
         self.points_obj = points_obj
         self.original_invalidate = None
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         # Replace the invalidate method with a no-op during group operations
         self.original_invalidate = self.points_obj._invalidate_cache
         self.points_obj._invalidate_cache = lambda: None
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         # Restore original method and invalidate cache once
         self.points_obj._invalidate_cache = self.original_invalidate
         self.points_obj._invalidate_cache()
@@ -64,14 +69,11 @@ class Points:
         type: Always ``Types.POINTS``.
         nd_array_changed: Set when the cache should be refreshed by Shape.
 
-    **Examples**
-
-    ```python
-    pts = Points([(0, 0), (10, 0)])
-    pts.append((10, 10))
-    list(pts)
-    # [(0, 0), (10, 0), (10, 10)]
-    ```
+    Examples:
+        >>> pts = Points([(0, 0), (10, 0)])
+        >>> _ = pts.append((10, 10))
+        >>> list(pts)
+        [(0, 0), (10, 0), (10, 10)]
 """
 
     def __init__(self, coords: Sequence[PointType] | None = None) -> None:
@@ -95,7 +97,7 @@ class Points:
         self.subtype = Types.POINTS
         self.nd_array_changed = False
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the points.
 
         Returns:
@@ -104,7 +106,7 @@ class Points:
         return f"Points({self.coords})"
 
     @property
-    def nd_array(self):
+    def nd_array(self) -> ndarray:
         """Get the homogeneous coordinates of the points (computed lazily).
 
         Returns:
@@ -119,7 +121,7 @@ class Points:
         return self._nd_array_cache
 
     @nd_array.setter
-    def nd_array(self, value):
+    def nd_array(self, value: ndarray) -> None:
         """Set the homogeneous coordinates directly and mark as clean.
 
         Args:
@@ -128,12 +130,12 @@ class Points:
         self._nd_array_cache = value
         self._coords_dirty = False
 
-    def _invalidate_cache(self):
+    def _invalidate_cache(self) -> None:
         """Mark the homogeneous coordinates cache as dirty and notify shape if needed."""
         self._coords_dirty = True
         self.nd_array_changed = True
 
-    def group_update(self):
+    def group_update(self) -> _GroupUpdateContext:
         """Context manager for group operations to avoid redundant cache invalidations.
 
         Usage:
@@ -144,7 +146,7 @@ class Points:
         """
         return _GroupUpdateContext(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of the points.
 
         Returns:
@@ -152,14 +154,16 @@ class Points:
         """
         return f"Points({self.coords})"
 
-    def __getitem__(self, subscript):
+    def __getitem__(
+        self, subscript: int | slice
+    ) -> PointType | list[PointType]:
         """Get the point(s) at the given subscript.
 
         Args:
-            subscript (int or slice): The subscript to get the point(s) from.
+            subscript: Index or slice into ``coords``.
 
         Returns:
-            PointType or list[PointType]: The point(s) at the given subscript.
+            One point or a list of points at ``subscript``.
 
         Raises:
             TypeError: If the subscript type is invalid.
@@ -172,16 +176,20 @@ class Points:
             raise TypeError("Invalid subscript type")
         return res
 
-    def _update_coords(self):
+    def _update_coords(self) -> None:
         """Mark homogeneous coordinates as needing update (replaced with lazy evaluation)."""
         self._invalidate_cache()
 
-    def __setitem__(self, subscript, value):
+    def __setitem__(
+        self,
+        subscript: int | slice,
+        value: PointType | list[PointType],
+    ) -> None:
         """Set the point(s) at the given subscript.
 
         Args:
-            subscript (int or slice): The subscript to set the point(s) at.
-            value (PointType or list[PointType]): The value to set the point(s) to.
+            subscript: Index or slice into ``coords``.
+            value: Point or list of points to assign.
 
         Raises:
             TypeError: If the subscript type is invalid.
@@ -197,11 +205,11 @@ class Points:
         else:
             raise TypeError("Invalid subscript type")
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Check if the points are equal to another Points object.
 
         Args:
-            other (Points): The other Points object to compare against.
+            other: Object to compare (must be ``Points`` with matching coords).
 
         Returns:
             bool: True if the points are equal, False otherwise.
@@ -256,11 +264,11 @@ class Points:
         self._update_coords()
         return value
 
-    def __delitem__(self, subscript) -> Self:
+    def __delitem__(self, subscript: int | slice) -> Self:
         """Delete the point(s) at the given subscript.
 
         Args:
-            subscript (int or slice): The subscript to delete the point(s) from.
+            subscript: Index or slice into ``coords``.
 
         Raises:
             TypeError: If the subscript type is invalid.
@@ -274,7 +282,7 @@ class Points:
             raise TypeError("Invalid subscript type")
         self._update_coords()
 
-    def remove(self, value):
+    def remove(self, value: PointType) -> None:
         """Remove the first occurrence of the given point.
 
         Args:
@@ -283,35 +291,35 @@ class Points:
         self.coords.remove(value)
         self._update_coords()
 
-    def insert(self, index, points):
+    def insert(self, index: int, points: PointType) -> None:
         """Insert a point at the specified index.
 
         Args:
-            index (int): The index to insert the point at.
-            points (PointType): The point to insert.
+            index: Index at which to insert.
+            points: Point to insert.
         """
         self.coords.insert(index, points)
         self._update_coords()
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all points."""
         self.coords.clear()
         self._invalidate_cache()
 
-    def reverse(self):
+    def reverse(self) -> None:
         """Reverse the order of the points."""
         self.coords.reverse()
         self._update_coords()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[PointType]:
         """Return an iterator over the points.
 
         Returns:
-            Iterator[PointType]: An iterator over the points.
+            Iterator over ``coords``.
         """
         return iter(self.coords)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the number of points.
 
         Returns:
@@ -319,7 +327,7 @@ class Points:
         """
         return len(self.coords)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         """Return whether the Points object has any points.
 
         Returns:
@@ -328,7 +336,7 @@ class Points:
         return bool(self.coords)
 
     @property
-    def homogen_coords(self):
+    def homogen_coords(self) -> ndarray:
         """Return the homogeneous coordinates of the points.
 
         Returns:
@@ -336,11 +344,11 @@ class Points:
         """
         return self.nd_array
 
-    def copy(self):
+    def copy(self) -> Points:
         """Return a copy of the Points object.
 
         Returns:
-            Points: A copy of the Points object.
+            A shallow copy with duplicated homogeneous cache when valid.
         """
         points = Points(copy.copy(self.coords))
         # Copy the cached homogeneous coordinates if they exist
@@ -350,11 +358,11 @@ class Points:
         return points
 
     @property
-    def pairs(self):
-        """Return a list of consecutive pairs of points.
+    def pairs(self) -> list[tuple[PointType, PointType]]:
+        """Return consecutive vertex pairs along ``coords``.
 
         Returns:
-            list[tuple[PointType, PointType]]: A list where each element is a tuple containing two consecutive points.
+            ``[(p0, p1), (p1, p2), ...]``.
         """
         return list(zip(self.coords[:-1], self.coords[1:]))
 

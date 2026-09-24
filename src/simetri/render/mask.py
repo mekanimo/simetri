@@ -8,7 +8,7 @@ re-exported from ``simetri.graphics``.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -43,6 +43,13 @@ class Mask:
     Raises:
         TypeError: If ``shape`` is not a Shape.
         ValueError: If ``opacity`` is outside ``[0, 1]``.
+
+    Examples:
+        >>> from simetri.render.mask import Mask
+        >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)])
+        >>> mask = Mask(shape=shape)
+        >>> mask.type.name
+        'MASK'
     """
 
     shape: Shape
@@ -53,7 +60,7 @@ class Mask:
     center: tuple[float, float] = (0, 0)
     focal: tuple[float, float] = (0, 0)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.shape.type != Types.SHAPE:
             raise TypeError("mask.shape must be a Shape.")
 
@@ -66,14 +73,19 @@ class Mask:
             raise ValueError("mask opacity must be between 0 and 1.")
 
 
-def normalize_axis(axis):
+def normalize_axis(axis: Axis | tuple[float, float] | None) -> tuple[float, float]:
     """Return a usable mask axis.
 
     Args:
-        axis: Explicit axis value or ``None``.
+        axis: Explicit axis value or ``None`` (uses ``defaults['mask_axis']``).
 
     Returns:
-        tuple | object: Axis value for downstream renderers.
+        Two endpoints ``((x0, y0), (x1, y1))`` for linear mask gradients.
+
+    Examples:
+        >>> from simetri.render.mask import normalize_axis
+        >>> len(normalize_axis(None))
+        2
     """
     if axis is None:
         return defaults["mask_axis"]
@@ -137,8 +149,8 @@ def clip_mask_(
     self: Canvas,
     target: Shape | Group | None = None,
     mask: Mask = None,
-    **kwargs,
-):
+    **kwargs: object,
+) -> Canvas:
     """Apply a ``Mask`` to a target and draw it (legacy API).
 
     Note:
@@ -157,6 +169,13 @@ def clip_mask_(
     Raises:
         TypeError: If ``mask`` or ``target`` has an unsupported type.
         ValueError: If opacity or unsupported units are invalid.
+
+    Examples:
+        >>> from simetri.render.mask import Mask, clip_mask_
+        >>> canvas = sg.Canvas()
+        >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)])
+        >>> clip_mask_(canvas, None, Mask(shape=shape)) is canvas  # doctest: +SKIP
+        True
     """
     mask_opacity = defaults.get("alpha", 1.0)
     mask_stops = None

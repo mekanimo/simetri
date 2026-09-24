@@ -4,12 +4,14 @@ Implementation details follow Knuth's METAFONT: The Program (pp. 112–113).
 Adapted from https://github.com/ltrujello/Hobby_Curve_Algorithm (2025-02-07).
 """
 
+from collections.abc import Sequence
 from typing import Self
 
 import cmath
 
 import numpy as np
 
+from ...base.common import PointType
 from ...config.settings import defaults
 from ...shapes.shape import Shape
 from .bezier import bezier_points
@@ -316,14 +318,12 @@ def hobby_ctrl_points(
     Returns:
         A list of (x, y) tuples representing the Bezier control points.
 
-    **Examples**
+    Examples:
 
-    ```python
-    from simetri.geom.hobby import hobby_ctrl_points
-
-    ```
-            pts = [(0, 0), (1, 1), (2, 0)]
-            hobby_ctrl_points(pts, tension=1)
+        >>> import simetri.graphics as sg
+        >>> ctrl = sg.hobby_ctrl_points([(0, 0), (1, 1), (2, 0)], tension=1)
+        >>> len(ctrl) >= 4
+        True
     """
     curve = HobbyCurve(
         points,
@@ -376,6 +376,11 @@ def velocity(theta: float, phi: float) -> float:
 
     Returns:
         The computed velocity value used in control point calculations.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.velocity(0.0, 0.0), 6)
+        1.0
     """
     numerator = 2 + np.sqrt(2) * (np.sin(theta) - (1 / 16) * np.sin(phi)) * (
         np.sin(phi) - (1 / 16) * np.sin(theta)
@@ -389,8 +394,13 @@ def velocity(theta: float, phi: float) -> float:
 
 
 def hobby_shape(
-    points, cyclic=False, tension=1, begin_curl=1, end_curl=1, n_points=None
-):
+    points: Sequence[PointType],
+    cyclic: bool = False,
+    tension: float = 1,
+    begin_curl: float = 1,
+    end_curl: float = 1,
+    n_points: int | None = None,
+) -> Shape:
     """Create a ``Shape`` along a Hobby spline through the given points.
 
     Computes cubic Bezier control points with Hobby's algorithm, then samples
@@ -408,19 +418,15 @@ def hobby_shape(
     Returns:
         Shape: Polyline vertices along the smooth Hobby curve.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-
-    ```
-            shape = sg.hobby_shape([(0, 0), (40, 30), (80, 0)], tension=1)
-            canvas = sg.Canvas()
-            canvas.draw(shape)
+    Examples:
 
         >>> import simetri.graphics as sg
-        >>> from simetri.geom.nonlinear.hobby import hobby_shape
-        >>> len(hobby_shape([(0, 0), (10, 5), (20, 0)], n_points=5).vertices)
+        >>> shape = sg.hobby_shape([(0, 0), (40, 30), (80, 0)], tension=1)
+        >>> len(shape.vertices) > 0
+        True
+        >>> canvas = sg.Canvas()  # doctest: +SKIP
+        >>> canvas.draw(shape)  # doctest: +SKIP
+        >>> len(sg.hobby_shape([(0, 0), (10, 5), (20, 0)], n_points=5).vertices)
         10
     """
     if n_points is None:

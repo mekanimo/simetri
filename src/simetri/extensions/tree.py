@@ -4,15 +4,22 @@ import enum
 import inspect
 import os
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
+from pathlib import Path
 from typing import Any
 
 import simetri.geom.points.point_utils
 import simetri.graphics as sg
 
 
-def next_id():
-    """Generates a unique ID for each node."""
+def next_id() -> int:
+    """Return the next unique node id.
+
+    Examples:
+        >>> start = next_id.counter
+        >>> next_id() == start + 1
+        True
+    """
     next_id.counter += 1
     return next_id.counter
 
@@ -31,6 +38,13 @@ class TreeNode:
         font_size: Label font size.
         font_color: Label color.
         bold: Whether the label is drawn bold.
+
+    Examples:
+        >>> node = TreeNode('root')
+        >>> node.tag
+        'root'
+        >>> isinstance(node.id, int)
+        True
     """
 
     def __init__(
@@ -38,10 +52,10 @@ class TreeNode:
         tag: str = "",
         children: Sequence["TreeNode"] | None = None,
         extra: Any = None,
-        font_size=12,
-        font_color=sg.black,
-        bold=False,
-    ):
+        font_size: float = 12,
+        font_color: Any = sg.black,
+        bold: bool = False,
+    ) -> None:
         """Create a tree node.
 
         Args:
@@ -51,6 +65,11 @@ class TreeNode:
             font_size: Label font size.
             font_color: Label color.
             bold: Whether the label is drawn bold.
+
+        Examples:
+            >>> node = TreeNode('leaf', bold=True)
+            >>> node.bold
+            True
         """
         self.tag = tag
         self.id = next_id()
@@ -60,30 +79,47 @@ class TreeNode:
         self.font_color = font_color
         self.bold = bold
 
-    def add_child(self, child):
+    def add_child(self, child: TreeNode) -> None:
         """Add a child node if it is not already present.
 
         Args:
-            child (TreeNode): The child node to add.
+            child: Node to append when not already present.
+
+        Examples:
+            >>> parent = TreeNode('a')
+            >>> child = TreeNode('b')
+            >>> parent.add_child(child)
+            >>> parent.num_all_children()
+            1
         """
         if child.id not in (c.id for c in self.children):
             self.children.append(child)
 
-    def num_all_children(self):
+    def num_all_children(self) -> int:
         """Count descendants of this node (children and deeper).
 
-        Returns:
-            int: Total number of descendant nodes.
+        Examples:
+            >>> root = TreeNode('r')
+            >>> root.add_child(TreeNode('a'))
+            >>> root.add_child(TreeNode('b'))
+            >>> root.num_all_children()
+            2
         """
         return len(self.children) + sum(
             child.num_all_children() for child in self.children
         )
 
-    def depth(self):
+    def depth(self) -> int:
         """Return a layout depth metric based on descendant counts.
 
-        Returns:
-            int: Depth value used when laying out siblings.
+        Examples:
+            >>> leaf = TreeNode('leaf')
+            >>> leaf.depth()
+            0
+            >>> root = TreeNode('r')
+            >>> root.add_child(TreeNode('c'))
+            >>> root.depth()
+            1
         """
         if not self.children:
             return 0
@@ -93,21 +129,21 @@ class TreeNode:
 
 
 def make_tree(
-    node,
+    node: TreeNode,
     canvas: Any = None,
     file_path: str | None = None,
     overwrite: bool = False,
     dx: float = 10,
     dy: float = 18,
-    icons=None,
-    line1_color=sg.gray,
-    line1_width=0.5,
-    line1_cap=sg.LineCap.ROUND,
-    line2_color=sg.gray,
-    line2_width=0.75,
-    line2_cap=sg.LineCap.ROUND,
-    scale=1,
-):
+    icons: Sequence[Any] | None = None,
+    line1_color: Any = sg.gray,
+    line1_width: float = 0.5,
+    line1_cap: Any = sg.LineCap.ROUND,
+    line2_color: Any = sg.gray,
+    line2_width: float = 0.75,
+    line2_cap: Any = sg.LineCap.ROUND,
+    scale: float = 1,
+) -> None:
     """Draw a tree diagram on a canvas and optionally save it.
 
     Args:
@@ -125,6 +161,12 @@ def make_tree(
         line2_width: Width of longer connectors.
         line2_cap: Cap style of longer connectors.
         scale: Overall scale factor for the drawing.
+
+    Examples:
+        >>> root = TreeNode('demo')
+        >>> root.add_child(TreeNode('child'))
+        >>> canvas = sg.Canvas()
+        >>> make_tree(root, canvas=canvas)  # doctest: +SKIP
     """
     diamond = sg.Shape([(0, 5), (3, 0), (0, -5), (-3, 0)], closed=True)
     diamond.fill_color = sg.black
@@ -170,7 +212,7 @@ def make_tree(
         ]
     )  # method
 
-    def node_icon(node):
+    def node_icon(node: TreeNode) -> Any:
         if node.extra == "enum_value":
             return icon5
         if node.extra == "enum_class":
@@ -183,7 +225,9 @@ def make_tree(
             return icon3
         return icon2
 
-    def draw_tree(node, indent: int = 0, canvas: Any = None):
+    def draw_tree(
+        node: TreeNode, indent: int = 0, canvas: Any = None
+    ) -> None:
         """Draw ``node`` and recursively draw its children.
 
         Args:
@@ -266,8 +310,8 @@ isdir = os.path.isdir
 join = os.path.join
 
 
-def _print_file_tree(root_dir, prefix=""):
-    """Recursively generate a file tree using Unicode characters."""
+def _print_file_tree(root_dir: str | Path, prefix: str = "") -> None:
+    """Recursively print a directory tree using Unicode branch characters."""
     entries = sorted(os.listdir(root_dir))
     entries = [e for e in entries if not e.startswith(".")]  # Hide hidden files
 
@@ -287,16 +331,16 @@ def _print_file_tree(root_dir, prefix=""):
 
 
 def tree_from_class(
-    canvas,
-    class_obj,
-    exclude=None,
-    stubs=None,
-    draw=True,
-    file_path=None,
-    overwrite=False,
-    show_enum_values=False,
-    **kwargs,
-):
+    canvas: Any | None,
+    class_obj: type,
+    exclude: Iterable[str] | None = None,
+    stubs: Iterable[str] | None = None,
+    draw: bool = True,
+    file_path: str | None = None,
+    overwrite: bool = False,
+    show_enum_values: bool = False,
+    **kwargs: object,
+) -> TreeNode:
     """Create a TreeNode hierarchy from a class and optionally draw it on a canvas.
 
     Args:
@@ -309,10 +353,17 @@ def tree_from_class(
         overwrite: Overwrite output file when saving.
         show_enum_values: If True, enum members are listed as child nodes.
         **kwargs: Extra args forwarded to make_tree.
+
+    Examples:
+        >>> root = tree_from_class(None, TreeNode, draw=False)
+        >>> root.tag.startswith('TreeNode')
+        True
+        >>> root.num_all_children() > 0
+        True
     """
     from typing import Union, get_args, get_origin
 
-    def _type_to_str(tp):
+    def _type_to_str(tp: Any) -> str:
         if tp is inspect._empty:
             return "Any"
         if isinstance(tp, str):
@@ -337,7 +388,7 @@ def tree_from_class(
             return tp.__name__
         return str(tp).replace("typing.", "")
 
-    def _iter_referenced_types(tp):
+    def _iter_referenced_types(tp: Any) -> Iterator[type]:
         origin = get_origin(tp)
         args = get_args(tp)
         if origin is None:
@@ -352,7 +403,7 @@ def tree_from_class(
             else:
                 yield from _iter_referenced_types(arg)
 
-    def _resolve_type_name_in_context(type_name: str, cls):
+    def _resolve_type_name_in_context(type_name: str, cls: type) -> type | None:
         module = inspect.getmodule(cls)
         if module is not None:
             candidate = getattr(module, type_name, None)
@@ -364,7 +415,9 @@ def tree_from_class(
             return candidate
         return None
 
-    def _infer_sequence_item_types(cls, field_name, ann):
+    def _infer_sequence_item_types(
+        cls: type, field_name: str, ann: Any
+    ) -> list[type]:
         inferred = []
         origin = get_origin(ann)
         args = get_args(ann)
@@ -405,7 +458,7 @@ def tree_from_class(
 
         return inferred
 
-    def _method_signature(member):
+    def _method_signature(member: Callable[..., Any]) -> str:
         sig = inspect.signature(member)
 
         params = []
@@ -417,7 +470,13 @@ def tree_from_class(
         ret_text = _type_to_str(sig.return_annotation)
         return f"({', '.join(params)}) -> {ret_text}"
 
-    def _add_class_tree(node, cls, visited, depth=0, max_depth=2):
+    def _add_class_tree(
+        node: TreeNode,
+        cls: type,
+        visited: set[type],
+        depth: int = 0,
+        max_depth: int = 2,
+    ) -> None:
         if cls in visited or depth > max_depth:
             return
         if cls.__name__ in stubs:
@@ -589,16 +648,16 @@ def tree_from_class(
 
 
 def print_tree(
-    root,
-    prefix="",
-    file_tree=True,
-    canvas=None,
-    file_path=None,
-    overwrite=False,
-    exclude=None,
-    stubs=None,
-    **kwargs,
-):
+    root: str | Path | type | TreeNode,
+    prefix: str = "",
+    file_tree: bool = True,
+    canvas: Any | None = None,
+    file_path: str | None = None,
+    overwrite: bool = False,
+    exclude: Iterable[str] | None = None,
+    stubs: Iterable[str] | None = None,
+    **kwargs: object,
+) -> TreeNode | None:
     """Print or draw a tree.
 
     Args:
@@ -611,6 +670,12 @@ def print_tree(
         exclude: Optional exclude list used when root is a class.
         stubs: Optional class-name list to render as single non-expanded nodes.
         **kwargs: Extra arguments forwarded to make_tree.
+
+    Examples:
+        >>> node = TreeNode('x')
+        >>> out = print_tree(node, file_tree=False, canvas=sg.Canvas())
+        >>> out.tag
+        'x'
     """
     if file_tree:
         _print_file_tree(root, prefix)
@@ -632,12 +697,18 @@ def print_tree(
     return node
 
 
-def list_directories(path):
-    """List all directories in a given path.
+def list_directories(path: str | Path) -> list[str]:
+    """Return subdirectory names under ``path`` (non-recursive).
+
     Args:
-        path (str): The path to search for directories.
+        path: Directory to list.
+
     Returns:
-        list: A list of directories in the given path.
+        Names of immediate child directories.
+
+    Examples:
+        >>> 'extensions' in list_directories('src/simetri')
+        True
     """
     return [e for e in os.listdir(path) if isdir(join(path, e))]
 

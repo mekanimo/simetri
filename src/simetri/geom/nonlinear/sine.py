@@ -21,15 +21,14 @@ class SineWave(Shape):
         damping: Exponential damping coefficient (typical range 0.001–0.005).
         rot_angle: Rotation angle stored with the instance.
 
-    **Examples**
+    Examples:
 
-    ```python
-    import simetri.graphics as sg
-
-    ```
-            wave = sg.SineWave(period=40, amplitude=20, duration=80)
-            canvas = sg.Canvas()
-            canvas.draw(wave)
+        >>> import simetri.graphics as sg
+        >>> wave = sg.SineWave(period=40, amplitude=20, duration=80)
+        >>> len(wave.vertices) > 0
+        True
+        >>> canvas = sg.Canvas()  # doctest: +SKIP
+        >>> canvas.draw(wave)  # doctest: +SKIP
     """
 
     def __init__(
@@ -42,8 +41,8 @@ class SineWave(Shape):
         damping: float = 0,
         rot_angle: float = 0,
         xform_matrix: NDArray = None,
-        **kwargs,
-    ) -> Shape:
+        **kwargs: object,
+    ) -> None:
         """Create a sine-wave shape from sampled points.
 
         Args:
@@ -75,7 +74,7 @@ class SineWave(Shape):
         self.damping = (damping,)
         self.rot_angle = (rot_angle,)
 
-    def copy_(self):
+    def copy_(self) -> SineWave:
         """Return a new ``SineWave`` with the same parameters.
 
         Returns:
@@ -113,6 +112,14 @@ def sine_wave(
 
     Returns:
         np.ndarray: Time and signal arrays representing the sine wave.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> time, signal = sg.sine_wave(1.0, 1.0, 1.0, 4.0)
+        >>> len(time), len(signal)
+        (4, 4)
+        >>> round(float(signal[0]), 6)
+        0.0
     """
     time = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     signal = amplitude * np.sin(2 * np.pi * frequency * time + phase)
@@ -125,7 +132,9 @@ def sine_wave(
     return time, signal
 
 
-def damping_function(amplitude, duration, sample_rate):
+def damping_function(
+    amplitude: float, duration: float, sample_rate: float
+) -> tuple[NDArray, NDArray]:
     """
     Generates a damping function based on the given amplitude, duration, and sample rate.
 
@@ -136,6 +145,12 @@ def damping_function(amplitude, duration, sample_rate):
 
     Returns:
         list: A list of float values representing the damping function over time.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> vals = sg.damping_function(10.0, 1.0, 4.0)
+        >>> len(vals), round(vals[0], 6), round(vals[-1], 6)
+        (4, 10.0, 4.723666)
     """
     return [
         amplitude * exp(-i / (duration * sample_rate))
@@ -163,6 +178,12 @@ def sine_points(
         damping (float, optional): Damping coefficient. Defaults to 0.
     Returns:
         np.ndarray: Array of points representing the sine wave.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.sine_points(period=10, amplitude=5, duration=10, n_points=10)
+        >>> len(pts), round(pts[0][0], 6), round(pts[0][1], 6)
+        (10, 0.0, 0.0)
     """
     phase = phase_angle
     freq = 1 / period

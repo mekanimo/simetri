@@ -22,6 +22,13 @@ class State:
         pos: Turtle position as ``(x, y)``.
         angle: Heading angle in degrees or radians.
         pen_is_down: Whether the pen is currently drawing.
+
+    Examples:
+        >>> s = State((1.0, 2.0), 90.0, True)
+        >>> s.pos
+        (1.0, 2.0)
+        >>> s.pen_is_down
+        True
     """
 
     pos: tuple
@@ -37,15 +44,15 @@ class Turtle(Group):
         in_degrees: If True, angles are in degrees; otherwise radians.
         **kwargs: Keyword arguments forwarded to ``Group``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    t = sg.Turtle(in_degrees=True)
-    t.forward(40)
-    t.right(90)
-    t.forward(40)
-    ```
+    Examples:
+        >>> t = Turtle(in_degrees=True)
+        >>> t.forward(40)
+        >>> round(t.pos[1], 4)
+        40.0
+        >>> t.right(90)
+        >>> t.forward(10)
+        >>> round(t.pos[0], 4)
+        10.0
 """
 
     def __init__(
@@ -85,6 +92,14 @@ class Turtle(Group):
 
         Returns:
             float: The current angle, normalized to 0-360 degrees or 0-2π radians.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.angle
+            90
+            >>> t.right(90)
+            >>> t.angle
+            0
         """
         if self.in_degrees:
             res = self._angle % 360
@@ -100,6 +115,12 @@ class Turtle(Group):
         Args:
             value (float): The new angle value in degrees or radians
                 based on the turtle's configuration.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.angle = 45
+            >>> t.angle
+            45
         """
         self._angle = value
 
@@ -129,6 +150,12 @@ class Turtle(Group):
 
         Args:
             dist (float, optional): The distance to move forward. Defaults to self.def_dist.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.forward(5)
+            >>> len(t.current_list)
+            2
         """
         x, y = self._forward_pos(dist)[:2]
         self.pos = (x, y)
@@ -143,6 +170,14 @@ class Turtle(Group):
 
         Args:
             dist (float, optional): The distance to move forward. Defaults to self.def_dist.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.go(3)
+            >>> len(t.lists)
+            1
+            >>> round(t.current_list[-1][1], 4)
+            3.0
         """
         x, y = self._forward_pos(dist)[:2]
         self.pos = (x, y)
@@ -154,6 +189,13 @@ class Turtle(Group):
 
         Args:
             dist (float, optional): The distance to move backward. Defaults to self.def_dist.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.forward(10)
+            >>> t.backward(10)
+            >>> round(t.pos[1], 4)
+            0.0
         """
         if dist is None:
             dist = self.def_dist
@@ -164,6 +206,12 @@ class Turtle(Group):
 
         Args:
             angle (float, optional): The angle to turn left. Defaults to self.def_angle.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.left(90)
+            >>> t.angle
+            180
         """
         if angle is None:
             angle = self.def_angle
@@ -174,6 +222,12 @@ class Turtle(Group):
 
         Args:
             angle (float, optional): The angle to turn right. Defaults to self.def_angle.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.right(90)
+            >>> t.angle
+            0
         """
         if angle is None:
             angle = self.def_angle
@@ -183,6 +237,12 @@ class Turtle(Group):
         """Turn the turtle around by 180 degrees.
 
         Rotates the turtle 180 degrees from its current direction.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.turn_around()
+            >>> t.angle
+            270
         """
         if self.in_degrees:
             self._angle += 180
@@ -193,6 +253,12 @@ class Turtle(Group):
         """Lift the pen.
 
         Stops drawing and saves the current path when the turtle moves.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.pen_up()
+            >>> t.pen_is_down
+            False
         """
         self.pen_is_down = False
         self.lists.append(self.current_list)
@@ -203,6 +269,13 @@ class Turtle(Group):
 
         Enables drawing when the turtle moves and adds the current position
         to the current path.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.pen_up()
+            >>> t.pen_down()
+            >>> t.pen_is_down
+            True
         """
         self.pen_is_down = True
         self.current_list.append(self.pos)
@@ -212,6 +285,12 @@ class Turtle(Group):
 
         Args:
             pos (tuple): The target position as (x, y) coordinates.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.move_to((3, 4))
+            >>> t.pos
+            (3, 4)
         """
         self.pos = pos
         if self.pen_is_down:
@@ -221,6 +300,12 @@ class Turtle(Group):
         """Save the current state of the turtle.
 
         Stores the current position, angle, and pen state for later retrieval.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.push()
+            >>> len(t.stack)
+            1
         """
         state = State(self.pos, self._angle, self.pen_is_down)
         self.stack.append(state)
@@ -229,6 +314,15 @@ class Turtle(Group):
         """Restore the last saved state of the turtle.
 
         Retrieves the most recently saved state and restores the turtle to it.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.forward(5)
+            >>> t.push()
+            >>> t.forward(5)
+            >>> t.pop()
+            >>> round(t.pos[1], 4)
+            5.0
         """
         state = self.stack.pop()
         self.pos = state.pos
@@ -242,6 +336,11 @@ class Turtle(Group):
 
         Appends the current shape to the batch and resets position, angle,
         and pen state.
+
+        Examples:
+            >>> t = Turtle(in_degrees=True)
+            >>> t.forward(5)
+            >>> t.reset()  # doctest: +SKIP
         """
         self.append(self.current_shape)
         self.pos = (0, 0)
@@ -278,14 +377,11 @@ def add_digits(n: int) -> int:
     Returns:
         int: The sum of all digits in n.
 
-    **Examples**
-
-    ```python
-    add_digits(10)
-    # 1
-    add_digits(123)
-    # 6
-    ```
+    Examples:
+        >>> add_digits(10)
+        1
+        >>> add_digits(123)
+        6
 """
     return sum(int(x) for x in str(n))
 
@@ -304,12 +400,12 @@ def spirolateral(
     Returns:
         The ``Turtle`` used for drawing.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    t = sg.spirolateral([1, 2, 3], angle=90, cycles=12)
-    ```
+    Examples:
+        >>> t = spirolateral([1, 2, 3], angle=90, cycles=3)
+        >>> t.__class__.__name__
+        'Turtle'
+        >>> len(t.current_list) > 1
+        True
 """
     turtle = Turtle(in_degrees=True)
     count = 0
@@ -336,13 +432,12 @@ def spiral(
     Returns:
         The turtle used for drawing.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    t = sg.Turtle(in_degrees=True)
-    sg.spiral(t, side=10, angle=20, delta=2, cycles=30)
-    ```
+    Examples:
+        >>> t = Turtle(in_degrees=True)
+        >>> spiral(t, side=10, angle=20, delta=2, cycles=3) is t
+        True
+        >>> len(t.current_list)
+        4
 """
     t = turtle
     count = 0

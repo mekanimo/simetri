@@ -6,7 +6,7 @@ filters, masks), shape elements, and page framing via ``get_svg_code``.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ...base.all_enums import (
     MarkerType,
@@ -14,7 +14,7 @@ from ...base.all_enums import (
     Types,
     WarningType,
 )
-from ...coloring.colors import black, check_color, white
+from ...coloring.colors import Color, black, check_color, white
 from ...geom.bbox import bounding_box
 from ...geom.homogenize import homogenize
 from ...helpers.illustration import resolve_page_vertex_labels
@@ -34,13 +34,17 @@ if TYPE_CHECKING:
     from ..canvas import Canvas
 
 
-def append_non_default_style_options(options, sketch, style_map):
+def append_non_default_style_options(
+    options: list[str],
+    sketch: Any,
+    style_map: dict[str, tuple[str, str]],
+) -> None:
     """Append CSS style options for sketch attributes that differ from defaults.
 
     Args:
         options: List of style option strings (mutated).
         sketch: Sketch object.
-        style_map: Dictionary mapping sketch attribute name to (css_name, default_key).
+        style_map: Maps sketch attribute name to ``(css_name, default_key)``.
     """
     sketch_dict = sketch_attrib(sketch, "__dict__")
     for attrib_name, (css_name, default_key) in style_map.items():
@@ -69,14 +73,14 @@ _attrib_map = {
 }
 
 
-def get_marker_options(sketch):
-    """Returns the options for the markers.
+def get_marker_options(sketch: Any) -> list[str]:
+    """Return TikZ-style marker option strings for a sketch.
 
     Args:
-        sketch: The sketch object.
+        sketch: Sketch with marker attributes.
 
     Returns:
-        list: The marker options as a list.
+        list[str]: Marker options, or an empty list when markers are disabled.
     """
     attrib_map = _attrib_map
 
@@ -130,7 +134,7 @@ style="{style_options}"/>'
 """
 
 
-def _svg_insert_snippets(canvas, location: SvgLoc) -> str:
+def _svg_insert_snippets(canvas: Canvas, location: SvgLoc) -> str:
     """Return joined raw SVG fragments stored at ``location``."""
     snippets = [
         sketch.code
@@ -141,7 +145,7 @@ def _svg_insert_snippets(canvas, location: SvgLoc) -> str:
     return "\n".join(snippets)
 
 
-def _page_has_svg_inserts(canvas) -> bool:
+def _page_has_svg_inserts(canvas: Canvas) -> bool:
     """Return True if the active page has any ``SvgSketch``."""
     for sketch in canvas.active_page.sketches:
         if sketch.subtype == Types.SVG_SKETCH:
@@ -163,22 +167,28 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
     css_styles = styles_dict["css_styles"]
     svg_sketch_utils_module.set_active_svg_style_ids(sketch_style_ids)
 
-    def render_sketches(sketches, ind):
+    def render_sketches(sketches: list[Any], ind: int) -> str:
         code = [
             get_sketch_code(sketch, canvas, ind, []) for sketch in sketches
         ]
         return "\n".join(code)
 
-    def get_sketch_code(sketch, canvas, ind, suppressed_style_keys):
-        """Get the SVG code for a sketch.
+    def get_sketch_code(
+        sketch: Any,
+        canvas: Canvas,
+        ind: int,
+        suppressed_style_keys: list[str],
+    ) -> str:
+        """Serialize one sketch to SVG markup.
 
         Args:
-            sketch: The sketch object.
-            canvas: The canvas object.
-            ind: The index.
+            sketch: Sketch to render.
+            canvas: Canvas used for population and context.
+            ind: Starting index for vertex/marker labels.
+            suppressed_style_keys: Style property names to omit.
 
         Returns:
-            tuple: The SVG code and the updated index.
+            str: SVG fragment for the sketch (may be empty).
         """
 
         subtype = sketch_attrib(sketch, "subtype")
@@ -306,7 +316,11 @@ d_shape_types = {
 }
 
 
-def svg_shape(sketch, styles_dict, exceptions=None):
+def svg_shape(
+    sketch: Any,
+    styles_dict: dict[str, Any],
+    exceptions: set[str] | list[str] | None = None,
+) -> str:
     """Convert a sketch to an SVG element string.
 
     Chooses element type (line, circle, path, text, …), coordinates, CSS
@@ -456,11 +470,14 @@ def svg_shape(sketch, styles_dict, exceptions=None):
 svg_sketch_utils_module.svg_shape = svg_shape
 
 
-def collect_patterns_and_gradients(canvas):
-    """Collect all patterns and gradients from shapes in the canvas.
+def collect_patterns_and_gradients(
+    canvas: Canvas,
+) -> tuple[dict[int, Any], dict[str, Any]]:
+    """Collect tile patterns and gradient fills from canvas sketches.
 
     Returns:
-        tuple: (patterns_dict, gradients_dict) where keys are shape ids
+        tuple[dict[int, Any], dict[str, Any]]: Pattern map keyed by
+        ``id(sketch)`` and gradient map keyed by gradient id string.
     """
     patterns = {}
     gradients = {}
@@ -489,15 +506,15 @@ def collect_patterns_and_gradients(canvas):
     return patterns, gradients
 
 
-def collect_markers(canvas):
-    """Collect all shapes that have markers from the canvas.
+def collect_markers(canvas: Canvas) -> dict[Any, Any]:
+    """Collect sketches that draw non-index markers.
 
     Returns:
-        dict: Dictionary mapping stable sketch.id to sketch for shapes with markers
+        dict[Any, Any]: ``sketch.id`` to sketch for marker definition generation.
     """
     markers = {}
 
-    def _collect_from_sketch(sketch):
+    def _collect_from_sketch(sketch: Any) -> None:
         if sketch_attrib(sketch, "subtype") in [
             Types.CLIPPED_SKETCH,
             Types.MASKED_SKETCH,
@@ -521,11 +538,11 @@ def collect_markers(canvas):
     return markers
 
 
-def collect_clip_paths(canvas):
-    """Collect all shapes that have clip property from the canvas.
+def collect_clip_paths(canvas: Canvas) -> dict[int, tuple[Any, Any]]:
+    """Collect clip-path sources from clipped and masked sketches.
 
     Returns:
-        dict: Dictionary mapping sketch id to (sketch, clip_shape) for shapes with clip property
+        dict[int, tuple[Any, Any]]: ``id(sketch)`` to ``(sketch, clip_shape)``.
     """
     clip_paths = {}
 
@@ -554,11 +571,11 @@ def collect_clip_paths(canvas):
     return clip_paths
 
 
-def collect_masks(canvas):
-    """Collect all shapes that have opacity mask property from the canvas.
+def collect_masks(canvas: Canvas) -> dict[str, tuple[Any, Any]]:
+    """Collect opacity masks from sketches and scope groups.
 
     Returns:
-        dict: Dictionary mapping sketch id to (sketch, mask_shape) for shapes with mask property
+        dict[str, tuple[Any, Any]]: Mask id to ``(sketch, mask_shape)``.
     """
     masks = {}
 
@@ -591,16 +608,19 @@ def collect_masks(canvas):
     return masks
 
 
-def get_limits_clippath(canvas):
-    """Generate SVG clipPath for canvas limits or inset.
+def get_limits_clippath(
+    canvas: Canvas,
+) -> tuple[str | None, str | None]:
+    """Generate SVG ``clipPath`` for canvas limits or inset.
 
-    This is the SVG equivalent of tikz.get_limits_code().
+    This is the SVG equivalent of ``tikz.get_limits_code()``.
 
     Args:
-        canvas: The canvas object
+        canvas: Canvas whose limits or inset define the clip rectangle.
 
     Returns:
-        tuple: (clippath_id, clippath_def) or (None, None) if no limits
+        tuple[str | None, str | None]: ``(clippath_id, clippath_def)``, or
+        ``(None, None)`` when no clip is needed.
     """
     limits = canvas.limits
     inset = canvas.inset
@@ -642,15 +662,15 @@ def get_limits_clippath(canvas):
     return clippath_id, clippath_def
 
 
-def generate_defs(canvas, styles_dict):
-    """Generate SVG <defs> section with patterns, gradients, clipPaths, and markers.
+def generate_defs(canvas: Canvas, styles_dict: dict[str, Any]) -> str:
+    """Generate SVG ``<defs>`` for patterns, gradients, clips, masks, and filters.
 
     Args:
-        canvas: The canvas object
-        styles_dict: Styles dictionary for rendering pattern content
+        canvas: Canvas being exported.
+        styles_dict: CSS/style maps used when rasterizing pattern content.
 
     Returns:
-        str: SVG <defs> section or empty string if no defs needed
+        str: ``<defs>…</defs>`` block, or ``""`` when nothing is needed.
     """
 
     patterns, gradients = collect_patterns_and_gradients(canvas)
@@ -819,8 +839,12 @@ def generate_defs(canvas, styles_dict):
     return f"  <defs>\n{defs_str}\n  </defs>"
 
 
-def collect_filters(canvas):
-    """Collect all sketches that have an SVG filter configured."""
+def collect_filters(canvas: Canvas) -> dict[int, SVG_Filter]:
+    """Collect ``SVG_Filter`` instances attached to sketches.
+
+    Returns:
+        dict[int, SVG_Filter]: ``id(sketch)`` to filter (ids assigned when missing).
+    """
     filters = {}
 
     if canvas.pages:
@@ -850,7 +874,9 @@ def collect_filters(canvas):
     return filters
 
 
-def _expand_vertices_for_filter(sketch, filter_obj, canvas):
+def _expand_vertices_for_filter(
+    sketch: Any, filter_obj: SVG_Filter, canvas: Canvas
+) -> None:
     """Expand canvas._all_vertices to include SVG filter region corners.
 
     Called at SVG render time so that the filter region is included in
@@ -860,7 +886,7 @@ def _expand_vertices_for_filter(sketch, filter_obj, canvas):
     if filter_units is not None and str(filter_units) != "userSpaceOnUse":
         return
 
-    def _to_numeric(value):
+    def _to_numeric(value: Any) -> float | None:
         if isinstance(value, (int, float)):
             return float(value)
         if isinstance(value, str):
@@ -899,8 +925,17 @@ def _expand_vertices_for_filter(sketch, filter_obj, canvas):
         canvas._all_vertices.extend(transformed_corners)
 
 
-def generate_filter_def(sketch_id, svg_filter):
-    """Generate SVG filter definition for a sketch filter."""
+def generate_filter_def(sketch_id: int, svg_filter: SVG_Filter) -> str:
+    """Generate indented SVG filter markup for the ``<defs>`` section.
+
+    Args:
+        sketch_id: Sketch id used only for documentation (filter id is on
+            ``svg_filter``).
+        svg_filter: Filter definition to serialize.
+
+    Returns:
+        str: Indented ``<filter>…</filter>`` fragment.
+    """
     filter_svg = svg_filter.to_string(
         pretty=True, include_defs=False, include_xmlns=False
     )
@@ -912,16 +947,16 @@ def generate_filter_def(sketch_id, svg_filter):
 def header(
     width: int,
     height: int,
-    vbox_x,
-    vbox_y,
-    vbox_width,
-    vbox_height,
-    color,
-    dy,
-    styles,
-    defs="",
-    document_svg="",
-):
+    vbox_x: float,
+    vbox_y: float,
+    vbox_width: float,
+    vbox_height: float,
+    color: Color | None,
+    dy: float,
+    styles: str,
+    defs: str = "",
+    document_svg: str = "",
+) -> str:
     """Build the opening SVG document fragment.
 
     Args:
@@ -958,7 +993,7 @@ def header(
 '''
 
 
-def footer():
+def footer() -> str:
     """Return the closing SVG tags.
 
     Returns:
@@ -969,12 +1004,14 @@ def footer():
 """
 
 
-def get_styles(canvas, styles_dict):
+def get_styles(
+    canvas: Canvas, styles_dict: dict[str, dict[str, str]]
+) -> str:
     """Build a ``<style>`` block from CSS class dictionaries.
 
     Args:
         canvas: Canvas whose user fonts are declared in the style block.
-        styles_dict: Mapping of CSS class name to property dict.
+        styles_dict: CSS class name to property/value map.
 
     Returns:
         str: SVG ``<style>…</style>`` markup.
@@ -995,7 +1032,7 @@ def get_styles(canvas, styles_dict):
     return styles
 
 
-def get_svg_code(canvas):
+def get_svg_code(canvas: Canvas) -> str:
     """Serialize a canvas to a complete SVG document string.
 
     Computes viewBox from page size or content bounds, emits styles/defs,

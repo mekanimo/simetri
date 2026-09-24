@@ -7,15 +7,17 @@ compiler, and cleans auxiliary files.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from math import ceil
+from typing import TYPE_CHECKING, NamedTuple
 
 import pymupdf as fitz
 
 from simetri.base.all_enums import TexLoc, Types
 from simetri.config.settings import defaults
-from simetri.config.user_config import get_tex_compiler
+from simetri.config.user_config import get_tex_compiler, user_config_path
 from simetri.helpers.file_operations import run_tex_compiler
 from simetri.helpers.utilities import *
 from simetri.render.pre_render import (
@@ -32,14 +34,43 @@ from simetri.render.render_tikz.tikz import (
 
 if TYPE_CHECKING:
     from simetri.render import Canvas
+    from simetri.render.sketch import Sketch
 
 
-def remove_aux_files(file_path):
-    """
-    Remove auxiliary files generated during compilation.
+class _CompileTexResult(NamedTuple):
+    stdout: str
+    stderr: str
+    returncode: int
+
+
+def _default_latex_compiler_name() -> str:
+    return str(defaults["latex_compiler"]).lower()
+
+
+def _raise_latex_compiler_not_found(compiler: str) -> None:
+    config_path = user_config_path()
+    raise RuntimeError(
+        f"No LaTeX compiler '{compiler}' was found on PATH. "
+        "Install a TeX distribution (TeX Live, MiKTeX, MacTeX, …) or set "
+        f"a personal [tex].command in {config_path}. "
+        "See sg.help('tex_compiler')."
+    )
+
+
+def _shell_output_suggests_missing_compiler(text: str) -> bool:
+    lowered = text.lower()
+    return (
+        "is not recognized as an internal or external command" in lowered
+        or ": command not found" in lowered
+        or "command not found" in lowered
+    )
+
+
+def remove_aux_files(file_path: str | os.PathLike[str]) -> None:
+    """Remove auxiliary files generated during LaTeX compilation.
 
     Args:
-        file_path (Path): The path to the file.
+        file_path: Path to the main TeX or output file (extension drives cleanup).
     """
     time_out = 1  # seconds
     parent_dir, file_name = os.path.split(file_path)
@@ -93,7 +124,12 @@ def remove_aux_files(file_path):
             pass
 
 
-def run_job(parent_dir, file_name, extension, tex_path):
+def run_job(
+    parent_dir: str,
+    file_name: str,
+    extension: str,
+    tex_path: str,
+) -> None:
     """Compile a TeX file and write the requested output format.
 
     Args:
@@ -108,12 +144,19 @@ def run_job(parent_dir, file_name, extension, tex_path):
     if tex_settings["command"] is not None:
         run_tex_compiler(input_path=tex_path, output_path=pdf_path)
     else:
-        compiler = defaults["latex_compiler"].lower()
+        compiler = _default_latex_compiler_name()
+        if shutil.which(compiler) is None:
+            _raise_latex_compiler_not_found(compiler)
         cmd = f'{compiler} "{tex_path}" --output-directory "{parent_dir}"'
-        res = compile_tex(cmd, parent_dir, print_output=False)
-        if "No pages of output" in res:
+        result = compile_tex(cmd, parent_dir, print_output=False)
+        shell_output = f"{result.stdout}\n{result.stderr}".strip()
+        if _shell_output_suggests_missing_compiler(shell_output):
+            _raise_latex_compiler_not_found(compiler)
+        if "No pages of output" in result.stdout:
             raise RuntimeError("Failed to compile the tex file.")
         if not os.path.exists(pdf_path):
+            if result.returncode == 127:
+                _raise_latex_compiler_not_found(compiler)
             raise RuntimeError("Failed to compile the tex file.")
 
     if extension in (".eps", ".ps"):
@@ -131,28 +174,34 @@ def run_job(parent_dir, file_name, extension, tex_path):
             f.write(svg)
 
 
-def compile_tex(cmd, parent_dir, print_output):
-    """
-    Compile the TeX file.
+def compile_tex(
+    cmd: str, parent_dir: str, print_output: bool
+) -> _CompileTexResult:
+    """Run a shell LaTeX compile command and capture output.
 
     Args:
-        cmd (str): The command to compile the TeX file.
+        cmd: Shell command (typically ``pdflatex`` with paths quoted).
+        parent_dir: Working directory for the subprocess.
+        print_output: When True, print a short tail of stdout.
 
     Returns:
-        str: The output of the compilation.
+        _CompileTexResult: Captured stdout, stderr, and process exit code.
     """
     os.chdir(parent_dir)
     with subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         shell=True,
         text=True,
-    ) as p:
-        output = p.communicate("_s\n_l\n")[0]
+    ) as process:
+        stdout, stderr = process.communicate("_s\n_l\n")
+        returncode = process.returncode
     if print_output:
-        print(output.split("\n")[-3:])
-    return output
+        print(stdout.split("\n")[-3:])
+    exit_code = returncode if returncode is not None else 0
+    return _CompileTexResult(stdout, stderr, exit_code)
 
 
 @dataclass
@@ -181,8 +230,8 @@ class Tex:
         default_factory=list
     )  # List of TexSketch objects
 
-    def __post_init__(self):
-        """Post-initialization method."""
+    def __post_init__(self) -> None:
+        """Set document object type tag."""
         self.type = Types.TEX
 
     def tex_code(self, canvas: Canvas, aux_code: str) -> str:
@@ -281,21 +330,23 @@ class Tex:
         """
         return f"\\usetikzlibrary{{{','.join(self.tikz_libraries)}}}\n"
 
-    def get_packages(self, canvas) -> str:
-        """Returns the required TeX packages.
+    def get_packages(
+        self, canvas: Canvas
+    ) -> tuple[list[str], list[str]]:
+        """Return TikZ libraries and LaTeX packages required by ``canvas``.
 
         Args:
-            canvas: The canvas object.
+            canvas: Canvas whose sketches drive preamble requirements.
 
         Returns:
-            str: The required TeX packages.
+            tuple[list[str], list[str]]: ``(tikz_libraries, packages)``.
         """
         if self.tikz_libraries is not None and self.packages is not None:
             return self.tikz_libraries, self.packages
 
         return collect_tikz_preamble_requirements(canvas)
 
-    def get_preamble(self, canvas) -> str:
+    def get_preamble(self, canvas: Canvas) -> str:
         """Returns the TeX preamble.
 
         Args:

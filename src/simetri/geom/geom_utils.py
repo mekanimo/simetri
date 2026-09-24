@@ -29,18 +29,15 @@ def reg_poly_points(pos: PointType, n: int, r: float) -> Sequence[PointType]:
         Sequence[PointType]: Vertices, with the first vertex repeated at
         the end.
 
-    **Examples**
-
-    ```python
-    from simetri.geom.geom_utils import reg_poly_points
-    points = reg_poly_points((0, 0), 4, 1)
-    len(points)
-    # 5
-    points[0] == points[-1]
-    # True
-    [round(coord, 10) for coord in points[0]]
-    # [1.0, 0.0]
-    ```
+    Examples:
+        >>> from simetri.geom.geom_utils import reg_poly_points
+        >>> points = reg_poly_points((0, 0), 4, 1)
+        >>> len(points)
+        5
+        >>> points[0] == points[-1]
+        True
+        >>> [round(coord, 10) for coord in points[0]]
+        [1.0, 0.0]
 """
     step = 2 * pi / n
     x, y = pos[:2]
@@ -59,7 +56,14 @@ def r_polar(a: float, b: float, theta: float) -> float:
 
     Returns:
         Radius of the ellipse at ``theta``.
-    """
+
+    Examples:
+        >>> from simetri.geom.geom_utils import r_polar
+        >>> round(r_polar(2, 1, 0), 10)
+        1.0
+        >>> round(r_polar(2, 1, pi / 2), 10)
+        2.0
+"""
     return (a * b) / sqrt((b * cos(theta)) ** 2 + (a * sin(theta)) ** 2)
 
 
@@ -72,7 +76,12 @@ def distance_square(p1: PointType, p2: PointType) -> float:
 
     Returns:
         Squared Euclidean distance.
-    """
+
+    Examples:
+        >>> from simetri.geom.geom_utils import distance_square
+        >>> distance_square((0, 0), (3, 4))
+        25
+"""
     return (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2
 
 
@@ -88,7 +97,14 @@ def close_points_square(
 
     Returns:
         True if the points are close enough.
-    """
+
+    Examples:
+        >>> from simetri.geom.geom_utils import close_points_square
+        >>> close_points_square((0, 0), (0.05, 0.05))
+        True
+        >>> close_points_square((0, 0), (1, 1))
+        False
+"""
     return distance_square(p1, p2) <= dist2
 
 
@@ -107,7 +123,12 @@ def offset_point_from_start(
 
     Raises:
         ZeroDivisionError: If ``p1`` and ``p2`` are the same point.
-    """
+
+    Examples:
+        >>> from simetri.geom.geom_utils import offset_point_from_start
+        >>> offset_point_from_start((0, 0), (3, 4), 5)
+        (3.0, 4.0)
+"""
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
     dx, dy = x2 - x1, y2 - y1
@@ -124,7 +145,12 @@ def midpoint(p1: PointType, p2: PointType) -> PointType:
 
     Returns:
         Midpoint ``((x1+x2)/2, (y1+y2)/2)``.
-    """
+
+    Examples:
+        >>> from simetri.geom.geom_utils import midpoint
+        >>> midpoint((0, 0), (4, 6))
+        (2.0, 3.0)
+"""
     return ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
 
 
@@ -138,7 +164,12 @@ def offset_point(point: PointType, dx: float = 0, dy: float = 0) -> PointType:
 
     Returns:
         Translated point.
-    """
+
+    Examples:
+        >>> from simetri.geom.geom_utils import offset_point
+        >>> offset_point((1, 2), 3, -1)
+        (4, 1)
+"""
     x, y = point[:2]
     return (x + dx, y + dy)
 
@@ -155,21 +186,39 @@ def connected_pairs(items: Sequence, closed: bool = False) -> list[tuple]:
 
     Returns:
         List of adjacent pairs.
-    """
+
+    Examples:
+        >>> from simetri.geom.geom_utils import connected_pairs
+        >>> connected_pairs([1, 2, 3])
+        [(1, 2), (2, 3)]
+        >>> connected_pairs([1, 2, 3], closed=True)
+        [(1, 2), (2, 3), (3, 1)]
+"""
     pairs = list(pairwise(items))
     if closed and items:
         pairs.append((items[-1], items[0]))
     return pairs
 
 
-def turning_function(curve):
-    """
-    Compute the turning function for a planar curve.
-    curve: Nx2 array-like of (x, y) points (ordered).
-    Returns: angles (cumulative turning angle at each point), arc_lengths.
-    For curves with at least two points, both arrays have one value per
-    input point.
-    """
+def turning_function(
+    curve: Sequence[PointType] | np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute the turning function for a planar curve.
+
+    ``curve``: Nx2 array-like of ``(x, y)`` points (ordered).
+
+    Returns:
+        Tuple of cumulative turning angles and arc lengths. For curves with
+        at least two points, both arrays have one value per input point.
+
+    Examples:
+        >>> from simetri.geom.geom_utils import turning_function
+        >>> tf, s = turning_function([(0, 0), (1, 0), (1, 1)])
+        >>> len(tf) == len(s) == 3
+        True
+        >>> round(float(s[-1]), 10)
+        2.0
+"""
     curve = np.asarray(curve)
     if curve.shape[0] < 2:
         return np.zeros(0), np.zeros(0)
@@ -189,12 +238,25 @@ def turning_function(curve):
     return cumulative_turn, arc_lengths
 
 
-def turning_function_metric(curve1, curve2, num_samples=100):
-    """
-    Computes the turning function metric (L1 distance between turning functions).
-    curve1, curve2: Nx2 arrays of (x, y) points.
-    Returns: scalar metric value.
-    """
+def turning_function_metric(
+    curve1: Sequence[PointType] | np.ndarray,
+    curve2: Sequence[PointType] | np.ndarray,
+    num_samples: int = 100,
+) -> float | np.floating:
+    """Compute the turning-function metric (L1 distance between turning functions).
+
+    Args:
+        curve1: Nx2 array of ``(x, y)`` points.
+        curve2: Nx2 array of ``(x, y)`` points.
+
+    Returns:
+        Scalar metric value.
+
+    Examples:
+        >>> from simetri.geom.geom_utils import turning_function_metric
+        >>> turning_function_metric([(0, 0), (1, 0)], [(0, 0), (1, 0)])
+        0.0
+"""
     tf1, s1 = turning_function(curve1)
     tf2, s2 = turning_function(curve2)
     # Resample both turning functions to a common arc length grid

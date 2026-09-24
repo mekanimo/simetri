@@ -1,10 +1,19 @@
 """Generate free, fixed, and chiral polyominoes as cell centers or Figures."""
 
+from collections.abc import Iterable, Iterator
+from typing import Literal
+
 import simetri.graphics as sg
 from simetri.shapes.figure import Figure
 
+Cell = tuple[int, int]
+NormalizedPoly = tuple[Cell, ...]
+PolyoType = Literal["fixed", "free", "chiral"]
 
-def generate_centers(n, polyo_type="free"):
+
+def generate_centers(
+    n: int, polyo_type: PolyoType = "free"
+) -> list[list[Cell]]:
     """Return all n-omino cell-center sets for the given equivalence type.
 
     Args:
@@ -17,6 +26,14 @@ def generate_centers(n, polyo_type="free"):
 
     Raises:
         ValueError: If ``polyo_type`` is not a supported value.
+
+    Examples:
+        >>> generate_centers(0)
+        []
+        >>> generate_centers(1)
+        [[(0, 0)]]
+        >>> len(generate_centers(2))
+        1
     """
     if n <= 0:
         return []
@@ -26,7 +43,7 @@ def generate_centers(n, polyo_type="free"):
     if polyo_type not in valid_types:
         raise ValueError(f"polyo_type must be one of {valid_types}")
 
-    def canonical(poly):
+    def canonical(poly: set[Cell] | tuple[Cell, ...]) -> NormalizedPoly:
         # Shift coordinates to start at the origin (0, 0)
         min_x = min(x for x, _ in poly)
         min_y = min(y for _, y in poly)
@@ -40,15 +57,15 @@ def generate_centers(n, polyo_type="free"):
             return normalized
 
         # Helper to rotate a polyomino 90 degrees clockwise
-        def rotate_90(p_set):
+        def rotate_90(p_set: NormalizedPoly) -> NormalizedPoly:
             return tuple((y, -x) for x, y in p_set)
 
         # Helper to reflect a polyomino horizontally across the y-axis
-        def reflect_x(p_set):
+        def reflect_x(p_set: NormalizedPoly) -> NormalizedPoly:
             return tuple((-x, y) for x, y in p_set)
 
         # Helper to re-normalize a transformed shape back to the origin
-        def normalize_variant(p_set):
+        def normalize_variant(p_set: Iterable[Cell]) -> NormalizedPoly:
             mx = min(x for x, _ in p_set)
             my = min(y for _, y in p_set)
             return tuple(sorted((x - mx, y - my) for x, y in p_set))
@@ -94,7 +111,9 @@ def generate_centers(n, polyo_type="free"):
     return [list(p) for p in current_level]
 
 
-def iter_centers(n, polyo_type="free"):
+def iter_centers(
+    n: int, polyo_type: PolyoType = "free"
+) -> Iterator[list[Cell]]:
     """Yield n-omino cell-center sets one at a time.
 
     Args:
@@ -106,6 +125,13 @@ def iter_centers(n, polyo_type="free"):
 
     Raises:
         ValueError: If ``polyo_type`` is not a supported value.
+
+    Examples:
+        >>> centers = list(iter_centers(2))
+        >>> len(centers)
+        1
+        >>> sorted(centers[0])
+        [(0, 0), (1, 0)]
     """
     if n <= 0:
         return
@@ -114,7 +140,7 @@ def iter_centers(n, polyo_type="free"):
     if polyo_type not in valid_types:
         raise ValueError(f"polyo_type must be one of {valid_types}")
 
-    def canonical(poly):
+    def canonical(poly: set[Cell] | tuple[Cell, ...]) -> NormalizedPoly:
         min_x = min(x for x, _ in poly)
         min_y = min(y for _, y in poly)
         normalized = tuple(sorted((x - min_x, y - min_y) for x, y in poly))
@@ -124,13 +150,13 @@ def iter_centers(n, polyo_type="free"):
         if polyo_type == "fixed":
             return normalized
 
-        def rotate_90(p_set):
+        def rotate_90(p_set: NormalizedPoly) -> NormalizedPoly:
             return tuple((y, -x) for x, y in p_set)
 
-        def reflect_x(p_set):
+        def reflect_x(p_set: NormalizedPoly) -> NormalizedPoly:
             return tuple((-x, y) for x, y in p_set)
 
-        def normalize_variant(p_set):
+        def normalize_variant(p_set: Iterable[Cell]) -> NormalizedPoly:
             min_x = min(x for x, _ in p_set)
             min_y = min(y for _, y in p_set)
             return tuple(sorted((x - min_x, y - min_y) for x, y in p_set))
@@ -174,7 +200,9 @@ def iter_centers(n, polyo_type="free"):
         yield list(poly)
 
 
-def iter_polyominoes(n, polyo_type="free", size=20):
+def iter_polyominoes(
+    n: int, polyo_type: PolyoType = "free", size: float = 20
+) -> Iterator[Figure]:
     """Yield ``Figure`` objects for each distinct n-omino.
 
     Each figure has merged-outline ``geometry`` and a non-filled unit-square
@@ -182,11 +210,20 @@ def iter_polyominoes(n, polyo_type="free", size=20):
 
     Args:
         n: Number of unit squares in each polyomino.
-        polyo_type: One of ``"fixed"``, ``"free"``, or ``"chiral"``.
+        polyo_type: ``"fixed"``, ``"free"``, or ``"chiral"``.
         size: Side length of each unit square in points.
 
     Yields:
-        ``Figure`` instances positioned with cells on a ``size`` grid.
+        ``Figure`` instances with cells on a ``size``-point grid.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> fig = next(iter_polyominoes(1, size=10))
+        >>> fig.__class__.__name__
+        'Figure'
+        >>> len(list(iter_polyominoes(2, size=10)))
+        1
     """
     res = iter_centers(n=n, polyo_type=polyo_type)
 

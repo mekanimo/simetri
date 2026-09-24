@@ -3,25 +3,30 @@
 Provides ``Lace``, ``Polyline``, ``ParallelPolyline``, and related helpers
 for building over/under weaving patterns that can be drawn on a canvas.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-from simetri.interlace.lace import Lace, Polyline
-```
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> from simetri.interlace.lace import Polyline
+    >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+    >>> len(poly.divisions)
+    3
+    >>> round(poly.area, 2)
+    40.0
 """
+
+from __future__ import annotations
 
 from collections import OrderedDict
 from collections.abc import Callable, Iterator, Sequence
 from itertools import combinations
 from math import ceil, log10, pi, sqrt
-from typing import Any
+from typing import Any, Self
 
 import networkx as nx
 import numpy as np
 from numpy import isclose
 
-from ..base.all_enums import Connection, TransformationType, Types
+from ..base.all_enums import Connection, InPlace, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults
 from ..base.core import _next_xform_matrix, _Targets, _update_inplace
 from ..coloring import colors
@@ -61,6 +66,14 @@ def _set_style(obj: Any, attribs: Sequence[str]) -> None:
 
 
 array = np.array
+
+_UpdateIncr = (
+    float
+    | tuple[float, float]
+    | tuple[Callable[..., Any], Any]
+    | tuple[InPlace, Any]
+    | None
+)
 
 
 # Lace (Group)
@@ -204,15 +217,26 @@ class Intersection(Shape):
         endpoint (bool, optional): If the intersection is at the end of a division,
         then endpoint is True. Defaults to False.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Division, Intersection
+        >>> division = Division((0, 0), (10, 0))
+        >>> x = Intersection((5, 0), division)
+        >>> round(x.point[0], 2)
+        5.0
+        >>> x == x.copy()
+        True
     """
 
     def __init__(
         self,
         point: tuple,
         division1: "Division",
-        division2: "Division" = None,
+        division2: Division | None = None,
         endpoint: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Create an intersection at ``point`` between one or two divisions."""
         super().__init__(
@@ -227,14 +251,14 @@ class Intersection(Shape):
 
     def _update(
         self,
-        xform_matrix,
-        reps=0,
+        xform_matrix: np.ndarray,
+        reps: int = 0,
         take: slice | None = None,
-        incr=None,
+        incr: _UpdateIncr = None,
         dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ):
+    ) -> Self | Group | list[Self]:
         """Update the transformation matrix of the intersection.
 
         Args:
@@ -272,7 +296,7 @@ class Intersection(Shape):
             res = res.merge_shapes()
         return res
 
-    def copy(self):
+    def copy(self) -> Intersection:
         """Create a copy of the intersection.
 
         Returns:
@@ -287,15 +311,15 @@ class Intersection(Shape):
         return intersection
 
     @property
-    def point(self):
+    def point(self) -> list[float]:
         """Return the intersection point.
 
         Returns:
-            list: Intersection point coordinates.
+            list[float]: Transformed ``(x, y)`` coordinates.
         """
         return list(np.array([*self._point, 1.0]) @ self.xform_matrix)[:2]
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the intersection.
 
         Returns:
@@ -306,7 +330,7 @@ class Intersection(Shape):
             f"{(self.division1, self.division2)}"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of the intersection.
 
         Returns:
@@ -314,15 +338,17 @@ class Intersection(Shape):
         """
         return str(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Check if two intersections are equal.
 
         Args:
-            other (Intersection): Another intersection.
+            other: Another intersection.
 
         Returns:
             bool: True if equal, False otherwise.
         """
+        if not isinstance(other, Intersection):
+            return NotImplemented
         return close_points_square(
             self.point, other.point, dist2=defaults["dist_tol"] ** 2
         )
@@ -335,16 +361,24 @@ class Partition(Shape):
     Args:
         points (list): List of points defining the partition.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Partition
+        >>> part = Partition([(0, 0), (4, 0), (4, 4), (0, 4)])
+        >>> round(part.area, 2)
+        16.0
     """
 
-    def __init__(self, points: Sequence[PointType], **kwargs: Any):
+    def __init__(self, points: Sequence[PointType], **kwargs: Any) -> None:
         """Create a partition polygon from ``points`` (see class docstring)."""
         super().__init__(points, **kwargs)
         self.subtype = Types.PART
         self.area = polygon_area(self.vertices)
         self.CG = polygon_cg(self.vertices)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the partition.
 
         Returns:
@@ -352,7 +386,7 @@ class Partition(Shape):
         """
         return f"Part({self.vertices})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of the partition.
 
         Returns:
@@ -370,9 +404,17 @@ class Fragment(Shape):
     Args:
         points (list): List of points defining the fragment.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Fragment
+        >>> frag = Fragment([(0, 0), (4, 0), (4, 4)])
+        >>> frag.subtype.name
+        'FRAGMENT'
     """
 
-    def __init__(self, points: Sequence[PointType], **kwargs: Any):
+    def __init__(self, points: Sequence[PointType], **kwargs: Any) -> None:
         """Create a fragment from ``points`` (see class docstring)."""
         super().__init__(points, **kwargs)
         self.subtype = Types.FRAGMENT
@@ -382,7 +424,7 @@ class Fragment(Shape):
         self._divisions = []
         self.CG = polygon_cg(self.vertices)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the fragment.
 
         Returns:
@@ -390,7 +432,7 @@ class Fragment(Shape):
         """
         return f"Fragment({self.vertices})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of the fragment.
 
         Returns:
@@ -399,20 +441,20 @@ class Fragment(Shape):
         return self.__str__()
 
     @property
-    def divisions(self):
+    def divisions(self) -> list[Division]:
         """Return the divisions of the fragment.
 
         Returns:
-            list: List of divisions.
+            list[Division]: Fragment divisions in cycle order.
         """
         return self._divisions
 
     @property
-    def center(self):
+    def center(self) -> PointType:
         """Return the center of the fragment.
 
         Returns:
-            list: Center coordinates.
+            PointType: Centroid of the fragment polygon.
         """
         return self.CG
 
@@ -497,6 +539,17 @@ class Section(Shape):
         twin (Section, optional): Twin section. Defaults to None.
         fragment (Fragment, optional): Fragment object. Defaults to None.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Polyline, Section
+        >>> poly = Polyline([(0, 0), (10, 0)], closed=False)
+        >>> section = Section(poly.intersections[0], poly.intersections[1])
+        >>> round(section.length, 2)
+        10.0
+        >>> section.is_endpoint
+        True
     """
 
     def __init__(
@@ -507,9 +560,9 @@ class Section(Shape):
         overlap: "Overlap" = None,
         is_over: bool = False,
         twin: "Section" = None,
-        fragment: "Fragment" = None,
-        **kwargs,
-    ):
+        fragment: Fragment | None = None,
+        **kwargs: Any,
+    ) -> None:
         """Create a section between ``start`` and ``end`` intersections."""
         super().__init__(
             [start.point, end.point], subtype=Types.SECTION, **kwargs
@@ -526,7 +579,7 @@ class Section(Shape):
         )
         self.length = distance(self.start.point, self.end.point)
 
-    def copy(self):
+    def copy(self) -> Section:
         """Create a copy of the section.
 
         Returns:
@@ -539,11 +592,12 @@ class Section(Shape):
 
         return section
 
-    def end_point(self):
-        """Return the end point of the section.
+    def end_point(self) -> Intersection | None:
+        """Return the endpoint intersection of an open polyline section.
 
         Returns:
-            Intersection: End intersection.
+            Intersection | None: Endpoint intersection, or ``None`` if neither
+            end is marked as an endpoint.
         """
         if self.start.endpoint:
             res = self.start
@@ -554,7 +608,7 @@ class Section(Shape):
 
         return res
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the section.
 
         Returns:
@@ -562,7 +616,7 @@ class Section(Shape):
         """
         return f"Section({self.start}, {self.end})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of the section.
 
         Returns:
@@ -571,11 +625,11 @@ class Section(Shape):
         return self.__str__()
 
     @property
-    def is_endpoint(self):
-        """Return True if the section is an endpoint.
+    def is_endpoint(self) -> bool:
+        """Return True if the section touches a polyline endpoint.
 
         Returns:
-            bool: True if endpoint, False otherwise.
+            bool: True if either intersection is an endpoint.
         """
         return self.start.endpoint or self.end.endpoint
 
@@ -589,16 +643,24 @@ class Overlap(Group):
         visited (bool, optional): If the overlap is visited. Defaults to False.
         drawable (bool, optional): If the overlap is drawable. Defaults to True.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Overlap
+        >>> overlap = Overlap()
+        >>> overlap.subtype.name
+        'OVERLAP'
     """
 
     def __init__(
         self,
         intersections: list[Intersection] | None = None,
         sections: list[Section] | None = None,
-        visited=False,
-        drawable=True,
-        **kwargs,
-    ):
+        visited: bool = False,
+        drawable: bool = True,
+        **kwargs: Any,
+    ) -> None:
         """Create an overlap group from intersections and sections."""
         self.intersections = intersections
         self.sections = sections
@@ -607,7 +669,7 @@ class Overlap(Group):
         self.visited = visited
         self.drawable = drawable
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the overlap.
 
         Returns:
@@ -615,7 +677,7 @@ class Overlap(Group):
         """
         return f"Overlap({self.id})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of the overlap.
 
         Returns:
@@ -634,6 +696,15 @@ class Division(Shape):
         p2 (tuple): End point.
         xform_matrix (array, optional): Transformation matrix. Defaults to None.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Division
+        >>> d1 = Division((0, 0), (10, 0))
+        >>> d2 = Division((10, 0), (10, 10))
+        >>> d1.is_connected(d2)
+        True
     """
 
     def __init__(
@@ -642,7 +713,7 @@ class Division(Shape):
         p2: PointType,
         xform_matrix: np.ndarray | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Create a division segment from ``p1`` to ``p2``."""
         super().__init__([p1, p2], subtype=Types.DIVISION, **kwargs)
         self.p1 = p1
@@ -663,14 +734,14 @@ class Division(Shape):
 
     def _update(
         self,
-        xform_matrix,
-        reps=0,
+        xform_matrix: np.ndarray,
+        reps: int = 0,
         take: slice | None = None,
-        incr=None,
+        incr: _UpdateIncr = None,
         dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ):
+    ) -> Self | Group | list[Self]:
         """Update the transformation matrix of the division.
 
         Args:
@@ -708,7 +779,7 @@ class Division(Shape):
             res = res.merge_shapes()
         return res
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the division.
 
         Returns:
@@ -719,7 +790,7 @@ class Division(Shape):
             f"({self.p2[0]:.2f}, {self.p2[1]:.2f}))"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of the division.
 
         Returns:
@@ -758,11 +829,11 @@ class Division(Shape):
             setattr(division, attrib, getattr(self, attrib))
         return division
 
-    def _merged_sections(self):
-        """Merge sections of the division.
+    def _merged_sections(self) -> list[list[Intersection]]:
+        """Merge non-over sections into intersection chains.
 
         Returns:
-            list: List of merged sections.
+            list[list[Intersection]]: Chains of intersections along the division.
         """
         chains = []
         chain = [self.intersections[0]]
@@ -794,11 +865,11 @@ class Division(Shape):
         return self.p1 in other.end_points or self.p2 in other.end_points
 
     @property
-    def end_points(self):
+    def end_points(self) -> list[PointType]:
         """Return the end points of the division.
 
         Returns:
-            list: List of end points.
+            list[PointType]: Division endpoints ``p1`` and ``p2``.
         """
         return [self.p1, self.p2]
 
@@ -822,8 +893,8 @@ class Division(Shape):
 
 
 class Polyline(Shape):
-    """
-    Connected points, similar to Shape objects.
+    """Connected points, similar to Shape objects.
+
     They can be closed or open.
     They are defined by a sequence of points.
     They have divisions, sections, and intersections.
@@ -833,6 +904,17 @@ class Polyline(Shape):
         closed (bool, optional): If the polyline is closed. Defaults to True.
         xform_matrix (array, optional): Transformation matrix. Defaults to None.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Polyline
+        >>> closed = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> len(closed.divisions)
+        3
+        >>> open_line = Polyline([(0, 0), (10, 0)], closed=False)
+        >>> len(open_line.intersections)
+        2
     """
 
     def __init__(
@@ -841,7 +923,7 @@ class Polyline(Shape):
         closed: bool = True,
         xform_matrix: np.ndarray | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Create a lace polyline and initialize its divisions."""
         self.closed = closed
 
@@ -858,14 +940,14 @@ class Polyline(Shape):
 
     def _update(
         self,
-        xform_matrix,
-        reps=0,
+        xform_matrix: np.ndarray,
+        reps: int = 0,
         take: slice | None = None,
-        incr=None,
+        incr: _UpdateIncr = None,
         dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ):
+    ) -> Self | Group | list[Self]:
         """Update the transformation matrix of the polyline.
 
         Args:
@@ -905,7 +987,7 @@ class Polyline(Shape):
             res = res.merge_shapes()
         return res
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the polyline.
 
         Returns:
@@ -913,7 +995,7 @@ class Polyline(Shape):
         """
         return f"Polyline({self.final_coords[:, :2]})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of the polyline.
 
         Returns:
@@ -921,7 +1003,7 @@ class Polyline(Shape):
         """
         return self.__str__()
 
-    def iter_sections(self) -> Iterator:
+    def iter_sections(self) -> Iterator[Section]:
         """Iterate over the sections of the polyline.
 
         Yields:
@@ -952,7 +1034,7 @@ class Polyline(Shape):
         return res
 
     @property
-    def area(self):
+    def area(self) -> float:
         """Return the area of the polygon.
 
         Returns:
@@ -1015,6 +1097,15 @@ class ParallelPolyline(Group):
         closed (bool, optional): If the polyline is closed. Defaults to True.
         dist_tol (float, optional): Distance tolerance. Defaults to None.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import ParallelPolyline, Polyline
+        >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> parallel = ParallelPolyline(poly, offset=2)
+        >>> len(parallel.polyline_list)
+        3
     """
 
     def __init__(
@@ -1086,14 +1177,25 @@ class Lace(Group):
     colors (``plait_color``, ``palette``, swatch) and the child fragment/plait
     shapes.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    from simetri.interlace.lace import Lace
-    lace = Lace([sg.Shape([(0, 0), (40, 0), (40, 40)])], offset=3)
-    ```
-"""
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Lace
+        >>> from simetri.shapes.shape import Shape
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.geom_items import Line
+        >>> shp1 = Shape(
+        ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
+        ... )
+        >>> shp2 = Line((-40, 0), (240, 0))
+        >>> lace = Lace(Group(shp1, shp2).scale(2), offset=12)
+        >>> len(lace.overlaps)
+        4
+        >>> len(lace.fragments)
+        3
+        >>> lace.subtype.name
+        'LACE'
+    """
 
     def __init__(
         self,
@@ -1111,7 +1213,7 @@ class Lace(Group):
         dist_tol: float | None = None,
         merge_angle_tol: float = 0.1,
         debug: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Create a lace from shapes with parallel-offset weaving.
 
@@ -1259,18 +1361,21 @@ class Lace(Group):
             )
 
     @property
-    def center(self):
+    def center(self) -> PointType:
         """Return the center of the lace.
 
         Returns:
-            list: Center coordinates.
+            PointType: Centroid of the outline fragment.
         """
         return self.outline.CG
 
     @property
-    def fragments_by_radius(self):
-        """Groups fragments into bins by using their distances to
-        the lace midpoint."""
+    def fragments_by_radius(self) -> dict[float, list[Fragment]]:
+        """Group fragments into radial bins from the lace center.
+
+        Returns:
+            dict[float, list[Fragment]]: Bin key (rounded radius) to fragments.
+        """
         center = self.center
         rad_frags = []
         for fragment in self.fragments:
@@ -1291,8 +1396,12 @@ class Lace(Group):
         return res
 
     @property
-    def fragments_by_area(self):
-        """Groups fragments into bins by using their areas."""
+    def fragments_by_area(self) -> dict[float, list[Fragment]]:
+        """Group fragments into area bins.
+
+        Returns:
+            dict[float, list[Fragment]]: Bin key (rounded area) to fragments.
+        """
         areas = [(fragment.area, fragment.id) for fragment in self.fragments]
         delta = max([x[0] for x in areas]) / 100
         bins = group_into_bins(areas, delta)
@@ -1309,11 +1418,11 @@ class Lace(Group):
         return res
 
     @property
-    def fragment_groups(self):
-        """Return the fragment groups of the lace.
+    def fragment_groups(self) -> dict[int, list[Fragment]]:
+        """Return fragments grouped by integer radius from the lace center.
 
         Returns:
-            dict: Dictionary of fragment groups.
+            dict[int, list[Fragment]]: Radius bucket to fragment list.
         """
         center = self.center
         radius_frag = []
@@ -1339,7 +1448,17 @@ class Lace(Group):
 
         return d_groups
 
-    def _check_polygons(self, polygon_shapes):
+    def _check_polygons(
+        self, polygon_shapes: Group | list[Shape]
+    ) -> list[Shape]:
+        """Validate polygon inputs and enforce clockwise vertex order.
+
+        Args:
+            polygon_shapes: Closed polygon shapes to normalize.
+
+        Returns:
+            list[Shape]: Normalized polygon shape list.
+        """
         if isinstance(polygon_shapes, Group):
             polygon_shapes = polygon_shapes.all_shapes
         for polygon in polygon_shapes:
@@ -1358,7 +1477,17 @@ class Lace(Group):
 
         return polygon_shapes
 
-    def _check_polylines(self, polyline_shapes):
+    def _check_polylines(
+        self, polyline_shapes: Group | list[Shape]
+    ) -> list[Shape]:
+        """Validate open polyline inputs.
+
+        Args:
+            polyline_shapes: Open polyline shapes to check.
+
+        Returns:
+            list[Shape]: Polyline shape list (unchanged aside from validation).
+        """
         if isinstance(polyline_shapes, Group):
             polyline_shapes = polyline_shapes.all_shapes
         for polyline in polyline_shapes:
@@ -1370,14 +1499,14 @@ class Lace(Group):
 
     def _update(
         self,
-        xform_matrix,
-        reps=0,
+        xform_matrix: np.ndarray,
+        reps: int = 0,
         take: slice | None = None,
-        incr=None,
+        incr: _UpdateIncr = None,
         dyn_ref: Callable | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
-    ):
+    ) -> Self | list[Self]:
         """Update the transformation matrix of the lace.
 
         Args:
@@ -1477,7 +1606,7 @@ class Lace(Group):
                 self.partitions.append(partition)
 
     # To do: This doesn't work if we have polyline shapes!
-    def _set_outline(self):
+    def _set_outline(self) -> None:
         # outline is a special fragment that covers the whole lace
         areas = [(fragment.area, fragment) for fragment in self.fragments]
         areas.sort(reverse=True, key=lambda x: x[0])
@@ -1490,7 +1619,7 @@ class Lace(Group):
         # skeleton is the input polylines that the lace is based on
         self.skeleton = Group(self.polyline_list)
 
-    def set_fragment_groups(self):
+    def set_fragment_groups(self) -> None:
         """Group fragments by similar area and distance from center.
 
         Populates ``fragments_by_area`` and ``fragments_by_radius`` using
@@ -1527,7 +1656,7 @@ class Lace(Group):
                     fragments.append(self.fragments[ind])
             self.fragments_by_radius[key] = fragments
 
-    def _set_partition_groups(self):
+    def _set_partition_groups(self) -> None:
         # to do : handle repeated code. same in set_fragment_groups
         areas = []
         for i, partition in enumerate(self.partitions):
@@ -1601,13 +1730,13 @@ class Lace(Group):
 
         self.fragments = fragments
 
-    def _set_concave_hull(self):
+    def _set_concave_hull(self) -> None:
         self.concave_hull = self.outline.vertices
 
-    def _set_convex_hull(self):
+    def _set_convex_hull(self) -> None:
         self.convex_hull = convex_hull(self.outline.vertices)
 
-    def copy(self, **kwargs):
+    def copy(self, **kwargs: Any) -> Group:
         """Return a lightweight Group copy of plaits and fragments.
 
         Args:
@@ -1615,6 +1744,21 @@ class Lace(Group):
 
         Returns:
             Group: Group containing copies of plaits and fragments.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.interlace.lace import Lace
+            >>> from simetri.shapes.shape import Shape
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Line
+            >>> shp1 = Shape(
+            ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
+            ... )
+            >>> shp2 = Line((-40, 0), (240, 0))
+            >>> lace = Lace(Group(shp1, shp2).scale(2), offset=12)
+            >>> len(lace.copy())
+            9
         """
         plaits = self.plaits[:]
         fragments = self.fragments[:]
@@ -1634,6 +1778,20 @@ class Lace(Group):
 
         Returns:
             Group: Sketch group containing fragment and plait shapes.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.interlace.lace import Lace
+            >>> from simetri.shapes.shape import Shape
+            >>> lace = Lace(
+            ...     [Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)],
+            ...     offset=3,
+            ...     with_plaits=False,
+            ... )
+            >>> sketch = lace.get_sketch()
+            >>> sketch.subtype.name
+            'SKETCH'
         """
         fragments = []
         for fragment in self.fragments:
@@ -1737,15 +1895,17 @@ class Lace(Group):
         self,
         rel_tol: float | None = None,
         abs_tol: float | None = None,
-    ):
-        """Group the fragments by the number of vertices and the area.
+    ) -> list[list[list[Fragment]]]:
+        """Group fragments by vertex count and similar area.
 
         Args:
-            rel_tol (float, optional): Relative tolerance value. Defaults to None.
-            abs_tol (float, optional): Absolute tolerance value. Defaults to None.
+            rel_tol: Relative tolerance for area comparison. Defaults to
+                ``defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance for area comparison. Defaults to
+                ``defaults["abs_tol"]``.
 
         Returns:
-            list: List of grouped fragments.
+            list[list[list[Fragment]]]: Nested groups sorted by area.
         """
         if rel_tol is None:
             rel_tol = defaults["rel_tol"]
@@ -1778,6 +1938,21 @@ class Lace(Group):
 
         Returns:
             list[list[int]]: Cycles of intersection ids.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.interlace.lace import Lace
+            >>> from simetri.shapes.shape import Shape
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Line
+            >>> shp1 = Shape(
+            ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
+            ... )
+            >>> shp2 = Line((-40, 0), (240, 0))
+            >>> lace = Lace(Group(shp1, shp2).scale(2), offset=12)
+            >>> len(lace.get_fragment_cycles())
+            3
         """
         graph_edges = []
         for section in self.iter_offset_sections():
@@ -1788,8 +1963,22 @@ class Lace(Group):
         return get_cycles(graph_edges)
 
     def _set_inner_loops(
-        self, item, n, offset, line_colors=None, line_widths=None
-    ):
+        self,
+        item: Shape | Fragment,
+        n: int,
+        offset: float,
+        line_colors: Sequence[colors.Color] | None = None,
+        line_widths: Sequence[float] | None = None,
+    ) -> None:
+        """Append inset offset line shapes to ``item.inner_lines``.
+
+        Args:
+            item: Plait or fragment receiving inner line shapes.
+            n: Number of inset loops.
+            offset: Per-loop inset distance.
+            line_colors: Color per loop, or one color for all loops.
+            line_widths: Width per loop, or one width for all loops.
+        """
         for i in range(n):
             vertices = item.vertices
             dist_tol = defaults["dist_tol"]
@@ -1809,15 +1998,22 @@ class Lace(Group):
             item.inner_lines.append(shape)
 
     def set_plait_inner_loops(
-        self, n, offset, line_color=colors.blue, line_width=1
-    ):
+        self,
+        n: int,
+        offset: float,
+        line_color: colors.Color = colors.blue,
+        line_width: float = 1,
+    ) -> None:
         """Create offset lines inside the plaits of the lace.
 
         Args:
-            n (int): Number of lines.
-            offset (float): Offset value.
-            line_color (colors.Color, optional): Line color. Defaults to colors.blue.
-            line_width (int, optional): Line width. Defaults to 1.
+            n: Number of inset lines per plait.
+            offset: Inset distance between consecutive lines.
+            line_color: Stroke color for every inner line.
+            line_width: Stroke width for every inner line.
+
+        Examples:
+            >>> lace.set_plait_inner_loops(1, 1)  # doctest: +SKIP
         """
         for plait in self.plaits:
             plait.inner_lines = []
@@ -1828,28 +2024,29 @@ class Lace(Group):
         n: int,
         offset: float,
         line_color: colors.Color = colors.blue,
-        line_width=1,
+        line_width: float = 1,
     ) -> None:
-        """
-        Create offset lines inside the fragments of the lace.
+        """Create offset lines inside the fragments of the lace.
 
         Args:
-            n (int): Number of lines.
-            offset (float): Offset value.
-            line_color (colors.Color, optional): Line color. Defaults to colors.blue.
-            line_width (int, optional): Line width. Defaults to 1.
+            n: Number of inset lines per fragment.
+            offset: Inset distance between consecutive lines.
+            line_color: Stroke color for every inner line.
+            line_width: Stroke width for every inner line.
+
+        Examples:
+            >>> lace.set_fragment_lines(1, 1)  # doctest: +SKIP
         """
         for fragment in self.fragments:
             fragment.inner_lines = []
             self._set_inner_lines(fragment, n, offset, line_color, line_width)
 
     @property
-    def all_divisions(self) -> list:
-        """
-        Return a list of all the divisions (both main and offset) in the lace.
+    def all_divisions(self) -> list[Division]:
+        """Return all main and offset divisions in the lace.
 
         Returns:
-            list: List of all divisions.
+            list[Division]: Every division on parallel polylines.
         """
         res = []
         for parallel_polyline in self.parallel_poly_list:
@@ -1857,7 +2054,7 @@ class Lace(Group):
                 res.extend(polyline.divisions)
         return res
 
-    def iter_main_intersections(self) -> Iterator:
+    def iter_main_intersections(self) -> Iterator[Intersection]:
         """Iterate over the main intersections.
 
         Yields:
@@ -1867,9 +2064,8 @@ class Lace(Group):
             for division in ppoly.polyline.divisions:
                 yield from division.intersections
 
-    def iter_offset_intersections(self) -> Iterator:
-        """
-        Iterate over the offset intersections.
+    def iter_offset_intersections(self) -> Iterator[Intersection]:
+        """Iterate over the offset intersections.
 
         Yields:
             Intersection: Intersection object.
@@ -1879,9 +2075,8 @@ class Lace(Group):
                 for division in poly.divisions:
                     yield from division.intersections
 
-    def iter_offset_sections(self) -> Iterator:
-        """
-        Iterate over the offset sections.
+    def iter_offset_sections(self) -> Iterator[Section]:
+        """Iterate over the offset sections.
 
         Yields:
             Section: Section object.
@@ -1891,7 +2086,7 @@ class Lace(Group):
                 for division in poly.divisions:
                     yield from division.sections
 
-    def iter_main_sections(self) -> Iterator:
+    def iter_main_sections(self) -> Iterator[Section]:
         """Iterate over the main sections.
 
         Yields:
@@ -1901,9 +2096,8 @@ class Lace(Group):
             for division in ppoly.polyline.divisions:
                 yield from division.sections
 
-    def iter_offset_divisions(self) -> Iterator:
-        """
-        Iterate over the offset divisions.
+    def iter_offset_divisions(self) -> Iterator[Division]:
+        """Iterate over the offset divisions.
 
         Yields:
             Division: Division object.
@@ -1912,9 +2106,8 @@ class Lace(Group):
             for poly in ppoly.offset_poly_list:
                 yield from poly.divisions
 
-    def iter_main_divisions(self) -> Iterator:
-        """
-        Iterate over the main divisions.
+    def iter_main_divisions(self) -> Iterator[Division]:
+        """Iterate over the main divisions.
 
         Yields:
             Division: Division object.
@@ -2034,7 +2227,9 @@ class Lace(Group):
         plaits = self.plaits
         dist_tol = defaults["dist_tol"]
 
-        def edge_cell_key(start: PointType, end: PointType):
+        def edge_cell_key(
+            start: PointType, end: PointType
+        ) -> tuple[tuple[int, int], tuple[int, int]]:
             start_x, start_y = start[:2]
             end_x, end_y = end[:2]
             start_cell = (
@@ -2296,7 +2491,9 @@ class Lace(Group):
     def _set_over_under(self) -> None:
         """Assign which overlapping offset sections pass over or under."""
 
-        def next_poly(exclude):
+        def next_poly(
+            exclude: list[Polyline],
+        ) -> tuple[Polyline | None, Polyline | None, bool | int]:
             for ppoly in self.parallel_poly_list:
                 poly1, poly2 = ppoly.offset_poly_list
                 if poly1 in exclude:
@@ -2338,12 +2535,25 @@ class Lace(Group):
                 poly1, poly2, even_odd = next_poly(exclude)
 
     def fragment_edge_graph(self) -> nx.Graph:
-        """
-        Return a networkx graph of the connected fragments.
-        If two fragments have a "common" division then they are connected.
+        """Build a graph of fragments that share a twin division.
 
         Returns:
-            nx.Graph: Graph of connected fragments.
+            nx.Graph: Nodes are fragment ids; edges carry the shared division.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.interlace.lace import Lace
+            >>> from simetri.shapes.shape import Shape
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Line
+            >>> shp1 = Shape(
+            ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
+            ... )
+            >>> shp2 = Line((-40, 0), (240, 0))
+            >>> lace = Lace(Group(shp1, shp2).scale(2), offset=12)
+            >>> lace.fragment_edge_graph().number_of_nodes() >= 0
+            True
         """
         G = nx.Graph()
         fragments = [(f.area, f) for f in self.fragments]
@@ -2358,15 +2568,19 @@ class Lace(Group):
         return G
 
     def fragment_vertex_graph(self) -> nx.Graph:
-        """
-        Return a networkx graph of the connected fragments.
-        If two fragments have a "common" vertex then they are connected.
+        """Build a graph of fragments linked by shared vertices.
 
         Returns:
-            nx.Graph: Graph of connected fragments.
+            nx.Graph: Adjacency for fragment pairs not already in
+            ``fragment_edge_graph()``.
+
+        Examples:
+            >>> lace.fragment_vertex_graph()  # doctest: +SKIP
         """
 
-        def get_neighbours(intersection):
+        def get_neighbours(
+            intersection: Intersection,
+        ) -> list[Fragment] | None:
             division = intersection.division
             if not division.next.twin:
                 return None
@@ -2434,6 +2648,18 @@ def all_intersections(
 
     Returns:
         list[Intersection]: Intersections found among the divisions.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Division, all_intersections
+        >>> d1 = Division((0, 0), (10, 10))
+        >>> d2 = Division((0, 10), (10, 0))
+        >>> found = all_intersections([d1, d2], {}, {})
+        >>> len(found)
+        1
+        >>> [round(x, 2) for x in found[0].point]
+        [5.0, 5.0]
     """
     # register fake intersections at the endpoints of the open lines
     for division in division_list:
@@ -2545,6 +2771,15 @@ def merge_nodes(
 
     Returns:
         list[Intersection]: Intersections found among the divisions.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.interlace.lace import Division, merge_nodes
+        >>> d1 = Division((0, 0), (10, 10))
+        >>> d2 = Division((0, 10), (10, 0))
+        >>> len(merge_nodes([d1, d2], {}, {}))
+        1
     """
     # register fake intersections at the endpoints of the open lines
     for division in division_list:

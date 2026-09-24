@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from ..config.settings import defaults
 
 NON_SCOPABLE_SCOPE_KEYS = frozenset(
@@ -9,11 +11,24 @@ NON_SCOPABLE_SCOPE_KEYS = frozenset(
 )
 
 
-def resolve_style_value(sketch_dict: dict, style_key: str):
+def resolve_style_value(sketch_dict: dict[str, Any], style_key: str) -> object:
     """Resolve a style value from sketch data or defaults.
 
+    Args:
+        sketch_dict: Sketch ``__dict__`` or equivalent attribute bag.
+        style_key: Style attribute name to resolve.
+
+    Returns:
+        object: Resolved value from the sketch or ``defaults``.
+
     Raises:
-        KeyError: If style_key is missing from sketch_dict and defaults.
+        KeyError: If ``style_key`` is missing from the sketch and ``defaults``.
+
+    Examples:
+        >>> from simetri.render.style_passes import resolve_style_value
+        >>> from simetri.config.settings import defaults
+        >>> resolve_style_value({}, "grid_line_width") == defaults["grid_line_width"]
+        True
     """
 
     if style_key in sketch_dict:
@@ -23,8 +38,17 @@ def resolve_style_value(sketch_dict: dict, style_key: str):
     raise KeyError(f"Missing style key '{style_key}' in sketch and defaults")
 
 
-def create_style_signature(sketch_dict: dict, style_keys: list[str]) -> tuple:
-    """Create a hashable style signature for a sketch using style_keys."""
+def create_style_signature(
+    sketch_dict: dict[str, Any], style_keys: list[str]
+) -> tuple[tuple[str, str], ...]:
+    """Create a hashable style signature for a sketch using style_keys.
+
+    Examples:
+        >>> from simetri.render.style_passes import create_style_signature
+        >>> sig = create_style_signature({"line_width": 1.0}, ["line_width"])
+        >>> sig[0][0]
+        'line_width'
+    """
 
     signature = []
     for style_key in style_keys:
@@ -34,10 +58,16 @@ def create_style_signature(sketch_dict: dict, style_keys: list[str]) -> tuple:
 
 
 def build_styles_dict(
-    sketches: list,
+    sketches: list[Any],
     style_domain_key_sets: dict[str, list[str]],
-) -> dict[str, dict]:
-    """Pass 1: Build neutral styles dictionary as {style_id: style_obj}."""
+) -> dict[str, dict[str, Any]]:
+    """Pass 1: Build neutral styles dictionary as {style_id: style_obj}.
+
+    Examples:
+        >>> from simetri.render.style_passes import build_styles_dict
+        >>> build_styles_dict([], {"line": ["line_width"]})
+        {}
+    """
 
     signature_to_style_id = {}
     styles_dict = {}
@@ -64,11 +94,17 @@ def build_styles_dict(
 
 
 def build_style_sketch_dict(
-    sketches: list,
+    sketches: list[Any],
     style_domain_key_sets: dict[str, list[str]],
-    styles_dict: dict[str, dict],
+    styles_dict: dict[str, dict[str, Any]],
 ) -> dict[str, list[int]]:
-    """Pass 2: Build style-to-sketch dictionary as {style_id: [sketch_id, ...]}."""
+    """Pass 2: Build style-to-sketch dictionary as {style_id: [sketch_id, ...]}.
+
+    Examples:
+        >>> from simetri.render.style_passes import build_style_sketch_dict
+        >>> build_style_sketch_dict([], {"line": ["line_width"]}, {})
+        {}
+    """
 
     style_sketch_dict = {style_id: [] for style_id in styles_dict}
     signature_to_style_id = {}
@@ -89,7 +125,13 @@ def build_style_sketch_dict(
 
 
 def build_sketch_style_ids(style_sketch_dict: dict[str, list[int]]) -> dict[int, list[str]]:
-    """Build reverse style mapping as {sketch_id: [style_id, ...]}."""
+    """Build reverse style mapping as {sketch_id: [style_id, ...]}.
+
+    Examples:
+        >>> from simetri.render.style_passes import build_sketch_style_ids
+        >>> build_sketch_style_ids({"style_1": [3, 4]})
+        {3: ['style_1'], 4: ['style_1']}
+    """
 
     sketch_style_ids = {}
     for style_id, sketch_ids in style_sketch_dict.items():
@@ -101,13 +143,17 @@ def build_sketch_style_ids(style_sketch_dict: dict[str, list[int]]) -> dict[int,
 
 
 def validate_style_sketch_coverage(
-    sketches: list,
+    sketches: list[Any],
     sketch_style_ids: dict[int, list[str]],
 ) -> None:
     """Validate that every sketch has at least one style assignment.
 
     Raises:
         ValueError: If any sketch has no style mapping.
+
+    Examples:
+        >>> from simetri.render.style_passes import validate_style_sketch_coverage
+        >>> validate_style_sketch_coverage([], {})
     """
 
     for sketch in sketches:

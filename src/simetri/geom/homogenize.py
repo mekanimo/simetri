@@ -17,14 +17,10 @@ def homogenize(points: Sequence[PointType]) -> NDArray:
     Returns:
         NDArray: Homogeneous coordinates with a trailing 1 column.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    sg.homogenize([(1, 2), (3, 4)])
-    # array([[1., 2., 1.],
-    # [3., 4., 1.]])
-    ```
+    Examples:
+        >>> from simetri.geom.homogenize import homogenize
+        >>> homogenize([(1, 2), (3, 4)]).tolist()
+        [[1.0, 2.0, 1.0], [3.0, 4.0, 1.0]]
 """
     try:
         xy_array = np.array(points, dtype=float)

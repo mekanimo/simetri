@@ -2,10 +2,13 @@
 https://pomax.github.io/bezierinfo is a good resource for understanding Bezier curves.
 """
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 
 import numpy as np
 from numpy import array
+from numpy.typing import NDArray
 
 from ...base.all_enums import Types
 from ...base.common import PointType
@@ -37,23 +40,22 @@ class Bezier(Shape):
         cubic (bool): True if cubic, False if quadratic.
         matrix (array): Polynomial matrix for the Bezier curve.
 
-    **Examples**
+    Examples:
 
-    ```python
-    import simetri.graphics as sg
-
-    ```
-            curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)])
-            canvas = sg.Canvas()
-            canvas.draw(curve)
+        >>> import simetri.graphics as sg
+        >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)])
+        >>> len(curve.vertices) >= 5
+        True
+        >>> canvas = sg.Canvas()  # doctest: +SKIP
+        >>> canvas.draw(curve)  # doctest: +SKIP
     """
 
     def __init__(
         self,
         control_points: Sequence[PointType],
         xform_matrix: array = None,
-        n_points=None,
-        **kwargs,
+        n_points: int | None = None,
+        **kwargs: object,
     ) -> None:
         """Initializes a Bezier curve.
 
@@ -131,7 +133,7 @@ class Bezier(Shape):
         else:
             raise ValueError("Invalid number of control points.")
 
-    def copy(self, **kwargs) -> Shape:
+    def copy(self, **kwargs: object) -> Shape:
         """Return a copy of the Bezier curve.
 
         Returns:
@@ -148,7 +150,7 @@ class Bezier(Shape):
 
         return copy_
 
-    def point(self, t: float):
+    def point(self, t: float) -> list[float]:
         """Return the point on the Bezier curve at t.
 
         Args:
@@ -182,7 +184,7 @@ class Bezier(Shape):
 
         return [x, y]
 
-    def derivative(self, t: float):
+    def derivative(self, t: float) -> list[float]:
         """Return the derivative of the Bezier curve at t.
 
         Args:
@@ -196,7 +198,7 @@ class Bezier(Shape):
         else:
             return get_quadratic_derivative(t, self.control_points)
 
-    def normal(self, t: float):
+    def normal(self, t: float) -> list[float]:
         """Return the normal of the Bezier curve at t.
 
         Args:
@@ -209,7 +211,7 @@ class Bezier(Shape):
         q = np.sqrt(d[0] * d[0] + d[1] * d[1])
         return [-d[1] / q, d[0] / q]
 
-    def tangent(self, t: float):
+    def tangent(self, t: float) -> list[float]:
         """Draw a unit tangent vector at t.
 
         Args:
@@ -225,8 +227,12 @@ class Bezier(Shape):
 
 
 def equidistant_points(
-    p0: PointType, p1: PointType, p2: PointType, p3: PointType, n_points=10
-):
+    p0: PointType,
+    p1: PointType,
+    p2: PointType,
+    p3: PointType,
+    n_points: int = 10,
+) -> tuple[NDArray, list[PointType], list, list]:
     """Return the points on a Bezier curve with equidistant spacing.
 
     Args:
@@ -266,7 +272,12 @@ def equidistant_points(
     return points, eq_points, tangents, normals
 
 
-def offset_points(controls, offset, n_points, double=False):
+def offset_points(
+    controls: Sequence[PointType],
+    offset: float,
+    n_points: int,
+    double: bool = False,
+) -> list[PointType] | tuple[list[PointType], list[PointType]]:
     """Return the points on the offset curve.
 
     Args:
@@ -327,7 +338,10 @@ class BezierPoints(Shape):
     """
 
     def __init__(
-        self, control_points: Sequence[PointType], n_points: int = 10, **kwargs
+        self,
+        control_points: Sequence[PointType],
+        n_points: int = 10,
+        **kwargs: object,
     ) -> None:
         """Initializes Bezier points.
 
@@ -352,7 +366,9 @@ class BezierPoints(Shape):
         self.normals = normals
         self.n_points = n_points
 
-    def offsets(self, offset: float, double: bool = False):
+    def offsets(
+        self, offset: float, double: bool = False
+    ) -> list[PointType] | tuple[list[PointType], list[PointType]]:
         """Return the points on the offset curve.
 
         Args:
@@ -382,7 +398,13 @@ class BezierPoints(Shape):
 M = array([[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]])
 
 
-def bezier_points(p0, p1: PointType, p2: PointType, p3: PointType, n_points=10):
+def bezier_points(
+    p0: PointType,
+    p1: PointType,
+    p2: PointType,
+    p3: PointType,
+    n_points: int = 10,
+) -> NDArray:
     """Return sampled points on a cubic Bezier curve.
 
     Args:
@@ -398,13 +420,16 @@ def bezier_points(p0, p1: PointType, p2: PointType, p3: PointType, n_points=10):
     Raises:
         ValueError: If ``n_points`` is less than 5.
 
-    **Examples**
+    Examples:
 
-    ```python
-    from simetri.geom.bezier import bezier_points
-
-    ```
-            pts = bezier_points((0, 0), (1, 2), (2, 2), (3, 0), n_points=20)
+        >>> import simetri.graphics as sg
+        >>> pts = sg.bezier_points((0, 0), (1, 2), (2, 2), (3, 0), n_points=20)
+        >>> len(pts)
+        20
+        >>> tuple(round(x, 6) for x in pts[0])
+        (0.0, 0.0)
+        >>> tuple(round(x, 6) for x in pts[-1])
+        (3.0, 0.0)
     """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")
@@ -424,7 +449,9 @@ def bezier_points(p0, p1: PointType, p2: PointType, p3: PointType, n_points=10):
 MQ = array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
 
 
-def q_bezier_points(p0: PointType, p1: PointType, p2: PointType, n_points: int):
+def q_bezier_points(
+    p0: PointType, p1: PointType, p2: PointType, n_points: int
+) -> NDArray:
     """Return the points on a quadratic Bezier curve.
 
     Args:
@@ -438,6 +465,14 @@ def q_bezier_points(p0: PointType, p1: PointType, p2: PointType, n_points: int):
 
     Raises:
         ValueError: If n_points is less than 5.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.q_bezier_points((0, 0), (1, 1), (2, 0), 10)
+        >>> len(pts)
+        10
+        >>> tuple(round(x, 6) for x in pts[-1])
+        (2.0, 0.0)
     """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")
@@ -459,8 +494,8 @@ def split_bezier(
     p2: PointType,
     p3: PointType,
     z: float,
-    n_points=10,
-):
+    n_points: int = 10,
+) -> tuple[Bezier, Bezier]:
     """Split a cubic Bezier curve at t=z.
 
     Args:
@@ -503,8 +538,8 @@ def split_bezier(
 
 
 def split_q_bezier(
-    p0: PointType, p1: PointType, p2: PointType, z: float, n_points=10
-):
+    p0: PointType, p1: PointType, p2: PointType, z: float, n_points: int = 10
+) -> tuple[Bezier, Bezier]:
     """Split a quadratic Bezier curve at t=z.
 
     Args:
@@ -537,7 +572,7 @@ def split_q_bezier(
     )
 
 
-def mirror_point(cp: PointType, vertex: PointType):
+def mirror_point(cp: PointType, vertex: PointType) -> PointType:
     """Return the mirror of cp about vertex.
 
     Args:
@@ -546,6 +581,11 @@ def mirror_point(cp: PointType, vertex: PointType):
 
     Returns:
         list: Mirrored control point.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.mirror_point((2, 0), (1, 0))
+        (0.0, 0.0)
     """
     length = distance(cp, vertex)
     angle = line_angle(cp, vertex)
@@ -554,8 +594,13 @@ def mirror_point(cp: PointType, vertex: PointType):
 
 
 def curve(
-    v1: PointType, c1: PointType, c2: PointType, v2: PointType, *args, **kwargs
-):
+    v1: PointType,
+    c1: PointType,
+    c2: PointType,
+    v2: PointType,
+    *args: object,
+    **kwargs: object,
+) -> list[Bezier]:
     """Return a cubic Bezier curve/s.
 
     Args:
@@ -593,7 +638,13 @@ def curve(
     return curves
 
 
-def q_curve(v1: PointType, c: PointType, v2: PointType, *args, **kwargs):
+def q_curve(
+    v1: PointType,
+    c: PointType,
+    v2: PointType,
+    *args: object,
+    **kwargs: object,
+) -> list[Bezier]:
     """Return a quadratic Bezier curve/s.
 
     Args:
@@ -628,7 +679,9 @@ def q_curve(v1: PointType, c: PointType, v2: PointType, *args, **kwargs):
     return curves
 
 
-def get_quadratic_derivative(t: float, points: Sequence[PointType]):
+def get_quadratic_derivative(
+    t: float, points: Sequence[PointType]
+) -> list[float]:
     """Return the derivative of a quadratic Bezier curve at t.
 
     Args:
@@ -649,7 +702,9 @@ def get_quadratic_derivative(t: float, points: Sequence[PointType]):
     return [mt * d[0] + t * d[2], mt * d[1] + t * d[3]]
 
 
-def get_cubic_derivative(t: float, points: Sequence[PointType]):
+def get_cubic_derivative(
+    t: float, points: Sequence[PointType]
+) -> list[float]:
     """Return the derivative of a cubic Bezier curve at t.
 
     Args:
@@ -675,7 +730,7 @@ def get_cubic_derivative(t: float, points: Sequence[PointType]):
     return [a * d[0] + b * d[2] + c * d[4], a * d[1] + b * d[3] + c * d[5]]
 
 
-def get_normal(d: Sequence[float]):
+def get_normal(d: Sequence[float]) -> list[float]:
     """Return the normal of a given line.
 
     Args:

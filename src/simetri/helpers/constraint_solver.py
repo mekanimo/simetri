@@ -2,7 +2,11 @@
 Uses Sequential Least Squares Programming (SLSQP) to solve the given constraints.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from simetri.geom.nonlinear.circle import Circle_ as Circle
 
@@ -19,7 +23,15 @@ from .validation import is_line
 
 @dataclass
 class Constraint:
-    """Constraint class for geometric constraints."""
+    """Constraint class for geometric constraints.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint
+        >>> c = Constraint([0, 0], [1, 0], ConstraintType.DISTANCE, value=1)
+        >>> c.type
+        <ConstraintType.DISTANCE: 'DISTANCE'>
+    """
 
     item1: object
     item2: object
@@ -27,7 +39,7 @@ class Constraint:
     value: float | None = None
     value2: float | None = None  # used for equal_value_eq
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set item sizes for circles and segments."""
         self.equation = d_equations[self.type]
         if self.type == ConstType.EQUAL_SIZE:
@@ -41,11 +53,18 @@ class Constraint:
             elif is_line(self.item2):
                 self.size2 = distance(*self.item2)
 
-    def check(self):
+    def check(self) -> float:
         """Check the constraint value.
 
         Returns:
             float: The result of the constraint equation.
+
+        Examples:
+            >>> from simetri.base.all_enums import ConstraintType
+            >>> from simetri.helpers.constraint_solver import Constraint
+            >>> c = Constraint([0, 0], [3, 4], ConstraintType.DISTANCE, value=5)
+            >>> round(c.check(), 1)
+            0.0
         """
         return self.equation(self)
 
@@ -58,7 +77,7 @@ class Constraint:
 # For point on a circle use distance_eq (point to center dist = radius)
 
 
-def distance_eq(constraint):
+def distance_eq(constraint: Constraint) -> float:
     """Return the difference between the target and current distance.
 
     Args:
@@ -66,6 +85,13 @@ def distance_eq(constraint):
 
     Returns:
         float: The difference between the target and current distance.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, distance_eq
+        >>> c = Constraint([0, 0], [3, 4], ConstraintType.DISTANCE, value=5)
+        >>> round(distance_eq(c), 1)
+        0.0
     """
     if isinstance(constraint.item1, Circle):
         p1 = constraint.item1.center
@@ -82,7 +108,7 @@ def distance_eq(constraint):
     return distance(p1, p2) - value
 
 
-def parallel_eq(constraint):
+def parallel_eq(constraint: Constraint) -> float:
     """Return the cross product. If the segments are parallel, the cross product is 0.
 
     Args:
@@ -90,6 +116,13 @@ def parallel_eq(constraint):
 
     Returns:
         float: The cross product of the vectors.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, parallel_eq
+        >>> c = Constraint([[0, 0], [1, 0]], [[0, 0], [2, 0]], ConstraintType.PARALLEL)
+        >>> parallel_eq(c)
+        0
     """
     # constraint.item1 and constraint.item2 are line segments (pairs of points)
     # We need to calculate direction vectors from these segments
@@ -106,7 +139,7 @@ def parallel_eq(constraint):
     return vec1.cross(vec2)
 
 
-def perpendicular_eq(constraint):
+def perpendicular_eq(constraint: Constraint) -> float:
     """Return the dot product. If the segments are perpendicular, the dot product is 0.
 
     Args:
@@ -114,6 +147,13 @@ def perpendicular_eq(constraint):
 
     Returns:
         float: The dot product of the vectors.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, perpendicular_eq
+        >>> c = Constraint([[0, 0], [1, 0]], [[0, 0], [0, 1]], ConstraintType.PERPENDICULAR)
+        >>> perpendicular_eq(c)
+        0
     """
     # constraint.item1 and constraint.item2 are line segments (pairs of points)
     # We need to calculate direction vectors from these segments
@@ -130,7 +170,7 @@ def perpendicular_eq(constraint):
     return vec1.dot(vec2)
 
 
-def equal_size_eq(constraint):
+def equal_size_eq(constraint: Constraint) -> float:
     """Return the difference between the sizes of the items.
 
     For segments, item size is the length of the segment.
@@ -141,12 +181,21 @@ def equal_size_eq(constraint):
 
     Returns:
         float: The difference between the sizes of the items.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, equal_size_eq
+        >>> c = Constraint([0, 0], [0, 0], ConstraintType.EQUAL_SIZE)
+        >>> c.size1 = 2
+        >>> c.size2 = 2
+        >>> equal_size_eq(c)
+        0
     """
 
     return constraint.item1.size1 - constraint.item2.size2
 
 
-def outer_tangent_eq(constraint):
+def outer_tangent_eq(constraint: Constraint) -> float:
     """Return the difference between the distance of the circles and the sum of the radii.
 
     If the circles are tangent, the difference is 0.
@@ -156,6 +205,13 @@ def outer_tangent_eq(constraint):
 
     Returns:
         float: The difference between the distance of the circles and the sum of the radii.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, outer_tangent_eq
+        >>> c = Constraint([[0, 0], [1, 0]], [[2, 0], [3, 0]], ConstraintType.OUTER_TANGENT)
+        >>> isinstance(outer_tangent_eq(c), float)
+        True
     """
     if is_line(constraint.item1):
         circle = constraint.item2
@@ -180,7 +236,7 @@ def outer_tangent_eq(constraint):
     return res
 
 
-def inner_tangent_eq(constraint):
+def inner_tangent_eq(constraint: Constraint) -> float:
     """Return the difference between the distance of the circles and the sum of the radii.
 
     If the circles are tangent, the difference is 0.
@@ -190,6 +246,14 @@ def inner_tangent_eq(constraint):
 
     Returns:
         float: The difference between the distance of the circles and the sum of the radii.
+
+    Examples:
+        >>> from simetri.geom.nonlinear.circle import Circle_ as Circle
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, inner_tangent_eq
+        >>> c = Constraint(Circle(5, (0, 0)), Circle(3, (8, 0)), ConstraintType.INNER_TANGENT)
+        >>> isinstance(inner_tangent_eq(c), float)
+        True
     """
     circle_1 = constraint.item1
     circle_2 = constraint.item2
@@ -201,7 +265,7 @@ def inner_tangent_eq(constraint):
     return dist - abs(rad1 - rad2)
 
 
-def collinear_eq(constraint):
+def collinear_eq(constraint: Constraint) -> float:
     """Return the difference in direction for collinear items.
 
     Items can be: segments, segment and a circle, or a segment and a point.
@@ -211,6 +275,13 @@ def collinear_eq(constraint):
 
     Returns:
         float: The difference in direction.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, collinear_eq
+        >>> c = Constraint([[0, 0], [1, 0]], [[2, 0], [3, 0]], ConstraintType.COLLINEAR)
+        >>> collinear_eq(c)
+        0
     """
     # for now only segments are implemented
     a1, b1 = constraint.item1
@@ -219,7 +290,7 @@ def collinear_eq(constraint):
     return direction3(a1, b1, a2) - direction3(a1, b1, b2)
 
 
-def equal_value_eq(constraint):
+def equal_value_eq(constraint: Constraint) -> float:
     """Return the difference between the values.
 
     Args:
@@ -227,11 +298,18 @@ def equal_value_eq(constraint):
 
     Returns:
         float: The difference between the values.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, equal_value_eq
+        >>> c = Constraint(None, None, ConstraintType.EQUAL_VALUE, value=3, value2=3)
+        >>> equal_value_eq(c)
+        0
     """
     return constraint.value - constraint.value2
 
 
-def line_angle_eq(constraint):
+def line_angle_eq(constraint: Constraint) -> float:
     """Return the angle between two segments.
 
     Args:
@@ -239,6 +317,13 @@ def line_angle_eq(constraint):
 
     Returns:
         float: The angle between the two segments.
+
+    Examples:
+        >>> from simetri.base.all_enums import ConstraintType
+        >>> from simetri.helpers.constraint_solver import Constraint, line_angle_eq
+        >>> c = Constraint([[0, 0], [1, 0]], [[0, 0], [0, 1]], ConstraintType.LINE_ANGLE, value=90)
+        >>> round(line_angle_eq(c), 1)
+        0.0
     """
     seg1 = constraint.item1
     seg2 = constraint.item2
@@ -258,7 +343,13 @@ d_equations = {
 }
 
 
-def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
+def solve(
+    constraints: Sequence[Constraint],
+    update_func: Callable[[Sequence[float]], None],
+    initial_guess: Sequence[float],
+    bounds: Sequence[tuple[float, float]] | None = None,
+    tol: float = 1e-04,
+) -> Any:
     """Solve the geometric constraints.
 
     Args:
@@ -270,10 +361,14 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
 
     Returns:
         OptimizeResult: The optimization result represented as a `OptimizeResult` object.
+
+    Examples:
+        >>> from simetri.helpers.constraint_solver import solve
+        >>> solve([], lambda x: None, [0.0])  # doctest: +SKIP
     """
     from scipy.optimize import minimize  # this takes too long to import!!!
 
-    def objective(x):
+    def objective(x: Sequence[float]) -> float:
         """Objective function for the minimization.
 
         Args:
@@ -286,7 +381,7 @@ def solve(constraints, update_func, initial_guess, bounds=None, tol=1e-04):
 
         return sum(constr.check() for constr in constraints)
 
-    def check_constraints(x):
+    def check_constraints(x: Sequence[float]) -> list[float]:
         """Return constraint results.
 
         Args:
@@ -399,11 +494,15 @@ paralell_const = Constraint(
 
 
 # print(distance([0, 0], [4.465e+01,  5.582e+00]))
-def update(x):
+def update(x: Sequence[float]) -> None:
     """Example solver callback that writes coordinates into ``item2``.
 
     Args:
         x: Sequence of two floats ``(x, y)`` from the optimizer.
+
+    Examples:
+        >>> from simetri.helpers.constraint_solver import update
+        >>> update([1.0, 2.0])  # doctest: +SKIP
     """
     print("x", x)
     x_, y_ = x

@@ -1,6 +1,9 @@
 """Graph related functions and classes. Uses NetworkX for graph operations."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
+from typing import Any
 from dataclasses import dataclass
 
 import networkx as nx
@@ -16,6 +19,7 @@ from ..geom.points.point_utils import distance
 class GraphEdge:
     """Edge in a graph with start and end nodes.
 
+    Examples:
     Attributes:
         start (PointType): Start node.
         end (PointType): End node.
@@ -25,29 +29,32 @@ class GraphEdge:
     start: PointType
     end: PointType
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Compute ``length`` from the start and end node positions."""
         self.length = distance(self.start.pos, self.end.pos)
 
     @property
-    def nodes(self):
+    def nodes(self) -> tuple[PointType, PointType]:
         """Return the start and end nodes of the edge.
 
         Returns:
             tuple: ``(start, end)`` nodes.
+
+        Examples:
         """
         return (self.start, self.end)
 
 
 def edges_to_nodes(edges: Sequence[Sequence]) -> Sequence:
-    """
-    Given a list of edges, return a connected list of nodes.
+    """Given a list of edges, return a connected list of nodes.
 
     Args:
         edges (Sequence[Sequence]): List of edges.
 
     Returns:
         Sequence: Connected list of nodes.
+
+    Examples:
     """
     chain = longest_chain(edges)
     closed = chain[0][0] == chain[-1][-1]
@@ -70,14 +77,15 @@ def edges_to_nodes(edges: Sequence[Sequence]) -> Sequence:
 
 
 def get_cycles(edges: Sequence[GraphEdge]) -> Sequence[GraphEdge]:
-    """
-    Computes all the cycles in a given graph of edges.
+    """Computes all the cycles in a given graph of edges.
 
     Args:
         edges (Sequence[GraphEdge]): List of graph edges.
 
     Returns:
         Sequence[GraphEdge]: List of cycles if any cycle is found, None otherwise.
+
+    Examples:
     """
     nx_graph = nx.Graph()
     nx_graph.add_edges_from(edges)
@@ -92,9 +100,8 @@ def get_cycles(edges: Sequence[GraphEdge]) -> Sequence[GraphEdge]:
 
 
 # find all open paths starting from a given node
-def find_all_paths(graph, node):
-    """
-    Find all paths starting from a given node.
+def find_all_paths(graph: nx.Graph, node: Any) -> list[list[Any]]:
+    """Find all paths starting from a given node.
 
     Args:
         graph (nx.Graph): The graph.
@@ -102,6 +109,8 @@ def find_all_paths(graph, node):
 
     Returns:
         List: All paths starting from the given node.
+
+    Examples:
     """
     paths = []
     for node_ in graph.nodes():
@@ -113,9 +122,8 @@ def find_all_paths(graph, node):
     return paths
 
 
-def is_open_walk2(graph, island):
-    """
-    Given a NetworkX Graph and an island, return True if the given island is an open walk.
+def is_open_walk2(graph: nx.Graph, island: Sequence[Any]) -> bool:
+    """Return True when ``island`` is an open walk in ``graph``.
 
     Args:
         graph (nx.Graph): The graph.
@@ -123,20 +131,23 @@ def is_open_walk2(graph, island):
 
     Returns:
         bool: True if the island is an open walk, False otherwise.
+
+    Examples:
     """
     degrees = [graph.degree(node) for node in island]
     return set(degrees) == {1, 2} and degrees.count(1) == 2
 
 
 def longest_chain(edges: Sequence[Sequence]) -> Sequence:
-    """
-    Given a list of graph edges, return a list of connected nodes.
+    """Given a list of graph edges, return a list of connected nodes.
 
     Args:
         edges (Sequence[Sequence]): List of graph edges.
 
     Returns:
         Sequence: List of connected nodes.
+
+    Examples:
     """
     if not edges:
         return []
@@ -182,8 +193,7 @@ def longest_chain(edges: Sequence[Sequence]) -> Sequence:
 
 
 def is_cycle(graph: nx.Graph, island: Sequence) -> bool:
-    """
-    Given a NetworkX Graph and an island, return True if the given island is a cycle.
+    """Return True when ``island`` is a cycle in ``graph``.
 
     Args:
         graph (nx.Graph): The graph.
@@ -191,14 +201,15 @@ def is_cycle(graph: nx.Graph, island: Sequence) -> bool:
 
     Returns:
         bool: True if the island is a cycle, False otherwise.
+
+    Examples:
     """
     degrees = [graph.degree(node) for node in island]
     return set(degrees) == {2}
 
 
 def is_open_walk(graph: nx.Graph, island: Sequence) -> bool:
-    """
-    Given a NetworkX Graph and an island, return True if the given island is an open walk.
+    """Return True when ``island`` is an open walk in ``graph``.
 
     Args:
         graph (nx.Graph): The graph.
@@ -206,6 +217,8 @@ def is_open_walk(graph: nx.Graph, island: Sequence) -> bool:
 
     Returns:
         bool: True if the island is an open walk, False otherwise.
+
+    Examples:
     """
     if len(island) == 2:
         return True
@@ -214,14 +227,15 @@ def is_open_walk(graph: nx.Graph, island: Sequence) -> bool:
 
 
 def graph_summary(graph: nx.Graph) -> str:
-    """
-    Return a summary of a graph including cycles, open walks and degenerate nodes.
+    """Return a summary of cycles, open walks, and degenerate nodes.
 
     Args:
         graph (nx.Graph): The graph.
 
     Returns:
         str: Summary of the graph.
+
+    Examples:
     """
     lines = []
     for island in nx.connected_components(graph):
@@ -245,10 +259,9 @@ def graph_summary(graph: nx.Graph) -> str:
 
 @dataclass
 class Node:
-    """
-    A Node object is a 2D point with x and y coordinates.
-    Used in graphs corresponding to shapes and groups.
+    """A 2D point with ``x`` and ``y`` coordinates for graph use.
 
+    Examples:
     Attributes:
         x (float): X coordinate.
         y (float): Y coordinate.
@@ -258,19 +271,23 @@ class Node:
     y: float
 
     @property
-    def pos(self):
-        """Return the position of the node."""
+    def pos(self) -> tuple[float, float]:
+        """Return the position of the node.
+
+        Examples:
+        """
         return (self.x, self.y)
 
     def __eq__(self, other: object) -> bool:
-        """
-        Check if two nodes are equal.
+        """Check if two nodes are equal.
 
         Args:
             other (object): The other node.
 
         Returns:
             bool: True if the nodes are equal, False otherwise.
+
+        Examples:
         """
         return close_points_square(
             self.pos, other.pos, dist2=defaults["dist_tol"] ** 2
@@ -279,9 +296,9 @@ class Node:
 
 @dataclass
 class Graph:
-    """
-    A Graph object is a collection of nodes and edges.
+    """A collection of nodes and edges backed by NetworkX.
 
+    Examples:
     Attributes:
         type (Types): The type of the graph.
         subtype (Types): The subtype of the graph.
@@ -293,12 +310,13 @@ class Graph:
     nx_graph: "nx.Graph" = None
 
     @property
-    def islands(self):
-        """
-        Return a list of all islands both cyclic and acyclic.
+    def islands(self) -> list[list[Any]]:
+        """Return a list of all islands both cyclic and acyclic.
 
         Returns:
             List: List of all islands.
+
+        Examples:
         """
         return [
             list(island)
@@ -306,22 +324,24 @@ class Graph:
         ]
 
     @property
-    def cycles(self):
-        """
-        Return a list of cycles.
+    def cycles(self) -> list[list[Any]]:
+        """Return a list of cycles.
 
         Returns:
             List: List of cycles.
+
+        Examples:
         """
         return nx.cycle_basis(self.nx_graph)
 
     @property
-    def open_walks(self):
-        """
-        Return a list of open walks (aka open chains).
+    def open_walks(self) -> list[list[Any]]:
+        """Return a list of open walks (aka open chains).
 
         Returns:
             List: List of open walks.
+
+        Examples:
         """
         return [
             island
@@ -330,34 +350,40 @@ class Graph:
         ]
 
     @property
-    def edges(self):
-        """
-        Return the edges of the graph.
+    def edges(self) -> Any:
+        """Return the edges of the graph.
 
         Returns:
             EdgeView: Edges of the graph.
+
+        Examples:
         """
         return self.nx_graph.edges
 
     @property
-    def nodes(self):
-        """
-        Return the nodes of the graph.
+    def nodes(self) -> Any:
+        """Return the nodes of the graph.
 
         Returns:
             NodeView: Nodes of the graph.
+
+        Examples:
         """
         return self.nx_graph.nodes
 
 
-def sanitize_weighted_graph_edges(edges):
+def sanitize_weighted_graph_edges(
+    edges: Sequence[tuple[Any, Any, Any]],
+) -> list[tuple[Any, Any, Any]]:
     """Sanitize weighted graph edges.
 
     Args:
         edges: A list of weighted graph edges.
 
     Returns:
-        A sanitized list of weighted graph edges.
+        list[tuple[Any, Any, Any]]: Deduplicated weighted edges, sorted.
+
+    Examples:
     """
     clean_edges = []
     s_seen = set()
@@ -372,14 +398,18 @@ def sanitize_weighted_graph_edges(edges):
     return clean_edges
 
 
-def sanitize_graph_edges(edges):
+def sanitize_graph_edges(
+    edges: Sequence[tuple[Any, Any]],
+) -> list[tuple[Any, Any]]:
     """Sanitize graph edges.
 
     Args:
         edges: A list of graph edges.
 
     Returns:
-        A sanitized list of graph edges.
+        list[tuple[Any, Any]]: Deduplicated edges with ordered endpoints, sorted.
+
+    Examples:
     """
     s_edge_set = set()
     for edge in edges:

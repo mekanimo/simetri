@@ -80,7 +80,14 @@ from ..geom.nonlinear.bezier import *
 from ..geom.nonlinear.circle import *
 from ..geom.nonlinear.ellipse import *
 from ..geom.nonlinear.hobby import *
-from ..geom.nonlinear.path import Operation, Path2D, path_code
+from ..geom.nonlinear.path import (
+    Operation,
+    Path2D,
+    path2d_svg,
+    path2d_to_svg_path,
+    path_code,
+    shape_to_path2d,
+)
 from ..geom.nonlinear.sine import *
 from ..geom.points.point_utils import *
 from ..geom.polygons.convex_hull import convex_hull
@@ -159,10 +166,16 @@ from ..render.render_svg.svg_utils import (
     extract_glyph_path,
     extract_glyph_svg_path,
 )
+from typing import Never
 
 
-def __getattr__(name: str):
-    """Raise an AttributeError with similar public ``sg`` names."""
+def __getattr__(name: str) -> Never:
+    """Raise an AttributeError with similar public ``sg`` names.
+
+    Examples:
+        >>> import simetri.graphics as sg  # doctest: +SKIP
+        >>> sg.not_a_real_sg_name_xyz  # doctest: +SKIP
+    """
     matches = _similar_sg_attribute_names(name)
     if matches:
         suggestions = "\n  ".join(matches)

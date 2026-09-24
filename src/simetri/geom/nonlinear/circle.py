@@ -1,6 +1,9 @@
 """Circle geometry: tangents, Apollonius, Steiner chains, and related helpers."""
 
+from __future__ import annotations
+
 import cmath
+from collections.abc import Sequence
 from dataclasses import dataclass
 from math import acos, atan, atan2, cos, pi, sin, sqrt
 
@@ -8,6 +11,8 @@ import numpy as np
 
 from simetri.geom.affine import rotate_point
 
+from ...base.common import PointType
+from ...group.batch import Group
 from ...shapes.geom_items import Circle
 from ..affine import rotate, rotation_matrix, scale_matrix
 from ..geom_utils import offset_point_from_start, r_polar
@@ -34,7 +39,9 @@ class Circle_:
     radius: float
 
 
-def tangent_points_from_point(circle, point):
+def tangent_points_from_point(
+    circle: Circle_ | Circle, point: PointType
+) -> tuple[PointType, PointType]:
     """Return the two tangent points from an external point to a circle.
 
     Args:
@@ -64,7 +71,17 @@ def tangent_points_from_point(circle, point):
     return (p1, p2)
 
 
-def circle_tangent_to_3_circles(c1, r1, c2, r2, c3, r3, s1=-1, s2=-1, s3=-1):
+def circle_tangent_to_3_circles(
+    c1: PointType,
+    r1: float,
+    c2: PointType,
+    r2: float,
+    c3: PointType,
+    r3: float,
+    s1: int = -1,
+    s2: int = -1,
+    s3: int = -1,
+) -> tuple[float, float, float]:
     """Given the centers and radii of 3 circles, return the center and radius
     of a circle that is tangent to all 3 circles.
 
@@ -125,7 +142,15 @@ def circle_tangent_to_3_circles(c1, r1, c2, r2, c3, r3, s1=-1, s2=-1, s3=-1):
     return (xs, ys, rs)
 
 
-def apollonius(r1, r2, r3, z1, z2, z3, plus_minus=1):
+def apollonius(
+    r1: float,
+    r2: float,
+    r3: float,
+    z1: complex,
+    z2: complex,
+    z3: complex,
+    plus_minus: int = 1,
+) -> tuple[float, complex] | None:
     """Solves the Problem of Apollonius using Descartes' Theorem.
 
     Args:
@@ -164,7 +189,9 @@ def apollonius(r1, r2, r3, z1, z2, z3, plus_minus=1):
     return r4, z4
 
 
-def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
+def circle_tangent_to_2_circles(
+    c1: PointType, r1: float, c2: PointType, r2: float, r: float
+) -> tuple[tuple[float, float], tuple[float, float]]:
     """Given the centers and radii of 2 circles, return the center
     of a circle with radius r that is tangent to both circles.
 
@@ -421,7 +448,13 @@ def circle_tangent_to_2_circles(c1, r1, c2, r2, r):
     return ((x_1, y_1), (x_2, y_2))
 
 
-def tangent_points(center1, radius, center2, radius2, cross=False):
+def tangent_points(
+    center1: PointType,
+    radius: float,
+    center2: PointType,
+    radius2: float,
+    cross: bool = False,
+) -> tuple[PointType, PointType, PointType, PointType]:
     """Returns the tangent points (p1, p2, p3, p4) in world coordinates.
 
     Args:
@@ -466,7 +499,7 @@ def tangent_points(center1, radius, center2, radius2, cross=False):
     return (tp1w, tp2w, tp3w, tp4w)
 
 
-def circle_area(rad):
+def circle_area(rad: float) -> float:
     """Given the radius of a circle, return the area of the circle.
 
     Args:
@@ -474,11 +507,16 @@ def circle_area(rad):
 
     Returns:
         float: Area of the circle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.circle_area(2.0), 6)
+        12.566371
     """
     return pi * rad**2
 
 
-def circle_circumference(rad):
+def circle_circumference(rad: float) -> float:
     """Given the radius of a circle, return the circumference of the circle.
 
     Args:
@@ -486,11 +524,16 @@ def circle_circumference(rad):
 
     Returns:
         float: Circumference of the circle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.circle_circumference(2.0), 6)
+        12.566371
     """
     return 2 * pi * rad
 
 
-def flower_angle(r1, r2, r3):
+def flower_angle(r1: float, r2: float, r3: float) -> float:
     """Given the radii of 3 circles forming an interstice, return the angle between
     the lines connecting circles' centers to center of the circle with r1 radius.
 
@@ -527,7 +570,9 @@ ratios = {
 }
 
 
-def circle_flower(n, radius=25, layers=6, ratio=None):
+def circle_flower(
+    n: int, radius: float = 25, layers: int = 6, ratio: float | None = None
+) -> Group:
     """Return a Steiner-chain style circle flower pattern.
 
     Args:
@@ -543,15 +588,14 @@ def circle_flower(n, radius=25, layers=6, ratio=None):
     Raises:
         ValueError: If ``n`` is less than 8.
 
-    **Examples**
+    Examples:
 
-    ```python
-    import simetri.graphics as sg
-
-    ```
-            flowers = sg.circle_flower(n=8, radius=20, layers=4)
-            canvas = sg.Canvas()
-            canvas.draw(flowers)
+        >>> import simetri.graphics as sg
+        >>> flowers = sg.circle_flower(n=8, radius=20, layers=4)
+        >>> len(flowers) > 0
+        True
+        >>> canvas = sg.Canvas()  # doctest: +SKIP
+        >>> canvas.draw(flowers)  # doctest: +SKIP
     """
     if n < 8:
         raise ValueError("n must be greater than 7")
@@ -574,7 +618,9 @@ def circle_flower(n, radius=25, layers=6, ratio=None):
     return circles.transform(xform=xform, reps=layers)
 
 
-def circle_inversion(point, center, radius):
+def circle_inversion(
+    point: PointType, center: PointType, radius: float
+) -> tuple[float, float]:
     """
     Inverts a point with respect to a circle.
 
@@ -601,7 +647,9 @@ def circle_inversion(point, center, radius):
     return inv_x, inv_y
 
 
-def circle_tangent_to2lines(line1, line2, intersection_, radius):
+def circle_tangent_to2lines(
+    line1: object, line2: object, intersection_: PointType, radius: float
+) -> tuple[PointType, PointType, PointType]:
     """Given two lines, their intersection point and a radius,
     return the center of the circle tangent to both lines and
     with the given radius.
@@ -624,7 +672,9 @@ def circle_tangent_to2lines(line1, line2, intersection_, radius):
     return center, start, end
 
 
-def circle_circle_intersections(point1, radius1, point2, radius2):
+def circle_circle_intersections(
+    point1: PointType, radius1: float, point2: PointType, radius2: float
+) -> tuple[PointType, PointType] | None:
     """Return the intersection points of two circles.
 
     Args:
@@ -666,7 +716,9 @@ def circle_circle_intersections(point1, radius1, point2, radius2):
     return res
 
 
-def tfl_by_sides(point1, point2, side1, side2):
+def tfl_by_sides(
+    point1: PointType, point2: PointType, side1: float, side2: float
+) -> tuple[PointType, PointType] | None:
     """Triangle from a line segment and two side lengths.
 
     Returns the third vertex candidates (circle-circle intersections) for the
@@ -709,7 +761,7 @@ def tfl_by_sides(point1, point2, side1, side2):
     return circle_circle_intersections(point1, side1, point2, side2)
 
 
-def circle_segment_intersection(circle, p1, p2):
+def circle_segment_intersection(circle: Circle, p1: PointType, p2: PointType) -> bool:
     """Return True if the circle and the line segment intersect.
 
     Args:
@@ -745,7 +797,9 @@ def circle_segment_intersection(circle, p1, p2):
     return res  # p is not between lp1 and lp2
 
 
-def ellipse_tangent(a, b, x, y, tol=0.001):
+def ellipse_tangent(
+    a: float, b: float, x: float, y: float, tol: float = 0.001
+) -> float | bool:
     """Calculates the slope of the tangent line to an ellipse at the point (x, y).
     If point is not on the ellipse, return False.
 
@@ -767,7 +821,7 @@ def ellipse_tangent(a, b, x, y, tol=0.001):
     return res
 
 
-def elliptic_arclength(t_0, t_1, a, b):
+def elliptic_arclength(t_0: float, t_1: float, a: float, b: float) -> float:
     """Return the arclength of an ellipse between the given parametric angles.
     The ellipse has semi-major axis a and semi-minor axis b.
 
@@ -789,7 +843,7 @@ def elliptic_arclength(t_0, t_1, a, b):
     return a * (t1 - t0)
 
 
-def central_to_parametric_angle(a, b, phi):
+def central_to_parametric_angle(a: float, b: float, phi: float) -> float:
     """
     Converts a central angle to a parametric angle on an ellipse.
 
@@ -808,7 +862,7 @@ def central_to_parametric_angle(a, b, phi):
     return t
 
 
-def parametric_to_central_angle(a, b, t):
+def parametric_to_central_angle(a: float, b: float, t: float) -> float:
     """
     Converts a parametric angle on an ellipse to a central angle.
 
@@ -827,7 +881,9 @@ def parametric_to_central_angle(a, b, t):
     return phi
 
 
-def ellipse_points(center, a, b, n_points):
+def ellipse_points(
+    center: PointType, a: float, b: float, n_points: int
+) -> np.ndarray:
     """Generate points on an ellipse.
 
     Args:
@@ -846,7 +902,7 @@ def ellipse_points(center, a, b, n_points):
     return np.column_stack((x, y))
 
 
-def ellipse_point(a, b, angle):
+def ellipse_point(a: float, b: float, angle: float) -> PointType:
     """Return a point on an ellipse with the given a=width/2, b=height/2, and angle.
 
     Args:
@@ -862,7 +918,9 @@ def ellipse_point(a, b, angle):
     return (r * cos(angle), r * sin(angle))
 
 
-def circle_line_intersection(c, p1, p2):
+def circle_line_intersection(
+    c: Circle, p1: PointType, p2: PointType
+) -> PointType | tuple[PointType, PointType] | bool:
     """Return the intersection points of a circle and a line segment.
 
     Args:
@@ -876,7 +934,7 @@ def circle_line_intersection(c, p1, p2):
 
     # adapted from http://mathworld.wolfram.com/Circle-LineIntersection.html
     # c is the circle and p1 and p2 are the line points
-    def sgn(num):
+    def sgn(num: float) -> int:
         if num < 0:
             res = -1
         else:
@@ -924,7 +982,7 @@ def circle_line_intersection(c, p1, p2):
     return res
 
 
-def circle_poly_intersection(circle, polygon):
+def circle_poly_intersection(circle: Circle, polygon: object) -> bool:
     """Return True if the circle and the polygon intersect.
 
     Args:
@@ -948,7 +1006,9 @@ def circle_poly_intersection(circle, polygon):
     return res
 
 
-def point_to_circle_distance(point, center, radius):
+def point_to_circle_distance(
+    point: PointType, center: PointType, radius: float
+) -> float:
     """Given a point, center point, and radius, returns distance
     between the given point and the circle
 
@@ -963,7 +1023,9 @@ def point_to_circle_distance(point, center, radius):
     return abs(distance(center, point) - radius)
 
 
-def circle_3point(point1, point2, point3):
+def circle_3point(
+    point1: PointType, point2: PointType, point3: PointType
+) -> tuple[PointType, float]:
     """Given three points, returns the center point and radius
 
     Args:

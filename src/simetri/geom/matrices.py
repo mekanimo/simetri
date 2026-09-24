@@ -25,5 +25,10 @@ def identity_matrix() -> NDArray:
 
     Returns:
         np.ndarray: ``[[1, 0, 0], [0, 1, 0], [0, 0, 1]]``.
-    """
+
+    Examples:
+        >>> from simetri.geom.matrices import identity_matrix
+        >>> identity_matrix().tolist()
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+"""
     return np.identity(3)

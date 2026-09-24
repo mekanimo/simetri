@@ -7,8 +7,10 @@ diverging, qualitative, and sequential palettes. Lookup helpers return
 **Examples**
 
 ```python
-from simetri.coloring.palettes import get_palette
-colors = get_palette(3, 0)
+import simetri.graphics as sg
+colors = sg.get_palette(3, 0)
+len(colors)
+# 3
 ```
 """
 
@@ -211,6 +213,13 @@ class PaletteType(Enum):
         DIVERGENT: Diverging palettes.
         SEQUENTIAL: Sequential palettes.
         QUALITATIVE: Qualitative palettes.
+
+    Examples:
+        >>> from simetri.coloring.palettes import PaletteType
+        >>> PaletteType.DIVERGENT.value
+        0
+        >>> PaletteType.SEQUENTIAL.name
+        'SEQUENTIAL'
     """
 
     DIVERGENT, SEQUENTIAL, QUALITATIVE = range(3)
@@ -17986,14 +17995,24 @@ d_name_palette_type[PaletteType.SEQUENTIAL] = [
 # getNames()
 
 
-def random_palette(seed: int | None = None):
+def random_palette(seed: int | None = None) -> list[list[int]]:
     """Return a random 256-color palette.
 
     Args:
-        seed (int, optional): Seed for a local RNG. Defaults to None.
+        seed: Seed for a local RNG (default ``None``).
 
     Returns:
-        list: Random palette entries from ``d_n_palette[256]``.
+        RGB255 triples for the chosen named 256-color palette.
+
+    Examples:
+        >>> from simetri.coloring.palettes import random_palette
+        >>> pal = random_palette(seed=1)
+        >>> len(pal)
+        256
+        >>> len(pal[0])
+        3
+        >>> random_palette(seed=1) == pal
+        True
     """
     rng = random.Random(seed)
     i = rng.randint(0, len(d_n_palette[256]) - 1)
@@ -18008,15 +18027,23 @@ def random_palette(seed: int | None = None):
     return list(d_n_palette[256].values())[i]
 
 
-def get_palette(n_colors, ind):
+def get_palette(n_colors: int, ind: int) -> list[Color]:
     """Return a named palette as a list of ``Color`` instances.
 
     Args:
-        n_colors: Number of colors key into ``d_n_palette``.
-        ind: Index of the palette within that size group.
+        n_colors: Palette size key into ``d_n_palette``.
+        ind: Index of the palette name within that size group.
 
     Returns:
-        list[Color]: Palette colors.
+        Palette colors as ``Color`` instances.
+
+    Examples:
+        >>> from simetri.coloring.palettes import get_palette
+        >>> pal = get_palette(3, 0)
+        >>> len(pal)
+        3
+        >>> pal[0].rgb255
+        (222, 235, 247)
     """
     palettes = d_n_palette[n_colors]
     palette = d_name_palette[palettes[ind]]

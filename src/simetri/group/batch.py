@@ -3,18 +3,19 @@
 A Group applies transforms to its members and supports set-like geometry
 operations (union, intersection, …) and edge merging.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-g = sg.Group([
-        sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True),
-        sg.Shape([(20, 0), (30, 0)]),
-    ])
-len(g)
-# 2
-g.translate(5, 0)
-```
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> from simetri.group.batch import Group
+    >>> from simetri.shapes.shape import Shape
+    >>> g = Group(
+    ...     [
+    ...         Shape([(0, 0), (10, 0), (10, 10)], closed=True),
+    ...         Shape([(20, 0), (30, 0)]),
+    ...     ]
+    ... )
+    >>> len(g)
+    2
 """
 
 from __future__ import annotations
@@ -42,7 +43,7 @@ from ..base.core import (
     _Targets,
 )
 from ..config.settings import defaults, issue_warning
-from ..geom.bbox import bounding_box
+from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.points.point_utils import distance, fix_degen_points, round_point
 from ..geom.polygons.poly import get_polygons
 from ..geom.segments.line_utils import round_segment
@@ -74,21 +75,21 @@ def check_dist_tol(
     Returns:
         set[float]: Up to ``n`` smallest positive rounded distances.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    values = sg.check_dist_tol(
-            [
-                sg.Shape([(0, 0), (5e-14, 0)]),
-                sg.Shape([(0, 0), (1, 0)]),
-            ],
-            2,
-            n_round=12,
-        )
-    values == {1.0}
-    # True
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import check_dist_tol
+        >>> from simetri.shapes.shape import Shape
+        >>> values = check_dist_tol(
+        ...     [
+        ...         Shape([(0, 0), (5e-14, 0)]),
+        ...         Shape([(0, 0), (1, 0)]),
+        ...     ],
+        ...     2,
+        ...     n_round=12,
+        ... )
+        >>> values == {1.0}
+        True
 """
     return Group(shapes_groups).check_dist_tol(n, n_round=n_round)
 
@@ -109,21 +110,21 @@ def check_angle_tol(
     Returns:
         set[float]: Up to ``n`` smallest positive rounded angle differences.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    values = sg.check_angle_tol(
-            [
-                sg.Shape([(0, 0), (1, 0)]),
-                sg.Shape([(0, 0), (0, 1)]),
-            ],
-            1,
-            n_round=2,
-        )
-    values == {1.57}
-    # True
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import check_angle_tol
+        >>> from simetri.shapes.shape import Shape
+        >>> values = check_angle_tol(
+        ...     [
+        ...         Shape([(0, 0), (1, 0)]),
+        ...         Shape([(0, 0), (0, 1)]),
+        ...     ],
+        ...     1,
+        ...     n_round=2,
+        ... )
+        >>> values == {1.57}
+        True
 """
     return Group(shapes_groups).check_angle_tol(n, n_round=n_round)
 
@@ -144,15 +145,15 @@ class Group(Base):
         visible: Whether the group is drawn.
         id: Unique object id.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-    g.append(sg.Shape([(2, 0), (3, 0)]))
-    len(g)
-    # 2
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> g = Group([Shape([(0, 0), (1, 0)])])
+        >>> _ = g.append(Shape([(2, 0), (3, 0)]))
+        >>> len(g)
+        2
 """
 
     # __slots__ = [
@@ -171,7 +172,7 @@ class Group(Base):
         *elements: Any,
         modifiers: Sequence[Modifier] | None = None,
         subtype: Types = Types.GROUP,
-    ):
+    ) -> None:
         """Initialize a Group.
 
         Args:
@@ -180,9 +181,19 @@ class Group(Base):
                 Nested lists/tuples are flattened. Omit for an empty group.
             modifiers: Optional modifiers applied to the group.
             subtype: Group subtype enum or name. Defaults to ``Types.GROUP``.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> len(Group([Shape([(0, 0), (1, 0)])]))
+            1
+            >>> len(Group())
+            0
         """
 
-        def flatten_elements(nested_list):
+        def flatten_elements(nested_list: Any) -> Iterator[Any]:
             """Flatten a nested list.
 
             Args:
@@ -232,7 +243,7 @@ class Group(Base):
         self.visible = True
         self.id = get_unique_id(self)
 
-    def set_style(self, mapping: Any = None, **kwargs) -> Self:
+    def set_style(self, mapping: Any = None, **kwargs: object) -> Self:
         """Set style fields on every member (mutated).
 
         Nested groups are walked like ``set_attribs``. A missing attribute
@@ -241,6 +252,17 @@ class Group(Base):
         Args:
             mapping: A ``Style``, a dict of draw aliases, or omitted.
             **kwargs: Draw-alias fields; overwrite ``mapping`` for those keys.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> g.set_style(line_width=3) is g
+            True
+            >>> g[0].line_width
+            3
         """
         if mapping is None and not kwargs:
             raise TypeError(
@@ -259,6 +281,18 @@ class Group(Base):
         """Warn when a Shape attribute is assigned directly to a bare Group.
 
         Subclasses that own style on themselves (e.g. Path2D) are not warned.
+
+        Examples:
+            >>> import warnings
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> with warnings.catch_warnings(record=True):
+            ...     g.line_width = 2
+            >>> True
+            True
         """
         if (
             type(self) is Group
@@ -288,14 +322,16 @@ class Group(Base):
         Returns:
             Self: The group object.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-        g.set_attribs("line_width", 2)
-        ```
-"""
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> _ = g.set_attribs("line_width", 2)
+            >>> g[0].line_width
+            2
+        """
         for element in self.elements:
             if key is not None:
                 if key(element):
@@ -311,12 +347,19 @@ class Group(Base):
 
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a string representation of the group.
 
         Returns:
             str: The string representation of the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> str(Group()).startswith("Group")
+            True
         """
         if self.elements is None or len(self.elements) == 0:
             res = "Group()"
@@ -326,25 +369,42 @@ class Group(Base):
             res = f"Group({self.elements[0]}...{self.elements[-1]})"
         return res
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation of the group.
 
         Returns:
             str: The string representation of the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> repr(Group()) == str(Group())
+            True
         """
         return self.__str__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Return the number of elements in the group.
 
         Returns:
             int: The number of elements in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> len(Group([Shape([(0, 0), (1, 0)]), Shape([(1, 0), (2, 0)])]))
+            2
         """
         return len(self.elements)
 
-    def __getitem__(self, subscript):
+    def __getitem__(
+        self, subscript: int | slice
+    ) -> Any | list[Any]:
         """
         Get the element(s) at the given subscript.
 
@@ -353,6 +413,17 @@ class Group(Base):
 
         Returns:
             Any: The element(s) at the given subscript.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)]), Shape([(1, 0), (2, 0)])])
+            >>> g[0].type.name
+            'SHAPE'
+            >>> len(g[0:1])
+            1
         """
         if isinstance(subscript, slice):
             res = self.elements[
@@ -362,13 +433,23 @@ class Group(Base):
             res = self.elements[subscript]
         return res
 
-    def __setitem__(self, subscript, value):
+    def __setitem__(self, subscript: int | slice, value: Any) -> None:
         """
         Set the element(s) at the given subscript.
 
         Args:
             subscript (int or slice): The subscript to set the element(s) at.
             value (Any): The value to set the element(s) to.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> g[0] = Shape([(9, 0), (10, 0)])
+            >>> len(g[0])
+            2
         """
         elements = self.elements
         if isinstance(subscript, slice):
@@ -390,6 +471,16 @@ class Group(Base):
 
         Raises:
             RuntimeError: If the other object is not a group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g1 = Group([Shape([(0, 0), (1, 0)])])
+            >>> g2 = Group([Shape([(2, 0), (3, 0)])])
+            >>> len(g1 + g2)
+            2
         """
         if other.type == Types.GROUP:
             group = self.copy()
@@ -402,25 +493,44 @@ class Group(Base):
             )
         return res
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         """
         Return whether the group has any elements.
 
         Returns:
             bool: True if the group has elements, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> bool(Group())
+            False
+            >>> bool(Group([Shape([(0, 0), (1, 0)])]))
+            True
         """
         return len(self.elements) > 0
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """
         Return an iterator over the elements in the group.
 
         Returns:
             Iterator: An iterator over the elements in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)]), Shape([(1, 0), (2, 0)])])
+            >>> len(list(g))
+            2
         """
         return iter(self.elements)
 
-    def _duplicates(self, elements):
+    def _duplicates(self, elements: Sequence[Any]) -> bool:
         """
         Check for duplicate elements in the group.
 
@@ -452,6 +562,15 @@ class Group(Base):
 
         Returns:
             list[PointType]: The n closest points in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0), (1, 1)], closed=True)])
+            >>> isinstance(g.proximity(n=1), list)
+            True
         """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
@@ -477,17 +596,15 @@ class Group(Base):
         Returns:
             set[float]: Up to ``n`` smallest positive rounded distances.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        group = sg.Group(
-                [sg.Shape([(0, 0), (5e-14, 0), (1, 0)])]
-            )
-        group.check_dist_tol(2, n_round=12) == {1.0}
-        # True
-        ```
-"""
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> group = Group([Shape([(0, 0), (5e-14, 0), (1, 0)])])
+            >>> group.check_dist_tol(2, n_round=12) == {1.0}
+            True
+        """
         if n <= 0:
             raise ValueError("n must be a positive integer.")
         if n_round is None:
@@ -525,20 +642,20 @@ class Group(Base):
         Returns:
             set[float]: Up to ``n`` smallest positive rounded angle differences.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        group = sg.Group(
-                [
-                    sg.Shape([(0, 0), (1, 0)]),
-                    sg.Shape([(0, 0), (0, 1)]),
-                ]
-            )
-        group.check_angle_tol(1, n_round=2) == {1.57}
-        # True
-        ```
-"""
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> group = Group(
+            ...     [
+            ...         Shape([(0, 0), (1, 0)]),
+            ...         Shape([(0, 0), (0, 1)]),
+            ...     ]
+            ... )
+            >>> group.check_angle_tol(1, n_round=2) == {1.57}
+            True
+        """
         if n <= 0:
             raise ValueError("n must be a positive integer.")
         if n_round is None:
@@ -566,6 +683,17 @@ class Group(Base):
 
         Returns:
             Self: The group object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> g.append(Shape([(2, 0), (3, 0)])) is g
+            True
+            >>> len(g)
+            2
         """
         if element in self.elements:
             issue_warning(
@@ -582,11 +710,23 @@ class Group(Base):
 
         Returns:
             Self: The group object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> first = Shape([(0, 0), (1, 0)])
+            >>> second = Shape([(2, 0), (3, 0)])
+            >>> g = Group([first, second])
+            >>> _ = g.reverse()
+            >>> g[0] is second
+            True
         """
         self.elements = self.elements[::-1]
         return self
 
-    def insert(self, index, element: Any) -> Self:
+    def insert(self, index: int, element: Any) -> Self:
         """
         Inserts the element at the given index.
 
@@ -596,6 +736,16 @@ class Group(Base):
 
         Returns:
             Self: The group object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> _ = g.insert(0, Shape([(5, 0), (6, 0)]))
+            >>> len(g)
+            2
         """
         if element not in self.elements:
             self.elements.insert(index, element)
@@ -611,6 +761,17 @@ class Group(Base):
 
         Returns:
             Self: The group object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> extra = Shape([(5, 0), (6, 0)])
+            >>> g = Group([Shape([(0, 0), (1, 0)]), extra])
+            >>> _ = g.remove(extra)
+            >>> len(g)
+            1
         """
         if element in self.elements:
             self.elements.remove(element)
@@ -625,6 +786,18 @@ class Group(Base):
 
         Returns:
             Any: The removed element.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)]), Shape([(2, 0), (3, 0)])])
+            >>> removed = g.pop(0)
+            >>> removed.type.name
+            'SHAPE'
+            >>> len(g)
+            1
         """
         return self.elements.pop(index)
 
@@ -634,6 +807,16 @@ class Group(Base):
 
         Returns:
             Self: The group object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> _ = g.clear()
+            >>> len(g)
+            0
         """
         self.elements = []
         return self
@@ -647,6 +830,16 @@ class Group(Base):
 
         Returns:
             Self: The group object.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> _ = g.extend([Shape([(2, 0), (3, 0)])])
+            >>> len(g)
+            2
         """
         for element in elements:
             if element not in self.elements:
@@ -663,6 +856,18 @@ class Group(Base):
 
         Returns:
             Iterator: An iterator over the elements in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.base.all_enums import Types
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> nested = Group(
+            ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+            ... )
+            >>> len(list(nested.iter_elements(Types.SHAPE)))
+            2
         """
         for elem in self.elements:
             if elem.type == Types.GROUP:
@@ -678,6 +883,17 @@ class Group(Base):
 
         Returns:
             list[Any]: A list of all elements in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> nested = Group(
+            ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+            ... )
+            >>> len(nested.all_elements)
+            2
         """
         elements = []
         for elem in self.elements:
@@ -693,6 +909,17 @@ class Group(Base):
 
         Returns:
             list[Shape]: A list of all shapes in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> nested = Group(
+            ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+            ... )
+            >>> len(nested.all_shapes)
+            2
         """
         elements = self.all_elements
         return [
@@ -706,6 +933,15 @@ class Group(Base):
 
         Returns:
             list[PointType]: A list of all points in the group in their transformed positions.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> len(g.all_vertices)
+            3
         """
         elements = self.all_elements
         vertices = []
@@ -722,6 +958,15 @@ class Group(Base):
 
         Returns:
             list[LineType]: A list of all segments in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> len(g.all_segments)
+            3
         """
         elements = self.all_elements
         segments = []
@@ -738,6 +983,17 @@ class Group(Base):
 
         Returns:
             list[LineType]: A list of all segments in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> g.all_edges is g.all_segments
+            False
+            >>> len(g.all_edges) == len(g.all_segments)
+            True
         """
         # This is an alias for all_segments!
 
@@ -745,11 +1001,11 @@ class Group(Base):
 
     def merge_collinears(
         self,
-        edges,
+        edges: list[tuple[int, int]],
         merge_angle_tol: float = 0.1,
         debug: bool = False,
         remove_duplicate_edges: bool = False,
-    ):
+    ) -> list[LineType]:
         """Merge connected collinear edges into longer segments.
 
         Args:
@@ -760,7 +1016,18 @@ class Group(Base):
                 edge and drop the extra duplicates before merging.
 
         Returns:
-            list: Merged segments as coordinate pairs.
+            list[LineType]: Merged segments as coordinate pairs.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (10, 0)]), Shape([(10, 0), (20, 0)])])
+            >>> g._set_node_dictionaries(g.all_vertices, dist_tol=0.01)
+            >>> edges, _ = g._get_edges_and_segments()
+            >>> len(g.merge_collinears(edges, merge_angle_tol=0.1))
+            1
         """
         return _merge_collinears(
             self,
@@ -792,21 +1059,20 @@ class Group(Base):
         Returns:
             Group: New group of merged shapes.
 
-        **Examples**
-
-        ```python
-        import simetri.graphics as sg
-        g = sg.Group([
-                sg.Shape([(0, 0), (10, 0)]),
-                sg.Shape([(10, 0), (0, 0)]),
-            ])
-        merged = g.merge_shapes()
-        len(merged)
-        # 1
-        len(merged[0])
-        # 2
-        ```
-"""
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group(
+            ...     [Shape([(0, 0), (10, 0)]), Shape([(10, 0), (0, 0)])]
+            ... )
+            >>> merged = g.merge_shapes()
+            >>> len(merged)
+            1
+            >>> len(merged[0])
+            2
+        """
         return _merge_shapes(
             self,
             dist_tol=dist_tol,
@@ -818,14 +1084,15 @@ class Group(Base):
     def _get_edges_and_segments(
         self,
         n_round: int = 2,
-    ):
+    ) -> tuple[list[tuple[int, int]], list[LineType]]:
         """Get the edges and segments for the group.
 
         Args:
             n_round (int, optional): The number of decimal places to round to. Defaults to None.
 
         Returns:
-            tuple: A tuple containing the edges and segments.
+            tuple[list[tuple[int, int]], list[LineType]]: Node-id edges and
+            rounded segment geometry.
         """
         if n_round is None:
             n_round = defaults["n_round"]
@@ -875,6 +1142,15 @@ class Group(Base):
 
         Returns:
             list: A list of all polygons in the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> len(g.all_polygons())
+            1
         """
         if dist_tol is None:
             dist_tol = defaults["dist_tol"]
@@ -917,6 +1193,18 @@ class Group(Base):
 
         Returns:
             Group: A copy of the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> copy = g.copy()
+            >>> len(copy) == len(g)
+            True
+            >>> copy is g
+            False
         """
 
         b = object.__new__(type(self))
@@ -927,7 +1215,7 @@ class Group(Base):
         return b
 
     @property
-    def b_box(self):
+    def b_box(self) -> BoundingBox:
         """Returns the bounding box of the group.
 
         Built by uniting each element's own ``b_box`` (not raw vertices), so
@@ -936,6 +1224,15 @@ class Group(Base):
 
         Returns:
             BoundingBox: The bounding box of the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> g.b_box.southwest is not None
+            True
         """
         # To do: memoize the bounding box
         corners = []
@@ -946,7 +1243,7 @@ class Group(Base):
             corners.extend(box.corners)
         return bounding_box(array(corners))
 
-    def _modify(self, modifier):
+    def _modify(self, modifier: Modifier) -> None:
         """Apply a modifier to the group.
 
         Args:
@@ -1029,6 +1326,17 @@ class Group(Base):
 
         Returns:
             Group: The union of the two groups.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> shared = Shape([(2, 0), (3, 0)])
+            >>> g1 = Group([Shape([(0, 0), (1, 0)]), shared])
+            >>> g2 = Group([shared, Shape([(4, 0), (5, 0)])])
+            >>> len(g1.union(g2))
+            3
         """
         if not isinstance(other, Group):
             raise TypeError(
@@ -1054,6 +1362,17 @@ class Group(Base):
 
         Returns:
             Group: The intersection of the two groups.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> shared = Shape([(2, 0), (3, 0)])
+            >>> g1 = Group([Shape([(0, 0), (1, 0)]), shared])
+            >>> g2 = Group([shared, Shape([(4, 0), (5, 0)])])
+            >>> len(g1.intersection(g2))
+            1
         """
         if not isinstance(other, Group):
             raise TypeError(
@@ -1081,6 +1400,17 @@ class Group(Base):
 
         Returns:
             Group: The difference of the two groups.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> shared = Shape([(2, 0), (3, 0)])
+            >>> g1 = Group([Shape([(0, 0), (1, 0)]), shared])
+            >>> g2 = Group([shared, Shape([(4, 0), (5, 0)])])
+            >>> len(g1.difference(g2))
+            1
         """
         if not isinstance(other, Group):
             raise TypeError(
@@ -1108,6 +1438,17 @@ class Group(Base):
 
         Returns:
             Group: The symmetric difference of the two groups.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> shared = Shape([(2, 0), (3, 0)])
+            >>> g1 = Group([Shape([(0, 0), (1, 0)]), shared])
+            >>> g2 = Group([shared, Shape([(4, 0), (5, 0)])])
+            >>> len(g1.symmetric_difference(g2))
+            2
         """
         if not isinstance(other, Group):
             raise TypeError(
@@ -1137,6 +1478,17 @@ class Group(Base):
 
         Returns:
             bool: True if the current group is a subset of the other group, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> shared = Shape([(0, 0), (1, 0)])
+            >>> inner = Group([shared])
+            >>> outer = Group([shared, Shape([(2, 0), (3, 0)])])
+            >>> inner.subset(outer)
+            True
         """
         if not isinstance(other, Group):
             raise TypeError(
@@ -1156,6 +1508,17 @@ class Group(Base):
 
         Returns:
             bool: True if the current group is a superset of the other group, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> a = Shape([(0, 0), (1, 0)])
+            >>> inner = Group([a])
+            >>> outer = Group([a, Shape([(2, 0), (3, 0)])])
+            >>> outer.superset(inner)
+            True
         """
         if not isinstance(other, Group):
             raise TypeError(
@@ -1172,6 +1535,15 @@ class Group(Base):
 
         Returns:
             int: The hash of the group.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> isinstance(hash(g), int)
+            True
         """
         return hash(tuple(self.ids))
 
@@ -1183,6 +1555,19 @@ class Group(Base):
 
         Returns:
             bool: True if the groups are equal, False otherwise.
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.shape import Shape
+            >>> g = Group([Shape([(0, 0), (1, 0)])])
+            >>> g == g
+            True
+            >>> g == Group([Shape([(0, 0), (1, 0)])])
+            True
+            >>> g == Group([Shape([(0, 0), (2, 0)])])
+            False
         """
         if not isinstance(other, Group):
             return False
@@ -1197,12 +1582,22 @@ class Group(Base):
 
 
 @property
-def ids(self):
-    """Return a list of ids of the elements in the group. If the element has an id attribute, it is used.
-    Otherwise, id(element) is used.
+def ids(self: Group) -> list[Any]:
+    """Return a list of ids of the elements in the group.
+
+    If the element has an ``id`` attribute, it is used; otherwise ``id(element)``.
 
     Returns:
-        list: A list of ids of the elements in the group.
+        list[Any]: Element ids for top-level members.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> g = Group([Shape([(0, 0), (1, 0)]), Shape([(2, 0), (3, 0)])])
+        >>> len(g.ids)
+        2
     """
     return [
         item.id if hasattr(item, "id") else id(item) for item in self.elements
@@ -1210,12 +1605,24 @@ def ids(self):
 
 
 @property
-def all_ids(self):
-    """Return a list of ids of the elements in the group. If the element has an id attribute, it is used.
-    Otherwise, id(element) is used.
+def all_ids(self: Group) -> list[Any]:
+    """Return ids for all elements, including nested groups.
+
+    If the element has an ``id`` attribute, it is used; otherwise ``id(element)``.
 
     Returns:
-        list: A list of ids of the elements in the group.
+        list[Any]: Flattened element ids.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group
+        >>> from simetri.shapes.shape import Shape
+        >>> nested = Group(
+        ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+        ... )
+        >>> len(nested.all_ids)
+        2
     """
     ids = []
     for item in self.elements:
@@ -1237,6 +1644,15 @@ def custom_group_attributes(item: Group) -> list[str]:
 
     Returns:
         list[str]: A list of custom attributes.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> from simetri.group.batch import Group, custom_group_attributes
+        >>> from simetri.shapes.shape import Shape
+        >>> attrs = custom_group_attributes(Group([Shape([(0, 0), (1, 0)])]))
+        >>> isinstance(attrs, list)
+        True
     """
     from ..shapes.shape import Shape
 

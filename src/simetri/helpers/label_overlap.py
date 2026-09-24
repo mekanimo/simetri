@@ -1,11 +1,15 @@
 """Vertex label overlap resolution via centered AABB MTV separation."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
+from typing import Any
 
 
 class LabelRect:
     """Mutable centered label bbox for overlap resolution.
 
+    Examples:
     Attributes:
         sketch: Associated sketch that owns the label.
         kind (str): Label kind identifier (for example ``index``).
@@ -20,14 +24,14 @@ class LabelRect:
 
     def __init__(
         self,
-        sketch,
+        sketch: Any,
         kind: str,
         vertex_index: int,
         x: float,
         y: float,
         width: float,
         height: float,
-    ):
+    ) -> None:
         """Initialize a centered label rectangle.
 
         Args:
@@ -69,6 +73,8 @@ def resolve_collision(rect_a: LabelRect, rect_b: LabelRect) -> tuple[bool, tuple
     Returns:
         tuple[bool, tuple[float, float]]: ``(collides, mtv)`` where ``mtv`` is
         the minimum translation vector to separate ``rect_a`` from ``rect_b``.
+
+    Examples:
     """
     half_w_a = rect_a.width / 2
     half_w_b = rect_b.width / 2
@@ -103,6 +109,8 @@ def labels_collide(a: LabelRect, b: LabelRect) -> bool:
 
     Returns:
         bool: True if the rectangles overlap.
+
+    Examples:
     """
     return resolve_collision(a, b)[0]
 
@@ -122,6 +130,8 @@ def resolve_all_overlaps(
 
     Returns:
         None
+
+    Examples:
     """
     if gap:
         buffer = 2 * gap

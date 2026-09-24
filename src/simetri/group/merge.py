@@ -4,16 +4,14 @@ Bound onto ``Group`` as ``merge_shapes`` and
 ``merge_collinears``. Prefer calling those methods on a group rather than
 importing these private functions directly.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-g = sg.Group([
-        sg.Shape([(0, 0), (10, 0)]),
-        sg.Shape([(10, 0), (20, 0)]),
-    ])
-merged = g.merge_shapes()  # doctest: +SKIP
-```
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> from simetri.group.batch import Group
+    >>> from simetri.shapes.shape import Shape
+    >>> g = Group([Shape([(0, 0), (10, 0)]), Shape([(10, 0), (20, 0)])])
+    >>> len(g.merge_shapes())
+    1
 """
 
 from __future__ import annotations
@@ -23,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import networkx as nx
 
-from ..base.common import LineType
+from ..base.common import LineType, PointType
 from ..config.settings import defaults
 from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import inclination_angle
@@ -88,12 +86,12 @@ def _collect_closest_angles(
 
 
 def _merge_shapes(
-    self,
+    self: Group,
     dist_tol: float | None = None,
     merge_angle_tol: float = 0.1,
     debug: bool = False,
     remove_duplicate_edges: bool = True,
-    **kwargs,
+    **kwargs: object,
 ) -> Group:
     """Merge connected shapes in this group into polygons and open polylines.
 
@@ -181,7 +179,11 @@ def _merge_shapes(
     return group
 
 
-def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
+def _merge_bin(
+    _bin: list[tuple[float, list[int]]],
+    d_node_coord: dict[int, PointType],
+    d_coord_node: dict[PointType, int],
+) -> list[PointType | tuple[PointType, PointType]]:
     """Merge connected collinear edges that share an inclination angle bin.
 
     Args:
@@ -191,8 +193,8 @@ def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
             coordinates stored for those nodes.
 
     Returns:
-        list: Merged segments as ``(start, end)`` point pairs, or single points
-        for isolated nodes.
+        list[PointType | tuple[PointType, PointType]]: Merged segments as
+        point pairs, or single points for isolated nodes.
     """
     incl_angle = degrees(_bin[0][0])
     node_adjacency = {}
@@ -201,7 +203,7 @@ def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
         node_adjacency.setdefault(start, set()).add(end)
         node_adjacency.setdefault(end, set()).add(start)
 
-    def _coord(node):
+    def _coord(node: int) -> PointType:
         coord = d_node_coord[node]
         return d_node_coord[d_coord_node[coord]]
 
@@ -241,7 +243,7 @@ def _merge_bin(_bin: list, d_node_coord: dict, d_coord_node: dict):
 
 
 def _merge_collinears(
-    self,
+    self: Group,
     edges: list[LineType],
     merge_angle_tol: float = 0.1,
     debug: bool = False,

@@ -7,19 +7,17 @@ Note:
     Prefer creating sketches through canvas draw APIs rather than constructing
     them by hand unless writing a backend.
 
-**Examples**
-
-```python
-from simetri.graphics.sketch import CircleSketch
-sk = CircleSketch(center=(0, 0), radius=10)
-sk.subtype.name
-# 'CIRCLE_SKETCH'
-```
+Examples:
+        >>> sk = CircleSketch(center=(0, 0), radius=10)
+        >>> sk.subtype.name
+        'CIRCLE_SKETCH'
 """
+
+from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -44,6 +42,9 @@ from ..patterns.pattern import Pattern
 
 Color = colors.Color
 
+if TYPE_CHECKING:
+    from .canvas import Canvas
+
 np.set_printoptions(legacy="1.21")
 
 
@@ -63,7 +64,7 @@ class CircleSketch:
     radius: float
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Bake transform into ``center`` and set type metadata."""
         self.type = Types.SKETCH
         self.subtype = Types.CIRCLE_SKETCH
@@ -96,7 +97,7 @@ class EllipseSketch:
     angle: float = 0  # orientation angle
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the EllipseSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.ELLIPSE_SKETCH
@@ -130,7 +131,7 @@ class RectangleSketch:
     angle: float = 0  # orientation angle
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set type metadata and default transform."""
         self.type = Types.SKETCH
         self.subtype = Types.RECTANGLE_SKETCH
@@ -154,7 +155,7 @@ class LinesSketch:
     lines: Sequence[tuple[float, float]]
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set type metadata."""
         self.type = Types.SKETCH
         self.subtype = Types.LINES_SKETCH
@@ -175,7 +176,7 @@ class LineSketch:
     vertices: list
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the LineSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LINE_SKETCH
@@ -191,7 +192,9 @@ class LineSketch:
         self._raw_vertices = self.vertices[:]
 
     @staticmethod
-    def _line_limits(canvas):
+    def _line_limits(
+        canvas: Canvas | None,
+    ) -> tuple[float, float, float, float] | None:
         if canvas is None:
             return None
         limits = None
@@ -225,7 +228,12 @@ class LineSketch:
         return limits
 
     @staticmethod
-    def _clip_line_to_rect(start, end, rect, draw_type):
+    def _clip_line_to_rect(
+        start: PointType,
+        end: PointType,
+        rect: tuple[float, float, float, float] | None,
+        draw_type: Extent,
+    ) -> tuple[PointType, PointType]:
         if rect is None:
             return start, end
 
@@ -274,7 +282,7 @@ class LineSketch:
         p1 = (x1 + t1 * dx, y1 + t1 * dy)
         return p0, p1
 
-    def populate(self, canvas):
+    def populate(self, canvas: Canvas) -> None:
         """Populate rendered vertices for deferred draw types (RAY/INFINITE)."""
         extent = getattr(
             self, "extent", getattr(self, "draw_type", Extent.SEGMENT)
@@ -305,7 +313,7 @@ class PatternSketch:
     pattern: Pattern = None
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the PatternSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PATTERN_SKETCH
@@ -336,7 +344,7 @@ class ImageSketch:
     anchor: Anchor | None = None
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the ImageSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.IMAGE_SKETCH
@@ -387,7 +395,7 @@ class LatexSketch:
     xform_matrix: NDArray = None
     formula_size: tuple | None = None  # (W, H) in points, filled by draw_latex
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the LatexSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LATEX_SKETCH
@@ -415,7 +423,7 @@ class MaskSketch:
     mask_units: Any = None
     mask_content_units: Any = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.SKETCH
         self.subtype = Types.MASK_SKETCH
         self.id = get_unique_id(self)
@@ -443,7 +451,7 @@ class ShapeSketch:
     vertices: list = None
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the ShapeSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.SHAPE_SKETCH
@@ -472,7 +480,7 @@ class BezierSketch:
     xform_matrix: NDArray = None
     mode: CurveMode = CurveMode.OPEN
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the BezierSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.BEZIER_SKETCH
@@ -502,7 +510,7 @@ class ArcSketch:
     xform_matrix: NDArray = None
     mode: CurveMode = CurveMode.OPEN
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the ArcSketch object."""
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
@@ -531,7 +539,7 @@ class ScopeGroup:
     sketch_list: list
     style_data: dict
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.SCOPE_GROUP
         self.id = get_unique_id(self)
 
@@ -544,7 +552,7 @@ class ClippedSketch:
     clipper: ShapeSketch
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the Clippedketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.CLIPPED_SKETCH
@@ -561,7 +569,7 @@ class MaskedSketch:
     mask: Any
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the Clippedketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.MASKED_SKETCH
@@ -577,7 +585,7 @@ class FilteredSketch:
     sketches: list[Types.SKETCH]
     filter_s: list  # list of filters or a filter
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the FilteredSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.FILTERED_SKETCH
@@ -598,7 +606,7 @@ class PathSketch:
     sketches: list[Types.SKETCH]
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the PathSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PATH_SKETCH
@@ -621,7 +629,7 @@ class LaceSketch:
     plait_sketches: list[ShapeSketch]
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the LaceSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.LACESKETCH
@@ -686,7 +694,7 @@ class FrameSketch:
     min_height: float = 0
     min_radius: float = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the FrameSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.FRAME_SKETCH
@@ -719,7 +727,7 @@ class TagSketch:
     angle: float = 0
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the TagSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.TAG_SKETCH
@@ -752,7 +760,7 @@ class PDFSketch:
     anchor: Anchor = Anchor.CENTER
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the PDFSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.PDF_SKETCH
@@ -775,7 +783,7 @@ class RectSketch:
     height: float
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the RectSketch object.
 
         Args:
@@ -827,13 +835,13 @@ class HelpLinesSketch:
     origin_style: dict[str, Any]
     origin_size: float
 
-    def __post_init__(self):
-        """Initialize the ShapeSketch object."""
+    def __post_init__(self) -> None:
+        """Set type metadata for a help-lines sketch."""
         self.type = Types.SKETCH
         self.subtype = Types.HELPLINES_SKETCH
         self.id = get_unique_id(self)
 
-    def populate(self, canvas):
+    def populate(self, canvas: Canvas) -> None:
         """Compute help-line extents from the canvas content bounding box.
 
         Args:
@@ -870,7 +878,7 @@ class CompositeSketch:
     sketches: list[Types.SKETCH]
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the Clippedketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.COMPOSITE_SKETCH
@@ -898,7 +906,7 @@ class TableSketch:
     show_lines: bool = True
     xform_matrix: NDArray = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the TableSketch object."""
         self.type = Types.SKETCH
         self.subtype = Types.TABLE_SKETCH

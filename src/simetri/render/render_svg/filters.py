@@ -5,6 +5,8 @@ Dataclass wrappers for SVG filter primitives with ``to_element()`` /
 ``extra`` dict for additional presentation attributes.
 """
 
+from __future__ import annotations
+
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -273,7 +275,7 @@ class feColorMatrix(FilterPrimitive):
     matrix_type: ColorMatrix | None = None
     values: MaybeSeq | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.matrix_type is None:
             self.matrix_type = defaults["filter_color_matrix_type"]
 

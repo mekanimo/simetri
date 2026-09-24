@@ -5,11 +5,11 @@ from __future__ import annotations
 import html
 import io
 import re
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from math import degrees
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -58,6 +58,7 @@ if TYPE_CHECKING:
         LineSketch,
         PathSketch,
         Sketch,
+        TableSketch,
         TagSketch,
     )
 
@@ -74,8 +75,8 @@ class SvgSketch:
     code: str | None = None
     location: SvgLoc = SvgLoc.NONE
 
-    def __post_init__(self):
-        """Initialize the SvgSketch object."""
+    def __post_init__(self) -> None:
+        """Set sketch type tags for inserted SVG fragments."""
         self.type = Types.SKETCH
         self.subtype = Types.SVG_SKETCH
 
@@ -352,20 +353,15 @@ def draw_shape_sketch_with_indices(
     Returns:
         str: The SVG code for the shape sketch with vertex labels.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    from simetri.render.render_svg.svg_sketch import (
-            draw_shape_sketch_with_indices,
-        )
-    canvas = sg.Canvas()
-    canvas.draw(sg.Shape([(0, 0), (1, 0), (1, 1)])) is canvas
-    # True
-    sketch = canvas.active_page.sketches[-1]
-    "nodestyle3" in draw_shape_sketch_with_indices(sketch, index=3)
-    # True
-    ```
+    Examples:
+        >>> draw_shape_sketch_with_indices,
+        >>> )
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(sg.Shape([(0, 0), (1, 0), (1, 1)])) is canvas
+        True
+        >>> sketch = canvas.active_page.sketches[-1]
+        >>> "nodestyle3" in draw_shape_sketch_with_indices(sketch, index=3)
+        True
 """
     vertices = sketch_attrib(sketch, "vertices")
 
@@ -599,12 +595,16 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
     return content
 
 
-def draw_table_sketch(sketch, render_sketches, ind) -> str:
+def draw_table_sketch(
+    sketch: TableSketch,
+    render_sketches: Callable[[list[Any], int], str],
+    ind: int,
+) -> str:
     """Render a ``TableSketch`` by serializing its child sketches to SVG.
 
     Args:
         sketch: Table sketch with grid and cell content sketches.
-        render_sketches: Callable ``(sketches, ind) -> str`` used for children.
+        render_sketches: ``(sketches, ind) -> str`` callback for child rows.
         ind: Style index passed through to child rendering.
 
     Returns:
@@ -685,13 +685,13 @@ def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
 
 
 def draw_image_sketch(sketch: ImageSketch) -> str:
-    """Converts an ImageSketch to SVG code.
+    """Serialize an ``ImageSketch`` to an SVG ``<image>`` element.
 
     Args:
-        sketch: The ImageSketch object.
+        sketch: Image sketch with path, size, anchor, and transform.
 
     Returns:
-        str: The SVG code for the ImageSketch.
+        str: SVG ``<image>`` markup (with counter-flip for canvas coordinates).
     """
     x, y = sketch_attrib(sketch, "pos")[:2]
     size = sketch_attrib(sketch, "size")
@@ -711,7 +711,9 @@ def draw_image_sketch(sketch: ImageSketch) -> str:
 
     # Calculate anchor offset
     # In SVG, image x,y is at top-left, so we need to adjust based on anchor
-    def _anchor_offset(anchor, width, height):
+    def _anchor_offset(
+        anchor: Anchor, width: float, height: float
+    ) -> tuple[float, float]:
         match anchor:
             case Anchor.CENTER:
                 res = (-width / 2, -height / 2)
@@ -894,7 +896,9 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
     # Anchor offset: distance from the formula's SW corner to the given anchor point,
     # measured in canvas/formula coordinate space (W wide, H tall).
     # The formula's SW corner is at its left edge and visual bottom edge.
-    def _anchor_offset(anchor, W, H):
+    def _anchor_offset(
+        anchor: Anchor, W: float, H: float
+    ) -> tuple[float, float]:
         match anchor:
             case Anchor.CENTER:
                 res = (W / 2, H / 2)

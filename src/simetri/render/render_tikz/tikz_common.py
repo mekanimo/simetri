@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from math import atan2, degrees
 from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, Literal
 
 from ...base.all_enums import Anchor, BackStyle, Extent, Types
+from ...base.common import PointType
 from ...config.settings import defaults
 from ...geom.bbox import bounding_box
 from .tikz_utils import _get_gradient_shading_options, get_clip_code
+
+if TYPE_CHECKING:
+    from ..canvas import Canvas
 
 _anchor_map = {
     Anchor.BASE_EAST: "base east",
@@ -47,7 +53,7 @@ def _pgf_gray(transparency: int) -> str:
     return f"black!{transparency}"
 
 
-def _parse_offset(offset):
+def _parse_offset(offset: float | int | str) -> float:
     if isinstance(offset, (int, float)):
         return float(offset)
     if isinstance(offset, str) and offset.endswith("%"):
@@ -55,7 +61,7 @@ def _parse_offset(offset):
     return float(offset)
 
 
-def _effective_alpha_from_stop(stop):
+def _effective_alpha_from_stop(stop: Any) -> tuple[float, float]:
     if isinstance(stop, dict):
         offset = _parse_offset(stop["offset"])
         stop_opacity = stop.get(
@@ -75,7 +81,14 @@ def _effective_alpha_from_stop(stop):
     return offset, alpha
 
 
-def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
+def _build_fading_code(
+    fade_id: str,
+    stops: Sequence[Any],
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+) -> str:
     parsed_stops = [_effective_alpha_from_stop(stop) for stop in stops]
     parsed_stops.sort(key=lambda value: value[0])
     if not parsed_stops:
@@ -106,14 +119,16 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
     )
 
 
-def _get_scope_fading_path(mask_shape, fade_id):
+def _get_scope_fading_path(mask_shape: Any, fade_id: str) -> str:
     bbox = mask_shape.b_box
     x1, y1 = bbox.southwest[:2]
     x2, y2 = bbox.northeast[:2]
     return f"\\path [scope fading={fade_id}] ({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
 
-def _mask_scope_parts(sketch, fade_id=None):
+def _mask_scope_parts(
+    sketch: Any, fade_id: str | None = None
+) -> tuple[str, str]:
     if sketch.subtype == Types.MASKED_SKETCH:
         mask_data = sketch.mask
         mask = mask_data.shape
@@ -198,8 +213,8 @@ _decision_table = {
 }
 
 
-def get_draw(sketch):
-    """Return the TikZ draw command for sketches."""
+def get_draw(sketch: Any) -> str | Literal[False]:
+    """Return the TikZ path command for a sketch, or ``False`` if none."""
 
     if hasattr(sketch, "markers_only") and sketch.markers_only:
         result = "\\draw"
@@ -232,8 +247,8 @@ def get_draw(sketch):
     return result
 
 
-def get_begin_scope(ind=None):
-    """Return \\begin{scope}[every node/.append style=nodestyle{ind}]."""
+def get_begin_scope(ind: int | None = None) -> str:
+    """Return ``\\begin{scope}`` with optional ``nodestyle{ind}`` node hook."""
     if ind is None:
         result = ""
     else:
@@ -242,12 +257,14 @@ def get_begin_scope(ind=None):
     return result
 
 
-def get_end_scope():
+def get_end_scope() -> str:
     """Return \\end{scope}."""
     return "\\end{scope}\n"
 
 
-def _line_limits(canvas):
+def _line_limits(
+    canvas: Canvas | None,
+) -> tuple[float, float, float, float] | None:
     if canvas is None:
         return None
     limits = None
@@ -283,7 +300,12 @@ def _line_limits(canvas):
     return limits
 
 
-def _clip_line_to_rect(start, end, rect, draw_type):
+def _clip_line_to_rect(
+    start: PointType,
+    end: PointType,
+    rect: tuple[float, float, float, float] | None,
+    draw_type: Extent,
+) -> tuple[PointType, PointType]:
     if rect is None:
         return start, end
 

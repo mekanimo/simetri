@@ -68,6 +68,11 @@ def set_user_settings_path() -> Path:
     Source - https://stackoverflow.com/a/77658488
     Posted by Het Vaghani
     Retrieved 2026-09-11, License - CC BY-SA 4.0
+
+    Examples:
+
+        >>> sg.set_user_settings_path().is_dir()
+        True
     """
     system_name = platform.system()
     if system_name == "Windows":
@@ -84,7 +89,13 @@ def set_user_settings_path() -> Path:
 
 
 def user_config_path() -> Path:
-    """Return the full path to the user's ``simetri_config.toml``."""
+    """Return the full path to the user's ``simetri_config.toml``.
+
+    Examples:
+
+        >>> sg.user_config_path().name
+        'simetri_config.toml'
+    """
     return set_user_settings_path() / CONFIG_FILENAME
 
 
@@ -93,6 +104,12 @@ def ensure_user_config() -> Path:
 
     Returns:
         Path to ``simetri_config.toml``.
+
+    Examples:
+
+        >>> from simetri.config.user_config import ensure_user_config
+        >>> ensure_user_config().name
+        'simetri_config.toml'
     """
     config_path = user_config_path()
     if not config_path.exists():
@@ -104,32 +121,74 @@ def ensure_user_config() -> Path:
 
 
 def get_default_output_directory() -> str:
-    """Return the configured default output directory (may be empty)."""
+    """Return the configured default output directory (may be empty).
+
+    Examples:
+
+        >>> from simetri.config.user_config import get_default_output_directory
+        >>> isinstance(get_default_output_directory(), str)
+        True
+    """
     return _user_paths["default_output_directory"]
 
 
 def get_default_test_directory() -> str:
-    """Return the configured default test directory (may be empty)."""
+    """Return the configured default test directory (may be empty).
+
+    Examples:
+
+        >>> from simetri.config.user_config import get_default_test_directory
+        >>> isinstance(get_default_test_directory(), str)
+        True
+    """
     return _user_paths["default_test_directory"]
 
 
 def get_user_default_overrides() -> dict[str, Any]:
-    """Return the mapping of uncommented ``[defaults]`` overrides."""
+    """Return the mapping of uncommented ``[defaults]`` overrides.
+
+    Examples:
+
+        >>> from simetri.config.user_config import get_user_default_overrides
+        >>> isinstance(get_user_default_overrides(), dict)
+        True
+    """
     return _user_default_overrides
 
 
 def get_converter_globals() -> dict[str, Any]:
-    """Return personal ``[converters]`` global flags (copy)."""
+    """Return personal ``[converters]`` global flags (copy).
+
+    Examples:
+
+        >>> from simetri.config.user_config import get_converter_globals
+        >>> get_converter_globals()["enabled"]
+        True
+    """
     return dict(_converter_globals)
 
 
 def get_converter_formats() -> dict[str, dict[str, Any]]:
-    """Return personal per-format converter entries (shallow copy)."""
+    """Return personal per-format converter entries (shallow copy).
+
+    Examples:
+
+        >>> from simetri.config.user_config import get_converter_formats
+        >>> isinstance(get_converter_formats(), dict)
+        True
+    """
     return {key: dict(value) for key, value in _converter_formats.items()}
 
 
 def native_save_extensions() -> frozenset[str]:
-    """Extensions Simetri writes without an external converter."""
+    """Extensions Simetri writes without an external converter.
+
+    Examples:
+
+        >>> from simetri.config.user_config import native_save_extensions
+        >>> ".svg" in native_save_extensions()
+        True
+    """
     return _NATIVE_SAVE_EXTENSIONS
 
 
@@ -138,6 +197,12 @@ def converter_supports_extension(extension: str) -> bool:
 
     Args:
         extension: File extension including the leading dot (e.g. ``.png``).
+
+    Examples:
+
+        >>> from simetri.config.user_config import converter_supports_extension
+        >>> converter_supports_extension(".png")
+        False
     """
     if not _converter_globals["enabled"]:
         return False
@@ -149,6 +214,12 @@ def get_tex_compiler() -> dict[str, Any]:
     """Return personal ``[tex]`` compiler settings (copy).
 
     ``command`` is ``None`` when the user did not set ``[tex].command``.
+
+    Examples:
+
+        >>> from simetri.config.user_config import get_tex_compiler
+        >>> get_tex_compiler()["timeout_seconds"]
+        120
     """
     return dict(_tex_settings)
 
@@ -158,6 +229,12 @@ def get_viewer_settings() -> dict[str, Any]:
 
     ``command`` is ``None`` when the user did not set ``[viewer].command``.
     ``mode`` is ``system``, ``command``, or ``none``.
+
+    Examples:
+
+        >>> from simetri.config.user_config import get_viewer_settings
+        >>> get_viewer_settings()["mode"]
+        'system'
     """
     return dict(_viewer_settings)
 
@@ -173,6 +250,14 @@ def get_converter_for_extension(extension: str) -> dict[str, Any]:
 
     Raises:
         KeyError: No converter for this extension, or converters disabled.
+
+    Examples:
+
+        >>> from simetri.config.user_config import get_converter_for_extension
+        >>> get_converter_for_extension(".png")  # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ...
+        KeyError: ...
     """
     if not _converter_globals["enabled"]:
         raise KeyError(
@@ -202,6 +287,12 @@ def resolve_save_filepath(filepath: str | Path) -> str:
 
     Raises:
         ValueError: Bare filename and ``default_output_directory`` is unset.
+
+    Examples:
+
+        >>> from pathlib import Path
+        >>> Path(sg.resolve_save_filepath("out/sub/file.svg")).name
+        'file.svg'
     """
     path = Path(filepath)
     if path.parent != Path("") and path.parent != Path("."):
@@ -495,7 +586,7 @@ def _apply_defaults_table(defaults_table: dict[str, Any]) -> None:
         _user_default_overrides[key] = converted
 
 
-def _warning_member(group_name: str, leaf_name: str):
+def _warning_member(group_name: str, leaf_name: str) -> Any | None:
     """Return ``WarningType.<group>.<leaf>`` or None if unknown."""
     if group_name not in vars(WarningType):
         return None
@@ -802,7 +893,9 @@ def _upsert_toml_table(config_path: Path, table_header: str, body_lines: list[st
     config_path.write_text("".join(new_lines), encoding="utf-8")
 
 
-def save_user_style(name: str, mapping: Any = None, **kwargs) -> Path:
+def save_user_style(
+    name: str, mapping: Any = None, **kwargs: object
+) -> Path:
     """Write ``[styles.<name>]`` to the personal ``simetri_config.toml``.
 
     Overwrites that table if it already exists. Updates ``user_styles``
@@ -816,17 +909,16 @@ def save_user_style(name: str, mapping: Any = None, **kwargs) -> Path:
     Returns:
         Path to the personal config file.
 
-    **Examples**
+    Examples:
 
-    ```python
-    sg.save_user_style(
-
-    "outline", fill=False, line_width=3, line_color=sg.blue
-
-    )
-
-    ```
-"""
+        >>> path = sg.save_user_style(
+        ...     "outline", fill=False, line_width=3, line_color=sg.blue
+        ... )
+        >>> path.name
+        'simetri_config.toml'
+        >>> "outline" in sg.user_styles
+        True
+    """
     from ..base.common_style import Style, coerce_style_overlay
 
     if mapping is None and not kwargs:
@@ -858,7 +950,7 @@ def save_user_style(name: str, mapping: Any = None, **kwargs) -> Path:
     return config_path
 
 
-def save_user_defaults(mapping: Any = None, **kwargs) -> Path:
+def save_user_defaults(mapping: Any = None, **kwargs: object) -> Path:
     """Write ``[defaults]`` keys to the personal ``simetri_config.toml``.
 
     Uncomments an existing catalog line for that key when present; otherwise
@@ -876,15 +968,14 @@ def save_user_defaults(mapping: Any = None, **kwargs) -> Path:
         TypeError: No mapping or kwargs, or a value cannot be serialized.
         KeyError: Unknown defaults key, or the key has no registered type.
 
-    **Examples**
+    Examples:
 
-    ```python
-    sg.save_user_defaults(line_width=1.5, page_size="A4")
-
-    sg.save_user_defaults({"fill_color": sg.blue})
-
-    ```
-"""
+        >>> path = sg.save_user_defaults(line_width=1.5, page_size="A4")
+        >>> path.name
+        'simetri_config.toml'
+        >>> sg.save_user_defaults({"fill_color": sg.blue}).suffix
+        '.toml'
+    """
     from .settings import default_types, defaults
 
     if mapping is None and not kwargs:
@@ -939,6 +1030,11 @@ def apply_user_config() -> Path:
 
     Returns:
         Path to the config file that was read.
+
+    Examples:
+
+        >>> sg.apply_user_config().name
+        'simetri_config.toml'
     """
     global _config_applied
     from .settings import defaults
@@ -1116,6 +1212,22 @@ def generate_shared_toml(script_path: str | Path, output_path: str | Path) -> Pa
     Raises:
         FileNotFoundError: If ``script_path`` does not exist.
         TypeError: If an accessed exportable default cannot be serialized.
+
+    Examples:
+
+        >>> import tempfile
+        >>> from pathlib import Path
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     script = Path(tmp) / "read_defaults.py"
+        ...     script.write_text(
+        ...         "import simetri.graphics as sg\\n"
+        ...         "_ = sg.defaults['line_width']\\n",
+        ...         encoding="utf-8",
+        ...     )
+        ...     out = Path(tmp) / "shared.toml"
+        ...     sg.generate_shared_toml(script, out)
+        ...     out.is_file()
+        True
     """
     from .. import __version__
     from .settings import default_types, defaults
@@ -1202,6 +1314,21 @@ def use_settings(toml_path: str | Path) -> Iterator[None]:
         FileNotFoundError: If ``toml_path`` does not exist.
         ValueError: If required sections/keys are missing.
         VersionConflict: If this package is older than ``simetri_version``.
+
+    Examples:
+
+        >>> import tempfile
+        >>> from pathlib import Path
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     toml = Path(tmp) / "shared.toml"
+        ...     toml.write_text(
+        ...         '[meta]\\nsimetri_version = "0.0.0"\\n\\n'
+        ...         '[defaults]\\nline_width = 2.0\\n',
+        ...         encoding="utf-8",
+        ...     )
+        ...     with sg.use_settings(toml):
+        ...         sg.defaults["line_width"]
+        2.0
     """
     from .settings import defaults
 

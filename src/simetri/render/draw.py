@@ -35,7 +35,7 @@ from ..geom.homogenize import homogenize
 from ..geom.matrices import identity_matrix
 from ..geom.nonlinear.bezier import bezier_points
 from ..geom.nonlinear.ellipse import elliptic_arc_points
-from ..geom.nonlinear.path import lin_path_svg
+from ..geom.nonlinear.path import path2d_to_svg_path
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.polygons.polygon import offset_polygon
 from ..geom.segments.line_utils import (
@@ -71,6 +71,8 @@ from .sketch import (
     Sketch,
     TagSketch,
 )
+
+DrawStyleKwargs = dict[str, object]
 from .style_map import (
     line_style_map,
     shape_style_map,
@@ -100,14 +102,14 @@ _PRECEDENCE_KEYS = frozenset(
 
 
 def help_lines(
-    self,
+    self: Canvas,
     pos: PointType | None = None,
     width: float | None = None,
     height: float | None = None,
     spacing: float | None = None,
     cs_size: float | None = None,
     deferred: bool = False,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw a square grid, and optionally the coordinate axes.
 
@@ -128,16 +130,12 @@ def help_lines(
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.help_lines((0, 0), 20, 20, spacing=10, cs_size=0, deferred=False) is canvas
-    # True
-    len(canvas.active_page.sketches) > 0
-    # True
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.help_lines((0, 0), 20, 20, spacing=10, cs_size=0, deferred=False) is canvas
+        True
+        >>> len(canvas.active_page.sketches) > 0
+        True
 """
     if deferred:
         style_source = SimpleNamespace(type=Types.SKETCH)
@@ -213,7 +211,7 @@ def help_lines(
 
 
 def arc(
-    self,
+    self: Canvas,
     center: PointType,
     radius_x: float,
     radius_y: float | None,
@@ -221,7 +219,7 @@ def arc(
     span_angle: float,
     rot_angle: float,
     n_points: int | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw an elliptic arc from ``start_angle`` through ``span_angle``.
 
@@ -241,16 +239,12 @@ def arc(
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.arc((0, 0), 10, 10, 0, sg.pi / 2, 0) is canvas
-    # True
-    canvas.active_page.sketches[-1].subtype.name
-    # 'ARC_SKETCH'
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.arc((0, 0), 10, 10, 0, sg.pi / 2, 0) is canvas
+        True
+        >>> canvas.active_page.sketches[-1].subtype.name
+        'ARC_SKETCH'
 """
     if radius_y is None:
         radius_y = radius_x
@@ -278,7 +272,7 @@ def arc(
     return self
 
 
-def bezier(self, control_points: Sequence[PointType], **kwargs) -> Self:
+def bezier(self: Canvas, control_points: Sequence[PointType], **kwargs: object) -> Self:
     """Draw a Bezier curve through the given control points.
 
     Args:
@@ -288,16 +282,12 @@ def bezier(self, control_points: Sequence[PointType], **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.bezier([(0, 0), (5, 10), (10, 0)]) is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.bezier([(0, 0), (5, 10), (10, 0)]) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
 """
     self._all_vertices.extend(control_points)
     self._sketch_xform_matrix = self.xform_matrix
@@ -314,7 +304,7 @@ def bezier(self, control_points: Sequence[PointType], **kwargs) -> Self:
     return self
 
 
-def circle(self, radius: float, center: PointType = (0, 0), **kwargs) -> Self:
+def circle(self: Canvas, radius: float, center: PointType = (0, 0), **kwargs: object) -> Self:
     """Draw a circle with the given radius and optional center.
 
     Args:
@@ -325,16 +315,12 @@ def circle(self, radius: float, center: PointType = (0, 0), **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.circle(10, (0, 0)) is canvas
-    # True
-    canvas.active_page.sketches[-1].subtype.name
-    # 'CIRCLE_SKETCH'
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.circle(10, (0, 0)) is canvas
+        True
+        >>> canvas.active_page.sketches[-1].subtype.name
+        'CIRCLE_SKETCH'
 """
     x, y = center[:2]
     p1 = x - radius, y - radius
@@ -358,12 +344,12 @@ def circle(self, radius: float, center: PointType = (0, 0), **kwargs) -> Self:
 
 
 def ellipse(
-    self,
+    self: Canvas,
     width: float,
     height: float,
     center: PointType = (0, 0),
     angle: float = 0,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw an ellipse with the given width, height, and optional center.
 
@@ -377,16 +363,12 @@ def ellipse(
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.ellipse(20, 10) is canvas
-    # True
-    canvas.active_page.sketches[-1].subtype.name
-    # 'ELLIPSE_SKETCH'
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.ellipse(20, 10) is canvas
+        True
+        >>> canvas.active_page.sketches[-1].subtype.name
+        'ELLIPSE_SKETCH'
 """
     x, y = center[:2]
     x_radius = width / 2
@@ -414,7 +396,7 @@ def ellipse(
 
 
 def text(
-    self,
+    self: Canvas,
     txt: str,
     pos: PointType,
     font_family: str | None = None,
@@ -422,7 +404,7 @@ def text(
     font_color: Color | None = None,
     anchor: Anchor | None = None,
     align: Align | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw text at the given position.
 
@@ -439,16 +421,12 @@ def text(
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.text("A", (0, 0)) is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.text("A", (0, 0)) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
 """
     # first create a Tag object
     tag_obj = Tag(
@@ -472,7 +450,7 @@ def text(
     return self
 
 
-def line(self, start: PointType, end: PointType, **kwargs) -> Self:
+def line(self: Canvas, start: PointType, end: PointType, **kwargs: object) -> Self:
     """Draw a line segment from start to end.
 
     Args:
@@ -483,16 +461,12 @@ def line(self, start: PointType, end: PointType, **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.line((0, 0), (10, 0)) is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.line((0, 0), (10, 0)) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
 """
     self._sketch_xform_matrix = self.xform_matrix
     line_shape = Shape([start, end], closed=False, **kwargs)
@@ -503,12 +477,12 @@ def line(self, start: PointType, end: PointType, **kwargs) -> Self:
 
 
 def rectangle(
-    self,
+    self: Canvas,
     width: float,
     height: float,
     center: PointType = (0, 0),
     angle: float = 0,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw a rectangle with the given width, height, and optional center.
 
@@ -522,16 +496,12 @@ def rectangle(
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.rectangle(10, 6) is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.rectangle(10, 6) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
 """
     x, y = center[:2]
     w2 = width / 2
@@ -551,7 +521,7 @@ def rectangle(
     return self
 
 
-def draw_CS(self, size: float | None = None, **kwargs) -> Self:
+def draw_CS(self: Canvas, size: float | None = None, **kwargs: object) -> Self:
     """Draw the coordinate axes and an origin marker.
 
     ``size`` None uses ``defaults["CS_size"]``. ``kwargs["colors"]`` is
@@ -564,16 +534,12 @@ def draw_CS(self, size: float | None = None, **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.draw_CS(10) is canvas
-    # True
-    len(canvas.active_page.sketches) >= 2
-    # True
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw_CS(10) is canvas
+        True
+        >>> len(canvas.active_page.sketches) >= 2
+        True
 """
     if size is None:
         size = defaults["CS_size"]
@@ -594,7 +560,7 @@ def draw_CS(self, size: float | None = None, **kwargs) -> Self:
     return self
 
 
-def lines(self, points: Sequence[PointType], **kwargs) -> Self:
+def lines(self: Canvas, points: Sequence[PointType], **kwargs: object) -> Self:
     """Draw connected line segments through the given points.
 
     Args:
@@ -604,16 +570,12 @@ def lines(self, points: Sequence[PointType], **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.lines([(0, 0), (10, 0), (10, 5)]) is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.lines([(0, 0), (10, 0), (10, 5)]) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
 """
     self._all_vertices.extend(points)
     self._sketch_xform_matrix = self.xform_matrix
@@ -701,7 +663,7 @@ def _measure_latex_formula(
 
 
 def draw_latex(
-    self,
+    self: Canvas,
     formula: str,
     pos: PointType,
     font_size: int = 14,
@@ -709,7 +671,7 @@ def draw_latex(
     font_color: Color | str | Sequence[float] | None = None,
     bold: bool = False,
     anchor: Anchor | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw a LaTeX math formula on the canvas using matplotlib mathtext (no TeX compiler needed).
 
@@ -735,16 +697,12 @@ def draw_latex(
     Returns:
         Self: The canvas object.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.draw_latex("x", (0, 0), visible=False) is canvas
-    # True
-    canvas.active_page.sketches[-1].visible
-    # False
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw_latex("x", (0, 0), visible=False) is canvas
+        True
+        >>> canvas.active_page.sketches[-1].visible
+        False
 """
     self._sketch_xform_matrix = self.xform_matrix
     sketch = LatexSketch(
@@ -795,7 +753,7 @@ def draw_latex(
     return self
 
 
-def insert_svg(self, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
+def insert_svg(self: Canvas, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
     """Insert an SVG fragment at the given location.
 
     Args:
@@ -805,16 +763,12 @@ def insert_svg(self, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.insert_svg('<circle cx="0" cy="0" r="10"/>') is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.insert_svg('<circle cx="0" cy="0" r="10"/>') is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
 """
     active_sketches = self.active_page.sketches
     sketch = SvgSketch(code, location=location)
@@ -823,7 +777,7 @@ def insert_svg(self, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
     return self
 
 
-def insert_tex(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
+def insert_tex(self: Canvas, code: str, location: TexLoc = TexLoc.NONE) -> Self:
     """Insert a TeX snippet at the given location.
 
     Args:
@@ -833,16 +787,12 @@ def insert_tex(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.insert_tex("% note") is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.insert_tex("% note") is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
 """
     active_sketches = self.active_page.sketches
     sketch = TexSketch(code, location=location)
@@ -851,37 +801,44 @@ def insert_tex(self, code: str, location: TexLoc = TexLoc.NONE) -> Self:
     return self
 
 
-def draw_bbox(self, bbox: BoundingBox, **kwargs) -> Self:
-    """
-    Draw the bounding box object.
+def draw_bbox(self: Canvas, bbox: BoundingBox, **kwargs: object) -> Self:
+    """Draw a bounding box as a closed shape sketch.
 
     Args:
-        bbox: Bounding box to be drawn.
-        **kwargs: Additional keyword arguments.
+        bbox: Bounding box to draw.
+        **kwargs: Style overrides forwarded to ``create_sketch``.
 
     Returns:
-        Self: The canvas object.
-    """
+        Self: The canvas.
+
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> box = sg.bounding_box([(0, 0), (10, 5)])
+        >>> canvas.draw_bbox(box) is canvas
+        True
+"""
     sketch = create_sketch(bbox, self, **kwargs)
     self.active_page.sketches.append(sketch)
 
     return self
 
 
-def draw_pattern(self, pattern: Pattern, **kwargs) -> Self:
-    """
-    Draw the pattern object.
-
-    Expands the pattern into individual shapes via get_shapes() and
-    creates a sketch for each shape.
+def draw_pattern(self: Canvas, pattern: Pattern, **kwargs: object) -> Self:
+    """Draw a pattern by sketching each shape from ``get_shapes()``.
 
     Args:
-        pattern: Pattern object to be drawn.
-        **kwargs: Additional keyword arguments.
+        pattern: Pattern to expand and draw.
+        **kwargs: Style overrides forwarded to ``get_sketches``.
 
     Returns:
-        Self: The canvas object.
-    """
+        Self: The canvas.
+
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> pat = sg.Pattern(sg.letter_F(), reps=(2, 2))
+        >>> canvas.draw_pattern(pat) is canvas
+        True
+"""
     active_sketches = self.active_page.sketches
     shapes = pattern.get_shapes()
     for shape in shapes:
@@ -892,7 +849,7 @@ def draw_pattern(self, pattern: Pattern, **kwargs) -> Self:
     return self
 
 
-def draw_group(self, group: Group, **kwargs) -> Self:
+def draw_group(self: Canvas, group: Group, **kwargs: object) -> Self:
     """Draw a group.
 
     Args:
@@ -902,17 +859,13 @@ def draw_group(self, group: Group, **kwargs) -> Self:
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    group = sg.Group([sg.Shape([(0, 0), (1, 0), (1, 1)])])
-    canvas.draw(group) is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> group = sg.Group([sg.Shape([(0, 0), (1, 0), (1, 1)])])
+        >>> canvas.draw(group) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
 """
     sketch = create_sketch(group, self, **kwargs)
     self.active_page.sketches.append(sketch)
@@ -920,12 +873,15 @@ def draw_group(self, group: Group, **kwargs) -> Self:
     return self
 
 
-def draw_widget(self, item: Drawable, **kwargs) -> Self:
+def draw_widget(self: Canvas, item: Drawable, **kwargs: object) -> Self:
     """Draw an item that exposes ``draw_list`` as a composite sketch.
 
     Args:
         item: Drawable with a ``draw_list`` of drawables and/or functions.
         **kwargs: Style overrides applied to nested drawables.
+
+    Returns:
+        Self: The canvas.
     """
     active_sketches = self.active_page.sketches
     first_sketch_index = len(active_sketches)
@@ -945,11 +901,11 @@ def draw_widget(self, item: Drawable, **kwargs) -> Self:
 
 
 def draw_hobby(
-    self,
+    self: Canvas,
     points: Sequence[PointType],
     controls: Sequence[PointType],
     cyclic: bool = False,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw a Hobby curve through the given points using the control points.
 
@@ -957,11 +913,16 @@ def draw_hobby(
         points (Sequence[PointType]): Points through which the curve passes.
         controls (Sequence[PointType]): Control points for the curve.
         cyclic (bool, optional): Whether the curve is cyclic. Defaults to False.
-        **kwargs: Additional keyword arguments.
+        **kwargs: Style overrides forwarded to each Bezier ``draw`` call.
 
     Returns:
         Self: The canvas.
-    """
+
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw_hobby([(0, 0), (10, 0)], [(5, 5), (5, -5)]) is canvas
+        True
+"""
     n = len(points)
     if cyclic:
         for i in range(n):
@@ -1002,7 +963,7 @@ _LACE_DRAW_OPTION_NAMES = frozenset(
 )
 
 
-def _lace_style_kwargs(kwargs: dict) -> dict:
+def _lace_style_kwargs(kwargs: DrawStyleKwargs) -> DrawStyleKwargs:
     """Return draw kwargs with lace-only option names removed."""
     return {
         name: value
@@ -1011,8 +972,18 @@ def _lace_style_kwargs(kwargs: dict) -> dict:
     }
 
 
-def _resolved_plait_fill_color(lace: Lace | None, kwargs: dict):
-    """Return the plait fill color from draw options, then the lace, then defaults."""
+def _resolved_plait_fill_color(
+    lace: Lace | None, kwargs: DrawStyleKwargs
+) -> Color | str | Sequence[float] | Sequence[int]:
+    """Return the plait fill color from draw options, then the lace, then defaults.
+
+    Args:
+        lace: Lace supplying ``plait_color`` when kwargs do not.
+        kwargs: Draw keyword arguments (not mutated).
+
+    Returns:
+        Resolved fill color for plait drawing.
+    """
     if "plait_color" in kwargs:
         return kwargs["plait_color"]
     if "plait_fill_color" in kwargs:
@@ -1025,8 +996,15 @@ def _resolved_plait_fill_color(lace: Lace | None, kwargs: dict):
     return defaults["plait_color"]
 
 
-def _resolved_shade_plaits(kwargs: dict) -> bool:
-    """Return whether plaits should be shaded for this draw call."""
+def _resolved_shade_plaits(kwargs: DrawStyleKwargs) -> bool:
+    """Return whether plaits should be shaded for this draw call.
+
+    Args:
+        kwargs: Draw keyword arguments (not mutated).
+
+    Returns:
+        bool: ``shade_plaits`` from kwargs or ``defaults``.
+    """
     if "shade_plaits" in kwargs:
         return kwargs["shade_plaits"]
     return defaults["shade_plaits"]
@@ -1047,16 +1025,11 @@ def shade_value(angle: float) -> float:
     Raises:
         ValueError: If ``angle`` is outside ``[0, 2 * pi]``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    from simetri.render.draw import shade_value
-    shade_value(sg.pi / 2)
-    # 1.0
-    shade_value(0)
-    # 0.0
-    ```
+    Examples:
+        >>> shade_value(sg.pi / 2)
+        1.0
+        >>> shade_value(0)
+        0.0
 """
     if not 0 <= angle <= 2 * pi:
         raise ValueError("Angle must be between 0 and 2 pi radians.")
@@ -1064,12 +1037,15 @@ def shade_value(angle: float) -> float:
     return sin(angle)
 
 
-def plait_emboss1(self, lace: Lace, **kwargs) -> None:
+def plait_emboss1(self: Canvas, lace: Lace, **kwargs: object) -> None:
     """Draw lace plaits with embossed quad shading (style 1).
 
     Args:
         lace: Lace object whose plaits are embossed (mutated).
         **kwargs: Style overrides such as ``fill_color``.
+
+    Returns:
+        None
     """
     if "fill_color" not in kwargs:
         kwargs["fill_color"] = _resolved_plait_fill_color(lace, kwargs)
@@ -1172,12 +1148,15 @@ def plait_emboss1(self, lace: Lace, **kwargs) -> None:
             draw(self, quad2, **style_kwargs)
 
 
-def plait_emboss2(self, lace: Lace, **kwargs) -> None:
+def plait_emboss2(self: Canvas, lace: Lace, **kwargs: object) -> None:
     """Draw lace plaits with embossed quad shading (style 2).
 
     Args:
         lace: Lace object whose plaits are embossed (mutated).
         **kwargs: Style overrides such as ``fill_color``.
+
+    Returns:
+        None
     """
     if "fill_color" not in kwargs:
         kwargs["fill_color"] = _resolved_plait_fill_color(lace, kwargs)
@@ -1284,12 +1263,15 @@ def plait_emboss2(self, lace: Lace, **kwargs) -> None:
             draw(self, quad2, **style_kwargs)
 
 
-def plait_diamond(self, lace: Lace, **kwargs) -> None:
+def plait_diamond(self: Canvas, lace: Lace, **kwargs: object) -> None:
     """Draw lace plaits using a diamond/offset-quad fill style.
 
     Args:
         lace: Lace object whose plaits are drawn.
         **kwargs: Style overrides such as ``fill_color``.
+
+    Returns:
+        None
     """
     lace._set_plait_ends()
     quad_pairs = []
@@ -1392,7 +1374,7 @@ def plait_diamond(self, lace: Lace, **kwargs) -> None:
         draw(self, loop, **style_kwargs)
 
 
-def draw_lace_with_fillets(self, lace: Lace, **kwargs) -> None:
+def draw_lace_with_fillets(self: Canvas, lace: Lace, **kwargs: object) -> None:
     """Draw a lace with filleted geometry, then apply draw_lace options.
 
     Args:
@@ -1409,7 +1391,7 @@ def draw_lace_with_fillets(self, lace: Lace, **kwargs) -> None:
     draw_lace(self, lace, fillet_radii=fillet_radii, **remaining)
 
 
-def draw_plaits(self, lace: Lace | None = None, **kwargs) -> None:
+def draw_plaits(self: Canvas, lace: Lace | None = None, **kwargs: object) -> None:
     """Draw lace plaits, optionally using a plait style handler.
 
     Args:
@@ -1437,10 +1419,10 @@ def draw_plaits(self, lace: Lace | None = None, **kwargs) -> None:
 
 
 def draw_fragments(
-    self,
+    self: Canvas,
     lace: Lace | None = None,
     palette: Sequence[Sequence[float]] | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> None:
     """Draw lace fragments colored by area or radius bins from a palette.
 
@@ -1508,7 +1490,7 @@ def draw_fragments(
             draw(self, fragment, **draw_kwargs)
 
 
-def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs) -> None:
+def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs: object) -> None:
     """Handle INNERLINES plait style."""
     style_kwargs = _lace_style_kwargs(kwargs)
     for plait in lace.plaits:
@@ -1549,7 +1531,9 @@ def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs) -> None:
                 )
 
 
-def _handle_plait_double_lines(canvas: Canvas, lace: Lace, kwargs: dict) -> None:
+def _handle_plait_double_lines(
+    canvas: Canvas, lace: Lace, kwargs: DrawStyleKwargs
+) -> None:
     """Draw plaits with ``draw_double=True``."""
     if "plaits" in kwargs:
         plaits = kwargs["plaits"]
@@ -1565,7 +1549,7 @@ def _handle_plait_double_lines(canvas: Canvas, lace: Lace, kwargs: dict) -> None
 
 
 def _handle_plait_style(
-    canvas: Canvas, lace: Lace | None, kwargs: dict
+    canvas: Canvas, lace: Lace | None, kwargs: DrawStyleKwargs
 ) -> None:
     """Handle different plait styles."""
     p_style = kwargs["plait_style"]
@@ -1586,7 +1570,9 @@ def _handle_plait_style(
         raise ValueError(f"Unknown plait_style: {p_style!r}")
 
 
-def _draw_default_plaits(canvas: Canvas, lace: Lace, kwargs: dict) -> None:
+def _draw_default_plaits(
+    canvas: Canvas, lace: Lace, kwargs: DrawStyleKwargs
+) -> None:
     """Draw plaits with default style."""
     if "plaits" in kwargs:
         plaits = kwargs["plaits"]
@@ -1603,21 +1589,21 @@ def _draw_default_plaits(canvas: Canvas, lace: Lace, kwargs: dict) -> None:
 
 
 def draw_lace(
-    self,
+    self: Canvas,
     lace: Lace,
     *,
     fragment_coloring: FragmentColoring | None = None,
     plait_style: PlaitStyle | None = None,
     shade_plaits: bool | None = None,
     fillet_radii: tuple[float, float] | None = None,
-    palette=None,
-    swatch=None,
-    plait_color=None,
+    palette: Sequence[Sequence[float]] | None = None,
+    swatch: Sequence[Sequence[float]] | None = None,
+    plait_color: Color | str | Sequence[float] | Sequence[int] | None = None,
     draw_fragments: bool | None = None,
     draw_plaits: bool | None = None,
-    percent_offsets=None,
-    line_widths=None,
-    **kwargs,
+    percent_offsets: Sequence[float] | None = None,
+    line_widths: Sequence[float] | bool | None = None,
+    **kwargs: object,
 ) -> Self:
     """Draw the lace object.
 
@@ -1700,7 +1686,7 @@ def draw_lace(
     return self
 
 
-def draw_lines(self, lines: Sequence[Sequence[PointType]], **kwargs) -> Self:
+def draw_lines(self: Canvas, lines: Sequence[Sequence[PointType]], **kwargs: object) -> Self:
     """Draw a collection of line segments onto the canvas.
 
     Args:
@@ -1723,11 +1709,11 @@ def draw_lines(self, lines: Sequence[Sequence[PointType]], **kwargs) -> Self:
 
 
 def draw_image(
-    self,
+    self: Canvas,
     image: Image,
     position: PointType | None = None,
     scale: tuple[float, float] | float | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw the image object.
 
@@ -1779,13 +1765,13 @@ def draw_image(
 
 
 def draw_pdf(
-    self,
+    self: Canvas,
     pdf: str | PDF,
     pos: PointType | None = None,
     size: tuple[float, float] | None = None,
     scale: float | None = None,
     angle: float | None = 0,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw a PDF file on the canvas.
 
@@ -1841,7 +1827,7 @@ def draw_pdf(
     return self
 
 
-def draw_dimension(self, item: Dimension, **kwargs) -> Self:
+def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     """Draw the dimension object.
 
     Args:
@@ -1854,7 +1840,7 @@ def draw_dimension(self, item: Dimension, **kwargs) -> Self:
     for shape in item.all_shapes:
         self._all_vertices.extend(shape.corners)
 
-    def _add_sketch(sketch):
+    def _add_sketch(sketch: Sketch | list[Sketch] | None) -> None:
         if sketch is None:
             return
         if isinstance(sketch, list):
@@ -1898,12 +1884,12 @@ def draw_dimension(self, item: Dimension, **kwargs) -> Self:
 
 
 def grid(
-    self,
+    self: Canvas,
     pos: PointType = (0, 0),
     width: float | None = None,
     height: float | None = None,
     step_size: float | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> Self:
     """Draw a rectangular grid.
 
@@ -1918,16 +1904,12 @@ def grid(
     Returns:
         Self: The canvas.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.grid((0, 0), 20, 20, 10) is canvas
-    # True
-    len(canvas.active_page.sketches) > 0
-    # True
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.grid((0, 0), 20, 20, 10) is canvas
+        True
+        >>> len(canvas.active_page.sketches) > 0
+        True
 """
     x, y = pos[:2]
     if width is None:
@@ -2050,7 +2032,7 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         all_vertices.extend(corners)
 
 
-def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
+def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object) -> Self:
     """Draw an item on the canvas.
 
     Args:
@@ -2064,22 +2046,18 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
         TypeError: If ``item`` is a ``Lattice``. Draw ``lattice.pattern``
             after ``expand`` or ``populate_unit``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    canvas = sg.Canvas()
-    canvas.draw(sg.Shape([(0, 0), (10, 0), (10, 10)])) is canvas
-    # True
-    len(canvas.active_page.sketches)
-    # 1
-    lattice = sg.lattice_p1(40, 40)
-    lattice.expand(sg.letter_F(), 1)
-    canvas.draw(lattice)
-    # Traceback (most recent call last):
-        
-    # TypeError: Cannot draw a Lattice. Draw lattice.pattern instead.
-    ```
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(sg.Shape([(0, 0), (10, 0), (10, 10)])) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        1
+        >>> lattice = sg.lattice_p1(40, 40)
+        >>> lattice.expand(sg.letter_F(), 1)
+        >>> canvas.draw(lattice)  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+            ...
+        TypeError: Cannot draw a Lattice. Draw lattice.pattern instead.
 """
     try:
         draw_list = item.draw_list
@@ -2173,23 +2151,31 @@ def draw(self, item: Drawable | BoundingBox | Clipping, **kwargs) -> Self:
 
 
 def draw_all_segments(
-    self, item: Shape | Group, vert_indices: bool = False, **kwargs
+    self: Canvas,
+    item: Shape | Group,
+    vert_indices: bool = False,
+    **kwargs: object,
 ) -> Self:
-    """
-    Using intersections, splits edges of the item into separate segments and
-    draws them with their indices. This is usually used for the "get_loop"
-    function.
-    If vert_indices is True, then vertex indices are shown instead of edge
-    indices.
+    """Split edges into segments and draw them with index labels.
+
+    Used with loop-finding workflows. When ``vert_indices`` is true,
+    vertex indices are drawn at endpoints instead of edge indices at
+    midpoints.
 
     Args:
-        item: A shape or a group.
-        vert_indices: If vert_indices is True, then vertex indices are
-        shown instead of edge indices.
+        item: Shape or group whose edges are split and drawn.
+        vert_indices: Label vertices instead of edges.
+        **kwargs: Style overrides forwarded to ``draw`` and ``text``.
 
     Returns:
-        The canvas object.
-    """
+        Self: The canvas.
+
+    Examples:
+        >>> canvas = sg.Canvas()
+        >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)])
+        >>> canvas.draw_all_segments(shape) is canvas
+        True
+"""
     segments = all_segments(item)
     count = 0
     for i, edge in enumerate(segments):
@@ -2210,7 +2196,7 @@ def get_clipped_sketch(
     target: Drawable,
     clipper: Drawable,
     canvas: Canvas,
-    **kwargs,
+    **kwargs: object,
 ) -> ClippedSketch:
     """Build a ``ClippedSketch`` for a target clipped by ``clipper``.
 
@@ -2234,17 +2220,19 @@ def get_clipped_sketch(
 
 
 def get_sketches(
-    item: Drawable, canvas: Canvas | None = None, **kwargs
+    item: Drawable,
+    canvas: Canvas | None = None,
+    **kwargs: object,
 ) -> list[Sketch]:
     """Create sketches from the given item and return them as a list.
 
     Args:
-        item (Drawable): Item to be sketched.
-        canvas (Canvas, optional): Canvas object. Defaults to None.
-        **kwargs: Additional keyword arguments.
+        item: Item to be sketched.
+        canvas: Canvas object. Defaults to None.
+        **kwargs: Style overrides forwarded to ``create_sketch``.
 
     Returns:
-        list[Sketch]: List of sketches.
+        list[Sketch]: Sketches for the item, or an empty list when hidden.
     """
     if not (item.visible):
         res = []
@@ -2298,7 +2286,7 @@ def set_shape_sketch_style(
     item: Drawable,
     canvas: Canvas,
     linear: bool = False,
-    **kwargs,
+    **kwargs: object,
 ) -> None:
     """Set the style properties of the sketch.
 
@@ -2421,7 +2409,7 @@ def set_shape_sketch_style(
         sketch.indices = True
 
 
-def get_verts_in_new_pos(item: Shape, **kwargs) -> list[PointType]:
+def get_verts_in_new_pos(item: Shape, **kwargs: object) -> list[PointType]:
     """Return the item's vertices, translated when ``pos`` is given.
 
     Args:
@@ -2433,15 +2421,10 @@ def get_verts_in_new_pos(item: Shape, **kwargs) -> list[PointType]:
         list: Vertices in the new position, or the item's current
         vertices when ``pos`` is not given.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    from simetri.render.draw import get_verts_in_new_pos
-    shape = sg.Shape([(0, 0), (2, 0), (2, 2)])
-    get_verts_in_new_pos(shape, pos=(3, 1))[0]
-    # [2.0, 0.0]
-    ```
+    Examples:
+        >>> shape = sg.Shape([(0, 0), (2, 0), (2, 2)])
+        >>> get_verts_in_new_pos(shape, pos=(3, 1))[0]
+        [2.0, 0.0]
 """
     if "pos" in kwargs:
         x, y = item.midpoint[:2]
@@ -2460,7 +2443,9 @@ def get_verts_in_new_pos(item: Shape, **kwargs) -> list[PointType]:
 ##################################
 
 
-def _get_tag_sketch(item, canvas, **kwargs):
+def _get_tag_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> TagSketch:
     """Create a TagSketch from the given item.
 
     Args:
@@ -2503,7 +2488,9 @@ def _get_tag_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_ellipse_sketch(item, canvas, **kwargs):
+def _get_ellipse_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> EllipseSketch:
     """Create an EllipseSketch from the given item.
 
     Args:
@@ -2527,7 +2514,9 @@ def _get_ellipse_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_pattern_sketch(item, canvas, **kwargs):
+def _get_pattern_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> PatternSketch:
     """Create a PatternSketch from the given item.
 
     Args:
@@ -2544,7 +2533,9 @@ def _get_pattern_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_circle_sketch(item, canvas, **kwargs):
+def _get_circle_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> CircleSketch:
     """Create a CircleSketch from the given item.
 
     Args:
@@ -2565,7 +2556,9 @@ def _get_circle_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_dots_sketch(item, canvas, **kwargs):
+def _get_dots_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> list[Sketch]:
     """Create sketches for dots from the given item.
 
     Args:
@@ -2595,7 +2588,9 @@ def _get_dots_sketch(item, canvas, **kwargs):
     return sketches
 
 
-def _get_arc_sketch(item, canvas, **kwargs):
+def _get_arc_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> ArcSketch:
     """Create an ArcSketch from the given item.
 
     Args:
@@ -2614,7 +2609,9 @@ def _get_arc_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_lace_sketch(item, canvas, **kwargs):
+def _get_lace_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> list[Sketch]:
     """Create sketches for lace from the given item.
 
     Args:
@@ -2632,9 +2629,21 @@ def _get_lace_sketch(item, canvas, **kwargs):
     return sketches
 
 
-def _get_composite_sketch(items, canvas, **kwargs):
-    """Create a sketch for composite items like arrows, grids,
-    parallel_polylines, dimensions, etc."""
+def _get_composite_sketch(
+    items: Sequence[Drawable],
+    canvas: Canvas,
+    **kwargs: object,
+) -> list[Sketch | None]:
+    """Create sketches for composite drawables (arrows, grids, and similar).
+
+    Args:
+        items: Components to sketch in order.
+        canvas: Canvas providing transform context.
+        **kwargs: Style overrides forwarded to ``create_sketch``.
+
+    Returns:
+        list: One sketch per component (entries may be ``None``).
+    """
     sketches = []
     for component in items:
         sketch = create_sketch(component, canvas, **kwargs)
@@ -2642,7 +2651,9 @@ def _get_composite_sketch(items, canvas, **kwargs):
     return sketches
 
 
-def _get_path_sketch(item, canvas, **kwargs):
+def _get_path_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> PathSketch | list[Sketch]:
     """Create sketches for a path from the given item.
 
     Args:
@@ -2657,7 +2668,7 @@ def _get_path_sketch(item, canvas, **kwargs):
     transformed_path._update(canvas._sketch_xform_matrix)
 
     path_sketch = PathSketch([], canvas._sketch_xform_matrix)
-    path_sketch.path_data = lin_path_svg(transformed_path)
+    path_sketch.path_data = path2d_to_svg_path(transformed_path)
     path_sketch.visible = item.visible
     path_sketch.closed = item.closed
     path_sketch.vertices = list(transformed_path._label_vertices())
@@ -2678,7 +2689,9 @@ def _get_path_sketch(item, canvas, **kwargs):
     return path_sketch
 
 
-def _get_bbox_sketch(item, canvas, **kwargs):
+def _get_bbox_sketch(
+    item: BoundingBox, canvas: Canvas, **kwargs: object
+) -> ShapeSketch | None:
     """Create a bounding box sketch from the given item.
 
     Args:
@@ -2719,7 +2732,9 @@ def _get_bbox_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_handle_sketch(item, canvas, **kwargs):
+def _get_handle_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> list[Sketch] | None:
     """Create handle sketches from the given item.
 
     Args:
@@ -2770,7 +2785,9 @@ def _get_handle_sketch(item, canvas, **kwargs):
     return sketches
 
 
-def _get_sketch(item, canvas, **kwargs):
+def _get_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> ShapeSketch | None:
     """Create a sketch from the given item.
 
     Args:
@@ -2795,8 +2812,19 @@ def _get_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_line_sketch(item, canvas, **kwargs):
-    """Create a line sketch from the given item."""
+def _get_line_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> LineSketch | None:
+    """Create a line sketch from the given item.
+
+    Args:
+        item: Line drawable with ``vertices``.
+        canvas: Canvas providing transform context.
+        **kwargs: Style overrides forwarded to ``set_shape_sketch_style``.
+
+    Returns:
+        LineSketch or ``None`` when there are no vertices.
+    """
     if not item.vertices:
         return None
 
@@ -2811,7 +2839,9 @@ def _get_line_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_image_sketch(item, canvas, **kwargs):
+def _get_image_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> ImageSketch:
     """Create an ImageSketch from the given item.
 
     Args:
@@ -2839,8 +2869,19 @@ def _get_image_sketch(item, canvas, **kwargs):
     return sketch
 
 
-def _get_table_sketch(item, canvas, **kwargs):
-    """Create a TableSketch from a ``Table`` drawable."""
+def _get_table_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> Sketch:
+    """Create a table sketch from a ``Table`` drawable.
+
+    Args:
+        item: Table drawable.
+        canvas: Canvas providing transform context.
+        **kwargs: Style overrides forwarded to ``build_table_sketch``.
+
+    Returns:
+        Sketch: Table sketch for rendering.
+    """
     from ..extensions.table import build_table_sketch
 
     return build_table_sketch(item, canvas, **kwargs)
@@ -2891,17 +2932,19 @@ _d_subtype_sketch = {
 
 
 def create_sketch(
-    item: Drawable, canvas: Canvas, **kwargs
+    item: Drawable,
+    canvas: Canvas,
+    **kwargs: object,
 ) -> Sketch | list[Sketch | None] | None:
     """Create a sketch from the given item.
 
     Args:
         item: Item to be sketched.
         canvas: Canvas object.
-        **kwargs: Additional keyword arguments.
+        **kwargs: Style overrides forwarded to subtype sketch builders.
 
     Returns:
-        Sketch: Created sketch.
+        A single sketch, a list of sketches, or ``None`` when invisible.
     """
     if not (item.visible):
         return None

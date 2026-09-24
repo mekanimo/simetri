@@ -6,16 +6,10 @@ import tempfile
 import simetri.graphics as sg
 
 
-def hello():
+def hello() -> None:
     """Draw a greeting SVG to verify the Simetri install works.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    # Opens a temporary SVG with a greeting (side-effecting).
-    # sg.hello()
-    ```
+    Examples:
 """
 
     canvas = sg.Canvas()

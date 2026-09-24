@@ -11,7 +11,7 @@ from ...config.settings import defaults
 Point = tuple[float, float]
 
 
-def _as_xy(point) -> Point:
+def _as_xy(point: Sequence[float] | object) -> Point:
     """Return ``(x, y)`` floats from a point-like value."""
     return float(point[0]), float(point[1])
 
@@ -44,13 +44,10 @@ def convex_hull(points: Sequence, on_edge: bool = False) -> list[Point]:
         Hull vertices starting at the leftmost point, without repeating the
         start point at the end.
 
-    **Examples**
-
-    ```python
-    from simetri.geom.polygons.convex_hull import convex_hull
-    hull = convex_hull([(0, 0), (1, 0), (0.5, 0.5), (0, 1)])
-    # [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.convex_hull([(0, 0), (1, 0), (0.5, 0.5), (0, 1)])
+        [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]
     """
     if not points:
         return []

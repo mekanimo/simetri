@@ -6,11 +6,14 @@ Each swatch is a list of nine RGB colors. Use ``get_swatch`` or
 **Examples**
 
 ```python
-from simetri.coloring.swatches import get_swatch
-colors = get_swatch(0)
+import simetri.graphics as sg
+colors = sg.get_swatch(0)
+len(colors)
+# 9
 ```
 """
 
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from itertools import cycle
 import random
@@ -953,20 +956,39 @@ for swatch_255 in swatches_255:
     swatches.append(swatch)
 
 
-def swatch_cyc():
-    """Return a swatch cycling through the swatches."""
+def swatch_cyc() -> Iterator[list[list[float]]]:
+    """Yield swatches from the curated collection in order, then repeat.
+
+    Examples:
+        >>> from simetri.coloring.swatches import swatch_cyc
+        >>> it = swatch_cyc()
+        >>> len(next(it))
+        9
+        >>> len(next(it)[0])
+        3
+    """
 
     return cycle(swatches)
 
 
-def random_swatch(seed: int | None = None):
+def random_swatch(seed: int | None = None) -> list[list[float]]:
     """Return a random nine-color swatch.
 
     Args:
-        seed (int, optional): Seed for a local RNG. Defaults to None.
+        seed: Seed for a local RNG (default ``None``).
 
     Returns:
-        list[Color]: Random swatch from the curated collection.
+        Normalized RGB triples (values in ``[0, 1]``) for one swatch.
+
+    Examples:
+        >>> from simetri.coloring.swatches import random_swatch
+        >>> sw = random_swatch(seed=0)
+        >>> len(sw)
+        9
+        >>> len(sw[0])
+        3
+        >>> random_swatch(seed=0) == sw
+        True
     """
     rng = random.Random(seed)
     i = rng.randint(0, 83)
@@ -981,14 +1003,22 @@ def random_swatch(seed: int | None = None):
     return swatches[i]
 
 
-def get_swatch(ind):
+def get_swatch(ind: int) -> list[Color]:
     """Return a nine-color swatch by index.
 
     Args:
         ind: Zero-based index into ``swatches_255``.
 
     Returns:
-        list[Color]: Swatch colors as ``Color`` instances.
+        Swatch colors as ``Color`` instances.
+
+    Examples:
+        >>> from simetri.coloring.swatches import get_swatch
+        >>> sw = get_swatch(0)
+        >>> len(sw)
+        9
+        >>> sw[0].rgb255
+        (159, 33, 88)
     """
     swatch_ = [Color(*c) for c in swatches_255[ind]]
 

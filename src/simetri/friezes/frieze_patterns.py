@@ -26,7 +26,9 @@ from ..base.all_enums import (
 )
 from ..base.common import PointType
 from ..base.core import DynRef
+from ..group.batch import Group
 from ..patterns.pattern import PatternDef, TransformDef
+from ..shapes.shape import Shape
 
 
 @dataclass
@@ -38,39 +40,47 @@ class HopDef:
         dy: Vertical translation distance or reference.
         reps: Number of translation repetitions.
         pattern_def: Built ``PatternDef``.
+
+    Examples:
+        >>> hop = HopDef(dx=20, reps=2)
+        >>> hop.pattern_def.transform_defs[0].reps
+        2
+        >>> hop.pattern_def.transform_defs[0].args
+        (20, 0)
     """
 
     dx: float | DynRef
     dy: float | DynRef = 0
     reps: int = 3
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.HOP_DEF
         self._build_pattern()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
         if name == "reps" and "pattern_def" in self.__dict__:
             self._build_pattern()
         elif name in ["dx", "dy"] and "pattern_def" in self.__dict__:
             self.pattern_def.transform_defs[0].args = (self.dx, self.dy)
 
-    def _build_pattern(self):
+    def _build_pattern(self) -> None:
         """Rebuild pattern_def from current distance."""
         t_type = TransformationType.TRANSLATE
         args = (self.dx, self.dy)
         trans_def = TransformDef(t_type, None, args, reps=self.reps)
         self.pattern_def = PatternDef([trans_def])
 
-    def apply(self, design):
+    def apply(self, design: Shape | Group) -> Group:
         """Apply this hop pattern to ``design``.
 
-        Args:
-            design: Shape or group to transform.
-
-        Returns:
-            The transformed design (pattern result).
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.shapes.geom_items import Circle
+            >>> len(HopDef(dx=20, reps=2).apply(Circle(5)))
+            3
         """
         return self.pattern_def.apply(design)
 
@@ -85,6 +95,11 @@ class StepDef:
         side: Which side of the kernel supplies the glide axis.
         reps: Number of glide repetitions.
         pattern_def: Built ``PatternDef``.
+
+    Examples:
+        >>> step = StepDef(mirror_offset=0, distance=10, reps=1)
+        >>> step.pattern_def.transform_defs[0].type.name
+        'GLIDE'
     """
 
     mirror_offset: float | DynRef
@@ -92,12 +107,12 @@ class StepDef:
     side: Reference = Reference.BOTTOM
     reps: int = 3
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.STEP_DEF
         self._build_pattern()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
         if (
             name in ["mirror_offset", "distance", "side", "reps"]
@@ -105,7 +120,7 @@ class StepDef:
         ):
             self._build_pattern()
 
-    def _build_pattern(self):
+    def _build_pattern(self) -> None:
         """Rebuild pattern_def from current glide parameters."""
         t_type = TransformationType.GLIDE
         target = ReferenceTarget.KERNEL
@@ -113,7 +128,7 @@ class StepDef:
         glide_def = TransformDef(t_type, ref_def, self.distance, reps=self.reps)
         self.pattern_def = PatternDef([glide_def])
 
-    def apply(self, design):
+    def apply(self, design: Shape | Group) -> Group:
         """Apply this step (glide) pattern to ``design``.
 
         Args:
@@ -121,6 +136,14 @@ class StepDef:
 
         Returns:
             The transformed design (pattern result).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Circle
+            >>> isinstance(StepDef(0, 10, reps=1).apply(Circle(5)), Group)
+            True
         """
         return self.pattern_def.apply(design)
 
@@ -135,6 +158,13 @@ class JumpDef:
         side: Which side of the kernel supplies the mirror line.
         reps: Number of translation repetitions.
         pattern_def: Built ``PatternDef``.
+
+    Examples:
+        >>> jump = JumpDef(mirror_offset=0, distance=20, reps=1)
+        >>> len(jump.pattern_def.transform_defs)
+        2
+        >>> jump.pattern_def.transform_defs[0].type.name
+        'MIRROR'
     """
 
     mirror_offset: float | DynRef
@@ -142,12 +172,12 @@ class JumpDef:
     side: Reference = Reference.BOTTOM
     reps: int = 3
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.JUMP_DEF
         self._build_pattern()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
         if (
             name in ["mirror_offset", "distance", "side", "reps"]
@@ -155,7 +185,7 @@ class JumpDef:
         ):
             self._build_pattern()
 
-    def _build_pattern(self):
+    def _build_pattern(self) -> None:
         """Rebuild pattern_def from current mirror/translate parameters."""
         t_type = TransformationType.MIRROR
         target = ReferenceTarget.KERNEL
@@ -170,7 +200,7 @@ class JumpDef:
         )
         self.pattern_def = PatternDef([mirror_def, trans_def])
 
-    def apply(self, design):
+    def apply(self, design: Shape | Group) -> Group:
         """Apply this jump pattern to ``design``.
 
         Args:
@@ -178,6 +208,14 @@ class JumpDef:
 
         Returns:
             The transformed design (pattern result).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Circle
+            >>> isinstance(JumpDef(0, 20, reps=1).apply(Circle(5)), Group)
+            True
         """
         return self.pattern_def.apply(design)
 
@@ -191,18 +229,23 @@ class SidleDef:
         dx: Horizontal translation after mirroring.
         reps: Number of translation repetitions.
         pattern_def: Built ``PatternDef``.
+
+    Examples:
+        >>> sidle = SidleDef(mirror_offset=0, dx=30, reps=1)
+        >>> sidle.pattern_def.transform_defs[1].args
+        (30, 0)
     """
 
     mirror_offset: float | DynRef
     dx: float | DynRef
     reps: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SIDLE_DEF
         self._build_pattern()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
         if (
             name in ["mirror_offset", "dx", "reps"]
@@ -210,7 +253,7 @@ class SidleDef:
         ):
             self._build_pattern()
 
-    def _build_pattern(self):
+    def _build_pattern(self) -> None:
         """Rebuild pattern_def from current mirror/translate parameters."""
         mirror_def = TransformDef(
             TransformationType.MIRROR,
@@ -227,7 +270,7 @@ class SidleDef:
         )
         self.pattern_def = PatternDef([mirror_def, trans_def])
 
-    def apply(self, design):
+    def apply(self, design: Shape | Group) -> Group:
         """Apply this sidle pattern to ``design``.
 
         Args:
@@ -235,6 +278,14 @@ class SidleDef:
 
         Returns:
             The transformed design (pattern result).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Circle
+            >>> isinstance(SidleDef(0, 30, reps=1).apply(Circle(5)), Group)
+            True
         """
         return self.pattern_def.apply(design)
 
@@ -249,6 +300,11 @@ class SpinningHopDef:
         dy: Vertical translation after rotation.
         reps: Number of translation repetitions.
         pattern_def: Built ``PatternDef``.
+
+    Examples:
+        >>> spin = SpinningHopDef((0, 0), dx=20, reps=1)
+        >>> spin.pattern_def.transform_defs[0].type.name
+        'ROTATE'
     """
 
     rotocenter: PointType | DynRef
@@ -256,12 +312,12 @@ class SpinningHopDef:
     dy: float | DynRef = 0
     reps: int = 3
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_HOP_DEF
         self._build_pattern()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
         if (
             name in ["rotocenter", "dx", "dy", "reps"]
@@ -269,7 +325,7 @@ class SpinningHopDef:
         ):
             self._build_pattern()
 
-    def _build_pattern(self):
+    def _build_pattern(self) -> None:
         """Rebuild pattern_def from current rotation/translate parameters."""
         rotate_def = TransformDef(
             TransformationType.ROTATE,
@@ -285,7 +341,7 @@ class SpinningHopDef:
         )
         self.pattern_def = PatternDef([rotate_def, trans_def])
 
-    def apply(self, design):
+    def apply(self, design: Shape | Group) -> Group:
         """Apply this spinning-hop pattern to ``design``.
 
         Args:
@@ -293,6 +349,16 @@ class SpinningHopDef:
 
         Returns:
             The transformed design (pattern result).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Circle
+            >>> isinstance(
+            ...     SpinningHopDef((0, 0), 20, reps=1).apply(Circle(5)), Group
+            ... )
+            True
         """
         return self.pattern_def.apply(design)
 
@@ -308,6 +374,11 @@ class SpinningJumpDef:
         dy: Vertical translation after mirroring.
         reps: Number of translation repetitions.
         pattern_def: Built ``PatternDef``.
+
+    Examples:
+        >>> spin = SpinningJumpDef(0, 0, dx=20, reps=1)
+        >>> len(spin.pattern_def.transform_defs)
+        3
     """
 
     mirror_offset1: float | DynRef
@@ -316,12 +387,12 @@ class SpinningJumpDef:
     dy: float | DynRef = 0
     reps: int = 3
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_JUMP_DEF
         self._build_pattern()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
         if (
             name in ["mirror_offset1", "mirror_offset2", "dx", "dy", "reps"]
@@ -329,7 +400,7 @@ class SpinningJumpDef:
         ):
             self._build_pattern()
 
-    def _build_pattern(self):
+    def _build_pattern(self) -> None:
         """Rebuild pattern_def from current mirror/translate parameters."""
         mirror_def1 = TransformDef(
             TransformationType.MIRROR,
@@ -353,7 +424,7 @@ class SpinningJumpDef:
         )
         self.pattern_def = PatternDef([mirror_def1, mirror_def2, trans_def])
 
-    def apply(self, design):
+    def apply(self, design: Shape | Group) -> Group:
         """Apply this spinning-jump pattern to ``design``.
 
         Args:
@@ -361,6 +432,16 @@ class SpinningJumpDef:
 
         Returns:
             The transformed design (pattern result).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Circle
+            >>> isinstance(
+            ...     SpinningJumpDef(0, 0, 20, reps=1).apply(Circle(5)), Group
+            ... )
+            True
         """
         return self.pattern_def.apply(design)
 
@@ -376,6 +457,11 @@ class SpinningSidleDef:
         dy: Vertical translation after mirror/glide.
         reps: Number of translation repetitions.
         pattern_def: Built ``PatternDef``.
+
+    Examples:
+        >>> spin = SpinningSidleDef(0, 10, dx=20, reps=1)
+        >>> len(spin.pattern_def.transform_defs)
+        3
     """
 
     mirror_offset: float | DynRef
@@ -384,12 +470,12 @@ class SpinningSidleDef:
     dy: float | DynRef = 0
     reps: int = 3
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_SIDLE_DEF
         self._build_pattern()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
         if (
             name in ["mirror_offset", "glide_distance", "dx", "dy", "reps"]
@@ -397,7 +483,7 @@ class SpinningSidleDef:
         ):
             self._build_pattern()
 
-    def _build_pattern(self):
+    def _build_pattern(self) -> None:
         """Rebuild pattern_def from current mirror/glide/translate parameters."""
         mirror_def = TransformDef(
             TransformationType.MIRROR,
@@ -420,7 +506,7 @@ class SpinningSidleDef:
         )
         self.pattern_def = PatternDef([mirror_def, glide_def, trans_def])
 
-    def apply(self, design):
+    def apply(self, design: Shape | Group) -> Group:
         """Apply this spinning-sidle pattern to ``design``.
 
         Args:
@@ -428,6 +514,16 @@ class SpinningSidleDef:
 
         Returns:
             The transformed design (pattern result).
+
+        Examples:
+            >>> from simetri.config.settings import set_defaults
+            >>> set_defaults()
+            >>> from simetri.group.batch import Group
+            >>> from simetri.shapes.geom_items import Circle
+            >>> isinstance(
+            ...     SpinningSidleDef(0, 10, 20, reps=1).apply(Circle(5)), Group
+            ... )
+            True
         """
         return self.pattern_def.apply(design)
 
@@ -441,6 +537,13 @@ def hop_def(distance: float | DynRef, reps: int = 3) -> PatternDef:
 
     Returns:
         PatternDef: Translation-only pattern definition.
+
+    Examples:
+        >>> pattern = hop_def(40, reps=2)
+        >>> pattern.transform_defs[0].args
+        (40, 0)
+        >>> pattern.transform_defs[0].reps
+        2
     """
     t_type = TransformationType.TRANSLATE
     args = (distance, 0)
@@ -466,6 +569,11 @@ def step_def(
 
     Returns:
         PatternDef: Glide pattern definition.
+
+    Examples:
+        >>> pattern = step_def(0, 10, reps=1)
+        >>> pattern.transform_defs[0].type.name
+        'GLIDE'
     """
     t_type = TransformationType.GLIDE
     target = ReferenceTarget.KERNEL
@@ -492,6 +600,13 @@ def jump_def(
 
     Returns:
         PatternDef: Mirror-then-translate pattern definition.
+
+    Examples:
+        >>> pattern = jump_def(0, 20, reps=1)
+        >>> len(pattern.transform_defs)
+        2
+        >>> pattern.transform_defs[1].args
+        (20, 0)
     """
     t_type = TransformationType.MIRROR
     target = ReferenceTarget.KERNEL
@@ -504,7 +619,9 @@ def jump_def(
     return pattern_def
 
 
-def sidle_def(mirror_offset, dx, reps: int = 0):
+def sidle_def(
+    mirror_offset: float | DynRef, dx: float | DynRef, reps: int = 0
+) -> PatternDef:
     """Build a p1m1 (right mirror then translate) pattern definition.
 
     Args:
@@ -514,6 +631,11 @@ def sidle_def(mirror_offset, dx, reps: int = 0):
 
     Returns:
         PatternDef: Mirror-then-translate pattern definition.
+
+    Examples:
+        >>> pattern = sidle_def(0, 30, reps=1)
+        >>> pattern.transform_defs[1].args
+        (30, 0)
     """
     # reflect over right+offset, then translate by pattern width+dx
     mirror_def = TransformDef(

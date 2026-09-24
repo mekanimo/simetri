@@ -6,8 +6,10 @@ helpers map Simetri anchors, styles, and drawables onto TikZ syntax.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from math import atan2, degrees
 from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
@@ -25,8 +27,12 @@ from ...config.settings import defaults, issue_warning
 from ...geom.bbox import bounding_box
 from ...geom.homogenize import homogenize
 from ...helpers.illustration import resolve_page_vertex_labels
+from ...base.common import PointType
 from ...shapes.points import Points
 from ...shapes.shape import Shape
+
+if TYPE_CHECKING:
+    from ..canvas import Canvas
 from ..pre_render import (
     collect_tikz_preamble_requirements_for_sketch,
     set_styles,
@@ -203,7 +209,7 @@ def get_tex_code(canvas: Canvas) -> str:
     tikz_libraries = []
     tikz_packages = ["tikz", "pgf"]
 
-    def render_sketches(sketches, ind):
+    def render_sketches(sketches: list[Any], ind: int) -> tuple[str, int]:
         code = []
         for sketch in sketches:
             sketch_code, ind = get_sketch_code(
@@ -212,16 +218,22 @@ def get_tex_code(canvas: Canvas) -> str:
             code.append(sketch_code)
         return "".join(code), ind
 
-    def get_sketch_code(sketch, canvas, ind, suppressed_style_keys):
-        """Get the TikZ code for a sketch.
+    def get_sketch_code(
+        sketch: Any,
+        canvas: Canvas,
+        ind: int,
+        suppressed_style_keys: Sequence[str],
+    ) -> tuple[str, int]:
+        """Serialize one sketch to TikZ and advance the style index.
 
         Args:
-            sketch: The sketch object.
-            canvas: The canvas object.
-            ind: The index.
+            sketch: Sketch to render.
+            canvas: Canvas owning the sketch list.
+            ind: Current node-style index.
+            suppressed_style_keys: Style keys omitted from inline options.
 
         Returns:
-            tuple: The TikZ code and the updated index.
+            tuple[str, int]: TikZ fragment and updated index.
         """
         if sketch.subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
@@ -428,13 +440,22 @@ class Grid(Shape):
         dy: y step
     """
 
-    def __init__(self, p1, p2, dx, dy, **kwargs):
-        """
+    def __init__(
+        self,
+        p1: PointType,
+        p2: PointType,
+        dx: float,
+        dy: float,
+        **kwargs: object,
+    ) -> None:
+        """Initialize grid corners and step sizes.
+
         Args:
-            p1: (x_min, y_min)
-            p2: (x_max, y_max)
-            dx: x step
-            dy: y step
+            p1: ``(x_min, y_min)``.
+            p2: ``(x_max, y_max)``.
+            dx: Grid step in x.
+            dy: Grid step in y.
+            **kwargs: Forwarded to ``Shape.__init__``.
         """
         self.p1 = p1
         self.p2 = p2
@@ -450,7 +471,14 @@ class Grid(Shape):
         )
 
 
-def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
+def _build_fading_code(
+    fade_id: str,
+    stops: Sequence[Any],
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+) -> str:
     parsed_stops = [_effective_alpha_from_stop(stop) for stop in stops]
     parsed_stops.sort(key=lambda item: item[0])
     if not parsed_stops:
@@ -481,14 +509,16 @@ def _build_fading_code(fade_id, stops, x1, y1, x2, y2):
     )
 
 
-def _get_scope_fading_path(mask_shape, fade_id):
+def _get_scope_fading_path(mask_shape: Any, fade_id: str) -> str:
     bbox = mask_shape.b_box
     x1, y1 = bbox.southwest[:2]
     x2, y2 = bbox.northeast[:2]
     return f"\\path [scope fading={fade_id}] ({x1}, {y1}) rectangle ({x2}, {y2});\n"
 
 
-def _mask_scope_parts(sketch, fade_id=None):
+def _mask_scope_parts(
+    sketch: Any, fade_id: str | None = None
+) -> tuple[str, str]:
     if sketch.subtype == Types.MASKED_SKETCH:
         mask_data = sketch.mask
         mask = mask_data.shape
@@ -560,14 +590,14 @@ def _mask_scope_parts(sketch, fade_id=None):
     return "", ""
 
 
-def get_canvas_scope(canvas):
-    """Returns the TikZ code for the canvas scope.
+def get_canvas_scope(canvas: Canvas) -> str:
+    """Return opening TikZ scope markup for canvas-level mask/clip.
 
     Args:
-        canvas: The canvas object.
+        canvas: Canvas whose active page may define a mask scope sketch.
 
     Returns:
-        str: The TikZ code for the canvas scope.
+        str: ``\\begin{scope}`` prefix or mask/fade preamble, possibly empty.
     """
     option_list = []
     canvas_mask_scope = _canvas_mask_scope_sketch(canvas)
@@ -626,14 +656,15 @@ _decision_table = {
 }
 
 
-def get_draw(sketch):
-    """Returns the draw command for sketches.
+def get_draw(sketch: Any) -> str | Literal[False]:
+    """Choose the TikZ path command for a sketch's fill/stroke/shading flags.
 
     Args:
-        sketch: The sketch object.
+        sketch: Shape or path sketch with draw attributes.
 
     Returns:
-        str: The draw command as a string.
+        str | Literal[False]: Command such as ``\\draw`` or ``\\filldraw``, or
+        ``False`` when nothing should be emitted.
     """
     # sketch.closed, sketch.fill, sketch.stroke, shading
 
@@ -670,7 +701,7 @@ def get_draw(sketch):
     return res
 
 
-def _shape_bbox(sketch):
+def _shape_bbox(sketch: Any) -> tuple[float, float, float, float] | None:
     if hasattr(sketch, "vertices") and getattr(sketch, "vertices", None):
         xs = [v[0] for v in sketch.vertices]
         ys = [v[1] for v in sketch.vertices]
@@ -694,7 +725,9 @@ def _shape_bbox(sketch):
     return None
 
 
-def _user_space_t_span(sketch, x1, y1, x2, y2):
+def _user_space_t_span(
+    sketch: Any, x1: float, y1: float, x2: float, y2: float
+) -> tuple[float, float] | None:
     bbox = _shape_bbox(sketch)
     if bbox is None:
         return None
@@ -734,14 +767,14 @@ radial_shading_types = [
 ]
 
 
-def get_begin_scope(ind=None):
-    """Returns \begin{scope}[every node/.append style=nodestyle{ind}].
+def get_begin_scope(ind: int | None = None) -> str:
+    """Return a ``\\begin{scope}`` line with optional node-style index.
 
     Args:
-        ind: Optional index for the scope.
+        ind: When set, append ``nodestyle{ind}`` to every node in the scope.
 
     Returns:
-        str: The begin scope string.
+        str: Opening scope markup.
     """
     if ind is None:
         res = "\\begin{scope}[]\n"
@@ -751,7 +784,7 @@ def get_begin_scope(ind=None):
     return res
 
 
-def get_end_scope():
+def get_end_scope() -> str:
     """Returns \\end{scope}.
 
     Returns:
@@ -760,7 +793,9 @@ def get_end_scope():
     return "\\end{scope}\n"
 
 
-def _line_limits(canvas):
+def _line_limits(
+    canvas: Canvas | None,
+) -> tuple[float, float, float, float] | None:
     if canvas is None:
         return None
     limits = None
@@ -794,7 +829,12 @@ def _line_limits(canvas):
     return limits
 
 
-def _clip_line_to_rect(start, end, rect, draw_type):
+def _clip_line_to_rect(
+    start: PointType,
+    end: PointType,
+    rect: tuple[float, float, float, float] | None,
+    draw_type: Extent,
+) -> tuple[PointType, PointType]:
     if rect is None:
         return start, end
 

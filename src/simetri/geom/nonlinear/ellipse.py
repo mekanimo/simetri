@@ -1,6 +1,9 @@
 """Ellipses, circular/elliptic arcs, and related intersection helpers."""
 
+from __future__ import annotations
+
 import cmath
+from typing import Any
 from copy import deepcopy
 from math import atan2, ceil, cos, isclose, pi, sin, sqrt
 
@@ -44,17 +47,14 @@ class Arc(Shape):
         span_angle: Arc span in radians (negative draws clockwise).
         n_points: Number of sampled points.
 
-    **Examples**
+    Examples:
 
-    ```python
-    import simetri.graphics as sg
-
-    from math import pi
-
-    ```
-            arc = sg.Arc((0, 0), 40, start_angle=0, span_angle=pi / 2)
-            canvas = sg.Canvas()
-            canvas.draw(arc)
+        >>> import simetri.graphics as sg
+        >>> arc = sg.Arc((0, 0), 40, start_angle=0, span_angle=sg.pi / 2)
+        >>> len(arc.vertices) > 0
+        True
+        >>> canvas = sg.Canvas()  # doctest: +SKIP
+        >>> canvas.draw(arc)  # doctest: +SKIP
     """
 
     def __init__(
@@ -67,8 +67,8 @@ class Arc(Shape):
         rot_angle: float = 0,
         n_points: int | None = None,
         xform_matrix: NDArray | None = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> None:
         """Create a circular or elliptic arc.
 
         Args:
@@ -114,7 +114,7 @@ class Arc(Shape):
         _b = [0, radius_y, 1]
         self._orig_triangle = [self._c[:], _a, _b]
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         """Set an attribute of the arc.
 
         Args:
@@ -156,7 +156,7 @@ class Arc(Shape):
             super().__setattr__(name, value)
 
     @property
-    def center(self):
+    def center(self) -> PointType:
         """Return the center of the arc.
 
         Returns:
@@ -165,7 +165,7 @@ class Arc(Shape):
         return (self._c @ self.xform_matrix).tolist()[:2]
 
     @property
-    def radius_x(self):
+    def radius_x(self) -> float:
         """Return the x radius of the arc.
 
         Returns:
@@ -175,7 +175,7 @@ class Arc(Shape):
         return distance(a, c)
 
     @property
-    def radius_y(self):
+    def radius_y(self) -> float:
         """Return the y radius of the arc.
 
         Returns:
@@ -184,7 +184,7 @@ class Arc(Shape):
         c, _, b = self._orig_triangle @ self.xform_matrix
         return distance(b, c)
 
-    def copy(self, **kwargs):
+    def copy(self, **kwargs: object) -> Arc:
         """Return a copy of the arc.
 
         Args:
@@ -237,15 +237,14 @@ class Ellipse(Shape):
         height: Full height.
         angle: Rotation angle in radians.
 
-    **Examples**
+    Examples:
 
-    ```python
-    import simetri.graphics as sg
-
-    ```
-            ell = sg.Ellipse(80, 40)
-            canvas = sg.Canvas()
-            canvas.draw(ell)
+        >>> import simetri.graphics as sg
+        >>> ell = sg.Ellipse(80, 40)
+        >>> ell.width, ell.height
+        (80, 40)
+        >>> canvas = sg.Canvas()  # doctest: +SKIP
+        >>> canvas.draw(ell)  # doctest: +SKIP
     """
 
     def __init__(
@@ -255,7 +254,7 @@ class Ellipse(Shape):
         center: PointType = (0, 0),
         angle: float = 0,
         xform_matrix: NDArray = None,
-        **kwargs,
+        **kwargs: object,
     ) -> None:
         """Create an ellipse.
 
@@ -296,7 +295,7 @@ class Ellipse(Shape):
         self.closed = True
         self.subtype = Types.ELLIPSE
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         """Set an attribute of the ellipse.
 
         ``width`` and ``height`` scale about the center.
@@ -319,7 +318,7 @@ class Ellipse(Shape):
             super().__setattr__(name, value)
 
     @property
-    def width(self):
+    def width(self) -> float:
         """Return the full width of the ellipse (twice the x semi-axis).
 
         Returns:
@@ -328,7 +327,7 @@ class Ellipse(Shape):
         return 2 * self.a
 
     @property
-    def height(self):
+    def height(self) -> float:
         """Return the full height of the ellipse (twice the y semi-axis).
 
         Returns:
@@ -337,7 +336,7 @@ class Ellipse(Shape):
         return 2 * self.b
 
     @property
-    def closed(self):
+    def closed(self) -> bool:
         """Return True ellipse is always closed.
 
         Returns:
@@ -346,7 +345,7 @@ class Ellipse(Shape):
         return True
 
     @closed.setter
-    def closed(self, value: bool):
+    def closed(self, value: bool) -> None:
         """Ellipses are always closed; assignment is ignored.
 
         Args:
@@ -358,7 +357,7 @@ class Ellipse(Shape):
         xform_matrix: np.array,
         reps: int = 0,
         take: slice | None = None,
-        incr=None,
+        incr: NDArray | None = None,
         dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
@@ -407,7 +406,7 @@ class Ellipse(Shape):
             xform_type=xform_type,
         )
 
-    def copy(self, **kwargs):
+    def copy(self, **kwargs: object) -> Ellipse:
         """Return a copy of the ellipse.
 
         Returns:
@@ -420,7 +419,9 @@ class Ellipse(Shape):
         return ellipse
 
 
-def ellipse_tangent(a, b, x, y, abs_tol=0.001):
+def ellipse_tangent(
+    a: float, b: float, x: float, y: float, abs_tol: float = 0.001
+) -> float | bool:
     """Calculates the angle of the tangent line to an ellipse at the point (x, y).
 
     Args:
@@ -441,7 +442,7 @@ def ellipse_tangent(a, b, x, y, abs_tol=0.001):
     return res
 
 
-def r_central(a, b, theta):
+def r_central(a: float, b: float, theta: float) -> float:
     """Return the radius (distance between the center and the intersection point)
     of the ellipse at the given angle.
 
@@ -452,11 +453,18 @@ def r_central(a, b, theta):
 
     Returns:
         float: Radius at the given angle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.r_central(2.0, 1.0, 0.0), 6)
+        2.0
     """
     return (a * b) / sqrt((b * cos(theta)) ** 2 + (a * sin(theta)) ** 2)
 
 
-def ellipse_line_intersection(a, b, point):
+def ellipse_line_intersection(
+    a: float, b: float, point: PointType
+) -> list[PointType]:
     """Return the intersection points of an ellipse and a line segment
     connecting the given point to the ellipse center at (0, 0).
 
@@ -479,8 +487,13 @@ def ellipse_line_intersection(a, b, point):
 
 
 def elliptic_arc_points(
-    center, radius_x, radius_y, start_angle, span_angle, n_points=None
-):
+    center: PointType,
+    radius_x: float,
+    radius_y: float,
+    start_angle: float,
+    span_angle: float,
+    n_points: int | None = None,
+) -> NDArray:
     """Generate points on an elliptic arc.
     These are generated from the parametric equations of the ellipse.
     They are not evenly spaced.
@@ -596,7 +609,7 @@ def ellipse_points(
     return points[:, :2].tolist()
 
 
-def elliptic_arclength(t_0, t_1, a, b):
+def elliptic_arclength(t_0: float, t_1: float, a: float, b: float) -> float:
     """Return the arclength of an ellipse between the given parametric angles.
     The ellipse has semi-major axis a and semi-minor axis b.
 
@@ -617,7 +630,7 @@ def elliptic_arclength(t_0, t_1, a, b):
     return a * (t1 - t0)
 
 
-def central_to_parametric_angle(a, b, phi):
+def central_to_parametric_angle(a: float, b: float, phi: float) -> float:
     """
     Converts a central angle to a parametric angle on an ellipse.
 
@@ -636,7 +649,7 @@ def central_to_parametric_angle(a, b, phi):
     return t
 
 
-def parametric_to_central_angle(a, b, t):
+def parametric_to_central_angle(a: float, b: float, t: float) -> float:
     """
     Converts a parametric angle on an ellipse to a central angle.
 
@@ -655,7 +668,7 @@ def parametric_to_central_angle(a, b, t):
     return phi
 
 
-def ellipse_point(a, b, angle):
+def ellipse_point(a: float, b: float, angle: float) -> PointType:
     """Return a point on an ellipse with the given a=width/2, b=height/2, and angle.
     angle is the central-angle and in radians.
 
@@ -672,7 +685,7 @@ def ellipse_point(a, b, angle):
     return (r * cos(angle), r * sin(angle))
 
 
-def ellipse_param_point(a, b, t):
+def ellipse_param_point(a: float, b: float, t: float) -> PointType:
     """Return a point on an ellipse with the given a=width/2, b=height/2, and parametric angle.
     t is the parametric angle and in radians.
 
@@ -683,11 +696,16 @@ def ellipse_param_point(a, b, t):
 
     Returns:
         tuple: Coordinates of the point on the ellipse.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.ellipse_param_point(2.0, 1.0, 0.0)
+        (2.0, 0.0)
     """
     return (a * cos(t), b * sin(t))
 
 
-def get_ellipse_t_for_angle(angle, a, b):
+def get_ellipse_t_for_angle(angle: float, a: float, b: float) -> float:
     """
     Calculates the parameter t for a given angle on an ellipse.
 
@@ -705,7 +723,7 @@ def get_ellipse_t_for_angle(angle, a, b):
     return t
 
 
-def ellipse_central_angle(t, a, b):
+def ellipse_central_angle(t: float, a: float, b: float) -> float:
     """
     Calculates the central angle of an ellipse for a given parameter t.
 
@@ -722,7 +740,18 @@ def ellipse_central_angle(t, a, b):
     return theta
 
 
-def ellipse_intersection(x1, y1, a, b, phi, x2, y2, c, d, phi2):
+def ellipse_intersection(
+    x1: float,
+    y1: float,
+    a: float,
+    b: float,
+    phi: float,
+    x2: float,
+    y2: float,
+    c: float,
+    d: float,
+    phi2: float,
+) -> list[PointType]:
     """Calculate the intersection points of two ellipses.
     The ellipses are defined by their center, radii, and rotation angle."""
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/geometry.js
@@ -825,7 +854,7 @@ def inverse_complex_number(z: complex) -> complex:
     return complex(a / (a**2 + b**2), -b / (a**2 + b**2))
 
 
-def Re(num):
+def Re(num: float) -> complex:
     """Return ``num`` as a complex number on the real axis.
 
     Args:
@@ -838,7 +867,7 @@ def Re(num):
     # return Complex(num, 0)
 
 
-def Im(num):
+def Im(num: float) -> complex:
     """Return ``num`` as a complex number on the imaginary axis.
 
     Args:
@@ -851,7 +880,7 @@ def Im(num):
     # return Complex(0, num)
 
 
-def Sqrt(complex_):
+def Sqrt(complex_: complex) -> None:
     """Return the principal square root of a complex number.
 
     Args:
@@ -865,7 +894,7 @@ def Sqrt(complex_):
     # return complex.sqrt
 
 
-def Qbrt(complex_):
+def Qbrt(complex_: complex) -> complex:
     """Return a complex cube root used by the ellipse-intersection solver.
 
     Args:
@@ -887,7 +916,9 @@ def Qbrt(complex_):
 
 
 # x^2 + bx + c = 0
-def solve_complex_quadratic_equation(b, c):
+def solve_complex_quadratic_equation(
+    b: complex, c: complex
+) -> list[complex]:
     """Solve ``z^2 + b z + c = 0`` over the complexes.
 
     Args:
@@ -905,7 +936,9 @@ def solve_complex_quadratic_equation(b, c):
 
 
 # x^3 + ax^2 + bx + c = 0
-def get_one_cubic_equation_root(a, b, c):
+def get_one_cubic_equation_root(
+    a: complex, b: complex, c: complex
+) -> complex:
     """Return one root of the cubic ``z^3 + a z^2 + b z + c = 0``.
 
     Args:
@@ -930,7 +963,9 @@ def get_one_cubic_equation_root(a, b, c):
 
 
 # x^4 + ax^3 + bx^2 + cx + d = 0
-def solve_quartic_equation(a, b, c, d):
+def solve_quartic_equation(
+    a: complex, b: complex, c: complex, d: complex
+) -> list[complex]:
     """Solve ``z^4 + a z^3 + b z^2 + c z + d = 0``.
 
     Args:

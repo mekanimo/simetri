@@ -4,16 +4,15 @@ Most enums are ``StrEnum`` members whose ``.value`` is the string
 written to SVG/TikZ or used for style resolution. Use ``get_enum_value``
 to accept either an enum member or a case-insensitive name string.
 
-**Examples**
-
-```python
-from simetri.graphics.all_enums import Anchor, get_enum_value
-get_enum_value(Anchor, "center")
-# 'center'
-Anchor.NORTHWEST.value
-# 'northwest'
-```
+Examples:
+    >>> import simetri.graphics as sg
+    >>> sg.get_enum_value(sg.Anchor, "center")
+    'center'
+    >>> sg.Anchor.NORTHWEST.value
+    'northwest'
 """
+
+from __future__ import annotations
 
 from enum import StrEnum
 from typing import TYPE_CHECKING, TypeAlias
@@ -39,15 +38,12 @@ def get_enum_value(enum_class: StrEnum, value: str) -> str:
     Raises:
         KeyError: If ``value`` is a string that does not match a member name.
 
-    **Examples**
-
-    ```python
-    from simetri.graphics.all_enums import Types, get_enum_value
-    get_enum_value(Types, Types.SHAPE)
-    # 'SHAPE'
-    get_enum_value(Types, "circle")
-    # 'CIRCLE'
-    ```
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> get_enum_value(sg.Types, sg.Types.SHAPE)
+        'SHAPE'
+        >>> get_enum_value(sg.Types, "circle")
+        'CIRCLE'
 """
     if isinstance(value, enum_class):
         res = value.value
@@ -1381,7 +1377,7 @@ class Types(StrEnum):
     WEFT = "WEFT"
     WEIGHTED = "WEIGHTED_GRAPH"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             if (
                 self.value == "GROUP"

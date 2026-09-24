@@ -4,21 +4,19 @@ Unit constants convert physical lengths to PostScript points (1 inch = 72 pt).
 Type aliases such as ``PointType`` and ``LineType`` are used throughout the
 graphics and geometry APIs.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-print(sg.INCH, sg.CM, sg.phi
-# 72 28.3464 1.618033988749895
-width_pt = 2 * INCH  # 144 points
-```
+Examples:
+    >>> import simetri.graphics as sg
+    >>> sg.INCH, round(sg.CM, 4), round(sg.phi, 12)
+    (72, 28.3464, 1.61803398875)
+    >>> 2 * sg.INCH
+    144
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
 from math import cos, pi, sin
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
     from ..shapes.shape import Shape
@@ -61,13 +59,10 @@ def gen_unique_ids() -> Iterator[int]:
     Yields:
         int: The next unique identifier, starting at 0.
 
-    **Examples**
-
-    ```python
-    gen = gen_unique_ids()
-    next(gen), next(gen)
-    # (0, 1)
-    ```
+    Examples:
+        >>> gen = gen_unique_ids()
+        >>> next(gen), next(gen)
+        (0, 1)
 """
     id_ = 0
     while True:
@@ -80,7 +75,7 @@ unique_id = gen_unique_ids()
 d_id_obj = {}  # for Shape objects
 
 
-def get_unique_id(item) -> int:
+def get_unique_id(item: object) -> int:
     """Allocate a unique ID and register ``item`` in ``d_id_obj``.
 
     Args:
@@ -89,13 +84,13 @@ def get_unique_id(item) -> int:
     Returns:
         int: Newly assigned unique identifier.
 
-    **Examples**
-
-    ```python
-    class _T: pass
-    get_unique_id(_T())  # doctest: +SKIP
-    # 0
-    ```
+    Examples:
+        >>> from simetri.base.common import d_id_obj, get_unique_id
+        >>> class _Item: pass
+        >>> item = _Item()
+        >>> uid = get_unique_id(item)
+        >>> d_id_obj[uid] is item
+        True
 """
     id_ = next(unique_id)
     d_id_obj[id_] = item
@@ -114,7 +109,9 @@ axis_hex = (
 )  # used for 3 and 6 rotation symmetries
 
 
-def _set_Nones(obj, args, values):
+def _set_Nones(
+    obj: object, args: Sequence[str], values: Sequence[Any]
+) -> None:
     """
     Internally used in instance construction to set default values for None values.
 
@@ -130,17 +127,25 @@ def _set_Nones(obj, args, values):
             setattr(obj, arg, values[i])
 
 
-def get_defaults(args, values):
-    """
-    Internally used in instance construction to set default values for None values.
+def get_defaults(args: Sequence[str], values: Sequence[Any]) -> list[Any]:
+    """Fill ``None`` entries from ``defaults`` (tolerance groups handled together).
 
     Args:
-        args (list): The arguments to set.
-        values (list): The values to set.
+        args (list): Setting names to resolve.
+        values (list): Values parallel to ``args``; ``None`` picks a default.
 
     Returns:
-        list: The default values.
-    """
+        list: Resolved values in the same order as ``args``.
+
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> from simetri.base.common import get_defaults
+        >>> set_defaults()
+        >>> get_defaults(["dist_tol"], [None])
+        [0.05]
+        >>> get_defaults(["dist_rel_tol", "dist_abs_tol"], [None, None])
+        [0, 0.05]
+"""
     res = len(args) * [None]
     tolerance_indices = set()
 

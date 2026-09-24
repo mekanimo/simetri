@@ -7,6 +7,7 @@ can opt in the same way.
 
 from __future__ import annotations
 
+from collections.abc import Iterator, ItemsView, KeysView, ValuesView
 from typing import Any, Self
 
 from simetri.base.all_enums import WarningType
@@ -110,19 +111,19 @@ class Style:
     Unknown keys raise. ``None`` on a field means unset.
     """
 
-    def __init__(self, mapping: Any = None, **kwargs) -> None:
+    def __init__(self, mapping: Any = None, **kwargs: object) -> None:
         self._data: dict[str, Any] = coerce_style_overlay(mapping, kwargs)
 
-    def items(self):
+    def items(self) -> ItemsView[str, Any]:
         return self._data.items()
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
         return self._data.keys()
 
-    def values(self):
+    def values(self) -> ValuesView[Any]:
         return self._data.values()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self._data)
 
     def __len__(self) -> int:

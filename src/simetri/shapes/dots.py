@@ -1,14 +1,14 @@
 """Dot and Dots classes for creating circular markers.
 
-**Examples**
-
-```python
-import simetri.graphics as sg
-d = sg.Dot((10, 20), radius=3)
-d.pos
-# (10, 20)
-cluster = sg.Dots((0, 0), radius=2)
-```
+Examples:
+    >>> from simetri.config.settings import set_defaults
+    >>> set_defaults()
+    >>> d = Dot((10, 20), radius=3)
+    >>> d.radius
+    3
+    >>> d.subtype.name
+    'DOT'
+    >>> cluster = Dots((0, 0), radius=2)
 """
 
 __all__ = ["Dot", "Dots"]
@@ -38,14 +38,12 @@ class Dot(Shape):
         color: Fill/stroke color for the marker.
         subtype: Always ``Types.DOT``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    dot = sg.Dot((5, 5), radius=2)
-    dot.subtype.name
-    # 'DOT'
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> dot = Dot((5, 5), radius=2)
+        >>> dot.subtype.name
+        'DOT'
 """
 
     def __init__(
@@ -53,7 +51,7 @@ class Dot(Shape):
         pos: PointType = (0, 0),
         radius: float = 1,
         color: Color = None,
-        **kwargs,
+        **kwargs: object,
     ) -> None:
         """Initialize a Dot.
 
@@ -84,7 +82,7 @@ class Dot(Shape):
         return self.vertices[0]
 
     @pos.setter
-    def pos(self, new_pos: PointType):
+    def pos(self, new_pos: PointType) -> None:
         """Set the position of the dot.
 
         Args:
@@ -97,7 +95,7 @@ class Dot(Shape):
             raise TypeError("Name must be a string")
         self.move_to(new_pos)
 
-    def copy(self, **kwargs) -> Shape:
+    def copy(self, **kwargs: object) -> Shape:
         """Return a deep-enough copy of the dot.
 
         Args:
@@ -114,15 +112,15 @@ class Dot(Shape):
 
         return dot
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a human-readable representation."""
         return f"Dot({self.pos}, {self.radius}, {self.color})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a developer-oriented representation."""
         return f"Dot({self.pos}, {self.radius}, {self.color})"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Return True if ``other`` is a Dot at nearly the same position.
 
         Args:
@@ -143,14 +141,12 @@ class Dots(Group):
         elements: List of contained ``Dot`` (and nested) elements.
         subtype: Always ``Types.DOTS``.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    dots = sg.Dots((0, 0), radius=1)
-    len(dots)
-    # 1
-    ```
+    Examples:
+        >>> from simetri.config.settings import set_defaults
+        >>> set_defaults()
+        >>> dots = Dots((0, 0), radius=1)
+        >>> len(dots)
+        1
 """
 
     def __init__(
@@ -158,7 +154,7 @@ class Dots(Group):
         pos: PointType = (0, 0),
         radius: float = 1,
         color: Color = None,
-        **kwargs,
+        **kwargs: object,
     ) -> None:
         """Initialize a Dots group with one Dot.
 

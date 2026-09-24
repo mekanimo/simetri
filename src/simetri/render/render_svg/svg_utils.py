@@ -1,6 +1,9 @@
 """Low-level SVG path utilities (rounding, offsets, Path2D conversion)."""
 
+from __future__ import annotations
+
 import math
+from typing import Any
 import re
 from math import acos, cos, degrees, pi, radians, sin, sqrt
 
@@ -19,7 +22,7 @@ from ...geom.polygons.polygon import (
 
 
 # Helper to format floats to avoid excessive precision in SVG
-def fmt(val, digits=3):
+def fmt(val: float | int, digits: int = 3) -> str:
     """Format a float for SVG attributes without trailing zeros.
 
     Args:
@@ -28,6 +31,13 @@ def fmt(val, digits=3):
 
     Returns:
         str: Compact decimal string.
+
+    Examples:
+        >>> from simetri.render.render_svg.svg_utils import fmt
+        >>> fmt(1.5)
+        '1.5'
+        >>> fmt(2.0)
+        '2'
     """
     return f"{val:.{digits}f}".rstrip("0").rstrip(".")
 
@@ -302,9 +312,23 @@ def set_style(svg_shape: str, d_style: dict) -> str:
     )
 
 
-def convert_arc(center, radius, start_angle, sweep_angle):
-    """Given an arc by center, radius, start and sweep angles,
-    returns and svg path with an arc."""
+def convert_arc(
+    center: PointType,
+    radius: float,
+    start_angle: float,
+    sweep_angle: float,
+) -> str:
+    """Build an SVG path ``d`` fragment for a circular arc.
+
+    Args:
+        center: Arc center ``(x, y)``.
+        radius: Arc radius.
+        start_angle: Start angle in radians.
+        sweep_angle: Sweep angle in radians.
+
+    Returns:
+        str: ``M … A …`` path data.
+    """
     # Calculate start point
     start_x = center[0] + radius * math.cos(start_angle)
     start_y = center[1] + radius * math.sin(start_angle)
@@ -325,15 +349,30 @@ def convert_arc(center, radius, start_angle, sweep_angle):
 
 
 def convert_svg_arc(
-    start_point, end_point, rx, ry, x_axis_rotation, large_arc_flag, sweep_flag
-):
+    start_point: PointType,
+    end_point: PointType,
+    rx: float,
+    ry: float,
+    x_axis_rotation: float,
+    large_arc_flag: int,
+    sweep_flag: int,
+) -> tuple[tuple[float, float], float, float]:
     """Convert SVG endpoint arc parameters to center parameterization.
 
-    ``x_axis_rotation`` is the SVG x-axis rotation in degrees. ``rx`` and
-    ``ry`` are the ellipse radii.
+    ``x_axis_rotation`` is the SVG x-axis rotation in degrees.
+
+    Args:
+        start_point: Arc start ``(x, y)``.
+        end_point: Arc end ``(x, y)``.
+        rx: Ellipse x radius.
+        ry: Ellipse y radius.
+        x_axis_rotation: Ellipse rotation in degrees.
+        large_arc_flag: SVG large-arc flag (0 or 1).
+        sweep_flag: SVG sweep flag (0 or 1).
 
     Returns:
-        tuple: ``((cx, cy), start_angle, sweep_angle)``.
+        tuple[tuple[float, float], float, float]: ``((cx, cy), start_angle,
+        sweep_angle)`` in radians.
     """
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
@@ -447,7 +486,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
         cmd_lower = current_cmd.lower()
         is_rel = current_cmd == cmd_lower
 
-        def get_nums(count):
+        def get_nums(count: int) -> list[float] | None:
             nonlocal i
             nums = []
             for _ in range(count):
@@ -506,27 +545,20 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                 c1 = (coords[0], coords[1])
                 c2 = (coords[2], coords[3])
                 end = (coords[4], coords[5])
-
                 if is_rel:
-                    cur_x, cur_y = lp.pos
-                    c1 = (cur_x + c1[0], cur_y + c1[1])
-                    c2 = (cur_x + c2[0], cur_y + c2[1])
-                    end = (cur_x + end[0], cur_y + end[1])
-
-                lp.cubic_to(c1, c2, end)
+                    lp.r_cubic_to(c1, c2, end)
+                else:
+                    lp.cubic_to(c1, c2, end)
 
         elif cmd_lower == "s":
             coords = get_nums(4)
             if coords:
                 c2 = (coords[0], coords[1])
                 end = (coords[2], coords[3])
-
                 if is_rel:
-                    cur_x, cur_y = lp.pos
-                    c2 = (cur_x + c2[0], cur_y + c2[1])
-                    end = (cur_x + end[0], cur_y + end[1])
-
-                lp.mirror_cubic_to(c2, end)
+                    lp.r_mirror_cubic_to(c2, end)
+                else:
+                    lp.mirror_cubic_to(c2, end)
 
         elif cmd_lower == "q":
             coords = get_nums(4)
@@ -534,21 +566,18 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                 c1 = (coords[0], coords[1])
                 end = (coords[2], coords[3])
                 if is_rel:
-                    cur_x, cur_y = lp.pos
-                    c1 = (cur_x + c1[0], cur_y + c1[1])
-                    end = (cur_x + end[0], cur_y + end[1])
-                lp.quad_to(c1, end)
+                    lp.r_quad_to(c1, end)
+                else:
+                    lp.quad_to(c1, end)
 
         elif cmd_lower == "t":
             coords = get_nums(2)
             if coords:
                 end = (coords[0], coords[1])
-
                 if is_rel:
-                    cur_x, cur_y = lp.pos
-                    end = (cur_x + end[0], cur_y + end[1])
-
-                lp.mirror_quad_to(end)
+                    lp.r_mirror_quad_to(end)
+                else:
+                    lp.mirror_quad_to(end)
 
         elif cmd_lower == "a":
             coords = get_nums(7)
@@ -558,30 +587,15 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                 large_arc = bool(coords[3])
                 sweep = bool(coords[4])
                 end = (coords[5], coords[6])
-
                 if is_rel:
-                    cur_x, cur_y = lp.pos
-                    end = (cur_x + end[0], cur_y + end[1])
-
-                params = _get_svg_arc_params(
-                    lp.pos, rx, ry, rot_deg, large_arc, sweep, end
-                )
-
-                if params["type"] == "line":
-                    lp.line_to(params["end"])
-                elif params["type"] == "arc":
-                    lp.arc(
-                        params["rx"],
-                        params["ry"],
-                        params["start_angle"],
-                        params["span_angle"],
-                        rot_angle=params["rot_angle"],
-                    )
+                    lp.r_arc_to(rx, ry, rot_deg, large_arc, sweep, end)
+                else:
+                    lp.arc_to(rx, ry, rot_deg, large_arc, sweep, end)
 
     return lp
 
 
-def extract_glyph_svg_path(font_path, character):
+def extract_glyph_svg_path(font_path: str, character: str) -> tuple[str, str]:
     """Return the glyph name and SVG path ``d`` string for ``character``.
 
     Args:
@@ -589,23 +603,13 @@ def extract_glyph_svg_path(font_path, character):
         character: A single character to look up in the font cmap.
 
     Returns:
-        ``(glyph_name, svg_path_d)``.
+        tuple[str, str]: ``(glyph_name, svg_path_d)``.
 
     Raises:
         ValueError: If ``character`` is not in the font's character map.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    glyph_name, svg_d = sg.extract_glyph_svg_path(
-            "c:/windows/fonts/times.ttf", "S"
-        )
-    glyph_name
-    # 'S'
-    svg_d.startswith("M")
-    # True
-    ```
+    Examples:
+        >>> sg.extract_glyph_svg_path("times.ttf", "S")  # doctest: +SKIP
 """
     font = TTFont(font_path)
     cmap = font.getBestCmap()
@@ -625,7 +629,9 @@ def extract_glyph_svg_path(font_path, character):
     return glyph_name, svg_path_d
 
 
-def extract_glyph_path(font_path, character, scale=0.1):
+def extract_glyph_path(
+    font_path: str, character: str, scale: float = 0.1
+) -> tuple[str, Path2D]:
     """Return the glyph name and a scaled ``Path2D`` for ``character``.
 
     Args:
@@ -634,23 +640,13 @@ def extract_glyph_path(font_path, character, scale=0.1):
         scale: Scale factor applied to the path. Defaults to ``0.1``.
 
     Returns:
-        ``(glyph_name, path)`` where ``path`` is a ``Path2D``.
+        tuple[str, Path2D]: ``(glyph_name, path)``.
 
     Raises:
         ValueError: If ``character`` is not in the font's character map.
 
-    **Examples**
-
-    ```python
-    import simetri.graphics as sg
-    glyph_name, path = sg.extract_glyph_path(
-            "c:/windows/fonts/times.ttf", "S", scale=0.1
-        )
-    glyph_name
-    # 'S'
-    isinstance(path, sg.Path2D)
-    # True
-    ```
+    Examples:
+        >>> sg.extract_glyph_path("times.ttf", "S", scale=0.1)  # doctest: +SKIP
 """
     glyph_name, svg_path = extract_glyph_svg_path(font_path, character)
     path = svg_path_to_path2d(svg_path).scale(scale)
@@ -659,89 +655,9 @@ def extract_glyph_path(font_path, character, scale=0.1):
 
 def path2d_to_svg_path(path2d: "Path2D") -> str:
     """Given a Path2D instance, returns the equivalent SVG path string."""
-    parts = [f"M {fmt(path2d.start[0])},{fmt(path2d.start[1])}"]
+    from ...geom.nonlinear.path import path2d_to_svg_path as _convert
 
-    # Iterate through operations and convert to SVG path commands
-    obj_idx = 0
-    PO = PathOps
-
-    for op in path2d.operations:
-        if isinstance(op, tuple):
-            # Style operation - skip
-            continue
-
-        st = op.subtype
-        data = op.data
-
-        # Current geometry object (if applicable)
-        current_obj = (
-            path2d.objects[obj_idx] if obj_idx < len(path2d.objects) else None
-        )
-
-        if st in (PO.MOVE_TO, PO.R_MOVE):
-            # data is point (x,y)
-            parts.append(f"M {fmt(data[0])},{fmt(data[1])}")
-
-        elif st in [
-            PO.LINE_TO,
-            PO.R_LINE,
-            PO.H_LINE,
-            PO.V_LINE,
-            PO.R_H_LINE,
-            PO.R_V_LINE,
-            PO.FORWARD,
-        ]:
-            # data is (start, end)
-            end = data[1]
-            parts.append(f"L {fmt(end[0])},{fmt(end[1])}")
-
-        elif st == PO.SEGMENTS:
-            # data is (start, points_list)
-            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in data[1])
-
-        elif st in [PO.CUBIC_TO, PO.BLEND_CUBIC]:
-            # data: (start, c1, c2, end)
-            c1, c2, end = data[1], data[2], data[3]
-            parts.append(
-                f"C {fmt(c1[0])},{fmt(c1[1])} {fmt(c2[0])},{fmt(c2[1])} {fmt(end[0])},{fmt(end[1])}"
-            )
-
-        elif st in [PO.QUAD_TO, PO.BLEND_QUAD]:
-            # data: (start, c1, end)
-            c1, end = data[1], data[2]
-            parts.append(
-                f"Q {fmt(c1[0])},{fmt(c1[1])} {fmt(end[0])},{fmt(end[1])}"
-            )
-
-        elif st in [PO.ARC, PO.BLEND_ARC]:
-            # data: (pos, tangent_angle, rx, ry, start_angle, span_angle, rot_angle, points)
-            rx, ry = data[2], data[3]
-            span = data[5]
-            rot = degrees(data[6])
-            points = data[7]
-            end = points[-1]
-            large_arc = 1 if abs(span) > pi else 0
-            # Simetri convention: span > 0 is CCW.
-            # SVG sweep-flag: 1 is positive-angle direction (CW in y-down).
-            sweep = 1 if span > 0 else 0
-            parts.append(
-                f"A {fmt(rx)} {fmt(ry)} {fmt(rot)} {large_arc} {sweep} {fmt(end[0])},{fmt(end[1])}"
-            )
-
-        elif st == PO.CLOSE:
-            parts.append("Z")
-
-        elif st in [PO.SINE, PO.BLEND_SINE]:
-            # data[0] is points
-            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in data[0])
-
-        elif st == PO.HOBBY_TO and current_obj:
-            verts = current_obj.vertices
-            parts.extend(f"L {fmt(p[0])},{fmt(p[1])}" for p in verts[1:])
-
-        obj_idx += 1
-
-    return " ".join(parts)
+    return _convert(path2d)
 
 
 def path2d_points(path2d: "Path2D", delta: float) -> list[tuple[float, float]]:
@@ -793,8 +709,16 @@ def svg_path_points(svg_path: str, delta: float) -> list[tuple[float, float]]:
     return path2d_points(lp, delta)
 
 
-def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
-    """Convert SVG arc parameters to Path2D arc parameters."""
+def _get_svg_arc_params(
+    start: PointType,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    fA: int,
+    fs: int,
+    end: PointType,
+) -> dict[str, Any]:
+    """Convert SVG arc parameters to Path2D arc parameter dict."""
     x1, y1 = start
     x2, y2 = end
 
@@ -841,7 +765,7 @@ def _get_svg_arc_params(start, rx, ry, phi_deg, fA, fs, end):
     cyp = coef * (-ry * x1p / rx)
 
     # Step 4: Angles
-    def vector_angle(ux, uy, vx, vy):
+    def vector_angle(ux: float, uy: float, vx: float, vy: float) -> float:
         sign = 1 if (ux * vy - uy * vx) >= 0 else -1
         dot = ux * vx + uy * vy
         length = sqrt(ux**2 + uy**2) * sqrt(vx**2 + vy**2)

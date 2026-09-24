@@ -2,21 +2,31 @@
 
 Wraps Pillow images as canvas items and provides helpers for opening
 and constructing ``Image`` / ``PDF`` objects.
+
+Examples:
+    >>> import simetri.graphics as sg
+    >>> sg.Image(size=(1, 1), mode="RGB").height
+    1
 """
+
+from __future__ import annotations
 
 import io
 import os
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from math import degrees
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PIL import Image as PIL_Image
-from PIL import ImageDraw
+from PIL import ImageDraw, ImageFilter
+
+if TYPE_CHECKING:
+    from ..render.sketch import Sketch
 
 from ..base.all_enums import Anchor, ImageMode, TransformationType, Types
 from ..base.common import PointType
 from ..base.core import _update_inplace
-from ..coloring.colors import check_color
+from ..coloring.colors import ColorLike, check_color
 from ..geom.affine import (
     rotation_matrix,
     scale_in_place_matrix,
@@ -28,8 +38,18 @@ from ..shapes.geom_items import Rectangle
 
 
 class PDF(Rectangle):
-    """
-    A class to represent a PDF file as a drawable object.
+    """Drawable placeholder for a PDF file on the canvas.
+
+    Examples:
+        >>> import os
+        >>> import tempfile
+        >>> from simetri.images.image import PDF
+        >>> fd, path = tempfile.mkstemp(suffix=".pdf")
+        >>> os.write(fd, b"%PDF-1.0\\n%%EOF\\n")
+        >>> os.close(fd)
+        >>> isinstance(PDF(path), PDF)
+        True
+        >>> os.unlink(path)
     """
 
     def __init__(
@@ -37,16 +57,30 @@ class PDF(Rectangle):
         pdf_path: str,
         pos: PointType = (0, 0),
         size: Sequence[int] | None = None,
-        **kwargs,
-    ):
-        """
-        Initialize a PDF object.
+        **kwargs: object,
+    ) -> None:
+        """Initialize a PDF drawable.
 
         Args:
-            pdf_path (str): The path to the PDF file.
-            pos (PointType, optional): The position of the PDF on the canvas. Defaults to (0, 0).
-            size (Sequence[int], optional): The size of the PDF. If None, uses the original size. Defaults to None.
-            **kwargs: Additional keyword arguments for the Rectangle base class.
+            pdf_path: Path to the PDF file.
+            pos: Placement anchor point on the canvas.
+            size: Width and height when known; defaults to ``(100, 100)``.
+            **kwargs: Forwarded to :class:`~simetri.shapes.geom_items.Rectangle`.
+
+        Raises:
+            FileNotFoundError: If ``pdf_path`` does not exist.
+
+        Examples:
+            >>> import os
+            >>> import tempfile
+            >>> from simetri.images.image import PDF
+            >>> fd, path = tempfile.mkstemp(suffix=".pdf")
+            >>> os.write(fd, b"%PDF-1.0\\n%%EOF\\n")
+            >>> os.close(fd)
+            >>> pdf = PDF(path)
+            >>> pdf.subtype.name
+            'PDF'
+            >>> os.unlink(path)
         """
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"File {pdf_path} not found.")
@@ -69,46 +103,86 @@ class PDF(Rectangle):
         kwargs["stroke"] = False
         super().__init__(width, height, center=pos, **kwargs)
 
-    def __repr__(self):
-        """
-        Return a string representation of the PDF object.
+    def __repr__(self) -> str:
+        """Return a string representation of the PDF object.
 
         Returns:
             str: A string representation of the PDF object.
+
+        Examples:
+            >>> import os
+            >>> import tempfile
+            >>> from simetri.images.image import PDF
+            >>> fd, path = tempfile.mkstemp(suffix=".pdf")
+            >>> os.write(fd, b"%PDF-1.0\\n%%EOF\\n")
+            >>> os.close(fd)
+            >>> repr(PDF(path)).startswith("PDF(")
+            True
+            >>> os.unlink(path)
         """
         return f"PDF({self.pdf_path})"
 
-    def __str__(self):
-        """
-        Return a human-readable string representation of the PDF object.
+    def __str__(self) -> str:
+        """Return a human-readable string representation of the PDF object.
 
         Returns:
             str: A human-readable string representation of the PDF object.
+
+        Examples:
+            >>> import os
+            >>> import tempfile
+            >>> from simetri.images.image import PDF
+            >>> fd, path = tempfile.mkstemp(suffix=".pdf")
+            >>> os.write(fd, b"%PDF-1.0\\n%%EOF\\n")
+            >>> os.close(fd)
+            >>> str(PDF(path)).startswith("PDF file at")
+            True
+            >>> os.unlink(path)
         """
         return f"PDF file at {self.pdf_path}"
 
 
 class Image(Rectangle):
-    """
-    A class that extends the PIL Image class to add additional functionality.
-    Image.pil_img is the PIL Image object. It behaves like a TikZ node.
-    For documentation see https://pillow.readthedocs.io/en/stable/.
+    """Simetri drawable backed by a Pillow image (``pil_img``).
+
+    Pillow method names are available via attribute delegation. See the
+    `Pillow docs <https://pillow.readthedocs.io/en/stable/>`_ for raster ops.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> isinstance(sg.Image(size=(2, 2), mode="RGB"), sg.Image)
+        True
     """
 
     def __init__(
         self,
-        img: str | None = None,
+        img: str | PIL_Image.Image | None = None,
         pos: PointType = (0, 0),
         size: Sequence[int] | None = None,
-        mode=ImageMode.RGB,
-        **kwargs,
-    ):
-        """
-        Initialize an Image object.
+        mode: ImageMode | str = ImageMode.RGB,
+        **kwargs: object,
+    ) -> None:
+        """Initialize an image drawable.
 
         Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
+            img: File path, Pillow image, or ``None`` to create a blank image.
+            pos: Placement on the canvas (rectangle center).
+            size: Required when ``img`` is ``None`` (new image dimensions).
+            mode: Pillow mode when creating a blank image.
+            **kwargs: Forwarded to :class:`~simetri.shapes.geom_items.Rectangle`
+                and Pillow ``Image.new`` when applicable.
+
+        Raises:
+            FileNotFoundError: If ``img`` is a path that does not exist.
+            TypeError: If ``img`` is not a path, Pillow image, or ``None``.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(10, 10), mode="RGB")
+            >>> im.width
+            10
+            >>> im.mode
+            'RGB'
         """
         file_path = None
         if img is None:
@@ -138,33 +212,46 @@ class Image(Rectangle):
         else:
             self.xform_matrix = identity_matrix()
 
-    def __repr__(self):
-        """
-        Return a string representation of the Image object.
+    def __repr__(self) -> str:
+        """Return a string representation of the Image object.
 
         Returns:
             str: A string representation of the Image object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Image(size=(2, 3), mode="RGB"))
+            'Image((2, 3), RGB)'
         """
         return f"Image({self.pil_img.size}, {self.pil_img.mode})"
 
-    def __str__(self):
-        """
-        Return a human-readable string representation of the Image object.
+    def __str__(self) -> str:
+        """Return a human-readable string representation of the Image object.
 
         Returns:
             str: A human-readable string representation of the Image object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> str(sg.Image(size=(2, 3), mode="RGB"))
+            'Image of size (2, 3) and mode RGB'
         """
         return f"Image of size {self.pil_img.size} and mode {self.pil_img.mode}"
 
     def __getattr__(self, name: str) -> Any:
-        """
-        Get an attribute from the underlying PIL Image object.
+        """Get an attribute from the underlying PIL Image object.
 
         Args:
             name (str): The name of the attribute to get.
 
         Returns:
             Any: The value of the requested attribute.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(2, 2), mode="RGB")
+            >>> im.load() is None
+            True
         """
         if name in self.__dict__:
             res = self.__dict__[name]
@@ -188,11 +275,11 @@ class Image(Rectangle):
         xform_matrix: "array",
         reps: int = 0,
         take: slice | None = None,
-        incr=None,
+        incr: float | None = None,
         dyn_ref: bool | None = None,
         merge: bool = False,
-        xform_type: TransformationType = None,
-    ) -> "Group | Image":
+        xform_type: TransformationType | None = None,
+    ) -> Group | Image:
         """Used internally. Update the shape with a transformation matrix.
 
         Args:
@@ -236,21 +323,32 @@ class Image(Rectangle):
 
     @property
     def pos(self) -> PointType:
-        """
-        The position of the image.
+        """The position of the image.
 
         Returns:
             PointType: The position of the image.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(4, 4), mode="RGB", pos=(5, 6))
+            >>> im.pos[0], im.pos[1]
+            (5.0, 6.0)
         """
         return self.midpoint
 
     @pos.setter
     def pos(self, point: PointType) -> None:
-        """
-        Set the position of the image.
+        """Set the position of the image.
 
         Args:
             point (PointType): The new position of the image.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(4, 4), mode="RGB")
+            >>> im.pos = (10, 20)
+            >>> im.pos[0], im.pos[1]
+            (10.0, 20.0)
         """
         x, y = self.pos[:2]
         dx = point[0] - x
@@ -259,142 +357,174 @@ class Image(Rectangle):
 
     @property
     def pil_img(self) -> PIL_Image.Image:
-        """
-        The underlying PIL Image object.
+        """The underlying PIL Image object.
 
         Returns:
             PIL_Image.Image: The PIL Image object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(3, 4), mode="RGB")
+            >>> im.pil_img.size
+            (3, 4)
         """
         return self.__dict__["pil_img"]
 
     @property
-    def filename(self) -> str:
-        """
-        The filename of the image, if available.
+    def filename(self) -> str | None:
+        """Filename metadata from Pillow, if set.
 
-        Returns:
-            str: The filename of the image or None if not set.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").filename is None
+            True
         """
         return self.pil_img.info.get("filename", None)
 
     @property
-    def format(self) -> str:
-        """
-        The format of the image, if available.
+    def format(self) -> str | None:
+        """Pillow format string (e.g. ``JPEG``, ``PNG``), if known.
 
-        Returns:
-            str: The format of the image (e.g., "JPEG", "PNG") or None if not set.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").format is None
+            True
         """
         return self.pil_img.format
 
     @property
     def mode(self) -> str:
-        """
-        The mode of the image.
+        """The mode of the image.
 
         Returns:
             str: The mode of the image (e.g., "RGB", "L").
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="L").mode
+            'L'
         """
         return self.pil_img.mode
 
     @property
-    def size(self) -> tuple:
-        """
-        The size of the image.
+    def size(self) -> tuple[int, int]:
+        """Width and height in pixels.
 
-        Returns:
-            tuple: A tuple (width, height) representing the dimensions of the image in pixels.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(5, 7), mode="RGB").size
+            (5, 7)
         """
         return self.pil_img.size
 
     @property
     def width(self) -> int:
-        """
-        The width of the image.
+        """The width of the image.
 
         Returns:
             int: The width of the image in pixels.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(5, 7), mode="RGB").width
+            5
         """
         return self.pil_img.size[0]
 
     @property
     def height(self) -> int:
-        """
-        The height of the image.
+        """The height of the image.
 
         Returns:
             int: The height of the image in pixels.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(5, 7), mode="RGB").height
+            7
         """
         return self.pil_img.size[1]
 
     @property
-    def info(self) -> dict:
-        """
-        A dictionary containing miscellaneous information about the image.
+    def info(self) -> dict[str, object]:
+        """Pillow image metadata dictionary.
 
-        Returns:
-            dict: A dictionary of metadata associated with the image.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> isinstance(sg.Image(size=(2, 2), mode="RGB").info, dict)
+            True
         """
-        # todo: we can add more info here
-
         return self.pil_img.info
 
     @property
-    def palette(self):
-        """
-        The palette of the image, if available.
+    def palette(self) -> object | None:
+        """Pillow palette for ``P`` mode images, or ``None``.
 
-        Returns:
-            ImagePalette: The palette of the image or None if not applicable.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").palette is None
+            True
         """
         return self.pil_img.palette
 
     @property
     def category(self) -> str:
-        """
-        The category of the image.
+        """The category of the image.
 
         Returns:
             str: The category of the image (e.g., "image").
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").category  # doctest: +SKIP
         """
         return self.pil_img.category
 
     @property
     def readonly(self) -> bool:
-        """
-        Whether the image is read-only.
+        """Whether the image is read-only.
 
         Returns:
             bool: True if the image is read-only, False otherwise.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").readonly
+            0
         """
         return self.pil_img.readonly
 
     @property
-    def decoderconfig(self) -> tuple:
-        """
-        The decoder configuration of the image.
+    def decoderconfig(self) -> tuple[object, ...]:
+        """Pillow decoder configuration tuple.
 
-        Returns:
-            tuple: A tuple containing the decoder configuration.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").decoderconfig
+            ()
         """
         return self.pil_img.decoderconfig
 
     @property
     def decodermaxblock(self) -> int:
-        """
-        The maximum block size used by the decoder.
+        """The maximum block size used by the decoder.
 
         Returns:
             int: The maximum block size in bytes.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").decodermaxblock
+            65536
         """
         return self.pil_img.decodermaxblock
 
     def alpha_composite(
         self,
-        im: "Image",
+        im: Image,
         dest: Sequence[int] = (0, 0),
         source: Sequence[int] = (0, 0),
-    ) -> "Image":
+    ) -> PIL_Image.Image:
         """
         Blend two images together using alpha compositing.
         This method is a wrapper around the PIL alpha_composite method.
@@ -406,41 +536,72 @@ class Image(Rectangle):
 
         Returns:
             Image: The resulting image after alpha compositing.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> base = sg.Image(size=(4, 4), mode="RGBA")
+            >>> over = sg.Image(size=(4, 4), mode="RGBA")
+            >>> base.alpha_composite(over).size  # doctest: +SKIP
+            (4, 4)
         """
         return self.pil_img.alpha_composite(im, dest, source)
 
     def apply_transparency(self) -> None:
-        """
-        Apply transparency to the image.
+        """Apply transparency to the image.
 
         This method is a wrapper around the PIL apply_transparency method.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(2, 2), mode="P")
+            >>> im.pil_img.info["transparency"] = 0
+            >>> im.apply_transparency() is None
+            True
         """
         return self.pil_img.apply_transparency()
 
     def convert(
-        self, mode=None, matrix=None, dither=None, palette=0, colors=256
-    ):
-        """
-        Converts an image to a different mode.
+        self,
+        mode: str | None = None,
+        matrix: Sequence[float] | None = None,
+        dither: int | None = None,
+        palette: int = 0,
+        colors: int = 256,
+    ) -> PIL_Image.Image:
+        """Convert the Pillow image to another mode (delegates to ``pil_img``).
 
         Args:
-            mode (str, optional): The requested mode. See: :ref:`concept-modes`.
-            matrix (list, optional): An optional conversion matrix.
-            dither (int, optional): Dithering method, used when converting from mode "RGB" to "P" or from "RGB" or "L" to "1".
-            palette (int, optional): Palette to use when converting from mode "RGB" to "P".
-            colors (int, optional): Number of colors to use for the palette.
+            mode: Target mode; see Pillow documentation.
+            matrix: Optional conversion matrix.
+            dither: Dithering method for palette or bilevel conversion.
+            palette: Palette selector when converting to ``P``.
+            colors: Palette size when converting to ``P``.
 
         Returns:
-            Image: An Image object.
+            PIL.Image.Image: Converted Pillow image.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").convert("L").mode
+            'L'
         """
         return self.pil_img.convert(mode, matrix, dither, palette, colors)
 
-    def copy(self, **kwargs):
-        """
-        Copies this image. Use this method if you wish to paste things into an image, but still retain the original.
+    def copy(self, **kwargs: object) -> Image:
+        """Copy this Simetri image and its transform metadata.
+
+        Args:
+            **kwargs: Attributes set on the copy after duplication.
 
         Returns:
-            Image: An Image object.
+            Image: New Simetri image sharing the same pixel data.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(4, 4), mode="RGB")
+            >>> copy = im.copy()
+            >>> copy.width, copy is not im
+            (4, True)
         """
         img = Image(pos=self.pos, img=self.pil_img.copy())
         img.primary_points = self.primary_points.copy()
@@ -453,157 +614,151 @@ class Image(Rectangle):
 
         return img
 
-    def crop(self, box=None):
-        """
-        Returns a rectangular region from this image. The box is a 4-tuple defining the left, upper, right, and lower pixel coordinate.
+    def crop(
+        self, box: tuple[int, int, int, int] | None = None
+    ) -> PIL_Image.Image:
+        """Crop ``pil_img`` to ``(left, upper, right, lower)``.
 
-        Args:
-            box (tuple, optional): The crop rectangle, as a (left, upper, right, lower)-tuple.
-
-        Returns:
-            Image: An Image object.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(4, 4), mode="RGB").crop((0, 0, 2, 2)).size
+            (2, 2)
         """
         return self.pil_img.crop(box)
 
-    def draft(self, mode, size):
+    def draft(self, mode: str, size: tuple[int, int]) -> None:
+        """Configure the loader for a matching mode and size (Pillow ``draft``).
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(8, 8), mode="RGB")
+            >>> im.draft("RGB", (4, 4)) is None
+            True
         """
-        Configures the image file loader so it returns a version of the image that as closely as possible matches the given mode and size.
+        self.pil_img.draft(mode, size)
 
-        Args:
-            mode (str): The requested mode.
-            size (tuple): The requested size.
+    def effect_spread(self, distance: int) -> PIL_Image.Image:
+        """Randomly spread pixels (Pillow ``effect_spread``).
 
-        Returns:
-            None
-        """
-        return self.pil_img.draft(mode, size)
-
-    def effect_spread(self, distance):
-        """
-        Randomly spreads pixels in an image.
-
-        Args:
-            distance (int): Distance to spread pixels.
-
-        Returns:
-            Image: An Image object.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(4, 4), mode="RGB").effect_spread(1).size
+            (4, 4)
         """
         return self.pil_img.effect_spread(distance)
 
-    def filter(self, filter):
-        """
-        Applies the given filter to this image.
+    def filter(self, filter: ImageFilter.Filter) -> PIL_Image.Image:
+        """Apply a Pillow filter kernel to ``pil_img``.
 
-        Args:
-            filter (Filter): Filter kernel.
-
-        Returns:
-            Image: An Image object.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(4, 4), mode="RGB").filter(
+            ...     ImageFilter.BLUR
+            ... ).size
+            (4, 4)
         """
         return self.pil_img.filter(filter)
 
-    def getbands(self):
-        """
-        Returns a tuple containing the name of each band in this image. For example, "RGB" returns ("R", "G", "B").
+    def getbands(self) -> tuple[str, ...]:
+        """Band names for this image (e.g. ``("R", "G", "B")``).
 
-        Returns:
-            tuple: A tuple containing band names.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").getbands()
+            ('R', 'G', 'B')
         """
         return self.pil_img.getbands()
 
-    def _getbbox(self):
-        """
-        Calculates the bounding box of the non-zero regions in the image.
-
-        Returns:
-            tuple: The bounding box is returned as a 4-tuple defining the left, upper, right, and lower pixel coordinate.
-        """
+    def _getbbox(self) -> tuple[int, int, int, int] | None:
+        """Non-zero bounding box of ``pil_img``, or ``None``."""
         return self.pil_img.getbbox()
 
-    def getcolors(self, maxcolors=256):
-        """
-        Returns a list of colors used in this image.
+    def getcolors(
+        self, maxcolors: int = 256
+    ) -> list[tuple[int, int | tuple[int, ...]]] | None:
+        """Color usage counts, or ``None`` if ``maxcolors`` is exceeded.
 
-        Args:
-            maxcolors (int, optional): Maximum number of colors. If this number is exceeded, this method stops counting and returns None.
-
-        Returns:
-            list: A list of (count, pixel) values.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="L").getcolors()
+            [(4, 0)]
         """
         return self.pil_img.getcolors(maxcolors)
 
-    def getdata(self, band=None):
-        """
-        Returns the contents of this image as a sequence object containing pixel values.
+    def getdata(self, band: int | None = None) -> Iterable[int]:
+        """Pixel access sequence from ``pil_img.getdata``.
 
-        Args:
-            band (int, optional): What band to return. Default is None.
-
-        Returns:
-            Sequence: Pixel values.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> len(list(sg.Image(size=(2, 2), mode="L").getdata()))
+            4
         """
         return self.pil_img.getdata(band)
 
-    def getextrema(self):
-        """
-        Gets the minimum and maximum pixel values for each band in the image.
+    def getextrema(self) -> tuple[tuple[int, int], ...]:
+        """Per-band minimum and maximum pixel values.
 
-        Returns:
-            tuple: A tuple containing one (min, max) tuple for each band.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="L").getextrema()
+            ((0, 0),)
         """
         return self.pil_img.getextrema()
 
-    def getpixel(self, xy):
-        """
-        Returns the pixel value at a given position.
+    def getpixel(self, xy: tuple[int, int]) -> int | tuple[int, ...]:
+        """Pixel value at ``(x, y)``.
 
-        Args:
-            xy (tuple): The coordinate, given as (x, y).
-
-        Returns:
-            Pixel: The pixel value.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="L").getpixel((0, 0))
+            0
         """
         return self.pil_img.getpixel(xy)
 
-    def histogram(self, mask=None, extrema=None):
-        """
-        Returns a histogram for the image.
+    def histogram(
+        self,
+        mask: PIL_Image.Image | None = None,
+        extrema: Sequence[int] | None = None,
+    ) -> list[int]:
+        """Histogram of pixel values.
 
-        Args:
-            mask (Image, optional): A mask image.
-            extrema (tuple, optional): A tuple of manually-specified extrema.
-
-        Returns:
-            list: A list containing pixel counts.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> len(sg.Image(size=(2, 2), mode="L").histogram())
+            256
         """
         return self.pil_img.histogram(mask, extrema)
 
-    def paste(self, im, box=None, mask=None):
+    def paste(
+        self,
+        im: PIL_Image.Image | int | tuple[int, ...],
+        box: tuple[int, ...] | None = None,
+        mask: PIL_Image.Image | None = None,
+    ) -> None:
+        """Paste ``im`` into ``pil_img`` (mutates pixels).
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(2, 2), mode="RGB")
+            >>> im.paste((255, 0, 0), (0, 0))
+            >>> im.getpixel((0, 0))
+            (255, 0, 0)
         """
-        Pastes another image into this image.
+        self.pil_img.paste(im, box, mask)
 
-        Args:
-            im (Image or tuple): The source image or pixel value.
-            box (tuple, optional): A 2-tuple giving the upper left corner, or a 4-tuple defining the left, upper, right, and lower pixel coordinate.
-            mask (Image, optional): A mask image.
+    def resize(
+        self,
+        size: tuple[int, int],
+        resample: int | None = None,
+        box: tuple[int, int, int, int] | None = None,
+        reducing_gap: float | None = None,
+    ) -> PIL_Image.Image:
+        """Return a resized copy of ``pil_img``.
 
-        Returns:
-            None
-        """
-        return self.pil_img.paste(im, box, mask)
-
-    def resize(self, size, resample=None, box=None, reducing_gap=None):
-        """
-        Returns a resized copy of this image.
-
-        Args:
-            size (tuple): The requested size in pixels, as a 2-tuple.
-            resample (int, optional): An optional resampling filter.
-            box (tuple, optional): A box to define the region to resize.
-            reducing_gap (float, optional): Apply optimization by resizing the image in two steps.
-
-        Returns:
-            Image: An Image object.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(4, 4), mode="RGB").resize((2, 3)).size
+            (2, 3)
         """
         return self.pil_img.resize(size, resample, box, reducing_gap)
 
@@ -683,56 +838,57 @@ class Image(Rectangle):
     #                                                                 'about': about}
     #     return self._update(transform, reps=reps, merge=merge, kwargs=kwargs)
 
-    def save(self, fp, format=None, **params):
+    def save(
+        self,
+        fp: str | os.PathLike[str] | io.BufferedIOBase,
+        format: str | None = None,
+        **params: object,
+    ) -> None:
+        """Save ``pil_img`` to ``fp`` (Pillow ``save``).
+
+        Examples:
+            >>> import io
+            >>> import simetri.graphics as sg
+            >>> buf = io.BytesIO()
+            >>> sg.Image(size=(2, 2), mode="RGB").save(buf, format="PNG")
+            >>> buf.tell() > 0
+            True
         """
-        Saves this image under the given filename.
+        self.pil_img.save(fp, format, **params)
 
-        Args:
-            fp (str or file object): A filename (string) or file object.
-            format (str, optional): Optional format override.
-            **params: Extra parameters to the image writer.
+    def show(self, title: str | None = None, command: str | None = None) -> None:
+        """Display ``pil_img`` with the system viewer (Pillow ``show``).
 
-        Returns:
-            None
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(2, 2), mode="RGB").show()  # doctest: +SKIP
         """
-        return self.pil_img.save(fp, format, **params)
+        self.pil_img.show(title, command)
 
-    def show(self, title=None, command=None):
-        """
-        Displays this image.
+    def split(self) -> tuple[PIL_Image.Image, ...]:
+        """Split ``pil_img`` into individual band images.
 
-        Args:
-            title (str, optional): Optional title for the image window.
-            command (str, optional): Command used to show the image.
-
-        Returns:
-            None
-        """
-        return self.pil_img.show(title, command)
-
-    def split(self):
-        """
-        Splits this image into individual bands.
-
-        Returns:
-            tuple: A tuple containing individual bands as Image objects.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> len(sg.Image(size=(2, 2), mode="RGB").split())
+            3
         """
         return self.pil_img.split()
 
-    def transpose(self, method):
-        """
-        Transposes this image.
+    def transpose(self, method: int) -> PIL_Image.Image:
+        """Transpose ``pil_img`` (Pillow ``transpose``).
 
-        Args:
-            method (int): One of the transpose methods.
-
-        Returns:
-            Image: An Image object.
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Image(size=(4, 2), mode="RGB").transpose(
+            ...     PIL_Image.Transpose.ROTATE_90
+            ... ).size
+            (2, 4)
         """
         return self.pil_img.transpose(method)
 
 
-def open_img(file_path):
+def open_img(file_path: str | os.PathLike[str]) -> Image:
     """Open an image file and wrap it as a Simetri ``Image``.
 
     Args:
@@ -740,6 +896,18 @@ def open_img(file_path):
 
     Returns:
         Image: Simetri image object backed by the opened Pillow image.
+
+    Examples:
+        >>> import os
+        >>> import tempfile
+        >>> import simetri.graphics as sg
+        >>> from simetri.images.image import open_img
+        >>> fd, path = tempfile.mkstemp(suffix=".png")
+        >>> os.close(fd)
+        >>> sg.Image(size=(3, 2), mode="RGB").pil_img.save(path)
+        >>> open_img(path).width
+        3
+        >>> os.unlink(path)
     """
     img = PIL_Image.open(file_path)
 
@@ -771,23 +939,31 @@ register_decoder = PIL_Image.register_decoder
 register_encoder = PIL_Image.register_encoder
 
 
-def is_pil_image(obj):
-    """
-    Checks if an object is a PIL Image object.
+def is_pil_image(obj: object) -> bool:
+    """Return whether ``obj`` is a Pillow ``Image`` instance.
 
-    Args:
-        obj: The object to check.
-
-    Returns:
-        True if the object is a PIL Image object, False otherwise.
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.images.image import is_pil_image
+        >>> im = sg.Image(size=(1, 1), mode="RGB")
+        >>> is_pil_image(im.pil_img)
+        True
+        >>> is_pil_image(im)
+        False
     """
     return isinstance(obj, PIL_Image.Image)
 
 
 def supported_formats() -> list[str]:
-    """Generates a list of supported image formats available in your system.
+    """List file extensions for formats Pillow can open on this system.
+
     Returns:
-        list[str]: A list of supported image formats available in your system.
+        list[str]: Sorted extension strings (e.g. ``".png"``).
+
+    Examples:
+        >>> from simetri.images.image import supported_formats
+        >>> ".png" in supported_formats()
+        True
     """
 
     exts = PIL_Image.registered_extensions()
@@ -796,14 +972,29 @@ def supported_formats() -> list[str]:
     return sorted(supported)
 
 
-def create_image_from_data(image_path):
+def create_image_from_data(
+    image_path: str | os.PathLike[str],
+) -> Image | None:
     """Load image bytes from disk into a new Simetri ``Image``.
 
     Args:
         image_path: Path to the image file.
 
     Returns:
-        Image: Wrapped image on success, or None if loading fails.
+        Image on success, or ``None`` if loading fails (errors are printed).
+
+    Examples:
+        >>> import os
+        >>> import tempfile
+        >>> import simetri.graphics as sg
+        >>> from simetri.images.image import create_image_from_data
+        >>> fd, path = tempfile.mkstemp(suffix=".png")
+        >>> os.close(fd)
+        >>> sg.Image(size=(3, 2), mode="RGB").pil_img.save(path)
+        >>> loaded = create_image_from_data(path)
+        >>> loaded.width
+        3
+        >>> os.unlink(path)
     """
     try:
         with open(image_path, "rb") as f:
@@ -824,8 +1015,10 @@ def create_image_from_data(image_path):
         return None
 
 
-def _normalize_target_image(image):
-    """Return a Simetri Image wrapper for image drawing."""
+def _normalize_target_image(
+    image: Image | PIL_Image.Image,
+) -> Image:
+    """Return a Simetri ``Image`` wrapper for image drawing."""
     if isinstance(image, Image):
         target = image
     elif isinstance(image, PIL_Image.Image):
@@ -902,7 +1095,7 @@ def _points_to_pixels(
     return [_canvas_to_pixel(point, bounds) for point in points]
 
 
-def _style_rgba(color, alpha: float) -> tuple[int, int, int, int]:
+def _style_rgba(color: ColorLike | None, alpha: float | None) -> tuple[int, int, int, int]:
     """Return a Pillow RGBA tuple from a Simetri color and alpha."""
     if color is None:
         raise ValueError("Color must be resolved before drawing on an image.")
@@ -917,7 +1110,7 @@ def _style_rgba(color, alpha: float) -> tuple[int, int, int, int]:
     return red, green, blue, combined_alpha
 
 
-def _fill_rgba(sketch):
+def _fill_rgba(sketch: Sketch) -> tuple[int, int, int, int] | None:
     """Return Pillow fill color for a sketch."""
     fill = sketch.fill
     if fill:
@@ -928,7 +1121,7 @@ def _fill_rgba(sketch):
     return fill_color
 
 
-def _stroke_rgba(sketch):
+def _stroke_rgba(sketch: Sketch) -> tuple[int, int, int, int] | None:
     """Return Pillow stroke color for a sketch."""
     stroke = sketch.stroke
     if stroke:
@@ -939,7 +1132,7 @@ def _stroke_rgba(sketch):
     return line_color
 
 
-def _line_width(sketch) -> int:
+def _line_width(sketch: Sketch) -> int:
     """Return Pillow line width for a sketch."""
     line_width = sketch.line_width
     if line_width is None:
@@ -951,7 +1144,9 @@ def _line_width(sketch) -> int:
     return pixel_width
 
 
-def _flatten_sketches(sketches) -> list:
+def _flatten_sketches(
+    sketches: Sketch | Sequence[Sketch | Sequence[Sketch]],
+) -> list[Sketch]:
     """Flatten sketch lists and composite sketches."""
     if isinstance(sketches, Sequence):
         candidates = sketches
@@ -970,7 +1165,11 @@ def _flatten_sketches(sketches) -> list:
     return flat_sketches
 
 
-def _draw_shape_sketch(drawer, sketch, bounds) -> None:
+def _draw_shape_sketch(
+    drawer: ImageDraw.ImageDraw,
+    sketch: Sketch,
+    bounds: tuple[float, float, float, float],
+) -> None:
     """Draw a polygon/polyline sketch on a Pillow drawer."""
     vertices = _points_to_pixels(sketch.vertices, bounds)
     fill_color = _fill_rgba(sketch)
@@ -988,7 +1187,11 @@ def _draw_shape_sketch(drawer, sketch, bounds) -> None:
         drawer.line(vertices, fill=line_color, width=line_width)
 
 
-def _draw_line_sketch(drawer, sketch, bounds) -> None:
+def _draw_line_sketch(
+    drawer: ImageDraw.ImageDraw,
+    sketch: Sketch,
+    bounds: tuple[float, float, float, float],
+) -> None:
     """Draw a line sketch on a Pillow drawer."""
     vertices = _points_to_pixels(sketch.vertices, bounds)
     line_color = _stroke_rgba(sketch)
@@ -997,7 +1200,11 @@ def _draw_line_sketch(drawer, sketch, bounds) -> None:
         drawer.line(vertices, fill=line_color, width=line_width)
 
 
-def _draw_circle_sketch(drawer, sketch, bounds) -> None:
+def _draw_circle_sketch(
+    drawer: ImageDraw.ImageDraw,
+    sketch: Sketch,
+    bounds: tuple[float, float, float, float],
+) -> None:
     """Draw a circle sketch on a Pillow drawer."""
     center_x, center_y = sketch.center[:2]
     radius = sketch.radius
@@ -1025,7 +1232,11 @@ def _draw_circle_sketch(drawer, sketch, bounds) -> None:
         )
 
 
-def _draw_ellipse_sketch(drawer, sketch, bounds) -> None:
+def _draw_ellipse_sketch(
+    drawer: ImageDraw.ImageDraw,
+    sketch: Sketch,
+    bounds: tuple[float, float, float, float],
+) -> None:
     """Draw an unrotated ellipse sketch on a Pillow drawer."""
     if sketch.angle != 0:
         raise NotImplementedError(
@@ -1057,7 +1268,11 @@ def _draw_ellipse_sketch(drawer, sketch, bounds) -> None:
         )
 
 
-def _draw_sketch_on_image(drawer, sketch, bounds) -> None:
+def _draw_sketch_on_image(
+    drawer: ImageDraw.ImageDraw,
+    sketch: Sketch,
+    bounds: tuple[float, float, float, float],
+) -> None:
     """Draw one supported sketch on a Pillow drawer."""
     subtype = sketch.subtype
     if subtype == Types.SHAPE_SKETCH:
@@ -1074,15 +1289,28 @@ def _draw_sketch_on_image(drawer, sketch, bounds) -> None:
         )
 
 
-def draw_on_image(sketches, image):
+def draw_on_image(
+    sketches: Sketch | Sequence[Sketch | Sequence[Sketch]],
+    image: Image | PIL_Image.Image,
+) -> Image:
     """Draw sketch snapshots on a copy of the given image.
 
     Args:
-        sketches: Sketch or sequence of sketches to draw.
+        sketches: Sketch or nested sequence of sketches to draw.
         image: Simetri ``Image`` or Pillow image used as the pixel base.
 
     Returns:
         Image: New Simetri image containing the drawn sketches.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.images.image import draw_on_image
+        >>> base = sg.Image(size=(20, 20), mode="RGB")
+        >>> canvas = sg.Canvas()
+        >>> canvas.line((0, 0), (10, 10))
+        >>> out = draw_on_image(canvas.active_page.sketches[0], base)
+        >>> out.width
+        20
     """
     target = _normalize_target_image(image)
     source_mode = target.pil_img.mode

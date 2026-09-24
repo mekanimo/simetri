@@ -12,7 +12,7 @@ from __future__ import annotations
 import enum
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from ..base.all_enums import (
     Align,
@@ -37,14 +37,21 @@ if TYPE_CHECKING:
     from .gradient import Gradient
 
 
-def _set_style_args(obj, attribs, exact=None, prefix=None, values=None):
-    """Set the style arguments for the given object.
+def _set_style_args(
+    obj: Any,
+    attribs: list[str],
+    exact: list[str] | None = None,
+    prefix: str | None = None,
+    values: dict[str, Any] | None = None,
+) -> None:
+    """Apply default style values to ``obj`` for the given attribute names.
 
     Args:
-        obj: The object to set the style arguments for.
-        attribs: List of attributes to set.
-        exact: List of exact attributes to set.
-        prefix: Prefix to use for the attributes.
+        obj: Style instance to mutate.
+        attribs: Attribute names to initialize.
+        exact: Names read from ``defaults`` without a prefix.
+        prefix: Prefix for ``defaults[f"{prefix}_{attrib}"]`` lookups.
+        values: Explicit overrides keyed by attribute name.
     """
     for attrib in attribs:
         if values and values.get(attrib, None) is not None:
@@ -126,7 +133,7 @@ class FontStyle:
     blend_mode: BlendMode = None
     alpha: float | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the FontStyle object."""
         exact = [
             "bold",
@@ -170,7 +177,7 @@ class GridStyle:
     # height: float | None = None
     back_color: Color = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the GridStyle object."""
         exact = []
         exclude = []
@@ -185,15 +192,15 @@ class GridStyle:
         self._exact = exact
         self._exclude = exclude
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the GridStyle object."""
         return f"GridStyle: {self.id}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of the GridStyle object."""
         return f"GridStyle: {self.id}"
 
-    def _get_attributes(self):
+    def _get_attributes(self) -> None:
         """Get the attributes of the GridStyle object."""
         attribs = [x for x in self.__dict__ if not x.startswith("_")]
         res = []
@@ -224,7 +231,7 @@ class MarkerStyle:
     alpha: float | None = None
     shape = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the MarkerStyle object."""
         exact = ["marker_type"]
         exclude = []
@@ -238,7 +245,7 @@ class MarkerStyle:
         self._exact = exact
         self._exclude = exclude
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the MarkerStyle object."""
         return f"Marker: {self.type}"
 
@@ -288,7 +295,7 @@ class LineStyle:
     double_color: Color = None
     double_distance: float | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the LineStyle object."""
         exact = [
             "smooth",
@@ -309,12 +316,18 @@ class LineStyle:
         self._exclude = exclude
         self.marker_style = MarkerStyle()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the LineStyle object."""
         return f"LineStyle: {self.id}"
 
 
-def _style_init(style, exact=None, exclude=None, prefix="", subtype=None):
+def _style_init(
+    style: Any,
+    exact: list[str] | None = None,
+    exclude: list[str] | None = None,
+    prefix: str = "",
+    subtype: Types | None = None,
+) -> None:
     """Initialize the style object.
 
     Args:
@@ -364,7 +377,7 @@ class PatternStyle:
     radius: float | None = None  # used for dots, stars
     points: int = None  # number of petals. Used for stars
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the PatternStyle object."""
         exact = ["stroke", "pattern_type"]
         exclude = []
@@ -378,7 +391,7 @@ class PatternStyle:
         self._exact = exact
         self._exclude = exclude
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the PatternStyle object."""
         return f"Pattern: {self.type}"
 
@@ -426,7 +439,7 @@ class ShadeStyle:
     upper_left_color: Color = None
     upper_right_color: Color = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the ShadeStyle object."""
         exact = [
             "shade_type",
@@ -486,7 +499,7 @@ class SVG_TileStyle:
     scale_y: float | None = None
     units: str | None = None  # 'userSpaceOnUse' or 'objectBoundingBox'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the SVG_TileStyle object."""
         exact = ["units"]
         exclude = []
@@ -500,11 +513,11 @@ class SVG_TileStyle:
         self._exact = exact
         self._exclude = exclude
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the SVG_TileStyle object."""
         return f"SVG_TileStyle: {self.id}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of the SVG_TileStyle object."""
         return f"SVG_TileStyle: {self.id}"
 
@@ -537,7 +550,7 @@ class FillStyle:
     svg_tile_style: SVG_TileStyle = None
     gradient_style: object = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the FillStyle object."""
         self.shade_style = ShadeStyle()
         self.grid_style = GridStyle()
@@ -558,15 +571,15 @@ class FillStyle:
         self._exact = exact
         self._exclude = exclude
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the FillStyle object."""
         return f"FillStyle: {self.id}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of the FillStyle object."""
         return f"FillStyle: {self.id}"
 
-    def _get_attributes(self):
+    def _get_attributes(self) -> None:
         """Get the attributes of the FillStyle object."""
         attribs = [x for x in self.__dict__ if not x.startswith("_")]
         res = []
@@ -593,7 +606,7 @@ class ShapeStyle:
     color: Color = None
     gradient: Gradient = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the ShapeStyle object."""
         self.line_style = LineStyle()
         self.fill_style = FillStyle()
@@ -610,11 +623,11 @@ class ShapeStyle:
         self._exact = exact
         self._exclude = exclude
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the ShapeStyle object."""
         return f"ShapeStyle: {self.id}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of the ShapeStyle object."""
         return f"ShapeStyle: {self.id}"
 
@@ -649,7 +662,7 @@ class FrameStyle:
     min_size: float | None = None
     alpha: float | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the FrameStyle object."""
         self.line_style = LineStyle()
         self.fill_style = FillStyle()
@@ -687,7 +700,7 @@ class ImageStyle:
     frame_style: FrameStyle = None
     text_width: float | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the ImageStyle object."""
         self.frame_style = FrameStyle()
         self.alpha = defaults["image_alpha"]
@@ -714,11 +727,11 @@ class ImageStyle:
         self._exact = exact
         self._exclude = exclude
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the ImageStyle object."""
         return f"ImageStyle: {self.id}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of the TagStyle object."""
         return f"TagStyle: {self.id}"
 
@@ -751,7 +764,7 @@ class TagStyle:
     frame_style: FrameStyle = None
     text_width: float | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the TagStyle object."""
         self.font_style = FontStyle()
         self.frame_style = FrameStyle()
@@ -782,11 +795,11 @@ class TagStyle:
         self._exact = exact
         self._exclude = exclude
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the TagStyle object."""
         return f"TagStyle: {self.id}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of the TagStyle object."""
         return f"TagStyle: {self.id}"
 
@@ -826,7 +839,7 @@ frame_style_map = {
 }
 
 
-def _set_frame_style_alias_map(debug=False):
+def _set_frame_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the frame style alias map.
 
     Args:
@@ -886,7 +899,7 @@ marker_style_map = {
 }
 
 
-def _set_marker_style_alias_map(debug=False):
+def _set_marker_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the marker style alias map.
 
     Args:
@@ -1059,7 +1072,7 @@ image_style_map = {
 }
 
 
-def _set_image_style_alias_map(debug=False):
+def _set_image_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the image-style alias map.
 
     Args:
@@ -1264,7 +1277,7 @@ tag_style_map = {
 }
 
 
-def _set_tag_style_alias_map(debug=False):
+def _set_tag_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the tag style alias map.
 
     Args:
@@ -1361,7 +1374,7 @@ fill_style_map = {
 }
 
 
-def _set_fill_style_alias_map(debug=False):
+def _set_fill_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the fill style alias map.
 
     Args:
@@ -1412,7 +1425,7 @@ pattern_style_map = {
 }
 
 
-def _set_pattern_style_alias_map(debug=False):
+def _set_pattern_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the pattern style alias map."""
     pattern_style = PatternStyle()
 
@@ -1439,7 +1452,7 @@ svg_tile_style_map = {
 }
 
 
-def _set_svg_tile_style_alias_map(debug=False):
+def _set_svg_tile_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the SVG tile style alias map.
 
     Args:
@@ -1487,7 +1500,7 @@ line_style_map = {
 }
 
 
-def _set_line_style_alias_map(debug=False):
+def _set_line_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the line style alias map.
 
     Args:
@@ -1601,7 +1614,7 @@ shape_style_map = {
 }
 
 
-def _set_shape_style_alias_map(debug=False):
+def _set_shape_style_alias_map(debug: bool = False) -> dict[str, tuple[str, str]]:
     """Set the shape style alias map.
 
     Args:
@@ -1643,7 +1656,13 @@ def _set_shape_style_alias_map(debug=False):
     return shape_style_map
 
 
-def _set_style_alias_map(map_dict, styles, paths, prefixes, debug=False):
+def _set_style_alias_map(
+    map_dict: dict[str, tuple[str, str]],
+    styles: list[Any],
+    paths: list[str],
+    prefixes: list[str],
+    debug: bool = False,
+) -> dict[str, tuple[str, str]]:
     """Set the style alias map.
 
     Args:
@@ -1770,7 +1789,7 @@ def get_draw_valid_kwargs() -> frozenset[str]:
     return _draw_valid_kwargs_cache
 
 
-def _set_shape_args():
+def _set_shape_args() -> None:
     shape_args.extend(list(shape_style_map.keys()))
     shape_args.extend(["subtype", "xform_matrix", "points"])
 
@@ -1808,7 +1827,12 @@ class StyleObj:
     Includes type validation based on settings.default_types.
     """
 
-    def __init__(self, style_map, validate_types=True, **kwargs):
+    def __init__(
+        self,
+        style_map: dict[str, tuple[str, str]],
+        validate_types: bool = True,
+        **kwargs: object,
+    ) -> None:
         """Initialize StyleObj with predefined attributes from style_map.
 
         Args:
@@ -1828,7 +1852,7 @@ class StyleObj:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    def _validate_value(self, name, value):
+    def _validate_value(self, name: str, value: object) -> None:
         """Validate a value against its expected type from default_types.
 
         Args:
@@ -1932,7 +1956,7 @@ class StyleObj:
                     f"Attribute '{name}' must be non-negative, got {value}"
                 )
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         """Override attribute setting to prevent adding new attributes and validate values."""
         if hasattr(self, "_allowed_attrs") and name not in self._allowed_attrs:
             raise AttributeError(
@@ -1946,7 +1970,7 @@ class StyleObj:
 
         object.__setattr__(self, name, value)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         """Provide helpful error message for non-existent attributes."""
         if hasattr(self, "_allowed_attrs"):
             raise AttributeError(
@@ -1957,12 +1981,12 @@ class StyleObj:
             f"'{self.__class__.__name__}' object has no attribute '{name}'"
         )
 
-    def update(self, **kwargs):
+    def update(self, **kwargs: object) -> None:
         """Update multiple attributes at once."""
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Convert StyleObj to dictionary, excluding None values."""
         return {
             attr: getattr(self, attr)
@@ -1970,7 +1994,7 @@ class StyleObj:
             if getattr(self, attr) is not None
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Provide a readable representation showing non-None attributes."""
         non_none_attrs = {
             attr: getattr(self, attr)
@@ -1980,12 +2004,16 @@ class StyleObj:
         return f"{self.__class__.__name__}({non_none_attrs})"
 
 
-def _get_style_obj(style_map, validate_types=True, **kwargs):
-    """Helper function to create StyleObj from style_map."""
+def _get_style_obj(
+    style_map: dict[str, tuple[str, str]],
+    validate_types: bool = True,
+    **kwargs: object,
+) -> StyleObj:
+    """Create a ``StyleObj`` from a style alias map."""
     return StyleObj(style_map, validate_types=validate_types, **kwargs)
 
 
-def line_style_obj(validate_types=True, **kwargs):
+def line_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
     """Returns a line-style object.
     These style objects can be used for overwriting objects'
     style attributes during drawing.
@@ -1994,19 +2022,16 @@ def line_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    **Examples**
-
-    ```python
-    line_obj = line_style_obj(line_color="red", line_width=2)
-    line_obj.line_dash_array = [5, 2]
-    ```
+    Examples:
+        >>> line_obj = line_style_obj(line_color="red", line_width=2)
+        >>> line_obj.line_dash_array = [5, 2]
 """
     return _get_style_obj(
         line_style_map, validate_types=validate_types, **kwargs
     )
 
 
-def fill_style_obj(validate_types=True, **kwargs):
+def fill_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
     """Returns a fill-style object.
     These style objects can be used for overwriting objects'
     style attributes during drawing.
@@ -2015,19 +2040,16 @@ def fill_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    **Examples**
-
-    ```python
-    fill_obj = fill_style_obj(color="blue", alpha=0.5)
-    fill_obj.mode = "solid"
-    ```
+    Examples:
+        >>> fill_obj = fill_style_obj(color="blue", alpha=0.5)
+        >>> fill_obj.mode = "solid"
 """
     return _get_style_obj(
         fill_style_map, validate_types=validate_types, **kwargs
     )
 
 
-def shape_style_obj(validate_types=True, **kwargs):
+def shape_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
     """Returns a shape-style object.
     These style objects can be used for overwriting objects'
     style attributes during drawing.
@@ -2036,18 +2058,15 @@ def shape_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    **Examples**
-
-    ```python
-    shape_obj = shape_style_obj(line_color="red", fill_color="blue")
-    ```
+    Examples:
+        >>> shape_obj = shape_style_obj(line_color="red", fill_color="blue")
 """
     return _get_style_obj(
         shape_style_map, validate_types=validate_types, **kwargs
     )
 
 
-def frame_style_obj(validate_types=True, **kwargs):
+def frame_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
     """Returns a frame-style object.
     These style objects can be used for overwriting objects'
     style attributes during drawing.
@@ -2056,18 +2075,15 @@ def frame_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    **Examples**
-
-    ```python
-    frame_obj = frame_style_obj(frame_inner_sep=5, frame_shape="rectangle")
-    ```
+    Examples:
+        >>> frame_obj = frame_style_obj(frame_inner_sep=5, frame_shape="rectangle")
 """
     return _get_style_obj(
         frame_style_map, validate_types=validate_types, **kwargs
     )
 
 
-def image_style_obj(validate_types=True, **kwargs):
+def image_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
     """Returns an image-style object.
     These style objects can be used for overwriting objects'
     style attributes during drawing.
@@ -2076,18 +2092,15 @@ def image_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    **Examples**
-
-    ```python
-    img_obj = image_style_obj(alpha=0.8, blend_mode="normal")
-    ```
+    Examples:
+        >>> img_obj = image_style_obj(alpha=0.8, blend_mode="normal")
 """
     return _get_style_obj(
         image_style_map, validate_types=validate_types, **kwargs
     )
 
 
-def tag_style_obj(validate_types=True, **kwargs):
+def tag_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
     """Returns a tag-style object.
     These style objects can be used for overwriting objects'
     style attributes during drawing.
@@ -2096,18 +2109,15 @@ def tag_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    **Examples**
-
-    ```python
-    tag_obj = tag_style_obj(font_color="black", font_size=12)
-    ```
+    Examples:
+        >>> tag_obj = tag_style_obj(font_color="black", font_size=12)
 """
     return _get_style_obj(
         tag_style_map, validate_types=validate_types, **kwargs
     )
 
 
-def marker_style_obj(validate_types=True, **kwargs):
+def marker_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
     """Returns a marker-style object.
     These style objects can be used for overwriting objects'
     style attributes during drawing.
@@ -2116,18 +2126,15 @@ def marker_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    **Examples**
-
-    ```python
-    marker_obj = marker_style_obj(marker_color="red", marker_size=3)
-    ```
+    Examples:
+        >>> marker_obj = marker_style_obj(marker_color="red", marker_size=3)
 """
     return _get_style_obj(
         marker_style_map, validate_types=validate_types, **kwargs
     )
 
 
-def pattern_style_obj(validate_types=True, **kwargs):
+def pattern_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
     """Returns a pattern-style object.
     These style objects can be used for overwriting objects'
     style attributes during drawing.
@@ -2136,13 +2143,10 @@ def pattern_style_obj(validate_types=True, **kwargs):
         validate_types: Whether to validate attribute types (default: True)
         **kwargs: Style attribute values
 
-    **Examples**
-
-    ```python
-    pattern_obj = pattern_style_obj(
-            pattern_color="green", pattern_type="lines"
-        )
-    ```
+    Examples:
+        >>> pattern_obj = pattern_style_obj(
+        >>> pattern_color="green", pattern_type="lines"
+        >>> )
 """
     return _get_style_obj(
         pattern_style_map, validate_types=validate_types, **kwargs

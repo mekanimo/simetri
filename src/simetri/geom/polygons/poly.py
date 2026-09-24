@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 class TrackedArray(np.ndarray):
     """NumPy array subclass that clears a parent cache on item assignment."""
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: Any) -> None:
         # print(# Here is your trigger event
         #     f"Alert: Index {key} is changing from {self[key]} to {value}!"
         # )
@@ -36,7 +36,7 @@ class TrackedArray(np.ndarray):
         super().__setitem__(key, value)
 
 
-def to_array(points: list | tuple | NDArray):
+def to_array(points: list | tuple | NDArray) -> NDArray:
     """Convert points to a homogeneous NumPy array.
 
     Args:
@@ -44,6 +44,14 @@ def to_array(points: list | tuple | NDArray):
 
     Returns:
         NumPy array with shape ``(n, 3)``.
+
+    Examples:
+        >>> from simetri.geom.polygons.poly import to_array
+        >>> arr = to_array([(0, 0), (1, 2)])
+        >>> arr.shape
+        (2, 3)
+        >>> arr[0, 2]
+        1.0
     """
     # convert points to a numpy array
     res = points
@@ -107,12 +115,20 @@ class Poly:
 
     __slots__ = ["_vertices", "closed", "id", "primary_points", "xform_matrix"]
 
-    def __init__(self, points: list | tuple | NDArray, closed: bool = False):
+    def __init__(self, points: list | tuple | NDArray, closed: bool = False) -> None:
         """Create a lightweight polygon/polyline from ``points``.
 
         Args:
             points: Vertex sequence or array (Cartesian or homogeneous).
             closed: If True, treat the polyline as a closed polygon.
+
+        Examples:
+            >>> from simetri.geom.polygons.poly import Poly
+            >>> poly = Poly([(0, 0), (1, 0), (1, 1)], closed=True)
+            >>> poly.closed
+            True
+            >>> poly.primary_points.shape
+            (3, 3)
         """
         self.primary_points = to_array(points).view(TrackedArray)
         self.xform_matrix = np.array([[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]])
@@ -123,12 +139,12 @@ class Poly:
         self._bbox = PolyBBox()  # empty bounding box
 
     @property
-    def vertices(self):
+    def vertices(self) -> tuple[PointType, ...]:
         # return self.primary_points @ self.xform_matrix
         """The final coordinates of the shape.
 
         Returns:
-            tuple: The final coordinates of the shape.
+            Transformed vertex coordinates.
         """
 
         if self.primary_points:
@@ -148,10 +164,10 @@ class Poly:
         return res
 
     @vertices.setter
-    def vertices(self, value):
+    def vertices(self, value: object) -> None:
         """No-op setter; vertices are derived from ``primary_points``."""
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         try:
             # try bounding-box properties first
             if name in s_bbox_props:
@@ -164,13 +180,13 @@ class Poly:
         except AttributeError:
             print(f"Invalid attribute: {name}")
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         if name in ("primary_points", "xform_matrix"):
             self._cache = {}
         setattr(self, name, value)
 
     @property
-    def vertices(self) -> tuple[PointType]:
+    def vertices(self) -> tuple[PointType, ...]:
         """The final coordinates of the shape.
 
         Returns:
@@ -193,7 +209,7 @@ class Poly:
 
         return res
 
-    def _reset_bbox(self):
+    def _reset_bbox(self) -> None:
         vertices = self.vertices
         xs = vertices[:, 0]
         ys = vertices[:, 1]
@@ -318,7 +334,7 @@ class PolyBBox:
 
     def __init__(
         self, corners: tuple[float, float, float, float] | None = None
-    ):
+    ) -> None:
         """Create an empty or corner-initialized axis-aligned bbox cache.
 
         Args:
@@ -329,7 +345,7 @@ class PolyBBox:
         else:
             self._cache = {}
 
-    def _reset(self, corners: tuple[float, float, float, float]):
+    def _reset(self, corners: tuple[float, float, float, float]) -> None:
         """
         corners : (min_x, min_y, max_x, max_y)
         When the _xs and -ys change, _cache needs to be reset.
@@ -345,7 +361,7 @@ class PolyBBox:
             "mid_y": (max_y - min_y) / 2,
         }
 
-    def _set_value(self, name):
+    def _set_value(self, name: str) -> Any:
         cache = self._cache
         d_ref = {
             "west": lambda: (cache["min_x"], cache["mid_y"]),
@@ -404,7 +420,7 @@ class PolyBBox:
 
         return res
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if not self._cache:
             return None
         alias = bbox_aliases.get(name, None)
@@ -414,16 +430,17 @@ class PolyBBox:
         # return the property if it exists, otherwise set it
         return self._cache.get(name, self._set_value(name))
 
-    def offset_line(self, side, offset):
-        """
-        Offset is applied outwards. Use negative values for inward offset.
+    def offset_line(
+        self, side: Side | str, offset: float
+    ) -> tuple[PointType, PointType]:
+        """Return a bbox edge offset outward by ``offset``.
 
         Args:
-            side (Side): The side to offset.
-            offset (float): The offset distance.
+            side: Bbox side (``Side`` or name string).
+            offset: Outward distance; use negative for inward.
 
         Returns:
-            tuple: The offset line.
+            Offset segment as two points.
         """
         if isinstance(side, str):
             side = Side[side.upper()]
@@ -457,17 +474,18 @@ class PolyBBox:
 
         return res
 
-    def offset_point(self, anchor, dx, dy):
-        """
-        Return an offset point from the given reference point.
+    def offset_point(
+        self, anchor: Anchor | str, dx: float, dy: float
+    ) -> list[float]:
+        """Return a point offset from a bbox anchor.
 
         Args:
-            anchor (Anchor): The anchor point.
-            dx (float): The x offset.
-            dy (float): The y offset.
+            anchor: ``Anchor`` or anchor name string.
+            dx: x offset.
+            dy: y offset.
 
         Returns:
-            list: The offset point.
+            Offset point ``[x, y]``.
         """
         if isinstance(anchor, str):
             anchor = Anchor[anchor.upper()]
@@ -493,6 +511,14 @@ def get_polygons(
 
     Returns:
         list: List of clean polygons.
+
+    Examples:
+        >>> from simetri.geom.polygons.poly import get_polygons
+        >>> polys = get_polygons([[(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]])
+        >>> len(polys)
+        1
+        >>> len(polys[0]) >= 4
+        True
     """
     from ..helpers.graph import sanitize_graph_edges
 

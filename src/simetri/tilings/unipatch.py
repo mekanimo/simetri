@@ -22,8 +22,8 @@ class UniPoly(Shape):
         pos: PointType = (0, 0),
         side_length: float = 100.0,
         xform_matrix: np.array = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> None:
         """Create a regular n-gon at ``pos`` with the given side length.
 
         Args:
@@ -51,7 +51,7 @@ class UniPoly(Shape):
         ref1: float,
         ref2: float,
         angle: float = 0,
-    ):
+    ) -> None:
         snap(
             free_shape=free_shape,
             ref1=ref1,
@@ -69,7 +69,7 @@ class UniPatch(Group):
 
     def __init__(
         self, signature: str | int | list[int], pos: PointType = (0, 0)
-    ):
+    ) -> None:
         """Create a patch from a tiling signature at ``pos``.
 
         Args:
@@ -81,14 +81,15 @@ class UniPatch(Group):
         super().__init__(elements)
         self.subtype = Types.UNIPATCH
 
-    def init(self, signature):
+    def init(self, signature: str | int | list[int]) -> None:
         """Build element list for ``signature`` (stub).
 
         Args:
-            signature: Patch identity.
+            signature: Patch identity (string, int, or list of ints).
 
         Returns:
-            Elements used to initialize the group (currently ``None``/pass).
+            None until implemented; ``UniPatch.__init__`` expects a list of
+            elements when this is filled in.
         """
 
     def snap(
@@ -123,5 +124,5 @@ class UniPatch(Group):
         """
 
     @property
-    def free_boundary(self) -> list[pointType]:
+    def free_boundary(self) -> list[PointType]:
         """Return free boundary points of the patch (stub)."""

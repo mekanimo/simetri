@@ -27,6 +27,8 @@ Scoping Algorithm Summary:
 from __future__ import annotations
 
 import copy
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from simetri.base.all_enums import (
     BackStyle,
@@ -40,6 +42,9 @@ from simetri.base.all_enums import (
 from simetri.base.common import d_id_obj
 from simetri.coloring.colors import black, white
 from simetri.render.sketch import ScopeGroup
+
+if TYPE_CHECKING:
+    from simetri.render.canvas import Canvas
 
 style_properties = [
     "draw_double",
@@ -83,7 +88,9 @@ default_values = {
 }
 
 
-def set_styles(sketches):
+def set_styles(
+    sketches: Sequence[Any],
+) -> tuple[dict[str, dict[str, Any]], dict[int, str]]:
     """Group sketches by shared non-default style signatures.
 
     Args:
@@ -195,8 +202,10 @@ def set_styles(sketches):
 
 
 def collect_tikz_preamble_requirements_for_sketch(
-    sketch, tikz_libraries, tikz_packages
-):
+    sketch: Any,
+    tikz_libraries: list[str],
+    tikz_packages: list[str],
+) -> None:
     """Collect required TikZ libraries and TeX packages for a sketch.
 
     Args:
@@ -284,7 +293,7 @@ def collect_tikz_preamble_requirements_for_sketch(
         tikz_packages.append("xcolor")
 
 
-def canvas_uses_label_halos(canvas) -> bool:
+def canvas_uses_label_halos(canvas: Canvas) -> bool:
     """Return True if any sketch draws index or vertex-coordinate labels.
 
     Args:
@@ -312,7 +321,9 @@ def label_halo_preamble_line() -> str:
     return "\\usepackage[outline]{contour}\n"
 
 
-def collect_tikz_preamble_requirements(canvas):
+def collect_tikz_preamble_requirements(
+    canvas: Canvas,
+) -> tuple[list[str], list[str]]:
     """Collect required TikZ libraries and TeX packages for a canvas.
 
     Args:
