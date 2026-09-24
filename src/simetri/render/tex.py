@@ -232,8 +232,6 @@ class Tex:
         sketches (list["Sketch"]): List of Sketch objects.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.tex import Tex
         >>> 'document' in Tex().begin_document
         True
@@ -265,8 +263,6 @@ class Tex:
             str: The final TeX code.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> from simetri.render.tex import Tex
             >>> Tex().tex_code(sg.Canvas(), '')  # doctest: +SKIP
@@ -385,8 +381,6 @@ class Tex:
             tuple[list[str], list[str]]: ``(tikz_libraries, packages)``.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> from simetri.render.tex import Tex
             >>> libs, pkgs = Tex().get_packages(sg.Canvas())
@@ -408,8 +402,6 @@ class Tex:
             str: The TeX preamble.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> from simetri.render.tex import Tex
             >>> len(Tex().get_preamble(sg.Canvas())) > 0

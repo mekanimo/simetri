@@ -86,8 +86,6 @@ def get_clip_mask_attrs(sketch: Any) -> tuple[str, str]:
         tuple[str, str]: ``(clip_attr, mask_attr)`` (possibly empty strings).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_clip_mask_attrs  # doctest: +SKIP
     """
     clip_attr = ""

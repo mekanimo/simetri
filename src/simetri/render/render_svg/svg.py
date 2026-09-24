@@ -47,8 +47,6 @@ def append_non_default_style_options(
         style_map: Maps sketch attribute name to ``(css_name, default_key)``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> append_non_default_style_options  # doctest: +SKIP
     """
     sketch_dict = sketch_attrib(sketch, "__dict__")
@@ -88,8 +86,6 @@ def get_marker_options(sketch: Any) -> list[str]:
         list[str]: Marker options, or an empty list when markers are disabled.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_marker_options  # doctest: +SKIP
     """
     attrib_map = _attrib_map
@@ -173,8 +169,6 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
         str: The SVG code.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_svg_shapes  # doctest: +SKIP
     """
 
@@ -358,8 +352,6 @@ def svg_shape(
         str: SVG markup for the sketch, or empty string if nothing to draw.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> svg_shape  # doctest: +SKIP
     """
     shape_type = get_shape_type(sketch)
@@ -508,8 +500,6 @@ def collect_patterns_and_gradients(
         ``id(sketch)`` and gradient map keyed by gradient id string.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> collect_patterns_and_gradients  # doctest: +SKIP
     """
     patterns = {}
@@ -546,8 +536,6 @@ def collect_markers(canvas: Canvas) -> dict[Any, Any]:
         dict[Any, Any]: ``sketch.id`` to sketch for marker definition generation.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> collect_markers  # doctest: +SKIP
     """
     markers = {}
@@ -583,8 +571,6 @@ def collect_clip_paths(canvas: Canvas) -> dict[int, tuple[Any, Any]]:
         dict[int, tuple[Any, Any]]: ``id(sketch)`` to ``(sketch, clip_shape)``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> collect_clip_paths  # doctest: +SKIP
     """
     clip_paths = {}
@@ -621,8 +607,6 @@ def collect_masks(canvas: Canvas) -> dict[str, tuple[Any, Any]]:
         dict[str, tuple[Any, Any]]: Mask id to ``(sketch, mask_shape)``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> collect_masks  # doctest: +SKIP
     """
     masks = {}
@@ -671,8 +655,6 @@ def get_limits_clippath(
         ``(None, None)`` when no clip is needed.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_limits_clippath  # doctest: +SKIP
     """
     limits = canvas.limits
@@ -726,8 +708,6 @@ def generate_defs(canvas: Canvas, styles_dict: dict[str, Any]) -> str:
         str: ``<defs>…</defs>`` block, or ``""`` when nothing is needed.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> generate_defs  # doctest: +SKIP
     """
 
@@ -904,8 +884,6 @@ def collect_filters(canvas: Canvas) -> dict[int, SVG_Filter]:
         dict[int, SVG_Filter]: ``id(sketch)`` to filter (ids assigned when missing).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> collect_filters  # doctest: +SKIP
     """
     filters = {}
@@ -1000,8 +978,6 @@ def generate_filter_def(sketch_id: int, svg_filter: SVG_Filter) -> str:
         str: Indented ``<filter>…</filter>`` fragment.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> generate_filter_def  # doctest: +SKIP
     """
     filter_svg = svg_filter.to_string(
@@ -1045,8 +1021,6 @@ def header(
         str: Opening ``<svg>…`` markup including background rect.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> header  # doctest: +SKIP
     """
     back_color = color_to_svg(color)
@@ -1073,8 +1047,6 @@ def footer() -> str:
         str: Closing ``</g></svg>`` markup.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> footer  # doctest: +SKIP
     """
     return r"""   </g>
@@ -1095,8 +1067,6 @@ def get_styles(
         str: SVG ``<style>…</style>`` markup.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_styles  # doctest: +SKIP
     """
     styles_lines = []
@@ -1128,8 +1098,6 @@ def get_svg_code(canvas: Canvas) -> str:
         str: Full SVG document markup.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_svg_code  # doctest: +SKIP
     """
     from ..canvas import (

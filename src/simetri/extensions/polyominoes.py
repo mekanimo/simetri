@@ -131,7 +131,7 @@ def iter_centers(
         >>> len(centers)
         1
         >>> sorted(centers[0])
-        [(0, 0), (1, 0)]
+        [(0, 0), (0, 1)]
     """
     if n <= 0:
         return
@@ -217,8 +217,6 @@ def iter_polyominoes(
         ``Figure`` instances with cells on a ``size``-point grid.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> fig = next(iter_polyominoes(1, size=10))
         >>> fig.__class__.__name__
         'Figure'

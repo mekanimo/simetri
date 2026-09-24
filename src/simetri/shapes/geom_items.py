@@ -7,8 +7,6 @@ Size (side, width/height, radius) is the first argument. Center defaults
 to ``(0, 0)``.
 
 Examples:
-    >>> from simetri.config.settings import set_defaults
-    >>> set_defaults()
     >>> c = Circle(radius=25, center=(0, 0))
     >>> float(c.radius)
     25.0
@@ -74,8 +72,6 @@ def offset_box(
             has length other than four, or if ``corners`` does not have four points.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> box = offset_box([(0, 0), (10, 0), (10, 5), (0, 5)], offset=1)
         >>> box.closed
         True
@@ -141,8 +137,6 @@ def square(
         Square: Closed square.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> sq = square(50)
         >>> len(sq.vertices)
         4
@@ -167,8 +161,6 @@ class Line(Shape):
     ``start + t * (end - start)``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> line = Line((0, 0), (10, 0))
         >>> line.extent.name
         'SEGMENT'
@@ -195,8 +187,6 @@ class Line(Shape):
             ValueError: If start and end points are the same.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> line = Line((0, 0), (1, 0), draw_type=Extent.RAY)
             >>> line.extent.name
             'RAY'
@@ -346,8 +336,6 @@ class Line(Shape):
             PointType: The point at parameter ``t``.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> line = Line((0, 0), (10, 0))
             >>> [float(round(coord, 6)) for coord in line.t(0.5)[:2]]
             [5.0, 0.0]
@@ -363,8 +351,6 @@ class Rectangle(Shape):
     Size comes first so ``Rectangle(40, 20)`` is a 40×20 box at the origin.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> r = Rectangle(40, 20)
         >>> r.subtype.name
         'RECTANGLE'
@@ -525,8 +511,6 @@ class Square(Rectangle):
     Size comes first so ``Square(40)`` is a 40×40 box at the origin.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> sq = Square(40)
         >>> sq.subtype.name
         'SQUARE'
@@ -559,8 +543,6 @@ class Rectangle2(Rectangle):
     """A rectangle defined by two opposite corners.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> rect = Rectangle2((0, 0), (10, 4))
         >>> rect.width
         10.0
@@ -600,8 +582,6 @@ class Circle(Shape):
         subtype: Always ``Types.CIRCLE``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> c = Circle(radius=10, center=(5, 5))
         >>> tuple(float(x) for x in c.center[:2])
         (5.0, 5.0)
@@ -757,8 +737,6 @@ class Segment(Shape):
     Prefer ``Line`` with ``extent=Extent.SEGMENT`` for new code.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> seg = Segment((0, 0), (10, 0))
         >>> seg.subtype.name
         'SEGMENT'
@@ -880,8 +858,6 @@ def circle_points(
         list[PointType]: A list of points that form a circle.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> pts = circle_points((0, 0), 1, n=4)
         >>> len(pts)
         4
@@ -913,8 +889,6 @@ def arc_points(
         list[PointType]: A list of points that form a circular arc.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> pts = arc_points((0, 0), 1, 0, pi / 2, clockwise=True, n=2)
         >>> [round(coord, 6) for coord in pts[0][:2]]
         [0.0, 1.0]
@@ -940,8 +914,6 @@ def hex_points(side_length: float) -> list[PointType]:
         list[PointType]: A list of points that define the hexagon.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> pts = hex_points(1)
         >>> len(pts)
         6
@@ -974,8 +946,6 @@ def rectangle_points(
         Sequence[PointType]: Corner points in order (not closed).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> pts = rectangle_points((0, 0), 10, 4)
         >>> len(pts)
         4
@@ -1011,8 +981,6 @@ def reg_poly_points_side_length(
         is not repeated).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> pts = reg_poly_points_side_length(4, 2, angle=pi / 2)
         >>> bool(abs(float(pts[0][0])) < 1e-9)
         True
@@ -1047,8 +1015,6 @@ def reg_poly_points(
         repeated at the end).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> pts = reg_poly_points(4, 1)
         >>> len(pts)
         5
@@ -1075,8 +1041,6 @@ def di_star(points: Sequence[PointType], n: int) -> Group:
         Group: A Group instance (dihedral star with n petals).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> star = di_star([(1, 0), (0.5, 0.2)], 2)
         >>> star.type.name
         'GROUP'
@@ -1105,8 +1069,6 @@ def hex_grid_centers(
         list[PointType]: A list of points that define the centers of the hexagons.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> hex_grid_centers(0, 0, 1, 1, 1)
         [(0, 0)]
 """
@@ -1146,8 +1108,6 @@ def rect_grid(
         Group: A Group object representing the grid.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> grid = rect_grid(0, 0, 10, 10, 1, 1, [[True]])
         >>> len(grid) > 1
         True
@@ -1195,8 +1155,6 @@ def reg_star_polygon(
         copies when ``gcd(n, step) > 1``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> star = reg_star_polygon(5, 2, 10)
         >>> star.subtype.name
         'SHAPE'
@@ -1234,8 +1192,6 @@ def star_shape(
         Group: A Group object representing the star.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> star = star_shape([(1, 0), (0.2, 0.2)], reps=2, scale=2)
         >>> star.type.name
         'GROUP'
@@ -1268,8 +1224,6 @@ def dot_shape(
         Shape: A point shape with ``marker`` set to ``radius``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> dot = dot_shape(radius=3, pos=(1, 2))
         >>> dot.marker
         3
@@ -1313,8 +1267,6 @@ def rect_shape(
         Rectangle: A closed rectangle.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> rect = rect_shape(10, 4, center=(1, 2), fill=False)
         >>> rect.fill
         False
@@ -1348,8 +1300,6 @@ def arc_shape(
         Shape: A Shape object with points that form a circular arc.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> arc = arc_shape(0, 0, 1, 0, pi / 2, clockwise=True, n=2)
         >>> [float(round(coord, 6)) for coord in arc.vertices[0][:2]]
         [0.0, 1.0]
@@ -1376,8 +1326,6 @@ def circle_shape(
         Circle: A circle.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> circ = circle_shape(2, center=(3, 4), fill=False)
         >>> circ.fill
         False
@@ -1407,8 +1355,6 @@ def reg_poly_shape(
         Shape: A closed regular polygon.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> poly = reg_poly_shape(4, r=1, fill=False)
         >>> poly.fill
         False
@@ -1441,8 +1387,6 @@ def reg_poly_shape_side_length(
         Shape: A closed regular polygon.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> poly = reg_poly_shape_side_length(4, 2, angle=pi / 2)
         >>> bool(abs(float(poly.vertices[0][0])) < 1e-9)
         True
@@ -1476,8 +1420,6 @@ def ellipse_shape(
         Ellipse: An ellipse.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> ell = ellipse_shape(10, 6, center=(1, 2))
         >>> ell.subtype.name
         'ELLIPSE'
@@ -1507,8 +1449,6 @@ def line_shape(
         Line: A line segment between ``p1`` and ``p2``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> line = line_shape((0, 0), (4, 0), line_width=2)
         >>> line.line_width
         2
@@ -1547,8 +1487,6 @@ def inflate(item: Shape, offset: float) -> Shape:
             result would have a non-positive size.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> sq = square(40)
         >>> out = inflate(sq, 5)
         >>> type(out).__name__
@@ -1666,8 +1604,6 @@ def offset_polygon_shape(
         Shape: A new closed polygon with offset vertices.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> src = square(size=10)
         >>> out = offset_polygon_shape(src, offset=2)
         >>> out is not src
@@ -1714,8 +1650,6 @@ def snap(
         The transformed ``free_shape`` (same object, mutated in place).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> free = square(center=(0, 0), size=2)
         >>> fixed = square(center=(10, 0), size=2)
         >>> snapped = snap(free, 1, fixed, 0)
@@ -1825,8 +1759,6 @@ def fillet_shape_corners(
         A copy of ``shape`` with fillet vertices substituted.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> src = square(size=10)
         >>> rounded = fillet_shape_corners(src, {0: 1}, n=4)
         >>> rounded is not src

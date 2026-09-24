@@ -716,8 +716,6 @@ def path2d_points(path2d: "Path2D", delta: float) -> list[tuple[float, float]]:
     adjusted for each part of the Path2D accordingly.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.nonlinear.path import Path2D
         >>> from simetri.render.render_svg.svg_utils import path2d_points
         >>> len(path2d_points(Path2D((0, 0)).line_to((3, 0)), 1)) >= 2

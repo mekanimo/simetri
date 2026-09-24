@@ -4,8 +4,6 @@ Provides ``Lace``, ``Polyline``, ``ParallelPolyline``, and related helpers
 for building over/under weaving patterns that can be drawn on a canvas.
 
 Examples:
-    >>> from simetri.config.settings import set_defaults
-    >>> set_defaults()
     >>> from simetri.interlace.lace import Polyline
     >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
     >>> len(poly.divisions)
@@ -218,8 +216,6 @@ class Intersection(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Division, Intersection
         >>> division = Division((0, 0), (10, 0))
         >>> x = Intersection((5, 0), division)
@@ -362,8 +358,6 @@ class Partition(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Partition
         >>> part = Partition([(0, 0), (4, 0), (4, 4), (0, 4)])
         >>> round(part.area, 2)
@@ -405,8 +399,6 @@ class Fragment(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Fragment
         >>> frag = Fragment([(0, 0), (4, 0), (4, 4)])
         >>> frag.subtype.name
@@ -540,8 +532,6 @@ class Section(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Polyline, Section
         >>> poly = Polyline([(0, 0), (10, 0)], closed=False)
         >>> section = Section(poly.intersections[0], poly.intersections[1])
@@ -644,8 +634,6 @@ class Overlap(Group):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Overlap
         >>> overlap = Overlap()
         >>> overlap.subtype.name
@@ -697,8 +685,6 @@ class Division(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Division
         >>> d1 = Division((0, 0), (10, 0))
         >>> d2 = Division((10, 0), (10, 10))
@@ -905,8 +891,6 @@ class Polyline(Shape):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Polyline
         >>> closed = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
         >>> len(closed.divisions)
@@ -1098,8 +1082,6 @@ class ParallelPolyline(Group):
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import ParallelPolyline, Polyline
         >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
         >>> parallel = ParallelPolyline(poly, offset=2)
@@ -1177,8 +1159,6 @@ class Lace(Group):
     shapes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Lace
         >>> from simetri.shapes.shape import Shape
         >>> from simetri.group.batch import Group
@@ -1745,8 +1725,6 @@ class Lace(Group):
             Group: Group containing copies of plaits and fragments.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.interlace.lace import Lace
             >>> from simetri.shapes.shape import Shape
             >>> from simetri.group.batch import Group
@@ -1779,8 +1757,6 @@ class Lace(Group):
             Group: Sketch group containing fragment and plait shapes.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.interlace.lace import Lace
             >>> from simetri.shapes.shape import Shape
             >>> lace = Lace(
@@ -1939,8 +1915,6 @@ class Lace(Group):
             list[list[int]]: Cycles of intersection ids.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.interlace.lace import Lace
             >>> from simetri.shapes.shape import Shape
             >>> from simetri.group.batch import Group
@@ -2540,8 +2514,6 @@ class Lace(Group):
             nx.Graph: Nodes are fragment ids; edges carry the shared division.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.interlace.lace import Lace
             >>> from simetri.shapes.shape import Shape
             >>> from simetri.group.batch import Group
@@ -2649,8 +2621,6 @@ def all_intersections(
         list[Intersection]: Intersections found among the divisions.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Division, all_intersections
         >>> d1 = Division((0, 0), (10, 10))
         >>> d2 = Division((0, 10), (10, 0))
@@ -2772,8 +2742,6 @@ def merge_nodes(
         list[Intersection]: Intersections found among the divisions.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.interlace.lace import Division, merge_nodes
         >>> d1 = Division((0, 0), (10, 10))
         >>> d2 = Division((0, 10), (10, 0))

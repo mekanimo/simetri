@@ -38,8 +38,6 @@ def l_system(
         Group: A group of shapes representing the L-system drawing.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> rules = {'F': 'F+F-F-F+F'}
         >>> group = l_system(rules, 'F', 60, 10, 2)
         >>> group.__class__.__name__

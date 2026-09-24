@@ -221,8 +221,6 @@ def clip_mask(
         The canvas (``self``) for chaining.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> clip_mask  # doctest: +SKIP
     """
     mask_shape, mask_opacity, mask_stops, mask_axis = _normalize_mask_inputs(

@@ -5,8 +5,6 @@ Bound onto ``Group`` as ``merge_shapes`` and
 importing these private functions directly.
 
 Examples:
-    >>> from simetri.config.settings import set_defaults
-    >>> set_defaults()
     >>> from simetri.group.batch import Group
     >>> from simetri.shapes.shape import Shape
     >>> g = Group([Shape([(0, 0), (10, 0)]), Shape([(10, 0), (20, 0)])])

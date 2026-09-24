@@ -635,7 +635,7 @@ def set_defaults() -> None:
 
     Examples:
 
-        >>> sg.set_defaults()
+        >>> import simetri.graphics as sg
         >>> "line_width" in sg.defaults
         True
     """

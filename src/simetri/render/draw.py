@@ -131,8 +131,6 @@ def help_lines(
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.help_lines((0, 0), 20, 20, spacing=10, cs_size=0, deferred=False) is canvas
@@ -243,8 +241,6 @@ def arc(
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.arc((0, 0), 10, 10, 0, sg.pi / 2, 0) is canvas
@@ -289,8 +285,6 @@ def bezier(self: Canvas, control_points: Sequence[PointType], **kwargs: object) 
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.bezier([(0, 0), (5, 10), (10, 0)]) is canvas
@@ -325,8 +319,6 @@ def circle(self: Canvas, radius: float, center: PointType = (0, 0), **kwargs: ob
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.circle(10, (0, 0)) is canvas
@@ -376,8 +368,6 @@ def ellipse(
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.ellipse(20, 10) is canvas
@@ -437,8 +427,6 @@ def text(
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.text("A", (0, 0)) is canvas
@@ -480,8 +468,6 @@ def line(self: Canvas, start: PointType, end: PointType, **kwargs: object) -> Se
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.line((0, 0), (10, 0)) is canvas
@@ -518,8 +504,6 @@ def rectangle(
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.rectangle(10, 6) is canvas
@@ -559,8 +543,6 @@ def draw_CS(self: Canvas, size: float | None = None, **kwargs: object) -> Self:
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.draw_CS(10) is canvas
@@ -598,8 +580,6 @@ def lines(self: Canvas, points: Sequence[PointType], **kwargs: object) -> Self:
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.lines([(0, 0), (10, 0), (10, 5)]) is canvas
@@ -728,8 +708,6 @@ def draw_latex(
         Self: The canvas object.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.draw_latex("x", (0, 0), visible=False) is canvas
@@ -797,8 +775,6 @@ def insert_svg(self: Canvas, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.insert_svg('<circle cx="0" cy="0" r="10"/>') is canvas
@@ -824,8 +800,6 @@ def insert_tex(self: Canvas, code: str, location: TexLoc = TexLoc.NONE) -> Self:
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.insert_tex("% note") is canvas
@@ -851,8 +825,6 @@ def draw_bbox(self: Canvas, bbox: BoundingBox, **kwargs: object) -> Self:
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.draw import draw_bbox
         >>> canvas = sg.Canvas()
@@ -877,8 +849,6 @@ def draw_pattern(self: Canvas, pattern: Pattern, **kwargs: object) -> Self:
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> kernel = sg.Shape([(0, 0), (1, 0), (1, 1)], closed=True)
@@ -909,8 +879,6 @@ def draw_group(self: Canvas, group: Group, **kwargs: object) -> Self:
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> group = sg.Group([sg.Shape([(0, 0), (1, 0), (1, 1)])])
@@ -936,8 +904,6 @@ def draw_widget(self: Canvas, item: Drawable, **kwargs: object) -> Self:
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from types import SimpleNamespace
         >>> widget = SimpleNamespace(
@@ -983,8 +949,6 @@ def draw_hobby(
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.draw import draw_hobby
         >>> canvas = sg.Canvas()
@@ -1094,8 +1058,6 @@ def shade_value(angle: float) -> float:
         ValueError: If ``angle`` is outside ``[0, 2 * pi]``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> shade_value(sg.pi / 2)
         1.0
@@ -1119,8 +1081,6 @@ def plait_emboss1(self: Canvas, lace: Lace, **kwargs: object) -> None:
         None
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> lace = sg.Lace([(0, 0), (20, 0), (10, 10)], closed=True)  # doctest: +SKIP
@@ -1238,8 +1198,6 @@ def plait_emboss2(self: Canvas, lace: Lace, **kwargs: object) -> None:
         None
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> lace = sg.Lace([(0, 0), (20, 0), (10, 10)], closed=True)  # doctest: +SKIP
@@ -1361,8 +1319,6 @@ def plait_diamond(self: Canvas, lace: Lace, **kwargs: object) -> None:
         None
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> lace = sg.Lace([(0, 0), (20, 0), (10, 10)], closed=True)  # doctest: +SKIP
@@ -1478,8 +1434,6 @@ def draw_lace_with_fillets(self: Canvas, lace: Lace, **kwargs: object) -> None:
             to ``draw_lace``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> lace = sg.Lace([(0, 0), (20, 0), (10, 10)], closed=True)  # doctest: +SKIP
@@ -1504,8 +1458,6 @@ def draw_plaits(self: Canvas, lace: Lace | None = None, **kwargs: object) -> Non
             ``plait_style``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> from simetri.render.draw import draw_plaits
@@ -1549,8 +1501,6 @@ def draw_fragments(
             style overrides forwarded to ``draw``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> from simetri.render.draw import draw_fragments
@@ -1756,8 +1706,6 @@ def draw_lace(
         Self: The canvas object.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> lace = sg.Lace([(0, 0), (20, 0), (10, 10)], closed=True)  # doctest: +SKIP
@@ -1831,8 +1779,6 @@ def draw_lines(self: Canvas, lines: Sequence[Sequence[PointType]], **kwargs: obj
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.draw_lines([((0, 0), (10, 0))]) is canvas
@@ -1872,8 +1818,6 @@ def draw_image(
 
     Examples:
         >>> from PIL import Image as PILImage
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.images.image import Image
         >>> image = Image(PILImage.new('RGB', (2, 2)))
@@ -1946,8 +1890,6 @@ def draw_pdf(
     Examples:
         >>> import os
         >>> import tempfile
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> fd, path = tempfile.mkstemp(suffix='.pdf')
         >>> _ = os.write(fd, b'%PDF-1.0\\n%%EOF\\n')
@@ -2009,8 +1951,6 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
         Self: The canvas object.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.helpers.illustration import Dimension
         >>> canvas = sg.Canvas()
@@ -2086,8 +2026,6 @@ def grid(
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.grid((0, 0), 20, 20, 10) is canvas
@@ -2159,8 +2097,6 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         item: Item whose vertices are copied onto the canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> extend_vertices(canvas, sg.Shape([(0, 0), (10, 0), (0, 10)]))
@@ -2240,8 +2176,6 @@ def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
             after ``expand`` or ``populate_unit``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.draw(sg.Shape([(0, 0), (10, 0), (10, 10)])) is canvas
@@ -2367,8 +2301,6 @@ def draw_all_segments(
         Self: The canvas.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)])
@@ -2409,8 +2341,6 @@ def get_clipped_sketch(
         ClippedSketch: Composite sketch with clipper attached.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.draw import get_clipped_sketch
         >>> canvas = sg.Canvas()
@@ -2446,8 +2376,6 @@ def get_sketches(
         list[Sketch]: Sketches for the item, or an empty list when hidden.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.draw import get_sketches
         >>> canvas = sg.Canvas()
@@ -2519,8 +2447,6 @@ def set_shape_sketch_style(
         **kwargs: Additional keyword arguments.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.draw import create_sketch, set_shape_sketch_style
         >>> canvas = sg.Canvas()
@@ -2655,8 +2581,6 @@ def get_verts_in_new_pos(item: Shape, **kwargs: object) -> list[PointType]:
         vertices when ``pos`` is not given.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> shape = sg.Shape([(0, 0), (2, 0), (2, 2)])
         >>> get_verts_in_new_pos(shape, pos=(3, 1))[0]
@@ -3183,8 +3107,6 @@ def create_sketch(
         A single sketch, a list of sketches, or ``None`` when invisible.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.draw import create_sketch
         >>> canvas = sg.Canvas()

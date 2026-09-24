@@ -1,8 +1,6 @@
 """Dot and Dots classes for creating circular markers.
 
 Examples:
-    >>> from simetri.config.settings import set_defaults
-    >>> set_defaults()
     >>> d = Dot((10, 20), radius=3)
     >>> d.radius
     3
@@ -39,8 +37,6 @@ class Dot(Shape):
         subtype: Always ``Types.DOT``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> dot = Dot((5, 5), radius=2)
         >>> dot.subtype.name
         'DOT'
@@ -142,8 +138,6 @@ class Dots(Group):
         subtype: Always ``Types.DOTS``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> dots = Dots((0, 0), radius=1)
         >>> len(dots)
         1

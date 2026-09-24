@@ -322,8 +322,6 @@ class feColorMatrix(FilterPrimitive):
     SVG ``<feColorMatrix>`` filter primitive.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.render_svg.filters import feColorMatrix
         >>> feColorMatrix().to_element().tag
         'feColorMatrix'
@@ -352,8 +350,6 @@ class feColorMatrix(FilterPrimitive):
             ET.Element: XML element ready for serialization.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.render.render_svg.filters import feColorMatrix
             >>> feColorMatrix().to_element().tag
             'feColorMatrix'

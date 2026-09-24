@@ -8,8 +8,6 @@ Note:
     them by hand unless writing a backend.
 
 Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> sk = CircleSketch(center=(0, 0), radius=10)
         >>> sk.subtype.name
         'CIRCLE_SKETCH'
@@ -61,8 +59,6 @@ class CircleSketch:
         type: Always ``Types.SKETCH``.
         subtype: Always ``Types.CIRCLE_SKETCH``.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = CircleSketch(center=(0, 0), radius=10)
         >>> sk.subtype.name
@@ -100,8 +96,6 @@ class EllipseSketch:
         angle (float, optional): The orientation angle. Defaults to 0.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = EllipseSketch(center=(0, 0), x_radius=5, y_radius=3)
         >>> sk.subtype.name
@@ -142,8 +136,6 @@ class RectangleSketch:
         xform_matrix: Affine transform at draw time.
         subtype: Always ``Types.RECTANGLE_SKETCH``.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = RectangleSketch((0, 0), 10, 5)
         >>> sk.subtype.name
@@ -177,8 +169,6 @@ class LinesSketch:
         xform_matrix: Affine transform at draw time.
         subtype: Always ``Types.LINES_SKETCH``.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = LinesSketch([((0, 0), (1, 0))])
         >>> sk.subtype.name
@@ -206,8 +196,6 @@ class LineSketch:
         vertices (list): The vertices of the line.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.sketch import LineSketch
         >>> LineSketch.__name__
         'LineSketch'
@@ -327,8 +315,6 @@ class LineSketch:
         """Populate rendered vertices for deferred draw types (RAY/INFINITE).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> sk = LineSketch(vertices=[(0, 0), (100, 0)])  # doctest: +SKIP
@@ -361,8 +347,6 @@ class PatternSketch:
         pattern Pattern: The pattern object.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.patterns.pattern import Pattern
         >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0), (0, 1)]))
@@ -396,8 +380,6 @@ class ImageSketch:
         image Image: The Image object.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from PIL import Image as PILImage
         >>> from simetri.images.image import Image
@@ -457,8 +439,6 @@ class LatexSketch:
         anchor (Anchor): Anchor point of the rendered box. Defaults to Anchor.SOUTHWEST.
         xform_matrix (ndarray, optional): The canvas transformation matrix.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = LatexSketch(r'x^2', (0, 0))
         >>> sk.subtype.name
@@ -497,8 +477,6 @@ class MaskSketch:
     """Sketch-like container for canvas-level mask scope metadata.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.sketch import MaskSketch
         >>> sk = MaskSketch()
         >>> sk.subtype.name
@@ -537,8 +515,6 @@ class ShapeSketch:
         vertices (list, optional): The vertices of the shape. Defaults to None.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.sketch import ShapeSketch
         >>> ShapeSketch.__name__
         'ShapeSketch'
@@ -572,8 +548,6 @@ class BezierSketch:
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
         mode (CurveMode, optional): The mode of the curve. Defaults to CurveMode.OPEN.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.sketch import BezierSketch
         >>> BezierSketch.__name__
@@ -610,8 +584,6 @@ class ArcSketch:
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
         mode (CurveMode, optional): The mode of the curve. Defaults to CurveMode.OPEN.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.sketch import ArcSketch
         >>> ArcSketch.__name__
@@ -646,8 +618,6 @@ class ScopeGroup:
     This is used for defining a style and referencing it from many
     shapes. This makes the source code more readable and shorter.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.base.all_enums import Types
         >>> group = ScopeGroup('s1', Types.SCOPE_GROUP, [], {})
@@ -671,8 +641,6 @@ class ClippedSketch:
     """canvas.clip creates a ClippedSketch
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.sketch import ClippedSketch
         >>> ClippedSketch.__name__
         'ClippedSketch'
@@ -696,8 +664,6 @@ class MaskedSketch:
     """canvas.mask creates a MaskedSketch
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.sketch import MaskedSketch
         >>> sk = MaskedSketch(sketches=[[]], mask=None)
         >>> sk.subtype.name
@@ -722,8 +688,6 @@ class FilteredSketch:
     """canvas.filter creates a FilteredSketch
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.sketch import FilteredSketch
         >>> FilteredSketch(sketches=[[]], filter_s=[])  # doctest: +SKIP
     """
@@ -748,8 +712,6 @@ class PathSketch:
         sketches (list[Types.SKETCH]): The list of sketches.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.sketch import PathSketch
         >>> sk = PathSketch(sketches=[])
         >>> sk.subtype.name
@@ -778,8 +740,6 @@ class LaceSketch:
         plait_sketches (list[ShapeSketch]): The list of plait sketches.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = LaceSketch(fragment_sketches=[], plait_sketches=[])
         >>> sk.subtype.name
@@ -829,8 +789,6 @@ class FrameSketch:
         min_height (float, optional): The minimum height. Defaults to 0.
         min_radius (float, optional): The minimum radius. Defaults to 0.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = FrameSketch()
         >>> sk.subtype.name
@@ -886,8 +844,6 @@ class TagSketch:
             (use the default).
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = TagSketch(text='hi', pos=(0, 0))
         >>> sk.text
@@ -929,8 +885,6 @@ class PDFSketch:
         scale (float, optional): The scale of the PDF. Defaults to 1.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = PDFSketch(file_path='doc.pdf')
         >>> sk.subtype.name
@@ -963,8 +917,6 @@ class RectSketch:
         height (float): The height of the rectangle.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = RectSketch((0, 0), 10, 5)
         >>> sk.closed
@@ -1020,8 +972,6 @@ class HelpLinesSketch:
         origin_style: Resolved shape style for the origin marker.
         origin_size: Origin marker radius.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = HelpLinesSketch(
         ...     spacing=10,
@@ -1058,8 +1008,6 @@ class HelpLinesSketch:
             canvas: Canvas whose vertices define the help-line region.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas._all_vertices.extend([(0, 0), (10, 10)])
@@ -1103,8 +1051,6 @@ class CompositeSketch:
         sketches: Child sketch objects.
         xform_matrix: Optional affine matrix applied to the composite.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = CompositeSketch(sketches=[])
         >>> sk.subtype.name
@@ -1135,8 +1081,6 @@ class TableSketch:
         sketches: Grid and cell sketches in draw order.
         show_lines: Whether grid line shapes were included.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> sk = TableSketch((0, 0), [10.0], [5.0], [])
         >>> sk.subtype.name

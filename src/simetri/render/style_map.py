@@ -119,8 +119,6 @@ class FontStyle:
         alpha (float): The alpha value of the font.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import FontStyle
         >>> FontStyle().subtype.name
         'FONT_STYLE'
@@ -177,8 +175,6 @@ class GridStyle:
         back_color (Color): The background color of the grid.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import GridStyle
         >>> GridStyle().subtype.name
         'GRID_STYLE'
@@ -238,8 +234,6 @@ class MarkerStyle:
         shape: The custom shape to use when marker_type is SHAPE.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import MarkerStyle
         >>> MarkerStyle().subtype.name
         'MARKER_STYLE'
@@ -296,8 +290,6 @@ class LineStyle:
         double_distance (float): The distance between double lines.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import LineStyle
         >>> LineStyle().subtype.name
         'LINE_STYLE'
@@ -395,8 +387,6 @@ class PatternStyle:
         points (int): The number of points in the pattern.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import PatternStyle
         >>> PatternStyle().subtype.name
         'PATTERN_STYLE'
@@ -456,8 +446,6 @@ class ShadeStyle:
         upper_right_color (Color): The upper right color of the shade.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import ShadeStyle
         >>> ShadeStyle().subtype.name
         'SHADE_STYLE'
@@ -532,8 +520,6 @@ class SVG_TileStyle:
         units (str): Pattern units ('userSpaceOnUse' or 'objectBoundingBox').
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import SVG_TileStyle
         >>> SVG_TileStyle().subtype.name
         'PATTERN_STYLE'
@@ -588,8 +574,6 @@ class FillStyle:
         gradient_style (object): The gradient object.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import FillStyle
         >>> FillStyle().subtype.name
         'FILL_STYLE'
@@ -656,8 +640,6 @@ class ShapeStyle:
         alpha (float): The alpha value of the shape.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import ShapeStyle
         >>> ShapeStyle().subtype.name
         'SHAPE_STYLE'
@@ -713,8 +695,6 @@ class FrameStyle:
         alpha (float): The alpha value of the frame.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import FrameStyle
         >>> FrameStyle().subtype.name
         'FRAME_STYLE'
@@ -762,8 +742,6 @@ class ImageStyle:
         frame_style (FrameStyle): The frame style of the image.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import ImageStyle
         >>> ImageStyle().subtype.name
         'IMAGE_STYLE'
@@ -830,8 +808,6 @@ class TagStyle:
         text_width (float): The text width of the tag.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import TagStyle
         >>> TagStyle().subtype.name
         'TAG_STYLE'
@@ -1865,8 +1841,6 @@ def get_draw_valid_kwargs() -> frozenset[str]:
     """Return the set of keyword names accepted by ``canvas.draw()``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import get_draw_valid_kwargs
         >>> 'line_color' in get_draw_valid_kwargs()
         True
@@ -1919,8 +1893,6 @@ class StyleObj:
     Includes type validation based on settings.default_types.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.style_map import line_style_obj
         >>> obj = line_style_obj(validate_types=False, line_width=2)
         >>> obj.line_width
@@ -2085,8 +2057,6 @@ class StyleObj:
         """Update multiple attributes at once.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.render.style_map import line_style_obj
             >>> obj = line_style_obj(validate_types=False)
             >>> obj.update(line_width=3)
@@ -2100,8 +2070,6 @@ class StyleObj:
         """Convert StyleObj to dictionary, excluding None values.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.render.style_map import line_style_obj
             >>> obj = line_style_obj(validate_types=False, line_width=2)
             >>> obj.to_dict()['line_width']
@@ -2142,8 +2110,6 @@ def line_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
         **kwargs: Style attribute values
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> line_obj = line_style_obj(validate_types=False, line_width=2)
         >>> line_obj.line_dash_array = [5, 2]
         >>> line_obj.line_dash_array
@@ -2164,8 +2130,6 @@ def fill_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
         **kwargs: Style attribute values
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> fill_obj = fill_style_obj(validate_types=False, alpha=0.5)
         >>> fill_obj.alpha
         0.5
@@ -2185,8 +2149,6 @@ def shape_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
         **kwargs: Style attribute values
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> shape_obj = shape_style_obj(validate_types=False, line_width=2)
         >>> shape_obj.line_width
         2
@@ -2206,8 +2168,6 @@ def frame_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
         **kwargs: Style attribute values
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> frame_obj = frame_style_obj(validate_types=False, inner_sep=5)
         >>> frame_obj.inner_sep
         5
@@ -2227,8 +2187,6 @@ def image_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
         **kwargs: Style attribute values
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> img_obj = image_style_obj(validate_types=False, alpha=0.8)
         >>> img_obj.alpha
         0.8
@@ -2248,8 +2206,6 @@ def tag_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
         **kwargs: Style attribute values
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> tag_obj = tag_style_obj(validate_types=False, font_size=12)
         >>> tag_obj.font_size
         12
@@ -2269,8 +2225,6 @@ def marker_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
         **kwargs: Style attribute values
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> marker_obj = marker_style_obj(validate_types=False, marker_size=3)
         >>> marker_obj.marker_size
         3
@@ -2290,8 +2244,6 @@ def pattern_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj
         **kwargs: Style attribute values
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> pattern_obj = pattern_style_obj(validate_types=False, pattern_distance=4)
         >>> pattern_obj.pattern_distance
         4

@@ -92,8 +92,6 @@ def scope_code_required(canvas: Canvas) -> bool:
     """
     Check if canvas-level mask scope sketch exists.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> scope_code_required  # doctest: +SKIP
     """
     return _canvas_mask_scope_sketch(canvas) is not None
@@ -110,8 +108,6 @@ def get_back_grid_code(grid: Grid, canvas: Canvas) -> str:
         str: The background grid code.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_back_grid_code  # doctest: +SKIP
     """
     # \usetikzlibrary{backgrounds}
@@ -159,8 +155,6 @@ def get_limits_code(canvas: Canvas) -> str:
         str: The limits code for clipping.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_limits_code  # doctest: +SKIP
     """
     if canvas.limits is not None:
@@ -198,8 +192,6 @@ def get_back_code(canvas: Canvas) -> str:
         str: The background code.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_back_code  # doctest: +SKIP
     """
     back_color = color_to_tikz(canvas.back_color, "back_color")
@@ -231,8 +223,6 @@ def get_tex_code(canvas: Canvas) -> str:
         str: The TikZ code.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_tex_code  # doctest: +SKIP
     """
 
@@ -643,8 +633,6 @@ def get_canvas_scope(canvas: Canvas) -> str:
         str: ``\\begin{scope}`` prefix or mask/fade preamble, possibly empty.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_canvas_scope  # doctest: +SKIP
     """
     option_list = []
@@ -715,8 +703,6 @@ def get_draw(sketch: Any) -> str | Literal[False]:
         ``False`` when nothing should be emitted.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from types import SimpleNamespace
         >>> from simetri.render.render_tikz.tikz import get_draw
         >>> get_draw(SimpleNamespace(closed=True, fill=True, stroke=False, back_style=None))

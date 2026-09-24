@@ -32,8 +32,6 @@ class Grid(Group):
     """A base-class for all grids.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.base.all_enums import GridType
         >>> from simetri.render.grids import Grid
         >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
@@ -114,8 +112,6 @@ class Grid(Group):
         """Return the grid vertex points.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
             >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
@@ -137,8 +133,6 @@ class Grid(Group):
             PointType: Intersection of the two lines.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
             >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
@@ -166,8 +160,6 @@ class Grid(Group):
             tuple: The line connecting the two points.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
             >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
@@ -188,8 +180,6 @@ class Grid(Group):
             PointType: Cartesian coordinates of the point.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.render.grids import CircularGrid
             >>> g = CircularGrid(n=12, radius=10)
             >>> round(g.radial_point(5, 0)[0], 10)
@@ -211,8 +201,6 @@ class Grid(Group):
             PointType: The point on the line connecting the two points.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
             >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
@@ -236,8 +224,6 @@ class CircularGrid(Grid):
     """A grid formed by connections of regular polygon points.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.grids import CircularGrid
         >>> CircularGrid(n=6, radius=20).n
         6
@@ -270,8 +256,6 @@ class HexGrid(Grid):
     """A grid formed by connections of regular polygon points.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.grids import HexGrid
         >>> HexGrid(radius=50).n
         6
@@ -300,8 +284,6 @@ class SquareGrid(Grid):
     """A grid formed by connections of square cells.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.grids import SquareGrid
         >>> SquareGrid(n=16, cell_size=25).cell_size
         25
@@ -368,8 +350,6 @@ def convert_basis(
         ``(x', y')`` in the new basis.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.grids import convert_basis
         >>> convert_basis(1, 0, ((1, 0), (0, 1)))
         (1, 0)
@@ -391,8 +371,6 @@ def convert_to_cartesian(
         ``(x', y')`` in Cartesian coordinates.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.grids import convert_to_cartesian
         >>> convert_to_cartesian(1, 0, ((1, 0), (0, 1)))
         (1, 0)
@@ -411,8 +389,6 @@ def cartesian_to_isometric(x: float, y: float) -> tuple[float, float]:
         Isometric ``(x', y')``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.grids import cartesian_to_isometric
         >>> cartesian_to_isometric(1, 0)[0]
         1
@@ -431,8 +407,6 @@ def isometric_to_cartesian(x: float, y: float) -> tuple[float, float]:
         Cartesian ``(x', y')``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.grids import isometric_to_cartesian
         >>> isometric_to_cartesian(1, 0)[0]
         1.0

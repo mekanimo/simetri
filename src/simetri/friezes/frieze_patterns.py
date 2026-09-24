@@ -76,8 +76,6 @@ class HopDef:
         """Apply this hop pattern to ``design``.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.shapes.geom_items import Circle
             >>> len(HopDef(dx=20, reps=2).apply(Circle(5)))
             3
@@ -138,8 +136,6 @@ class StepDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.group.batch import Group
             >>> from simetri.shapes.geom_items import Circle
             >>> isinstance(StepDef(0, 10, reps=1).apply(Circle(5)), Group)
@@ -210,8 +206,6 @@ class JumpDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.group.batch import Group
             >>> from simetri.shapes.geom_items import Circle
             >>> isinstance(JumpDef(0, 20, reps=1).apply(Circle(5)), Group)
@@ -280,8 +274,6 @@ class SidleDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.group.batch import Group
             >>> from simetri.shapes.geom_items import Circle
             >>> isinstance(SidleDef(0, 30, reps=1).apply(Circle(5)), Group)
@@ -351,8 +343,6 @@ class SpinningHopDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.group.batch import Group
             >>> from simetri.shapes.geom_items import Circle
             >>> isinstance(
@@ -434,8 +424,6 @@ class SpinningJumpDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.group.batch import Group
             >>> from simetri.shapes.geom_items import Circle
             >>> isinstance(
@@ -516,8 +504,6 @@ class SpinningSidleDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.group.batch import Group
             >>> from simetri.shapes.geom_items import Circle
             >>> isinstance(

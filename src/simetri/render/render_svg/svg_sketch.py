@@ -72,8 +72,6 @@ class SvgSketch:
         location: Where the fragment is placed. Defaults to ``SvgLoc.NONE``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> SvgSketch  # doctest: +SKIP
     """
 
@@ -143,8 +141,6 @@ def draw_line_sketch(
         str: SVG ``<line>`` markup.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_line_sketch  # doctest: +SKIP
     """
     vertices = sketch_attrib(sketch, "vertices")
@@ -182,8 +178,6 @@ def draw_arc_sketch(
     """
     Draw an arc sketch as an SVG path.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_arc_sketch  # doctest: +SKIP
     """
     vertices = sketch_attrib(sketch, "vertices")
@@ -253,8 +247,6 @@ def draw_path_sketch(
     closed region.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_path_sketch  # doctest: +SKIP
     """
     path_data = sketch_attrib(sketch, "path_data")
@@ -378,8 +370,6 @@ def draw_shape_sketch_with_indices(
         str: The SVG code for the shape sketch with vertex labels.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_shape_sketch_with_indices  # doctest: +SKIP
 """
     vertices = sketch_attrib(sketch, "vertices")
@@ -462,8 +452,6 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
         str: The SVG code for the TagSketch.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_tag_sketch  # doctest: +SKIP
     """
     x, y = sketch_attrib(sketch, "pos")[:2]
@@ -635,8 +623,6 @@ def draw_table_sketch(
         str: Combined SVG markup for the table.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_table_sketch  # doctest: +SKIP
     """
     return render_sketches(sketch.sketches, ind)
@@ -652,8 +638,6 @@ def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
         str: SVG markup for grid and optional coordinate axes.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_helplines_sketch  # doctest: +SKIP
     """
     x, y = sketch_attrib(sketch, "pos")[:2]
@@ -728,8 +712,6 @@ def draw_image_sketch(sketch: ImageSketch) -> str:
         str: SVG ``<image>`` markup (with counter-flip for canvas coordinates).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_image_sketch  # doctest: +SKIP
     """
     x, y = sketch_attrib(sketch, "pos")[:2]
@@ -842,8 +824,6 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
         str: SVG code for the formula positioned at the canvas anchor point.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_latex_sketch  # doctest: +SKIP
     """
     formula = sketch_attrib(sketch, "formula")
@@ -1003,8 +983,6 @@ def draw_shape_sketch_with_markers(
         str: The SVG code for the shape sketch with markers.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> draw_shape_sketch_with_markers  # doctest: +SKIP
     """
     # Get vertices

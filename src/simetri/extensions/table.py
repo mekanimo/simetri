@@ -11,6 +11,22 @@ Notebook preview uses :class:`rich.table.Table` (Jupyter integration).
 
 Default layout values for this extension live in this module (not
 ``config/settings.py``).
+
+Cell indexing (read this before addressing cells):
+
+- All indices are **0-based** Python integers. There are **no** letter column
+  labels (no ``A``, ``B``, ``C`` coordinates).
+- **Columns** are always numbered ``0``, ``1``, ``2``, … left to right.
+- Two row conventions exist:
+  - **Grid row** — used by :attr:`Table.cells`, :meth:`Table.range`, and
+    ``table.cells[row, col]``. Row ``0`` is the **header** when
+    ``show_header`` is True; the first body row is grid row ``1`` in that
+    case. When ``show_header`` is False, grid row ``0`` is the first body row.
+  - **Data row** — used by :meth:`Table.cell`, :meth:`Table.row`,
+    :meth:`Table.populate`, and ``table.rows[i]``. Row ``0`` is always the
+    first **body** row; the header is not counted.
+- :attr:`Table.columns` uses **column indices** ``0``, ``1``, … on the full
+  grid (including the header row in the underlying ``Range``).
 """
 
 from __future__ import annotations
@@ -215,7 +231,7 @@ class Cell:
 
         Examples:
             >>> cell = Cell("x")
-            >>> cell.set_background(fill=True)
+            >>> _ = cell.set_background(fill=True)
             >>> cell._background["fill"]
             True
         """
@@ -270,8 +286,8 @@ class Column:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("x")
-            >>> table.column(0).set_format(bold=True)
+            >>> _ = table.add_row("x")
+            >>> _ = table.column(0).set_format(bold=True)
             >>> table.cell(0, 0)._format["bold"]
             True
         """
@@ -287,7 +303,7 @@ class Column:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.column(0).set_background(fill=True)
+            >>> _ = table.column(0).set_background(fill=True)
             >>> table._columns[0]._background["fill"]
             True
         """
@@ -304,7 +320,7 @@ class Column:
 
         Examples:
             >>> table = Table(columns=["A", "B"])
-            >>> table.add_row(1, 2)
+            >>> _ = table.add_row(1, 2)
             >>> table.column(0).b_box.width > 0
             True
         """
@@ -337,7 +353,7 @@ class Row:
         Examples:
             >>> table = Table(columns=["A"])
             >>> row = table.add_row("x")
-            >>> row.set_format(italic=True)
+            >>> _ = row.set_format(italic=True)
             >>> row.cells[0]._format["italic"]
             True
         """
@@ -352,7 +368,7 @@ class Row:
         Examples:
             >>> table = Table(columns=["A"])
             >>> row = table.add_row("x")
-            >>> row.set_background(fill=True)
+            >>> _ = row.set_background(fill=True)
             >>> row._background["fill"]
             True
         """
@@ -367,7 +383,7 @@ class Row:
 
         Examples:
             >>> table = Table(columns=["A", "B"])
-            >>> table.add_row(1, 2)
+            >>> _ = table.add_row(1, 2)
             >>> table.row(0).b_box.width > 0
             True
         """
@@ -468,19 +484,22 @@ def _range_style_target(name: str) -> tuple[str, str] | None:
 
 
 class Range:
-    """Rectangular grid region (inclusive bounds, 0-based row and column indices).
+    """Rectangular grid region (inclusive bounds, 0-based grid indices).
 
-    Row ``0`` is the header row when ``show_header`` is True; otherwise row
-    ``0`` is the first data row. Use the same corners for a single cell
-    (``table.range(r, c, r, c).cell``).
+    **Grid coordinates:** ``row`` and ``col`` are integers starting at ``0``.
+    Column ``0`` is the leftmost column. Row ``0`` is the header row when
+    ``show_header`` is True; otherwise row ``0`` is the first data row. This
+    matches :attr:`Table.cells` and :meth:`Table.range` — not
+    :meth:`Table.cell` (data-row indices).
 
-    ``table.columns[i]`` / ``table.columns[i:j]`` and ``table.rows[i]`` /
-    ``table.rows[i:j]`` use normal Python slice rules on column or row indices
-    within that view (for example ``table.columns[1:3].width = 50`` sets
-    columns ``1`` and ``2``).
+    Single cell: ``table.range(r, c, r, c).cell`` or ``table.cells[r, c]``.
 
-    ``table.cells[row, col]`` is NumPy-style (row first). A lone index or
-    slice on ``table.cells`` selects rows and keeps all columns in the view.
+    ``table.columns[i]`` / ``table.columns[i:j]`` slice **column indices**
+    ``0``, ``1``, … ``table.rows[i]`` slices **data rows** only (header
+    excluded); ``table.rows[0]`` is the first body row.
+
+    ``table.cells[row, col]`` is NumPy-style (grid row first). A lone index or
+    slice on ``table.cells`` selects grid rows and keeps all columns.
 
     Assign format or background attributes on a range to apply them to every
     cell in the range (column/row ranges also store the value on the
@@ -488,11 +507,11 @@ class Range:
 
     Examples:
         >>> table = Table(columns=["A", "B"])
-        >>> table.add_row(1, 2)
+        >>> _ = table.add_row(1, 2)
         >>> table.cells.font_size = 12
         >>> table.cell(0, 0).content
         1
-        >>> table.columns[0].header
+        >>> table.column(0).header
         'A'
 """
 
@@ -769,7 +788,7 @@ class Range:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("v")
+            >>> _ = table.add_row("v")
             >>> table.range(1, 0, 1, 0).cell.content
             'v'
         """
@@ -783,7 +802,7 @@ class Range:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row(7)
+            >>> _ = table.add_row(7)
             >>> table.range(1, 0, 1, 0).content
             7
         """
@@ -800,7 +819,7 @@ class Range:
 
         Examples:
             >>> table = Table(columns=["A", "B"])
-            >>> table.add_row(1, 2)
+            >>> _ = table.add_row(1, 2)
             >>> len(table.cells.cells)
             2
         """
@@ -819,8 +838,8 @@ class Range:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("x")
-            >>> table.rows.set_format(bold=True)
+            >>> _ = table.add_row("x")
+            >>> _ = table.rows.set_format(bold=True)
             >>> table.cell(0, 0)._format["bold"]
             True
         """
@@ -833,8 +852,8 @@ class Range:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("x")
-            >>> table.rows.set_background(fill=True)
+            >>> _ = table.add_row("x")
+            >>> _ = table.rows.set_background(fill=True)
             >>> table.cell(0, 0)._background["fill"]
             True
         """
@@ -913,7 +932,7 @@ class Range:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("x")
+            >>> _ = table.add_row("x")
             >>> table.cells.b_box.width > 0
             True
         """
@@ -1023,7 +1042,7 @@ def compute_table_layout(
 
     Examples:
         >>> table = Table(columns=["A", "B"])
-        >>> table.add_row(1, 22)
+        >>> _ = table.add_row(1, 22)
         >>> widths, heights, n_cols = compute_table_layout(table)
         >>> n_cols
         2
@@ -1117,7 +1136,7 @@ def table_cell_bbox(
 
     Examples:
         >>> table = Table(columns=["A"])
-        >>> table.add_row("x")
+        >>> _ = table.add_row("x")
         >>> box = table_cell_bbox(table, 1, 0)
         >>> box.width > 0
         True
@@ -1141,7 +1160,7 @@ def table_grid_bbox(table: Table) -> BoundingBox:
 
     Examples:
         >>> table = Table(columns=["A", "B"])
-        >>> table.add_row(1, 2)
+        >>> _ = table.add_row(1, 2)
         >>> table_grid_bbox(table).width > 0
         True
     """
@@ -1433,7 +1452,7 @@ def build_table_sketch(table: Table, canvas: Any, **kwargs: Any) -> TableSketch:
 
     Examples:
         >>> table = Table(columns=["A"])
-        >>> table.add_row("x")
+        >>> _ = table.add_row("x")
         >>> build_table_sketch.__name__
         'build_table_sketch'
     """
@@ -1537,14 +1556,21 @@ def build_table_sketch(table: Table, canvas: Any, **kwargs: Any) -> TableSketch:
 class Table:
     """Documentation table with Rich notebook and vector export.
 
+    **Cell indexing:** 0-based column indices ``0``, ``1``, … everywhere.
+    Use **grid rows** for :attr:`cells` and :meth:`range` (row ``0`` may be
+    the header). Use **data rows** for :meth:`cell`, :meth:`row`, and
+    :meth:`populate` (row ``0`` is the first body row). See the module
+    docstring for the full convention. Header strings in ``columns=["A", "B"]``
+    are display labels only — not column coordinates.
+
     Examples:
         >>> table = Table(
         ...     title="Parameters",
         ...     columns=["Name", "Value"],
         ...     column_align=[Align.LEFT, Align.RIGHT],
         ... )
-        >>> table.add_row("n_sides", 7)
-        >>> table.add_row("skip", 3)
+        >>> _ = table.add_row("n_sides", 7)
+        >>> _ = table.add_row("skip", 3)
         >>> table.build_rich_table()  # doctest: +ELLIPSIS
         <rich.table.Table object at ...>
 """
@@ -1633,9 +1659,13 @@ class Table:
     def rows(self) -> Range:
         """``Range`` over data rows; ``height`` sets row heights.
 
+        ``table.rows[i]`` uses **data-row** indices: ``0`` is the first body
+        row (not the header). This differs from ``table.cells[i, …]``, which
+        uses **grid-row** indices.
+
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row(1)
+            >>> _ = table.add_row(1)
             >>> table.rows._size_axis
             'rows'
         """
@@ -1658,10 +1688,17 @@ class Table:
     def cells(self) -> Range:
         """``Range`` over the full grid (header row included when shown).
 
+        Index as ``table.cells[grid_row, col]`` — both axes 0-based **grid**
+        indices. With the default header, ``cells[0, col]`` is the header and
+        ``cells[1, 0]`` is the top-left body cell. For body-only row numbers
+        use :meth:`cell` or :meth:`populate` instead.
+
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("z")
+            >>> _ = table.add_row("z")
             >>> table.cells[1, 0].content
+            'z'
+            >>> table.cell(0, 0).content
             'z'
         """
         column_count, grid_row_count = _grid_dimensions(self)
@@ -1684,6 +1721,9 @@ class Table:
     ) -> Range:
         """Return an inclusive rectangular region (0-based grid indices).
 
+        Same row/column convention as :attr:`cells`: grid row ``0`` is the
+        header when ``show_header`` is True. Column indices start at ``0``.
+
         Args:
             row_start: Top grid row of the range.
             col_start: Left column index.
@@ -1692,8 +1732,8 @@ class Table:
 
         Examples:
             >>> table = Table(columns=["A", "B"])
-            >>> table.add_row(1, 2)
-            >>> table.range(1, 0, 1, 1).content
+            >>> _ = table.add_row(1, 2)
+            >>> table.range(1, 0, 1, 0).content
             1
         """
         return Range(self, row_start, col_start, row_end, col_end)
@@ -1764,11 +1804,16 @@ class Table:
         return self._rows[data_row].cells[col_index]
 
     def cell(self, row_index: int, col_index: int) -> Cell:
-        """Return a body cell at ``(row_index, col_index)`` (data rows only).
+        """Return a body cell at ``(row_index, col_index)``.
+
+        **Data-row** indices: ``row_index`` ``0`` is the first body row
+        (header not counted). ``col_index`` ``0`` is the leftmost column.
+        Equivalent body cell on the grid: ``cells[row_index + 1, col_index]``
+        when ``show_header`` is True.
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("v")
+            >>> _ = table.add_row("v")
             >>> table.cell(0, 0).content
             'v'
         """
@@ -1785,11 +1830,11 @@ class Table:
         return self._columns[col_index]
 
     def row(self, row_index: int) -> Row:
-        """Return the data row at ``row_index``.
+        """Return the data row at ``row_index`` (0-based, header excluded).
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row(9)
+            >>> _ = table.add_row(9)
             >>> table.row(0).cells[0].content
             9
         """
@@ -1800,9 +1845,9 @@ class Table:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.set_format(font_size=14)
+            >>> _ = table.set_format(font_size=14)
             >>> table.font_size
-            14.0
+            14
         """
         self._format.update(kwargs)
         if "font_size" in kwargs:
@@ -1818,7 +1863,7 @@ class Table:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.set_background(fill=True)
+            >>> _ = table.set_background(fill=True)
             >>> table._background["fill"]
             True
         """
@@ -1866,7 +1911,7 @@ class Table:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("x")
+            >>> _ = table.add_row("x")
             >>> table.b_box.width > 0
             True
         """
@@ -1903,7 +1948,7 @@ class Table:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("x")
+            >>> _ = table.add_row("x")
             >>> len(table.corners)
             4
         """
@@ -1924,7 +1969,7 @@ class Table:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("x")
+            >>> _ = table.add_row("x")
             >>> len(table.all_vertices) >= 4
             True
         """
@@ -1984,6 +2029,110 @@ class Table:
         self._rows.append(row)
         return row
 
+    def _ensure_grid_covers(
+        self,
+        min_grid_row: int,
+        max_grid_row: int,
+        max_grid_col: int,
+    ) -> None:
+        if min_grid_row < 0 or max_grid_col < 0:
+            raise IndexError("grid row or column index out of range")
+        while len(self._columns) <= max_grid_col:
+            self._append_column("")
+        _, grid_row_count = _grid_dimensions(self)
+        while grid_row_count <= max_grid_row:
+            self.add_row(*([""] * len(self._columns)))
+            _, grid_row_count = _grid_dimensions(self)
+
+    def populate(
+        self,
+        row: int,
+        column: int,
+        columns: int,
+        items: Sequence[Any],
+        from_bottom_left: bool = False,
+    ) -> Self:
+        """Fill a rectangle of body cells starting at ``(row, column)``.
+
+        All indices are 0-based. ``row`` and ``column`` match
+        :meth:`cell` (data rows only; the header row is not part of ``row``).
+        Items are placed in row-major order with ``columns`` cells per row—the
+        same layout as :func:`~simetri.helpers.utilities.get_cell_pos`. When
+        ``from_bottom_left`` is False, filling continues at ``row + 1``,
+        ``row + 2``, … (downward on the table). When True, it continues at
+        ``row - 1``, ``row - 2``, … (upward).
+
+        Args:
+            row: Starting data row index (0-based).
+            column: Starting column index (0-based).
+            columns: Number of columns in each filled row (band width, >= 1).
+            items: Cell contents in fill order.
+            from_bottom_left: If True, advance upward; if False, downward.
+
+        Returns:
+            Self: This table.
+
+        Raises:
+            ValueError: If ``columns`` is less than 1.
+            IndexError: If a target row or column index is negative.
+
+        Examples:
+            >>> table = Table(columns=["A", "B"])
+            >>> table.populate(0, 0, 2, [1, 2, 3]) is table
+            True
+            >>> table.cell(0, 0).content
+            1
+            >>> table.cell(0, 1).content
+            2
+            >>> table.cell(1, 0).content
+            3
+            >>> table2 = Table(columns=["A", "B"])
+            >>> _ = table2.add_row("", "")
+            >>> _ = table2.add_row("", "")
+            >>> _ = table2.add_row("", "")
+            >>> _ = table2.populate(2, 0, 2, ["a", "b", "c"], from_bottom_left=True)
+            >>> table2.cell(2, 0).content
+            'a'
+            >>> table2.cell(1, 0).content
+            'c'
+        """
+        if columns < 1:
+            raise ValueError("columns must be at least 1")
+        if row < 0 or column < 0:
+            raise IndexError("row or column index out of range")
+        if not items:
+            return self
+
+        header_offset = (
+            1 if self.show_header and self._columns else 0
+        )
+        item_count = len(items)
+        local_rows = (item_count + columns - 1) // columns
+        if from_bottom_left:
+            max_data_row = row
+            min_data_row = row - (local_rows - 1)
+        else:
+            min_data_row = row
+            max_data_row = row + (local_rows - 1)
+        if min_data_row < 0:
+            raise IndexError("row index out of range")
+        min_grid_row = min_data_row + header_offset
+        max_grid_row = max_data_row + header_offset
+        max_grid_col = column + columns - 1
+        self._ensure_grid_covers(min_grid_row, max_grid_row, max_grid_col)
+
+        for index, item in enumerate(items):
+            local_row = index // columns
+            local_col = index % columns
+            grid_col = column + local_col
+            if from_bottom_left:
+                data_row = row - local_row
+            else:
+                data_row = row + local_row
+            grid_row = data_row + header_offset
+            self._cell_at_grid(grid_row, grid_col).content = item
+        return self
+
     def _rich_style_from_cell(
         self,
         grid_row: int,
@@ -2009,7 +2158,7 @@ class Table:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("x")
+            >>> _ = table.add_row("x")
             >>> table.build_rich_table()  # doctest: +ELLIPSIS
             <rich.table.Table object at ...>
         """
@@ -2073,7 +2222,7 @@ class Table:
 
         Examples:
             >>> table = Table(columns=["A"])
-            >>> table.add_row("text")
+            >>> _ = table.add_row("text")
             >>> table.drawable_cells()
             []
         """

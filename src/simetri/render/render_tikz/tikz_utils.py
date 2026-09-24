@@ -55,8 +55,6 @@ def get_min_size(sketch: ShapeSketch) -> list[str]:
         list[str]: TikZ key/value option strings.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_min_size  # doctest: +SKIP
     """
     options = []
@@ -91,8 +89,6 @@ def frame_options(sketch: TagSketch) -> list[str]:
         list[str]: The options for the frame of the tag node.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> frame_options  # doctest: +SKIP
     """
     options = []
@@ -162,8 +158,6 @@ def get_scope_options(sketch: "Sketch") -> str:
         str: The scope options as a string.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_scope_options  # doctest: +SKIP
     """
     options = []
@@ -207,8 +201,6 @@ def get_clip_code(sketch: "Sketch") -> str:
         str: The clip code as a string.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_clip_code  # doctest: +SKIP
     """
     try:
@@ -475,8 +467,6 @@ def sg_to_tikz(
     """
     Convert resolved sketch attributes to TikZ option strings.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> sg_to_tikz  # doctest: +SKIP
     """
     boolean_attribs = ["smooth"]
@@ -558,8 +548,6 @@ def get_line_style_options(
         list[str]: TikZ option strings.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_line_style_options  # doctest: +SKIP
     """
     if exceptions is None:
@@ -624,8 +612,6 @@ def get_fill_style_options(
         list[str]: TikZ option strings.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_fill_style_options  # doctest: +SKIP
     """
     if exceptions is None:
@@ -668,8 +654,6 @@ def get_axis_shading_colors(sketch: Any) -> str:
         str: The shading colors for the axis.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_axis_shading_colors  # doctest: +SKIP
     """
 
@@ -720,8 +704,6 @@ def get_bilinear_shading_colors(sketch: Any) -> str:
         str: The shading colors for the bilinear shading.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_bilinear_shading_colors  # doctest: +SKIP
     """
     res = []
@@ -755,8 +737,6 @@ def get_radial_shading_colors(sketch: Any) -> str:
         str: The shading colors for the radial shading.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_radial_shading_colors  # doctest: +SKIP
     """
     res = []
@@ -781,8 +761,6 @@ def get_shading_options(sketch: Any) -> list[str]:
         list[str]: Shading declaration for TikZ path options.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_shading_options  # doctest: +SKIP
     """
     shade_type = sketch.shade_type
@@ -816,8 +794,6 @@ def get_pattern_options(sketch: Any) -> list[str]:
         list: The pattern options as a list.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_pattern_options  # doctest: +SKIP
     """
     pattern_type = sketch.pattern_type
@@ -886,8 +862,6 @@ def get_marker_options(sketch: Any) -> list[str]:
         list: The marker options as a list.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_marker_options  # doctest: +SKIP
     """
 
@@ -948,8 +922,6 @@ def transform_image(
       Pass strings (e.g. "1cm") in the matrix to control units per-value.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> transform_image  # doctest: +SKIP
     """
     # See notes: TikZ cm
@@ -986,8 +958,6 @@ def is_stroked(shape: Shape) -> bool:
         bool: True if the shape is stroked, False otherwise.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.render_tikz.tikz_utils import is_stroked
         >>> is_stroked(sg.Circle(1))
         True
@@ -1009,8 +979,6 @@ def get_frame_options(sketch: TagSketch) -> list[str]:
         list[str]: TikZ node options (may include minimum size keys).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> get_frame_options  # doctest: +SKIP
     """
     options = get_line_style_options(sketch)

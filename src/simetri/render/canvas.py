@@ -4,8 +4,6 @@ All drawing operations go through ``Canvas``: graphics, text, pages, and
 helpers for lines, circles, polygons, and related primitives.
 
 Examples:
-    >>> from simetri.config.settings import set_defaults
-    >>> set_defaults()
     >>> import simetri.graphics as sg
     >>> canvas = sg.Canvas()
     >>> canvas.draw(sg.Circle(20)) is canvas  # doctest: +SKIP
@@ -161,8 +159,6 @@ def canvas_has_vertex_coord_labels(canvas: Canvas) -> bool:
     Returns:
         bool: True if at least one sketch has ``show_vertex_coords``.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.canvas import canvas_has_vertex_coord_labels
         >>> canvas_has_vertex_coord_labels(sg.Canvas())
@@ -186,8 +182,6 @@ def normalize_canvas_border(
     Returns:
         tuple[float, float, float, float]: Normalized border sides.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.canvas import normalize_canvas_border
         >>> normalize_canvas_border(5)
@@ -216,8 +210,6 @@ def effective_border_for_export(
     Returns:
         tuple[float, float, float, float]: ``(left, bottom, right, top)``.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.canvas import effective_border_for_export
         >>> effective_border_for_export(sg.Canvas())[0] >= 0
@@ -245,8 +237,6 @@ def warn_vertex_coord_label_sizing(canvas: Canvas) -> None:
     Args:
         canvas: Canvas instance being exported (mutated).
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.canvas import warn_vertex_coord_label_sizing
         >>> warn_vertex_coord_label_sizing(sg.Canvas())
@@ -284,8 +274,6 @@ class Canvas:
     (2 pi = 360 degrees).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.draw(sg.Circle(20)) is canvas
@@ -317,8 +305,6 @@ class Canvas:
         Returns:
             A ``Canvas`` instance.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> len(sg.Canvas().pages)
             1
@@ -402,8 +388,6 @@ class Canvas:
             ValueError: If ``border``, ``margins``, ``book_margins``, ``pos``,
                 or ``angle`` is invalid.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.border = 5
@@ -548,8 +532,6 @@ class Canvas:
     def push_matrix(self) -> None:
         """Push the current transform matrix onto ``matrix_stack``.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.push_matrix()
@@ -563,8 +545,6 @@ class Canvas:
 
         Warns if the stack is empty.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.push_matrix()
@@ -583,8 +563,6 @@ class Canvas:
     def push_style(self) -> None:
         """Push the current canvas style overlay onto ``style_stack``.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.push_style()
@@ -598,8 +576,6 @@ class Canvas:
 
         Warns if the stack is empty.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.push_style()
@@ -625,8 +601,6 @@ class Canvas:
             mapping: A ``Style``, a dict of draw aliases, or omitted.
             **kwargs: Draw-alias overlay; overwrites ``mapping`` for those keys.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> scope = canvas.style(line_width=2)
@@ -650,8 +624,6 @@ class Canvas:
     def reset_style(self) -> Self:
         """Clear the current canvas style overlay. Does not pop ``style_stack``.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.style(line_width=2)
@@ -664,8 +636,6 @@ class Canvas:
     def reset_line_style(self) -> Self:
         """Drop stroke keys from the current canvas overlay.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.style(line_width=2)
@@ -680,8 +650,6 @@ class Canvas:
     def reset_fill_style(self) -> Self:
         """Drop fill keys from the current canvas overlay.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.style(fill_color='red')
@@ -705,8 +673,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> from simetri.render.mask import Mask
             >>> canvas = sg.Canvas()
@@ -745,8 +711,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> target = sg.Rectangle(width=80, height=50)
@@ -780,8 +744,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.apply_filter(sg.Circle(5), None) is canvas
@@ -791,18 +753,19 @@ class Canvas:
 
         return self
 
-    def display(self) -> Self:
+    def display(self) -> None:
         """Show the canvas in a notebook cell.
+
+        Side-effect only (returns ``None``). Do not add ``return self`` — Jupyter
+        would show ``Canvas()`` after the figure. See ``agent_ground_rules.md``
+        (protected notebook display).
+
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.display() is canvas  # doctest: +SKIP
-            True
+            >>> canvas.display()  # doctest: +SKIP
         """
         display(self)
-        return self
 
     @property
     def page_size(self) -> VecType:
@@ -812,8 +775,6 @@ class Canvas:
         Returns:
             VecType: The size of the page rectangle.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas(page_size=(100, 200))
             >>> canvas.page_size[0]
@@ -829,8 +790,6 @@ class Canvas:
         Args:
             value (VecType): The size of the page rectangle.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.page_size = (100, 200)
@@ -853,8 +812,6 @@ class Canvas:
         Returns:
             VecType: The lower-left corner of the page rectangle.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas(page_origin=(3, 4))
             >>> canvas.page_origin[0]
@@ -870,8 +827,6 @@ class Canvas:
         Args:
             value (VecType): The lower-left corner of the page rectangle.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.page_origin = (1, 2)
@@ -892,8 +847,6 @@ class Canvas:
         Returns:
             VecType: The limits of the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas(page_size=(10, 20))
             >>> len(canvas.limits)
@@ -917,8 +870,6 @@ class Canvas:
         Args:
             value (VecType): The limits of the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.limits = (0, 0, 10, 20)
@@ -938,8 +889,6 @@ class Canvas:
         Returns:
             BoundingBox: All recorded vertices in canvas space.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.draw(sg.Circle(5))
@@ -967,8 +916,6 @@ class Canvas:
             ValueError: If ``format`` is ``.tex``.
             RuntimeError: If the format is not native and has no converter.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.capture()  # doctest: +SKIP
@@ -1047,8 +994,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.insert_svg('<circle cx="0" cy="0" r="10"/>') is canvas
@@ -1070,8 +1015,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.insert_tex('% note') is canvas  # doctest: +SKIP
@@ -1105,8 +1048,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.arc((0, 0), 10, 10, 0, sg.pi / 2, 0) is canvas
@@ -1139,8 +1080,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.bezier([(0, 0), (5, 10), (10, 0)]) is canvas
@@ -1165,8 +1104,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.circle(10, (0, 0)) is canvas
@@ -1198,8 +1135,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.ellipse(20, 10) is canvas
@@ -1227,8 +1162,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw_fragments()  # doctest: +SKIP
@@ -1249,8 +1182,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw_plaits()  # doctest: +SKIP
@@ -1271,8 +1202,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw_lace_with_fillets  # doctest: +SKIP
@@ -1312,8 +1241,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.text('A', (0, 0)) is canvas
@@ -1358,8 +1285,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.help_lines((0, 0), 20, 20, spacing=10, cs_size=0, deferred=False) is canvas
@@ -1406,8 +1331,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.grid((0, 0), 20, 20, 10) is canvas
@@ -1430,8 +1353,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.line((0, 0), (10, 0)) is canvas
@@ -1465,8 +1386,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.rectangle(10, 6) is canvas
@@ -1502,8 +1421,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.rectangle2((0, 0), (10, 6)) is canvas
@@ -1543,8 +1460,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.rectangle3((0, 0), 10, 6) is canvas
@@ -1585,8 +1500,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.square(8) is canvas
@@ -1610,8 +1523,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.lines([(0, 0), (10, 0), (10, 5)]) is canvas
@@ -1664,8 +1575,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw_lace  # doctest: +SKIP
@@ -1699,8 +1608,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> dim = sg.Dimension((0, 0), (10, 0), 'up', 10)
@@ -1720,8 +1627,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> widget = sg.Group()
@@ -1741,8 +1646,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.begin_style('dashed') is canvas  # doctest: +SKIP
@@ -1762,8 +1665,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.begin_style('dashed')
@@ -1822,8 +1723,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw(sg.Shape([(0, 0), (10, 0), (10, 10)])) is canvas
@@ -2038,8 +1937,6 @@ class Canvas:
     ) -> Self:
         """These lines are drawn with the same style.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw_lines([((0, 0), (48, 0)), ((48, 0), (48, 24))]) is canvas
@@ -2062,8 +1959,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw_CS(10) is canvas
@@ -2096,8 +1991,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw_pdf('missing.pdf', (0, 0))  # doctest: +SKIP
@@ -2116,8 +2009,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> image = sg.Image(size=(2, 2), mode='RGB')
@@ -2140,8 +2031,6 @@ class Canvas:
         Returns:
             Image: New image with the item drawn on it.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> image = sg.Image(size=(4, 4), mode='RGB')
@@ -2170,8 +2059,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> import tempfile
             >>> from pathlib import Path
@@ -2220,8 +2107,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.draw_latex('x', (0, 0)) is canvas  # doctest: +SKIP
@@ -2247,8 +2132,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.draw(sg.Circle(5))
@@ -2291,8 +2174,6 @@ class Canvas:
         Returns:
             str: The string representation of the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> str(sg.Canvas())
             'Canvas()'
@@ -2306,8 +2187,6 @@ class Canvas:
         Returns:
             str: The string representation of the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> repr(sg.Canvas())
             'Canvas()'
@@ -2325,8 +2204,6 @@ class Canvas:
         Returns:
             PointType: The position of the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.translate(3, 4)
@@ -2344,8 +2221,6 @@ class Canvas:
         Args:
             point (PointType): The point to set the position to.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.pos = (5, 6)
@@ -2362,8 +2237,6 @@ class Canvas:
         Returns:
             float: The angle of the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.angle = sg.pi / 4
@@ -2382,8 +2255,6 @@ class Canvas:
         Args:
             angle (float): The angle to set the canvas to.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.rotate(sg.pi / 2)
@@ -2400,8 +2271,6 @@ class Canvas:
         Returns:
             VecType: The scale of the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.scale(2, 3)
@@ -2427,8 +2296,6 @@ class Canvas:
             scale_y (float): The y-scale to set the canvas to.
             about (PointType): The point about which to scale the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.scale_xy = (2, 2)
@@ -2450,8 +2317,6 @@ class Canvas:
         Returns:
             np.ndarray: The transformation matrix of the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.xform_matrix.shape
@@ -2469,8 +2334,6 @@ class Canvas:
         Returns:
             Self: The Canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> import numpy as np
             >>> canvas = sg.Canvas()
@@ -2492,8 +2355,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> _ = canvas.translate(1, 2)
@@ -2520,8 +2381,6 @@ class Canvas:
         Returns:
             A scope that restores the matrix when used as a context manager.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> scope = canvas.translate(3, 4)
@@ -2550,8 +2409,6 @@ class Canvas:
         Returns:
             A scope that restores the matrix when used as a context manager.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> with canvas.rotate(sg.pi / 2):
@@ -2584,8 +2441,6 @@ class Canvas:
         Returns:
             A scope that restores the matrix when used as a context manager.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> with canvas.scale(2, 2):
@@ -2630,8 +2485,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.flip_x_axis()  # doctest: +SKIP
@@ -2651,8 +2504,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.flip_y_axis()  # doctest: +SKIP
@@ -2673,8 +2524,6 @@ class Canvas:
         Returns:
             float: The x coordinate of the canvas origin.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.x
@@ -2690,8 +2539,6 @@ class Canvas:
         Args:
             value (float): The x coordinate to set.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.x = 7
@@ -2708,8 +2555,6 @@ class Canvas:
         Returns:
             float: The y coordinate of the canvas origin.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.y
@@ -2725,8 +2570,6 @@ class Canvas:
         Args:
             value (float): The y coordinate to set.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.y = 8
@@ -2747,8 +2590,6 @@ class Canvas:
         Returns:
             nx.DiGraph: The directed graph of the group and its elements.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> import networkx as nx
             >>> canvas = sg.Canvas()
@@ -2793,8 +2634,6 @@ class Canvas:
         Returns:
             Any: The resolved property value.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.resolve_property(sg.Circle(5), 'line_width') > 0
@@ -2822,8 +2661,6 @@ class Canvas:
         1. Handle color and alpha
         2. Handle kwargs
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> from simetri.render.style_map import shape_style_map
             >>> canvas = sg.Canvas()
@@ -2980,8 +2817,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)])
@@ -2998,8 +2833,6 @@ class Canvas:
         Returns:
             list[str]: The list of fonts used in the canvas.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.get_fonts_list()  # doctest: +SKIP
@@ -3030,8 +2863,6 @@ class Canvas:
             width: Page width.
             height: Page height.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.set_page_size(100, 200)
@@ -3200,8 +3031,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.save('out.svg', overwrite=True, show=False)  # doctest: +SKIP
@@ -3298,8 +3127,6 @@ class Canvas:
         Returns:
             Self: The canvas object.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.new_page() is canvas
@@ -3353,8 +3180,6 @@ class PageGrid:
         x_shift (float, optional): The x-axis shift of the grid.
         y_shift (float, optional): The y-axis shift of the grid.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.canvas import PageGrid
         >>> PageGrid().spacing > 0
@@ -3372,8 +3197,6 @@ class PageGrid:
     def __post_init__(self) -> None:
         """Initialize page-grid defaults from settings.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> from simetri.render.canvas import PageGrid
             >>> pg = PageGrid()
@@ -3406,8 +3229,6 @@ class Page:
         grid (PageGrid, optional): The grid of the page.
         kwargs (dict, optional): Additional keyword arguments.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.canvas import Page
         >>> Page().type.name
@@ -3427,8 +3248,6 @@ class Page:
     def __post_init__(self) -> None:
         """Initialize page metadata and an empty sketch list.
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> import simetri.graphics as sg
             >>> from simetri.render.canvas import Page
             >>> len(Page().sketches)
@@ -3449,8 +3268,6 @@ def hello() -> None:
     Show a hello message.
     Used for testing an installation of simetri.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.canvas import hello
         >>> hello()  # doctest: +SKIP

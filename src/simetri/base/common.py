@@ -138,9 +138,7 @@ def get_defaults(args: Sequence[str], values: Sequence[Any]) -> list[Any]:
         list: Resolved values in the same order as ``args``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
         >>> from simetri.base.common import get_defaults
-        >>> set_defaults()
         >>> get_defaults(["dist_tol"], [None])
         [0.05]
         >>> get_defaults(["dist_rel_tol", "dist_abs_tol"], [None, None])

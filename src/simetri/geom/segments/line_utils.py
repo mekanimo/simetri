@@ -233,8 +233,6 @@ def offset_lines(
         list[LineType]: List of offset lines.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import offset_lines
         >>> offset_lines([((0, 0), (1, 0)), ((1, 0), (1, 1))], 1)[0][1]
         1.0
@@ -359,8 +357,6 @@ def merge_consecutive_collinear_edges(
         list[PointType]: List of points with collinear points removed.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import merge_consecutive_collinear_edges
         >>> merge_consecutive_collinear_edges([(0, 0), (1, 0), (2, 0), (2, 1)])
         [(0, 0), (2, 0), (2, 1)]
@@ -917,8 +913,6 @@ def clip_line_to_rect(
         the line misses the rectangle.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import clip_line_to_rect
         >>> clip_line_to_rect((0, 0), (1, 1), (0, 0), (2, 2))
         ((0.0, 0.0), (2.0, 2.0))
@@ -964,8 +958,6 @@ def sorted_edges(polygon: Sequence[PointType]) -> list[LineType]:
         list: Oriented and sorted edges ``[(p1, p2), ...]``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import sorted_edges
         >>> sorted_edges([(1, 1), (0, 0), (2, 0)])
         [((0, 0), (1, 1)), ((0, 0), (2, 0)), ((1, 1), (2, 0))]
@@ -1037,8 +1029,6 @@ def all_intersections(
         is True; otherwise an intersection map keyed by edge id.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import all_intersections
         >>> _, points = all_intersections([((0, 0), (2, 2)), ((0, 2), (2, 0))])
         >>> len(points)
@@ -1192,8 +1182,6 @@ def all_segments_sorted(
         list: Sub-segments covering each input edge in order.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import all_segments_sorted
         >>> segs = all_segments_sorted([((0, 0), (2, 0)), ((1, -1), (1, 1))])
         >>> len(segs)
@@ -1243,8 +1231,6 @@ def angle_between_lines3(
         float: Signed angle between the two lines in radians (-π to π).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import angle_between_lines3
         >>> angle_between_lines3((1, 0), (0, 0), (0, 1)) == 3.141592653589793 / 2
         True
@@ -1268,8 +1254,6 @@ def trim_right(line: LineType, x_value: float) -> LineType | None:
         LineType: The trimmed line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import trim_right
         >>> trim_right([(0, 0), (4, 0)], 2)
         [(0, 0), (2.0, 0.0)]
@@ -1308,8 +1292,6 @@ def trim_left(line: LineType, x_value: float) -> LineType | None:
         LineType: The trimmed line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import trim_left
         >>> trim_left([(0, 0), (4, 0)], 2)
         [(2.0, 0.0), (4, 0)]
@@ -1349,8 +1331,6 @@ def trim_top(line: LineType, y_value: float) -> LineType | None:
         LineType: The trimmed line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import trim_top
         >>> p0, p1 = trim_top([(0, 0), (0, 4)], 2)
         >>> p0, (round(abs(p1[0]), 10), round(abs(p1[1]), 10))
@@ -1391,8 +1371,6 @@ def trim_bottom(line: LineType, y_value: float) -> LineType | None:
         LineType: The trimmed line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import trim_bottom
         >>> p0, p1 = trim_bottom([(0, 0), (0, 4)], 2)
         >>> (round(abs(p0[0]), 10), round(abs(p0[1]), 10)), p1
@@ -1442,8 +1420,6 @@ def stitch(
         list[PointType]: Stitched list of points or lines.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import stitch
         >>> stitch([((0, 0), (2, 0)), ((2, 0), (2, 2))], closed=False)
         [(0, 0), (2.0, 0.0), (2, 2)]
@@ -1495,8 +1471,6 @@ def equal_lines(
         bool: True if the lines are close enough, False otherwise.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import equal_lines
         >>> equal_lines([(0, 0), (1, 0)], [(0, 0), (1, 0)])
         True
@@ -1550,8 +1524,6 @@ def extended_line(
         LineType: Extended line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import extended_line
         >>> extended_line(1, [(0, 0), (1, 0)])
         [(0, 0), (2.0, 0.0)]
@@ -1597,8 +1569,6 @@ def line_through_point_angle(
         LineType: Line passing through the given point with the given angle and length.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import line_through_point_angle
         >>> line_through_point_angle((0, 0), 0, 1)
         [(0, 0), (1.0, 0.0)]
@@ -1626,8 +1596,6 @@ def split_segment(
         is an endpoint or not on the segment.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import split_segment
         >>> split_segment(((0, 0), (4, 0)), (2, 0))
         [((0, 0), (2, 0)), ((2, 0), (4, 0))]
@@ -1659,8 +1627,6 @@ def multi_split_segment(
         list: Consecutive sub-segments from start to end.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import multi_split_segment
         >>> multi_split_segment(((0, 0), (4, 0)), [(1, 0), (3, 0)])
         [((0, 0), (1, 0)), ((1, 0), (3, 0))]
@@ -1710,8 +1676,6 @@ def intersects(seg1: LineType, seg2: LineType) -> bool:
         bool: True if the segments intersect, False otherwise.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import intersects
         >>> intersects(((0, 0), (2, 2)), ((0, 2), (2, 0)))
         True
@@ -1748,8 +1712,6 @@ def is_chained(seg1: LineType, seg2: LineType) -> bool:
         bool: True if the segments are chained together, False otherwise.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import is_chained
         >>> is_chained(((0, 0), (1, 0)), ((1, 0), (2, 0)))
         True
@@ -1778,8 +1740,6 @@ def stitch_lines(line1: LineType, line2: LineType) -> Sequence[LineType]:
         Sequence[LineType]: Trimmed or extended lines.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import stitch_lines
         >>> stitch_lines(((0, 0), (2, 0)), ((1, -1), (1, 1)))
         ([(0, 0), (1.0, 0.0)], [(1.0, 0.0), (1, 1)])
@@ -1814,8 +1774,6 @@ def intersection(
         int: Intersection type.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.base.all_enums import Connection
         >>> from simetri.geom.segments.line_utils import intersection
         >>> kind, point = intersection(((0, 0), (2, 2)), ((0, 2), (2, 0)))
@@ -1847,8 +1805,6 @@ def merge_segments(
         they cannot be merged.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import merge_segments
         >>> merge_segments([(0, 0), (2, 0)], [(2, 0), (4, 0)])
         Traceback (most recent call last):
@@ -1898,8 +1854,6 @@ def is_horizontal(line: LineType, eps: float = 0.0001) -> bool:
         bool: True if the line is horizontal, False otherwise.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import is_horizontal
         >>> is_horizontal([(0, 0), (1, 0)])
         True
@@ -1920,8 +1874,6 @@ def is_vertical(line: LineType, eps: float = 0.0001) -> bool:
         bool: True if the line is vertical, False otherwise.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import is_vertical
         >>> is_vertical([(0, 0), (0, 1)])
         True
@@ -1950,8 +1902,6 @@ def slope(
         float: Slope of the line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import slope
         >>> slope((0, 0), (1, 1))
         1.0
@@ -1978,8 +1928,6 @@ def segmentize_line(line: LineType, segment_length: float) -> list[LineType]:
         list[LineType]: List of segments.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import segmentize_line
         >>> pts = segmentize_line([(0, 0), (4, 0)], 1)
         >>> len(pts)
@@ -2011,8 +1959,6 @@ def line_through_point_and_angle(
         LineType: Line passing through the given point with the given angle and length.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import line_through_point_and_angle
         >>> line_through_point_and_angle((0, 0), 0, 1)
         [[0, 0], [1.0, 0.0]]
@@ -2076,8 +2022,6 @@ def translate_line(dx: float, dy: float, line: LineType) -> LineType:
         LineType: Translated line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import translate_line
         >>> translate_line(0, 1, [(0, 0), (1, 0)])
         [[0, 1], [1, 1]]
@@ -2206,8 +2150,6 @@ def trim_line(line1: LineType, line2: LineType) -> LineType:
         LineType: Trimmed line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.base.all_enums import Connection
         >>> from simetri.geom.segments.line_utils import trim_line
         >>> start, end = trim_line(((0, 0), (4, 0)), ((2, -1), (2, 1)))
@@ -2229,8 +2171,6 @@ def angle_between_two_lines(line1: LineType, line2: LineType) -> float:
         float: Angle between the two lines in radians.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import angle_between_two_lines
         >>> angle_between_two_lines([(0, 0), (1, 0)], [(0, 0), (0, 1)])
         1.5707963267948966
@@ -2254,8 +2194,6 @@ def bisector_line3(a: PointType, b: PointType, c: PointType) -> LineType:
         LineType: Bisector line.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import bisector_line3
         >>> bisector_line3((0, 0), (1, 1), (2, 0))
         [(1.0, 0.0), (1, 1)]
@@ -2284,8 +2222,6 @@ def fillet3(
         tuple: Clipped lines [a, d], [e, c], center point of the radius circle, and the arc angle.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import fillet3
         >>> line_a, line_b, center, arc = fillet3((0, 0), (1, 0), (1, 1), 0.5)
         >>> line_a[0], (round(line_a[1][0], 10), round(line_a[1][1], 10))
@@ -2340,8 +2276,6 @@ def fillet_points(
             (unless ``clamp_radius`` is True).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import fillet_points
         >>> pts = fillet_points((0, 0), (1, 0), (1, 1), 0.5, 3)
         >>> len(pts)
@@ -2455,8 +2389,6 @@ def fillet_corners(
         Sequence[PointType]: Vertices including fillet arc samples.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import fillet_corners
         >>> out = fillet_corners([(0, 0), (1, 0), (1, 1), (0, 1)], {1: 0.2}, n=3)
         >>> len(out) > len([(0, 0), (1, 0), (1, 1), (0, 1)])
@@ -2593,8 +2525,6 @@ def line_by_point_angle_length(
         LineType: Line with the given angle and length.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import line_by_point_angle_length
         >>> line_by_point_angle_length((0, 0), 0, 1)
         [(0, 0), (1.0, 0.0)]
@@ -2610,8 +2540,6 @@ class Edge:
     """A 2D edge.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.geom.segments.line_utils import Edge
         >>> Edge((0, 0), (3, 0)).length  # doctest: +SKIP
     """
@@ -2631,8 +2559,6 @@ class Edge:
             TypeError: If either endpoint is not a point or ``Vertex``.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> edge = Edge((0, 0), (3, 4))
             >>> edge.x1, edge.y2
@@ -2698,8 +2624,6 @@ class Edge:
         """Return start/end vertex by index or slice.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> edge = Edge((0, 0), (1, 0))
             >>> edge[0].coords[:2]
@@ -2727,8 +2651,6 @@ class Edge:
         """Line slope. The slope of the line passing through the start and end points.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> Edge((0, 0), (3, 4)).slope
             1.3333333333333333
@@ -2740,8 +2662,6 @@ class Edge:
         """Line angle. Angle between the line and the x-axis.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> round(Edge((0, 0), (1, 1)).angle, 10)
             0.7853981634
@@ -2754,8 +2674,6 @@ class Edge:
         a value between zero and pi.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> round(Edge((0, 0), (1, 1)).inclination, 10)
             0.7853981634
@@ -2767,8 +2685,6 @@ class Edge:
         """Length of the line segment.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> Edge((0, 0), (3, 4)).length  # doctest: +SKIP
         """
@@ -2779,8 +2695,6 @@ class Edge:
         """x-coordinate of the start point.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> Edge((2, 3), (5, 7)).x1
             2
@@ -2792,8 +2706,6 @@ class Edge:
         """y-coordinate of the start point.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> Edge((2, 3), (5, 7)).y1
             3
@@ -2805,8 +2717,6 @@ class Edge:
         """x-coordinate of the end point.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> Edge((2, 3), (5, 7)).x2
             5
@@ -2818,8 +2728,6 @@ class Edge:
         """y-coordinate of the end point.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> Edge((2, 3), (5, 7)).y2
             7
@@ -2831,8 +2739,6 @@ class Edge:
         """Start and end points as a two-element list.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> Edge((0, 0), (1, 0)).points  # doctest: +SKIP
         """
@@ -2843,8 +2749,6 @@ class Edge:
         """Start and end vertices.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> len(Edge((0, 0), (1, 0)).vertices)
             2
@@ -2856,8 +2760,6 @@ class Edge:
         """Homogeneous coordinates as a numpy array.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.geom.segments.line_utils import Edge
             >>> Edge((0, 0), (1, 0)).array.shape
             (2, 3)

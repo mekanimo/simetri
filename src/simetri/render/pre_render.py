@@ -219,8 +219,6 @@ def collect_tikz_preamble_requirements_for_sketch(
         tikz_packages: Mutable list of TeX package names (mutated).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.pre_render import collect_tikz_preamble_requirements_for_sketch
         >>> from simetri.render.sketch import CircleSketch
         >>> libs, pkgs = [], []
@@ -320,8 +318,6 @@ def canvas_uses_label_halos(canvas: Canvas) -> bool:
         bool: True if label rendering needs contour/halo support.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.pre_render import canvas_uses_label_halos
         >>> canvas_uses_label_halos(sg.Canvas())
@@ -364,8 +360,6 @@ def collect_tikz_preamble_requirements(
         tuple[list, list]: ``(tikz_libraries, tikz_packages)``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg
         >>> from simetri.render.pre_render import collect_tikz_preamble_requirements
         >>> libs, pkgs = collect_tikz_preamble_requirements(sg.Canvas())

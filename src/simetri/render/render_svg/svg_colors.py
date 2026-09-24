@@ -45,8 +45,6 @@ def color_to_svg(
 
     Examples:
         >>> from simetri.coloring.colors import red
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.render.render_svg.svg_colors import color_to_svg
         >>> color_to_svg(red).startswith('rgb')
         True

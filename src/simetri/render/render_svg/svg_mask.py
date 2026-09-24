@@ -37,8 +37,6 @@ def generate_mask_def(
         str: SVG ``<mask>`` element markup (and nested gradient when needed).
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> generate_mask_def  # doctest: +SKIP
     """
     from ..draw import create_sketch
@@ -347,8 +345,6 @@ def has_mask_style(sketch: Any) -> bool:
     """
     Return whether ``sketch`` defines mask stops via style or attributes.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> has_mask_style  # doctest: +SKIP
     """
     try:

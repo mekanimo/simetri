@@ -5,8 +5,6 @@ seventeen wallpaper groups (``lattice_p1``, ``lattice_p6m``, …). Motifs are
 typically ``Shape`` / ``Group`` instances from ``simetri.graphics``.
 
 Examples:
-    >>> from simetri.config.settings import set_defaults
-    >>> set_defaults()
     >>> from simetri.patterns.lattice import lattice_p4
     >>> from simetri.shapes.geom_items import Circle
     >>> lat = lattice_p4(a=40)
@@ -64,8 +62,6 @@ def basis_to_cart(
         tuple[float, float]: Cartesian point ``(x, y)``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> basis_to_cart(1, 0, (10, 0), (0, 10))
         (10, 0)
     """
@@ -97,8 +93,6 @@ def cart_to_basis(
         ValueError: If ``u`` and ``v`` are linearly dependent.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> cart_to_basis(10, 20, (10, 0), (0, 10))
         (1.0, 2.0)
         >>> cart_to_basis(1, 1, (1, 0), (2, 0))  # doctest: +IGNORE_EXCEPTION_DETAIL
@@ -125,8 +119,6 @@ def all_axes() -> list[tuple[int, int]]:
         list[tuple[int, int]]: Pairs of axis endpoint indices in ``0..15``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(all_axes())
         84
     """
@@ -161,8 +153,6 @@ class Isometry:
         take: Optional slice selecting which copies to keep.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> isom = Isometry(IsometryType.TRANSLATION, quantifier=(1, 0), reps=2)
         >>> isom.reps
         2
@@ -194,8 +184,6 @@ class Lattice:
         pattern: Motif ``Group`` after ``populate_unit``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> lat = Lattice(LatType.SQR, a=10)
         >>> lat.a
         10
@@ -222,8 +210,6 @@ class Lattice:
             ValueError: If the basis vectors are linearly dependent.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> lat = Lattice(LatType.RECT, a=30, b=20)
             >>> lat.b
             20
@@ -330,8 +316,6 @@ class Lattice:
             list[float]: Center coordinates ``[x, y]``.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> lat = Lattice(LatType.SQR, a=10)
             >>> len(lat.center)
             2
@@ -352,8 +336,6 @@ class Lattice:
             identity).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.shapes.geom_items import Circle
             >>> lat = lattice_p4(a=20)
             >>> _ = lat.populate_unit(Circle(3, (5, 5)))
@@ -409,8 +391,6 @@ class Lattice:
             ValueError: If ``kernel`` is not a Shape or Group.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.shapes.geom_items import Circle
             >>> lat = lattice_p4(a=20)
             >>> _ = lat.populate_unit(Circle(3, (5, 5)))
@@ -447,8 +427,6 @@ class Lattice:
             Group: Updated pattern (also stored on ``self.pattern``).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.shapes.shape import Shape
             >>> lat = Lattice(LatType.SQR, a=10)
             >>> row = lat.span(Shape([(0, 0), (1, 0)]), horizontal=True, reps=2)
@@ -491,8 +469,6 @@ class Lattice:
             ValueError: If ``reps1`` or ``reps2`` is not greater than 0.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.shapes.shape import Shape
             >>> lat = Lattice(LatType.SQR, a=10)
             >>> _ = lat.expand(Shape([(0, 0), (1, 0)]), reps1=1, reps2=1)
@@ -540,8 +516,6 @@ class Lattice:
             Group: Cell structure visualization (when implemented).
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> lat = Lattice(LatType.SQR, a=10)
             >>> lat.cell_structure() is None
             True
@@ -557,8 +531,6 @@ class Lattice:
             PointType: Basis coordinates ``(a, b)``.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> lat = Lattice(LatType.SQR, a=10)
             >>> lat.cartesian_to_basis((10, 0))
             (1.0, 0.0)
@@ -576,8 +548,6 @@ class Lattice:
             PointType: Cartesian point ``(x, y)``.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> lat = Lattice(LatType.SQR, a=10)
             >>> lat.basis_to_cartesian((1, 0))
             (10.0, 0.0)
@@ -598,8 +568,6 @@ class Lattice:
             list: Lattice points inside the rectangle.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> lat = Lattice(LatType.SQR, a=10)
             >>> len(lat.clipped_points((0, 0), (25, 25)))
             9
@@ -664,8 +632,6 @@ class Lattice:
             list: Line segments inside the rectangle.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> lat = Lattice(LatType.SQR, a=10)
             >>> len(lat.clipped_lines((0, 0), (25, 25))) > 0
             True
@@ -733,8 +699,6 @@ def get_unit(
         Group: Unit motif for the group.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> lat = lattice_p4(a=40)
         >>> len(get_unit(lat, "p4"))
         13
@@ -1146,8 +1110,6 @@ def draw_unit(
         **kwargs: Passed to ``get_unit`` and ``canvas.draw``.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> import simetri.graphics as sg  # doctest: +SKIP
         >>> lat = lattice_p4(a=40)
         >>> sg.draw_unit(sg.Canvas(), lat, "p4")  # doctest: +SKIP
@@ -1166,8 +1128,6 @@ def lattice_p6(a: float) -> Lattice:
         Lattice: Lattice with p6 isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p6(a=30).isometries)
         2
     """
@@ -1199,8 +1159,6 @@ def lattice_p6m(a: float = 40) -> Lattice:
         Lattice: Lattice with p6m isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p6m(a=30).isometries)
         3
     """
@@ -1238,8 +1196,6 @@ def lattice_p31m(a: float = 40) -> Lattice:
         Lattice: Lattice with p31m isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p31m(a=30).isometries)
         2
     """
@@ -1275,8 +1231,6 @@ def lattice_p3m1(a: float = 40) -> Lattice:
         Lattice: Lattice with p3m1 isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p3m1(a=30).isometries)
         3
     """
@@ -1317,8 +1271,6 @@ def lattice_p3(a: float = 40) -> Lattice:
         Lattice: Lattice with p3 isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p3(a=30).isometries)
         2
     """
@@ -1353,8 +1305,6 @@ def lattice_p4(a: float = 40) -> Lattice:
         Lattice: Lattice with p4 isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p4(a=30).isometries)
         1
     """
@@ -1381,8 +1331,6 @@ def lattice_p4m(a: float = 40) -> Lattice:
         Lattice: Lattice with p4m isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p4m(a=30).isometries)
         2
     """
@@ -1415,8 +1363,6 @@ def lattice_p4g(a: float = 40) -> Lattice:
         Lattice: Lattice with p4g isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p4g(a=30).isometries)
         2
     """
@@ -1456,8 +1402,6 @@ def lattice_p1(
         Lattice: Lattice with p1 isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p1(a=20, b=25).isometries)
         1
     """
@@ -1497,8 +1441,6 @@ def lattice_pm(
         ValueError: If ``lat_type`` is not SQR or RECT.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_pm(a=30).isometries)
         1
         >>> lattice_pm(lat_type=LatType.HEX)  # doctest: +IGNORE_EXCEPTION_DETAIL
@@ -1548,8 +1490,6 @@ def lattice_pmm(
         Lattice: Lattice with pmm isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_pmm(a=30).isometries)
         2
     """
@@ -1590,8 +1530,6 @@ def lattice_p2(
         Lattice: Lattice with p2 isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_p2(a=30).isometries)
         1
     """
@@ -1628,8 +1566,6 @@ def lattice_pg(
         Lattice: Lattice with pg isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_pg(a=30).isometries)
         1
     """
@@ -1665,8 +1601,6 @@ def lattice_pmg(
         Lattice: Lattice with pmg isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_pmg(a=30).isometries)
         2
     """
@@ -1701,8 +1635,6 @@ def lattice_pgg(
         Lattice: Lattice with pgg isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_pgg(a=30).isometries)
         2
     """
@@ -1742,8 +1674,6 @@ def lattice_cm(
         Lattice: Lattice with cm isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_cm(a=50).isometries)
         2
     """
@@ -1782,8 +1712,6 @@ def lattice_cmm(a: float = 100, theta: float = 2 * pi / 5) -> Lattice:
         Lattice: Lattice with cmm isometries and unit cell.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> len(lattice_cmm(a=50).isometries)
         2
     """

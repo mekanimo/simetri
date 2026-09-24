@@ -223,8 +223,6 @@ def get_draw(sketch: Any) -> str | Literal[False]:
     """
     Return the TikZ path command for a sketch, or ``False`` if none.
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from types import SimpleNamespace
         >>> from simetri.render.render_tikz.tikz_common import get_draw
         >>> get_draw(SimpleNamespace(closed=True, fill=True, stroke=False, back_style=None))

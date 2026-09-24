@@ -1,8 +1,6 @@
 """Classes and functions for creating stars and rosettes.
 
 Examples:
-    >>> from simetri.config.settings import set_defaults
-    >>> set_defaults()
     >>> from simetri.shapes.shape import Shape
     >>> from simetri.star_patterns.stars import Star, rosette
     >>> petal = Shape([(0, 0), (20, 5), (0, 10)])
@@ -42,8 +40,6 @@ def rosette(
         Group: The resulting pattern with n petals.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.shapes.shape import Shape
         >>> from simetri.star_patterns.stars import rosette
         >>> petal = Shape([(0, 0), (20, 5), (0, 10)])
@@ -109,8 +105,6 @@ class Star(Group):
         **kwargs: Additional keyword arguments.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> from simetri.star_patterns.stars import Star
         >>> star = Star(8, circumradius=100)
         >>> star.n
@@ -132,8 +126,6 @@ class Star(Group):
             ValueError: If both ``circumradius`` and ``inner_radius`` are set.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.star_patterns.stars import Star
             >>> Star(7, circumradius=50).circumradius
             50
@@ -306,8 +298,6 @@ class Star(Group):
             ValueError: If level is not a positive integer or zero.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.star_patterns.stars import Star
             >>> star = Star(8, circumradius=100)
             >>> len(star.kernel(0))
@@ -348,8 +338,6 @@ class Star(Group):
             ValueError: If level is not a positive integer or zero.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.shapes.shape import Shape
             >>> from simetri.star_patterns.stars import Star
             >>> star = Star(8, circumradius=100)
@@ -399,8 +387,6 @@ class Star(Group):
             ValueError: If level is not a positive integer or zero.
 
         Examples:
-            >>> from simetri.config.settings import set_defaults
-            >>> set_defaults()
             >>> from simetri.group.batch import Group
             >>> from simetri.star_patterns.stars import Star
             >>> star = Star(8, circumradius=100)

@@ -86,8 +86,6 @@ def string_star(
         list[Sequence[float]]: Vertex walk of the resulting string-art star.
 
     Examples:
-        >>> from simetri.config.settings import set_defaults
-        >>> set_defaults()
         >>> star = string_star(7, 4, 3, 9)
         >>> len(star)
         34
