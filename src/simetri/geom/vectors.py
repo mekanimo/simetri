@@ -76,7 +76,7 @@ class Vector:
             >>> import simetri.graphics as sg
             >>> sg.Vector(3, 4).mag()
             5.0
-            >>> sg.Vector([1, 2, 3]).coords
+            >>> tuple(sg.Vector([1, 2, 3]))
             (1, 2, 3)
         """
         if not args:
@@ -268,7 +268,7 @@ class Vector:
         Examples:
             >>> import simetri.graphics as sg
             >>> sg.Vector(1, 0).perp()
-            Vector(0.0, 1.0)
+            Vector(0, 1)
 """
         return Vector(v_perp(self.data))
 
@@ -363,7 +363,7 @@ class Vector:
         Examples:
             >>> import simetri.graphics as sg
             >>> sg.Vector(1, 2).dot(sg.Vector(3, 4))
-            11.0
+            11
 """
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
@@ -385,7 +385,7 @@ class Vector:
         Examples:
             >>> import simetri.graphics as sg
             >>> sg.Vector(1, 0).cross(sg.Vector(0, 1))
-            1.0
+            1
 """
         if isinstance(other, Vector):
             other_data = other.data
@@ -472,8 +472,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(1, 0).rotate(sg.pi / 2)
-            Vector(0.0, 1.0)
+            >>> tuple(round(x, 10) for x in sg.Vector(1, 0).rotate(sg.pi / 2))
+            (0.0, 1.0)
 """
         if isinstance(axis, Vector):
             axis_data = axis.data

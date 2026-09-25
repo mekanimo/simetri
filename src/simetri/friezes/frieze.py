@@ -37,8 +37,8 @@ def hop(
         Group: A Group of Shapes with the p1 symmetry.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> row = hop(mark, vector=(20, 0), reps=2)
         >>> row.__class__.__name__
         'Group'
@@ -62,8 +62,8 @@ def p1(design: Group | Shape, vector: VecType = (1, 0), reps: int = 3) -> Group:
         Group: A Group of Shapes with the p1 symmetry.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> row = p1(mark, vector=(15, 0), reps=1)
         >>> len(row)
         2
@@ -90,9 +90,8 @@ def jump(
         Group: A Group of shapes with the p11m symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
         >>> row = jump(band, axis, 20, reps=1)
         >>> len(row)
@@ -126,9 +125,8 @@ def jump_along(
         Group: A Group of shapes with the jump along symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
         >>> path = [(0, 0), (30, 0)]
         >>> row = jump_along(band, axis, path, reps=1)
@@ -159,9 +157,8 @@ def sidle(
         Group: A Group of Shapes with the sidle symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
         >>> row = sidle(band, axis, 20, reps=1)
         >>> len(row)
@@ -192,9 +189,8 @@ def sidle_along(
         Group: A Group of shapes with the sidle along symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
         >>> path = [(0, 0), (30, 0)]
         >>> row = sidle_along(band, axis, path, reps=1)
@@ -225,9 +221,8 @@ def spinning_hop(
         Group: A Group of Shapes with spinning hop symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> row = spinning_hop(band, (5, 0), 20, 0, reps=1)
         >>> len(row)
         4
@@ -261,9 +256,8 @@ def spinning_jump(
         Group: A Group of Shapes with spinning jump symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> row = spinning_jump(
         ...     band,
         ...     ((0, -5), (100, -5)),
@@ -306,9 +300,8 @@ def spinning_sidle(
         Group: A Group of Shapes with spinning sidle symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> row = spinning_sidle(
         ...     band,
         ...     ((0, -5), (100, -5)),
@@ -348,9 +341,8 @@ def step(
         Group: A Group of Shapes with step symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
         >>> row = step(band, axis, 10, reps=1)
         >>> len(row)
@@ -386,9 +378,8 @@ def step_along(
         Group: A Group of shapes with the step along symmetry.
 
     Examples:
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.shape import Shape
-        >>> band = Group([Shape([(0, 0), (10, 0)])])
+        >>> import simetri.graphics as sg
+        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
         >>> axis = ((0, -5), (100, -5))
         >>> path = [(0, 0), (30, 0)]
         >>> row = step_along(band, axis, 10, path, reps=1)

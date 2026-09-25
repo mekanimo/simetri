@@ -32,7 +32,7 @@ from ..base.all_enums import (
 )
 from ..base.common import PointType, get_unique_id
 from ..coloring import colors
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.bbox import bounding_box
 from ..geom.homogenize import homogenize
 from ..geom.matrices import identity_matrix
@@ -383,7 +383,7 @@ class ImageSketch:
         >>> import simetri.graphics as sg
         >>> from PIL import Image as PILImage
         >>> from simetri.images.image import Image
-        >>> image = Image(PILImage.new('RGB', (2, 2)))
+        >>> image = sg.Image(PILImage.new('RGB', (2, 2)))
         >>> sk = ImageSketch(image=image)
         >>> sk.subtype.name
         'IMAGE_SKETCH'

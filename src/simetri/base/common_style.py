@@ -12,7 +12,7 @@ from typing import Any, Self
 
 from simetri.base.all_enums import WarningType
 from simetri.coloring.colors import Color
-from simetri.config.settings import defaults, issue_warning
+from simetri.config.settings import runtime_defaults as defaults, issue_warning
 
 # Public style fields copied by ``copy_style`` (color/alpha handled separately).
 STYLE_COPY_ATTRS: tuple[str, ...] = (

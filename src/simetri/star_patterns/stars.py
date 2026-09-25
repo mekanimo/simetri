@@ -1,9 +1,9 @@
 """Classes and functions for creating stars and rosettes.
 
 Examples:
-    >>> from simetri.shapes.shape import Shape
+    >>> import simetri.graphics as sg
     >>> from simetri.star_patterns.stars import Star, rosette
-    >>> petal = Shape([(0, 0), (20, 5), (0, 10)])
+    >>> petal = sg.Shape([(0, 0), (20, 5), (0, 10)])
     >>> len(rosette(8, petal))
     4
     >>> Star(8, circumradius=100).n
@@ -40,9 +40,9 @@ def rosette(
         Group: The resulting pattern with n petals.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
+        >>> import simetri.graphics as sg
         >>> from simetri.star_patterns.stars import rosette
-        >>> petal = Shape([(0, 0), (20, 5), (0, 10)])
+        >>> petal = sg.Shape([(0, 0), (20, 5), (0, 10)])
         >>> len(rosette(8, petal))
         4
         >>> len(rosette(6, petal, cyclic=True, merge=False))
@@ -338,7 +338,7 @@ class Star(Group):
             ValueError: If level is not a positive integer or zero.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
+            >>> import simetri.graphics as sg
             >>> from simetri.star_patterns.stars import Star
             >>> star = Star(8, circumradius=100)
             >>> isinstance(star.petal(0), Shape)
@@ -387,7 +387,7 @@ class Star(Group):
             ValueError: If level is not a positive integer or zero.
 
         Examples:
-            >>> from simetri.group.batch import Group
+            >>> import simetri.graphics as sg
             >>> from simetri.star_patterns.stars import Star
             >>> star = Star(8, circumradius=100)
             >>> level0 = star.level(0)

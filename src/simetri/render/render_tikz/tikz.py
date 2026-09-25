@@ -23,7 +23,7 @@ from ...base.all_enums import (
     Types,
     WarningType,
 )
-from ...config.settings import defaults, issue_warning
+from ...config.settings import runtime_defaults as defaults, issue_warning
 from ...geom.bbox import bounding_box
 from ...geom.homogenize import homogenize
 from ...helpers.illustration import resolve_page_vertex_labels
@@ -705,8 +705,8 @@ def get_draw(sketch: Any) -> str | Literal[False]:
     Examples:
         >>> from types import SimpleNamespace
         >>> from simetri.render.render_tikz.tikz import get_draw
-        >>> get_draw(SimpleNamespace(closed=True, fill=True, stroke=False, back_style=None))
-        '\\fill'
+        >>> get_draw(SimpleNamespace(closed=True, fill=True, stroke=False, back_style=None)).endswith('fill')
+        True
     """
     # sketch.closed, sketch.fill, sketch.stroke, shading
 
@@ -820,7 +820,7 @@ def get_begin_scope(ind: int | None = None) -> str:
 
     Examples:
         >>> from simetri.render.render_tikz.tikz import get_begin_scope
-        >>> get_begin_scope(2).startswith('\\begin')
+        >>> 'begin{scope}' in get_begin_scope(2)
         True
     """
     if ind is None:

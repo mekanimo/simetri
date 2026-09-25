@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import platform
 import runpy
 import tomllib
-from collections.abc import Sequence
+from datetime import date
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from ..base.all_enums import WarningType
 from ..coloring import colors
@@ -27,8 +29,89 @@ _user_paths: dict[str, str] = {
     "default_output_directory": "",
     "default_test_directory": "",
 }
-_user_default_overrides: dict[str, Any] = {}
+_DIRECT_USER_DEFAULT_EDIT_MESSAGE = (
+    "Direct edits to user default overrides are not saved to "
+    "simetri_config.toml and may be lost when the config is reloaded. "
+    "Use sg.save_user_defaults(...) to change personal defaults for this "
+    "session and on disk, or edit simetri_config.toml and restart the "
+    "Python kernel (or call sg.apply_user_config())."
+)
+
+_internal_user_default_write_depth = 0
+
+
+@contextmanager
+def _internal_user_default_writes() -> Iterator[None]:
+    """Allow library code to mutate overrides without the direct-edit warning."""
+    global _internal_user_default_write_depth
+    _internal_user_default_write_depth += 1
+    try:
+        yield
+    finally:
+        _internal_user_default_write_depth -= 1
+
+
+class _UserDefaultOverridesDict(dict[str, Any]):
+    """In-memory ``[defaults]`` overrides; warns on user-facing mutation."""
+
+    def _warn_if_direct_edit(self) -> None:
+        if _internal_user_default_write_depth:
+            return
+        from .settings import issue_warning
+
+        issue_warning(
+            _DIRECT_USER_DEFAULT_EDIT_MESSAGE,
+            warning_type=WarningType.file.config,
+            stacklevel=4,
+        )
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self._warn_if_direct_edit()
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key: str) -> None:
+        self._warn_if_direct_edit()
+        super().__delitem__(key)
+
+    def clear(self) -> None:
+        if self and not _internal_user_default_write_depth:
+            self._warn_if_direct_edit()
+        super().clear()
+
+    def pop(self, key: str, default: Any = ...) -> Any:  # type: ignore[override]
+        self._warn_if_direct_edit()
+        if default is ...:
+            return super().pop(key)
+        return super().pop(key, default)
+
+    def popitem(self) -> tuple[str, Any]:
+        self._warn_if_direct_edit()
+        return super().popitem()
+
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        if key not in self and not _internal_user_default_write_depth:
+            self._warn_if_direct_edit()
+        return super().setdefault(key, default)
+
+    def update(  # type: ignore[override]
+        self,
+        other: Mapping[str, Any] | None = None,
+        /,
+        **kwargs: Any,
+    ) -> None:
+        if not _internal_user_default_write_depth and (other or kwargs):
+            self._warn_if_direct_edit()
+        super().update(other, **kwargs)
+
+
+_user_default_overrides = _UserDefaultOverridesDict()
 _config_applied = False
+
+
+def _set_user_default_override(key: str, value: Any) -> None:
+    """Set one override without the direct-edit warning (library use only)."""
+    with _internal_user_default_writes():
+        _user_default_overrides[key] = value
 
 # Personal ``[converters]`` settings (never loaded from shared tomls).
 _NATIVE_SAVE_EXTENSIONS = frozenset({".pdf", ".eps", ".ps", ".svg", ".tex"})
@@ -60,6 +143,18 @@ _viewer_settings: dict[str, Any] = {
 
 # Personal ``[styles.<name>]`` recipes (never loaded from shared tomls).
 user_styles: dict[str, Any] = {}
+
+# Personal ``[script_export]`` defaults for ``save_as`` (commented in template).
+_script_export_settings: dict[str, Any] = {
+    "include_script_header": False,
+    "include_defaults": False,
+    "author": "",
+    "copyright": "",
+    "description": "",
+    "doc_version": "1.0.0",
+    "license": "",
+}
+_script_export_custom_slots: dict[str, str] = {}
 
 
 def set_user_settings_path() -> Path:
@@ -145,14 +240,7 @@ def get_default_test_directory() -> str:
 
 
 def get_user_default_overrides() -> dict[str, Any]:
-    """Return the mapping of uncommented ``[defaults]`` overrides.
-
-    Examples:
-
-        >>> from simetri.config.user_config import get_user_default_overrides
-        >>> isinstance(get_user_default_overrides(), dict)
-        True
-    """
+    """Return the live ``[defaults]`` override mapping (library internal)."""
     return _user_default_overrides
 
 
@@ -227,14 +315,34 @@ def get_tex_compiler() -> dict[str, Any]:
 def get_viewer_settings() -> dict[str, Any]:
     """Return personal ``[viewer]`` settings (copy).
 
-    ``command`` is ``None`` when the user did not set ``[viewer].command``.
-    ``mode`` is ``system``, ``command``, or ``none``.
+    Loaded from ``[viewer]`` in ``simetri_config.toml`` when the config is
+    applied. Shared ``use_settings`` tomls never include this table.
+
+    Keys in the returned dict:
+
+    ``mode`` (str)
+        How ``canvas.save`` opens the file when opening is allowed
+        (``show=True`` or ``defaults['show_browser']``). Allowed values only:
+
+        - ``"system"`` — ``webbrowser.open`` with a ``file:`` URL (OS default
+          app for the extension). Default when ``[viewer]`` is absent.
+        - ``"command"`` — run ``command`` via subprocess; on failure or missing
+          ``command``, Simetri warns and falls back to ``"system"``.
+        - ``"none"`` — do not open (save still succeeds).
+
+    ``shell`` (bool)
+        When ``mode`` is ``"command"``: ``False`` means ``command`` is a list
+        of argv strings; ``True`` means ``command`` is one shell string.
+
+    ``command`` (list[str] | str | None)
+        Program and arguments. ``None`` if unset. Placeholders ``{filepath}``,
+        ``{file}``, ``{url}`` are substituted at launch. See ``sg.help('viewer')``.
 
     Examples:
 
         >>> from simetri.config.user_config import get_viewer_settings
-        >>> get_viewer_settings()["mode"]
-        'system'
+        >>> get_viewer_settings()["mode"] in ("system", "command", "none")
+        True
     """
     return dict(_viewer_settings)
 
@@ -283,7 +391,7 @@ def resolve_save_filepath(filepath: str | Path) -> str:
         filepath: User-supplied save path.
 
     Returns:
-        Absolute or joined path string ready for ``validate_filepath``.
+        Absolute or joined path string ready for ``validate_output_filepath``.
 
     Raises:
         ValueError: Bare filename and ``default_output_directory`` is unset.
@@ -583,7 +691,7 @@ def _apply_defaults_table(defaults_table: dict[str, Any]) -> None:
                 f"Invalid value for [defaults].{key}: {value!r} ({error})"
             )
             continue
-        _user_default_overrides[key] = converted
+        _set_user_default_override(key, converted)
 
 
 def _warning_member(group_name: str, leaf_name: str) -> Any | None:
@@ -603,14 +711,13 @@ def _apply_warnings_table(warnings_table: dict[str, Any]) -> None:
     from .settings import (
         _apply_warning_enabled_session,
         _disabled_warning_types,
-        defaults,
     )
 
     _disabled_warning_types.clear()
 
     for key, value in warnings_table.items():
         if key == "warnings_on":
-            defaults["show_warnings"] = bool(value)
+            _set_user_default_override("show_warnings", bool(value))
             continue
         if not isinstance(value, dict):
             _warn_invalid_key(
@@ -642,7 +749,9 @@ def _apply_warnings_table(warnings_table: dict[str, Any]) -> None:
             _apply_warning_enabled_session(member, enabled=bool(enabled))
 
     if "warnings_on" in warnings_table:
-        defaults["show_warnings"] = bool(warnings_table["warnings_on"])
+        _set_user_default_override(
+            "show_warnings", bool(warnings_table["warnings_on"])
+        )
 
 
 def _apply_converters_table(converters_table: dict[str, Any]) -> None:
@@ -955,7 +1064,7 @@ def save_user_defaults(mapping: Any = None, **kwargs: object) -> Path:
 
     Uncomments an existing catalog line for that key when present; otherwise
     inserts the assignment under ``[defaults]``. Updates user overrides in
-    this session. Does not change library ``defaults.defaults``.
+    this session. Does not change factory ``sg.defaults``.
 
     Args:
         mapping: A dict of defaults keys to values, or omitted.
@@ -975,8 +1084,11 @@ def save_user_defaults(mapping: Any = None, **kwargs: object) -> Path:
         'simetri_config.toml'
         >>> sg.save_user_defaults({"fill_color": sg.blue}).suffix
         '.toml'
+        >>> sg.save_user_defaults(line_width=2.5)
+        >>> sg.user_defaults["line_width"]
+        2.5
     """
-    from .settings import default_types, defaults
+    from .settings import _default_store, default_types, defaults
 
     if mapping is None and not kwargs:
         raise TypeError(
@@ -1020,13 +1132,20 @@ def save_user_defaults(mapping: Any = None, **kwargs: object) -> Path:
 
     _update_default_keys(toml_literals)
     for key, converted in converted_map.items():
-        _user_default_overrides[key] = converted
-        defaults.user_overrides[key] = converted
+        _set_user_default_override(key, converted)
+    if _default_store.user_overrides is not _user_default_overrides:
+        _default_store.user_overrides = _user_default_overrides
     return user_config_path()
 
 
 def apply_user_config() -> Path:
     """Ensure, load, and apply ``simetri_config.toml``.
+
+    Called once when you ``import simetri.graphics as sg``. Hand-edits to the
+    toml while a session is already running are not picked up until you restart
+    the kernel, re-import in a fresh process, or call this function again.
+    APIs such as ``sg.save_user_defaults`` update the file and this session
+    immediately.
 
     Returns:
         Path to the config file that was read.
@@ -1037,10 +1156,11 @@ def apply_user_config() -> Path:
         'simetri_config.toml'
     """
     global _config_applied
-    from .settings import defaults
+    from .settings import _default_store, defaults
 
     config_path = ensure_user_config()
-    _user_default_overrides.clear()
+    with _internal_user_default_writes():
+        _user_default_overrides.clear()
     _user_paths["default_output_directory"] = ""
     _user_paths["default_test_directory"] = ""
     _converter_formats.clear()
@@ -1050,6 +1170,14 @@ def apply_user_config() -> Path:
     _reset_tex_settings()
     _reset_viewer_settings()
     user_styles.clear()
+    _script_export_settings["include_script_header"] = False
+    _script_export_settings["include_defaults"] = False
+    _script_export_settings["author"] = ""
+    _script_export_settings["copyright"] = ""
+    _script_export_settings["description"] = ""
+    _script_export_settings["doc_version"] = "1.0.0"
+    _script_export_settings["license"] = ""
+    _script_export_custom_slots.clear()
 
     with config_path.open("rb") as handle:
         data = tomllib.load(handle)
@@ -1063,6 +1191,7 @@ def apply_user_config() -> Path:
             "tex",
             "viewer",
             "styles",
+            "script_export",
         }
     )
     for section_name in data:
@@ -1103,8 +1232,16 @@ def apply_user_config() -> Path:
                 f"got {type(styles_table).__name__}"
             )
         _apply_styles_table(styles_table)
+    if "script_export" in data:
+        export_table = data["script_export"]
+        if not isinstance(export_table, dict):
+            raise TypeError(
+                "[script_export] in simetri_config.toml must be a table, "
+                f"got {type(export_table).__name__}"
+            )
+        _apply_script_export_table(export_table)
 
-    defaults.user_overrides = _user_default_overrides
+    _default_store.user_overrides = _user_default_overrides
     _config_applied = True
     return config_path
 
@@ -1174,6 +1311,405 @@ def _is_exportable_default_type(expected_type: Any) -> bool:
     return expected_type in (bool, int, float, str)
 
 
+def _apply_script_export_table(export_table: dict[str, Any]) -> None:
+    """Apply uncommented ``[script_export]`` and ``[script_export.custom]`` entries."""
+    known = frozenset(_script_export_settings)
+    for key, value in export_table.items():
+        if key == "custom":
+            if isinstance(value, dict):
+                _script_export_custom_slots.clear()
+                for slot_name, slot_value in value.items():
+                    _script_export_custom_slots[str(slot_name)] = str(slot_value)
+            else:
+                _warn_invalid_key(
+                    "[script_export].custom must be a table (simetri_config.toml)"
+                )
+            continue
+        if key not in known:
+            _warn_invalid_key(
+                f"Unknown key in [script_export]: {key!r} (simetri_config.toml)"
+            )
+            continue
+        if key in ("include_script_header", "include_defaults"):
+            _script_export_settings[key] = bool(value)
+        else:
+            _script_export_settings[key] = str(value)
+
+
+def _capture_exportable_defaults_from_script(script_path: Path) -> dict[str, Any]:
+    """Run ``script_path`` and return exportable defaults read during the run."""
+    from .settings import _default_store, default_types, runtime_defaults
+
+    _default_store.log.clear()
+    runpy.run_path(str(script_path), run_name="__main__")
+
+    accessed_keys = sorted({key for key, _str_value in _default_store.log})
+    defaults_table: dict[str, Any] = {}
+    for key in accessed_keys:
+        if key not in default_types:
+            continue
+        expected_type = default_types[key]
+        if not _is_exportable_default_type(expected_type):
+            continue
+        value = runtime_defaults[key]
+        defaults_table[key] = _serialize_shared_value(value)
+    return defaults_table
+
+
+def _extract_script_body(source: str) -> str:
+    """Return script text after shebang, encoding cookie, and module docstring."""
+    lines = source.splitlines(keepends=True)
+    offset = 0
+    if lines and lines[0].startswith("#!"):
+        offset = 1
+    if offset < len(lines) and "coding" in lines[offset] and "utf-8" in lines[offset]:
+        offset += 1
+    chunk = "".join(lines[offset:])
+    try:
+        tree = ast.parse(chunk, mode="exec")
+    except SyntaxError:
+        return chunk
+    if not tree.body:
+        return chunk
+    first = tree.body[0]
+    if (
+        isinstance(first, ast.Expr)
+        and isinstance(first.value, ast.Constant)
+        and isinstance(first.value.value, str)
+    ):
+        body_index = offset + first.end_lineno
+        return "".join(lines[body_index:])
+    return chunk
+
+
+def _format_script_header_default_line(key: str, serialized: Any) -> str:
+    """Format one ``[defaults]`` line inside a script header docstring."""
+    return f"{key} = {_format_toml_value(serialized)}"
+
+
+def _build_script_header_docstring(
+    *,
+    filename: str,
+    author: str,
+    export_date: str,
+    simetri_version: str,
+    doc_version: str,
+    description: str,
+    copyright_text: str,
+    license_text: str,
+    custom_slots: dict[str, str],
+    defaults_table: dict[str, Any],
+) -> str:
+    """Build the module docstring for ``save_as`` (metadata + optional defaults)."""
+    lines = [
+        f"Filename: {filename}",
+        f"Author: {author}",
+        f"Date: {export_date}",
+        f"sg.__version__: {simetri_version}",
+        f"doc_version: {doc_version}",
+        f"Description: {description}",
+    ]
+    if copyright_text.strip():
+        lines.append(f"Copyright: {copyright_text.strip()}")
+    if license_text.strip():
+        lines.append(f"License: {license_text.strip()}")
+    for slot_name in sorted(custom_slots):
+        slot_value = custom_slots[slot_name].strip()
+        if slot_value:
+            lines.append(f"{slot_name}: {slot_value}")
+    if defaults_table:
+        lines.append("[defaults]")
+        lines.extend(
+            _format_script_header_default_line(key, defaults_table[key])
+            for key in sorted(defaults_table)
+        )
+    body = "\n".join(lines)
+    return f'"""\n{body}\n"""\n\n'
+
+
+def _parse_header_assignment_value(literal: str) -> Any:
+    """Parse one ``[defaults]`` rhs from a script header docstring."""
+    text = literal.strip()
+    lower = text.lower()
+    if lower in ("true", "false"):
+        return lower == "true"
+    try:
+        return ast.literal_eval(text)
+    except (SyntaxError, ValueError):
+        pass
+    table = tomllib.loads(f"value = {text}".encode("utf-8"))
+    return table["value"]
+
+
+def _parse_script_header_defaults(docstring: str) -> dict[str, str]:
+    """Parse ``[defaults]`` assignment lines from a script module docstring."""
+    defaults_lines: dict[str, str] = {}
+    in_defaults = False
+    for line in docstring.splitlines():
+        stripped = line.strip()
+        if stripped == "[defaults]":
+            in_defaults = True
+            continue
+        if not in_defaults or not stripped or stripped.startswith("#"):
+            continue
+        if "=" not in stripped:
+            continue
+        key_part, _, value_part = stripped.partition("=")
+        key_name = key_part.strip()
+        if key_name:
+            defaults_lines[key_name] = value_part.strip()
+    return defaults_lines
+
+
+def _parse_script_header_meta(docstring: str) -> dict[str, str]:
+    """Parse ``Key: value`` metadata lines from a script module docstring."""
+    meta: dict[str, str] = {}
+    for line in docstring.splitlines():
+        stripped = line.strip()
+        if stripped == "[defaults]" or not stripped:
+            break
+        if ":" not in stripped:
+            continue
+        key_part, _, value_part = stripped.partition(":")
+        key_name = key_part.strip()
+        if key_name:
+            meta[key_name] = value_part.strip()
+    return meta
+
+
+def _load_script_header_defaults(docstring: str) -> dict[str, Any]:
+    """Convert parsed header defaults into typed runtime values."""
+    from .settings import default_types, defaults
+
+    raw = _parse_script_header_defaults(docstring)
+    overlay: dict[str, Any] = {}
+    for key, literal in raw.items():
+        if key not in defaults.defaults:
+            raise KeyError(f"Unknown defaults key {key!r} in script header")
+        if key not in default_types:
+            raise KeyError(
+                f"Defaults key {key!r} has no registered type (script header)"
+            )
+        overlay[key] = _convert_default_value(
+            key, _parse_header_assignment_value(literal), default_types[key]
+        )
+    return overlay
+
+
+def _script_module_docstring(source: str) -> str | None:
+    """Return the module docstring text from ``source``, if present."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    return ast.get_docstring(tree, clean=False)
+
+
+def _resolve_save_as_bool(name: str, override: bool | None) -> bool:
+    if override is not None:
+        return bool(override)
+    return bool(_script_export_settings.get(name, False))
+
+
+def _resolve_save_as_str(name: str, override: str | None) -> str:
+    if override is not None:
+        return str(override)
+    return str(_script_export_settings.get(name, ""))
+
+
+def _resolve_save_as_custom(
+    override: dict[str, str] | None,
+) -> dict[str, str]:
+    merged = dict(_script_export_custom_slots)
+    if override:
+        for key, value in override.items():
+            merged[str(key)] = str(value)
+    return merged
+
+
+def save_as(
+    source_path: str | Path,
+    target_path: str | Path,
+    *,
+    include_script_header: bool | None = None,
+    include_defaults: bool | None = None,
+    doc_version: str | None = None,
+    simetri_version: str | None = None,
+    author: str | None = None,
+    export_date: str | None = None,
+    description: str | None = None,
+    filename: str | None = None,
+    copyright: str | None = None,
+    license: str | None = None,
+    custom: dict[str, str] | None = None,
+) -> Path:
+    """Write a copy of a script to ``target_path`` with an optional Simetri header.
+
+    Runs ``source_path`` once to capture which defaults the drawing reads when
+    ``include_defaults`` is true. Never modifies ``source_path``. Personal
+    ``[script_export]`` keys in ``simetri_config.toml`` apply when call-time
+    arguments are omitted.
+
+    Args:
+        source_path: Script to run for capture and to copy body from.
+        target_path: Destination ``.py`` file (created or overwritten).
+        include_script_header: When true, write shebang, encoding, and metadata
+            docstring (all metadata fields together). When false, only shebang
+            and body.
+        include_defaults: When true, append a ``[defaults]`` block to the header
+            docstring from the capture run.
+        doc_version: Header schema version (script header parser).
+        simetri_version: Minimum Simetri version recorded in the header.
+        author: Author line in the header docstring.
+        export_date: ``Date:`` line (defaults to today, ISO).
+        description: Description line in the header docstring.
+        filename: ``Filename:`` line (defaults to ``target_path`` name).
+        copyright: Optional ``Copyright:`` line (omitted when empty).
+        license: Optional ``License:`` line (omitted when empty).
+        custom: Extra ``Label: value`` header lines; merged with
+            ``[script_export.custom]`` from ``simetri_config.toml``.
+
+    Returns:
+        Path to ``target_path``.
+
+    Raises:
+        FileNotFoundError: If ``source_path`` does not exist.
+        TypeError: If a captured default cannot be serialized.
+
+    Examples:
+
+        >>> import tempfile
+        >>> from pathlib import Path
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     src = Path(tmp) / "figure.py"
+        ...     dst = Path(tmp) / "figure_export.py"
+        ...     _ = src.write_text(
+        ...         "import simetri.graphics as sg\\n"
+        ...         "from simetri.config.settings import runtime_defaults\\n"
+        ...         "_ = runtime_defaults['line_width']\\n",
+        ...         encoding="utf-8",
+        ...     )
+        ...     out = sg.save_as(
+        ...         src,
+        ...         dst,
+        ...         include_script_header=True,
+        ...         include_defaults=True,
+        ...     )
+        ...     out == dst and dst.is_file()
+        True
+    """
+    from .. import __version__
+
+    source = Path(source_path)
+    target = Path(target_path)
+    if not source.is_file():
+        raise FileNotFoundError(f"Script not found: {source}")
+
+    include_header = _resolve_save_as_bool(
+        "include_script_header", include_script_header
+    )
+    include_defs = _resolve_save_as_bool("include_defaults", include_defaults)
+
+    defaults_table: dict[str, Any] = {}
+    if include_defs:
+        defaults_table = _capture_exportable_defaults_from_script(source)
+
+    source_text = source.read_text(encoding="utf-8")
+    body = _extract_script_body(source_text)
+
+    parts: list[str] = ["#!/usr/bin/env python3\n"]
+    if include_header:
+        parts.append("# -*- coding: utf-8 -*-\n")
+        resolved_version = (
+            str(simetri_version)
+            if simetri_version is not None
+            else __version__
+        )
+        parts.append(
+            _build_script_header_docstring(
+                filename=filename if filename is not None else target.name,
+                author=_resolve_save_as_str("author", author),
+                export_date=export_date or date.today().isoformat(),
+                simetri_version=resolved_version,
+                doc_version=_resolve_save_as_str(
+                    "doc_version",
+                    doc_version if doc_version is not None else None,
+                ),
+                description=_resolve_save_as_str("description", description),
+                copyright_text=_resolve_save_as_str("copyright", copyright),
+                license_text=_resolve_save_as_str("license", license),
+                custom_slots=_resolve_save_as_custom(custom),
+                defaults_table=defaults_table if include_defs else {},
+            )
+        )
+    parts.append(body.lstrip("\n") if body else "")
+    if parts[-1] and not parts[-1].endswith("\n"):
+        parts[-1] = parts[-1] + "\n"
+
+    target.write_text("".join(parts), encoding="utf-8")
+    return target
+
+
+@contextmanager
+def use_script_header(script_path: str | Path) -> Iterator[None]:
+    """Apply ``[defaults]`` from a script module docstring for a ``with`` block.
+
+    Reads ``sg.__version__`` / ``simetri_version`` from the header when present
+    and calls ``check_version``. Installs header defaults as shared overrides
+    (personal ``simetri_config.toml`` defaults are suppressed). Does not write
+    personal config.
+
+    Args:
+        script_path: Path to a ``.py`` file (typically ``__file__``).
+
+    Yields:
+        None.
+
+    Raises:
+        FileNotFoundError: If ``script_path`` does not exist.
+        KeyError: Unknown defaults key in the header.
+        VersionConflict: If this install is older than the header version.
+
+    Examples:
+
+        >>> import tempfile
+        >>> from pathlib import Path
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     script = Path(tmp) / "fig.py"
+        ...     _ = script.write_text(
+        ...         '\\\"\\\"\\\"\\nsg.__version__: 0.0.0\\n'
+        ...         '[defaults]\\nline_width = 2.0\\n\\\"\\\"\\\"\\n',
+        ...         encoding="utf-8",
+        ...     )
+        ...     with sg.use_script_header(script):
+        ...         pass
+    """
+    from .settings import _default_store
+
+    path = Path(script_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Script not found: {path}")
+
+    docstring = _script_module_docstring(path.read_text(encoding="utf-8"))
+    overlay: dict[str, Any] = {}
+    if docstring:
+        meta = _parse_script_header_meta(docstring)
+        version_text = meta.get("sg.__version__") or meta.get("simetri_version")
+        if version_text:
+            check_version(version_text.strip())
+        overlay = _load_script_header_defaults(docstring)
+
+    previous_shared = dict(_default_store.shared_overrides)
+    previous_suppress = _default_store.suppress_user_overrides
+    _default_store.shared_overrides = overlay
+    _default_store.suppress_user_overrides = True
+    try:
+        yield
+    finally:
+        _default_store.shared_overrides = previous_shared
+        _default_store.suppress_user_overrides = previous_suppress
+
+
 def _write_shared_toml(
     output_path: Path,
     *,
@@ -1219,37 +1755,24 @@ def generate_shared_toml(script_path: str | Path, output_path: str | Path) -> Pa
         >>> from pathlib import Path
         >>> with tempfile.TemporaryDirectory() as tmp:
         ...     script = Path(tmp) / "read_defaults.py"
-        ...     script.write_text(
+        ...     _ = script.write_text(
         ...         "import simetri.graphics as sg\\n"
         ...         "_ = sg.defaults['line_width']\\n",
         ...         encoding="utf-8",
         ...     )
         ...     out = Path(tmp) / "shared.toml"
-        ...     sg.generate_shared_toml(script, out)
+        ...     _ = sg.generate_shared_toml(script, out)
         ...     out.is_file()
         True
     """
     from .. import __version__
-    from .settings import default_types, defaults
 
     script = Path(script_path)
     output = Path(output_path)
     if not script.is_file():
         raise FileNotFoundError(f"Script not found: {script}")
 
-    defaults.log.clear()
-    runpy.run_path(str(script), run_name="__main__")
-
-    accessed_keys = sorted({key for key, _str_value in defaults.log})
-    defaults_table: dict[str, Any] = {}
-    for key in accessed_keys:
-        if key not in default_types:
-            continue
-        expected_type = default_types[key]
-        if not _is_exportable_default_type(expected_type):
-            continue
-        value = defaults[key]
-        defaults_table[key] = _serialize_shared_value(value)
+    defaults_table = _capture_exportable_defaults_from_script(script)
 
     _write_shared_toml(
         output,
@@ -1321,27 +1844,27 @@ def use_settings(toml_path: str | Path) -> Iterator[None]:
         >>> from pathlib import Path
         >>> with tempfile.TemporaryDirectory() as tmp:
         ...     toml = Path(tmp) / "shared.toml"
-        ...     toml.write_text(
+        ...     _ = toml.write_text(
         ...         '[meta]\\nsimetri_version = "0.0.0"\\n\\n'
         ...         '[defaults]\\nline_width = 2.0\\n',
         ...         encoding="utf-8",
         ...     )
         ...     with sg.use_settings(toml):
-        ...         sg.defaults["line_width"]
+        ...         sg.user_defaults["line_width"]
         2.0
     """
-    from .settings import defaults
+    from .settings import _default_store, defaults
 
     path = Path(toml_path)
     simetri_version, overlay = _load_shared_settings(path)
     check_version(simetri_version)
 
-    previous_shared = dict(defaults.shared_overrides)
-    previous_suppress = defaults.suppress_user_overrides
-    defaults.shared_overrides = overlay
-    defaults.suppress_user_overrides = True
+    previous_shared = dict(_default_store.shared_overrides)
+    previous_suppress = _default_store.suppress_user_overrides
+    _default_store.shared_overrides = overlay
+    _default_store.suppress_user_overrides = True
     try:
         yield
     finally:
-        defaults.shared_overrides = previous_shared
-        defaults.suppress_user_overrides = previous_suppress
+        _default_store.shared_overrides = previous_shared
+        _default_store.suppress_user_overrides = previous_suppress

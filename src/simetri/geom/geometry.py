@@ -29,7 +29,7 @@ from numpy import array
 from numpy.typing import NDArray
 
 from ..base.common import PointType
-from ..config.settings import defaults, issue_warning
+from ..config.settings import runtime_defaults as defaults, issue_warning
 from .geom_utils import close_points_square
 from .vectors import *
 
@@ -332,8 +332,8 @@ def global_to_local(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.global_to_local(1, 0, 0, 0, sg.pi / 2)
-        (0.0, 1.0)
+        >>> tuple(round(c, 10) for c in sg.global_to_local(1, 0, 0, 0, sg.pi / 2))
+        (0.0, -1.0)
 """
     sin_theta = sin(theta)
     cos_theta = cos(theta)
@@ -498,8 +498,8 @@ def tri_to_cart(points: Sequence[PointType]) -> NDArray:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.tri_to_cart([[1, 0], [0, 1]]).tolist()
-        [[1.0, 0.0], [0.5, 0.8660254037844386]]
+        >>> [[round(x, 10) for x in row] for row in sg.tri_to_cart([[1, 0], [0, 1]]).tolist()]
+        [[1.0, 0.0], [0.5, 0.8660254038]]
 """
     u = [1, 0]
     v = cos(pi / 3), sin(pi / 3)
@@ -522,7 +522,7 @@ def cart_to_tri(points: Sequence[PointType]) -> NDArray:
         >>> import simetri.graphics as sg
         >>> pts = [[1.0, 0.0], [0.0, 1.0]]
         >>> sg.cart_to_tri(sg.tri_to_cart(pts)).round(10).tolist()
-        [[1.0, 0.0], [0.0, 1.0]]
+        [[1.0, 0.0], [-0.0, 1.0]]
 """
     u = [1, 0]
     v = cos(pi / 3), sin(pi / 3)

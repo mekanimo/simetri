@@ -79,7 +79,7 @@ from simetri.group.batch import Group
 from simetri.helpers.file_operations import (
     open_saved_file,
     run_external_converter,
-    validate_filepath,
+    validate_output_filepath,
 )
 from simetri.helpers.illustration import logo
 from simetri.helpers.utilities import (
@@ -3043,7 +3043,7 @@ class Canvas:
         self._warn_sketches_outside_page()
 
         filepath = resolve_save_filepath(filepath)
-        parent_dir, file_name, extension = validate_filepath(
+        parent_dir, file_name, extension = validate_output_filepath(
             filepath, overwrite
         )
 
@@ -3092,7 +3092,7 @@ class Canvas:
                     page_filepath = os.path.join(
                         parent_dir, f"{file_name}_{i + 1}{extension}"
                     )
-                    validate_filepath(page_filepath, overwrite)
+                    validate_output_filepath(page_filepath, overwrite)
                     svg_code = get_svg_code(self)
                     with open(page_filepath, "w", encoding="utf-8") as f:
                         f.write(svg_code)

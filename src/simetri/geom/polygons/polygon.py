@@ -35,7 +35,7 @@ from ...base.common import (
     get_defaults,
     get_unique_id,
 )
-from ...config.settings import defaults, issue_warning
+from ...config.settings import runtime_defaults as defaults, issue_warning
 from ..geom_utils import close_points_square, midpoint
 from ..points.point_utils import (
     distance,
@@ -74,7 +74,7 @@ def _shape(*args: Any, **kwargs: Any) -> Shape:
     Examples:
         >>> from simetri.geom.polygons.polygon import _shape
         >>> _shape([(0, 0), (1, 0)]).vertices
-        [(0, 0), (1, 0)]
+        ((0.0, 0.0), (1.0, 0.0))
 """
     from simetri.shapes.shape import Shape
 
@@ -1347,8 +1347,8 @@ def equal_sorted_arrays(
     return bool(np.all((delta * delta).sum(axis=1) <= dist_tol2))
 
 
-_HOLE_DTYPE = frozenset(
-    (
+_HOLE_DTYPE = np.dtype(
+    [
         ("xmin", np.float64),
         ("ymin", np.float64),
         ("xmax", np.float64),
@@ -1356,7 +1356,7 @@ _HOLE_DTYPE = frozenset(
         ("x", object),
         ("y", object),
         ("hole_id", np.int64),
-    )
+    ]
 )
 
 
@@ -1973,7 +1973,7 @@ def symmetric_difference(
         >>> import simetri.graphics as sg
         >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
         >>> group = sg.Group([square])
-        >>> group.closed
+        >>> square.closed
         True
 """
     partitions, d_edge_part, union = get_partitions(shapes, length_bound)

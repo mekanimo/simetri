@@ -10,7 +10,7 @@ from numpy import around
 from numpy.typing import NDArray
 
 from simetri.base.all_enums import InPlace, Types
-from simetri.config.settings import defaults
+from simetri.config.settings import runtime_defaults as defaults
 from simetri.geom.geom_utils import connected_pairs
 from simetri.geom.points.point_utils import fix_degen_points
 
@@ -113,7 +113,16 @@ class Poly:
     Most modifications create a new primary_points array.
     """
 
-    __slots__ = ["_vertices", "closed", "id", "primary_points", "xform_matrix"]
+    __slots__ = (
+        "_bbox",
+        "_vertices",
+        "closed",
+        "id",
+        "primary_points",
+        "subtype",
+        "type",
+        "xform_matrix",
+    )
 
     def __init__(self, points: list | tuple | NDArray, closed: bool = False) -> None:
         """Create a lightweight polygon/polyline from ``points``.
@@ -182,8 +191,13 @@ class Poly:
 
     def __setattr__(self, name: str, value: object) -> None:
         if name in ("primary_points", "xform_matrix"):
-            self._cache = {}
-        setattr(self, name, value)
+            try:
+                bbox = object.__getattribute__(self, "_bbox")
+            except AttributeError:
+                bbox = None
+            if bbox is not None:
+                object.__setattr__(bbox, "_cache", {})
+        object.__setattr__(self, name, value)
 
     @property
     def vertices(self) -> tuple[PointType, ...]:
@@ -520,11 +534,10 @@ def get_polygons(
         >>> len(polys[0]) >= 4
         True
     """
-    from ..helpers.graph import sanitize_graph_edges
+    from ...helpers.graph import get_cycles, sanitize_graph_edges
 
     if dist_tol is None:
         dist_tol = defaults["dist_tol"]
-    from ..helpers.graph import get_cycles
 
     nested_rounded_points = []
     for points in nested_points:

@@ -666,7 +666,8 @@ def time_it(func: Callable[_P, _R]) -> Callable[_P, _R]:
         >>> @time_it
         ... def add_one(x):
         ...     return x + 1
-        >>> add_one(2)
+        >>> add_one(2)  # doctest: +ELLIPSIS
+        Function add_one Took ... seconds
         3
     """
 
@@ -848,7 +849,7 @@ def wait_for_file_availability(
 
     Examples:
         >>> from simetri.helpers.utilities import wait_for_file_availability
-        >>> wait_for_file_availability('__no_such_file__', timeout=0.01)
+        >>> wait_for_file_availability('__no_such_parent__/__missing__', timeout=0)
         False
     """
     start_time = monotonic()
@@ -860,11 +861,16 @@ def wait_for_file_availability(
                 # If the file was successfully opened, it's available.
                 return True
         except OSError:
-            # The file is likely in use.
-            if timeout is not None and (monotonic() - start_time) > timeout:
-                # Timeout period elapsed.
-                return False  # Or raise a TimeoutError if you prefer
-            sleep(check_interval)
+            # The file is likely in use or not yet present.
+            if timeout is not None and (monotonic() - start_time) >= timeout:
+                return False
+            if timeout is None:
+                sleep(check_interval)
+                continue
+            remaining = timeout - (monotonic() - start_time)
+            if remaining <= 0:
+                return False
+            sleep(min(check_interval, remaining))
         except (TypeError, ValueError) as e:
             # Handle other potential exceptions (e.g., file not found) as needed
             print(f"An error occurred: {e}")
@@ -915,8 +921,8 @@ def random_characters(
         >>> import simetri.graphics as sg
         >>> excluded = ["l"]
         >>> token = sg.random_characters(
-        >>> 4, lower=True, upper=False, digit=False, exclude_chars=excluded
-        >>> )
+        ...     4, lower=True, upper=False, digit=False, exclude_chars=excluded
+        ... )
         >>> len(token) == 4 and token.isalpha() and token.islower() and "l" not in token
         True
         >>> excluded
@@ -1063,8 +1069,9 @@ def timing(func: Callable[_P, _R]) -> Callable[_P, _R]:
         >>> @timing
         ... def double(x):
         ...     return x * 2
-        >>> double(3)
-        3
+        >>> double(3)  # doctest: +ELLIPSIS
+        function:double took: ... sec
+        6
     """
 
     @wraps(func)
@@ -1291,8 +1298,9 @@ def check_directory(dir_path: str) -> tuple[bool, str]:
         A tuple containing a boolean indicating validity and an error message.
 
     Examples:
+        >>> import tempfile
         >>> from simetri.helpers.utilities import check_directory
-        >>> check_directory('.')[0]
+        >>> check_directory(tempfile.gettempdir())[0]
         True
     """
     error_msg = []
@@ -2272,7 +2280,7 @@ def get_function_dependencies(
     Examples:
         >>> import simetri.graphics as sg
         >>> sorted(sg.get_function_dependencies(sg.prime_factors))
-        [('ctx', 'factors'), ('ctx', 'n'), ('ctx', 'p')]
+        [('ctx', 'factors'), ('ctx', 'int'), ('ctx', 'list'), ('ctx', 'n'), ('ctx', 'p')]
     """
     source = inspect.getsource(func)
     tree = ast.parse(source)
@@ -2391,8 +2399,8 @@ def get_local_variables_info(
     Examples:
         >>> import simetri.graphics as sg
         >>> def add(x, y):
-        >>> total = x + y
-        >>> return total
+        ...     total = x + y
+        ...     return total
         >>> sg.get_local_variables_info(add, 2, 3)
         {'x': 'int', 'y': 'int', 'total': 'int', 'return': 'int'}
     """

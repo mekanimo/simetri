@@ -5,9 +5,8 @@ Bound onto ``Group`` as ``merge_shapes`` and
 importing these private functions directly.
 
 Examples:
-    >>> from simetri.group.batch import Group
-    >>> from simetri.shapes.shape import Shape
-    >>> g = Group([Shape([(0, 0), (10, 0)]), Shape([(10, 0), (20, 0)])])
+    >>> import simetri.graphics as sg
+    >>> g = sg.Group([sg.Shape([(0, 0), (10, 0)]), sg.Shape([(10, 0), (20, 0)])])
     >>> len(g.merge_shapes())
     1
 """
@@ -20,7 +19,7 @@ from typing import TYPE_CHECKING
 import networkx as nx
 
 from ..base.common import LineType, PointType
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import inclination_angle
 from ..helpers.graph import edges_to_nodes, get_cycles, is_cycle, is_open_walk

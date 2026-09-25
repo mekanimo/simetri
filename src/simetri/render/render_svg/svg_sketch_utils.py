@@ -10,7 +10,7 @@ from PIL import ImageFont
 
 from ...base.all_enums import FontFamily, MarkerType, Types, WarningType
 from ...coloring.colors import Color
-from ...config.settings import defaults, issue_warning
+from ...config.settings import runtime_defaults as defaults, issue_warning
 from ...geom.bbox import bounding_box
 from ..pre_render import set_styles
 from .svg_colors import color_to_svg

@@ -5,7 +5,7 @@ for building over/under weaving patterns that can be drawn on a canvas.
 
 Examples:
     >>> from simetri.interlace.lace import Polyline
-    >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+    >>> poly = sg.Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
     >>> len(poly.divisions)
     3
     >>> round(poly.area, 2)
@@ -27,7 +27,7 @@ from ..base.all_enums import Connection, InPlace, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults
 from ..base.core import _next_xform_matrix, _Targets, _update_inplace
 from ..coloring import colors
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.geom_utils import close_points_square, connected_pairs
 from ..geom.points.point_utils import distance, lerp_point, round_point
 from ..geom.polygons.convex_hull import convex_hull
@@ -297,12 +297,21 @@ class Intersection(Shape):
         Returns:
             Intersection: A copy of the intersection.
         """
-        intersection = Intersection(self.point, self.division1, self.division2)
+        intersection = Intersection(
+            self._point,
+            self.division1,
+            self.division2,
+            endpoint=self.endpoint,
+        )
+        intersection.xform_matrix = np.copy(self.xform_matrix)
+        intersection.overlap = self.overlap
+        intersection.division = self.division
         for attrib in shape_style_map:
-            setattr(intersection, attrib, getattr(self, attrib))
-        custom_attribs = custom_attributes(self)
-        for attrib in custom_attribs:
-            setattr(intersection, attrib, getattr(self, attrib))
+            if attrib in self.__dict__:
+                setattr(intersection, attrib, self.__dict__[attrib])
+        for attrib in custom_attributes(self):
+            if attrib in self.__dict__:
+                setattr(intersection, attrib, self.__dict__[attrib])
         return intersection
 
     @property
@@ -359,7 +368,7 @@ class Partition(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Partition
-        >>> part = Partition([(0, 0), (4, 0), (4, 4), (0, 4)])
+        >>> part = sg.Partition([(0, 0), (4, 0), (4, 4), (0, 4)], closed=True)
         >>> round(part.area, 2)
         16.0
     """
@@ -368,7 +377,6 @@ class Partition(Shape):
         """Create a partition polygon from ``points`` (see class docstring)."""
         super().__init__(points, **kwargs)
         self.subtype = Types.PART
-        self.area = polygon_area(self.vertices)
         self.CG = polygon_cg(self.vertices)
 
     def __str__(self) -> str:
@@ -533,7 +541,7 @@ class Section(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Polyline, Section
-        >>> poly = Polyline([(0, 0), (10, 0)], closed=False)
+        >>> poly = sg.Polyline([(0, 0), (10, 0)], closed=False)
         >>> section = Section(poly.intersections[0], poly.intersections[1])
         >>> round(section.length, 2)
         10.0
@@ -892,10 +900,10 @@ class Polyline(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Polyline
-        >>> closed = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> closed = sg.Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
         >>> len(closed.divisions)
         3
-        >>> open_line = Polyline([(0, 0), (10, 0)], closed=False)
+        >>> open_line = sg.Polyline([(0, 0), (10, 0)], closed=False)
         >>> len(open_line.intersections)
         2
     """
@@ -1083,7 +1091,7 @@ class ParallelPolyline(Group):
 
     Examples:
         >>> from simetri.interlace.lace import ParallelPolyline, Polyline
-        >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> poly = sg.Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
         >>> parallel = ParallelPolyline(poly, offset=2)
         >>> len(parallel.polyline_list)
         3
@@ -1159,15 +1167,12 @@ class Lace(Group):
     shapes.
 
     Examples:
-        >>> from simetri.interlace.lace import Lace
-        >>> from simetri.shapes.shape import Shape
-        >>> from simetri.group.batch import Group
-        >>> from simetri.shapes.geom_items import Line
-        >>> shp1 = Shape(
+        >>> import simetri.graphics as sg
+        >>> shp1 = sg.Shape(
         ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
         ... )
-        >>> shp2 = Line((-40, 0), (240, 0))
-        >>> lace = Lace(Group(shp1, shp2).scale(2), offset=12)
+        >>> shp2 = sg.Line((-40, 0), (240, 0))
+        >>> lace = sg.Lace(sg.Group(shp1, shp2).scale(2), offset=12)
         >>> len(lace.overlaps)
         4
         >>> len(lace.fragments)
@@ -1725,15 +1730,12 @@ class Lace(Group):
             Group: Group containing copies of plaits and fragments.
 
         Examples:
-            >>> from simetri.interlace.lace import Lace
-            >>> from simetri.shapes.shape import Shape
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Line
-            >>> shp1 = Shape(
+            >>> import simetri.graphics as sg
+            >>> shp1 = sg.Shape(
             ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
             ... )
-            >>> shp2 = Line((-40, 0), (240, 0))
-            >>> lace = Lace(Group(shp1, shp2).scale(2), offset=12)
+            >>> shp2 = sg.Line((-40, 0), (240, 0))
+            >>> lace = sg.Lace(sg.Group(shp1, shp2).scale(2), offset=12)
             >>> len(lace.copy())
             9
         """
@@ -1757,9 +1759,8 @@ class Lace(Group):
             Group: Sketch group containing fragment and plait shapes.
 
         Examples:
-            >>> from simetri.interlace.lace import Lace
-            >>> from simetri.shapes.shape import Shape
-            >>> lace = Lace(
+            >>> import simetri.graphics as sg
+            >>> lace = sg.Lace(
             ...     [Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)],
             ...     offset=3,
             ...     with_plaits=False,
@@ -1915,15 +1916,12 @@ class Lace(Group):
             list[list[int]]: Cycles of intersection ids.
 
         Examples:
-            >>> from simetri.interlace.lace import Lace
-            >>> from simetri.shapes.shape import Shape
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Line
-            >>> shp1 = Shape(
+            >>> import simetri.graphics as sg
+            >>> shp1 = sg.Shape(
             ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
             ... )
-            >>> shp2 = Line((-40, 0), (240, 0))
-            >>> lace = Lace(Group(shp1, shp2).scale(2), offset=12)
+            >>> shp2 = sg.Line((-40, 0), (240, 0))
+            >>> lace = sg.Lace(sg.Group(shp1, shp2).scale(2), offset=12)
             >>> len(lace.get_fragment_cycles())
             3
         """
@@ -2514,15 +2512,12 @@ class Lace(Group):
             nx.Graph: Nodes are fragment ids; edges carry the shared division.
 
         Examples:
-            >>> from simetri.interlace.lace import Lace
-            >>> from simetri.shapes.shape import Shape
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Line
-            >>> shp1 = Shape(
+            >>> import simetri.graphics as sg
+            >>> shp1 = sg.Shape(
             ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
             ... )
-            >>> shp2 = Line((-40, 0), (240, 0))
-            >>> lace = Lace(Group(shp1, shp2).scale(2), offset=12)
+            >>> shp2 = sg.Line((-40, 0), (240, 0))
+            >>> lace = sg.Lace(sg.Group(shp1, shp2).scale(2), offset=12)
             >>> lace.fragment_edge_graph().number_of_nodes() >= 0
             True
         """

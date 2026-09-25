@@ -166,6 +166,7 @@ SHM = shear_matrix
 LinPath = Path2D
 
 # Explicit public re-exports (star-imports can drop or shadow these).
+from ..config.settings import defaults, temp_defaults, user_defaults
 from ..base.common_style import Style
 from ..helpers.help_utils import _similar_sg_attribute_names, doc, help
 from ..render.render_svg.svg_utils import (

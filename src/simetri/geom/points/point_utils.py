@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 from simetri.base.all_enums import Types
 from simetri.base.common import LineType, PointType, get_defaults
-from simetri.config.settings import defaults
+from simetri.config.settings import runtime_defaults as defaults
 from simetri.geom.affine import rotate_point
 from simetri.geom.geom_utils import close_points_square
 from simetri.geom.vectors import (
@@ -462,20 +462,34 @@ def remove_collinear_points(
 """
     from simetri.geom.segments.line_utils import collinear3
 
-    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
+    if rel_tol is None:
+        default_values = [abs_tol, None, None]
+    else:
+        default_values = [None, rel_tol, abs_tol]
+    area_tol, area_rel_tol, area_abs_tol = get_defaults(
+        ["area_tol", "area_rel_tol", "area_abs_tol"],
+        default_values,
+    )
+    n = len(points)
+    closed = n > 2 and points[0] == points[-1]
     new_points = []
     for i, point in enumerate(points):
         if i == 0:
             new_points.append(point)
-        else:
-            if not collinear3(
-                new_points[-1],
-                point,
-                points[(i + 1) % len(points)],
-                rel_tol,
-                abs_tol,
-            ):
-                new_points.append(point)
+            continue
+        if not closed and i == n - 1:
+            new_points.append(point)
+            continue
+        next_index = (i + 1) % n if closed else i + 1
+        if not collinear3(
+            new_points[-1],
+            point,
+            points[next_index],
+            area_tol=area_tol,
+            area_rel_tol=area_rel_tol,
+            area_abs_tol=area_abs_tol,
+        ):
+            new_points.append(point)
     return new_points
 
 
@@ -504,9 +518,9 @@ def clockwise3(p: PointType, q: PointType, r: PointType) -> bool:
     rx, ry = r[:2]
     area_ = (qx - px) * (ry - py) - (rx - px) * (qy - py)
     if area_ > 0:
-        res = 1
-    elif area_ < 0:
         res = -1
+    elif area_ < 0:
+        res = 1
     else:
         res = 0
 
@@ -815,19 +829,20 @@ def remove_bad_points(points: list[PointType]) -> list[PointType]:
         if EPSILON > abs(signed_area) / 2.0 > -EPSILON:
             lin_points.append(points[i - 1])
 
-    first_point = points[-2][:2]
-    second_point = points[-1][:2]
-    third_point = points[0][:2]
-    signed_area = (
-        first_point[0] * second_point[1]
-        + second_point[0] * third_point[1]
-        + third_point[0] * first_point[1]
-        - second_point[0] * first_point[1]
-        - third_point[0] * second_point[1]
-        - first_point[0] * third_point[1]
-    )
-    if EPSILON > abs(signed_area) / 2.0 > -EPSILON:
-        lin_points.append(points[-1])
+    if len(points) > 2 and points[0] == points[-1]:
+        first_point = points[-2][:2]
+        second_point = points[-1][:2]
+        third_point = points[0][:2]
+        signed_area = (
+            first_point[0] * second_point[1]
+            + second_point[0] * third_point[1]
+            + third_point[0] * first_point[1]
+            - second_point[0] * first_point[1]
+            - third_point[0] * second_point[1]
+            - first_point[0] * third_point[1]
+        )
+        if EPSILON > abs(signed_area) / 2.0 > -EPSILON:
+            lin_points.append(points[-1])
 
     for p in lin_points:
         # maybe we should display a warning message here indicating that linear
@@ -862,6 +877,7 @@ class Vertex(list):
             >>> Vertex(1, 2).coords
             (1, 2, 0)
         """
+        super().__init__((x, y, z))
         self.x = x
         self.y = y
         self.z = z
@@ -914,7 +930,7 @@ class Vertex(list):
             >>> Vertex(2, 3).array.tolist()
             [2.0, 3.0, 1.0]
 """
-        return array([self.x, self.y, 1])
+        return array([self.x, self.y, 1.0], dtype=float)
 
     def v_tuple(self) -> tuple[float, float, float]:
         """Return the vertex as a tuple.
@@ -996,38 +1012,6 @@ def set_vertices(points: list[Vertex]) -> None:
         p.angle = cross_product_sense3(p.prev, p, p.next)
 
 
-def get_interior_points(
-    start: PointType, end: PointType, n_points: int
-) -> list[PointType]:
-    """Given start and end points and number of interior points
-    returns the positions of the interior points
-
-    Args:
-        start (PointType): Start point.
-        end (PointType): End point.
-        n_points (int): Number of interior points.
-
-    Returns:
-        list[PointType]: List of interior points.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.get_interior_points((0, 0), (4, 0), 1)
-        [(2.0, 0.0)]
-"""
-    from simetri.geom.segments.line_utils import line_angle
-
-    rot_angle = line_angle(start, end)
-    length_ = distance(start, end)
-    seg_length = length_ / (n_points + 1.0)
-    return [
-        rotate_point(
-            [start[0] + seg_length * (i + 1), start[1]], start, rot_angle
-        )
-        for i in range(n_points)
-    ]
-
-
 def project_point_on_line(point: Vertex, line: tuple[Vertex, Vertex]) -> Vertex:
     """Project ``point`` onto the segment ``line``.
 
@@ -1050,9 +1034,12 @@ def project_point_on_line(point: Vertex, line: tuple[Vertex, Vertex]) -> Vertex:
 
     av = v - a
     ab = b - a
-    t = (av * ab) / (ab * ab)
+    ab2 = ab.x * ab.x + ab.y * ab.y
+    if ab2 == 0.0:
+        return a.copy()
+    t = (av.x * ab.x + av.y * ab.y) / ab2
     if t < 0.0:
         t = 0.0
     elif t > 1.0:
         t = 1.0
-    return a + ab * t
+    return Vertex(a.x + ab.x * t, a.y + ab.y * t, a.z + ab.z * t)

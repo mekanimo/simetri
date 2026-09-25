@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from math import degrees
 from typing import Any
 
 from simetri.geom.nonlinear.circle import Circle_ as Circle
@@ -192,7 +193,7 @@ def equal_size_eq(constraint: Constraint) -> float:
         0
     """
 
-    return constraint.item1.size1 - constraint.item2.size2
+    return constraint.size1 - constraint.size2
 
 
 def outer_tangent_eq(constraint: Constraint) -> float:
@@ -207,9 +208,10 @@ def outer_tangent_eq(constraint: Constraint) -> float:
         float: The difference between the distance of the circles and the sum of the radii.
 
     Examples:
+        >>> from simetri.geom.nonlinear.circle import Circle_ as Circle
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, outer_tangent_eq
-        >>> c = Constraint([[0, 0], [1, 0]], [[2, 0], [3, 0]], ConstraintType.OUTER_TANGENT)
+        >>> c = Constraint(sg.Circle((0, 0), 5), sg.Circle((14, 0), 3), ConstraintType.OUTER_TANGENT)
         >>> isinstance(outer_tangent_eq(c), float)
         True
     """
@@ -251,7 +253,7 @@ def inner_tangent_eq(constraint: Constraint) -> float:
         >>> from simetri.geom.nonlinear.circle import Circle_ as Circle
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, inner_tangent_eq
-        >>> c = Constraint(Circle(5, (0, 0)), Circle(3, (8, 0)), ConstraintType.INNER_TANGENT)
+        >>> c = Constraint(sg.Circle((0, 0), 5), sg.Circle((8, 0), 3), ConstraintType.INNER_TANGENT)
         >>> isinstance(inner_tangent_eq(c), float)
         True
     """
@@ -327,7 +329,7 @@ def line_angle_eq(constraint: Constraint) -> float:
     """
     seg1 = constraint.item1
     seg2 = constraint.item2
-    return constraint.value - angle_between_two_lines(seg1, seg2)
+    return constraint.value - degrees(angle_between_two_lines(seg1, seg2))
 
 
 d_equations = {

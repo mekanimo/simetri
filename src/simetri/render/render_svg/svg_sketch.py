@@ -25,7 +25,7 @@ from ...base.all_enums import (
 )
 from ...base.common import get_unique_id
 from ...coloring.colors import Color, check_color
-from ...config.settings import defaults
+from ...config.settings import runtime_defaults as defaults
 from ...geom.geom_utils import close_points_square
 from ...helpers.illustration import (
     label_font_family_svg,

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, NamedTuple
 import pymupdf as fitz
 
 from simetri.base.all_enums import TexLoc, Types
-from simetri.config.settings import defaults
+from simetri.config.settings import runtime_defaults as defaults
 from simetri.config.user_config import get_tex_compiler, user_config_path
 from simetri.helpers.file_operations import run_tex_compiler
 from simetri.helpers.utilities import *

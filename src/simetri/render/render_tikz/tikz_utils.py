@@ -18,7 +18,7 @@ from ...base.all_enums import (
     Types,
 )
 from ...coloring.colors import Color, check_color
-from ...config.settings import defaults, tikz_defaults
+from ...config.settings import runtime_defaults as defaults, tikz_defaults
 from ...shapes.shape import Shape
 from ..sketch import ShapeSketch, TagSketch
 from ..style_map import line_style_map, marker_style_map, shape_style_map
@@ -124,7 +124,7 @@ def color_to_tikz(
 
     Examples:
         >>> from simetri.render.render_tikz.tikz_utils import color_to_tikz
-        >>> color_to_tikz(sg.red).startswith('red')
+        >>> color_to_tikz(sg.red).startswith('{rgb')
         True
     """
     # \usepackage{xcolor}

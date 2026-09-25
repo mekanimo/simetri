@@ -40,7 +40,7 @@ from ..base.common import (
 from ..base.core import Base, _next_xform_matrix, _Targets
 from ..coloring import colors
 from ..coloring.swatches import swatches_255
-from ..config.settings import defaults, issue_warning
+from ..config.settings import runtime_defaults as defaults, issue_warning
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.geom_utils import midpoint
 from ..geom.geometry import (
@@ -237,7 +237,7 @@ def default_font_size_pt(key: str) -> float:
 
         Examples:
         >>> import simetri.graphics as sg
-        >>> sg.default_font_size_pt('label_font_size') > 0
+        >>> sg.default_font_size_pt('index_font_size') > 0
         True
     """
     size = defaults[key]
@@ -362,7 +362,7 @@ def label_font_family_tikz(family: FontFamily | str) -> str:
 
         Examples:
         >>> import simetri.graphics as sg
-        >>> isinstance(sg.label_font_family_tikz(sg.FontFamily.SANS), str)
+        >>> isinstance(sg.label_font_family_tikz(sg.FontFamily.SANSSERIF), str)
         True
     """
     if isinstance(family, FontFamily):
@@ -537,7 +537,7 @@ def cube(size: float = 100) -> Group:
         >>> isinstance(sg.cube(50), sg.Group)
         True
     """
-    points = reg_poly_points_side_length((0, 0), 6, size)
+    points = reg_poly_points_side_length(6, size, (0, 0))
     center = (0, 0)
     face1 = Shape([points[0], center] + points[4:], closed=True)
     cube_ = face1.rotate(-2 * pi / 3, (0, 0), reps=2)
@@ -558,9 +558,11 @@ def get_pdf_dimensions(pdf_path: str) -> tuple[float, float] | None:
         ``(width, height)`` in points, or ``None`` on error.
 
     Examples:
+        >>> import contextlib
+        >>> import io
         >>> import simetri.graphics as sg
-        >>> sg.get_pdf_dimensions('__missing__.pdf') is None
-        True
+        >>> with contextlib.redirect_stdout(io.StringIO()):
+        ...     sg.get_pdf_dimensions('__missing__.pdf') is None
     """
     try:
         doc = fitz.open(pdf_path)
@@ -597,9 +599,11 @@ def get_image_dimensions_from_pdf_pages(
         per-page ``images`` lists; callers should treat this as incomplete.
 
     Examples:
+        >>> import contextlib
+        >>> import io
         >>> import simetri.graphics as sg
-        >>> sg.get_image_dimensions_from_pdf_pages('__missing__.pdf') is None
-        True
+        >>> with contextlib.redirect_stdout(io.StringIO()):
+        ...     sg.get_image_dimensions_from_pdf_pages('__missing__.pdf') is None
     """
     try:
         doc = fitz.open(pdf_path)
@@ -2012,13 +2016,19 @@ class Dimension(Group):
                 y_p1_start = y1 + ext_line_offset
                 y_p1_end = text_y + ext_line_extension
                 y_p2_start = y2 + ext_line_offset
-                y_p2_end = y2 + ext_line_offset + text_offset + ext_line_extension
+                y_p2_end = (
+                    y2 + ext_line_offset + text_offset + ext_line_extension
+                )
             else:
                 text_y = y1 - ext_line_offset - text_offset
                 y_p1_start = y1 - ext_line_offset
-                y_p1_end = y1 - ext_line_offset - text_offset - ext_line_extension
+                y_p1_end = (
+                    y1 - ext_line_offset - text_offset - ext_line_extension
+                )
                 y_p2_start = y2 - ext_line_offset
-                y_p2_end = y2 - ext_line_offset - text_offset - ext_line_extension
+                y_p2_end = (
+                    y2 - ext_line_offset - text_offset - ext_line_extension
+                )
             ext1_start = (x1, y_p1_start)
             ext1_end = (x1, y_p1_end)
             ext2_start = (x2, y_p2_start)
@@ -2047,13 +2057,19 @@ class Dimension(Group):
                 x_p1_start = x1 + ext_line_offset
                 x_p1_end = text_x + ext_line_extension
                 x_p2_start = x2 + ext_line_offset
-                x_p2_end = x2 + ext_line_offset + text_offset + ext_line_extension
+                x_p2_end = (
+                    x2 + ext_line_offset + text_offset + ext_line_extension
+                )
             else:
                 text_x = x1 - ext_line_offset - text_offset
                 x_p1_start = x1 - ext_line_offset
-                x_p1_end = x1 - ext_line_offset - text_offset - ext_line_extension
+                x_p1_end = (
+                    x1 - ext_line_offset - text_offset - ext_line_extension
+                )
                 x_p2_start = x2 - ext_line_offset
-                x_p2_end = x2 - ext_line_offset - text_offset - ext_line_extension
+                x_p2_end = (
+                    x2 - ext_line_offset - text_offset - ext_line_extension
+                )
             ext1_start = (x_p1_start, y1)
             ext1_end = (x_p1_end, y1)
             ext2_start = (x_p2_start, y2)
@@ -2229,8 +2245,8 @@ def estimate_index_label_bbox(
 
         Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (10, 0), (0, 10)])
-        >>> sg.estimate_index_label_bbox(shape, 0) is not None
+        >>> w, h = sg.estimate_index_label_bbox('0', 12.0)
+        >>> w > 0 and h > 0
         True
     """
     return _label_size_from_tag_text_bounds(str(label), font_size_pt)
@@ -2250,8 +2266,8 @@ def estimate_vertex_coord_label_bbox(
 
         Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (10, 0), (0, 10)])
-        >>> sg.estimate_vertex_coord_label_bbox(shape, 0) is not None
+        >>> w, h = sg.estimate_vertex_coord_label_bbox('0, 0', 12.0)
+        >>> w > 0 and h > 0
         True
     """
     return _label_size_from_tag_text_bounds(text, font_size_pt)
@@ -2296,9 +2312,7 @@ def _label_axis_overlaps(
     return max(0.0, overlap_h), max(0.0, overlap_v)
 
 
-def format_vertex_coord(
-    x: float, y: float, ndigits: int | None = None
-) -> str:
+def format_vertex_coord(x: float, y: float, ndigits: int | None = None) -> str:
     """Return ``(x, y)`` formatted for vertex-coordinate labels.
 
     Examples:

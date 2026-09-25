@@ -12,8 +12,11 @@
   known, then the docstring.
 - Other modules and objects return ``inspect.getdoc(obj)``.
 
-``d_help_topic`` maps topic names to short descriptions and lists of
-related ``sg.*`` names. ``sg.help('help')`` loads the help-utilities
+``d_help_topic`` maps topic names to curated notes and highlight ``sg.*``
+names. ``help_topics_generated.py`` (from
+``python -m simetri.helpers.compile_help_topics``) adds every matching
+public export per topic. ``help_topic_supplements.py`` adds semantic links
+(dict / many-to-many graph / aliases). ``sg.help('help')`` loads the help-utilities
 guide. ``sg.help(sg.help)`` summarizes how help lookup works.
 ``sg.help('topics')`` lists available topics.
 
@@ -23,6 +26,7 @@ Examples:
 from __future__ import annotations
 
 import inspect
+import re
 import sys
 import unicodedata
 from collections.abc import Callable, Sequence
@@ -35,7 +39,33 @@ from rapidfuzz.distance import DamerauLevenshtein
 from ..base.all_enums import WarningType
 from ..coloring import colors
 from ..coloring.colors import Color
-from ..config.settings import VOID, defaults, defaults_help
+from ..config.settings import VOID, defaults, defaults_help, user_defaults
+from ..config.user_config_help import (
+    USER_CONFIG_TOPIC_PREEMPT,
+    user_config_help,
+    user_config_help_keys,
+    user_config_sections,
+)
+
+try:
+    from .help_topics_generated import (
+        COMPILED_DOC_PLACEHOLDERS_BY_TOPIC,
+        COMPILED_SG_BY_TOPIC,
+        COMPILED_TOPIC_ALIASES,
+    )
+except ImportError:
+    COMPILED_SG_BY_TOPIC: dict[str, tuple[str, ...]] = {}
+    COMPILED_TOPIC_ALIASES: dict[str, str] = {}
+    COMPILED_DOC_PLACEHOLDERS_BY_TOPIC: dict[str, tuple[str, ...]] = {}
+
+from .help_doc_placeholders import format_doc_placeholder_for_help
+from .help_topic_supplements import (
+    RELATED_TOPICS,
+    SG_NAME_TO_TOPICS,
+    TOPIC_ALIASES as SUPPLEMENT_TOPIC_ALIASES,
+    TOPIC_DOC_PLACEHOLDERS,
+    TOPIC_SG_ENTRIES,
+)
 
 _TOPIC_GUIDES_DIR = Path(__file__).resolve().parents[1] / "topic_guides"
 
@@ -64,6 +94,12 @@ _WARNING_SUBGROUPS = {
 }
 
 
+def _module_name(obj: object) -> str:
+    """Return ``obj.__module__`` when it is a string, else ``""``."""
+    module = getattr(obj, "__module__", None)
+    return module if isinstance(module, str) else ""
+
+
 def normalize(word: str) -> str:
     """Normalize a string for fuzzy help lookup (NFKC, casefold, strip).
 
@@ -75,10 +111,28 @@ def normalize(word: str) -> str:
     return unicodedata.normalize("NFKC", word).casefold().strip()
 
 
+def _user_config_help_for_string(query: str) -> str | None:
+    """Resolve config help before topic aliases when appropriate."""
+    if query in user_config_sections():
+        if query in USER_CONFIG_TOPIC_PREEMPT:
+            return user_config_help(query)
+        if query in ("tex", "viewer"):
+            return None
+        if query not in _TOPIC_ALIASES and query not in d_help_topic:
+            return user_config_help(query)
+    if "." in query:
+        section, _, key = query.partition(".")
+        if key and section in user_config_sections():
+            return user_config_help(query)
+    if query in _TOPIC_ALIASES or query in d_help_topic:
+        return None
+    return user_config_help(query)
+
+
 def _resolve_help_suggestion_limit(limit: int | None) -> int:
     """Return the active similar-name suggestion limit."""
     if limit is None:
-        return defaults["help_suggestion_limit"]
+        return user_defaults["help_suggestion_limit"]
     return limit
 
 
@@ -211,6 +265,14 @@ d_help_topic: dict[str, list[str]] = {
         (
             "See also: sg.help('shapes_doc'), sg.help('groups_doc'), "
             "sg.help('transforms_doc'), sg.help('dynamic_references_doc')"
+        ),
+    ],
+    "building_help": [
+        "sg.help",
+        "sg.doc",
+        (
+            "See also: sg.help('help_doc'), sg.help('testing_doc'), "
+            "sg.help('topics')"
         ),
     ],
     "canvas": [
@@ -610,6 +672,18 @@ d_help_topic: dict[str, list[str]] = {
             "sg.help('tag_objects')"
         ),
     ],
+    "print_doc": [
+        "sg.format_data",
+        "sg.p_print",
+        "sg.print_options",
+        "sg.pretty_print_coords",
+        "sg.register_format_handler",
+        "sg.round_point",
+        "sg.round_points",
+        (
+            "See also: sg.help('vertices'), sg.help('path_objects_doc')"
+        ),
+    ],
     "random_seeds": [
         "sg.random_angle",
         "sg.random_circle",
@@ -777,10 +851,18 @@ d_help_topic: dict[str, list[str]] = {
         ),
     ],
     "user_settings": [
+        "sg.temp_defaults",
+        "sg.user_defaults",
+        "converters",
+        "default_output_directory",
+        "paths",
+        "shell",
         "sg.user_config_path",
         "sg.set_user_settings_path",
         "sg.defaults",
+        "sg.save_as",
         "sg.save_user_defaults",
+        "sg.use_script_header",
         "sg.save_user_style",
         "sg.save_user_warning",
         "sg.set_defaults",
@@ -839,6 +921,8 @@ _TOPIC_ALIASES = {
     "bbox": "bounding_box_doc",
     "b_box": "bounding_box_doc",
     "BooleanOps": "boolean_ops",
+    "building-help": "building_help",
+    "BuildingHelp": "building_help",
     "Canvas": "canvas_doc",
     "canvas": "canvas_doc",
     "canvas-context-managers": "canvas_context_managers",
@@ -960,6 +1044,11 @@ _TOPIC_ALIASES = {
     "UserSettings": "user_settings",
     "viewer": "viewer",
     "preview": "viewer",
+    "formatting": "print_doc",
+    "p_print": "print_doc",
+    "print": "print_doc",
+    "print-doc": "print_doc",
+    "Print": "print_doc",
     "open_saved": "viewer",
     "open-saved": "viewer",
     "Vertices": "vertices",
@@ -1020,7 +1109,7 @@ def _default_overrides_for_signature(
             continue
         if name not in defaults.defaults:
             continue
-        default_value = defaults[name]
+        default_value = user_defaults[name]
         if default_value is VOID:
             continue
         overrides[name] = default_value
@@ -1174,7 +1263,7 @@ def _format_kwarg_default_line(name: str) -> str:
     """Return one accepted-kwarg line, with a default value when available."""
     if name not in defaults.defaults:
         return name
-    value = defaults[name]
+    value = user_defaults[name]
     if value is VOID:
         return name
     return f"{name} = {_format_default(value)}"
@@ -1351,6 +1440,72 @@ def _class_help(cls: type) -> str:
     return "\n\n".join(parts)
 
 
+def _sg_help_entry(name: str) -> str:
+    """Normalize a public export name to ``sg.*`` listing form."""
+    stripped = name.removeprefix("sg.")
+    return f"sg.{stripped}"
+
+
+def _doc_placeholders_for_topic(topic: str) -> tuple[str, ...]:
+    """Return merged ``{{doc:…}}`` placeholders for ``topic``."""
+    linked: list[str] = list(TOPIC_DOC_PLACEHOLDERS.get(topic, ()))
+    linked.extend(COMPILED_DOC_PLACEHOLDERS_BY_TOPIC.get(topic, ()))
+    return tuple(sorted(set(linked), key=str.casefold))
+
+
+def _supplement_sg_entries_for_topic(topic: str) -> tuple[str, ...]:
+    """Return manual ``sg.*`` lines linked to ``topic`` (dict + graph)."""
+    linked: list[str] = list(TOPIC_SG_ENTRIES.get(topic, ()))
+    for export_name, topics in SG_NAME_TO_TOPICS.items():
+        if topic in topics:
+            linked.append(_sg_help_entry(export_name))
+    deduped = sorted(set(linked), key=str.casefold)
+    return tuple(deduped)
+
+
+def _merge_topic_entries(topic: str) -> list[str]:
+    """Merge curated, compiled, and supplement ``sg.*`` topic lines."""
+    manual = list(d_help_topic.get(topic, ()))
+    compiled = COMPILED_SG_BY_TOPIC.get(topic, ())
+    supplements = _supplement_sg_entries_for_topic(topic)
+    see_also = [
+        line
+        for line in manual
+        if line.startswith("See also:") or line.startswith("(")
+    ]
+    manual_body = [line for line in manual if line not in see_also]
+    seen = {line for line in manual_body if line.startswith("sg.")}
+    from .help_visibility import (
+        INCLUDE_COMPILED_IN_TOPIC_BROWSE,
+        is_help_name_visible,
+        HelpVisibilityContext,
+    )
+
+    merged = list(manual_body)
+    if INCLUDE_COMPILED_IN_TOPIC_BROWSE:
+        for entry in compiled:
+            if entry not in seen and is_help_name_visible(
+                entry,
+                context=HelpVisibilityContext.COMPILED_TOPIC,
+            ):
+                merged.append(entry)
+                seen.add(entry)
+    for entry in supplements:
+        if entry not in seen:
+            merged.append(entry)
+            seen.add(entry)
+    doc_refs = _doc_placeholders_for_topic(topic)
+    if doc_refs:
+        merged.append("Documentation (mkdocs placeholders):")
+        merged.extend(format_doc_placeholder_for_help(ref) for ref in doc_refs)
+    related = RELATED_TOPICS.get(topic, ())
+    if related:
+        hints = ", ".join(f"sg.help({related_topic!r})" for related_topic in related)
+        merged.append(f"Related topics: {hints}")
+    merged.extend(see_also)
+    return merged
+
+
 def _format_topic(topic: str, entries: Sequence[str]) -> str:
     """Format a topic heading and its ``sg.*`` entry list."""
     lines = [f"Topic: {topic}", ""]
@@ -1391,6 +1546,10 @@ def _register_named_help_object(
     mapping: dict[str, object], name: str, obj: object
 ) -> None:
     """Register both ``name`` and ``sg.name`` for string lookup."""
+    from .help_visibility import filter_named_help_registration
+
+    if not filter_named_help_registration(name, obj):
+        return
     if name not in mapping:
         mapping[name] = obj
     sg_name = f"sg.{name}"
@@ -1513,6 +1672,7 @@ def _help_lookup_names() -> list[str]:
     names.update(_TOPIC_ALIASES)
     names.update(defaults.defaults)
     names.update(defaults_help)
+    names.update(user_config_help_keys())
     names.update(_named_help_objects())
     names.add("help")
     names.add("topics")
@@ -1639,6 +1799,82 @@ def _unknown_topic_help(query: str) -> str:
     return "\n".join(lines)
 
 
+_DOCSTRING_SECTION_HEADERS = frozenset(
+    {
+        "Args",
+        "Arguments",
+        "Attributes",
+        "Examples",
+        "Note",
+        "Notes",
+        "Raises",
+        "Returns",
+        "See Also",
+        "Yields",
+    }
+)
+
+
+def _simetri_data_descriptor_owner(obj: object) -> tuple[type, str] | None:
+    """Return ``(class, name)`` for Simetri ``__slots__`` / data descriptors."""
+    if inspect.ismethoddescriptor(obj):
+        return None
+    if not inspect.isdatadescriptor(obj):
+        return None
+    name = getattr(obj, "__name__", None)
+    objclass = getattr(obj, "__objclass__", None)
+    if not isinstance(name, str) or not inspect.isclass(objclass):
+        return None
+    if not objclass.__module__.startswith("simetri."):
+        return None
+    return objclass, name
+
+
+def _init_parameter_help(cls: type, param_name: str) -> str | None:
+    """Return the ``Args`` bullet for ``param_name`` from ``cls.__init__``."""
+    init = cls.__init__
+    if init is object.__init__:
+        return None
+    doc = inspect.getdoc(init)
+    if not doc:
+        return None
+    in_args = False
+    param_pattern = re.compile(
+        rf"^{re.escape(param_name)}(\s*:|/|\s)",
+    )
+    for line in doc.splitlines():
+        stripped = line.strip()
+        if stripped in ("Args:", "Arguments:"):
+            in_args = True
+            continue
+        if not in_args:
+            continue
+        if stripped.endswith(":"):
+            header = stripped[:-1].split()[0]
+            if header in _DOCSTRING_SECTION_HEADERS and header not in (
+                "Args",
+                "Arguments",
+            ):
+                break
+        if not (line.startswith(" ") or line.startswith("\t")):
+            continue
+        if param_pattern.match(stripped):
+            return stripped
+    return None
+
+
+def _help_for_simetri_data_descriptor(obj: object) -> str | None:
+    """Help text for class data descriptors (e.g. ``sg.Shape.fill``).
+
+    Returns ``None`` when ``obj`` is not a handled descriptor.
+    """
+    owner = _simetri_data_descriptor_owner(obj)
+    if owner is None:
+        return None
+    cls, name = owner
+    return _init_parameter_help(cls, name) or ""
+
+
 def help(obj: object) -> str:
     """Return documentation text for ``obj``.
 
@@ -1682,18 +1918,29 @@ def help(obj: object) -> str:
         doc = inspect.getdoc(obj)
         return doc if doc is not None else ""
 
+    descriptor_help = _help_for_simetri_data_descriptor(obj)
+    if descriptor_help is not None:
+        return descriptor_help
+
     if isinstance(obj, str):
         topic = obj
+        config_text = _user_config_help_for_string(obj)
+        if config_text is not None:
+            return config_text
         if obj in _TOPIC_ALIASES:
             topic = _TOPIC_ALIASES[obj]
+        elif obj in COMPILED_TOPIC_ALIASES:
+            topic = COMPILED_TOPIC_ALIASES[obj]
+        elif obj in SUPPLEMENT_TOPIC_ALIASES:
+            topic = SUPPLEMENT_TOPIC_ALIASES[obj]
         if topic == "topics":
             return _format_topics()
         if topic in d_help_topic:
             guide = _topic_guide_text(topic)
             if guide is not None:
                 return guide
-            return _format_topic(topic, d_help_topic[topic])
-        if obj in defaults.defaults:
+            return _format_topic(topic, _merge_topic_entries(topic))
+        if obj in defaults:
             if obj in defaults_help:
                 return defaults_help[obj]
             return ""
@@ -1706,7 +1953,7 @@ def help(obj: object) -> str:
         return _class_help(obj)
 
     if inspect.isroutine(obj):
-        if obj.__module__.startswith("simetri."):
+        if _module_name(obj).startswith("simetri."):
             return _callable_help(obj)
         doc = inspect.getdoc(obj)
         return doc if doc is not None else ""
@@ -1747,14 +1994,19 @@ def _doc_title(obj: object) -> str:
         return obj.__name__
 
     if inspect.isclass(obj):
-        if obj.__module__.startswith("simetri."):
+        if _module_name(obj).startswith("simetri."):
             return f"sg.{obj.__qualname__}"
         return obj.__qualname__
 
     if inspect.isroutine(obj):
-        if obj.__module__.startswith("simetri."):
+        if _module_name(obj).startswith("simetri."):
             return f"sg.{obj.__qualname__}"
         return obj.__qualname__
+
+    descriptor_owner = _simetri_data_descriptor_owner(obj)
+    if descriptor_owner is not None:
+        cls, name = descriptor_owner
+        return f"sg.{cls.__qualname__}.{name}"
 
     if not isinstance(obj, (bytes, int, float, bool, complex)):
         cls = type(obj)
@@ -1772,7 +2024,7 @@ def doc(obj: object) -> None:
         obj: Object to document, a defaults setting name, or a help topic.
 
     Examples:
-        >>> sg.doc('topics')
+        >>> sg.doc('topics')  # doctest: +SKIP
 """
     title = _doc_title(obj)
     text = help(obj)

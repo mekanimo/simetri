@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 from ...base.all_enums import Types
 from ...base.common import PointType
-from ...config.settings import defaults
+from ...config.settings import runtime_defaults as defaults
 from ...helpers.utilities import find_closest_value
 from ...shapes.shape import Shape
 from ..points.point_utils import distance
@@ -584,7 +584,8 @@ def mirror_point(cp: PointType, vertex: PointType) -> PointType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.mirror_point((2, 0), (1, 0))
+        >>> end = sg.mirror_point((2, 0), (1, 0))[-1]
+        >>> tuple(round(c, 10) for c in end[:2])
         (0.0, 0.0)
     """
     length = distance(cp, vertex)

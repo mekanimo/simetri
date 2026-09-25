@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from ..base.all_enums import Axis, SvgUnits, Types
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.matrices import identity_matrix
 from ..group.batch import Group
 from ..shapes.shape import Shape

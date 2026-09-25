@@ -24,7 +24,7 @@ from ..base.all_enums import (
 from ..base.common import PointType
 from ..coloring import colors
 from ..coloring.colors import Color, change_lightness
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.affine import (
     rotation_matrix,
     translation_matrix,
@@ -1820,7 +1820,7 @@ def draw_image(
         >>> from PIL import Image as PILImage
         >>> import simetri.graphics as sg
         >>> from simetri.images.image import Image
-        >>> image = Image(PILImage.new('RGB', (2, 2)))
+        >>> image = sg.Image(PILImage.new('RGB', (2, 2)))
         >>> from simetri.render.draw import draw_image
         >>> canvas = sg.Canvas()
         >>> draw_image(canvas, image) is canvas

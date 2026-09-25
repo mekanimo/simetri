@@ -6,9 +6,9 @@ typically ``Shape`` / ``Group`` instances from ``simetri.graphics``.
 
 Examples:
     >>> from simetri.patterns.lattice import lattice_p4
-    >>> from simetri.shapes.geom_items import Circle
+    >>> import simetri.graphics as sg
     >>> lat = lattice_p4(a=40)
-    >>> _ = lat.populate_unit(Circle(5, (10, 10)))
+    >>> _ = lat.populate_unit(sg.Circle(5, (10, 10)))
     >>> len(lat.pattern)
     4
 """
@@ -336,9 +336,9 @@ class Lattice:
             identity).
 
         Examples:
-            >>> from simetri.shapes.geom_items import Circle
+            >>> import simetri.graphics as sg
             >>> lat = lattice_p4(a=20)
-            >>> _ = lat.populate_unit(Circle(3, (5, 5)))
+            >>> _ = lat.populate_unit(sg.Circle(3, (5, 5)))
             >>> isom = Isometry(IsometryType.IDENTITY, reps=0)
             >>> lat.apply(isom) is lat.pattern
             True
@@ -391,9 +391,9 @@ class Lattice:
             ValueError: If ``kernel`` is not a Shape or Group.
 
         Examples:
-            >>> from simetri.shapes.geom_items import Circle
+            >>> import simetri.graphics as sg
             >>> lat = lattice_p4(a=20)
-            >>> _ = lat.populate_unit(Circle(3, (5, 5)))
+            >>> _ = lat.populate_unit(sg.Circle(3, (5, 5)))
             >>> len(lat.pattern)
             4
         """
@@ -427,9 +427,9 @@ class Lattice:
             Group: Updated pattern (also stored on ``self.pattern``).
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
+            >>> import simetri.graphics as sg
             >>> lat = Lattice(LatType.SQR, a=10)
-            >>> row = lat.span(Shape([(0, 0), (1, 0)]), horizontal=True, reps=2)
+            >>> row = lat.span(sg.Shape([(0, 0), (1, 0)]), horizontal=True, reps=2)
             >>> len(row)
             3
         """
@@ -469,9 +469,9 @@ class Lattice:
             ValueError: If ``reps1`` or ``reps2`` is not greater than 0.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
+            >>> import simetri.graphics as sg
             >>> lat = Lattice(LatType.SQR, a=10)
-            >>> _ = lat.expand(Shape([(0, 0), (1, 0)]), reps1=1, reps2=1)
+            >>> _ = lat.expand(sg.Shape([(0, 0), (1, 0)]), reps1=1, reps2=1)
             >>> lat.pattern is not None
             True
         """

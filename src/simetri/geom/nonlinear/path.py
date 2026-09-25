@@ -37,7 +37,7 @@ from ...base.common import PointType
 from ...base.common_style import CommonStyle
 from ...base.core import _next_xform_matrix, _Targets
 from ...coloring.colors import Color
-from ...config.settings import defaults
+from ...config.settings import runtime_defaults as defaults
 from ...group.batch import Group
 from ...shapes.shape import Shape
 from ..affine import rotation_matrix, translation_matrix
@@ -1868,7 +1868,7 @@ def path2d_to_svg_path(path2d: Path2D) -> str:
         str: SVG path data.
 
     Examples:
-        >>> d = path2d_to_svg_path(Path2D((0, 0)).line_to((10, 0)))
+        >>> d = path2d_to_svg_path(sg.Path2D((0, 0)).line_to((10, 0)))
         >>> d.startswith("M")
         True
     """

@@ -652,8 +652,8 @@ def blend(color1: Color, percent: int, color2: Color) -> Color:
         (1.0, 0.0, 0.0)
 """
     percent = percent / 100
-    r1, g1, b1 = color1
-    r2, g2, b2 = color2
+    r1, g1, b1 = color1.rgb
+    r2, g2, b2 = color2.rgb
 
     r_blend = r1 * percent + r2 * (1 - percent)
     g_blend = g1 * percent + g2 * (1 - percent)
@@ -691,7 +691,11 @@ def get_color(value: object) -> Color:
     if isinstance(value, Color):
         return value
     elif isinstance(value, str):
-        return Color(value)
+        if value.startswith("#"):
+            return hex_color(value)
+        if value in _named_colors:
+            return _named_colors[value]
+        raise TypeError("Invalid color value")
     elif isinstance(value, (list, tuple)):
         return Color(*value)
     else:

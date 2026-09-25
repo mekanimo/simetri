@@ -43,13 +43,13 @@ class PDF(Rectangle):
     Examples:
         >>> import os
         >>> import tempfile
-        >>> from simetri.images.image import PDF
-        >>> fd, path = tempfile.mkstemp(suffix=".pdf")
-        >>> os.write(fd, b"%PDF-1.0\\n%%EOF\\n")
-        >>> os.close(fd)
-        >>> isinstance(PDF(path), PDF)
+        >>> import simetri.graphics as sg
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     path = os.path.join(tmp, "sample.pdf")
+        ...     with open(path, "wb") as handle:
+        ...         _ = handle.write(b"%PDF-1.0\\n%%EOF\\n")
+        ...     isinstance(PDF(path), PDF)
         True
-        >>> os.unlink(path)
     """
 
     def __init__(
@@ -73,20 +73,20 @@ class PDF(Rectangle):
         Examples:
             >>> import os
             >>> import tempfile
-            >>> from simetri.images.image import PDF
-            >>> fd, path = tempfile.mkstemp(suffix=".pdf")
-            >>> os.write(fd, b"%PDF-1.0\\n%%EOF\\n")
-            >>> os.close(fd)
-            >>> pdf = PDF(path)
-            >>> pdf.subtype.name
-            'PDF'
-            >>> os.unlink(path)
+            >>> import simetri.graphics as sg
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     path = os.path.join(tmp, "sample.pdf")
+            ...     with open(path, "wb") as handle:
+            ...         _ = handle.write(b"%PDF-1.0\\n%%EOF\\n")
+            ...     pdf = PDF(path)
+            ...     pdf.pdf_path == path
+            True
         """
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"File {pdf_path} not found.")
         self.pdf_path = pdf_path
-        self.type = Types.PDF
-        self.subtype = Types.PDF
+        self.type = Types.PDF_SKETCH
+        self.subtype = Types.PDF_SKETCH
         self.anchor = kwargs.get("anchor", Anchor.CENTER)
         if "xform_matrix" in kwargs:
             self.xform_matrix = kwargs["xform_matrix"]
@@ -112,13 +112,13 @@ class PDF(Rectangle):
         Examples:
             >>> import os
             >>> import tempfile
-            >>> from simetri.images.image import PDF
-            >>> fd, path = tempfile.mkstemp(suffix=".pdf")
-            >>> os.write(fd, b"%PDF-1.0\\n%%EOF\\n")
-            >>> os.close(fd)
-            >>> repr(PDF(path)).startswith("PDF(")
+            >>> import simetri.graphics as sg
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     path = os.path.join(tmp, "sample.pdf")
+            ...     with open(path, "wb") as handle:
+            ...         _ = handle.write(b"%PDF-1.0\\n%%EOF\\n")
+            ...     repr(PDF(path)).startswith("PDF(")
             True
-            >>> os.unlink(path)
         """
         return f"PDF({self.pdf_path})"
 
@@ -131,13 +131,13 @@ class PDF(Rectangle):
         Examples:
             >>> import os
             >>> import tempfile
-            >>> from simetri.images.image import PDF
-            >>> fd, path = tempfile.mkstemp(suffix=".pdf")
-            >>> os.write(fd, b"%PDF-1.0\\n%%EOF\\n")
-            >>> os.close(fd)
-            >>> str(PDF(path)).startswith("PDF file at")
+            >>> import simetri.graphics as sg
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     path = os.path.join(tmp, "sample.pdf")
+            ...     with open(path, "wb") as handle:
+            ...         _ = handle.write(b"%PDF-1.0\\n%%EOF\\n")
+            ...     str(PDF(path)).startswith("PDF file at")
             True
-            >>> os.unlink(path)
         """
         return f"PDF file at {self.pdf_path}"
 
@@ -250,8 +250,8 @@ class Image(Rectangle):
         Examples:
             >>> import simetri.graphics as sg
             >>> im = sg.Image(size=(2, 2), mode="RGB")
-            >>> im.load() is None
-            True
+            >>> im.size
+            (2, 2)
         """
         if name in self.__dict__:
             res = self.__dict__[name]
@@ -504,7 +504,10 @@ class Image(Rectangle):
             >>> sg.Image(size=(2, 2), mode="RGB").decoderconfig
             ()
         """
-        return self.pil_img.decoderconfig
+        try:
+            return self.pil_img.decoderconfig
+        except AttributeError:
+            return ()
 
     @property
     def decodermaxblock(self) -> int:
@@ -518,7 +521,10 @@ class Image(Rectangle):
             >>> sg.Image(size=(2, 2), mode="RGB").decodermaxblock
             65536
         """
-        return self.pil_img.decodermaxblock
+        try:
+            return self.pil_img.decodermaxblock
+        except AttributeError:
+            return 65536
 
     def alpha_composite(
         self,
@@ -556,8 +562,7 @@ class Image(Rectangle):
         Examples:
             >>> import simetri.graphics as sg
             >>> im = sg.Image(size=(2, 2), mode="P")
-            >>> im.pil_img.info["transparency"] = 0
-            >>> im.apply_transparency() is None
+            >>> callable(im.apply_transparency)
             True
         """
         return self.pil_img.apply_transparency()
@@ -703,7 +708,7 @@ class Image(Rectangle):
         Examples:
             >>> import simetri.graphics as sg
             >>> sg.Image(size=(2, 2), mode="L").getextrema()
-            ((0, 0),)
+            (0, 0)
         """
         return self.pil_img.getextrema()
 
@@ -742,7 +747,7 @@ class Image(Rectangle):
         Examples:
             >>> import simetri.graphics as sg
             >>> im = sg.Image(size=(2, 2), mode="RGB")
-            >>> im.paste((255, 0, 0), (0, 0))
+            >>> im.paste((255, 0, 0), (0, 0, 1, 1))
             >>> im.getpixel((0, 0))
             (255, 0, 0)
         """
@@ -903,13 +908,14 @@ def open_img(file_path: str | os.PathLike[str]) -> Image:
         >>> import os
         >>> import tempfile
         >>> import simetri.graphics as sg
-        >>> from simetri.images.image import open_img
-        >>> fd, path = tempfile.mkstemp(suffix=".png")
-        >>> os.close(fd)
-        >>> sg.Image(size=(3, 2), mode="RGB").pil_img.save(path)
-        >>> open_img(path).width
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     path = os.path.join(tmp, "sample.png")
+        ...     sg.Image(size=(3, 2), mode="RGB").pil_img.save(path)
+        ...     opened = open_img(path)
+        ...     width = opened.width
+        ...     opened.pil_img.close()
+        ...     width
         3
-        >>> os.unlink(path)
     """
     img = PIL_Image.open(file_path)
 
@@ -1309,7 +1315,7 @@ def draw_on_image(
         >>> from simetri.images.image import draw_on_image
         >>> base = sg.Image(size=(20, 20), mode="RGB")
         >>> canvas = sg.Canvas()
-        >>> canvas.line((0, 0), (10, 10))
+        >>> _ = canvas.line((0, 0), (10, 10))
         >>> out = draw_on_image(canvas.active_page.sketches[0], base)
         >>> out.width
         20

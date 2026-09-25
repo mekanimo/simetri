@@ -1,13 +1,18 @@
 """Settings and default values for the Simetri library.
 
-Do not edit values in this module. Override them in your own code so
-shared scripts stay portable.
+Factory values live in ``sg.defaults`` (read-only). ``sg.user_defaults`` reads
+personal toml and shared script overrides, else factory. Script-only overrides
+use ``sg.temp_defaults`` (writable, not saved). Drawing resolves temp overrides
+before user/shared/factory; ``canvas.draw(..., **kwargs)`` wins per call.
+Change personal settings with ``sg.save_user_defaults(...)``, not
+``sg.defaults`` or ``sg.user_defaults``.
 
 **Examples**
 
 ```python
 import simetri.graphics as sg
-sg.defaults["line_width"] = 1.5
+sg.user_defaults["line_width"]
+sg.defaults["line_width"]
 ```
 """
 
@@ -19,6 +24,7 @@ __all__ = [
     "apply_user_config",
     "defaults",
     "generate_shared_toml",
+    "save_as",
     "issue_warning",
     "pause_warning",
     "pause_warnings",
@@ -37,9 +43,12 @@ __all__ = [
     "set_warning_off",
     "set_warning_on",
     "svg_defaults",
+    "temp_defaults",
     "tikz_defaults",
+    "use_script_header",
     "use_settings",
     "user_config_path",
+    "user_defaults",
     "user_styles",
     "warning_types",
 ]
@@ -47,7 +56,7 @@ __all__ = [
 import sys
 import warnings
 from collections import defaultdict
-from collections.abc import ItemsView, KeysView, Sequence, ValuesView
+from collections.abc import ItemsView, KeysView, Mapping, Sequence, ValuesView
 from typing import Any
 from dataclasses import dataclass
 from enum import StrEnum
@@ -86,10 +95,12 @@ from ..coloring.palettes import seq_MATTER_256
 from .user_config import (
     apply_user_config,
     generate_shared_toml,
+    save_as,
     resolve_save_filepath,
     save_user_defaults,
     save_user_style,
     set_user_settings_path,
+    use_script_header,
     use_settings,
     user_config_path,
     user_styles,
@@ -326,15 +337,15 @@ def set_all_warnings_off() -> None:
 
         >>> sg.set_all_warnings_on()
         >>> sg.set_all_warnings_off()
-        >>> sg.defaults["show_warnings"]
+        >>> sg.user_defaults["show_warnings"]
         False
         >>> sg.set_all_warnings_on()
-        >>> sg.defaults["show_warnings"]
+        >>> sg.user_defaults["show_warnings"]
         True
     """
-    from .user_config import persist_all_warnings
+    from .user_config import _set_user_default_override, persist_all_warnings
 
-    defaults["show_warnings"] = False
+    _set_user_default_override("show_warnings", False)
     persist_all_warnings(False)
 
 
@@ -344,12 +355,12 @@ def set_all_warnings_on() -> None:
     Examples:
 
         >>> sg.set_all_warnings_on()
-        >>> sg.defaults["show_warnings"]
+        >>> sg.user_defaults["show_warnings"]
         True
     """
-    from .user_config import persist_all_warnings
+    from .user_config import _set_user_default_override, persist_all_warnings
 
-    defaults["show_warnings"] = True
+    _set_user_default_override("show_warnings", True)
     _disabled_warning_types.clear()
     persist_all_warnings(True)
 
@@ -383,11 +394,15 @@ def set_warning_on(warning: StrEnum | type[StrEnum]) -> None:
 
         >>> sg.set_warning_on(sg.WarningType.style.line_fill_color)
     """
-    from .user_config import persist_warning_leaves, persist_warnings_on_flag
+    from .user_config import (
+        _set_user_default_override,
+        persist_warning_leaves,
+        persist_warnings_on_flag,
+    )
 
     leaves = _resolve_warning_types(warning)
     _disabled_warning_types.difference_update(leaves)
-    defaults["show_warnings"] = True
+    _set_user_default_override("show_warnings", True)
     persist_warnings_on_flag(True)
     persist_warning_leaves(leaves, True)
 
@@ -470,150 +485,216 @@ class Default:
         return res
 
 
-class _Defaults:
-    """A singleton class that behaves like a dictionary.
-
-    It is used to store default values for the Simetri library.
-    It should not be modified directly.
-    """
-
-    _instance = None
+class _DefaultStore:
+    """Internal storage for factory, user, and shared default layers."""
 
     def __init__(self) -> None:
-        """Initializes the _Defaults singleton instance."""
-        if _Defaults._instance is not None:
-            raise SettingsSingletonError("This class is a singleton!")
-        self.defaults = {}
-        self.user_overrides: dict = {}
-        self.shared_overrides: dict = {}
+        self.factory: dict[str, Any] = {}
+        self.user_overrides: dict[str, Any] = {}
+        self.shared_overrides: dict[str, Any] = {}
+        self.temp_overrides: dict[str, Any] = {}
         self.suppress_user_overrides = False
-        self.log = set()
+        self.log: set[tuple[str, str]] = set()
 
-    def __getitem__(self, key: str) -> Any:
-        """Gets the value associated with the key.
-
-        Lookup order: ``shared_overrides`` (from ``use_settings``), then user
-        overrides from ``simetri_config.toml`` (unless suppressed), then library
-        defaults. Session assignments via ``__setitem__`` clear any override
-        for that key.
-
-        Args:
-            key: The key to look up.
-
-        Returns:
-            The value associated with the key.
-
-        Examples:
-
-            >>> sg.defaults["line_width"] >= 0
-            True
-        """
+    def user_facing_value(self, key: str) -> Any:
+        """Return effective defaults without script ``temp_defaults``."""
         if key in self.shared_overrides:
             value = self.shared_overrides[key]
         elif (not self.suppress_user_overrides) and key in self.user_overrides:
             value = self.user_overrides[key]
         else:
-            value = self.defaults[key]
-        str_value = str(value)
-        self.log.add((key, str_value))
+            value = self.factory[key]
         return value
 
+    def effective_value(self, key: str) -> Any:
+        """Return the runtime default for ``key`` (includes ``temp_defaults``)."""
+        if key in self.temp_overrides:
+            value = self.temp_overrides[key]
+        else:
+            value = self.user_facing_value(key)
+        self.log.add((key, str(value)))
+        return value
+
+    def has_override(self, key: str) -> bool:
+        """Return True when ``key`` is set in shared or personal overrides."""
+        return key in self.shared_overrides or key in self.user_overrides
+
+
+class _FactoryDefaults:
+    """Read-only factory defaults (``sg.defaults``)."""
+
+    __slots__ = ("_store",)
+
+    def __init__(self, store: _DefaultStore) -> None:
+        self._store = store
+
+    @property
+    def defaults(self) -> dict[str, Any]:
+        """Alias for the factory mapping (registered keys)."""
+        return self._store.factory
+
+    def __getitem__(self, key: str) -> Any:
+        return self._store.factory[key]
+
     def __setitem__(self, key: str, value: Any) -> None:
-        """Sets the value for the given key.
-
-        Args:
-            key: The key to set.
-            value: The value to associate with the key.
-
-        Examples:
-
-            >>> sg.defaults["line_width"] = 1.0
-            >>> sg.defaults["line_width"]
-            1.0
-        """
-        self.defaults[key] = value
-        if key in self.user_overrides:
-            del self.user_overrides[key]
-        if key in self.shared_overrides:
-            del self.shared_overrides[key]
+        raise TypeError(
+            "Factory defaults are read-only. Use sg.save_user_defaults(...) "
+            "for personal settings, or sg.use_settings(...) inside shared "
+            "scripts."
+        )
 
     def __contains__(self, key: object) -> bool:
-        """Return True if ``key`` is a registered default.
-
-        Examples:
-
-            >>> "line_width" in sg.defaults
-            True
-            >>> "not_a_registered_default_key" in sg.defaults
-            False
-        """
-        return key in self.defaults
+        return key in self._store.factory
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Gets the value of a key. If the key does not exist, return the default value.
-
-        Args:
-            key: The key to look up.
-            default: The default value to return if the key does not exist.
-
-        Returns:
-            The value associated with the key, or the default value.
-
-        Examples:
-
-            >>> sg.defaults.get("line_width") >= 0
-            True
-            >>> sg.defaults.get("not_a_registered_default_key", 99)
-            99
-        """
-        if key in self.defaults:
-            res = self[key]
-        else:
-            res = default
-
-        return res
+        return self._store.factory.get(key, default)
 
     def keys(self) -> KeysView[str]:
-        """Returns the keys of the dictionary.
-
-        Returns:
-            A view object that displays a list of all the keys.
-
-        Examples:
-
-            >>> "line_width" in sg.defaults.keys()
-            True
-        """
-        return self.defaults.keys()
+        return self._store.factory.keys()
 
     def items(self) -> ItemsView[str, Any]:
-        """Returns the items of the dictionary.
-
-        Returns:
-            A view object that displays a list of dictionary's key-value tuple pairs.
-
-        Examples:
-
-            >>> any(key == "line_width" for key, _value in sg.defaults.items())
-            True
-        """
-        return self.defaults.items()
+        return self._store.factory.items()
 
     def values(self) -> ValuesView[Any]:
-        """Returns the values of the dictionary.
-
-        Returns:
-            A view object that displays a list of all the values.
-
-        Examples:
-
-            >>> len(sg.defaults.values()) > 0
-            True
-        """
-        return self.defaults.values()
+        return self._store.factory.values()
 
 
-defaults = _Defaults()
+class _UserDefaults:
+    """Personal + shared + factory (``sg.user_defaults``; excludes ``temp_defaults``)."""
+
+    __slots__ = ("_store",)
+
+    def __init__(self, store: _DefaultStore) -> None:
+        self._store = store
+
+    def __getitem__(self, key: str) -> Any:
+        return self._store.user_facing_value(key)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        raise TypeError(
+            "Use sg.save_user_defaults(...) to change personal defaults, "
+            "not sg.user_defaults[...] = ..."
+        )
+
+    def __contains__(self, key: object) -> bool:
+        if not isinstance(key, str):
+            return False
+        return self._store.has_override(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self._store.factory:
+            return self._store.user_facing_value(key)
+        return default
+
+    def keys(self) -> KeysView[str]:
+        return self._store.factory.keys()
+
+    def items(self) -> ItemsView[str, Any]:
+        effective = {
+            key: self._store.user_facing_value(key)
+            for key in self._store.factory
+        }
+        return effective.items()
+
+    def values(self) -> ValuesView[Any]:
+        return (
+            self._store.user_facing_value(key) for key in self._store.factory
+        )
+
+
+class _RuntimeDefaults:
+    """Internal defaults for rendering (includes ``temp_defaults``)."""
+
+    __slots__ = ("_store",)
+
+    def __init__(self, store: _DefaultStore) -> None:
+        self._store = store
+
+    def __getitem__(self, key: str) -> Any:
+        return self._store.effective_value(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self._store.factory:
+            return self._store.effective_value(key)
+        return default
+
+    @property
+    def log(self) -> set[tuple[str, str]]:
+        """Keys read during rendering (used by export helpers)."""
+        return self._store.log
+
+
+class _TempDefaults:
+    """Script-only default overrides (``sg.temp_defaults``)."""
+
+    __slots__ = ("_store",)
+
+    def __init__(self, store: _DefaultStore) -> None:
+        self._store = store
+
+    def _assign(self, key: str, value: Any) -> None:
+        if key not in self._store.factory:
+            raise KeyError(f"Unknown defaults key {key!r}")
+        if key not in default_types:
+            raise KeyError(f"Defaults key {key!r} has no registered type")
+        from .user_config import _convert_default_value
+
+        self._store.temp_overrides[key] = _convert_default_value(
+            key, value, default_types[key]
+        )
+
+    def __getitem__(self, key: str) -> Any:
+        return self._store.temp_overrides[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self._assign(key, value)
+
+    def __delitem__(self, key: str) -> None:
+        del self._store.temp_overrides[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._store.temp_overrides
+
+    def clear(self) -> None:
+        """Remove all script-only overrides."""
+        self._store.temp_overrides.clear()
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._store.temp_overrides.get(key, default)
+
+    def pop(self, key: str, default: Any = ...) -> Any:  # type: ignore[override]
+        if default is ...:
+            return self._store.temp_overrides.pop(key)
+        return self._store.temp_overrides.pop(key, default)
+
+    def keys(self) -> KeysView[str]:
+        return self._store.temp_overrides.keys()
+
+    def items(self) -> ItemsView[str, Any]:
+        return self._store.temp_overrides.items()
+
+    def values(self) -> ValuesView[Any]:
+        return self._store.temp_overrides.values()
+
+    def update(  # type: ignore[override]
+        self,
+        other: Mapping[str, Any] | None = None,
+        /,
+        **kwargs: Any,
+    ) -> None:
+        merged: dict[str, Any] = {}
+        if other is not None:
+            merged.update(other)
+        merged.update(kwargs)
+        for key, value in merged.items():
+            self._assign(key, value)
+
+
+_default_store = _DefaultStore()
+defaults = _FactoryDefaults(_default_store)
+user_defaults = _UserDefaults(_default_store)
+temp_defaults = _TempDefaults(_default_store)
+runtime_defaults = _RuntimeDefaults(_default_store)
 default_types = {}
 defaults_help = {}
 
@@ -628,10 +709,10 @@ from ..render.style_map import (
 
 
 def set_defaults() -> None:
-    """Register the core Simetri default values into ``defaults``.
+    """Register factory default values (``sg.defaults``).
 
-    Call once at import time; users should prefer assigning through
-    ``defaults[key] = value`` rather than editing this function.
+    Called once at import time. End users should not edit this function;
+    use ``sg.save_user_defaults`` or ``simetri_config.toml`` instead.
 
     Examples:
 
@@ -650,7 +731,7 @@ def set_defaults() -> None:
     # isclose(800, 721, rel_tol=.1) returns False
     # abs_tol makes a bigger difference when comparing values close to zero
 
-    defaults["abs_tol"] = 0.05  # used for comparing floats
+    _default_store.factory["abs_tol"] = 0.05  # used for comparing floats
     default_types["abs_tol"] = float
     defaults_help["abs_tol"] = (
         "Absolute tolerance. "
@@ -659,7 +740,7 @@ def set_defaults() -> None:
         "Used for comparing floats."
     )
 
-    defaults["active"] = True  # active objects are drawn
+    _default_store.factory["active"] = True  # active objects are drawn
     default_types["active"] = bool
     defaults_help["active"] = (
         "Boolean property for drawable objects. "
@@ -670,7 +751,7 @@ def set_defaults() -> None:
         "Example: shape.active = False"
     )
 
-    defaults["align"] = Align.LEFT
+    _default_store.factory["align"] = Align.LEFT
     default_types["align"] = Align
     defaults_help["align"] = (
         "Alignment property for text objects. Align enum. Valid values: BOTTOM, "
@@ -678,7 +759,7 @@ def set_defaults() -> None:
         "LEFT, NONE, RIGHT, TOP, VERT_CENTER."
     )
 
-    defaults["aligned_text"] = True
+    _default_store.factory["aligned_text"] = True
     default_types["aligned_text"] = bool
     defaults_help["aligned_text"] = (
         "Boolean property for aligned dimension text. If True, the label "
@@ -686,20 +767,20 @@ def set_defaults() -> None:
         "or right."
     )
 
-    defaults["all_caps"] = False  # use all caps for text
+    _default_store.factory["all_caps"] = False  # use all caps for text
     default_types["all_caps"] = bool
     defaults_help["all_caps"] = (
         "Boolean property for text objects. If True, the text is displayed in all caps."
     )
 
-    defaults["allow_consec_dup_points"] = False  # use all caps for text
+    _default_store.factory["allow_consec_dup_points"] = False  # use all caps for text
     default_types["allow_consec_dup_points"] = bool
     defaults_help["allow_consec_dup_points"] = (
         "Boolean property for allowing consecutive duplicate points in Shape objects. "
         "Do not change this unless you absolutely have to. Likely to cause problems."
     )
 
-    defaults["alpha"] = VOID  # used for transparency
+    _default_store.factory["alpha"] = VOID  # used for transparency
     default_types["alpha"] = float
     defaults_help["alpha"] = (
         "Alpha value for transparency. "
@@ -708,7 +789,7 @@ def set_defaults() -> None:
         "Both line opacity and fill opacity are set with this value."
     )
 
-    defaults["anchor"] = Anchor.CENTER  # used for text alignment
+    _default_store.factory["anchor"] = Anchor.CENTER  # used for text alignment
     default_types["anchor"] = Anchor
     defaults_help["anchor"] = (
         "Specifies text object location. Anchor enum. Valid values: BASE, "
@@ -717,7 +798,7 @@ def set_defaults() -> None:
         "SOUTHWEST, TEXT, TOP, WEST. Example: text.anchor = Anchor.NORTH"
     )
 
-    defaults["angle_abs_tol"] = 0.001  # used for comparing angles
+    _default_store.factory["angle_abs_tol"] = 0.001  # used for comparing angles
     default_types["angle_abs_tol"] = float
     defaults_help["angle_abs_tol"] = (
         "Angle absolute tolerance. "
@@ -725,7 +806,7 @@ def set_defaults() -> None:
         "Used for comparing angles."
     )
 
-    defaults["angle_rel_tol"] = 0.001  # used for comparing angles
+    _default_store.factory["angle_rel_tol"] = 0.001  # used for comparing angles
     default_types["angle_rel_tol"] = float
     defaults_help["angle_rel_tol"] = (
         "Angle relative tolerance. "
@@ -733,7 +814,7 @@ def set_defaults() -> None:
         "Used for comparing angles."
     )
 
-    defaults["angle_tol"] = (
+    _default_store.factory["angle_tol"] = (
         0.001  # used for comparing angles in radians .001 rad = .057 degrees
     )
     default_types["angle_tol"] = float
@@ -741,19 +822,19 @@ def set_defaults() -> None:
         "Angle tolerance. Positive float. Angle in radians. Used for comparing angles."
     )
 
-    defaults["area_abs_tol"] = 0.001  # used for comparing areas
+    _default_store.factory["area_abs_tol"] = 0.001  # used for comparing areas
     default_types["area_abs_tol"] = float
     defaults_help["area_abs_tol"] = (
         "Area absolute tolerance. Positive float.Used for comparing areas."
     )
 
-    defaults["area_rel_tol"] = 0.001  # used for comparing areas
+    _default_store.factory["area_rel_tol"] = 0.001  # used for comparing areas
     default_types["area_rel_tol"] = float
     defaults_help["area_rel_tol"] = (
         "Area relative tolerance. Positive float.Used for comparing areas."
     )
 
-    defaults["area_threshold"] = (
+    _default_store.factory["area_threshold"] = (
         1  # used for grouping fragments in a lace object
     )
     default_types["area_threshold"] = float
@@ -761,13 +842,13 @@ def set_defaults() -> None:
         "Area threshold. Positive float. Used for grouping fragments in a lace object."
     )
 
-    defaults["area_tol"] = 0.1  # used for comparing areas
+    _default_store.factory["area_tol"] = 0.1  # used for comparing areas
     default_types["area_tol"] = float
     defaults_help["area_tol"] = (
         "Area tolerance. Positive float.Used for comparing areas."
     )
 
-    defaults["arrow_head_length"] = 8
+    _default_store.factory["arrow_head_length"] = 8
     default_types["arrow_head_length"] = float
     defaults_help["arrow_head_length"] = (
         "Arrow head length. "
@@ -775,26 +856,26 @@ def set_defaults() -> None:
         "Length of the arrow head."
     )
 
-    defaults["arrow_head_width"] = 3
+    _default_store.factory["arrow_head_width"] = 3
     default_types["arrow_head_width"] = float
     defaults_help["arrow_head_width"] = (
         "Arrow head width. Positive float. Length in <points>. Width of the arrow head."
     )
 
-    defaults["auto_expand_canvas_for_vertices"] = True
+    _default_store.factory["auto_expand_canvas_for_vertices"] = True
     default_types["auto_expand_canvas_for_vertices"] = bool
     defaults_help["auto_expand_canvas_for_vertices"] = (
         "When True, export adds vertices_canvas_expand padding per side when "
         "vertex coordinate labels are drawn (vertices=True)."
     )
 
-    defaults["back_color"] = colors.white  # canvas background color
+    _default_store.factory["back_color"] = colors.white  # canvas background color
     default_types["back_color"] = colors.Color
     defaults_help["back_color"] = (
         "Background color. Color object. Background color for the canvas."
     )
 
-    defaults["back_style"] = (
+    _default_store.factory["back_style"] = (
         BackStyle.COLOR
     )  # EMPTY, COLOR, SHADING, PATTERN, GRIDLINES
     default_types["back_style"] = BackStyle
@@ -803,7 +884,7 @@ def set_defaults() -> None:
         "COLOR_AND_GRID, EMPTY, GRIDLINES, PATTERN, SHADING, SHADING_AND_GRID."
     )
 
-    defaults["BB_EPSILON"] = 0.01
+    _default_store.factory["BB_EPSILON"] = 0.01
     default_types["BB_EPSILON"] = float
     defaults_help["BB_EPSILON"] = (
         "Bounding box epsilon. "
@@ -811,55 +892,55 @@ def set_defaults() -> None:
         "This is a small value used for line/point bounding boxes."
     )
 
-    defaults["bbox_draw_markers"] = False
+    _default_store.factory["bbox_draw_markers"] = False
     default_types["bbox_draw_markers"] = bool
     defaults_help["bbox_draw_markers"] = (
         "Boolean property for drawing markers at bounding-box vertices. "
         "If True, markers are drawn."
     )
 
-    defaults["bbox_fill"] = False
+    _default_store.factory["bbox_fill"] = False
     default_types["bbox_fill"] = bool
     defaults_help["bbox_fill"] = (
         "Boolean property for filling bounding-box sketches. "
         "If True, the bounding box is filled."
     )
 
-    defaults["bbox_line_color"] = colors.gray
+    _default_store.factory["bbox_line_color"] = colors.gray
     default_types["bbox_line_color"] = colors.Color
     defaults_help["bbox_line_color"] = (
         "Stroke color for bounding-box sketches. Color object."
     )
 
-    defaults["bbox_line_dash_array"] = [3, 3]
+    _default_store.factory["bbox_line_dash_array"] = [3, 3]
     default_types["bbox_line_dash_array"] = Sequence
     defaults_help["bbox_line_dash_array"] = (
         "Line dash array for bounding-box sketches. List of floats."
     )
 
-    defaults["bbox_line_width"] = 1
+    _default_store.factory["bbox_line_width"] = 1
     default_types["bbox_line_width"] = float
     defaults_help["bbox_line_width"] = (
         "Line width for bounding-box sketches. "
         "Positive float. Length in <points>."
     )
 
-    defaults["bbox_stroke"] = True
+    _default_store.factory["bbox_stroke"] = True
     default_types["bbox_stroke"] = bool
     defaults_help["bbox_stroke"] = (
         "Boolean property for stroking bounding-box sketches. "
         "If True, the bounding box outline is drawn."
     )
 
-    defaults["begin_doc"] = "\\begin{document}\n"
+    _default_store.factory["begin_doc"] = "\\begin{document}\n"
     default_types["begin_doc"] = str
     defaults_help["begin_doc"] = "Used with the generated .tex file."
 
-    defaults["begin_tikz"] = "\\begin{tikzpicture}[x=1pt, y=1pt, scale=1]\n"
+    _default_store.factory["begin_tikz"] = "\\begin{tikzpicture}[x=1pt, y=1pt, scale=1]\n"
     default_types["begin_tikz"] = str
     defaults_help["begin_tikz"] = "Used with the generated .tex file."
 
-    defaults["blend_mode"] = BlendMode.NORMAL
+    _default_store.factory["blend_mode"] = BlendMode.NORMAL
     default_types["blend_mode"] = BlendMode
     defaults_help["blend_mode"] = (
         "Blend mode for Canvas or Group objects. BlendMode enum. Valid values: "
@@ -868,13 +949,13 @@ def set_defaults() -> None:
         "SOFTLIGHT."
     )
 
-    defaults["bold"] = False  # use bold font if True
+    _default_store.factory["bold"] = False  # use bold font if True
     default_types["bold"] = bool
     defaults_help["bold"] = (
         "Boolean property for text objects. If True, the text is displayed in bold."
     )
 
-    defaults["border"] = 25  # border around canvas
+    _default_store.factory["border"] = 25  # border around canvas
     default_types["border"] = float
     defaults_help["border"] = (
         "Border around the canvas. "
@@ -882,7 +963,7 @@ def set_defaults() -> None:
         "Positive values pad the canvas; negative values clip the output."
     )
 
-    defaults["border_size"] = 4  # border size for the canvas
+    _default_store.factory["border_size"] = 4  # border size for the canvas
     default_types["border_size"] = float
     defaults_help["border_size"] = (
         "Border size for the canvas. "
@@ -890,7 +971,7 @@ def set_defaults() -> None:
         "Border size for the canvas."
     )
 
-    defaults["canvas_back_color"] = None  # None is transparent
+    _default_store.factory["canvas_back_color"] = None  # None is transparent
     default_types["canvas_back_color"] = colors.Color
     defaults_help["canvas_back_color"] = (
         "Canvas background color. Color object. "
@@ -898,14 +979,14 @@ def set_defaults() -> None:
         "If None, the canvas is transparent."
     )
 
-    defaults["canvas_back_style"] = BackStyle.EMPTY
+    _default_store.factory["canvas_back_style"] = BackStyle.EMPTY
     default_types["canvas_back_style"] = BackStyle
     defaults_help["canvas_back_style"] = (
         "Canvas background style. BackStyle enum. Valid values: COLOR, "
         "COLOR_AND_GRID, EMPTY, GRIDLINES, PATTERN, SHADING, SHADING_AND_GRID."
     )
 
-    defaults["canvas_border"] = 20
+    _default_store.factory["canvas_border"] = 20
     default_types["canvas_border"] = float
     defaults_help["canvas_border"] = (
         "Canvas margin value for all sides. floating point number in points. 72 pnts = 1 in."
@@ -913,7 +994,7 @@ def set_defaults() -> None:
         "Negative values clip the output."
     )
 
-    defaults["canvas_capture_format"] = "svg"
+    _default_store.factory["canvas_capture_format"] = "svg"
     default_types["canvas_capture_format"] = str
     defaults_help["canvas_capture_format"] = (
         "Default canvas.capture() format, without a leading dot. "
@@ -921,17 +1002,17 @@ def set_defaults() -> None:
         "require a personal [converters.<format>] entry."
     )
 
-    defaults["canvas_frame_color"] = colors.black  # frame color for the canvas
+    _default_store.factory["canvas_frame_color"] = colors.black  # frame color for the canvas
     default_types["canvas_frame_color"] = colors.Color
     defaults_help["canvas_frame_color"] = (
         "Frame color for the canvas. Color object."
     )
 
-    defaults["canvas_frame_margin"] = 15  # margin around the canvas frame
+    _default_store.factory["canvas_frame_margin"] = 15  # margin around the canvas frame
     default_types["canvas_frame_margin"] = float
     defaults_help["canvas_frame_margin"] = "Margin around the canvas frame. "
 
-    defaults["canvas_frame_shadow_width"] = (
+    _default_store.factory["canvas_frame_shadow_width"] = (
         5  # shadow width for the canvas frame
     )
     default_types["canvas_frame_shadow_width"] = float
@@ -939,17 +1020,17 @@ def set_defaults() -> None:
         "Shadow width for the canvas frame. "
     )
 
-    defaults["canvas_frame_width"] = 45  # frame width for the canvas
+    _default_store.factory["canvas_frame_width"] = 45  # frame width for the canvas
     default_types["canvas_frame_width"] = float
     defaults_help["canvas_frame_width"] = (
         "Frame width for the canvas. Positive float. Length in <points>."
     )
 
-    defaults["canvas_mask_scope"] = False  # True only on MaskSketch objects
+    _default_store.factory["canvas_mask_scope"] = False  # True only on MaskSketch objects
     default_types["canvas_mask_scope"] = bool
     defaults_help["canvas_mask_scope"] = "Canvas mask scope flag. Boolean."
 
-    defaults["canvas_size"] = None  # (width, height) canvas size in points
+    _default_store.factory["canvas_size"] = None  # (width, height) canvas size in points
     default_types["canvas_size"] = Sequence
     defaults_help["canvas_size"] = (
         "Canvas size. "
@@ -957,13 +1038,13 @@ def set_defaults() -> None:
         "Canvas size in points."
     )
 
-    defaults["circle_radius"] = 20
+    _default_store.factory["circle_radius"] = 20
     default_types["circle_radius"] = float
     defaults_help["circle_radius"] = (
         "Circle radius. Positive float. Length in <points>. Radius of the circle."
     )
 
-    defaults["clip"] = False  # clip the outside of the clip_path to the canvas
+    _default_store.factory["clip"] = False  # clip the outside of the clip_path to the canvas
     default_types["clip"] = bool
     defaults_help["clip"] = (
         "Boolean property for the canvas and Group objects. "
@@ -971,23 +1052,23 @@ def set_defaults() -> None:
         "or Group elemetns."
     )
 
-    defaults["color"] = VOID
+    _default_store.factory["color"] = VOID
     default_types["color"] = colors.Color
     defaults_help["color"] = "Color. Color object."
 
-    defaults["CS_line_width"] = 2
+    _default_store.factory["CS_line_width"] = 2
     default_types["CS_line_width"] = float
     defaults_help["CS_line_width"] = (
         "Line width of the coordinate system axes. Positive float. Length in <points>."
     )
 
-    defaults["CS_origin_color"] = colors.gray
+    _default_store.factory["CS_origin_color"] = colors.gray
     default_types["CS_origin_color"] = colors.Color
     defaults_help["CS_origin_color"] = (
         "Color of the circle at the origin of the coordinate system. Color object."
     )
 
-    defaults["CS_origin_size"] = (
+    _default_store.factory["CS_origin_size"] = (
         2  # size of the circle at the origin of the coordinate system
     )
     default_types["CS_origin_size"] = float
@@ -996,7 +1077,7 @@ def set_defaults() -> None:
         "Positive float. Length in <points>."
     )
 
-    defaults["CS_size"] = (
+    _default_store.factory["CS_size"] = (
         25  # size of the coordinate system axes. Used with canvas.draw_CS
     )
     default_types["CS_size"] = float
@@ -1004,45 +1085,45 @@ def set_defaults() -> None:
         "Size of the coordinate system axes. Positive float. Length in <points>."
     )
 
-    defaults["CS_x_color"] = colors.red
+    _default_store.factory["CS_x_color"] = colors.red
     default_types["CS_x_color"] = colors.Color
     defaults_help["CS_x_color"] = (
         "Color of the x-axis in the coordinate system. Color object."
     )
 
-    defaults["CS_y_color"] = colors.green
+    _default_store.factory["CS_y_color"] = colors.green
     default_types["CS_y_color"] = colors.Color
     defaults_help["CS_y_color"] = (
         "Color of the y-axis in the coordinate system. Color object."
     )
 
-    defaults["debug_mode"] = False
+    _default_store.factory["debug_mode"] = False
     default_types["debug_mode"] = bool
     defaults_help["debug_mode"] = (
         "Boolean property for enabling debug mode. "
         "If True, debug information is printed."
     )
 
-    defaults["dist_abs_tol"] = 0.05  # used for comparing distances
+    _default_store.factory["dist_abs_tol"] = 0.05  # used for comparing distances
     default_types["dist_abs_tol"] = float
     defaults_help["dist_abs_tol"] = (
         "Distance absolute tolerance. Positive float. Length in <points>."
     )
 
-    defaults["dist_rel_tol"] = 0  # used for comparing distances
+    _default_store.factory["dist_rel_tol"] = 0  # used for comparing distances
     default_types["dist_rel_tol"] = float
     defaults_help["dist_rel_tol"] = (
         "Distance relative tolerance. Positive float. Used for comparing distances."
     )
 
-    defaults["dist_tol"] = 0.05  # used for comparing points
+    _default_store.factory["dist_tol"] = 0.05  # used for comparing points
     default_types["dist_tol"] = float
     defaults_help["dist_tol"] = (
         "Distance tolerance for comparing two points. "
         "Positive float. Length in <points>."
     )
 
-    defaults["document_class"] = (
+    _default_store.factory["document_class"] = (
         DocumentClass.STANDALONE
     )  # STANDALONE, ARTICLE, BOOK,
     # REPORT, LETTER, SLIDES, BEAMER,
@@ -1054,53 +1135,53 @@ def set_defaults() -> None:
         "STANDALONE."
     )
 
-    defaults["document_options"] = ["12pt", "border=25pt"]
+    _default_store.factory["document_options"] = ["12pt", "border=25pt"]
     default_types["document_options"] = Sequence
     defaults_help["document_options"] = (
         "Options for the LaTeX document class. List of strings."
     )
 
-    defaults["dot_color"] = colors.black  # for Dot objects
+    _default_store.factory["dot_color"] = colors.black  # for Dot objects
     default_types["dot_color"] = colors.Color
     defaults_help["dot_color"] = "Color for Dot objects. Color object."
 
-    defaults["double_color"] = colors.white
+    _default_store.factory["double_color"] = colors.white
     default_types["double_color"] = colors.Color
     defaults_help["double_color"] = "Color between double lines. Color object."
 
-    defaults["double_distance"] = 2
+    _default_store.factory["double_distance"] = 2
     default_types["double_distance"] = float
     defaults_help["double_distance"] = (
         "Distance between double lines. Positive float. Length in <points>."
     )
 
-    defaults["draw_double"] = False
+    _default_store.factory["draw_double"] = False
     default_types["draw_double"] = bool
     defaults_help["draw_double"] = (
         "Boolean property for using double lines. If True, double lines are used."
     )
 
-    defaults["draw_fillets"] = False  # draw rounded corners for shapes
+    _default_store.factory["draw_fillets"] = False  # draw rounded corners for shapes
     default_types["draw_fillets"] = bool
     defaults_help["draw_fillets"] = (
         "Boolean property for drawing rounded corners for shapes. "
         "If True, rounded corners are drawn."
     )
 
-    defaults["draw_frame"] = False  # draw a frame around the Tag objects
+    _default_store.factory["draw_frame"] = False  # draw a frame around the Tag objects
     default_types["draw_frame"] = bool
     defaults_help["draw_frame"] = (
         "Boolean property for drawing a frame around Tag objects. "
         "If True, a frame is drawn."
     )
 
-    defaults["draw_fragments"] = True
+    _default_store.factory["draw_fragments"] = True
     default_types["draw_fragments"] = bool
     defaults_help["draw_fragments"] = (
         "If True, canvas.draw_lace draws lace fragments."
     )
 
-    defaults["draw_markers"] = (
+    _default_store.factory["draw_markers"] = (
         False  # draw markers at each vertex of a Shape object
     )
     default_types["draw_markers"] = bool
@@ -1110,13 +1191,13 @@ def set_defaults() -> None:
         "If True, markers are drawn."
     )
 
-    defaults["draw_plaits"] = True
+    _default_store.factory["draw_plaits"] = True
     default_types["draw_plaits"] = bool
     defaults_help["draw_plaits"] = (
         "If True, canvas.draw_lace draws lace plaits."
     )
 
-    defaults["ellipse_width_height"] = (
+    _default_store.factory["ellipse_width_height"] = (
         40,
         20,
     )  # width and height of the ellipse
@@ -1126,19 +1207,19 @@ def set_defaults() -> None:
         "Tuple of two positive floats. Length in <points>."
     )
 
-    defaults["end_doc"] = "\\end{document}\n"
+    _default_store.factory["end_doc"] = "\\end{document}\n"
     default_types["end_doc"] = str
     defaults_help["end_doc"] = (
         "End document string for the generated .tex file."
     )
 
-    defaults["end_tikz"] = "\\end{tikzpicture}\n"
+    _default_store.factory["end_tikz"] = "\\end{tikzpicture}\n"
     default_types["end_tikz"] = str
     defaults_help["end_tikz"] = (
         "End TikZ picture string for the generated .tex file."
     )
 
-    defaults["even_odd"] = (
+    _default_store.factory["even_odd"] = (
         False  # use nonzero winding by default unless explicitly enabled
     )
     default_types["even_odd"] = bool
@@ -1147,25 +1228,25 @@ def set_defaults() -> None:
         "If True, the even-odd rule is used; default is False (nonzero winding)."
     )
 
-    defaults["ext_length2"] = 25  # dimension extra extension length
+    _default_store.factory["ext_length2"] = 25  # dimension extra extension length
     default_types["ext_length2"] = float
     defaults_help["ext_length2"] = (
         "Dimension extra extension length. Positive float. Length in <points>."
     )
 
-    defaults["fill"] = True
+    _default_store.factory["fill"] = True
     default_types["fill"] = bool
     defaults_help["fill"] = (
         "Boolean property for filling shapes. If True, shapes are filled."
     )
 
-    defaults["fill_alpha"] = 1
+    _default_store.factory["fill_alpha"] = 1
     default_types["fill_alpha"] = float
     defaults_help["fill_alpha"] = (
         "Alpha value for fill transparency. Float between 0 and 1."
     )
 
-    defaults["fill_blend_mode"] = BlendMode.NORMAL
+    _default_store.factory["fill_blend_mode"] = BlendMode.NORMAL
     default_types["fill_blend_mode"] = BlendMode
     defaults_help["fill_blend_mode"] = (
         "Blend mode for fill. BlendMode enum. Valid values: COLOR, COLORBURN, "
@@ -1173,61 +1254,61 @@ def set_defaults() -> None:
         "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
     )
 
-    defaults["fill_color"] = colors.black
+    _default_store.factory["fill_color"] = colors.black
     default_types["fill_color"] = colors.Color
     defaults_help["fill_color"] = "Fill color for shapes. Color object."
 
-    defaults["fill_mode"] = FillMode.EVENODD
+    _default_store.factory["fill_mode"] = FillMode.EVENODD
     default_types["fill_mode"] = FillMode
     defaults_help["fill_mode"] = (
         "Fill mode for shapes. FillMode enum. Valid values: EVENODD, NONZERO."
     )
 
-    defaults["fillet_radius"] = 3
+    _default_store.factory["fillet_radius"] = 3
     default_types["fillet_radius"] = float
     defaults_help["fillet_radius"] = (
         "Radius for rounded corners (fillets). Positive float. Length in <points>."
     )
 
-    defaults["fillet_radii"] = None
+    _default_store.factory["fillet_radii"] = None
     default_types["fillet_radii"] = tuple
     defaults_help["fillet_radii"] = (
         "Inner and outer fillet radii for canvas.draw_lace, as "
         "(inner, outer). None means do not fillet."
     )
 
-    defaults["filter_color_matrix_hue_rotate"] = 0.0
+    _default_store.factory["filter_color_matrix_hue_rotate"] = 0.0
     default_types["filter_color_matrix_hue_rotate"] = float
     defaults_help["filter_color_matrix_hue_rotate"] = (
         "Default hue rotation angle for feColorMatrix with HUE_ROTATE type. Float in degrees."
     )
 
-    defaults["filter_color_matrix_saturate"] = 1.0
+    _default_store.factory["filter_color_matrix_saturate"] = 1.0
     default_types["filter_color_matrix_saturate"] = float
     defaults_help["filter_color_matrix_saturate"] = (
         "Default saturation amount for feColorMatrix with SATURATE type. Float."
     )
 
-    defaults["filter_color_matrix_type"] = ColorMatrix.MATRIX
+    _default_store.factory["filter_color_matrix_type"] = ColorMatrix.MATRIX
     default_types["filter_color_matrix_type"] = ColorMatrix
     defaults_help["filter_color_matrix_type"] = (
         "Default type for feColorMatrix. ColorMatrix enum. Valid values: MATRIX, "
         "SATURATE, HUE_ROTATE, LUMINANCE_TO_ALPHA."
     )
 
-    defaults["filter_color_matrix_values"] = None
+    _default_store.factory["filter_color_matrix_values"] = None
     default_types["filter_color_matrix_values"] = object
     defaults_help["filter_color_matrix_values"] = (
         "Default values for feColorMatrix. Numeric value or sequence depending on matrix type."
     )
 
-    defaults["font_alpha"] = 1
+    _default_store.factory["font_alpha"] = 1
     default_types["font_alpha"] = float
     defaults_help["font_alpha"] = (
         "Alpha value for font transparency. Float between 0 and 1."
     )
 
-    defaults["font_blend_mode"] = BlendMode.NORMAL
+    _default_store.factory["font_blend_mode"] = BlendMode.NORMAL
     default_types["font_blend_mode"] = BlendMode
     defaults_help["font_blend_mode"] = (
         "Blend mode for font. BlendMode enum. Valid values: COLOR, COLORBURN, "
@@ -1235,7 +1316,7 @@ def set_defaults() -> None:
         "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
     )
 
-    defaults["font_color"] = (
+    _default_store.factory["font_color"] = (
         colors.black
     )  # use the default font color in LaTeX engine
     default_types["font_color"] = colors.Color
@@ -1243,7 +1324,7 @@ def set_defaults() -> None:
         "Font color. Color object. Font color for the text objects."
     )
 
-    defaults["font_family"] = (
+    _default_store.factory["font_family"] = (
         FontFamily.SERIF  # use the default font family in LaTeX engine
     )
     default_types["font_family"] = str
@@ -1251,19 +1332,19 @@ def set_defaults() -> None:
         "Font family. String. Font family for the text objects."
     )
 
-    defaults["font_size"] = 12
+    _default_store.factory["font_size"] = 12
     default_types["font_size"] = float
     defaults_help["font_size"] = (
         "Font size. Positive float. Length in <points>. Font size for the text objects."
     )
 
-    defaults["font_style"] = ""
+    _default_store.factory["font_style"] = ""
     default_types["font_style"] = str
     defaults_help["font_style"] = (
         "Font style. String. Font style for the text objects."
     )
 
-    defaults["fragment_coloring"] = FragmentColoring.AREA
+    _default_store.factory["fragment_coloring"] = FragmentColoring.AREA
     default_types["fragment_coloring"] = FragmentColoring
     defaults_help["fragment_coloring"] = (
         "How canvas.draw_lace colors fragments. FragmentColoring enum. "
@@ -1271,29 +1352,29 @@ def set_defaults() -> None:
         "RADIUS (color by distance from the lace center)."
     )
 
-    defaults["frame_active"] = True
+    _default_store.factory["frame_active"] = True
     default_types["frame_active"] = bool
     defaults_help["frame_active"] = (
         "Boolean property for active frames. If True, frames are drawn."
     )
 
-    defaults["frame_alpha"] = 1
+    _default_store.factory["frame_alpha"] = 1
     default_types["frame_alpha"] = float
     defaults_help["frame_alpha"] = (
         "Alpha value for frame transparency. Float between 0 and 1."
     )
 
-    defaults["frame_back_alpha"] = 1
+    _default_store.factory["frame_back_alpha"] = 1
     default_types["frame_back_alpha"] = float
     defaults_help["frame_back_alpha"] = (
         "Alpha value for frame background transparency. Float between 0 and 1."
     )
 
-    defaults["frame_back_color"] = colors.white
+    _default_store.factory["frame_back_color"] = colors.white
     default_types["frame_back_color"] = colors.Color
     defaults_help["frame_back_color"] = "Frame background color. Color object."
 
-    defaults["frame_blend_mode"] = BlendMode.NORMAL
+    _default_store.factory["frame_blend_mode"] = BlendMode.NORMAL
     default_types["frame_blend_mode"] = BlendMode
     defaults_help["frame_blend_mode"] = (
         "Blend mode for frame. BlendMode enum. Valid values: COLOR, COLORBURN, "
@@ -1301,114 +1382,114 @@ def set_defaults() -> None:
         "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
     )
 
-    defaults["frame_color"] = colors.black
+    _default_store.factory["frame_color"] = colors.black
     default_types["frame_color"] = colors.Color
     defaults_help["frame_color"] = "Frame color. Color object."
 
-    defaults["frame_draw_fillets"] = False
+    _default_store.factory["frame_draw_fillets"] = False
     default_types["frame_draw_fillets"] = bool
     defaults_help["frame_draw_fillets"] = (
         "Boolean property for drawing fillets for frames. If True, fillets are drawn."
     )
 
-    defaults["frame_fill"] = True
+    _default_store.factory["frame_fill"] = True
     default_types["frame_fill"] = bool
     defaults_help["frame_fill"] = (
         "Boolean property for filling frames. If True, frames are filled."
     )
 
-    defaults["frame_fillet_radius"] = 3
+    _default_store.factory["frame_fillet_radius"] = 3
     default_types["frame_fillet_radius"] = float
     defaults_help["frame_fillet_radius"] = (
         "Fillet radius for frames. Positive float. Length in <points>."
     )
 
-    defaults["frame_gradient"] = None
+    _default_store.factory["frame_gradient"] = None
     default_types["frame_gradient"] = (
         object  # Assuming gradient is a custom object
     )
     defaults_help["frame_gradient"] = "Frame gradient. Gradient object."
 
-    defaults["frame_inner_sep"] = 3
+    _default_store.factory["frame_inner_sep"] = 3
     default_types["frame_inner_sep"] = float
     defaults_help["frame_inner_sep"] = (
         "Frame inner separation. Positive float. Length in <points>."
     )
 
-    defaults["frame_inner_xsep"] = None
+    _default_store.factory["frame_inner_xsep"] = None
     default_types["frame_inner_xsep"] = float
     defaults_help["frame_inner_xsep"] = (
         "Frame inner x separation. Positive float. Length in <points>."
     )
 
-    defaults["frame_inner_ysep"] = None
+    _default_store.factory["frame_inner_ysep"] = None
     default_types["frame_inner_ysep"] = float
     defaults_help["frame_inner_ysep"] = (
         "Frame inner y separation. Positive float. Length in <points>."
     )
 
-    defaults["frame_line_cap"] = LineCap.BUTT
+    _default_store.factory["frame_line_cap"] = LineCap.BUTT
     default_types["frame_line_cap"] = LineCap
     defaults_help["frame_line_cap"] = (
         "Line cap for frames. LineCap enum. Valid values: BUTT, ROUND, SQUARE."
     )
 
-    defaults["frame_line_dash_array"] = []
+    _default_store.factory["frame_line_dash_array"] = []
     default_types["frame_line_dash_array"] = Sequence
     defaults_help["frame_line_dash_array"] = (
         "Line dash array for frames. List of floats."
     )
 
-    defaults["frame_line_join"] = LineJoin.MITER
+    _default_store.factory["frame_line_join"] = LineJoin.MITER
     default_types["frame_line_join"] = LineJoin
     defaults_help["frame_line_join"] = (
         "Line join for frames. LineJoin enum. Valid values: BEVEL, MITER, ROUND."
     )
 
-    defaults["frame_line_width"] = 1
+    _default_store.factory["frame_line_width"] = 1
     default_types["frame_line_width"] = float
     defaults_help["frame_line_width"] = (
         "Line width for frames. Positive float. Length in <points>."
     )
 
-    defaults["frame_min_height"] = 50
+    _default_store.factory["frame_min_height"] = 50
     default_types["frame_min_height"] = float
     defaults_help["frame_min_height"] = (
         "Minimum height for frames. Positive float. Length in <points>."
     )
 
-    defaults["frame_min_size"] = 50
+    _default_store.factory["frame_min_size"] = 50
     default_types["frame_min_size"] = float
     defaults_help["frame_min_size"] = (
         "Minimum size for frames. Positive float. Length in <points>."
     )
 
-    defaults["frame_min_width"] = 50
+    _default_store.factory["frame_min_width"] = 50
     default_types["frame_min_width"] = float
     defaults_help["frame_min_width"] = (
         "Minimum width for frames. Positive float. Length in <points>."
     )
 
-    defaults["frame_outer_sep"] = 0
+    _default_store.factory["frame_outer_sep"] = 0
     default_types["frame_outer_sep"] = float
     defaults_help["frame_outer_sep"] = (
         "Frame outer separation. Positive float. Length in <points>."
     )
 
-    defaults["frame_pattern"] = None
+    _default_store.factory["frame_pattern"] = None
     default_types["frame_pattern"] = (
         object  # Assuming pattern is a custom object
     )
     defaults_help["frame_pattern"] = "Frame pattern. Pattern object."
 
-    defaults["frame_rounded_corners"] = False
+    _default_store.factory["frame_rounded_corners"] = False
     default_types["frame_rounded_corners"] = bool
     defaults_help["frame_rounded_corners"] = (
         "Boolean property for rounded corners for frames. "
         "If True, rounded corners are drawn."
     )
 
-    defaults["frame_shape"] = FrameShape.RECTANGLE
+    _default_store.factory["frame_shape"] = FrameShape.RECTANGLE
     default_types["frame_shape"] = FrameShape
     defaults_help["frame_shape"] = (
         "Frame shape. FrameShape enum. Valid values: CIRCLE, DIAMOND, ELLIPSE, "
@@ -1416,25 +1497,25 @@ def set_defaults() -> None:
         "SQUARE, STAR, TRAPEZOID."
     )
 
-    defaults["frame_smooth"] = True
+    _default_store.factory["frame_smooth"] = True
     default_types["frame_smooth"] = bool
     defaults_help["frame_smooth"] = (
         "Boolean property for smooth frames. If True, frames are smooth."
     )
 
-    defaults["frame_stroke"] = True
+    _default_store.factory["frame_stroke"] = True
     default_types["frame_stroke"] = bool
     defaults_help["frame_stroke"] = (
         "Boolean property for stroke frames. If True, frames are stroked."
     )
 
-    defaults["frame_visible"] = True
+    _default_store.factory["frame_visible"] = True
     default_types["frame_visible"] = bool
     defaults_help["frame_visible"] = (
         "Boolean property for visible frames. If True, frames are visible."
     )
 
-    defaults["gap"] = 5  # dimension extension gap
+    _default_store.factory["gap"] = 5  # dimension extension gap
     default_types["gap"] = float
     defaults_help["gap"] = (
         "Dimension extension gap. Positive float. Length in <points>."
@@ -1442,31 +1523,31 @@ def set_defaults() -> None:
 
     # Gradient defaults
 
-    defaults["gradient"] = None
+    _default_store.factory["gradient"] = None
     default_types["gradient"] = object
     defaults_help["gradient"] = "Gradient object."
 
-    defaults["gradient_center"] = (0.5, 0.5)  # radial gradient center
+    _default_store.factory["gradient_center"] = (0.5, 0.5)  # radial gradient center
     default_types["gradient_center"] = tuple[float, float]
     defaults_help[
         "gradient_center"
     ] = """Gradient center, tuple[float, float]. Center of the gradient.
         Must be between (0, 0) and (1.0, 1.0)"""
 
-    defaults["gradient_end"] = (1, 0)  # linear gradient end
+    _default_store.factory["gradient_end"] = (1, 0)  # linear gradient end
     default_types["gradient_end"] = tuple[float, float]
     defaults_help["gradient_end"] = (
         "Gradient end. tuple[float, float]. End for linear gradient."
     )
 
-    defaults["gradient_focal"] = (0.5, 0.5)  # radial gradient focal pooint
+    _default_store.factory["gradient_focal"] = (0.5, 0.5)  # radial gradient focal pooint
     default_types["gradient_focal"] = tuple[float, float]
     defaults_help[
         "gradient_focal"
     ] = """Gradient focal, tuple[float, float]. Center of the gradient.
         Must be between (0, 0) and (1.0, 1.0)"""
 
-    defaults["gradient_radius"] = 0.5  # radial gradient radius
+    _default_store.factory["gradient_radius"] = 0.5  # radial gradient radius
     default_types["gradient_radius"] = float
     defaults_help["gradient_radius"] = (
         "Gradient radius. Positive float. Radius for radial gradient."
@@ -1474,126 +1555,126 @@ def set_defaults() -> None:
 
     # Fix this!!! Should not be SVG only!!!
 
-    defaults["gradient_spread_method"] = "pad"  # alias for spread_method
+    _default_store.factory["gradient_spread_method"] = "pad"  # alias for spread_method
     default_types["gradient_spread_method"] = str
     defaults_help["gradient_spread_method"] = (
         "Gradient spread method (alias). String. 'pad', 'reflect', or 'repeat'. "
         "How the gradient fills the remaining area."
     )
 
-    defaults["gradient_start"] = (0, 0)  # linear gradient start
+    _default_store.factory["gradient_start"] = (0, 0)  # linear gradient start
     default_types["gradient_start"] = tuple[float, float]
     defaults_help["gradient_start"] = (
         "Gradient start. tuple[float, float]. Start for linear gradient."
     )
 
-    defaults["gradient_transform"] = None  # alias for transform
+    _default_store.factory["gradient_transform"] = None  # alias for transform
     default_types["gradient_transform"] = str
     defaults_help["gradient_transform"] = (
         "Gradient transform (alias). String or None. "
         "SVG transform attribute for the gradient."
     )
 
-    defaults["gradient_type"] = GradientType.LINEAR
+    _default_store.factory["gradient_type"] = GradientType.LINEAR
     default_types["gradient_type"] = GradientType
     defaults_help["gradient_type"] = (
         "Gradient type. GradientType enum. Valid values: LINEAR, RADIAL."
     )
 
-    defaults["gradient_units"] = "objectBoundingBox"  # gradient units
+    _default_store.factory["gradient_units"] = "objectBoundingBox"  # gradient units
     default_types["gradient_units"] = str
     defaults_help["gradient_units"] = (
         "Gradient units. String. 'userSpaceOnUse' or 'objectBoundingBox'. "
         "SVG gradient units coordinate system."
     )
 
-    defaults["graph_palette"] = (
+    _default_store.factory["graph_palette"] = (
         seq_MATTER_256  # this needs to be a 256 color palette
     )
     default_types["graph_palette"] = Sequence
     defaults_help["graph_palette"] = "Graph palette. List of colors."
 
-    defaults["grid_alpha"] = 0.5
+    _default_store.factory["grid_alpha"] = 0.5
     default_types["grid_alpha"] = float
     defaults_help["grid_alpha"] = "Grid alpha value. Float between 0 and 1."
 
-    defaults["grid_back_color"] = colors.white
+    _default_store.factory["grid_back_color"] = colors.white
     default_types["grid_back_color"] = colors.Color
     defaults_help["grid_back_color"] = "Grid background color. Color object."
 
-    defaults["grid_line_color"] = colors.gray
+    _default_store.factory["grid_line_color"] = colors.gray
     default_types["grid_line_color"] = colors.Color
     defaults_help["grid_line_color"] = "Grid line color. Color object."
 
-    defaults["grid_line_dash_array"] = [2, 2]
+    _default_store.factory["grid_line_dash_array"] = [2, 2]
     default_types["grid_line_dash_array"] = Sequence
     defaults_help["grid_line_dash_array"] = (
         "Grid line dash array. List of floats."
     )
 
-    defaults["grid_line_width"] = 0.5
+    _default_store.factory["grid_line_width"] = 0.5
     default_types["grid_line_width"] = float
     defaults_help["grid_line_width"] = (
         "Grid line width. Positive float. Length in <points>."
     )
 
-    defaults["handle_marker_size"] = 3
+    _default_store.factory["handle_marker_size"] = 3
     default_types["handle_marker_size"] = float
     defaults_help["handle_marker_size"] = (
         "Handle marker size. Positive float. Side length in <points>."
     )
 
-    defaults["head_fill_color"] = colors.black
+    _default_store.factory["head_fill_color"] = colors.black
     default_types["head_fill_color"] = colors.Color
     defaults_help["head_fill_color"] = (
         "Arrow-head fill color when drawing a Vector. Color object."
     )
 
-    defaults["head_line_color"] = colors.black
+    _default_store.factory["head_line_color"] = colors.black
     default_types["head_line_color"] = colors.Color
     defaults_help["head_line_color"] = (
         "Arrow-head outline color when drawing a Vector. Color object."
     )
 
-    defaults["head_line_width"] = 1
+    _default_store.factory["head_line_width"] = 1
     default_types["head_line_width"] = float
     defaults_help["head_line_width"] = (
         "Arrow-head outline width when drawing a Vector. "
         "Positive float. Length in <points>."
     )
 
-    defaults["help_lines_height"] = 400
+    _default_store.factory["help_lines_height"] = 400
     default_types["help_lines_height"] = float
     defaults_help["help_lines_height"] = (
         "Default height for non-deferred help lines. Positive float. Length in <points>."
     )
 
-    defaults["help_lines_margin"] = 25
+    _default_store.factory["help_lines_margin"] = 25
     default_types["help_lines_margin"] = float
     defaults_help["help_lines_margin"] = (
         "Help lines auto-padding around content bbox. Positive float. Length in <points>."
     )
 
-    defaults["help_lines_spacing"] = 25
+    _default_store.factory["help_lines_spacing"] = 25
     default_types["help_lines_spacing"] = float
     defaults_help["help_lines_spacing"] = (
         "Help lines spacing. Positive float. Length in <points>."
     )
 
-    defaults["help_lines_width"] = 400
+    _default_store.factory["help_lines_width"] = 400
     default_types["help_lines_width"] = float
     defaults_help["help_lines_width"] = (
         "Default width for non-deferred help lines. Positive float. Length in <points>."
     )
 
-    defaults["help_suggestion_limit"] = 8
+    _default_store.factory["help_suggestion_limit"] = 8
     default_types["help_suggestion_limit"] = int
     defaults_help["help_suggestion_limit"] = (
         "Maximum number of similar-name suggestions shown by sg.help and sg.doc. "
         "Positive integer."
     )
 
-    defaults["image_align"] = Align.CENTER
+    _default_store.factory["image_align"] = Align.CENTER
     default_types["image_align"] = Align
     defaults_help["image_align"] = (
         "Image alignment. Align enum. Valid values: BOTTOM, CENTER, FLUSH_CENTER, "
@@ -1601,13 +1682,13 @@ def set_defaults() -> None:
         "TOP, VERT_CENTER."
     )
 
-    defaults["image_alpha"] = 1
+    _default_store.factory["image_alpha"] = 1
     default_types["image_alpha"] = float
     defaults_help["image_alpha"] = (
         "Alpha value for image transparency. Float between 0 and 1."
     )
 
-    defaults["image_blend_mode"] = BlendMode.NORMAL
+    _default_store.factory["image_blend_mode"] = BlendMode.NORMAL
     default_types["image_blend_mode"] = BlendMode
     defaults_help["image_blend_mode"] = (
         "Blend mode for image. BlendMode enum. Valid values: COLOR, COLORBURN, "
@@ -1615,13 +1696,13 @@ def set_defaults() -> None:
         "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
     )
 
-    defaults["index_font_color"] = colors.Color(0.0, 0.42, 0.72)
+    _default_store.factory["index_font_color"] = colors.Color(0.0, 0.42, 0.72)
     default_types["index_font_color"] = colors.Color
     defaults_help["index_font_color"] = (
         "Vertex index label text color. Dark fill with a light halo for contrast."
     )
 
-    defaults["index_font_size"] = (
+    _default_store.factory["index_font_size"] = (
         "small"  # tiny, scriptsize, footnotesize, small,
     )
     # normalsize, large, Large, LARGE, huge, Huge
@@ -1630,24 +1711,24 @@ def set_defaults() -> None:
         "Vertex index label font size. LaTeX size name string or point size number."
     )
 
-    defaults["index_offset"] = 4
+    _default_store.factory["index_offset"] = 4
     default_types["index_offset"] = (int, float)
     defaults_help["index_offset"] = (
         "Radial offset for vertex index labels from vertices. Scalar in points."
     )
 
-    defaults["indices_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    _default_store.factory["indices_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
     default_types["indices_font_family"] = str
     defaults_help["indices_font_family"] = "Indices font family. String."
 
-    defaults["index_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    _default_store.factory["index_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
     default_types["index_font_family"] = (str, FontFamily)
     defaults_help["index_font_family"] = (
         "Vertex index label font family. TeX switch name "
         "(ttfamily, rmfamily, sffamily) or FontFamily enum."
     )
 
-    defaults["INF"] = np.inf
+    _default_store.factory["INF"] = np.inf
     default_types["INF"] = float
     defaults_help["INF"] = (
         "Infinity. Positive integer. "
@@ -1655,62 +1736,62 @@ def set_defaults() -> None:
         "Maybe usefull for zero division or comparisons."
     )
 
-    defaults["italic"] = False
+    _default_store.factory["italic"] = False
     default_types["italic"] = bool
     defaults_help["italic"] = (
         "Boolean property for italic font. If True, the font is displayed in italic."
     )
 
-    defaults["job_dir"] = None
+    _default_store.factory["job_dir"] = None
     default_types["job_dir"] = str
     defaults_help["job_dir"] = (
         "Job directory. String. Directory for the job files."
     )
 
-    defaults["keep_aux_files"] = False
+    _default_store.factory["keep_aux_files"] = False
     default_types["keep_aux_files"] = bool
     defaults_help["keep_aux_files"] = (
         "Boolean property for keeping auxiliary files. "
         "If True, auxiliary files are kept."
     )
 
-    defaults["keep_log_files"] = False
+    _default_store.factory["keep_log_files"] = False
     default_types["keep_log_files"] = bool
     defaults_help["keep_log_files"] = (
         "Boolean property for keeping log files. If True, log files are kept."
     )
 
-    defaults["keep_tex_files"] = False
+    _default_store.factory["keep_tex_files"] = False
     default_types["keep_tex_files"] = bool
     defaults_help["keep_tex_files"] = (
         "Boolean property for keeping TeX files. If True, TeX files are kept."
     )
 
-    defaults["label_halo_color"] = colors.white
+    _default_store.factory["label_halo_color"] = colors.white
     default_types["label_halo_color"] = colors.Color
     defaults_help["label_halo_color"] = (
         "Halo stroke color behind index and vertex labels for readability."
     )
 
-    defaults["label_halo_scale"] = 1.14
+    _default_store.factory["label_halo_scale"] = 1.14
     default_types["label_halo_scale"] = (int, float)
     defaults_help["label_halo_scale"] = (
         "Legacy setting; TikZ halos use contourlength from label_halo_width_scale."
     )
 
-    defaults["label_halo_width_scale"] = 0.14
+    _default_store.factory["label_halo_width_scale"] = 0.14
     default_types["label_halo_width_scale"] = (int, float)
     defaults_help["label_halo_width_scale"] = (
         "Halo width as a fraction of label font size (SVG stroke; TikZ contourlength)."
     )
 
-    defaults["lace_offset"] = 4
+    _default_store.factory["lace_offset"] = 4
     default_types["lace_offset"] = float
     defaults_help["lace_offset"] = (
         "Lace offset. Positive float. Length in <points>."
     )
 
-    defaults["lace_plait_style"] = None
+    _default_store.factory["lace_plait_style"] = None
     default_types["lace_plait_style"] = object
     defaults_help["lace_plait_style"] = (
         "Default PlaitStyle for canvas.draw_lace. None means filled plaits "
@@ -1718,26 +1799,26 @@ def set_defaults() -> None:
         "DIAMOND, INNERLINES, DOUBLE_LINES."
     )
 
-    defaults["landing_length"] = 20
+    _default_store.factory["landing_length"] = 20
     default_types["landing_length"] = float
     defaults_help["landing_length"] = (
         "Horizontal landing length for annotation leaders. Positive float. "
         "Length in <points>."
     )
 
-    defaults["latex_compiler"] = Compiler.XELATEX  # PDFLATEX, XELATEX, LUALATEX
+    _default_store.factory["latex_compiler"] = Compiler.XELATEX  # PDFLATEX, XELATEX, LUALATEX
     default_types["latex_compiler"] = Compiler
     defaults_help["latex_compiler"] = (
         "LaTeX compiler. Compiler enum. Valid values: LATEX, PDFLATEX, XELATEX, LUALATEX."
     )
 
-    defaults["line_alpha"] = 1
+    _default_store.factory["line_alpha"] = 1
     default_types["line_alpha"] = float
     defaults_help["line_alpha"] = (
         "Alpha value for line transparency. Float between 0 and 1."
     )
 
-    defaults["line_blend_mode"] = BlendMode.NORMAL
+    _default_store.factory["line_blend_mode"] = BlendMode.NORMAL
     default_types["line_blend_mode"] = BlendMode
     defaults_help["line_blend_mode"] = (
         "Blend mode for line. BlendMode enum. Valid values: COLOR, COLORBURN, "
@@ -1745,151 +1826,151 @@ def set_defaults() -> None:
         "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
     )
 
-    defaults["line_cap"] = LineCap.BUTT
+    _default_store.factory["line_cap"] = LineCap.BUTT
     default_types["line_cap"] = LineCap
     defaults_help["line_cap"] = (
         "Line cap for lines. LineCap enum. Valid values: BUTT, ROUND, SQUARE."
     )
 
-    defaults["line_color"] = colors.black
+    _default_store.factory["line_color"] = colors.black
     default_types["line_color"] = colors.Color
     defaults_help["line_color"] = "Line color. Color object."
 
-    defaults["line_dash_array"] = None
+    _default_store.factory["line_dash_array"] = None
     default_types["line_dash_array"] = Sequence
     defaults_help["line_dash_array"] = "Line dash array. List of floats."
 
-    defaults["line_dash_phase"] = 0
+    _default_store.factory["line_dash_phase"] = 0
     default_types["line_dash_phase"] = float
     defaults_help["line_dash_phase"] = (
         "Line dash phase. Positive float. Length in <points>."
     )
 
-    defaults["line_join"] = LineJoin.MITER
+    _default_store.factory["line_join"] = LineJoin.MITER
     default_types["line_join"] = LineJoin
     defaults_help["line_join"] = (
         "Line join for lines. LineJoin enum. Valid values: BEVEL, MITER, ROUND."
     )
 
-    defaults["line_miter_limit"] = 10
+    _default_store.factory["line_miter_limit"] = 10
     default_types["line_miter_limit"] = float
     defaults_help["line_miter_limit"] = "Line miter limit. Positive float."
 
-    defaults["line_width"] = 1
+    _default_store.factory["line_width"] = 1
     default_types["line_width"] = float
     defaults_help["line_width"] = (
         "Line width. Positive float. Length in <points>. Line width for the shapes."
     )
 
-    defaults["line_widths"] = (defaults["line_width"],)
+    _default_store.factory["line_widths"] = (defaults["line_width"],)
     default_types["line_widths"] = Sequence
     defaults_help["line_widths"] = (
         "Line widths for PlaitStyle.INNERLINES in canvas.draw_lace. "
         "Sequence of positive floats."
     )
 
-    defaults["lualatex_run_options"] = None
+    _default_store.factory["lualatex_run_options"] = None
     default_types["lualatex_run_options"] = str
     defaults_help["lualatex_run_options"] = "LuaLaTeX run options. String."
 
-    defaults["main_font"] = "Times New Roman"
+    _default_store.factory["main_font"] = "Times New Roman"
     default_types["main_font"] = str
     defaults_help["main_font"] = "Main font. String."
 
-    defaults["margin"] = 54
+    _default_store.factory["margin"] = 54
     default_types["margin"] = float
     defaults_help["margin"] = (
         "Right margin in recto pages, left margin in verso pages. Positive float. Length in <points>."
     )
 
-    defaults["margin_bottom"] = 18
+    _default_store.factory["margin_bottom"] = 18
     default_types["margin_bottom"] = float
     defaults_help["margin_bottom"] = (
         "Bottom margin. Positive float. Length in <points>."
     )
 
-    defaults["margin_footer"] = 54
+    _default_store.factory["margin_footer"] = 54
     default_types["margin_footer"] = float
     defaults_help["margin_footer"] = (
         "Footer margin. Positive float. Length in <points>."
     )
 
-    defaults["margin_gutter"] = 40
+    _default_store.factory["margin_gutter"] = 40
     default_types["margin_gutter"] = float
     defaults_help["margin_gutter"] = (
         "Gutter margin. Inner margin in recto and verso pages. Positive float. Length in <points>."
     )
 
-    defaults["margin_header"] = 54
+    _default_store.factory["margin_header"] = 54
     default_types["margin_header"] = float
     defaults_help["margin_header"] = (
         "Header margin. Positive float. Length in <points>."
     )
 
-    defaults["margin_left"] = 18
+    _default_store.factory["margin_left"] = 18
     default_types["margin_left"] = float
     defaults_help["margin_left"] = (
         "Left margin. Positive float. Length in <points>."
     )
 
-    defaults["margin_right"] = 18
+    _default_store.factory["margin_right"] = 18
     default_types["margin_right"] = float
     defaults_help["margin_right"] = (
         "Right margin. Positive float. Length in <points>."
     )
 
-    defaults["margin_top"] = 18
+    _default_store.factory["margin_top"] = 18
     default_types["margin_top"] = float
     defaults_help["margin_top"] = (
         "Top margin. Positive float. Length in <points>."
     )
 
-    defaults["marker"] = None
+    _default_store.factory["marker"] = None
     default_types["marker"] = object  # Assuming marker is a custom object
     defaults_help["marker"] = "Marker. Marker object."
 
-    defaults["marker_alpha"] = 1.0
+    _default_store.factory["marker_alpha"] = 1.0
     default_types["marker_alpha"] = float
     defaults_help["marker_alpha"] = "Marker alpha/opacity. Float from 0 to 1."
 
-    defaults["marker_color"] = colors.black
+    _default_store.factory["marker_color"] = colors.black
     default_types["marker_color"] = colors.Color
     defaults_help["marker_color"] = "Marker color. Color object."
 
-    defaults["marker_line_style"] = "solid"
+    _default_store.factory["marker_line_style"] = "solid"
     default_types["marker_line_style"] = str
     defaults_help["marker_line_style"] = "Marker line style. String."
 
-    defaults["marker_line_width"] = 1
+    _default_store.factory["marker_line_width"] = 1
     default_types["marker_line_width"] = float
     defaults_help["marker_line_width"] = (
         "Marker line width. Positive float. Length in <points>."
     )
 
-    defaults["marker_palette"] = seq_MATTER_256  # this needs to be a 256 color
+    _default_store.factory["marker_palette"] = seq_MATTER_256  # this needs to be a 256 color
     # palette
     default_types["marker_palette"] = Sequence
     defaults_help["marker_palette"] = "Marker palette. List of colors."
 
-    defaults["marker_radius"] = 3  # Used for MarkerType.CIRCLE, MarkerType.STAR
+    _default_store.factory["marker_radius"] = 3  # Used for MarkerType.CIRCLE, MarkerType.STAR
     default_types["marker_radius"] = float
     defaults_help["marker_radius"] = (
         "Marker radius. Positive float. Length in <points>."
     )
 
-    defaults["marker_shape"] = None
+    _default_store.factory["marker_shape"] = None
     default_types["marker_shape"] = object
     defaults_help["marker_shape"] = (
         "Custom shape to use when marker_type is SHAPE. Shape object."
     )
 
-    defaults["marker_size"] = 3  # To do: find out what the default is
+    _default_store.factory["marker_size"] = 3  # To do: find out what the default is
     default_types["marker_size"] = float
     defaults_help["marker_size"] = (
         "Marker size. Positive float. Length in <points>."
     )
 
-    defaults["marker_type"] = MarkerType.FCIRCLE
+    _default_store.factory["marker_type"] = MarkerType.FCIRCLE
     default_types["marker_type"] = MarkerType
     defaults_help["marker_type"] = (
         "Marker type. MarkerType enum. Valid values: ASTERISK, BAR, CIRCLE, "
@@ -1899,17 +1980,17 @@ def set_defaults() -> None:
         "PENTAGON_F, PLUS, SHAPE, SQUARE, SQUARE_F, STAR, TRIANGLE, TRIANGLE_F."
     )
 
-    defaults["markers_only"] = False
+    _default_store.factory["markers_only"] = False
     default_types["markers_only"] = bool
     defaults_help["markers_only"] = (
         "Boolean property for drawing markers only. If True, only markers are drawn."
     )
 
-    defaults["mask"] = None
+    _default_store.factory["mask"] = None
     default_types["mask"] = object  # Assuming mask is a custom object
     defaults_help["mask"] = "Mask. Mask object."
 
-    defaults["mask_axis"] = (
+    _default_store.factory["mask_axis"] = (
         (0.0, 0.0),
         (1.0, 0.0),
     )  # default linear gradient axis
@@ -1918,48 +1999,48 @@ def set_defaults() -> None:
         "Default mask gradient axis. Tuple ((x1,y1),(x2,y2))."
     )
 
-    defaults["mask_content_units"] = "userSpaceOnUse"
+    _default_store.factory["mask_content_units"] = "userSpaceOnUse"
     default_types["mask_content_units"] = str
     defaults_help["mask_content_units"] = (
         "Mask content units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
     )
 
-    defaults["mask_opacity"] = 1.0  # fully opaque
+    _default_store.factory["mask_opacity"] = 1.0  # fully opaque
     default_types["mask_opacity"] = float
     defaults_help["mask_opacity"] = (
         "Default mask opacity. Float between 0 and 1."
     )
 
-    defaults["mask_spread_method"] = "pad"
+    _default_store.factory["mask_spread_method"] = "pad"
     default_types["mask_spread_method"] = str
     defaults_help["mask_spread_method"] = (
         "Mask spread method. String. 'pad', 'reflect', or 'repeat'."
     )
 
-    defaults["mask_transform"] = None
+    _default_store.factory["mask_transform"] = None
     default_types["mask_transform"] = str
     defaults_help["mask_transform"] = (
         "Mask transform. String or None. SVG transform for mask gradient."
     )
 
-    defaults["mask_type"] = "linear"
+    _default_store.factory["mask_type"] = "linear"
     default_types["mask_type"] = str
     defaults_help["mask_type"] = "Mask type. String. 'linear' or 'radial'."
 
-    defaults["mask_units"] = "userSpaceOnUse"
+    _default_store.factory["mask_units"] = "userSpaceOnUse"
     default_types["mask_units"] = str
     defaults_help["mask_units"] = (
         "Mask units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
     )
 
-    defaults["merge"] = True  # merge transformations with reps > 0
+    _default_store.factory["merge"] = True  # merge transformations with reps > 0
     default_types["merge"] = bool
     defaults_help["merge"] = (
         "Boolean property for merging transformations. "
         "If True, transformations with reps > 0 are merged."
     )
 
-    defaults["merge_tol"] = 0.01  # if the distance between two nodes is less
+    _default_store.factory["merge_tol"] = 0.01  # if the distance between two nodes is less
     # than this value,
     default_types["merge_tol"] = float
     defaults_help["merge_tol"] = (
@@ -1969,90 +2050,90 @@ def set_defaults() -> None:
     # defaults['min_width'] = 20
     # defaults['min_size'] = 50
 
-    defaults["mono_font"] = "Courier New"
+    _default_store.factory["mono_font"] = "Courier New"
     default_types["mono_font"] = str
     defaults_help["mono_font"] = "Monospace font. String."
 
-    defaults["msk_cx"] = 0.5
+    _default_store.factory["msk_cx"] = 0.5
     default_types["msk_cx"] = float
     defaults_help["msk_cx"] = "Mask radial gradient cx. Float."
 
-    defaults["msk_cy"] = 0.5
+    _default_store.factory["msk_cy"] = 0.5
     default_types["msk_cy"] = float
     defaults_help["msk_cy"] = "Mask radial gradient cy. Float."
 
-    defaults["msk_fx"] = None
+    _default_store.factory["msk_fx"] = None
     default_types["msk_fx"] = float
     defaults_help["msk_fx"] = "Mask radial gradient focal x. Float or None."
 
-    defaults["msk_fy"] = None
+    _default_store.factory["msk_fy"] = None
     default_types["msk_fy"] = float
     defaults_help["msk_fy"] = "Mask radial gradient focal y. Float or None."
 
-    defaults["msk_r"] = 0.5
+    _default_store.factory["msk_r"] = 0.5
     default_types["msk_r"] = float
     defaults_help["msk_r"] = "Mask radial gradient radius. Float."
 
-    defaults["msk_stops"] = None
+    _default_store.factory["msk_stops"] = None
     default_types["msk_stops"] = object
     defaults_help["msk_stops"] = (
         "Mask stops. List of tuples or None. "
         "Format: [(offset, opacity), ...] or [(offset, color, opacity), ...]."
     )
 
-    defaults["msk_units"] = "objectBoundingBox"
+    _default_store.factory["msk_units"] = "objectBoundingBox"
     default_types["msk_units"] = str
     defaults_help["msk_units"] = (
         "Mask gradient units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
     )
 
-    defaults["msk_x1"] = 0
+    _default_store.factory["msk_x1"] = 0
     default_types["msk_x1"] = float
     defaults_help["msk_x1"] = "Mask gradient x1. Float."
 
-    defaults["msk_x2"] = 1
+    _default_store.factory["msk_x2"] = 1
     default_types["msk_x2"] = float
     defaults_help["msk_x2"] = "Mask gradient x2. Float."
 
-    defaults["msk_y1"] = 0
+    _default_store.factory["msk_y1"] = 0
     default_types["msk_y1"] = float
     defaults_help["msk_y1"] = "Mask gradient y1. Float."
 
-    defaults["msk_y2"] = 0
+    _default_store.factory["msk_y2"] = 0
     default_types["msk_y2"] = float
     defaults_help["msk_y2"] = "Mask gradient y2. Float."
 
-    defaults["n_arc_points"] = 40  # number of proportional points for arcs
+    _default_store.factory["n_arc_points"] = 40  # number of proportional points for arcs
     default_types["n_arc_points"] = int
     defaults_help["n_arc_points"] = (
         "Number of points for arcs. Positive integer."
     )
 
-    defaults["n_bezier_points"] = 40  # number of points for Bezier curves
+    _default_store.factory["n_bezier_points"] = 40  # number of points for Bezier curves
     default_types["n_bezier_points"] = int
     defaults_help["n_bezier_points"] = (
         "Number of points for Bezier curves. Positive integer."
     )
 
-    defaults["n_circle_points"] = 30  # number of points for circles
+    _default_store.factory["n_circle_points"] = 30  # number of points for circles
     default_types["n_circle_points"] = int
     defaults_help["n_circle_points"] = (
         "Number of points for circles. Positive integer."
     )
 
-    defaults["n_ellipse_points"] = 40  # number of points for ellipses
+    _default_store.factory["n_ellipse_points"] = 40  # number of points for ellipses
     default_types["n_ellipse_points"] = int
     defaults_help["n_ellipse_points"] = (
         "Number of points for ellipses. Positive integer."
     )
 
-    defaults["n_hobby_points"] = 40  # number of points for Hobby curves
+    _default_store.factory["n_hobby_points"] = 40  # number of points for Hobby curves
     default_types["n_hobby_points"] = int
     defaults_help["n_hobby_points"] = (
         "Number of points for Hobby curves. Positive integer."
     )
 
-    defaults["n_q_bezier_points"] = (
+    _default_store.factory["n_q_bezier_points"] = (
         30  # number of points for quadratic Bezier curves
     )
     default_types["n_q_bezier_points"] = int
@@ -2060,107 +2141,107 @@ def set_defaults() -> None:
         "Number of points for quadratic Bezier curves. Positive integer."
     )
 
-    defaults["n_round"] = 2  # used for rounding floats
+    _default_store.factory["n_round"] = 2  # used for rounding floats
     default_types["n_round"] = int
     defaults_help["n_round"] = (
         "Number of decimal places to round floats. Positive integer."
     )
 
-    defaults["n_vert_digits"] = 1
+    _default_store.factory["n_vert_digits"] = 1
     default_types["n_vert_digits"] = int
     defaults_help["n_vert_digits"] = (
         "Decimal places for vertex coordinate label text (x, y) values."
     )
 
-    defaults["old_style_nums"] = False
+    _default_store.factory["old_style_nums"] = False
     default_types["old_style_nums"] = bool
     defaults_help["old_style_nums"] = (
         "Boolean property for old style numbers. If True, old style numbers are used."
     )
 
-    defaults["orientation"] = PageOrientation.PORTRAIT  # PORTRAIT, LANDSCAPE
+    _default_store.factory["orientation"] = PageOrientation.PORTRAIT  # PORTRAIT, LANDSCAPE
     default_types["orientation"] = PageOrientation
     defaults_help["orientation"] = (
         "Page orientation. PageOrientation enum. Valid values: LANDSCAPE, PORTRAIT."
     )
 
-    defaults["output_dir"] = None  # output directory for TeX files if None, use
+    _default_store.factory["output_dir"] = None  # output directory for TeX files if None, use
     # the current directory
     default_types["output_dir"] = str
     defaults_help["output_dir"] = "Output directory for TeX files. String."
 
-    defaults["overline"] = False
+    _default_store.factory["overline"] = False
     default_types["overline"] = bool
     defaults_help["overline"] = (
         "Boolean property for overline. If True, overline is used."
     )
 
-    defaults["overshoot"] = 4
+    _default_store.factory["overshoot"] = 4
     default_types["overshoot"] = float
     defaults_help["overshoot"] = (
         "Length that a dimension extension line continues past the "
         "dimension line. Positive float. Length in <points>."
     )
 
-    defaults["overwrite_files"] = False
+    _default_store.factory["overwrite_files"] = False
     default_types["overwrite_files"] = bool
     defaults_help["overwrite_files"] = (
         "Boolean property for overwriting files. If True, files are overwritten."
     )
 
-    defaults["packages"] = ["tikz", "pgf"]
+    _default_store.factory["packages"] = ["tikz", "pgf"]
     default_types["packages"] = Sequence
     defaults_help["packages"] = "Packages. List of strings."
 
-    defaults["page_grid_back_color"] = colors.white
+    _default_store.factory["page_grid_back_color"] = colors.white
     default_types["page_grid_back_color"] = colors.Color
     defaults_help["page_grid_back_color"] = (
         "Page grid background color. Color object."
     )
 
-    defaults["page_grid_line_color"] = colors.gray
+    _default_store.factory["page_grid_line_color"] = colors.gray
     default_types["page_grid_line_color"] = colors.Color
     defaults_help["page_grid_line_color"] = (
         "Page grid line color. Color object."
     )
 
-    defaults["page_grid_line_dash_array"] = [2, 2]
+    _default_store.factory["page_grid_line_dash_array"] = [2, 2]
     default_types["page_grid_line_dash_array"] = Sequence
     defaults_help["page_grid_line_dash_array"] = (
         "Page grid line dash array. List of floats."
     )
 
-    defaults["page_grid_line_width"] = 0.5
+    _default_store.factory["page_grid_line_width"] = 0.5
     default_types["page_grid_line_width"] = float
     defaults_help["page_grid_line_width"] = (
         "Page grid line width. Positive float. Length in <points>."
     )
 
-    defaults["page_grid_spacing"] = 18
+    _default_store.factory["page_grid_spacing"] = 18
     default_types["page_grid_spacing"] = float
     defaults_help["page_grid_spacing"] = (
         "Page grid spacing. Positive float. Length in <points>."
     )
 
-    defaults["page_grid_x_shift"] = 0
+    _default_store.factory["page_grid_x_shift"] = 0
     default_types["page_grid_x_shift"] = float
     defaults_help["page_grid_x_shift"] = (
         "Page grid x shift. Positive float. Length in <points>."
     )
 
-    defaults["page_grid_y_shift"] = 0
+    _default_store.factory["page_grid_y_shift"] = 0
     default_types["page_grid_y_shift"] = float
     defaults_help["page_grid_y_shift"] = (
         "Page grid y shift. Positive float. Length in <points>."
     )
 
-    defaults["page_margins"] = PageMargins.CUSTOM
+    _default_store.factory["page_margins"] = PageMargins.CUSTOM
     default_types["page_margins"] = PageMargins
     defaults_help["page_margins"] = (
         "Page margins. PageMargins enum. Valid values: CUSTOM, NARROW, STANDARD, WIDE."
     )
 
-    defaults["page_number_position"] = PageNumberPosition.BOTTOM_CENTER
+    _default_store.factory["page_number_position"] = PageNumberPosition.BOTTOM_CENTER
     default_types["page_number_position"] = PageNumberPosition
     defaults_help["page_number_position"] = (
         "Page number position. PageNumberPosition enum. Valid values: "
@@ -2168,14 +2249,14 @@ def set_defaults() -> None:
         "TOP_RIGHT."
     )
 
-    defaults["page_numbering"] = PageNumbering.NONE
+    _default_store.factory["page_numbering"] = PageNumbering.NONE
     default_types["page_numbering"] = PageNumbering
     defaults_help["page_numbering"] = (
         "Page numbering. PageNumbering enum. Valid values: ALPH, ALPHUPPER, "
         "ARABIC, NONE, ROMAN, ROMAN_UPPER."
     )
 
-    defaults["page_size"] = (
+    _default_store.factory["page_size"] = (
         PageSize.A4
     )  #  A0, A1, A2, A3, A4, A5, A6, B0, B1, B2,
     # B3, B4, B5, B6, LETTER, LEGAL,
@@ -2186,45 +2267,45 @@ def set_defaults() -> None:
         "A1, A2, A3, A4, A5, A6, B0-B13."
     )
 
-    defaults["pattern_angle"] = 0  # angle of the pattern in radians
+    _default_store.factory["pattern_angle"] = 0  # angle of the pattern in radians
     default_types["pattern_angle"] = float
     defaults_help["pattern_angle"] = "Pattern angle. Float. Angle in radians."
 
-    defaults["pattern_color"] = colors.black
+    _default_store.factory["pattern_color"] = colors.black
     default_types["pattern_color"] = colors.Color
     defaults_help["pattern_color"] = "Pattern color. Color object."
 
-    defaults["pattern_distance"] = 3  # distance between items
+    _default_store.factory["pattern_distance"] = 3  # distance between items
     default_types["pattern_distance"] = float
     defaults_help["pattern_distance"] = (
         "Pattern distance. Positive float. Length in <points>."
     )
 
-    defaults["pattern_line_width"] = 0  # line width for LINES and HATCH
+    _default_store.factory["pattern_line_width"] = 0  # line width for LINES and HATCH
     default_types["pattern_line_width"] = float
     defaults_help["pattern_line_width"] = (
         "Pattern line width. Positive float. Length in <points>."
     )
 
-    defaults["pattern_points"] = 5  # number of points for STAR
+    _default_store.factory["pattern_points"] = 5  # number of points for STAR
     default_types["pattern_points"] = int
     defaults_help["pattern_points"] = "Pattern points. Positive integer."
 
     # SVG Tile Pattern defaults (pattern tiles for SVG output)
 
-    defaults["pattern_radius"] = 10  # radius of the circle for STARS
+    _default_store.factory["pattern_radius"] = 10  # radius of the circle for STARS
     default_types["pattern_radius"] = float
     defaults_help["pattern_radius"] = (
         "Pattern radius. Positive float. Length in <points>."
     )
 
-    defaults["pattern_style"] = None
+    _default_store.factory["pattern_style"] = None
     default_types["pattern_style"] = (
         object  # Assuming pattern style is a custom object
     )
     defaults_help["pattern_style"] = "Pattern style. PatternStyle object."
 
-    defaults["pattern_type"] = (
+    _default_store.factory["pattern_type"] = (
         PatternType.HORIZONTAL_LINES
     )  #  DOTS, HATCH, STARS
     default_types["pattern_type"] = PatternType
@@ -2235,41 +2316,41 @@ def set_defaults() -> None:
         "VERTICAL_LINES."
     )
 
-    defaults["pattern_x_shift"] = 0  # shift in the x direction
+    _default_store.factory["pattern_x_shift"] = 0  # shift in the x direction
     default_types["pattern_x_shift"] = float
     defaults_help["pattern_x_shift"] = (
         "Pattern x shift. Positive float. Length in <points>."
     )
 
-    defaults["pattern_y_shift"] = 0  # shift in the y direction
+    _default_store.factory["pattern_y_shift"] = 0  # shift in the y direction
     default_types["pattern_y_shift"] = float
     defaults_help["pattern_y_shift"] = (
         "Pattern y shift. Positive float. Length in <points>."
     )
 
-    defaults["pdflatex_run_options"] = None
+    _default_store.factory["pdflatex_run_options"] = None
     default_types["pdflatex_run_options"] = str
     defaults_help["pdflatex_run_options"] = "PDFLaTeX run options. String."
 
-    defaults["percent_offsets"] = (0.5,)
+    _default_store.factory["percent_offsets"] = (0.5,)
     default_types["percent_offsets"] = Sequence
     defaults_help["percent_offsets"] = (
         "Relative positions along plait connections for PlaitStyle.INNERLINES "
         "in canvas.draw_lace. Sequence of floats in [0, 1]."
     )
 
-    defaults["plait_color"] = colors.white
+    _default_store.factory["plait_color"] = colors.white
     default_types["plait_color"] = colors.Color
     defaults_help["plait_color"] = "Plait color. Color object."
 
-    defaults["preamble"] = ""
+    _default_store.factory["preamble"] = ""
     default_types["preamble"] = str
     defaults_help["preamble"] = "Preamble. String."
 
-    defaults["PRINTTEXOUTPUT"] = True  # Print output from the TeX compiler
+    _default_store.factory["PRINTTEXOUTPUT"] = True  # Print output from the TeX compiler
     default_types["PRINTTEXOUTPUT"] = bool
 
-    defaults["radius_threshold"] = (
+    _default_store.factory["radius_threshold"] = (
         1  # used for grouping fragments in a lace object
     )
     default_types["radius_threshold"] = float
@@ -2277,20 +2358,20 @@ def set_defaults() -> None:
         "Radius threshold. Positive float. Length in <points>. "
     )
 
-    defaults["random_marker_colors"] = True
+    _default_store.factory["random_marker_colors"] = True
     default_types["random_marker_colors"] = bool
     defaults_help["random_marker_colors"] = (
         "Boolean property for random marker colors. "
         "If True, random marker colors are used."
     )
 
-    defaults["random_node_colors"] = True
+    _default_store.factory["random_node_colors"] = True
     default_types["random_node_colors"] = bool
     defaults_help["random_node_colors"] = (
         "Boolean property for random node colors. If True, random node colors are used."
     )
 
-    defaults["rectangle_width_height"] = (
+    _default_store.factory["rectangle_width_height"] = (
         40,
         20,
     )  # width and height of the rectangle
@@ -2300,7 +2381,7 @@ def set_defaults() -> None:
         "Tuple of two positive floats. Length in <points>."
     )
 
-    defaults["rel_tol"] = (
+    _default_store.factory["rel_tol"] = (
         0  # used for comparing floats. If this is 0 then only abs_tol is used
     )
     default_types["rel_tol"] = float
@@ -2308,22 +2389,22 @@ def set_defaults() -> None:
         "Relative tolerance. Positive float. Length in <points>. "
     )
 
-    defaults["render"] = "SVG"  # Render.TEX, Render.SVG use string values
+    _default_store.factory["render"] = "SVG"  # Render.TEX, Render.SVG use string values
     default_types["render"] = str
     defaults_help["render"] = (
         "Render output format. Render enum. Valid values: EPS, PDF, SVG, TEX."
     )
 
-    defaults["rev_arrow_length"] = 20  # length of reverse arrow
+    _default_store.factory["rev_arrow_length"] = 20  # length of reverse arrow
     default_types["rev_arrow_length"] = float
     defaults_help["rev_arrow_length"] = (
         "Length of reverse arrow. Positive float. Length in <points>."
     )
 
-    defaults["sans_font"] = str
+    _default_store.factory["sans_font"] = str
     defaults_help["sans_font"] = "Sans font. String."
 
-    defaults["save_with_versions"] = (
+    _default_store.factory["save_with_versions"] = (
         False  # if the file exists, save with a version number
     )
     default_types["save_with_versions"] = bool
@@ -2332,46 +2413,46 @@ def set_defaults() -> None:
         "If True, files are saved with a version number."
     )
 
-    defaults["section_color"] = colors.black
+    _default_store.factory["section_color"] = colors.black
     default_types["section_color"] = colors.Color
     defaults_help["section_color"] = "Section color. Color object."
 
-    defaults["section_dash_array"] = None
+    _default_store.factory["section_dash_array"] = None
     default_types["section_dash_array"] = Sequence
     defaults_help["section_dash_array"] = "Section dash array. List of floats."
 
-    defaults["section_line_cap"] = LineCap.BUTT.value
+    _default_store.factory["section_line_cap"] = LineCap.BUTT.value
     default_types["section_line_cap"] = LineCap
     defaults_help["section_line_cap"] = (
         "Section line cap. LineCap enum. Valid values: BUTT, ROUND, SQUARE."
     )
 
-    defaults["section_line_join"] = LineJoin.MITER.value
+    _default_store.factory["section_line_join"] = LineJoin.MITER.value
     default_types["section_line_join"] = LineJoin
     defaults_help["section_line_join"] = (
         "Section line join. LineJoin enum. Valid values: BEVEL, MITER, ROUND."
     )
 
-    defaults["section_width"] = 1
+    _default_store.factory["section_width"] = 1
     default_types["section_width"] = float
     defaults_help["section_width"] = (
         "Section width. Positive float. Length in <points>."
     )
 
-    defaults["shaft_line_color"] = colors.black
+    _default_store.factory["shaft_line_color"] = colors.black
     default_types["shaft_line_color"] = colors.Color
     defaults_help["shaft_line_color"] = (
         "Arrow shaft color when drawing a Vector. Color object."
     )
 
-    defaults["shaft_line_width"] = 1
+    _default_store.factory["shaft_line_width"] = 1
     default_types["shaft_line_width"] = float
     defaults_help["shaft_line_width"] = (
         "Arrow shaft width when drawing a Vector. "
         "Positive float. Length in <points>."
     )
 
-    defaults["shade_axis_angle"] = (
+    _default_store.factory["shade_axis_angle"] = (
         pi / 4
     )  # angle from the x-axis for the shading in radians
     default_types["shade_axis_angle"] = float
@@ -2379,89 +2460,89 @@ def set_defaults() -> None:
         "Axis angle for shading. Float. Angle in radians."
     )
 
-    defaults["shade_ball_color"] = colors.black
+    _default_store.factory["shade_ball_color"] = colors.black
     default_types["shade_ball_color"] = colors.Color
     defaults_help["shade_ball_color"] = "Ball color for shading. Color object."
 
-    defaults["shade_bottom_color"] = colors.white
+    _default_store.factory["shade_bottom_color"] = colors.white
     default_types["shade_bottom_color"] = colors.Color
     defaults_help["shade_bottom_color"] = (
         "Bottom color for shading. Color object."
     )
 
-    defaults["shade_color_wheel"] = False
+    _default_store.factory["shade_color_wheel"] = False
     default_types["shade_color_wheel"] = bool
     defaults_help["shade_color_wheel"] = (
         "Boolean property for the shape objects. "
         "If True, use the color wheel for shading."
     )
 
-    defaults["shade_color_wheel_black"] = False
+    _default_store.factory["shade_color_wheel_black"] = False
     default_types["shade_color_wheel_black"] = bool
     defaults_help["shade_color_wheel_black"] = (
         "Boolean property for the shape object. "
         "If True, use the color wheel for shading."
     )
 
-    defaults["shade_color_wheel_white"] = False
+    _default_store.factory["shade_color_wheel_white"] = False
     default_types["shade_color_wheel_white"] = bool
     defaults_help["shade_color_wheel_white"] = (
         "Boolean property for the shape object. "
         "If True, use the color wheel for shading."
     )
 
-    defaults["shade_inner_color"] = colors.white
+    _default_store.factory["shade_inner_color"] = colors.white
     default_types["shade_inner_color"] = colors.Color
     defaults_help["shade_inner_color"] = (
         "Inner color for shading. Color object."
     )
 
-    defaults["shade_left_color"] = colors.black
+    _default_store.factory["shade_left_color"] = colors.black
     default_types["shade_left_color"] = colors.Color
     defaults_help["shade_left_color"] = "Left color for shading. Color object."
 
-    defaults["shade_lower_left_color"] = colors.black
+    _default_store.factory["shade_lower_left_color"] = colors.black
     default_types["shade_lower_left_color"] = colors.Color
     defaults_help["shade_lower_left_color"] = (
         "Lower left color for shading. Color object."
     )
 
-    defaults["shade_lower_right_color"] = colors.white
+    _default_store.factory["shade_lower_right_color"] = colors.white
     default_types["shade_lower_right_color"] = colors.Color
     defaults_help["shade_lower_right_color"] = (
         "Lower right color for shading. Color object."
     )
 
-    defaults["shade_middle_color"] = colors.white
+    _default_store.factory["shade_middle_color"] = colors.white
     default_types["shade_middle_color"] = colors.Color
     defaults_help["shade_middle_color"] = (
         "Middle color for shading. Color object."
     )
 
-    defaults["shade_outer_color"] = colors.white
+    _default_store.factory["shade_outer_color"] = colors.white
     default_types["shade_outer_color"] = colors.Color
     defaults_help["shade_outer_color"] = (
         "Outer color for shading. Color object."
     )
 
-    defaults["shade_plaits"] = True
+    _default_store.factory["shade_plaits"] = True
     default_types["shade_plaits"] = bool
     defaults_help["shade_plaits"] = (
         "If True, canvas.draw_lace shades embossed or diamond plaits. "
         "If False, those styles are drawn without lightness variation."
     )
 
-    defaults["shade_right_color"] = colors.white
+    _default_store.factory["shade_right_color"] = colors.white
     default_types["shade_right_color"] = colors.Color
     defaults_help["shade_right_color"] = (
         "Right color for shading. Color object."
     )
 
-    defaults["shade_top_color"] = colors.black
+    _default_store.factory["shade_top_color"] = colors.black
     default_types["shade_top_color"] = colors.Color
     defaults_help["shade_top_color"] = "Top color for shading. Color object."
 
-    defaults["shade_type"] = ShadeType.AXIS_TOP_BOTTOM
+    _default_store.factory["shade_type"] = ShadeType.AXIS_TOP_BOTTOM
     default_types["shade_type"] = ShadeType
     defaults_help["shade_type"] = (
         "Shade type. ShadeType enum. Valid values: AXIS_LEFT_RIGHT, "
@@ -2470,19 +2551,19 @@ def set_defaults() -> None:
         "COLORWHEEL_WHITE, RADIAL_INNER, RADIAL_OUTER, RADIAL_INNER_OUTER."
     )
 
-    defaults["shade_upper_left_color"] = colors.black
+    _default_store.factory["shade_upper_left_color"] = colors.black
     default_types["shade_upper_left_color"] = colors.Color
     defaults_help["shade_upper_left_color"] = (
         "Upper left color for shading. Color object."
     )
 
-    defaults["shade_upper_right_color"] = colors.white
+    _default_store.factory["shade_upper_right_color"] = colors.white
     default_types["shade_upper_right_color"] = colors.Color
     defaults_help["shade_upper_right_color"] = (
         "Upper right color for shading. Color object."
     )
 
-    defaults["show_browser"] = True
+    _default_store.factory["show_browser"] = True
     default_types["show_browser"] = bool
     defaults_help["show_browser"] = (
         "If True, canvas.save() opens the file after writing it. "
@@ -2491,67 +2572,67 @@ def set_defaults() -> None:
         "See sg.help('viewer'). canvas.save(..., show=False) skips opening."
     )
 
-    defaults["show_log_on_console"] = True  # show log messages on console
+    _default_store.factory["show_log_on_console"] = True  # show log messages on console
     default_types["show_log_on_console"] = bool
     defaults_help["show_log_on_console"] = (
         "Boolean property for showing LateX log messages on console. "
         "If True, log messages are shown on console."
     )
 
-    defaults["show_warnings"] = True
+    _default_store.factory["show_warnings"] = True
     default_types["show_warnings"] = bool
     defaults_help["show_warnings"] = (
         "Boolean property for showing simetri warning messages. "
         "If True, warnings are emitted."
     )
 
-    defaults["slanted"] = False
+    _default_store.factory["slanted"] = False
     default_types["slanted"] = bool
     defaults_help["slanted"] = (
         "Boolean property for slanted font. If True, the font is displayed in slanted."
     )
 
-    defaults["small_caps"] = False
+    _default_store.factory["small_caps"] = False
     default_types["small_caps"] = bool
     defaults_help["small_caps"] = (
         "Boolean property for small caps font. "
         "If True, the font is displayed in small caps."
     )
 
-    defaults["smooth"] = False
+    _default_store.factory["smooth"] = False
     default_types["smooth"] = bool
     defaults_help["smooth"] = (
         "Boolean property for smooth lines. If True, lines are smooth."
     )
 
-    defaults["square_size"] = 100
+    _default_store.factory["square_size"] = 100
     default_types["square_size"] = float
     defaults_help["square_size"] = (
         "Default side length for Square / square(). Positive float. "
         "Length in <points>."
     )
 
-    defaults["stop_color"] = colors.white  # default gradient stop color
+    _default_store.factory["stop_color"] = colors.white  # default gradient stop color
     default_types["stop_color"] = colors.Color
     defaults_help["stop_color"] = "Default gradient stop color. Color object."
 
-    defaults["strike_through"] = False
+    _default_store.factory["strike_through"] = False
     default_types["strike_through"] = bool
     defaults_help["strike_through"] = (
         "Boolean property for strike through. If True, strike through is used."
     )
 
-    defaults["stroke"] = True
+    _default_store.factory["stroke"] = True
     default_types["stroke"] = bool
     defaults_help["stroke"] = (
         "Boolean property for stroke. If True, stroke is used."
     )
 
-    defaults["swatch"] = seq_MATTER_256
+    _default_store.factory["swatch"] = seq_MATTER_256
     default_types["swatch"] = Sequence
     defaults_help["swatch"] = "Swatch. List of colors."
 
-    defaults["tag_align"] = Align.LEFT
+    _default_store.factory["tag_align"] = Align.LEFT
     default_types["tag_align"] = Align
     defaults_help["tag_align"] = (
         "Tag text alignment. Align enum. Valid values: BOTTOM, CENTER, "
@@ -2559,13 +2640,13 @@ def set_defaults() -> None:
         "NONE, RIGHT, TOP, VERT_CENTER."
     )
 
-    defaults["tag_alpha"] = 1
+    _default_store.factory["tag_alpha"] = 1
     default_types["tag_alpha"] = float
     defaults_help["tag_alpha"] = (
         "Alpha value for tag transparency. Float between 0 and 1."
     )
 
-    defaults["tag_blend_mode"] = BlendMode.NORMAL
+    _default_store.factory["tag_blend_mode"] = BlendMode.NORMAL
     default_types["tag_blend_mode"] = BlendMode
     defaults_help["tag_blend_mode"] = (
         "Blend mode for tag. BlendMode enum. Valid values: COLOR, COLORBURN, "
@@ -2573,23 +2654,23 @@ def set_defaults() -> None:
         "LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT."
     )
 
-    defaults["temp_dir"] = "sytem_temp_dir"
+    _default_store.factory["temp_dir"] = "sytem_temp_dir"
     default_types["temp_dir"] = str
     defaults_help["temp_dir"] = "Temporary directory. String."
 
-    defaults["text_offset"] = 5  # gap between text and dimension line
+    _default_store.factory["text_offset"] = 5  # gap between text and dimension line
     default_types["text_offset"] = float
     defaults_help["text_offset"] = (
         "Text offset. Positive float. Length in <points>."
     )
 
-    defaults["text_width"] = None  # width of the text box
+    _default_store.factory["text_width"] = None  # width of the text box
     default_types["text_width"] = float
     defaults_help["text_width"] = (
         "Text width. Positive float. Length in <points>."
     )
 
-    defaults["tikz_libraries"] = [
+    _default_store.factory["tikz_libraries"] = [
         "plotmarks",
         "calc",
         "shapes.multipart",
@@ -2605,113 +2686,113 @@ def set_defaults() -> None:
     default_types["tikz_libraries"] = Sequence
     defaults_help["tikz_libraries"] = "TikZ libraries. List of strings."
 
-    defaults["tikz_nround"] = 3
+    _default_store.factory["tikz_nround"] = 3
     default_types["tikz_nround"] = int
     defaults_help["tikz_nround"] = (
         "Number of decimal places to round floats in TikZ. Positive integer."
     )
 
-    defaults["tikz_scale"] = 1
+    _default_store.factory["tikz_scale"] = 1
     default_types["tikz_scale"] = float
     defaults_help["tikz_scale"] = "TikZ scale. Positive float."
 
-    defaults["tile_angle"] = 0  # rotation angle of the tile pattern
+    _default_store.factory["tile_angle"] = 0  # rotation angle of the tile pattern
     default_types["tile_angle"] = float
     defaults_help["tile_angle"] = (
         "Tile angle. Float. Angle in radians. "
         "Rotation angle of the SVG pattern tile."
     )
 
-    defaults["tile_height"] = 10  # height of the tile pattern
+    _default_store.factory["tile_height"] = 10  # height of the tile pattern
     default_types["tile_height"] = float
     defaults_help["tile_height"] = (
         "Tile height. Positive float. Length in <points>. "
         "Height of the SVG pattern tile."
     )
 
-    defaults["tile_scale_x"] = 1.0  # x-axis scale of the tile pattern
+    _default_store.factory["tile_scale_x"] = 1.0  # x-axis scale of the tile pattern
     default_types["tile_scale_x"] = float
     defaults_help["tile_scale_x"] = (
         "Tile x scale. Positive float. Scale factor. "
         "X-axis scale factor for the SVG pattern tile."
     )
 
-    defaults["tile_scale_y"] = 1.0  # y-axis scale of the tile pattern
+    _default_store.factory["tile_scale_y"] = 1.0  # y-axis scale of the tile pattern
     default_types["tile_scale_y"] = float
     defaults_help["tile_scale_y"] = (
         "Tile y scale. Positive float. Scale factor. "
         "Y-axis scale factor for the SVG pattern tile."
     )
 
-    defaults["tile_units"] = "userSpaceOnUse"  # pattern units
+    _default_store.factory["tile_units"] = "userSpaceOnUse"  # pattern units
     default_types["tile_units"] = str
     defaults_help["tile_units"] = (
         "Tile units. String. 'userSpaceOnUse' or 'objectBoundingBox'. "
         "SVG pattern units coordinate system."
     )
 
-    defaults["tile_width"] = 10  # width of the tile pattern
+    _default_store.factory["tile_width"] = 10  # width of the tile pattern
     default_types["tile_width"] = float
     defaults_help["tile_width"] = (
         "Tile width. Positive float. Length in <points>. "
         "Width of the SVG pattern tile."
     )
 
-    defaults["tile_x_shift"] = 0  # x-axis shift of the tile pattern
+    _default_store.factory["tile_x_shift"] = 0  # x-axis shift of the tile pattern
     default_types["tile_x_shift"] = float
     defaults_help["tile_x_shift"] = (
         "Tile x shift. Float. Length in <points>. "
         "X-axis shift of the SVG pattern tile."
     )
 
-    defaults["tile_y_shift"] = 0  # y-axis shift of the tile pattern
+    _default_store.factory["tile_y_shift"] = 0  # y-axis shift of the tile pattern
     default_types["tile_y_shift"] = float
     defaults_help["tile_y_shift"] = (
         "Tile y shift. Float. Length in <points>. "
         "Y-axis shift of the SVG pattern tile."
     )
 
-    defaults["tol"] = 0.005  # used for comparing angles and collinearity
+    _default_store.factory["tol"] = 0.005  # used for comparing angles and collinearity
     default_types["tol"] = float
     defaults_help["tol"] = "Tolerance. Positive float. Length in <points>."
 
-    defaults["turn_angle_digits"] = 2
+    _default_store.factory["turn_angle_digits"] = 2
     default_types["turn_angle_digits"] = int
     defaults_help["turn_angle_digits"] = (
         "Turn angle digits is used for comparing polygons and shapes."
         "Shapes are compared for geometric congruency, styling is ignored."
     )
 
-    defaults["underline"] = False
+    _default_store.factory["underline"] = False
     default_types["underline"] = bool
     defaults_help["underline"] = (
         "Boolean property for underline. If True, underline is used."
     )
 
-    defaults["use_packages"] = ["tikz", "pgf"]
+    _default_store.factory["use_packages"] = ["tikz", "pgf"]
     default_types["use_packages"] = Sequence
     defaults_help["use_packages"] = "Use packages. List of strings."
 
-    defaults["validate"] = False
+    _default_store.factory["validate"] = False
     default_types["validate"] = bool
     defaults_help["validate"] = (
         "Boolean property for validating. If True, validation is used."
     )
 
-    defaults["vertex_font_color"] = colors.Color(0.0, 0.50, 0.55)
+    _default_store.factory["vertex_font_color"] = colors.Color(0.0, 0.50, 0.55)
     default_types["vertex_font_color"] = colors.Color
     defaults_help["vertex_font_color"] = (
         "Vertex coordinate label text color. Dark fill with a light halo for contrast."
     )
 
-    defaults["vertex_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    _default_store.factory["vertex_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
     default_types["vertex_font_family"] = (str, FontFamily)
     defaults_help["vertex_font_family"] = (
         "Vertex coordinate label font family. TeX switch name "
         "(ttfamily, rmfamily, sffamily) or FontFamily enum."
     )
 
-    defaults["vertex_font_size"] = (
+    _default_store.factory["vertex_font_size"] = (
         "small"  # miniscule, tiny, scriptsize, footnotesize, small,
     )
     # normalsize, large, Large, LARGE, huge, Huge
@@ -2720,58 +2801,58 @@ def set_defaults() -> None:
         "Vertex coordinate label font size. LaTeX size name string or point size number."
     )
 
-    defaults["vertex_offset"] = 8
+    _default_store.factory["vertex_offset"] = 8
     default_types["vertex_offset"] = (int, float)
     defaults_help["vertex_offset"] = (
         "Radial offset for vertex coordinate labels from vertices. "
         "Independent of index labels."
     )
 
-    defaults["vertices_canvas_expand"] = 40
+    _default_store.factory["vertices_canvas_expand"] = 40
     default_types["vertices_canvas_expand"] = (int, float)
     defaults_help["vertices_canvas_expand"] = (
         "Extra points added to each side of canvas.border when "
         "auto_expand_canvas_for_vertices is True and coordinate labels are drawn."
     )
 
-    defaults["vertices_label_avoid_overlap"] = True
+    _default_store.factory["vertices_label_avoid_overlap"] = True
     default_types["vertices_label_avoid_overlap"] = bool
     defaults_help["vertices_label_avoid_overlap"] = (
         "When True, index and vertex coordinate labels are repositioned with "
         "pairwise MTV overlap resolution before SVG/TikZ export."
     )
 
-    defaults["vertices_label_bbox_char_width"] = 0.55
+    _default_store.factory["vertices_label_bbox_char_width"] = 0.55
     default_types["vertices_label_bbox_char_width"] = (int, float)
     defaults_help["vertices_label_bbox_char_width"] = (
         "Estimated character width as a fraction of font size for overlap boxes."
     )
 
-    defaults["vertices_label_overlap_bbox_scale"] = 1.0
+    _default_store.factory["vertices_label_overlap_bbox_scale"] = 1.0
     default_types["vertices_label_overlap_bbox_scale"] = (int, float)
     defaults_help["vertices_label_overlap_bbox_scale"] = (
         "Scale factor for rule-of-thumb label boxes in overlap tests."
     )
 
-    defaults["vertices_label_overlap_gap"] = 1.0
+    _default_store.factory["vertices_label_overlap_gap"] = 1.0
     default_types["vertices_label_overlap_gap"] = (int, float)
     defaults_help["vertices_label_overlap_gap"] = (
         "Minimum gap between vertex/index label boxes during MTV overlap resolution."
     )
 
-    defaults["vertices_label_overlap_max_iters"] = 2
+    _default_store.factory["vertices_label_overlap_max_iters"] = 2
     default_types["vertices_label_overlap_max_iters"] = int
     defaults_help["vertices_label_overlap_max_iters"] = (
         "Maximum pairwise overlap passes for vertex/index label MTV resolution."
     )
 
-    defaults["visible"] = True
+    _default_store.factory["visible"] = True
     default_types["visible"] = bool
     defaults_help["visible"] = (
         "Boolean property for visible. If True, visible is used."
     )
 
-    defaults["x_marker"] = (
+    _default_store.factory["x_marker"] = (
         2  # a circle with radius=2 will be drawn at each intersection
     )
     default_types["x_marker"] = float
@@ -2779,28 +2860,28 @@ def set_defaults() -> None:
         "Marker for intersection points. Positive float. Length in <points>."
     )
 
-    defaults["x_visible"] = False  # do not show intersection points by default
+    _default_store.factory["x_visible"] = False  # do not show intersection points by default
     default_types["x_visible"] = bool
     defaults_help["x_visible"] = (
         "Boolean property for visible intersection points. "
         "If True, intersection points are visible."
     )
 
-    defaults["xelatex_run_options"] = None
+    _default_store.factory["xelatex_run_options"] = None
     default_types["xelatex_run_options"] = str
     defaults_help["xelatex_run_options"] = "XeLaTeX run options. String."
 
     # styles need to be set after the defaults are set
-    defaults["circle_style"] = ShapeStyle()
-    defaults["edge_style"] = LineStyle()
-    defaults["fill_style"] = FillStyle()
-    defaults["line_style"] = LineStyle()
-    defaults["marker_style"] = MarkerStyle()
-    defaults["plait_style"] = ShapeStyle()
-    defaults["section_style"] = LineStyle()
-    defaults["shape_style"] = ShapeStyle()
-    defaults["tag_frame_style"] = FrameStyle()
-    defaults["tag_style"] = TagStyle()
+    _default_store.factory["circle_style"] = ShapeStyle()
+    _default_store.factory["edge_style"] = LineStyle()
+    _default_store.factory["fill_style"] = FillStyle()
+    _default_store.factory["line_style"] = LineStyle()
+    _default_store.factory["marker_style"] = MarkerStyle()
+    _default_store.factory["plait_style"] = ShapeStyle()
+    _default_store.factory["section_style"] = LineStyle()
+    _default_store.factory["shape_style"] = ShapeStyle()
+    _default_store.factory["tag_frame_style"] = FrameStyle()
+    _default_store.factory["tag_style"] = TagStyle()
 
 
 tikz_defaults = defaultdict(str)

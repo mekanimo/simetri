@@ -6,7 +6,7 @@ Boolean helpers such as ``clip``, ``polygon_diff``, and ``polygon_xor``
 operate on closed shapes.
 
 Examples:
-    >>> tri = Shape([(0, 0), (50, 0), (25, 40)], closed=True)
+    >>> tri = sg.Shape([(0, 0), (50, 0), (25, 40)], closed=True)
     >>> _ = tri.translate(10, 0)
 """
 
@@ -69,7 +69,7 @@ from ..base.common import LineType, PointType, get_defaults, get_unique_id
 from ..base.common_style import CommonStyle
 from ..base.core import Base, _next_xform_matrix, _Targets
 from ..coloring.colors import Color
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.geometry import (
     positive_angle,
@@ -120,10 +120,10 @@ class Shape(Base, CommonStyle):
         id: Unique object id.
 
     Examples:
-        >>> s = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> s = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
         >>> s.width > 0
         True
-"""
+    """
 
     __slots__ = [
         "_alpha",
@@ -235,7 +235,7 @@ class Shape(Base, CommonStyle):
             ValueError: If ``subtype`` is not a ``Types`` member.
 
         Examples:
-            >>> s = Shape([(0, 0), (1, 0), (1, 1)], closed=True)
+            >>> s = sg.Shape([(0, 0), (1, 0), (1, 1)], closed=True)
             >>> len(s)
             3
             >>> s.closed
@@ -445,8 +445,8 @@ class Shape(Base, CommonStyle):
             int: The index of the point.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> int(rect.index((0, 0)))
             0
         """
@@ -467,10 +467,10 @@ class Shape(Base, CommonStyle):
             point (PointType): The point to remove.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0), (1, 0), (2, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (1, 0), (2, 0)])
             >>> line.remove((0, 0))
-            Shape(((np.float64(1.0), np.float64(0.0)), (np.float64(2.0), np.float64(0.0))))
+            Shape(((1.0, 0.0), (2.0, 0.0)))
             >>> len(line)
             2
         """
@@ -486,8 +486,8 @@ class Shape(Base, CommonStyle):
             point (PointType): The point to append.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0)])
             >>> line.append((1, 0))
             >>> len(line)
             2
@@ -503,8 +503,8 @@ class Shape(Base, CommonStyle):
             point (PointType): The point to insert.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0), (2, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (2, 0)])
             >>> _ = line.insert(1, (1, 0))
             >>> len(line)
             3
@@ -521,8 +521,8 @@ class Shape(Base, CommonStyle):
             values (list[PointType]): The points to extend the shape with.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0)])
             >>> _ = line.extend([(1, 0), (2, 0)])
             >>> len(line)
             3
@@ -542,10 +542,10 @@ class Shape(Base, CommonStyle):
             PointType: The popped point.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0), (1, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (1, 0)])
             >>> line.pop()
-            (np.float64(1.0), np.float64(0.0))
+            (1.0, 0.0)
             >>> len(line)
             1
         """
@@ -681,8 +681,8 @@ class Shape(Base, CommonStyle):
             bool: True if the shape is oriented clockwise, False otherwise.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> bool(rect.is_clockwise())
             False
         """
@@ -703,8 +703,8 @@ class Shape(Base, CommonStyle):
             Shape: The shape with the starting point set.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> reordered = rect.reordered(1)
             >>> tuple(float(x) for x in reordered.vertices[0][:2])
             (10.0, 0.0)
@@ -729,8 +729,8 @@ class Shape(Base, CommonStyle):
         returns the corresponding interpolated point.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.lerp(0, 0.5)[:2])
             (5.0, 0.0)
         """
@@ -740,8 +740,8 @@ class Shape(Base, CommonStyle):
         """Merge collinear edges into a single polyline.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0), (5, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (5, 0)])
             >>> merged = line.merge_collinears()
             >>> len(merged.vertices)
             2
@@ -760,9 +760,9 @@ class Shape(Base, CommonStyle):
             Shape or None: The merged shape or None if the shapes cannot be merged.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> a = Shape([(0, 0), (5, 0)])
-            >>> b = Shape([(5, 0), (10, 0)])
+            >>> import simetri.graphics as sg
+            >>> a = sg.Shape([(0, 0), (5, 0)])
+            >>> b = sg.Shape([(5, 0), (10, 0)])
             >>> merged = a.merge(b)
             >>> merged is not None
             True
@@ -796,11 +796,11 @@ class Shape(Base, CommonStyle):
             other: Shape whose vertices are appended.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> a = Shape([(0, 0), (5, 0)])
-            >>> b = Shape([(5, 0), (10, 0)])
+            >>> import simetri.graphics as sg
+            >>> a = sg.Shape([(0, 0), (5, 0)])
+            >>> b = sg.Shape([(5, 0), (10, 0)])
             >>> a.connect(b)
-            Shape([(np.float64(0.0), np.float64(0.0)), ..., (np.float64(10.0), np.float64(0.0))])
+            Shape([(0.0, 0.0), ..., (10.0, 0.0)])
             >>> len(a)
             4
         """
@@ -883,8 +883,8 @@ class Shape(Base, CommonStyle):
             ndarray: The vertices as an array.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.as_array().shape
             (4, 2)
         """
@@ -902,8 +902,8 @@ class Shape(Base, CommonStyle):
             list[tuple]: The vertices as a list of tuples.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0), (10, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (10, 0)])
             >>> len(line.as_list())
             2
         """
@@ -917,8 +917,8 @@ class Shape(Base, CommonStyle):
             ndarray: The final coordinates of the shape.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.final_coords.shape[0]
             4
         """
@@ -942,8 +942,8 @@ class Shape(Base, CommonStyle):
         """Orientation angle of the shape (radians).
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0), (10, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (10, 0)])
             >>> float(line.angle)
             0.0
         """
@@ -955,8 +955,8 @@ class Shape(Base, CommonStyle):
         """Orientation angle of the shape (alias of ``angle``).
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0), (10, 0)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (10, 0)])
             >>> float(line.orientation)
             0.0
         """
@@ -970,8 +970,8 @@ class Shape(Base, CommonStyle):
             tuple: The final coordinates of the shape.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.vertices)
             4
         """
@@ -1000,8 +1000,8 @@ class Shape(Base, CommonStyle):
             list[tuple[PointType, PointType]]: A list of connected pairs of vertices.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.vertex_pairs)
             4
         """
@@ -1018,8 +1018,8 @@ class Shape(Base, CommonStyle):
             ndarray: The primary points in homogeneous coordinates.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.orig_coords.shape[0]
             4
         """
@@ -1033,8 +1033,8 @@ class Shape(Base, CommonStyle):
             BoundingBox: The bounding box of the shape.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> float(rect.b_box.width)
             10.0
         """
@@ -1052,8 +1052,8 @@ class Shape(Base, CommonStyle):
             float: The area of the shape.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> float(rect.area)
             100.0
         """
@@ -1078,8 +1078,8 @@ class Shape(Base, CommonStyle):
             float: The total length of the shape.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> line = Shape([(0, 0), (10, 0), (10, 10)])
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (10, 0), (10, 10)])
             >>> line.total_length
             10.0
         """
@@ -1093,8 +1093,8 @@ class Shape(Base, CommonStyle):
             bool: True if the shape is closed, False otherwise.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.is_polygon
             True
         """
@@ -1107,8 +1107,8 @@ class Shape(Base, CommonStyle):
             None
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.clear()
             Shape()
             >>> len(rect)
@@ -1135,8 +1135,8 @@ class Shape(Base, CommonStyle):
             int: The number of times the point is found in the shape.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.count((0, 0))
             1
         """
@@ -1159,8 +1159,8 @@ class Shape(Base, CommonStyle):
             Shape: A copy of the shape.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> copy = rect.copy()
             >>> copy == rect
             True
@@ -1178,8 +1178,8 @@ class Shape(Base, CommonStyle):
         of the shape.edges[i] and shape.edges[j]
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> p0, p1 = rect.segment(0, 2)
             >>> tuple(float(x) for x in p0[:2])
             (0.0, 0.0)
@@ -1197,8 +1197,8 @@ class Shape(Base, CommonStyle):
         """Return the midpoint of shape.edges[i].
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.edge_midpoint(0)[:2])
             (5.0, 0.0)
         """
@@ -1213,8 +1213,8 @@ class Shape(Base, CommonStyle):
         """Return a list of the edge midpoints.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.edge_midpoints)
             4
         """
@@ -1234,8 +1234,8 @@ class Shape(Base, CommonStyle):
             list[tuple[PointType, PointType]]: A list of edges.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.edges)
             4
         """
@@ -1250,8 +1250,8 @@ class Shape(Base, CommonStyle):
         """Returns a list of the midpoints of the edges.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.midpoints)
             4
         """
@@ -1269,8 +1269,8 @@ class Shape(Base, CommonStyle):
             list[tuple[PointType, PointType]]: A list of edges.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.segments)
             4
         """
@@ -1284,10 +1284,10 @@ class Shape(Base, CommonStyle):
             None
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> tri = Shape([(0, 0), (1, 0), (1, 1)])
+            >>> import simetri.graphics as sg
+            >>> tri = sg.Shape([(0, 0), (1, 0), (1, 1)])
             >>> tri.reverse()
-            Shape(((np.float64(1.0), np.float64(1.0)), (np.float64(1.0), np.float64(0.0)), (np.float64(0.0), np.float64(0.0))))
+            Shape(((1.0, 1.0), (1.0, 0.0), (0.0, 0.0)))
             >>> tuple(float(x) for x in tri.vertices[0][:2])
             (1.0, 1.0)
         """
@@ -1302,8 +1302,8 @@ class Shape(Base, CommonStyle):
         """Left edge of the axis-aligned bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.left[0][:2])
             (0.0, 10.0)
         """
@@ -1314,8 +1314,8 @@ class Shape(Base, CommonStyle):
         """Right edge of the axis-aligned bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.right[0][:2])
             (10.0, 10.0)
         """
@@ -1326,8 +1326,8 @@ class Shape(Base, CommonStyle):
         """Top edge of the axis-aligned bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.top[0][:2])
             (0.0, 10.0)
         """
@@ -1338,8 +1338,8 @@ class Shape(Base, CommonStyle):
         """Bottom edge of the axis-aligned bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.bottom[0][:2])
             (0.0, 0.0)
         """
@@ -1350,8 +1350,8 @@ class Shape(Base, CommonStyle):
         """Vertical centerline (north and south midpoints).
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.vert_centerline)
             2
         """
@@ -1362,8 +1362,8 @@ class Shape(Base, CommonStyle):
         """Horizontal centerline (west and east midpoints).
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.horiz_centerline)
             2
         """
@@ -1374,8 +1374,8 @@ class Shape(Base, CommonStyle):
         """Center of the axis-aligned bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.midpoint[:2])
             (5.0, 5.0)
         """
@@ -1394,8 +1394,8 @@ class Shape(Base, CommonStyle):
         """Four bounding-box corners (nw, sw, se, ne).
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.corners)
             4
         """
@@ -1408,8 +1408,8 @@ class Shape(Base, CommonStyle):
         """Edge midpoints in order north, west, south, east.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.diamond)
             4
         """
@@ -1420,8 +1420,8 @@ class Shape(Base, CommonStyle):
         """Named anchor points derived from the bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.all_anchors)
             9
         """
@@ -1453,8 +1453,8 @@ class Shape(Base, CommonStyle):
         """Edges, centerlines, and diagonals of the bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> len(rect.all_lines)
             8
         """
@@ -1474,8 +1474,8 @@ class Shape(Base, CommonStyle):
         """Width of the axis-aligned bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.width
             10.0
         """
@@ -1486,8 +1486,8 @@ class Shape(Base, CommonStyle):
         """Height of the axis-aligned bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.height
             10.0
         """
@@ -1498,8 +1498,8 @@ class Shape(Base, CommonStyle):
         """``(width, height)`` of the axis-aligned bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.size
             (10.0, 10.0)
         """
@@ -1510,8 +1510,8 @@ class Shape(Base, CommonStyle):
         """Midpoint of the left edge.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.west[:2])
             (0.0, 5.0)
         """
@@ -1522,8 +1522,8 @@ class Shape(Base, CommonStyle):
         """Midpoint of the bottom edge.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.south[:2])
             (5.0, 0.0)
         """
@@ -1534,8 +1534,8 @@ class Shape(Base, CommonStyle):
         """Midpoint of the right edge.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.east[:2])
             (10.0, 5.0)
         """
@@ -1546,8 +1546,8 @@ class Shape(Base, CommonStyle):
         """Midpoint of the top edge.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.north[:2])
             (5.0, 10.0)
         """
@@ -1558,8 +1558,8 @@ class Shape(Base, CommonStyle):
         """Top-left corner of the bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.northwest[:2])
             (0.0, 10.0)
         """
@@ -1570,8 +1570,8 @@ class Shape(Base, CommonStyle):
         """Top-right corner of the bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.northeast[:2])
             (10.0, 10.0)
         """
@@ -1582,8 +1582,8 @@ class Shape(Base, CommonStyle):
         """Bottom-left corner of the bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.southwest[:2])
             (0.0, 0.0)
         """
@@ -1594,8 +1594,8 @@ class Shape(Base, CommonStyle):
         """Bottom-right corner of the bounding box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.southeast[:2])
             (10.0, 0.0)
         """
@@ -1606,8 +1606,8 @@ class Shape(Base, CommonStyle):
         """Diagonal from southwest to northeast.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.diagonal1[0][:2])
             (0.0, 0.0)
         """
@@ -1618,8 +1618,8 @@ class Shape(Base, CommonStyle):
         """Diagonal from southeast to northwest.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.diagonal2[0][:2])
             (10.0, 0.0)
         """
@@ -1644,8 +1644,8 @@ class Shape(Base, CommonStyle):
             Inflated ``BoundingBox``.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> inflated = rect.get_inflated_b_box(1)
             >>> float(inflated.width)
             12.0
@@ -1679,8 +1679,8 @@ class Shape(Base, CommonStyle):
             Offset segment as two points.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> p0, _ = rect.offset_line('left', 1)
             >>> float(p0[0])
             -1.0
@@ -1701,8 +1701,8 @@ class Shape(Base, CommonStyle):
             Offset point in canvas coordinates.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> tuple(float(x) for x in rect.offset_point('midpoint', 1, 0)[:2])
             (6.0, 5.0)
         """
@@ -1723,9 +1723,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.midpoint of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.centered(ref)[:2])
             (5.0, 5.0)
         """
@@ -1750,9 +1750,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.west of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.left_of(ref)[:2])
             (-1.0, 5.0)
         """
@@ -1777,9 +1777,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.east of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.right_of(ref)[:2])
             (11.0, 5.0)
         """
@@ -1804,9 +1804,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.north of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.above(ref)[:2])
             (5.0, 11.0)
         """
@@ -1831,9 +1831,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.south of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.below(ref)[:2])
             (5.0, -1.0)
         """
@@ -1858,9 +1858,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.northwest of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.above_left(ref)[:2])
             (-1.0, 11.0)
         """
@@ -1887,9 +1887,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.northeast of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.above_right(ref)[:2])
             (11.0, 11.0)
         """
@@ -1916,9 +1916,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.southwest of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.below_left(ref)[:2])
             (-1.0, -1.0)
         """
@@ -1945,9 +1945,9 @@ class Shape(Base, CommonStyle):
             PointType: The item.southeast of the reference item's bounding-box.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.below_right(ref)[:2])
             (11.0, -1.0)
         """
@@ -1974,9 +1974,9 @@ class Shape(Base, CommonStyle):
             PointType: The polar position of the reference item.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> ref = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> small = Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> ref = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> small = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
             >>> tuple(float(x) for x in small.polar_pos(ref, 0, 5)[:2])
             (10.0, 5.0)
         """
@@ -2010,8 +2010,8 @@ class Shape(Base, CommonStyle):
             Shape: A new shape with the adjusted vertices.
 
         Examples:
-            >>> from simetri.shapes.shape import Shape
-            >>> rect = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+            >>> import simetri.graphics as sg
+            >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> reordered = rect.reorder_vertices((10, 10))
             >>> tuple(float(x) for x in reordered.vertices[0][:2])
             (10.0, 10.0)
@@ -2080,7 +2080,7 @@ def trim_margins(
         Shape | Group: The trimmed Shape or Group.
 
     Examples:
-        >>> square = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> square = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
         >>> trimmed = trim_margins(square)
         >>> trimmed.type.name
         'GROUP'
@@ -2118,10 +2118,10 @@ def clip(
         TypeError: If ``item`` is neither Shape nor Group.
 
     Examples:
-        >>> subject = Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
-        >>> window = Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
+        >>> subject = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> window = sg.Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
         >>> clip(subject, window)  # doctest: +SKIP
-"""
+    """
     if isinstance(item, Group):
         return _clip_group(item, clipper, exclude_clipper, rel_tol, abs_tol)
     elif isinstance(item, Shape):
@@ -2261,7 +2261,7 @@ def custom_attributes(item: Shape) -> list[str]:
         list[str]: A list of custom attribute names.
 
     Examples:
-        >>> poly = Shape([(0, 0), (1, 0), (1, 1)], closed=True)
+        >>> poly = sg.Shape([(0, 0), (1, 0), (1, 1)], closed=True)
         >>> 'closed' not in custom_attributes(poly)
         True
     """
@@ -2286,8 +2286,8 @@ class Clipping:
         type: Always ``Types.CLIPPING``.
 
     Examples:
-        >>> subject = Shape([(0, 0), (10, 0), (10, 10)], closed=True)
-        >>> window = Shape([(0, 0), (5, 0), (5, 5), (0, 5)], closed=True)
+        >>> subject = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
+        >>> window = sg.Shape([(0, 0), (5, 0), (5, 5), (0, 5)], closed=True)
         >>> pair = Clipping(subject, window)
         >>> pair.type.name
         'CLIPPING'
@@ -2323,10 +2323,10 @@ def polygon_diff(
         Warning: If either shape is not closed (raised as ``Warning``).
 
     Examples:
-        >>> a = Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
-        >>> b = Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
+        >>> a = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
         >>> polygon_diff(a, b)  # doctest: +SKIP
-"""
+    """
     exclude_clipper = False
     if not (shape1.closed and shape2.closed):
         raise Warning("Both shapes must be closed")
@@ -2379,8 +2379,8 @@ def polygon_difference(
         Group: Difference result.
 
     Examples:
-        >>> a = Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
-        >>> b = Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
+        >>> a = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
         >>> polygon_difference(a, b)  # doctest: +SKIP
     """
     return polygon_diff(shape1, shape2, dist_tol=dist_tol, merge=merge)
@@ -2400,8 +2400,8 @@ def polygon_intersection(
         Group: Intersection fragments or merged shapes.
 
     Examples:
-        >>> a = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-        >>> b = Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
+        >>> a = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> b = sg.Shape([(5, 5), (15, 5), (15, 15), (5, 15)], closed=True)
         >>> polygon_intersection(a, b)  # doctest: +SKIP
     """
     if not (shape1.closed and shape2.closed):
@@ -2427,8 +2427,8 @@ def polygon_xor(
         Group: Symmetric difference fragments or merged shapes.
 
     Examples:
-        >>> a = Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
-        >>> b = Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
+        >>> a = sg.Shape([(0, 0), (20, 0), (20, 20), (0, 20)], closed=True)
+        >>> b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
         >>> polygon_xor(a, b)  # doctest: +SKIP
     """
     res1 = polygon_diff(shape1, shape2)
@@ -2460,7 +2460,7 @@ def all_segments(
         list[LineType]: Deduplicated line segments.
 
     Examples:
-        >>> tri = Shape([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> tri = sg.Shape([(0, 0), (10, 0), (5, 8)], closed=True)
         >>> len(all_segments(tri)) >= 3
         True
     """
@@ -2565,7 +2565,7 @@ def get_partition(
         The resulting shape object.
 
     Examples:
-        >>> square = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+        >>> square = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
         >>> part = get_partition(square, 0)
         >>> part.closed
         True

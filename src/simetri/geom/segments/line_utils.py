@@ -12,7 +12,7 @@ from numpy import array
 
 from simetri.base.all_enums import Connection, Types
 from simetri.base.common import LineType, PointType, get_defaults
-from simetri.config.settings import defaults
+from simetri.config.settings import runtime_defaults as defaults
 from simetri.geom.geom_utils import (
     close_points_square,
     connected_pairs,
@@ -2449,6 +2449,8 @@ def subdivide_segment(
         >>> import simetri.graphics as sg
         >>> sg.subdivide_segment((0, 0), (10, 0), 4, as_vertices=True)
         [(0, 0), (2.5, 0.0), (5.0, 0.0), (7.5, 0.0), (10, 0)]
+        >>> sg.subdivide_segment((0, 0), (4, 0), 2, as_vertices=True)[1:-1]
+        [(2.0, 0.0)]
         >>> sg.subdivide_segment((0, 0), (10, 0), 4)
         [((0, 0), (2.5, 0.0)), ((2.5, 0.0), (5.0, 0.0)), ...]
     """

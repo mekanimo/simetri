@@ -4,8 +4,8 @@
 ``ndarray`` for affine transforms.
 
 Examples:
-    >>> from simetri.shapes.points import Points
-    >>> pts = Points([(0, 0), (1, 0), (1, 1)])
+    >>> import simetri.graphics as sg
+    >>> pts = sg.Points([(0, 0), (1, 0), (1, 1)])
     >>> len(pts)
     3
     >>> pts.nd_array.shape
@@ -23,7 +23,7 @@ from numpy import allclose, ndarray
 
 from ..base.all_enums import Types
 from ..base.common import PointType
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.homogenize import homogenize
 from ..helpers.utilities import format_data, register_format_handler
 
@@ -70,7 +70,7 @@ class Points:
         nd_array_changed: Set when the cache should be refreshed by Shape.
 
     Examples:
-        >>> pts = Points([(0, 0), (10, 0)])
+        >>> pts = sg.Points([(0, 0), (10, 0)])
         >>> _ = pts.append((10, 10))
         >>> list(pts)
         [(0, 0), (10, 0), (10, 10)]

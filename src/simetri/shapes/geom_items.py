@@ -7,7 +7,7 @@ Size (side, width/height, radius) is the first argument. Center defaults
 to ``(0, 0)``.
 
 Examples:
-    >>> c = Circle(radius=25, center=(0, 0))
+    >>> c = sg.Circle(radius=25, center=(0, 0))
     >>> float(c.radius)
     25.0
     >>> sq = square(40)
@@ -24,7 +24,7 @@ from simetri.coloring import colors
 
 from ..base.all_enums import Extent, Types
 from ..base.common import PointType, axis_x, get_defaults
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.affine import rotation_matrix
 from ..geom.bbox import BoundingBox
 from ..geom.geom_utils import (
@@ -161,7 +161,7 @@ class Line(Shape):
     ``start + t * (end - start)``.
 
     Examples:
-        >>> line = Line((0, 0), (10, 0))
+        >>> line = sg.Line((0, 0), (10, 0))
         >>> line.extent.name
         'SEGMENT'
 """
@@ -187,7 +187,7 @@ class Line(Shape):
             ValueError: If start and end points are the same.
 
         Examples:
-            >>> line = Line((0, 0), (1, 0), draw_type=Extent.RAY)
+            >>> line = sg.Line((0, 0), (1, 0), draw_type=Extent.RAY)
             >>> line.extent.name
             'RAY'
 """
@@ -336,7 +336,7 @@ class Line(Shape):
             PointType: The point at parameter ``t``.
 
         Examples:
-            >>> line = Line((0, 0), (10, 0))
+            >>> line = sg.Line((0, 0), (10, 0))
             >>> [float(round(coord, 6)) for coord in line.t(0.5)[:2]]
             [5.0, 0.0]
 """
@@ -582,7 +582,7 @@ class Circle(Shape):
         subtype: Always ``Types.CIRCLE``.
 
     Examples:
-        >>> c = Circle(radius=10, center=(5, 5))
+        >>> c = sg.Circle(radius=10, center=(5, 5))
         >>> tuple(float(x) for x in c.center[:2])
         (5.0, 5.0)
 """
@@ -1495,13 +1495,13 @@ def inflate(item: Shape, offset: float) -> Shape:
         50.0
         >>> sq.width
         40.0
-        >>> float(inflate(Circle(20), 5).radius)
+        >>> float(inflate(sg.Circle(20), 5).radius)
         25.0
         >>> inflate(Rectangle(80, 40), -10).width
         60.0
         >>> inflate(Ellipse(80, 40), 10).width
         100.0
-        >>> poly = Shape([(-5, -5), (5, -5), (5, 5), (-5, 5)], closed=True)
+        >>> poly = sg.Shape([(-5, -5), (5, -5), (5, 5), (-5, 5)], closed=True)
         >>> [float(round(coord, 6)) for coord in inflate(poly, 5).vertices[0][:2]]
         [-10.0, -10.0]
 """

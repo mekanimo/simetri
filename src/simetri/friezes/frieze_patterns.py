@@ -76,8 +76,8 @@ class HopDef:
         """Apply this hop pattern to ``design``.
 
         Examples:
-            >>> from simetri.shapes.geom_items import Circle
-            >>> len(HopDef(dx=20, reps=2).apply(Circle(5)))
+            >>> import simetri.graphics as sg
+            >>> len(HopDef(dx=20, reps=2).apply(sg.Circle(5)))
             3
         """
         return self.pattern_def.apply(design)
@@ -136,9 +136,8 @@ class StepDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Circle
-            >>> isinstance(StepDef(0, 10, reps=1).apply(Circle(5)), Group)
+            >>> import simetri.graphics as sg
+            >>> isinstance(StepDef(0, 10, reps=1).apply(sg.Circle(5)), Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -206,9 +205,8 @@ class JumpDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Circle
-            >>> isinstance(JumpDef(0, 20, reps=1).apply(Circle(5)), Group)
+            >>> import simetri.graphics as sg
+            >>> isinstance(JumpDef(0, 20, reps=1).apply(sg.Circle(5)), Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -274,9 +272,8 @@ class SidleDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Circle
-            >>> isinstance(SidleDef(0, 30, reps=1).apply(Circle(5)), Group)
+            >>> import simetri.graphics as sg
+            >>> isinstance(SidleDef(0, 30, reps=1).apply(sg.Circle(5)), Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -343,8 +340,7 @@ class SpinningHopDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Circle
+            >>> import simetri.graphics as sg
             >>> isinstance(
             ...     SpinningHopDef((0, 0), 20, reps=1).apply(Circle(5)), Group
             ... )
@@ -424,8 +420,7 @@ class SpinningJumpDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Circle
+            >>> import simetri.graphics as sg
             >>> isinstance(
             ...     SpinningJumpDef(0, 0, 20, reps=1).apply(Circle(5)), Group
             ... )
@@ -504,8 +499,7 @@ class SpinningSidleDef:
             The transformed design (pattern result).
 
         Examples:
-            >>> from simetri.group.batch import Group
-            >>> from simetri.shapes.geom_items import Circle
+            >>> import simetri.graphics as sg
             >>> isinstance(
             ...     SpinningSidleDef(0, 10, 20, reps=1).apply(Circle(5)), Group
             ... )

@@ -6,7 +6,7 @@ https://www.topcoder.com/thrive/articles/Geometry%20Concepts%20part%202:%20%20Li
 
 from collections.abc import Sequence
 
-from ...config.settings import defaults
+from ...config.settings import runtime_defaults as defaults
 
 Point = tuple[float, float]
 
@@ -47,7 +47,7 @@ def convex_hull(points: Sequence, on_edge: bool = False) -> list[Point]:
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.convex_hull([(0, 0), (1, 0), (0.5, 0.5), (0, 1)])
-        [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]
+        [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0)]
     """
     if not points:
         return []

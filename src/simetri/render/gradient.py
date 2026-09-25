@@ -15,7 +15,7 @@ from typing import Any
 
 from ..base.all_enums import GradientType, SvgUnits, Types
 from ..coloring.colors import Color, gray, white
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..helpers.validation import check_color, check_percent
 
 __all__ = ["Gradient", "Stop", "normalize_stops"]

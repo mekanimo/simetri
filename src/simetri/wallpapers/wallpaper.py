@@ -5,9 +5,9 @@ Note:
     This module remains for the classic wallpaper group helpers.
 
 Examples:
-    >>> from simetri.shapes.shape import Shape
+    >>> import simetri.graphics as sg
     >>> from simetri.wallpapers import wallpaper as wp
-    >>> mark = Shape([(0, 0), (10, 0)])
+    >>> mark = sg.Shape([(0, 0), (10, 0)])
     >>> pattern = wp.wallpaper_p1(mark, (20, 0), (0, 15), reps1=1, reps2=1)
     >>> len(pattern)
     4
@@ -51,8 +51,8 @@ def cover_hex(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> cover_hex(mark, 10, reps1=1, reps2=1) is mark
         True
     """
@@ -93,8 +93,8 @@ def cover_rhombic(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> cover_rhombic(mark, 10, reps1=1, reps2=1) is mark
         True
     """
@@ -162,8 +162,8 @@ def cover_hex_pointy(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> cover_hex_pointy(mark, 10, reps1=1, reps2=1) is mark
         True
     """
@@ -201,8 +201,8 @@ def cover_hex_flat(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> cover_hex_flat(mark, 10, reps1=1, reps2=1) is mark
         True
     """
@@ -254,8 +254,8 @@ def wallpaper_p1(
         Group: The resulting wallpaper pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p1(mark, (20, 0), (0, 15), reps1=1, reps2=1))
         4
     """
@@ -292,8 +292,8 @@ def wallpaper_p2(
         Group: The resulting wallpaper pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p2(mark, (20, 0), (0, 15), reps1=1, reps2=1))
         8
     """
@@ -329,8 +329,8 @@ def wallpaper_p2_rect_lattice(
         Group: Wallpaper pattern as a Group.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> pattern = wallpaper_p2_rect_lattice(
         ...     mark, (0, 0), (20, 0), (0, 15), reps1=1, reps2=1
         ... )
@@ -373,8 +373,8 @@ def wallpaper_p3(
         Group: The resulting wallpaper pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p3(mark, (0, 0), 10, reps1=1, reps2=1))
         24
     """
@@ -412,8 +412,8 @@ def wallpaper_p4(
         Group: The resulting wallpaper pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p4(mark, (0, 0), 10, reps1=1, reps2=1))
         16
     """
@@ -451,8 +451,8 @@ def wallpaper_p6(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p6(mark, (0, 0), 10, reps1=1, reps2=1))
         48
     """
@@ -493,8 +493,8 @@ def wallpaper_pm(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> axis = ((0, -5), (100, -5))
         >>> len(wallpaper_pm(mark, axis, 20, 20, reps1=1, reps2=1))
         8
@@ -535,8 +535,8 @@ def wallpaper_pg(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> axis = ((0, -5), (100, -5))
         >>> len(wallpaper_pg(mark, axis, 5, 20, 20, reps1=1, reps2=1))
         8
@@ -575,8 +575,8 @@ def wallpaper_cm(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_cm(mark, (0, 0), 10, reps1=1, reps2=1))
         16
     """
@@ -623,8 +623,8 @@ def wallpaper_pmm(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_pmm(mark, (0, 0), 20, 20, reps1=1, reps2=1))
         16
     """
@@ -668,8 +668,8 @@ def wallpaper_pmg(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_pmg(mark, (0, 0), 20, 20, reps1=1, reps2=1))
         16
     """
@@ -717,8 +717,8 @@ def wallpaper_pgg(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_pgg(mark, (5, 0), 20, 20, reps1=1, reps2=1))
         16
     """
@@ -763,8 +763,8 @@ def wallpaper_cmm(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_cmm(mark, (0, 0), 10, reps1=1, reps2=1))
         32
     """
@@ -803,8 +803,8 @@ def wallpaper_p4m(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p4m(mark, (0, 0), 10, reps1=1, reps2=1))
         32
     """
@@ -842,8 +842,8 @@ def wallpaper_p4g(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p4g(mark, 20, reps1=1, reps2=1))
         64
     """
@@ -885,8 +885,8 @@ def wallpaper_p3m1(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p3m1(mark, (0, 0), 10, reps1=1, reps2=1))
         48
     """
@@ -924,8 +924,8 @@ def wallpaper_p31m(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p31m(mark, (0, 0), 10, reps1=1, reps2=1))
         144
     """
@@ -971,8 +971,8 @@ def wallpaper_p6m(
         Group: The resulting pattern as a Group object.
 
     Examples:
-        >>> from simetri.shapes.shape import Shape
-        >>> mark = Shape([(0, 0), (10, 0)])
+        >>> import simetri.graphics as sg
+        >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> len(wallpaper_p6m(mark, (0, 0), (0, 0), 10, reps1=1, reps2=1))
         24
     """

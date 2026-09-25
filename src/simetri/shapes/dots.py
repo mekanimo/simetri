@@ -16,7 +16,7 @@ import numpy as np
 from ..base.all_enums import Types
 from ..base.common import PointType
 from ..coloring.colors import Color
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..geom.geom_utils import close_points_square
 from ..group.batch import Group
 from ..helpers.validation import validate_args

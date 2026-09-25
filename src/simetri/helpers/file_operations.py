@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import time
 import webbrowser
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pymupdf as fitz
 
@@ -29,26 +29,114 @@ if platform.system() == "Windows":
 # Win32 CREATE_BREAKAWAY_FROM_JOB: child is not killed with the parent job.
 _WINDOWS_CREATE_BREAKAWAY_FROM_JOB = 0x01000000
 
+_WINDOWS_INVALID_FILENAME_CHARS = frozenset('<>:"/\\|?*')
+_WINDOWS_RESERVED_STEMS = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{i}" for i in range(1, 10)}
+    | {f"LPT{i}" for i in range(1, 10)}
+)
 
-def validate_filepath(
-    filepath: Path, overwrite: bool
-) -> tuple[str, str, str]:
-    """
-    Validate the file path.
+
+def _skip_windows_path_part(part: str) -> bool:
+    """Return True for drive roots, UNC anchors, and special dir names."""
+    if part in (".", ".."):
+        return True
+    if len(part) >= 2 and part[1] == ":" and part[0].isalpha():
+        return True
+    if part.startswith("\\\\"):
+        return True
+    return False
+
+
+def _windows_filename_is_valid(name: str) -> bool:
+    if not name:
+        return False
+    if name.endswith(" ") or name.endswith("."):
+        return False
+    if any(ch in _WINDOWS_INVALID_FILENAME_CHARS for ch in name):
+        return False
+    if any(ord(ch) < 32 for ch in name):
+        return False
+    stem = name.split(".")[0].upper()
+    if stem in _WINDOWS_RESERVED_STEMS:
+        return False
+    return True
+
+
+def _is_valid_windows_filepath(path_str: str) -> bool:
+    for part in PureWindowsPath(path_str).parts:
+        if _skip_windows_path_part(part):
+            continue
+        if not _windows_filename_is_valid(part):
+            return False
+    return True
+
+
+def _is_valid_posix_filepath(path_str: str) -> bool:
+    for part in PurePosixPath(path_str).parts:
+        if "\0" in part:
+            return False
+    return True
+
+
+def is_valid_filepath(path: str | os.PathLike[str]) -> bool:
+    """Return whether ``path`` is syntactically valid on this operating system.
+
+    Checks filename rules for the **current** platform (Windows vs Linux/macOS).
+    Does not require the path to exist. Does not check save formats or
+    writability; for ``canvas.save`` output, use :func:`validate_output_filepath`.
+
+    Windows: invalid characters, trailing spaces or dots on names, reserved
+    device names (``CON``, ``PRN``, ``COM1``, …). Linux and macOS: non-empty
+    path with no null bytes in any component (other characters are allowed).
 
     Args:
-        filepath (Path): The path to the file.
-        overwrite (bool): Whether to overwrite the file if it exists.
+        path: Candidate path string or pathlike object.
 
     Returns:
-        Result: The parent directory, file name, and extension.
+        bool: ``True`` when the path satisfies platform rules.
 
     Examples:
+        >>> from simetri.helpers.file_operations import is_valid_filepath
+        >>> is_valid_filepath("out/figure.svg")
+        True
+        >>> is_valid_filepath("")
+        False
+    """
+    path_str = os.fspath(path)
+    if not path_str or "\0" in path_str:
+        return False
+    if platform.system() == "Windows":
+        return _is_valid_windows_filepath(path_str)
+    return _is_valid_posix_filepath(path_str)
+
+
+def validate_output_filepath(
+    filepath: Path, overwrite: bool
+) -> tuple[str, str, str]:
+    """Validate a ``canvas.save`` output path (extension, parent dir, overwrite).
+
+    Checks that the extension is a native save format or a configured converter
+    format, that the parent directory exists and is writable, and that an
+    existing file is only allowed when ``overwrite`` is true. For syntactic
+    path rules only, use :func:`is_valid_filepath`.
+
+    Args:
+        filepath: Resolved output path (after ``resolve_save_filepath``).
+        overwrite: Whether an existing file at ``filepath`` may be replaced.
+
+    Returns:
+        ``(parent_dir, stem, extension)`` with ``extension`` lowercased.
+
+    Examples:
+        >>> import tempfile
         >>> from pathlib import Path
-        >>> from simetri.helpers.file_operations import validate_filepath
-        >>> parent, stem, ext = validate_filepath(Path('README.md'), True)
+        >>> from simetri.helpers.file_operations import validate_output_filepath
+        >>> with tempfile.TemporaryDirectory() as d:
+        ...     p = Path(d) / "figure.svg"
+        ...     parent, stem, ext = validate_output_filepath(p, False)
         >>> ext
-        '.md'
+        '.svg'
     """
     path_exists = os.path.exists(filepath)
     if path_exists and not overwrite:
@@ -452,8 +540,8 @@ def inject_snippet(
 
     Examples:
         >>> from simetri.helpers.file_operations import inject_snippet
-        >>> inject_snippet('a\nMARK\nb', ['X'], 'MARK')
-        'a\nX\nb'
+        >>> inject_snippet('a\\nMARK\\nb', ['X'], 'MARK')
+        'a\\nX\\nMARK\\nb'
     """
 
     lines = code.split("\n")
@@ -656,9 +744,7 @@ def path_join(
         'a/b/c.txt'
     """
     joined_path = os.path.join(path, *paths)
-    joined_path.replace(os.sep, "/")
-
-    return joined_path
+    return joined_path.replace(os.sep, "/")
 
 
 def join_path_with_ext(
@@ -676,7 +762,7 @@ def join_path_with_ext(
 
     Examples:
         >>> from simetri.helpers.file_operations import join_path_with_ext
-        >>> join_path_with_ext('out', 'fig', '.svg')
+        >>> join_path_with_ext('out', filename='fig', ext='.svg')
         'out/fig.svg'
     """
 
@@ -717,7 +803,7 @@ def wait_for_file_availability(
 
     Examples:
         >>> from simetri.helpers.file_operations import wait_for_file_availability
-        >>> wait_for_file_availability('__missing__', timeout=0.01)
+        >>> wait_for_file_availability('__no_such_parent__/__missing__', timeout=0)
         False
     """
     start_time = time.monotonic()
@@ -729,14 +815,18 @@ def wait_for_file_availability(
                 # If the file was successfully opened, it's available.
                 return True
         except OSError:
-            # The file is likely in use.
-            if (
-                timeout is not None
-                and (time.monotonic() - start_time) > timeout
-            ):
-                # Timeout period elapsed.
-                return False  # Or raise a TimeoutError if you prefer
-            time.sleep(check_interval)
+            # The file is likely in use or not yet present.
+            if timeout is not None and (
+                time.monotonic() - start_time
+            ) >= timeout:
+                return False
+            if timeout is None:
+                time.sleep(check_interval)
+                continue
+            remaining = timeout - (time.monotonic() - start_time)
+            if remaining <= 0:
+                return False
+            time.sleep(min(check_interval, remaining))
         except (TypeError, ValueError) as e:
             # Handle other potential exceptions (e.g., file not found) as needed
             print(f"An error occurred: {e}")

@@ -6,7 +6,7 @@ repetitions). Calling transform helpers such as ``translate`` / ``rotate``
 appends transforms rather than baking them into the kernel.
 
 Examples:
-    >>> kernel = Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
+    >>> kernel = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
     >>> pattern = Pattern(kernel)
     >>> _ = pattern.rotate(1.0471975511965976, about=(0, 0), reps=2)
     >>> pattern.count
@@ -277,7 +277,7 @@ class PatternTransformation:
             Group: One shape per transform partition, with kernel style copied.
 
         Examples:
-            >>> kernel = Shape([(0, 0), (5, 0), (5, 5)], closed=True)
+            >>> kernel = sg.Shape([(0, 0), (5, 0), (5, 5)], closed=True)
             >>> stack = PatternTransformation(
             ...     [TransformMat(translation_matrix(10, 0), reps=1)]
             ... )
@@ -405,7 +405,7 @@ class Pattern(Group, CommonStyle):
         subtype: Always ``Types.PATTERN``.
 
     Examples:
-        >>> pattern = Pattern(Shape([(0, 0), (5, 0), (5, 5)], closed=True))
+        >>> pattern = Pattern(sg.Shape([(0, 0), (5, 0), (5, 5)], closed=True))
         >>> _ = pattern.translate(10, 0, reps=3)
         >>> pattern.count
         4
@@ -428,7 +428,7 @@ class Pattern(Group, CommonStyle):
             **kwargs: Style attributes (``CommonStyle`` / ``STYLE_COPY_ATTRS``).
 
         Examples:
-            >>> kernel = Shape([(0, 0), (1, 0), (1, 1)], closed=True)
+            >>> kernel = sg.Shape([(0, 0), (1, 0), (1, 1)], closed=True)
             >>> pattern = Pattern(kernel)
             >>> pattern.kernel is kernel
             True
@@ -466,7 +466,7 @@ class Pattern(Group, CommonStyle):
             bool: True if the pattern is closed, False otherwise.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0), (1, 1)], closed=True))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0), (1, 1)], closed=True))
             >>> pattern.closed
             True
         """
@@ -481,7 +481,7 @@ class Pattern(Group, CommonStyle):
             value (bool): True to set the pattern as closed, False otherwise.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0), (1, 1)], closed=True))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0), (1, 1)], closed=True))
             >>> pattern.closed = False
             >>> pattern.kernel.closed
             False
@@ -493,7 +493,7 @@ class Pattern(Group, CommonStyle):
         """Return the pattern's composite transform from ``transformation``.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.translate(5, 0, reps=0)
             >>> pattern.composite.shape[0]
             3
@@ -512,7 +512,7 @@ class Pattern(Group, CommonStyle):
             ndarray: Array of shape (n_verts * count, 2) with all (x, y) positions.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.translate(10, 0, reps=1)
             >>> pattern.all_vertices.shape
             (4, 2)
@@ -530,7 +530,7 @@ class Pattern(Group, CommonStyle):
             BoundingBox: The bounding box of the pattern.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (10, 0), (10, 10)], closed=True))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True))
             >>> pattern.b_box.width
             10.0
         """
@@ -544,7 +544,7 @@ class Pattern(Group, CommonStyle):
             list: A list of ndarrays of shape (n_verts, 3), one per copy.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.translate(2, 0, reps=1)
             >>> len(pattern.get_vertices_list())
             2
@@ -560,7 +560,7 @@ class Pattern(Group, CommonStyle):
             Group: A new Group instance with the expanded shapes.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.translate(3, 0, reps=2)
             >>> len(pattern.get_shapes())
             3
@@ -583,7 +583,7 @@ class Pattern(Group, CommonStyle):
             int: Same as ``transformation.count``.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.rotate(1.5707963267948966, reps=1)
             >>> pattern.count
             2
@@ -598,7 +598,7 @@ class Pattern(Group, CommonStyle):
             Pattern: A new Pattern instance with the same attributes.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.translate(1, 0, reps=1)
             >>> duplicate = pattern.copy()
             >>> duplicate.count
@@ -631,7 +631,7 @@ class Pattern(Group, CommonStyle):
             Self: The transformed object.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> pattern.translate(10, 0, reps=2) is pattern
             True
             >>> pattern.count
@@ -658,7 +658,7 @@ class Pattern(Group, CommonStyle):
             Self: The rotated object.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.rotate(1.5707963267948966, about=(0, 0), reps=1)
             >>> pattern.count
             2
@@ -680,7 +680,7 @@ class Pattern(Group, CommonStyle):
             Self: The mirrored object.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.mirror(((0, 0), (1, 0)), reps=1)
             >>> pattern.count
             2
@@ -706,7 +706,7 @@ class Pattern(Group, CommonStyle):
             Self: The glided object.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.glide(((0, 0), (10, 0)), 5, reps=1)
             >>> pattern.count
             2
@@ -736,7 +736,7 @@ class Pattern(Group, CommonStyle):
             Self: The scaled object.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.scale(2, reps=1)
             >>> pattern.count
             2
@@ -763,7 +763,7 @@ class Pattern(Group, CommonStyle):
             Self: The sheared object.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.shear(0.1, 0.0, reps=0)
             >>> pattern.count
             1
@@ -785,7 +785,7 @@ class Pattern(Group, CommonStyle):
             Self: The transformed pattern.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (1, 0)]))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0)]))
             >>> _ = pattern.transform(translation_matrix(4, 0), reps=1)
             >>> pattern.count
             1
@@ -804,7 +804,7 @@ class Pattern(Group, CommonStyle):
             Self: The moved object.
 
         Examples:
-            >>> pattern = Pattern(Shape([(0, 0), (10, 0), (10, 10)], closed=True))
+            >>> pattern = Pattern(sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True))
             >>> _ = pattern.move_to((50, 50))
             >>> len(pattern.transformation.components)
             1
@@ -948,7 +948,7 @@ class PatternDef:
             Group: Transformed copies after all definition steps.
 
         Examples:
-            >>> kernel = Shape([(0, 0), (1, 0)])
+            >>> kernel = sg.Shape([(0, 0), (1, 0)])
             >>> definition = PatternDef(
             ...     [TransformDef(TransformationType.TRANSLATE, None, (10, 0), reps=1)]
             ... )
@@ -1003,8 +1003,8 @@ class PatternDef:
             Any: Resolved point, line, or numeric value.
 
         Examples:
-            >>> kernel = Shape([(0, 0), (10, 0)])
-            >>> pattern = Group(kernel)
+            >>> kernel = sg.Shape([(0, 0), (10, 0)])
+            >>> pattern = sg.Group(kernel)
             >>> definition = PatternDef([])
             >>> definition.resolve_reference((0, 0), kernel, pattern)
             (0, 0)
@@ -1028,8 +1028,8 @@ class PatternDef:
             Any: Resolved ``(x, y)`` or other two-value result.
 
         Examples:
-            >>> kernel = Shape([(0, 0), (10, 0)])
-            >>> pattern = Group(kernel)
+            >>> kernel = sg.Shape([(0, 0), (10, 0)])
+            >>> pattern = sg.Group(kernel)
             >>> definition = PatternDef([])
             >>> definition.resolve_tuple((3, 4), kernel, pattern)
             (3, 4)
@@ -1064,8 +1064,8 @@ class PatternDef:
             Any: Resolved numeric or geometric value.
 
         Examples:
-            >>> kernel = Shape([(0, 0), (10, 0)])
-            >>> pattern = Group(kernel)
+            >>> kernel = sg.Shape([(0, 0), (10, 0)])
+            >>> pattern = sg.Group(kernel)
             >>> definition = PatternDef([])
             >>> definition.resolve_value(7, kernel, pattern)
             7

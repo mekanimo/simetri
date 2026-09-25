@@ -7,7 +7,7 @@ import numpy as np
 
 from simetri.base.all_enums import Connection
 from simetri.base.common import PointType, get_defaults
-from simetri.config.settings import defaults
+from simetri.config.settings import runtime_defaults as defaults
 from simetri.geom.geom_utils import close_points_square, reg_poly_points
 from simetri.geom.points.point_utils import (
     remove_bad_points,

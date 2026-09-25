@@ -9,9 +9,9 @@ from math import atan2, cos, isclose, pi, sin, tau
 
 import numpy as np
 
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 from ..group.batch import Group
-from ..shapes.geom_items import Circle
+from ..shapes.geom_items import Circle, Square
 from ..shapes.shape import Shape
 from .geometry import double_area3, normalize_angle
 from .nonlinear.ellipse import Ellipse
@@ -98,7 +98,7 @@ def random_angle(
         ... for option in (0, sg.pi / 2, sg.pi)
         ... )
         True
-        >>> deg_incr_rand_angle = sg.random_angle(incr=sg.radians(1))
+        >>> deg_incr_rand_angle = sg.random_angle(incr=sg.radians(1), seed=0)
         >>> sg.degrees(deg_incr_rand_angle).is_integer()
         True
         >>> sg.random_angle(seed=1) == sg.random_angle(seed=1)
@@ -213,6 +213,7 @@ def random_circle(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Circle:
     """Return a randomly sized and positioned circle.
 
@@ -235,6 +236,7 @@ def random_circle(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to ``Circle`` (shape styling and other keywords).
 
     Returns:
         Circle: A circle with random radius and center.
@@ -259,7 +261,7 @@ def random_circle(
         )
     radius = rng.uniform(min_radius, max_radius)
     center = random_point(min_x, min_y, max_x, max_y, rng=rng)
-    return Circle(radius=radius, center=center)
+    return Circle(radius=radius, center=center, **kwargs)
 
 
 def random_circles(
@@ -273,6 +275,7 @@ def random_circles(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Group:
     """Return ``n`` random circles in a ``Group``.
 
@@ -289,6 +292,7 @@ def random_circles(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to each ``Circle``.
 
     Returns:
         Group: ``n`` circle shapes.
@@ -312,6 +316,7 @@ def random_circles(
                 max_x,
                 max_y,
                 rng=rng,
+                **kwargs,
             )
             for _ in range(n)
         ]
@@ -329,6 +334,7 @@ def random_ellipse(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Ellipse:
     """Return a randomly sized and positioned ellipse.
 
@@ -355,6 +361,7 @@ def random_ellipse(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to ``Ellipse``.
 
     Returns:
         Ellipse: An ellipse with random size and center.
@@ -386,7 +393,7 @@ def random_ellipse(
         angle = 0
     else:
         angle = rng.uniform(0, tau)
-    return Ellipse(width, height, center, angle=angle)
+    return Ellipse(width, height, center, angle=angle, **kwargs)
 
 
 def random_ellipses(
@@ -401,6 +408,7 @@ def random_ellipses(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Group:
     """Return ``n`` random ellipses in a ``Group``.
 
@@ -419,6 +427,7 @@ def random_ellipses(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to each ``Ellipse``.
 
     Returns:
         Group: ``n`` ellipse shapes.
@@ -443,6 +452,7 @@ def random_ellipses(
                 max_y,
                 axis_aligned,
                 rng=rng,
+                **kwargs,
             )
             for _ in range(n)
         ]
@@ -461,6 +471,7 @@ def random_segment(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Shape:
     """Return a randomly sized and positioned segment.
 
@@ -488,6 +499,7 @@ def random_segment(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to ``Shape``.
 
     Returns:
         Shape: An open two-point shape.
@@ -520,7 +532,10 @@ def random_segment(
         )
     length = rng.uniform(min_length, max_length)
     angle = rng.uniform(effective_min_angle, effective_max_angle)
-    segment = Shape([(0, 0), (length * cos(angle), length * sin(angle))])
+    segment = Shape(
+        [(0, 0), (length * cos(angle), length * sin(angle))],
+        **kwargs,
+    )
     segment.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
     return segment
 
@@ -539,6 +554,7 @@ def random_segments(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Group:
     """Return ``n`` random segments in a ``Group``.
 
@@ -565,6 +581,7 @@ def random_segments(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to each segment ``Shape``.
 
     Returns:
         Group: ``n`` segment shapes.
@@ -612,6 +629,7 @@ def random_segments(
                 segment_min_angle,
                 segment_max_angle,
                 rng=rng,
+                **kwargs,
             )
         )
     return Group(segments)
@@ -628,6 +646,7 @@ def random_rectangle(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Shape:
     """Return a randomly sized and positioned rectangle.
 
@@ -654,6 +673,7 @@ def random_rectangle(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to ``Shape``.
 
     Returns:
         Shape: A closed four-vertex rectangle.
@@ -685,7 +705,7 @@ def random_rectangle(
         (half_width, half_height),
         (-half_width, half_height),
     ]
-    rectangle = Shape(vertices, closed=True)
+    rectangle = Shape(vertices, closed=True, **kwargs)
     if not axis_aligned:
         rectangle.rotate(rng.uniform(0, tau))
     rectangle.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
@@ -704,6 +724,7 @@ def random_rectangles(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Group:
     """Return ``n`` random rectangles in a ``Group``.
 
@@ -722,6 +743,7 @@ def random_rectangles(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to each rectangle ``Shape``.
 
     Returns:
         Group: ``n`` closed rectangle shapes.
@@ -744,10 +766,78 @@ def random_rectangles(
                 max_y,
                 axis_aligned,
                 rng=rng,
+                **kwargs,
             )
             for _ in range(n)
         ]
     )
+
+
+def random_square(
+    min_edge_length: float = MIN_EDGE_LENGTH,
+    max_edge_length: float = MAX_EDGE_LENGTH,
+    min_x: float = MIN_X,
+    min_y: float = MIN_Y,
+    max_x: float = MAX_X,
+    max_y: float = MAX_Y,
+    axis_aligned: bool = True,
+    seed: int | None = None,
+    *,
+    rng: random.Random | None = None,
+    **kwargs: object,
+) -> Square:
+    """Return a randomly sized and positioned square.
+
+    Side length is sampled from ``[min_edge_length, max_edge_length]``.
+    If ``axis_aligned`` is False, the square is rotated by a random angle.
+    Its center is a random point within the coordinate limits.
+
+    Args:
+        min_edge_length (float, optional): Minimum side length.
+            Defaults to ``MIN_EDGE_LENGTH``.
+        max_edge_length (float, optional): Maximum side length.
+            Defaults to ``MAX_EDGE_LENGTH``.
+        min_x (float, optional): Minimum center x-position.
+            Defaults to ``MIN_X``.
+        min_y (float, optional): Minimum center y-position.
+            Defaults to ``MIN_Y``.
+        max_x (float, optional): Maximum center x-position.
+            Defaults to ``MAX_X``.
+        max_y (float, optional): Maximum center y-position.
+            Defaults to ``MAX_Y``.
+        axis_aligned (bool, optional): Keep sides parallel to the axes.
+            Defaults to True.
+        seed (int, optional): Seed for a local RNG. Defaults to None.
+        rng (random.Random, optional): Existing generator to use. Defaults to
+            None. When set, ``seed`` is ignored.
+        **kwargs: Passed to ``Square``.
+
+    Returns:
+        Square: A closed square with equal side lengths.
+
+    Raises:
+        ValueError: If ``min_edge_length`` exceeds ``max_edge_length``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> square = sg.random_square(2, 8, 0, 0, 20, 20)
+        >>> 2 <= square.width <= 8
+        True
+        >>> isclose(square.width, square.height)
+        True
+        >>> isinstance(square, sg.Square)
+        True
+"""
+    rng = _resolve_rng(seed, rng)
+    if min_edge_length > max_edge_length:
+        raise ValueError(
+            f"min_edge_length ({min_edge_length}) > "
+            f"max_edge_length ({max_edge_length})"
+        )
+    size = rng.uniform(min_edge_length, max_edge_length)
+    angle = 0.0 if axis_aligned else rng.uniform(0, tau)
+    center = random_point(min_x, min_y, max_x, max_y, rng=rng)
+    return Square(size=size, center=center, angle=angle, **kwargs)
 
 
 def random_triangle(
@@ -763,6 +853,7 @@ def random_triangle(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Shape:
     """Return a randomly sized and positioned triangle.
 
@@ -795,6 +886,7 @@ def random_triangle(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to ``Shape``.
 
     Returns:
         Shape: A closed three-vertex triangle.
@@ -886,7 +978,7 @@ def random_triangle(
                     side_ac * scale * sin(angle_a),
                 ),
             ]
-            triangle = Shape(vertices, closed=True)
+            triangle = Shape(vertices, closed=True, **kwargs)
             triangle.rotate(rng.uniform(0, tau))
             triangle.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
             return triangle
@@ -920,7 +1012,7 @@ def random_triangle(
             angle < min_angle or angle > max_angle for angle in interior_angles
         ):
             continue
-        triangle = Shape(vertices, closed=True)
+        triangle = Shape(vertices, closed=True, **kwargs)
         triangle.rotate(rng.uniform(0, tau))
         triangle.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
         return triangle
@@ -940,6 +1032,7 @@ def random_triangles(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Group:
     """Return ``n`` random triangles in a ``Group``.
 
@@ -965,6 +1058,7 @@ def random_triangles(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to each triangle ``Shape``.
 
     Returns:
         Group: ``n`` closed triangle shapes.
@@ -994,6 +1088,7 @@ def random_triangles(
                 max_angle,
                 angles,
                 rng=rng,
+                **kwargs,
             )
             for _ in range(n)
         ]
@@ -1017,6 +1112,7 @@ def random_polygon(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Shape:
     """Return a random polygon within the given axis-aligned limits.
     All angles are in radians.
@@ -1060,6 +1156,7 @@ def random_polygon(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to ``Shape``.
 
     Returns:
         Shape: A polygon with a random vertex count in the given range.
@@ -1092,11 +1189,11 @@ def random_polygon(
         >>> angled.closed
         True
         >>> try:
-        >>> sg.random_polygon(
-        ... 5, 5, 1, 8, 0, 0, 50, 50, angles=[sg.pi / 3]
-        ... )
-        >>> except ValueError as exc:
-        >>> "can close" in str(exc)
+        ...     sg.random_polygon(
+        ...         5, 5, 1, 8, 0, 0, 50, 50, angles=[sg.pi / 3]
+        ...     )
+        ... except ValueError as exc:
+        ...     "can close" in str(exc)
         True
 """
     rng = _resolve_rng(seed, rng)
@@ -1245,7 +1342,7 @@ def random_polygon(
             ):
                 break
 
-    polygon = Shape(vertices, closed=closed)
+    polygon = Shape(vertices, closed=closed, **kwargs)
     polygon.rotate(rng.uniform(0, tau))
     polygon.move_to(random_point(min_x, min_y, max_x, max_y, rng=rng))
 
@@ -1281,6 +1378,7 @@ def random_polygons(
     seed: int | None = None,
     *,
     rng: random.Random | None = None,
+    **kwargs: object,
 ) -> Group:
     """Return ``n`` random polygons in a ``Group``.
 
@@ -1317,6 +1415,7 @@ def random_polygons(
         seed (int, optional): Seed for a local RNG. Defaults to None.
         rng (random.Random, optional): Existing generator to use. Defaults to
             None. When set, ``seed`` is ignored.
+        **kwargs: Passed to each polygon ``Shape``.
 
     Returns:
         Group: ``n`` polygon shapes.
@@ -1353,6 +1452,7 @@ def random_polygons(
                 max_angle,
                 angles,
                 rng=rng,
+                **kwargs,
             )
             for _ in range(n)
         ]

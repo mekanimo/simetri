@@ -702,7 +702,7 @@ def path2d_to_svg_path(path2d: "Path2D") -> str:
     Examples:
         >>> from simetri.geom.nonlinear.path import Path2D
         >>> from simetri.render.render_svg.svg_utils import path2d_to_svg_path
-        >>> path2d_to_svg_path(Path2D((0, 0)).line_to((1, 0))).startswith('M')
+        >>> path2d_to_svg_path(sg.Path2D((0, 0)).line_to((1, 0))).startswith('M')
         True
     """
     from ...geom.nonlinear.path import path2d_to_svg_path as _convert
@@ -718,7 +718,7 @@ def path2d_points(path2d: "Path2D", delta: float) -> list[tuple[float, float]]:
     Examples:
         >>> from simetri.geom.nonlinear.path import Path2D
         >>> from simetri.render.render_svg.svg_utils import path2d_points
-        >>> len(path2d_points(Path2D((0, 0)).line_to((3, 0)), 1)) >= 2
+        >>> len(path2d_points(sg.Path2D((0, 0)).line_to((3, 0)), 1)) >= 2
         True
     """
     points = []

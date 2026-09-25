@@ -60,9 +60,9 @@ def r_polar(a: float, b: float, theta: float) -> float:
     Examples:
         >>> from simetri.geom.geom_utils import r_polar
         >>> round(r_polar(2, 1, 0), 10)
-        1.0
-        >>> round(r_polar(2, 1, pi / 2), 10)
         2.0
+        >>> round(r_polar(2, 1, pi / 2), 10)
+        1.0
 """
     return (a * b) / sqrt((b * cos(theta)) ** 2 + (a * sin(theta)) ** 2)
 

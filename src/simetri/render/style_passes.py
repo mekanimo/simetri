@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 
 NON_SCOPABLE_SCOPE_KEYS = frozenset(
     ["draw_double", "double_color", "double_distance"]

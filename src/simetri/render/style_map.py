@@ -31,7 +31,7 @@ from ..base.all_enums import (
     Types,
 )
 from ..coloring.colors import Color
-from ..config.settings import VOID, default_types, defaults
+from ..config.settings import VOID, default_types, runtime_defaults as defaults
 
 if TYPE_CHECKING:
     from .gradient import Gradient

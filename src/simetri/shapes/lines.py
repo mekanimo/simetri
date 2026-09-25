@@ -3,8 +3,8 @@
 ``Lines`` stores segments as parallel start/end ``Points`` sequences.
 
 Examples:
-    >>> from simetri.shapes.lines import Lines
-    >>> lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
+    >>> import simetri.graphics as sg
+    >>> lines = sg.Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
     >>> len(lines)
     2
 """
@@ -28,8 +28,8 @@ class Lines:
         type: Always ``Types.LINES`` when set by callers.
 
     Examples:
-        >>> from simetri.shapes.lines import Lines
-        >>> lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
+        >>> import simetri.graphics as sg
+        >>> lines = sg.Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
         >>> len(lines)
         2
 """

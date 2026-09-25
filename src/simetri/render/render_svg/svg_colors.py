@@ -7,7 +7,7 @@ color strings (``rgb``/``rgba``) and related fill/stroke attributes.
 from __future__ import annotations
 
 from ...coloring.colors import Color, check_color
-from ...config.settings import defaults
+from ...config.settings import runtime_defaults as defaults
 
 
 def color_to_matplotlib(color: Color) -> str:

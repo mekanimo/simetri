@@ -8,7 +8,7 @@ import numpy as np
 
 from ...base.all_enums import SvgMaskType, SvgUnits, Types
 from ...coloring.colors import Color
-from ...config.settings import defaults
+from ...config.settings import runtime_defaults as defaults
 from ...geom.bbox import bounding_box
 from .svg_colors import color_to_svg
 from .svg_sketch_utils import get_coordinates, get_shape_type, sketch_attrib

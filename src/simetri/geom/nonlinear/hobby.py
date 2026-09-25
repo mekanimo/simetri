@@ -12,7 +12,7 @@ import cmath
 import numpy as np
 
 from ...base.common import PointType
-from ...config.settings import defaults
+from ...config.settings import runtime_defaults as defaults
 from ...shapes.shape import Shape
 from .bezier import bezier_points
 

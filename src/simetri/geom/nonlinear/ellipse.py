@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 from ...base.all_enums import TransformationType, Types
 from ...base.common import PointType
-from ...config.settings import defaults
+from ...config.settings import runtime_defaults as defaults
 from ...group.batch import Group
 from ...helpers.utilities import solve_quadratic_eq
 from ...render.style_map import shape_style_map
@@ -242,7 +242,7 @@ class Ellipse(Shape):
         >>> import simetri.graphics as sg
         >>> ell = sg.Ellipse(80, 40)
         >>> ell.width, ell.height
-        (80, 40)
+        (80.0, 40.0)
         >>> canvas = sg.Canvas()  # doctest: +SKIP
         >>> canvas.draw(ell)  # doctest: +SKIP
     """

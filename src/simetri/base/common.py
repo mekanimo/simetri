@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, Union
 if TYPE_CHECKING:
     from ..shapes.shape import Shape
 
-from ..config.settings import defaults
+from ..config.settings import runtime_defaults as defaults
 
 # These are used for type hinting and annotations
 GraphEdgeType = tuple[int, int]
