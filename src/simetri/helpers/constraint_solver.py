@@ -208,10 +208,13 @@ def outer_tangent_eq(constraint: Constraint) -> float:
         float: The difference between the distance of the circles and the sum of the radii.
 
     Examples:
-        >>> from simetri.geom.nonlinear.circle import Circle_ as Circle
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, outer_tangent_eq
-        >>> c = Constraint(sg.Circle((0, 0), 5), sg.Circle((14, 0), 3), ConstraintType.OUTER_TANGENT)
+        >>> c = Constraint(
+        ...     Circle(center=(0, 0), radius=5),
+        ...     Circle(center=(14, 0), radius=3),
+        ...     ConstraintType.OUTER_TANGENT,
+        ... )
         >>> isinstance(outer_tangent_eq(c), float)
         True
     """
@@ -250,10 +253,13 @@ def inner_tangent_eq(constraint: Constraint) -> float:
         float: The difference between the distance of the circles and the sum of the radii.
 
     Examples:
-        >>> from simetri.geom.nonlinear.circle import Circle_ as Circle
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, inner_tangent_eq
-        >>> c = Constraint(sg.Circle((0, 0), 5), sg.Circle((8, 0), 3), ConstraintType.INNER_TANGENT)
+        >>> c = Constraint(
+        ...     Circle(center=(0, 0), radius=5),
+        ...     Circle(center=(8, 0), radius=3),
+        ...     ConstraintType.INNER_TANGENT,
+        ... )
         >>> isinstance(inner_tangent_eq(c), float)
         True
     """

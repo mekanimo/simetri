@@ -169,6 +169,8 @@ def logo(scale: int | float = 1) -> Group:
     line_width = 2
     kernel1.fillet_radius = rad
     kernel2.fillet_radius = rad
+    kernel1.draw_fillets = True
+    kernel2.draw_fillets = True
     kernel1.line_width = line_width
     kernel2.line_width = line_width
     fill_color = Color(*swatches_255[62][8])
@@ -781,14 +783,19 @@ class AnnotationArrow(Group):
         text_gap = defaults["text_offset"]
         if circled:
             tag_x, tag_y = landing_x, landing_y
+            tag_align = Align.CENTER
         else:
             tag_x = landing_x + unit_x * text_gap
             tag_y = landing_y + unit_y * text_gap
+            if landing_x >= tip_x:
+                tag_align = Align.LEFT
+            else:
+                tag_align = Align.RIGHT
         self.tag = Tag(
             self.text,
             (tag_x, tag_y),
             font_size=font_size,
-            align=Align.CENTER,
+            align=tag_align,
         )
         if circled:
             self.tag.frame_shape = FrameShape.CIRCLE
@@ -2378,8 +2385,9 @@ def _iter_label_sketches(sketches: object) -> Generator[Any, None, None]:
                 yield from _iter_label_sketches(sketch_list)
         elif subtype == Types.COMPOSITE_SKETCH:
             yield from _iter_label_sketches(sketch.sketches)
-        elif getattr(sketch, "indices", False) or getattr(
-            sketch, "show_vertex_coords", False
+        elif hasattr(sketch, "vertices") and (
+            getattr(sketch, "indices", False)
+            or getattr(sketch, "show_vertex_coords", False)
         ):
             yield sketch
 
@@ -2429,6 +2437,8 @@ def _build_shape_label_rects(sketch: Any) -> list[LabelRect]:
 
     has_index = bool(getattr(sketch, "indices", False))
     has_vertex = bool(getattr(sketch, "show_vertex_coords", False))
+    if not hasattr(sketch, "vertices"):
+        return []
     vertices = sketch.vertices
     n = len(vertices)
     index_pairs = _index_label_pairs(sketch, n) if has_index else []
@@ -2587,6 +2597,8 @@ def prepare_shape_index_labels(
     """
     if not getattr(sketch, "indices", False):
         return None
+    if not hasattr(sketch, "vertices"):
+        return None
     return _resolve_shape_labels(sketch)["index"]
 
 
@@ -2609,6 +2621,8 @@ def prepare_shape_vertex_coord_labels(
         >>> sg.prepare_shape_vertex_coord_labels(sg.Shape([(0, 0), (1, 0), (0, 1)]))  # doctest: +SKIP
     """
     if not getattr(sketch, "show_vertex_coords", False):
+        return None
+    if not hasattr(sketch, "vertices"):
         return None
     return _resolve_shape_labels(sketch)["vertex"]
 

@@ -91,6 +91,8 @@ from ..geom.nonlinear.path import (
 )
 from ..geom.nonlinear.sine import *
 from ..geom.points.point_utils import *
+from ..geom.polygons.arrangement import prune_shapes
+from ..group.merge import combine_shapes
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.polygons.polygon import *
 from ..geom.polygons.polygon_utils import *

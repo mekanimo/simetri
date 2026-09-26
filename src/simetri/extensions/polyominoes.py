@@ -232,7 +232,7 @@ def iter_polyominoes(
             units.append(unit.copy().move_to((x * size, y * size)))
         skin = units.copy()
         skin.set_attribs("fill", False)
-        geometry = units.merge_shapes(remove_duplicate_edges=True)[0]
+        geometry = units.merge_shapes(keep_one_duplicate=True)[0]
         figure = Figure(geometry, skin)
         yield (figure)
 

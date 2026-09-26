@@ -257,7 +257,7 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
             code = draw_arc_sketch(sketch, exceptions=suppressed_style_keys)
         elif subtype == Types.PATH_SKETCH:
             code = draw_path_sketch(sketch, exceptions=suppressed_style_keys)
-        elif (
+        elif hasattr(sketch, "vertices") and (
             (
                 draw_markers
                 and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES

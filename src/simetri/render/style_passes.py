@@ -26,8 +26,8 @@ def resolve_style_value(sketch_dict: dict[str, Any], style_key: str) -> object:
 
     Examples:
         >>> from simetri.render.style_passes import resolve_style_value
-        >>> from simetri.config.settings import defaults
-        >>> resolve_style_value({}, "grid_line_width") == defaults["grid_line_width"]
+        >>> from simetri.config.settings import runtime_defaults
+        >>> resolve_style_value({}, "grid_line_width") == runtime_defaults["grid_line_width"]
         True
     """
 

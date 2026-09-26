@@ -935,7 +935,7 @@ def draw_shape_sketch(
         res = draw_line_sketch(sketch, canvas, exceptions=exceptions)
     elif sketch.subtype in _d_subtype_draw:
         res = _d_subtype_draw[sketch.subtype](sketch, exceptions=exceptions)
-    elif (
+    elif hasattr(sketch, "vertices") and (
         (
             hasattr(sketch, "draw_markers")
             and sketch.draw_markers

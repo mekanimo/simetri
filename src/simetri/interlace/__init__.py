@@ -5,7 +5,7 @@ and ``ParallelPolyline``.
 
 Examples:
     >>> from simetri.interlace import Polyline
-    >>> len(sg.Polyline([(0, 0), (10, 0)], closed=False).divisions)
+    >>> len(Polyline([(0, 0), (10, 0)], closed=False).divisions)
     1
 """
 

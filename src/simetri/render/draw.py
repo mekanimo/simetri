@@ -13,6 +13,7 @@ from ..base.all_enums import (
     BackStyle,
     Connection,
     Drawable,
+    FillMode,
     FragmentColoring,
     MarkerType,
     PlaitStyle,
@@ -20,6 +21,7 @@ from ..base.all_enums import (
     TexLoc,
     Types,
     drawable_types,
+    get_enum_value,
 )
 from ..base.common import PointType
 from ..coloring import colors
@@ -35,7 +37,7 @@ from ..geom.homogenize import homogenize
 from ..geom.matrices import identity_matrix
 from ..geom.nonlinear.bezier import bezier_points
 from ..geom.nonlinear.ellipse import elliptic_arc_points
-from ..geom.nonlinear.path import path2d_to_svg_path
+from ..geom.nonlinear.path import group_to_nonzero_path, path2d_to_svg_path
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.polygons.polygon import offset_polygon
 from ..geom.segments.line_utils import (
@@ -1475,9 +1477,6 @@ def draw_plaits(self: Canvas, lace: Lace | None = None, **kwargs: object) -> Non
 
     if "plait_fill_color" not in kwargs:
         kwargs["plait_fill_color"] = _resolved_plait_fill_color(lace, kwargs)
-    for plait in plaits:
-        self._all_vertices.extend(plait.corners)  # This may be redundant!!!
-
     if "plait_style" in kwargs and kwargs["plait_style"] is not None:
         _handle_plait_style(self, lace, kwargs)
     else:
@@ -1959,7 +1958,7 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
         True
     """
     for shape in item.all_shapes:
-        self._all_vertices.extend(shape.corners)
+        _extend_canvas_space_points(self, shape.corners)
 
     def _add_sketch(sketch: Sketch | list[Sketch] | None) -> None:
         if sketch is None:
@@ -2089,6 +2088,25 @@ regular_sketch_types = [
 ]
 
 
+def _canvas_space_points(
+    canvas: Canvas, points: Sequence[PointType]
+) -> list[tuple[float, float]]:
+    """Map drawable points into current canvas sketch space."""
+    if not points:
+        return []
+    return [
+        x[:2]
+        for x in homogenize(points) @ canvas._sketch_xform_matrix
+    ]
+
+
+def _extend_canvas_space_points(
+    canvas: Canvas, points: Sequence[PointType]
+) -> None:
+    """Append ``points`` transformed by ``canvas._sketch_xform_matrix``."""
+    canvas._all_vertices.extend(_canvas_space_points(canvas, points))
+
+
 def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
     """Append the item's vertices to the canvas vertex list.
 
@@ -2131,12 +2149,14 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         all_vertices.extend(vertices)
     elif item.subtype == Types.ARROW:
         for shape in item.all_shapes:
-            all_vertices.extend(shape.corners)
+            all_vertices.extend(_canvas_space_points(canvas, shape.corners))
     elif item.subtype == Types.LACE:
         for plait in item.plaits:
-            all_vertices.extend(plait.corners)
+            all_vertices.extend(_canvas_space_points(canvas, plait.corners))
         for fragment in item.fragments:
-            all_vertices.extend(fragment.corners)
+            all_vertices.extend(
+                _canvas_space_points(canvas, fragment.corners)
+            )
     elif item.subtype == Types.PATH2D:
         vertices = [
             x[:2]
@@ -2144,7 +2164,9 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         ]
         all_vertices.extend(vertices)
     elif item.subtype == Types.PATTERN:
-        all_vertices.extend(item.all_vertices)
+        all_vertices.extend(
+            _canvas_space_points(canvas, item.all_vertices)
+        )
     elif item.subtype in (Types.GROUP, Types.ANNOTATION):
         for element in item:
             extend_vertices(canvas, element)
@@ -2219,18 +2241,18 @@ def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
         for handle in item.handles:
             if not handle:
                 continue
-            # handle segment itself
-            self._all_vertices.extend(handle)
+            _extend_canvas_space_points(self, handle)
 
             # square handle markers at segment endpoints (3x3)
             for x, y in (handle[0], handle[-1]):
-                self._all_vertices.extend(
+                _extend_canvas_space_points(
+                    self,
                     [
                         (x - half_size, y - half_size),
                         (x + half_size, y - half_size),
                         (x + half_size, y + half_size),
                         (x - half_size, y + half_size),
-                    ]
+                    ],
                 )
 
     if subtype in (Types.GROUP, Types.STAR, Types.ANNOTATION):
@@ -2239,8 +2261,14 @@ def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
             group_kwargs["_group_hull_points"] = convex_hull(
                 item.all_vertices, on_edge=True
             )
-        for group_item in item:
-            draw(self, group_item, **group_kwargs)
+        if subtype == Types.GROUP and group_kwargs.get("non_zero"):
+            compound_path = group_to_nonzero_path(item)
+            active_sketches.extend(
+                get_sketches(compound_path, self, **group_kwargs)
+            )
+        else:
+            for group_item in item:
+                draw(self, group_item, **group_kwargs)
     elif subtype in regular_sketch_types:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
@@ -2426,6 +2454,7 @@ _NON_STYLE_KEYS = frozenset(
         "debug",
         "vertex_on_hull",
         "_group_hull_points",
+        "non_zero",
     )
 )
 
@@ -2488,6 +2517,12 @@ def set_shape_sketch_style(
 
     if hasattr(item, "even_odd") and item.even_odd is not None:
         sketch.even_odd = item.even_odd
+    elif "non_zero" in kwargs and kwargs["non_zero"] is not None:
+        use_nonzero = bool(kwargs["non_zero"])
+        sketch.even_odd = not use_nonzero
+        sketch.fill_mode = (
+            FillMode.NONZERO if use_nonzero else FillMode.EVENODD
+        )
 
     for k, v in kwargs.items():
         if k in _PRESEDENCE_KEYS or k in _NON_STYLE_KEYS:
@@ -2811,6 +2846,29 @@ def _get_composite_sketch(
     return sketches
 
 
+def _sync_path_sketch_fill_rule(
+    path_sketch: PathSketch,
+    item: Drawable,
+    **kwargs: object,
+) -> None:
+    """Set ``even_odd`` on a path sketch from ``even_odd``, ``non_zero``, or ``fill_mode``."""
+    if hasattr(item, "even_odd") and item.even_odd is not None:
+        path_sketch.even_odd = item.even_odd
+        return
+    if "non_zero" in kwargs and kwargs["non_zero"] is not None:
+        use_nonzero = bool(kwargs["non_zero"])
+        path_sketch.even_odd = not use_nonzero
+        path_sketch.fill_mode = (
+            FillMode.NONZERO if use_nonzero else FillMode.EVENODD
+        )
+        return
+    fill_mode = getattr(path_sketch, "fill_mode", None)
+    if fill_mode is None:
+        return
+    mode = get_enum_value(FillMode, fill_mode)
+    path_sketch.even_odd = mode == FillMode.EVENODD.value
+
+
 def _get_path_sketch(
     item: Drawable, canvas: Canvas, **kwargs: object
 ) -> PathSketch | list[Sketch]:
@@ -2833,6 +2891,7 @@ def _get_path_sketch(
     path_sketch.closed = item.closed
     path_sketch.vertices = list(transformed_path._label_vertices())
     set_shape_sketch_style(path_sketch, item, canvas, **kwargs)
+    _sync_path_sketch_fill_rule(path_sketch, item, **kwargs)
 
     handle_sketches = []
     if kwargs.get("handles"):

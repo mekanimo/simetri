@@ -58,6 +58,7 @@ from simetri.config.settings import (
     defaults,
     issue_warning,
     resolve_save_filepath,
+    runtime_defaults,
 )
 from simetri.config.user_config import (
     converter_supports_extension,
@@ -2622,17 +2623,19 @@ class Canvas:
         return di_graph
 
     def resolve_property(self, item: Drawable, property_name: str) -> Any:
-        """
-        Handles None values for properties.
-        try item.property_name first,
-        then use the default value.
+        """Resolve a property from the item, then ``defaults``.
+
+        Does **not** apply ``canvas.draw`` kwargs or the canvas style overlay.
+        For full draw-time precedence (kwargs → overlay → item → defaults),
+        use ``resolve_style_properties``.
 
         Args:
-            item (Drawable): The item to resolve the property for.
-            property_name (str): The name of the property to resolve.
+            item: Drawable whose attribute is read when not ``None``.
+            property_name: Style field name.
 
         Returns:
-            Any: The resolved property value.
+            Any: ``getattr(item, name)`` or the configured default when unset.
+
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
@@ -2641,7 +2644,7 @@ class Canvas:
         """
         value = getattr(item, property_name, None)
         if value is None:
-            value = defaults.get(property_name, VOID)
+            value = runtime_defaults.get(property_name, VOID)
             if value == VOID and property_name not in ("color", "alpha"):
                 issue_warning(
                     f"Property {property_name} is not in defaults.",
@@ -2658,8 +2661,11 @@ class Canvas:
     ) -> dict[str, Any]:
         """Resolve style values for sketch creation in one place.
 
-        1. Handle color and alpha
-        2. Handle kwargs
+        Precedence per key (see ``ground_rules.md``): draw kwargs, then
+        canvas style overlay (``layered``), then ``resolve_property`` (item,
+        then defaults). Color and alpha fan-out are handled before the
+        style-map loop.
+
         Examples:
             >>> import simetri.graphics as sg
             >>> from simetri.render.style_map import shape_style_map

@@ -1813,6 +1813,7 @@ draw_extra_kwargs = [
     "clip",
     "mask",
     "even_odd",
+    "non_zero",
     "show_vertex_coords",
     "vertex_on_hull",
     "palette",

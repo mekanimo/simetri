@@ -137,7 +137,7 @@ class StepDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> isinstance(StepDef(0, 10, reps=1).apply(sg.Circle(5)), Group)
+            >>> isinstance(StepDef(0, 10, reps=1).apply(sg.Circle(5)), sg.Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -206,7 +206,7 @@ class JumpDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> isinstance(JumpDef(0, 20, reps=1).apply(sg.Circle(5)), Group)
+            >>> isinstance(JumpDef(0, 20, reps=1).apply(sg.Circle(5)), sg.Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -273,7 +273,7 @@ class SidleDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> isinstance(SidleDef(0, 30, reps=1).apply(sg.Circle(5)), Group)
+            >>> isinstance(SidleDef(0, 30, reps=1).apply(sg.Circle(5)), sg.Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -342,7 +342,7 @@ class SpinningHopDef:
         Examples:
             >>> import simetri.graphics as sg
             >>> isinstance(
-            ...     SpinningHopDef((0, 0), 20, reps=1).apply(Circle(5)), Group
+            ...     SpinningHopDef((0, 0), 20, reps=1).apply(sg.Circle(5)), sg.Group
             ... )
             True
         """
@@ -422,7 +422,7 @@ class SpinningJumpDef:
         Examples:
             >>> import simetri.graphics as sg
             >>> isinstance(
-            ...     SpinningJumpDef(0, 0, 20, reps=1).apply(Circle(5)), Group
+            ...     SpinningJumpDef(0, 0, 20, reps=1).apply(sg.Circle(5)), sg.Group
             ... )
             True
         """
@@ -501,7 +501,7 @@ class SpinningSidleDef:
         Examples:
             >>> import simetri.graphics as sg
             >>> isinstance(
-            ...     SpinningSidleDef(0, 10, 20, reps=1).apply(Circle(5)), Group
+            ...     SpinningSidleDef(0, 10, 20, reps=1).apply(sg.Circle(5)), sg.Group
             ... )
             True
         """

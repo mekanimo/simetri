@@ -118,13 +118,19 @@ def _user_config_help_for_string(query: str) -> str | None:
             return user_config_help(query)
         if query in ("tex", "viewer"):
             return None
-        if query not in _TOPIC_ALIASES and query not in d_help_topic:
-            return user_config_help(query)
+        if query not in _TOPIC_ALIASES and query not in all_help_topic_keys():
+            if query not in _topic_guide_aliases():
+                return user_config_help(query)
     if "." in query:
         section, _, key = query.partition(".")
         if key and section in user_config_sections():
             return user_config_help(query)
-    if query in _TOPIC_ALIASES or query in d_help_topic:
+    if (
+        query in _TOPIC_ALIASES
+        or query in all_help_topic_keys()
+        or query in _topic_guide_aliases()
+        or query in _topic_help_hubs()
+    ):
         return None
     return user_config_help(query)
 
@@ -544,6 +550,14 @@ d_help_topic: dict[str, list[str]] = {
             "sg.help('transforms_doc'), sg.help('patterns')"
         ),
     ],
+    "merge_shapes_doc": [
+        "sg.Group.merge_shapes",
+        "sg.Group.merge_collinears",
+        (
+            "See also: sg.help('groups_doc'), sg.help('prune_shapes_doc'), "
+            "sg.help('polygons')"
+        ),
+    ],
     "lines": [
         "sg.Line",
         "sg.Segment",
@@ -708,6 +722,8 @@ d_help_topic: dict[str, list[str]] = {
     ],
     "script_sharing": [
         "sg.generate_shared_toml",
+        "sg.save_as",
+        "sg.use_script_header",
         "sg.use_settings",
         "sg.check_version",
         (
@@ -1463,6 +1479,61 @@ def _supplement_sg_entries_for_topic(topic: str) -> tuple[str, ...]:
     return tuple(deduped)
 
 
+def _topic_stem(topic: str) -> str:
+    """Guide topic key without a trailing ``_doc`` suffix when present."""
+    if topic.endswith("_doc"):
+        return topic[: -len("_doc")]
+    return topic
+
+
+def _export_belongs_to_topic(topic: str, export_line: str) -> bool:
+    """Return True when ``export_line`` is a primary match for ``topic``."""
+    from .compile_help_topics import topic_query_tokens
+    from .help_visibility import help_line_leaf_name
+
+    leaf = help_line_leaf_name(export_line)
+    stem = _topic_stem(topic)
+    if leaf == stem:
+        return True
+    stem_tokens = topic_query_tokens(stem)
+    export_tokens = _help_name_tokens(leaf)
+    shared = stem_tokens & export_tokens
+    noise = {"doc", "shape", "shapes"}
+    if not (shared - noise):
+        return False
+    stem_compact = stem.replace("_", "")
+    leaf_compact = leaf.replace("_", "")
+    return stem_compact in leaf_compact or leaf_compact in stem_compact
+
+
+def _topic_sg_index_lines(topic: str) -> list[str]:
+    """Return ``sg.*`` lines for a topic guide footer (token match at runtime)."""
+    from .compile_help_topics import _sg_names_for_topic
+    from .help_visibility import HelpVisibilityContext, is_help_name_visible
+
+    manual = [
+        line
+        for line in d_help_topic.get(topic, ())
+        if line.startswith("sg.")
+    ]
+    token_matched = _sg_names_for_topic(topic, _public_sg_names())
+    supplements = list(_supplement_sg_entries_for_topic(topic))
+    seen: set[str] = set()
+    lines: list[str] = []
+    for entry in manual + list(token_matched) + supplements:
+        if not entry.startswith("sg.") or entry in seen:
+            continue
+        if not is_help_name_visible(
+            entry, context=HelpVisibilityContext.STRING_LOOKUP
+        ):
+            continue
+        if not _export_belongs_to_topic(topic, entry):
+            continue
+        lines.append(entry)
+        seen.add(entry)
+    return sorted(lines, key=str.casefold)
+
+
 def _merge_topic_entries(topic: str) -> list[str]:
     """Merge curated, compiled, and supplement ``sg.*`` topic lines."""
     manual = list(d_help_topic.get(topic, ()))
@@ -1517,9 +1588,184 @@ def _format_topic(topic: str, entries: Sequence[str]) -> str:
     return "\n".join(lines)
 
 
+def _parse_qmd_help_aliases(path: Path) -> tuple[str, ...]:
+    """Return ``help_aliases`` from YAML front matter when present."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return ()
+    if not text.startswith("---"):
+        return ()
+    end = text.find("\n---", 3)
+    if end == -1:
+        return ()
+    aliases: list[str] = []
+    in_aliases = False
+    for line in text[3:end].splitlines():
+        if re.match(r"^help_aliases:\s*$", line):
+            in_aliases = True
+            continue
+        inline = re.match(r"^help_aliases:\s*\[(.*)\]\s*$", line)
+        if inline:
+            inner = inline.group(1)
+            for part in inner.split(","):
+                part = part.strip().strip("'\"")
+                if part:
+                    aliases.append(part)
+            return tuple(aliases)
+        if in_aliases:
+            item = re.match(r"^\s+-\s+(.+)$", line)
+            if item:
+                aliases.append(item.group(1).strip().strip("'\""))
+                continue
+            if line and not line.startswith(" "):
+                break
+    return tuple(aliases)
+
+
+def _parse_qmd_title(path: Path) -> str:
+    """Return YAML ``title`` from a topic guide front matter."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return path.stem
+    if not text.startswith("---"):
+        return path.stem
+    end = text.find("\n---", 3)
+    if end == -1:
+        return path.stem
+    for line in text[3:end].splitlines():
+        match = re.match(r'^title:\s*"(.*)"\s*$', line)
+        if match:
+            return match.group(1)
+        match = re.match(r"^title:\s*(.+)\s*$", line)
+        if match:
+            return match.group(1).strip().strip("'\"")
+    return path.stem
+
+
+@lru_cache(maxsize=1)
+def _topic_guide_paths() -> dict[str, Path]:
+    """Map topic key (``.qmd`` stem) to path for every topic guide file."""
+    if not _TOPIC_GUIDES_DIR.is_dir():
+        return {}
+    return {
+        path.stem: path
+        for path in sorted(_TOPIC_GUIDES_DIR.glob("*.qmd"))
+    }
+
+
+@lru_cache(maxsize=1)
+def all_help_topic_keys() -> frozenset[str]:
+    """Curated ``d_help_topic`` keys plus every ``topic_guides/*.qmd`` stem."""
+    return frozenset(d_help_topic) | frozenset(_topic_guide_paths())
+
+
+@lru_cache(maxsize=1)
+def _topic_guide_aliases() -> dict[str, str]:
+    """Map alternate help query strings to a topic guide stem."""
+    paths = _topic_guide_paths()
+    topic_keys = set(paths)
+    public_exports = set(_public_sg_names())
+    aliases: dict[str, str] = {}
+
+    def register(alias: str, topic: str) -> None:
+        if not alias or alias in topic_keys:
+            return
+        if alias in public_exports:
+            return
+        if alias not in aliases:
+            aliases[alias] = topic
+
+    for stem, path in paths.items():
+        if stem.endswith("_doc"):
+            register(stem[: -len("_doc")], stem)
+    return aliases
+
+
+@lru_cache(maxsize=1)
+def _topic_help_hubs() -> dict[str, str]:
+    """Map short ``help_aliases`` keys to topic guide stems (hub, not redirect)."""
+    hubs: dict[str, str] = {}
+    for stem, path in _topic_guide_paths().items():
+        for alias in _parse_qmd_help_aliases(path):
+            if alias not in hubs:
+                hubs[alias] = stem
+    return hubs
+
+
+def _primary_export_leaves_for_topic(topic: str) -> list[str]:
+    """Export leaf names that are the primary API for a topic guide stem."""
+    from .help_visibility import help_line_leaf_name
+
+    stem = _topic_stem(topic)
+    leaves: list[str] = []
+    for entry in _topic_sg_index_lines(topic):
+        leaf = help_line_leaf_name(entry)
+        if leaf == stem:
+            leaves.append(leaf)
+    return leaves
+
+
+def _group_method_hub_line(stem: str) -> str | None:
+    """Hub line when ``stem`` names a public method on ``sg.Group``."""
+    import simetri.graphics as sg
+
+    attr = getattr(sg.Group, stem, None)
+    if attr is None:
+        return None
+    if isinstance(attr, classmethod):
+        func = attr.__func__
+    else:
+        func = attr
+    if not inspect.isroutine(func):
+        return None
+    qualified = f"Group.{stem}"
+    return (
+        f"- sg.help({qualified!r})  — Group method — sg.{qualified}"
+    )
+
+
+def _format_help_hub(hub_key: str) -> str:
+    """Format a short help hub as line items (topic guide + related API)."""
+    topic = _topic_help_hubs()[hub_key]
+    path = _topic_guide_paths()[topic]
+    title = _parse_qmd_title(path)
+    stem = _topic_stem(topic)
+    lines = [
+        f"Help: {hub_key}",
+        "",
+        f"- sg.help({topic!r})  — topic guide — {title}",
+    ]
+    group_line = _group_method_hub_line(stem)
+    if group_line is not None:
+        lines.append(group_line)
+    for leaf in _primary_export_leaves_for_topic(topic):
+        lines.append(f"- sg.help({leaf!r})  — function — sg.{leaf}")
+    lines.append("")
+    lines.append("Use sg.doc(...) with the same query to print.")
+    return "\n".join(lines)
+
+
+def _resolve_help_topic_key(query: str) -> str:
+    """Map a help query string to a canonical topic key."""
+    if query in _TOPIC_ALIASES:
+        return _TOPIC_ALIASES[query]
+    if query in COMPILED_TOPIC_ALIASES:
+        return COMPILED_TOPIC_ALIASES[query]
+    if query in SUPPLEMENT_TOPIC_ALIASES:
+        return SUPPLEMENT_TOPIC_ALIASES[query]
+    guide_aliases = _topic_guide_aliases()
+    if query in guide_aliases:
+        return guide_aliases[query]
+    return query
+
+
 def _topic_guide_text(topic: str) -> str | None:
     """Return topic-guide text when ``topic_guides/{topic}.qmd`` exists."""
-    path = _TOPIC_GUIDES_DIR / f"{topic}.qmd"
+    path = _topic_guide_paths().get(topic)
+    if path is None:
+        path = _TOPIC_GUIDES_DIR / f"{topic}.qmd"
     if not path.is_file():
         return None
     return path.read_text(encoding="utf-8")
@@ -1528,7 +1774,11 @@ def _topic_guide_text(topic: str) -> str | None:
 def _format_topics() -> str:
     """Return the sorted list of help topic names."""
     topics = sorted(
-        set(d_help_topic) | set(_TOPIC_ALIASES.values()) | {"help", "topics"}
+        set(all_help_topic_keys())
+        | set(_TOPIC_ALIASES.values())
+        | set(_topic_guide_aliases())
+        | set(_topic_help_hubs())
+        | {"help", "topics"}
     )
     return "Available help topics:\n  " + "\n  ".join(topics)
 
@@ -1668,8 +1918,10 @@ def _named_help_objects() -> dict[str, object]:
 @lru_cache(maxsize=1)
 def _help_lookup_names() -> list[str]:
     """Return names that can be resolved or suggested by ``sg.help``."""
-    names = set(d_help_topic)
+    names = set(all_help_topic_keys())
     names.update(_TOPIC_ALIASES)
+    names.update(_topic_guide_aliases())
+    names.update(_topic_help_hubs())
     names.update(defaults.defaults)
     names.update(defaults_help)
     names.update(user_config_help_keys())
@@ -1923,19 +2175,20 @@ def help(obj: object) -> str:
         return descriptor_help
 
     if isinstance(obj, str):
-        topic = obj
         config_text = _user_config_help_for_string(obj)
         if config_text is not None:
             return config_text
-        if obj in _TOPIC_ALIASES:
-            topic = _TOPIC_ALIASES[obj]
-        elif obj in COMPILED_TOPIC_ALIASES:
-            topic = COMPILED_TOPIC_ALIASES[obj]
-        elif obj in SUPPLEMENT_TOPIC_ALIASES:
-            topic = SUPPLEMENT_TOPIC_ALIASES[obj]
-        if topic == "topics":
+        if obj in _topic_help_hubs():
+            return _format_help_hub(obj)
+        if obj == "topics":
             return _format_topics()
-        if topic in d_help_topic:
+        named_obj = _named_help_objects().get(obj)
+        if named_obj is None:
+            named_obj = _named_help_objects().get(f"sg.{obj}")
+        if named_obj is not None:
+            return help(named_obj)
+        topic = _resolve_help_topic_key(obj)
+        if topic in all_help_topic_keys():
             guide = _topic_guide_text(topic)
             if guide is not None:
                 return guide
@@ -1944,9 +2197,6 @@ def help(obj: object) -> str:
             if obj in defaults_help:
                 return defaults_help[obj]
             return ""
-        named_obj = _named_help_objects().get(obj)
-        if named_obj is not None:
-            return help(named_obj)
         return _unknown_topic_help(obj)
 
     if inspect.isclass(obj):

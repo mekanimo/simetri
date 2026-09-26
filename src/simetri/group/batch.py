@@ -7,8 +7,8 @@ Examples:
     >>> import simetri.graphics as sg
     >>> g = sg.Group(
     ...     [
-    ...         Shape([(0, 0), (10, 0), (10, 10)], closed=True),
-    ...         Shape([(20, 0), (30, 0)]),
+    ...         sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True),
+    ...         sg.Shape([(20, 0), (30, 0)]),
     ...     ]
     ... )
     >>> len(g)
@@ -77,8 +77,8 @@ def check_dist_tol(
         >>> import simetri.graphics as sg
         >>> values = check_dist_tol(
         ...     [
-        ...         Shape([(0, 0), (5e-14, 0)]),
-        ...         Shape([(0, 0), (1, 0)]),
+        ...         sg.Shape([(0, 0), (5e-14, 0)]),
+        ...         sg.Shape([(0, 0), (1, 0)]),
         ...     ],
         ...     2,
         ...     n_round=12,
@@ -110,8 +110,8 @@ def check_angle_tol(
         >>> import simetri.graphics as sg
         >>> values = check_angle_tol(
         ...     [
-        ...         Shape([(0, 0), (1, 0)]),
-        ...         Shape([(0, 0), (0, 1)]),
+        ...         sg.Shape([(0, 0), (1, 0)]),
+        ...         sg.Shape([(0, 0), (0, 1)]),
         ...     ],
         ...     1,
         ...     n_round=2,
@@ -596,8 +596,8 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> group = sg.Group(
             ...     [
-            ...         Shape([(0, 0), (1, 0)]),
-            ...         Shape([(0, 0), (0, 1)]),
+            ...         sg.Shape([(0, 0), (1, 0)]),
+            ...         sg.Shape([(0, 0), (0, 1)]),
             ...     ]
             ... )
             >>> group.check_angle_tol(1, n_round=2) == {1.57}
@@ -787,7 +787,10 @@ class Group(Base):
             >>> from simetri.base.all_enums import Types
             >>> import simetri.graphics as sg
             >>> nested = sg.Group(
-            ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+            ...     [
+            ...         sg.Group([sg.Shape([(0, 0), (1, 0)])]),
+            ...         sg.Shape([(2, 0), (3, 0)]),
+            ...     ]
             ... )
             >>> len(list(nested.iter_elements(Types.SHAPE)))
             2
@@ -810,7 +813,10 @@ class Group(Base):
         Examples:
             >>> import simetri.graphics as sg
             >>> nested = sg.Group(
-            ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+            ...     [
+            ...         sg.Group([sg.Shape([(0, 0), (1, 0)])]),
+            ...         sg.Shape([(2, 0), (3, 0)]),
+            ...     ]
             ... )
             >>> len(nested.all_elements)
             2
@@ -833,7 +839,10 @@ class Group(Base):
         Examples:
             >>> import simetri.graphics as sg
             >>> nested = sg.Group(
-            ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+            ...     [
+            ...         sg.Group([sg.Shape([(0, 0), (1, 0)])]),
+            ...         sg.Shape([(2, 0), (3, 0)]),
+            ...     ]
             ... )
             >>> len(nested.all_shapes)
             2
@@ -912,7 +921,7 @@ class Group(Base):
         edges: list[tuple[int, int]],
         merge_angle_tol: float = 0.1,
         debug: bool = False,
-        remove_duplicate_edges: bool = False,
+        keep_one_duplicate: bool = False,
     ) -> list[LineType]:
         """Merge connected collinear edges into longer segments.
 
@@ -920,8 +929,8 @@ class Group(Base):
             edges: Edges as node-id pairs (see ``_set_node_dictionaries``).
             merge_angle_tol: Angle tolerance in radians for collinearity.
             debug: If True, print rejected-angle diagnostics.
-            remove_duplicate_edges: If True, keep one copy of each congruent
-                edge and drop the extra duplicates before merging.
+            keep_one_duplicate: If True, keep one segment per ``equal_edges``
+                duplicate before collinear merge.
 
         Returns:
             list[LineType]: Merged segments as coordinate pairs.
@@ -939,7 +948,7 @@ class Group(Base):
             edges,
             merge_angle_tol=merge_angle_tol,
             debug=debug,
-            remove_duplicate_edges=remove_duplicate_edges,
+            keep_one_duplicate=keep_one_duplicate,
         )
 
     def merge_shapes(
@@ -947,7 +956,7 @@ class Group(Base):
         dist_tol: float | None = None,
         merge_angle_tol: float = 0.1,
         debug: bool = False,
-        remove_duplicate_edges: bool = True,
+        keep_one_duplicate: bool = True,
     ) -> Self:
         """Merge connected shapes into polygons and open polylines.
 
@@ -958,8 +967,8 @@ class Group(Base):
             dist_tol: Vertex snap tolerance. Defaults to library ``dist_tol``.
             merge_angle_tol: Collinearity angle tolerance in radians.
             debug: If True, print merge diagnostics.
-            remove_duplicate_edges: If True, keep one copy of each congruent
-                edge and drop extra duplicates first.
+            keep_one_duplicate: If True, keep one segment per ``equal_edges``
+                duplicate before collinear merge.
 
         Returns:
             Group: New group of merged shapes.
@@ -967,7 +976,10 @@ class Group(Base):
         Examples:
             >>> import simetri.graphics as sg
             >>> g = sg.Group(
-            ...     [Shape([(0, 0), (10, 0)]), Shape([(10, 0), (0, 0)])]
+            ...     [
+            ...         sg.Shape([(0, 0), (10, 0)]),
+            ...         sg.Shape([(10, 0), (0, 0)]),
+            ...     ]
             ... )
             >>> merged = g.merge_shapes()
             >>> len(merged)
@@ -980,7 +992,7 @@ class Group(Base):
             dist_tol=dist_tol,
             merge_angle_tol=merge_angle_tol,
             debug=debug,
-            remove_duplicate_edges=remove_duplicate_edges,
+            keep_one_duplicate=keep_one_duplicate,
         )
 
     def _get_edges_and_segments(
@@ -1446,7 +1458,10 @@ class Group(Base):
         Examples:
             >>> import simetri.graphics as sg
             >>> nested = sg.Group(
-            ...     [Group([Shape([(0, 0), (1, 0)])]), Shape([(2, 0), (3, 0)])]
+            ...     [
+            ...         sg.Group([sg.Shape([(0, 0), (1, 0)])]),
+            ...         sg.Shape([(2, 0), (3, 0)]),
+            ...     ]
             ... )
             >>> len(nested.all_ids)
             2

@@ -87,7 +87,7 @@ def _merge_shapes(
     dist_tol: float | None = None,
     merge_angle_tol: float = 0.1,
     debug: bool = False,
-    remove_duplicate_edges: bool = True,
+    keep_one_duplicate: bool = True,
     **kwargs: object,
 ) -> Group:
     """Merge connected shapes in this group into polygons and open polylines.
@@ -102,9 +102,9 @@ def _merge_shapes(
         merge_angle_tol: Angle tolerance (radians) for treating edges as
             collinear. Defaults to 0.1.
         debug: If True, print point and angle diagnostics.
-        remove_duplicate_edges: If True, drop edges that have a congruent
-            duplicate before merging collinears. One copy of each edge is
-            kept.
+        keep_one_duplicate: If True, before collinear merge, keep one segment
+            for each pair that ``equal_edges`` treats as the same line (either
+            orientation).
         **kwargs: Attributes set on the returned group via ``set_attribs``.
 
     Returns:
@@ -129,7 +129,7 @@ def _merge_shapes(
         edges,
         merge_angle_tol=merge_angle_tol,
         debug=debug,
-        remove_duplicate_edges=remove_duplicate_edges,
+        keep_one_duplicate=keep_one_duplicate,
     )
     d_coord_node = self.d_coord_node
     d_node_coord = self.d_node_coord
@@ -244,7 +244,7 @@ def _merge_collinears(
     edges: list[LineType],
     merge_angle_tol: float = 0.1,
     debug: bool = False,
-    remove_duplicate_edges: bool = False,
+    keep_one_duplicate: bool = False,
 ) -> list[LineType]:
     """Merge connected collinear edges into longer segments.
 
@@ -253,8 +253,8 @@ def _merge_collinears(
         merge_angle_tol: Angle tolerance (radians) for treating edges as
             collinear.
         debug: If True, print the smallest rejected angle difference.
-        remove_duplicate_edges: If True, drop edges that have a congruent
-            duplicate (``keep_one=True``) before merging.
+        keep_one_duplicate: If True, call ``remove_duplicate_edges(...,
+            keep_one=True)`` on coordinate segments before merging.
 
     Returns:
         list[LineType]: Merged segments as coordinate pairs.
@@ -265,7 +265,7 @@ def _merge_collinears(
 
     d_node_coord = self.d_node_coord
     d_coord_node = self.d_coord_node
-    if remove_duplicate_edges and edges:
+    if keep_one_duplicate and edges:
         coord_edges = [
             (d_node_coord[edge[0]], d_node_coord[edge[1]]) for edge in edges
         ]
@@ -324,3 +324,127 @@ def _merge_collinears(
         res.extend(_merge_bin(angle_bin, d_node_coord, d_coord_node))
 
     return res
+
+
+def combine_shapes(
+    group: Group,
+    dist_tol: float | None = None,
+    merge_angle_tol: float = 0.1,
+    debug: bool = False,
+    keep_one_duplicate: bool = False,
+    **kwargs: object,
+) -> Group:
+    """Combine linework like ``merge_shapes``, with optional duplicate-edge removal.
+
+    When ``keep_one_duplicate`` is ``False`` (default), congruent duplicate
+    segments are dropped with ``remove_duplicate_edges(..., keep_one=False)``
+    on collected segment geometry **before** collinear merge and graph build.
+    Shared boundaries contributed by more than one shape are removed entirely
+    so outer cycles can be recovered.
+
+    When ``keep_one_duplicate`` is ``True``, delegates to ``Group.merge_shapes``.
+
+    Args:
+        group: Group of line-like shapes to combine.
+        dist_tol: Vertex snap tolerance. Defaults to library ``dist_tol``.
+        merge_angle_tol: Collinearity angle tolerance in radians.
+        debug: If True, print merge diagnostics.
+        keep_one_duplicate: If True, use ``merge_shapes`` instead.
+        **kwargs: Attributes set on the returned group via ``set_attribs``.
+
+    Returns:
+        Group: New group of combined shapes. Unchanged if ``len(group) < 2``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> tri = sg.Shape([(40, 0), (100, 0), (60, 30)], closed=True)
+        >>> bow = tri.mirror(tri.bottom, reps=1)
+        >>> len(bow.merge_shapes(keep_one_duplicate=False))
+        2
+        >>> combined = sg.combine_shapes(bow, keep_one_duplicate=False)
+        >>> len(combined), len(combined[0].vertices), combined[0].closed
+        (1, 4, True)
+    """
+    from ..geom.polygons.polygon import remove_duplicate_edges
+    from ..shapes.shape import Shape
+    from .batch import Group
+
+    if len(group) < 2:
+        return group
+    if keep_one_duplicate:
+        result = group.merge_shapes(
+            dist_tol=dist_tol,
+            merge_angle_tol=merge_angle_tol,
+            debug=debug,
+            keep_one_duplicate=True,
+        )
+        for key, value in kwargs.items():
+            result.set_attribs(key, value)
+        return result
+
+    if dist_tol is None:
+        dist_tol = defaults["dist_tol"]
+    n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
+    if debug:
+        print("Combine diagnostics:")
+    group._set_node_dictionaries(
+        group.all_vertices, dist_tol=dist_tol, debug=debug
+    )
+    edges, _segments = group._get_edges_and_segments(n_round=n_round)
+    d_coord_node = group.d_coord_node
+    d_node_coord = group.d_node_coord
+    coord_edges = [
+        (d_node_coord[edge[0]], d_node_coord[edge[1]]) for edge in edges
+    ]
+    coord_edges = remove_duplicate_edges(coord_edges, keep_one=False)
+    edges = [
+        (d_coord_node[segment[0]], d_coord_node[segment[1]])
+        for segment in coord_edges
+    ]
+    segments = group.merge_collinears(
+        edges,
+        merge_angle_tol=merge_angle_tol,
+        debug=debug,
+        keep_one_duplicate=False,
+    )
+    graph_edges = [
+        [d_coord_node[coord] for coord in seg] for seg in segments
+    ]
+    nx_graph = nx.Graph()
+    nx_graph.update(graph_edges)
+    cycles = get_cycles(graph_edges)
+    new_shapes = []
+    if cycles:
+        for cycle in cycles:
+            if len(cycle) < 3:
+                continue
+            nodes = cycle
+            vertices = [d_node_coord[node] for node in nodes]
+            if not right_handed(vertices):
+                vertices.reverse()
+            vertices = [group.d_rounded_coord[vert] for vert in vertices]
+            new_shapes.append(Shape(vertices, closed=True))
+    islands = list(nx.connected_components(nx_graph))
+    if islands:
+        for island in islands:
+            if is_cycle(nx_graph, island):
+                continue
+            if is_open_walk(nx_graph, island):
+                island = list(island)
+                island_edges = [
+                    edge
+                    for edge in list(nx_graph.edges)
+                    if edge[0] in island and edge[1] in island
+                ]
+                nodes = edges_to_nodes(island_edges)
+                vertices = [d_node_coord[node] for node in nodes]
+                if not right_handed(vertices):
+                    vertices.reverse()
+                vertices = [group.d_rounded_coord[vert] for vert in vertices]
+                new_shapes.append(Shape(vertices))
+
+    result = Group(new_shapes)
+    for key, value in kwargs.items():
+        result.set_attribs(key, value)
+
+    return result

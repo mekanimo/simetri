@@ -5,7 +5,7 @@ for building over/under weaving patterns that can be drawn on a canvas.
 
 Examples:
     >>> from simetri.interlace.lace import Polyline
-    >>> poly = sg.Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+    >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
     >>> len(poly.divisions)
     3
     >>> round(poly.area, 2)
@@ -368,7 +368,7 @@ class Partition(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Partition
-        >>> part = sg.Partition([(0, 0), (4, 0), (4, 4), (0, 4)], closed=True)
+        >>> part = Partition([(0, 0), (4, 0), (4, 4), (0, 4)], closed=True)
         >>> round(part.area, 2)
         16.0
     """
@@ -541,7 +541,7 @@ class Section(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Polyline, Section
-        >>> poly = sg.Polyline([(0, 0), (10, 0)], closed=False)
+        >>> poly = Polyline([(0, 0), (10, 0)], closed=False)
         >>> section = Section(poly.intersections[0], poly.intersections[1])
         >>> round(section.length, 2)
         10.0
@@ -900,10 +900,10 @@ class Polyline(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Polyline
-        >>> closed = sg.Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> closed = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
         >>> len(closed.divisions)
         3
-        >>> open_line = sg.Polyline([(0, 0), (10, 0)], closed=False)
+        >>> open_line = Polyline([(0, 0), (10, 0)], closed=False)
         >>> len(open_line.intersections)
         2
     """
@@ -1091,7 +1091,7 @@ class ParallelPolyline(Group):
 
     Examples:
         >>> from simetri.interlace.lace import ParallelPolyline, Polyline
-        >>> poly = sg.Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
         >>> parallel = ParallelPolyline(poly, offset=2)
         >>> len(parallel.polyline_list)
         3

@@ -1084,7 +1084,7 @@ def save_user_defaults(mapping: Any = None, **kwargs: object) -> Path:
         'simetri_config.toml'
         >>> sg.save_user_defaults({"fill_color": sg.blue}).suffix
         '.toml'
-        >>> sg.save_user_defaults(line_width=2.5)
+        >>> _ = sg.save_user_defaults(line_width=2.5)
         >>> sg.user_defaults["line_width"]
         2.5
     """

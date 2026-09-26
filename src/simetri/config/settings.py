@@ -613,6 +613,11 @@ class _RuntimeDefaults:
     def __getitem__(self, key: str) -> Any:
         return self._store.effective_value(key)
 
+    def __contains__(self, key: object) -> bool:
+        if not isinstance(key, str):
+            return False
+        return key in self._store.factory
+
     def get(self, key: str, default: Any = None) -> Any:
         if key in self._store.factory:
             return self._store.effective_value(key)

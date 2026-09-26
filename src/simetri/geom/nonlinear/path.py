@@ -48,7 +48,7 @@ from ..geometry import (
     positive_angle,
 )
 from ..homogenize import homogenize
-from ..points.point_utils import fix_degen_points
+from ..polygons.polygon import polygon_area
 from ..segments.line_utils import (
     extended_line,
     line_angle,
@@ -184,7 +184,7 @@ class Path2D(Group, CommonStyle):
         double_color: Color | None = None,
         fill_alpha: float | None = None,
         fill_color: Color | None = None,
-        fill_mode: FillMode = FillMode.EVENODD,
+        fill_mode: FillMode = FillMode.NONZERO,
         fillet_radius: float | None = None,
         gradient: Any = None,
         line_alpha: float | None = None,
@@ -194,7 +194,7 @@ class Path2D(Group, CommonStyle):
         line_dash_phase: float | None = None,
         line_join: LineJoin = LineJoin.MITER,
         line_miter_limit: float | None = None,
-        line_width: float = 1,
+        line_width: float | None = None,
         marker_alpha: float | None = None,
         marker_color: Color | None = None,
         marker_radius: float | None = None,
@@ -223,7 +223,7 @@ class Path2D(Group, CommonStyle):
             double_color: Color for the second stroke.
             fill_alpha: Fill opacity. Unset values use ``defaults['fill_alpha']``.
             fill_color: Fill color. Unset values use ``defaults['fill_color']``.
-            fill_mode: Fill rule (``FillMode``). Defaults to even-odd.
+            fill_mode: Fill rule (``FillMode``). Defaults to non-zero winding.
             fillet_radius: Fillet radius when fillets are enabled.
             gradient: Optional fill gradient.
             line_alpha: Stroke opacity. Unset values use ``defaults['line_alpha']``.
@@ -233,7 +233,7 @@ class Path2D(Group, CommonStyle):
             line_dash_phase: Dash phase offset.
             line_join: Stroke line join. Defaults to miter.
             line_miter_limit: Miter limit for joins.
-            line_width: Stroke width. Defaults to 1.
+            line_width: Stroke width. Unset values use ``defaults['line_width']``.
             marker_*: Marker drawing options (same as Shape).
             markers_only: If True, draw markers without the path.
             smooth: Prefer smooth curve rendering when applicable.
@@ -1558,68 +1558,6 @@ class Path2D(Group, CommonStyle):
 
         return vertices
 
-    def as_shape(self) -> Shape | Group:
-        """Return cleaned geometry as a ``Shape``, or a ``Group`` of subpaths.
-
-        Consecutive duplicate joints are dropped. If a subpath is closed, a
-        repeated closing vertex is dropped. Sampled curves keep their
-        interior samples. Disjoint subpaths (``move_to``) each become their
-        own ``Shape``.
-
-        Returns:
-            Shape or Group: One polyline/polygon, or a group of them.
-
-        Raises:
-            ValueError: If the path has no geometric vertices.
-
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> path = (
-            ... sg.Path2D((0, 0), angle=0)
-            ... .line_to((10, 0))
-            ... .line_to((10, 5))
-            ... .close()
-            ... )
-            >>> shape = path.as_shape()
-            >>> shape.closed
-            True
-            >>> len(shape)
-            3
-            >>> disjoint = (
-            ... sg.Path2D((0, 0), angle=0)
-            ... .line_to((0, 40))
-            ... .move_to((15, 0))
-            ... .line_to((15, 40))
-            ... .line_to((35, 0))
-            ... .line_to((35, 40))
-            ... )
-            >>> converted = disjoint.as_shape()
-            >>> isinstance(converted, sg.Group), len(converted)
-            (True, 2)
-"""
-        shapes = []
-        for subpath in self.elements:
-            vertices = list(subpath.vertices)
-            if len(vertices) < 2:
-                continue
-            closed = subpath.closed
-            vertices = fix_degen_points(
-                vertices,
-                loop=closed,
-                closed=closed,
-                check_collinear=False,
-            )
-            if len(vertices) < 2:
-                continue
-            shape = Shape(vertices, closed=closed)
-            shape.copy_style(self)
-            shapes.append(shape)
-        if not shapes:
-            raise ValueError("Path2D.as_shape requires recorded geometry.")
-        if len(shapes) == 1:
-            return shapes[0]
-        return Group(shapes)
-
     def _label_vertices(self) -> list[PointType]:
         """Return vertices suitable for index / coordinate labels.
 
@@ -2619,4 +2557,48 @@ def group_to_path(group: Group) -> Path2D:
         if shape.closed:
             path.line_to(shape[0])
 
+    return path
+
+
+def group_to_nonzero_path(group: Group) -> Path2D:
+    """Build one ``Path2D`` from a group's shapes for non-zero compound fill.
+
+    The largest-area closed contour keeps its vertex order; every other
+    closed contour is reversed so it counts as a hole under the non-zero rule.
+
+    Args:
+        group: Source group.
+
+    Returns:
+        Path2D: Combined subpaths with ``fill_mode`` ``NONZERO``.
+
+    Raises:
+        ValueError: If the group has no shape geometry.
+    """
+    shapes = group.all_shapes
+    if not shapes:
+        raise ValueError("group_to_nonzero_path requires at least one shape.")
+    abs_areas = [abs(polygon_area(shape.vertices)) for shape in shapes]
+    outer_index = abs_areas.index(max(abs_areas))
+
+    def ring_vertices(shape_index: int) -> list[PointType]:
+        shape = shapes[shape_index]
+        vertices = list(shape.vertices)
+        if shape.closed and shape_index != outer_index:
+            vertices = list(reversed(vertices))
+        return vertices
+
+    first_ring = ring_vertices(0)
+    path = Path2D(start=first_ring[0], fill_mode=FillMode.NONZERO)
+    for vertex in first_ring[1:]:
+        path.line_to(vertex)
+    if shapes[0].closed:
+        path.close()
+    for shape_index in range(1, len(shapes)):
+        ring = ring_vertices(shape_index)
+        path.move_to(ring[0])
+        for vertex in ring[1:]:
+            path.line_to(vertex)
+        if shapes[shape_index].closed:
+            path.close()
     return path
