@@ -36,6 +36,7 @@ from ...helpers.illustration import (
     sketch_label_font_color,
     sketch_label_font_family,
     sketch_label_font_size_pt,
+    sketch_requests_vertex_labels,
 )
 from ...helpers.utilities import detokenize
 from .tikz_common import (
@@ -517,6 +518,7 @@ def draw_shape_sketch_with_indices(
     sketch: Any,
     index: int = 0,
     exceptions: Collection[str] | None = None,
+    canvas: Canvas | None = None,
 ) -> str:
     """Draw a shape sketch with optional vertex indices and coordinate labels.
 
@@ -534,6 +536,29 @@ def draw_shape_sketch_with_indices(
     Examples:
         >>> draw_shape_sketch_with_indices  # doctest: +SKIP
     """
+    if sketch.subtype == sg.Types.LINE_SKETCH:
+        begin_scope = get_begin_scope(index)
+        body = draw_line_sketch(sketch, canvas, exceptions=exceptions)
+        str_lines: list[str] = []
+        index_draw = prepare_shape_index_labels(sketch)
+        if index_draw is not None:
+            index_positions, index_labels = index_draw
+            for (lx, ly), label in zip(index_positions, index_labels):
+                str_lines.extend(
+                    _tikz_halo_label_lines(lx, ly, label, "index", sketch)
+                )
+        vertex_draw = prepare_shape_vertex_coord_labels(sketch)
+        if vertex_draw is not None:
+            coord_positions, coord_labels = vertex_draw
+            for (lx, ly), text in zip(coord_positions, coord_labels):
+                str_lines.extend(
+                    _tikz_halo_label_lines(lx, ly, text, "vertex", sketch)
+                )
+        end_scope = get_end_scope()
+        if not begin_scope:
+            return body + "".join(str_lines)
+        return begin_scope + body + "".join(str_lines) + end_scope
+
     begin_scope = get_begin_scope(index)
     body = get_draw(sketch)
     if body:
@@ -758,9 +783,7 @@ def draw_pattern_sketch(
     return "\n".join(shapes)
 
 
-def draw_sketch(
-    sketch: Any, exceptions: Collection[str] | None = None
-) -> str:
+def draw_sketch(sketch: Any, exceptions: Collection[str] | None = None) -> str:
     """Draws a plain shape sketch.
 
     Args:
@@ -931,20 +954,14 @@ def draw_shape_sketch(
         >>> draw_shape_sketch  # doctest: +SKIP
     """
 
-    if sketch.subtype == sg.Types.LINE_SKETCH:
+    if sketch_requests_vertex_labels(sketch):
+        res = draw_shape_sketch_with_indices(
+            sketch, ind, canvas=canvas, exceptions=exceptions
+        )
+    elif sketch.subtype == sg.Types.LINE_SKETCH:
         res = draw_line_sketch(sketch, canvas, exceptions=exceptions)
     elif sketch.subtype in _d_subtype_draw:
         res = _d_subtype_draw[sketch.subtype](sketch, exceptions=exceptions)
-    elif hasattr(sketch, "vertices") and (
-        (
-            hasattr(sketch, "draw_markers")
-            and sketch.draw_markers
-            and sketch.marker_type == MarkerType.INDICES
-        )
-        or (hasattr(sketch, "indices") and sketch.indices)
-        or (hasattr(sketch, "show_vertex_coords") and sketch.show_vertex_coords)
-    ):
-        res = draw_shape_sketch_with_indices(sketch, ind, exceptions=exceptions)
     elif (
         hasattr(sketch, "draw_markers")
         and sketch.draw_markers

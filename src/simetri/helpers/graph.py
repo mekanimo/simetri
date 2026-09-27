@@ -290,7 +290,7 @@ class Node:
         Examples:
         """
         return close_points_square(
-            self.pos, other.pos, dist2=defaults["dist_tol"] ** 2
+            self.pos, other.pos, dist2=defaults["abs_tol"] ** 2
         )
 
 

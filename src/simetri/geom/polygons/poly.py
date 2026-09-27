@@ -514,14 +514,14 @@ class PolyBBox:
 def get_polygons(
     nested_points: Sequence[PointType],
     n_round_digits: int = 2,
-    dist_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> list:
     """Convert points to clean polygons. Points are vertices of polygons.
 
     Args:
         nested_points (Sequence[PointType]): List of nested points.
         n_round_digits (int, optional): Number of decimal places to round to. Defaults to 2.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        abs_tol (float, optional): Distance tolerance. Defaults to None.
 
     Returns:
         list: List of clean polygons.
@@ -529,15 +529,13 @@ def get_polygons(
     Examples:
         >>> from simetri.geom.polygons.poly import get_polygons
         >>> polys = get_polygons([[(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]])
-        >>> len(polys)
-        1
-        >>> len(polys[0]) >= 4
-        True
+        >>> polys
+        [[(1, 0), (0, 0), (0, 1), (1, 1)]]
     """
     from ...helpers.graph import get_cycles, sanitize_graph_edges
 
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
 
     nested_rounded_points = []
     for points in nested_points:
@@ -574,7 +572,7 @@ def get_polygons(
     for cycle_ in cycles:
         nodes = cycle_
         points = [d_id__point[i] for i in nodes]
-        points = fix_degen_points(points, closed=True, dist_tol=dist_tol)
+        points = fix_degen_points(points, closed=True, abs_tol=abs_tol)
         polygons.append(points)
 
     return polygons

@@ -41,7 +41,9 @@ _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
 
-def register_format_handler(type_cls: type, handler: Callable[..., str]) -> None:
+def register_format_handler(
+    type_cls: type, handler: Callable[..., str]
+) -> None:
     """Register a ``format_data`` handler for ``type_cls``.
 
     Examples:
@@ -463,6 +465,26 @@ def get_cell_position(
     return res
 
 
+def _cells_neighbors(
+    index1: int,
+    index2: int,
+    n_rows: int,
+    n_cols: int,
+    diagonal_neighbors: bool,
+) -> bool:
+    row1, col1 = divmod(index1, n_cols)
+    row2, col2 = divmod(index2, n_cols)
+    if row2 < 0 or row2 >= n_rows or col2 < 0 or col2 >= n_cols:
+        return False
+    dr = abs(row1 - row2)
+    dc = abs(col1 - col2)
+    if dr > 1 or dc > 1 or (dr == 0 and dc == 0):
+        return False
+    if diagonal_neighbors:
+        return True
+    return dr + dc == 1
+
+
 def all_cells_connected(
     indices: Iterable[int],
     n_rows: int = 3,
@@ -490,26 +512,6 @@ def all_cells_connected(
         >>> sg.all_cells_connected([0, 1, 8], 3, 3, diagonal_neighbors=False)
         False
     """
-
-    def connected(
-        index1: int,
-        index2: int,
-        n_rows: int = 3,
-        n_cols: int = 3,
-        diagonal_neighbors: bool = True,
-    ) -> bool:
-        row1, col1 = divmod(index1, n_cols)
-        row2, col2 = divmod(index2, n_cols)
-        if row2 < 0 or row2 >= n_rows or col2 < 0 or col2 >= n_cols:
-            return False
-        dr = abs(row1 - row2)
-        dc = abs(col1 - col2)
-        if dr > 1 or dc > 1 or (dr == 0 and dc == 0):
-            return False
-        if diagonal_neighbors:
-            return True
-        return dr + dc == 1
-
     cells = set(indices)
     if len(cells) <= 1:
         res = True
@@ -525,7 +527,9 @@ def all_cells_connected(
                 j
                 for j in cells
                 if j not in visited
-                and connected(i, j, n_rows, n_cols, diagonal_neighbors)
+                and _cells_neighbors(
+                    i, j, n_rows, n_cols, diagonal_neighbors
+                )
             )
 
         res = len(visited) == len(cells)
@@ -581,19 +585,6 @@ def get_island_cells(
             return value is None
         return value == empty
 
-    def cells_neighbors(index1: int, index2: int) -> bool:
-        row1, col1 = divmod(index1, n_cols)
-        row2, col2 = divmod(index2, n_cols)
-        if row2 < 0 or row2 >= n_rows or col2 < 0 or col2 >= n_cols:
-            return False
-        dr = abs(row1 - row2)
-        dc = abs(col1 - col2)
-        if dr > 1 or dc > 1 or (dr == 0 and dc == 0):
-            return False
-        if diagonal_neighbors:
-            return True
-        return dr + dc == 1
-
     if starting_cell_index < 0 or starting_cell_index >= n_cells:
         res = ((), ())
         return res
@@ -623,7 +614,8 @@ def get_island_cells(
         stack.extend(
             j
             for j in range(n_cells)
-            if j not in visited and cells_neighbors(i, j)
+            if j not in visited
+            and _cells_neighbors(i, j, n_rows, n_cols, diagonal_neighbors)
         )
 
     res = (tuple(values_list), tuple(indices_list))
@@ -1233,7 +1225,9 @@ class TransformationParts(tuple):
         return self[2]
 
 
-def decompose_transformations(transformation_matrix: ndarray) -> TransformationParts:
+def decompose_transformations(
+    transformation_matrix: ndarray,
+) -> TransformationParts:
     """Decompose a 3x3 transformation matrix into translation, rotation, and scale components.
 
     ``translation`` is the matrix translation term (row 2). ``about`` is the
@@ -1279,7 +1273,7 @@ def decompose_transformations(transformation_matrix: ndarray) -> TransformationP
         mapped_y = about_x * m01 + about_y * m11 + m21
         if (
             hypot(mapped_x - about_x, mapped_y - about_y)
-            <= defaults["dist_tol"]
+            <= defaults["abs_tol"]
         ):
             about = (float(about_x), float(about_y))
         else:
@@ -1311,14 +1305,10 @@ def check_directory(dir_path: str) -> tuple[bool, str]:
         if not os.path.exists(parent_dir):
             error_msg.append("Error! Parent directory doesn't exist")
 
-    def is_writable() -> None:
-        nonlocal error_msg
-        parent_dir = os.path.dirname(dir_path)
-        if not os.access(parent_dir, os.W_OK):
-            error_msg.append("Error! Path is not writable.")
-
     dir_exists()
-    is_writable()
+    parent_dir = os.path.dirname(dir_path)
+    if not os.access(parent_dir, os.W_OK):
+        error_msg.append("Error! Path is not writable.")
     if error_msg:
         res = False, "\n".join(error_msg)
     else:
@@ -1346,17 +1336,6 @@ def analyze_path(
     """
     supported_types = (".pdf", ".svg", ".ps", ".eps", ".tex")
     error_msg = ""
-
-    def is_writable() -> bool:
-        nonlocal error_msg
-        parent_dir = os.path.dirname(file_path)
-        if os.access(parent_dir, os.W_OK):
-            res = True
-        else:
-            error_msg = "Error! Path is not writable."
-            res = False
-
-        return res
 
     def is_supported() -> bool:
         nonlocal error_msg
@@ -1389,7 +1368,11 @@ def analyze_path(
 
     try:
         file_path = os.path.abspath(file_path)
-        if is_writable() and is_supported() and can_overwrite(overwrite):
+        parent_dir = os.path.dirname(file_path)
+        writable = os.access(parent_dir, os.W_OK)
+        if not writable:
+            error_msg = "Error! Path is not writable."
+        if writable and is_supported() and can_overwrite(overwrite):
             res = (True, "", Path(file_path).suffix)
         else:
             res = (False, error_msg, "")
@@ -2303,7 +2286,9 @@ def get_function_dependencies(
     return list(dependencies)
 
 
-def analyze_function_dependencies(func: Callable[..., object]) -> dict[str, object]:
+def analyze_function_dependencies(
+    func: Callable[..., object],
+) -> dict[str, object]:
     """
     Analyzes a function's dependencies, separating arguments, function calls, and variables.
 
@@ -2493,9 +2478,7 @@ def factors(number: int) -> list:
     return sorted(list(factors))
 
 
-def get_cycle_size(
-    values: list[object], with_values: bool = False
-) -> int | tuple[int, list[object]]:
+def get_cycle_size(values: list) -> list:
     """Length of the longest prefix that tiles the whole list.
 
     For each ``cycle_len`` from 1 through ``len(values)``, checks whether
@@ -2504,35 +2487,27 @@ def get_cycle_size(
 
     Args:
         values: Sequence to analyze (typically index or step labels).
-        with_values: If True, return ``(cycle_len, values[:cycle_len])`` instead
-            of ``cycle_len`` alone. Defaults to False.
-
-    Returns:
-        int: ``0`` for an empty list, otherwise the largest tiling prefix length.
-        With ``with_values=True``, a ``(int, list)`` pair.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.get_cycle_size([1, 2, 1, 2])
-        4
+        2
         >>> sg.get_cycle_size([0, 3, 7, 2, 6, 0, 3, 7, 2, 6])
-        10
-        >>> sg.get_cycle_size([1, 2, 1, 2], with_values=True)
-        (4, [1, 2, 1, 2])
+        5
         >>> sg.get_cycle_size([])
         0
+
     """
+
     if not values:
-        res = 0
-    else:
-        for cycle_len in range(1, len(values) + 1):
-            cycle_ = values[:cycle_len]
-            if all(
-                value == cycle_[index % cycle_len]
-                for index, value in enumerate(values)
-            ):
-                res = len(cycle_)
-    if with_values:
-        return (res, cycle_)
-    else:
-        return res
+        return 0
+
+    for cycle_len in range(1, len(values) + 1):
+        cycle = values[:cycle_len]
+        if all(
+            value == cycle[index % cycle_len]
+            for index, value in enumerate(values)
+        ):
+            return len(cycle)
+
+    return len(values)

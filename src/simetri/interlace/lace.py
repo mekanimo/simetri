@@ -354,7 +354,7 @@ class Intersection(Shape):
         if not isinstance(other, Intersection):
             return NotImplemented
         return close_points_square(
-            self.point, other.point, dist2=defaults["dist_tol"] ** 2
+            self.point, other.point, dist2=defaults["abs_tol"] ** 2
         )
 
 
@@ -457,18 +457,18 @@ class Fragment(Shape):
         """
         return self.CG
 
-    def _set_divisions(self, dist_tol: float | None = None) -> None:
+    def _set_divisions(self, abs_tol: float | None = None) -> None:
         """Build fragment divisions from the fragment sections.
 
         Args:
-            dist_tol: Distance tolerance used when matching section endpoints.
+            abs_tol: Distance tolerance used when matching section endpoints.
 
         Raises:
             ValueError: If a generated division cannot be matched to a section.
         """
-        if dist_tol is None:
-            dist_tol = defaults["dist_tol"]
-        dist_tol2 = dist_tol * dist_tol  # squared distance tolerance
+        if abs_tol is None:
+            abs_tol = defaults["abs_tol"]
+        abs_tol2 = abs_tol * abs_tol  # squared distance tolerance
         d_points__section = {}
         for section in self.sections:
             start = section.start.point
@@ -488,13 +488,13 @@ class Fragment(Shape):
             division.fragment = self
             start_point = round_point(division.section.start.point)
             end_point = round_point(division.section.end.point)
-            if close_points_square(start_point, (x1, y1), dist2=dist_tol2):
+            if close_points_square(start_point, (x1, y1), dist2=abs_tol2):
                 division.intersections = [
                     division.section.start,
                     division.section.end,
                 ]
                 division.section.start.division = division
-            elif close_points_square(end_point, (x1, y1), dist2=dist_tol2):
+            elif close_points_square(end_point, (x1, y1), dist2=abs_tol2):
                 division.intersections = [
                     division.section.end,
                     division.section.start,
@@ -1086,7 +1086,7 @@ class ParallelPolyline(Group):
         offset (float): Offset value.
         under (bool, optional): If the polyline is under. Defaults to False.
         closed (bool, optional): If the polyline is closed. Defaults to True.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        abs_tol (float, optional): Distance tolerance. Defaults to None.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
@@ -1103,12 +1103,12 @@ class ParallelPolyline(Group):
         offset: float,
         under: bool = False,
         closed: bool = True,
-        dist_tol: float | None = None,
+        abs_tol: float | None = None,
         **kwargs: Any,
     ) -> None:
         """Build parallel offset polylines around ``polyline`` for a lace."""
-        if dist_tol is None:
-            dist_tol = defaults["dist_tol"]
+        if abs_tol is None:
+            abs_tol = defaults["abs_tol"]
         self.polyline = polyline
         self.offset = offset
         self.closed = closed
@@ -1138,7 +1138,7 @@ class ParallelPolyline(Group):
             vertices = list(polyline.vertices)
             vertices = vertices + [vertices[0]]
             offset_polygons = double_offset_polygons(
-                vertices, self.offset, dist_tol=defaults["dist_tol"]
+                vertices, self.offset, abs_tol=defaults["abs_tol"]
             )
         else:
             offset_polylines = double_offset_polylines(
@@ -1194,7 +1194,7 @@ class Lace(Group):
         with_plaits: bool = True,
         area_threshold: float | None = None,
         radius_threshold: float | None = None,
-        dist_tol: float | None = None,
+        abs_tol: float | None = None,
         merge_angle_tol: float = 0.1,
         debug: bool = False,
         **kwargs: Any,
@@ -1213,7 +1213,7 @@ class Lace(Group):
             with_plaits: Whether plaits are included.
             area_threshold: Minimum area filter for fragments.
             radius_threshold: Minimum radius filter for fragments.
-            dist_tol: Distance tolerance when merging shapes.
+            abs_tol: Distance tolerance when merging shapes.
             merge_angle_tol: Angle tolerance (radians) for merging
                 collinear edges.
             debug: Print shape-merge diagnostics when True.
@@ -1221,7 +1221,7 @@ class Lace(Group):
         """
         (
             rel_tol,
-            dist_tol,
+            abs_tol,
             swatch,
             plait_color,
             draw_fragments,
@@ -1230,7 +1230,7 @@ class Lace(Group):
         ) = get_defaults(
             [
                 "rel_tol",
-                "dist_tol",
+                "abs_tol",
                 "swatch",
                 "plait_color",
                 "draw_fragments",
@@ -1239,7 +1239,7 @@ class Lace(Group):
             ],
             [
                 rel_tol,
-                dist_tol,
+                abs_tol,
                 swatch,
                 plait_color,
                 draw_fragments,
@@ -1250,13 +1250,13 @@ class Lace(Group):
         merge_arguments = {
             "merge_angle_tol": merge_angle_tol,
             "debug": debug,
-            "dist_tol": dist_tol,
+            "abs_tol": abs_tol,
         }
         if debug:
-            merge_n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
+            merge_n_round = max(0, ceil(log10(sqrt(2) / abs_tol)))
             print(
                 "Lace merge settings: "
-                f"dist_tol={dist_tol}; "
+                f"abs_tol={abs_tol}; "
                 f"merge_angle_tol={merge_angle_tol}; "
                 f"automatic n_round={merge_n_round}"
             )
@@ -1284,7 +1284,7 @@ class Lace(Group):
         self.offset_intersections = None
         self.xform_matrix = np.eye(3)
         self.rel_tol = rel_tol
-        self.dist_tol = dist_tol
+        self.abs_tol = abs_tol
         self.merge_angle_tol = merge_angle_tol
         self.swatch = swatch
         self.plait_color = plait_color
@@ -1952,9 +1952,9 @@ class Lace(Group):
         """
         for i in range(n):
             vertices = item.vertices
-            dist_tol = defaults["dist_tol"]
+            abs_tol = defaults["abs_tol"]
             offset_poly = offset_polygon_points(
-                vertices, -offset * (i + 1), dist_tol=dist_tol
+                vertices, -offset * (i + 1), abs_tol=abs_tol
             )
             shape = Shape(offset_poly)
             shape.fill = False
@@ -2158,7 +2158,7 @@ class Lace(Group):
                         polyline,
                         self.offset,
                         closed=polyline.closed,
-                        dist_tol=defaults["dist_tol"],
+                        abs_tol=defaults["abs_tol"],
                     )
                 )
 
@@ -2196,7 +2196,7 @@ class Lace(Group):
     def _set_plait_ends(self) -> None:
         """Match plait edge indices with overlap sections at the same edge."""
         plaits = self.plaits
-        dist_tol = defaults["dist_tol"]
+        abs_tol = defaults["abs_tol"]
 
         def edge_cell_key(
             start: PointType, end: PointType
@@ -2204,10 +2204,10 @@ class Lace(Group):
             start_x, start_y = start[:2]
             end_x, end_y = end[:2]
             start_cell = (
-                round(start_x / dist_tol),
-                round(start_y / dist_tol),
+                round(start_x / abs_tol),
+                round(start_y / abs_tol),
             )
-            end_cell = (round(end_x / dist_tol), round(end_y / dist_tol))
+            end_cell = (round(end_x / abs_tol), round(end_y / abs_tol))
             if start_cell <= end_cell:
                 return start_cell, end_cell
             return end_cell, start_cell
@@ -2229,12 +2229,12 @@ class Lace(Group):
                         start_x, start_y = start[:2]
                         end_x, end_y = end[:2]
                         start_cell = (
-                            round(start_x / dist_tol),
-                            round(start_y / dist_tol),
+                            round(start_x / abs_tol),
+                            round(start_y / abs_tol),
                         )
                         end_cell = (
-                            round(end_x / dist_tol),
-                            round(end_y / dist_tol),
+                            round(end_x / abs_tol),
+                            round(end_y / abs_tol),
                         )
                         checked_edges = set()
                         for start_dx in (-1, 0, 1):
@@ -2269,7 +2269,7 @@ class Lace(Group):
                                                 continue
                                             checked_edges.add(edge_id)
                                             if not equal_lines(
-                                                sect, edge, dist_tol=dist_tol
+                                                sect, edge, abs_tol=abs_tol
                                             ):
                                                 continue
                                             if len(plait.ends) == 2:

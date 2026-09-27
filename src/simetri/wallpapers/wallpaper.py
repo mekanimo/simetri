@@ -9,8 +9,11 @@ Examples:
     >>> from simetri.wallpapers import wallpaper as wp
     >>> mark = sg.Shape([(0, 0), (10, 0)])
     >>> pattern = wp.wallpaper_p1(mark, (20, 0), (0, 15), reps1=1, reps2=1)
-    >>> len(pattern)
-    4
+    >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+    [[[0.0, 0.0], [10.0, 0.0]],
+     [[20.0, 0.0], [30.0, 0.0]],
+     [[0.0, 15.0], [10.0, 15.0]],
+     [[20.0, 15.0], [30.0, 15.0]]]
 """
 
 # This is obsolete now! Replaced by lattice.py
@@ -53,8 +56,16 @@ def cover_hex(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> cover_hex(mark, 10, reps1=1, reps2=1) is mark
-        True
+        >>> pattern = cover_hex(mark, 10, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[15.0, 8.660254], [25.0, 8.660254]],
+         [[30.0, 0.0], [40.0, 0.0]],
+         [[45.0, 8.660254], [55.0, 8.660254]],
+         [[0.0, 17.320508], [10.0, 17.320508]],
+         [[15.0, 25.980762], [25.0, 25.980762]],
+         [[30.0, 17.320508], [40.0, 17.320508]],
+         [[45.0, 25.980762], [55.0, 25.980762]]]
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
@@ -63,16 +74,16 @@ def cover_hex(
         h = sqrt(3) * size
         dx = 3 * size + (gap_x * 2)
         dy = h + (gap_y * 2)
-        item.translate((3 * size / 2) + gap_x, (h / 2) + gap_y, reps=1)
+        item = item.translate((3 * size / 2) + gap_x, (h / 2) + gap_y, reps=1)
     else:
         w = sqrt(3) * size
         h = 2 * size
         dx = w + (gap_x * 2)
         dy = (2 * size) + (h / 2) + (gap_y * 2)
-        item.translate((w / 2) + gap_x, (3 * h / 4) + gap_y, reps=1)
+        item = item.translate((w / 2) + gap_x, (3 * h / 4) + gap_y, reps=1)
 
-    item.translate(dx, 0, reps=reps1)
-    item.translate(0, dy, reps=reps2)
+    item = item.translate(dx, 0, reps=reps1)
+    item = item.translate(0, dy, reps=reps2)
 
     return item
 
@@ -95,15 +106,23 @@ def cover_rhombic(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> cover_rhombic(mark, 10, reps1=1, reps2=1) is mark
-        True
+        >>> pattern = cover_rhombic(mark, 10, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[7.071068, 7.071068], [17.071068, 7.071068]],
+         [[14.142136, 0.0], [24.142136, 0.0]],
+         [[21.213203, 7.071068], [31.213203, 7.071068]],
+         [[0.0, 14.142136], [10.0, 14.142136]],
+         [[7.071068, 21.213203], [17.071068, 21.213203]],
+         [[14.142136, 14.142136], [24.142136, 14.142136]],
+         [[21.213203, 21.213203], [31.213203, 21.213203]]]
     """
     sqrt2 = sqrt(2)
     diag = (sqrt2 / 2) * size
-    item.translate(diag, diag, reps=1)
+    item = item.translate(diag, diag, reps=1)
     dx = dy = diag * 2
-    item.translate(dx, 0, reps=reps1)
-    item.translate(0, dy, reps=reps2)
+    item = item.translate(dx, 0, reps=reps1)
+    item = item.translate(0, dy, reps=reps2)
 
     return item
 
@@ -164,8 +183,16 @@ def cover_hex_pointy(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> cover_hex_pointy(mark, 10, reps1=1, reps2=1) is mark
-        True
+        >>> pattern = cover_hex_pointy(mark, 10, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[8.660254, 15.0], [18.660254, 15.0]],
+         [[17.320508, 0.0], [27.320508, 0.0]],
+         [[25.980762, 15.0], [35.980762, 15.0]],
+         [[0.0, 30.0], [10.0, 30.0]],
+         [[8.660254, 45.0], [18.660254, 45.0]],
+         [[17.320508, 30.0], [27.320508, 30.0]],
+         [[25.980762, 45.0], [35.980762, 45.0]]]
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
@@ -173,9 +200,9 @@ def cover_hex_pointy(
     h = 2 * size
     dx = w + (gap_x * 2)
     dy = (2 * size) + (h / 2) + (gap_y * 2)
-    item.translate((w / 2) + gap_x, (3 * h / 4) + gap_y, reps=1)
-    item.translate(dx, 0, reps=reps1)
-    item.translate(0, dy, reps=reps2)
+    item = item.translate((w / 2) + gap_x, (3 * h / 4) + gap_y, reps=1)
+    item = item.translate(dx, 0, reps=reps1)
+    item = item.translate(0, dy, reps=reps2)
 
     return item
 
@@ -203,17 +230,25 @@ def cover_hex_flat(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> cover_hex_flat(mark, 10, reps1=1, reps2=1) is mark
-        True
+        >>> pattern = cover_hex_flat(mark, 10, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[15.0, 8.660254], [25.0, 8.660254]],
+         [[30.0, 0.0], [40.0, 0.0]],
+         [[45.0, 8.660254], [55.0, 8.660254]],
+         [[0.0, 17.320508], [10.0, 17.320508]],
+         [[15.0, 25.980762], [25.0, 25.980762]],
+         [[30.0, 17.320508], [40.0, 17.320508]],
+         [[45.0, 25.980762], [55.0, 25.980762]]]
     """
     gap_x = 2 * gap * cos60
     gap_y = gap * cos30
     h = sqrt(3) * size
     dx = 3 * size + (gap_x * 2)
     dy = h + (gap_y * 2)
-    item.translate((3 * size / 2) + gap_x, (h / 2) + gap_y, reps=1)
-    item.translate(dx, 0, reps=reps1)
-    item.translate(0, dy, reps=reps2)
+    item = item.translate((3 * size / 2) + gap_x, (h / 2) + gap_y, reps=1)
+    item = item.translate(dx, 0, reps=reps1)
+    item = item.translate(0, dy, reps=reps2)
 
     return item
 
@@ -256,8 +291,12 @@ def wallpaper_p1(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p1(mark, (20, 0), (0, 15), reps1=1, reps2=1))
-        4
+        >>> pattern = wallpaper_p1(mark, (20, 0), (0, 15), reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[20.0, 0.0], [30.0, 0.0]],
+         [[0.0, 15.0], [10.0, 15.0]],
+         [[20.0, 15.0], [30.0, 15.0]]]
     """
     dx1, dy1 = vector1
     wallpaper = generator.translate(dx1, dy1, reps=reps1)
@@ -294,8 +333,16 @@ def wallpaper_p2(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p2(mark, (20, 0), (0, 15), reps1=1, reps2=1))
-        8
+        >>> pattern = wallpaper_p2(mark, (20, 0), (0, 15), reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[20.0, 15.0], [10.0, 15.0]],
+         [[20.0, 0.0], [30.0, 0.0]],
+         [[40.0, 15.0], [30.0, 15.0]],
+         [[0.0, 15.0], [10.0, 15.0]],
+         [[20.0, 30.0], [10.0, 30.0]],
+         [[20.0, 15.0], [30.0, 15.0]],
+         [[40.0, 30.0], [30.0, 30.0]]]
     """
     rotocenter = midpoint(vector1, vector2)
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
@@ -334,8 +381,15 @@ def wallpaper_p2_rect_lattice(
         >>> pattern = wallpaper_p2_rect_lattice(
         ...     mark, (0, 0), (20, 0), (0, 15), reps1=1, reps2=1
         ... )
-        >>> len(pattern)
-        8
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [-10.0, 0.0]],
+         [[20.0, 0.0], [30.0, 0.0]],
+         [[20.0, 0.0], [10.0, 0.0]],
+         [[0.0, 15.0], [10.0, 15.0]],
+         [[0.0, 15.0], [-10.0, 15.0]],
+         [[20.0, 15.0], [30.0, 15.0]],
+         [[20.0, 15.0], [10.0, 15.0]]]
     """
     wallpaper = generator.rotate(pi, rotocenter, reps=1)
     dx1, dy1 = vector1
@@ -375,8 +429,16 @@ def wallpaper_p3(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p3(mark, (0, 0), 10, reps1=1, reps2=1))
+        >>> pattern = wallpaper_p3(mark, (0, 0), 10, reps1=1, reps2=1)
+        >>> len(pattern)
         24
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [-5.0, 8.660254]],
+         [[0.0, 0.0], [-5.0, -8.660254]],
+         [[8.660254, 15.0], [18.660254, 15.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[25.980762, 45.0], [20.980762, 36.339746]]
     """
     wallpaper = generator.rotate(2 * pi / 3, rotocenter, reps=2)
     if flat_hex:
@@ -414,8 +476,24 @@ def wallpaper_p4(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p4(mark, (0, 0), 10, reps1=1, reps2=1))
-        16
+        >>> pattern = wallpaper_p4(mark, (0, 0), 10, reps1=1, reps2=1)
+        >>> [[[round(c, 6) or 0.0 for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [0.0, 10.0]],
+         [[0.0, 0.0], [-10.0, 0.0]],
+         [[0.0, 0.0], [0.0, -10.0]],
+         [[10.0, 0.0], [20.0, 0.0]],
+         [[10.0, 0.0], [10.0, 10.0]],
+         [[10.0, 0.0], [0.0, 0.0]],
+         [[10.0, 0.0], [10.0, -10.0]],
+         [[0.0, 10.0], [10.0, 10.0]],
+         [[0.0, 10.0], [0.0, 20.0]],
+         [[0.0, 10.0], [-10.0, 10.0]],
+         [[0.0, 10.0], [0.0, 0.0]],
+         [[10.0, 10.0], [20.0, 10.0]],
+         [[10.0, 10.0], [10.0, 20.0]],
+         [[10.0, 10.0], [0.0, 10.0]],
+         [[10.0, 10.0], [10.0, 0.0]]]
     """
     wallpaper = generator.rotate(pi / 2, rotocenter, reps=3)
     wallpaper.translate(distance, 0, reps=reps1)
@@ -453,8 +531,16 @@ def wallpaper_p6(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p6(mark, (0, 0), 10, reps1=1, reps2=1))
+        >>> pattern = wallpaper_p6(mark, (0, 0), 10, reps1=1, reps2=1)
+        >>> len(pattern)
         48
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [5.0, 8.660254]],
+         [[0.0, 0.0], [-5.0, 8.660254]],
+         [[0.0, 0.0], [-10.0, 0.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[25.980762, 45.0], [30.980762, 36.339746]]
     """
     wallpaper = generator.rotate(pi / 3, rotocenter, reps=5)
     if flat_hex:
@@ -496,8 +582,16 @@ def wallpaper_pm(
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> axis = ((0, -5), (100, -5))
-        >>> len(wallpaper_pm(mark, axis, 20, 20, reps1=1, reps2=1))
-        8
+        >>> pattern = wallpaper_pm(mark, axis, 20, 20, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, -10.0], [10.0, -10.0]],
+         [[20.0, 0.0], [30.0, 0.0]],
+         [[20.0, -10.0], [30.0, -10.0]],
+         [[0.0, 20.0], [10.0, 20.0]],
+         [[0.0, 10.0], [10.0, 10.0]],
+         [[20.0, 20.0], [30.0, 20.0]],
+         [[20.0, 10.0], [30.0, 10.0]]]
     """
     wallpaper = generator.mirror(mirror_line, reps=1)
     wallpaper.translate(dx, 0, reps=reps1)
@@ -538,8 +632,16 @@ def wallpaper_pg(
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
         >>> axis = ((0, -5), (100, -5))
-        >>> len(wallpaper_pg(mark, axis, 5, 20, 20, reps1=1, reps2=1))
-        8
+        >>> pattern = wallpaper_pg(mark, axis, 5, 20, 20, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[5.0, -10.0], [15.0, -10.0]],
+         [[20.0, 0.0], [30.0, 0.0]],
+         [[25.0, -10.0], [35.0, -10.0]],
+         [[0.0, 20.0], [10.0, 20.0]],
+         [[5.0, 10.0], [15.0, 10.0]],
+         [[20.0, 20.0], [30.0, 20.0]],
+         [[25.0, 10.0], [35.0, 10.0]]]
     """
     wallpaper = generator.glide(mirror_line, distance, reps=1)
     wallpaper.translate(dx, 0, reps=reps1)
@@ -577,8 +679,14 @@ def wallpaper_cm(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_cm(mark, (0, 0), 10, reps1=1, reps2=1))
-        16
+        >>> pattern = wallpaper_cm(mark, (0, 0), 10, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [10.0, 0.0]],
+         [[7.071068, 7.071068], [17.071068, 7.071068]],
+         [[7.071068, 7.071068], [17.071068, 7.071068]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[21.213203, 21.213203], [31.213203, 21.213203]]
     """
     x1, y1 = mirror_point[:2]
     if horizontal:
@@ -625,8 +733,14 @@ def wallpaper_pmm(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_pmm(mark, (0, 0), 20, 20, reps1=1, reps2=1))
-        16
+        >>> pattern = wallpaper_pmm(mark, (0, 0), 20, 20, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [-10.0, 0.0]],
+         [[0.0, 0.0], [-10.0, 0.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[20.0, 20.0], [10.0, 20.0]]
     """
     x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
@@ -670,8 +784,14 @@ def wallpaper_pmg(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_pmg(mark, (0, 0), 20, 20, reps1=1, reps2=1))
-        16
+        >>> pattern = wallpaper_pmg(mark, (0, 0), 20, 20, reps1=1, reps2=1)
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 10.0], [-10.0, 10.0]],
+         [[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, -10.0], [-10.0, -10.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[20.0, 10.0], [10.0, 10.0]]
     """
     x, y = center_point[:2]
     if horizontal:
@@ -719,8 +839,14 @@ def wallpaper_pgg(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_pgg(mark, (5, 0), 20, 20, reps1=1, reps2=1))
-        16
+        >>> pattern = wallpaper_pgg(mark, (5, 0), 20, 20, reps1=1, reps2=1)
+        >>> [[[round(c, 6) or 0.0 for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.01], [10.0, 0.01]],
+         [[10.0, 0.0], [0.0, 0.0]],
+         [[10.0, -0.01], [0.0, -0.01]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[30.0, 19.99], [20.0, 19.99]]
     """
     if horizontal:
         dist = rotocenter[0] - generator.center[0]
@@ -765,8 +891,16 @@ def wallpaper_cmm(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_cmm(mark, (0, 0), 10, reps1=1, reps2=1))
+        >>> pattern = wallpaper_cmm(mark, (0, 0), 10, reps1=1, reps2=1)
+        >>> len(pattern)
         32
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [-10.0, 0.0]],
+         [[0.0, 0.0], [-10.0, 0.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[21.213203, 21.213203], [11.213203, 21.213203]]
     """
     x, y = mirror_cross[:2]
     mirror_line1 = ((x, y), (x + 1, y))
@@ -805,8 +939,16 @@ def wallpaper_p4m(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p4m(mark, (0, 0), 10, reps1=1, reps2=1))
+        >>> pattern = wallpaper_p4m(mark, (0, 0), 10, reps1=1, reps2=1)
+        >>> len(pattern)
         32
+        >>> [[[round(c, 6) or 0.0 for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [-10.0, 0.0]],
+         [[0.0, 0.0], [0.0, 10.0]],
+         [[0.0, 0.0], [0.0, -10.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[10.0, 10.0], [10.0, 20.0]]
     """
     x, y = mirror_cross[:2]
     mirror_line = ((x, y), (x, y + 1))
@@ -844,8 +986,16 @@ def wallpaper_p4g(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p4g(mark, 20, reps1=1, reps2=1))
+        >>> pattern = wallpaper_p4g(mark, 20, reps1=1, reps2=1)
+        >>> len(pattern)
         64
+        >>> [[[round(c, 6) or 0.0 for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [0.0, 10.0]],
+         [[0.0, 0.0], [-10.0, 0.0]],
+         [[0.0, 0.0], [0.0, -10.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[30.0, 30.0], [30.0, 40.0]]
     """
     # rotocenter should be (0, 0) and mirror_cross should be (d/4,d/4 )
     # translations are (d, d)
@@ -887,8 +1037,16 @@ def wallpaper_p3m1(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p3m1(mark, (0, 0), 10, reps1=1, reps2=1))
+        >>> pattern = wallpaper_p3m1(mark, (0, 0), 10, reps1=1, reps2=1)
+        >>> len(pattern)
         48
+        >>> [[[round(c, 6) or 0.0 for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [-5.0, -8.660254]],
+         [[0.0, 0.0], [-5.0, 8.660254]],
+         [[0.0, 0.0], [10.0, 0.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[45.0, 25.980762], [40.0, 34.641016]]
     """
     x, y = center_point[:2]
     mirror_line = line_through_point_and_angle((x, y), 2 * pi / 3)
@@ -926,8 +1084,16 @@ def wallpaper_p31m(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p31m(mark, (0, 0), 10, reps1=1, reps2=1))
+        >>> pattern = wallpaper_p31m(mark, (0, 0), 10, reps1=1, reps2=1)
+        >>> len(pattern)
         144
+        >>> [[[round(c, 6) for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[0.0, 0.0], [10.0, 0.0]],
+         [[0.0, 0.0], [-5.0, 8.660254]],
+         [[0.0, 0.0], [-5.0, -8.660254]],
+         [[0.0, 5.7732], [10.0, 5.7732]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[54.999869, 31.754189], [64.999869, 31.754189]]
     """
     x, y = center_point[:2]
     dy = 0.28866 * hex_size
@@ -973,8 +1139,16 @@ def wallpaper_p6m(
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (10, 0)])
-        >>> len(wallpaper_p6m(mark, (0, 0), (0, 0), 10, reps1=1, reps2=1))
+        >>> pattern = wallpaper_p6m(mark, (0, 0), (0, 0), 10, reps1=1, reps2=1)
+        >>> len(pattern)
         24
+        >>> [[[round(c, 6) or 0.0 for c in p[:2]] for p in s.vertices] for s in pattern[:4]]
+        [[[10.0, 0.0], [-10.0, 0.0]],
+         [[5.0, 8.660254], [-5.0, -8.660254]],
+         [[-5.0, 8.660254], [5.0, -8.660254]],
+         [[18.660254, 15.0], [-1.339746, 15.0]]]
+        >>> [[round(c, 6) for c in p[:2]] for p in pattern[-1].vertices]
+        [[20.980762, 53.660254], [30.980762, 36.339746]]
     """
     x, y = mirror_cross[:2]
     mirror1 = [(x, y), (x + 1, y)]
@@ -982,7 +1156,7 @@ def wallpaper_p6m(
     wallpaper = generator.mirror(mirror1, reps=1)
     wallpaper.mirror(mirror2, reps=1)
     wallpaper.rotate(pi / 3, rotocenter, reps=5)
-    wallpaper = wallpaper.merge_shapes(dist_tol=1)
+    wallpaper = wallpaper.merge_shapes(abs_tol=1)
     if flat_hex:
         cover_hex_flat(wallpaper, hex_size, reps1=reps1, reps2=reps2)
     else:

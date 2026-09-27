@@ -13,7 +13,7 @@ from fontTools.ttLib import TTFont
 
 from ...base.all_enums import PathOperation as PathOps
 from ...base.common import PointType
-from ...geom.nonlinear.path import Path2D
+from ...geom.nonlinear.path import Path2D, _get_path_nums
 from ...geom.polygons.polygon import (
     double_offset_polygons,
     double_offset_polylines,
@@ -524,32 +524,11 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
         cmd_lower = current_cmd.lower()
         is_rel = current_cmd == cmd_lower
 
-        def get_nums(count: int) -> list[float] | None:
-            """Read ``count`` numeric tokens from the path token stream.
-
-            Examples:
-                >>> pass  # doctest: +SKIP
-            """
-            nonlocal i
-            nums = []
-            for _ in range(count):
-                if i < len(tokens):
-                    try:
-                        nums.append(float(tokens[i]))
-                    except ValueError:
-                        break
-                    i += 1
-                else:
-                    break
-            if len(nums) < count:
-                return None
-            return nums
-
         if cmd_lower == "z":
             lp.close()
 
         elif cmd_lower == "m":
-            coords = get_nums(2)
+            coords, i = _get_path_nums(tokens, i, 2)
             if coords:
                 if is_rel:
                     lp.r_move(*coords)
@@ -557,7 +536,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     lp.move_to(coords)
 
         elif cmd_lower == "l":
-            coords = get_nums(2)
+            coords, i = _get_path_nums(tokens, i, 2)
             if coords:
                 if is_rel:
                     lp.r_line(*coords)
@@ -565,7 +544,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     lp.line_to(coords)
 
         elif cmd_lower == "h":
-            coords = get_nums(1)
+            coords, i = _get_path_nums(tokens, i, 1)
             if coords:
                 val = coords[0]
                 if is_rel:
@@ -574,7 +553,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     lp.h_line_to(val)
 
         elif cmd_lower == "v":
-            coords = get_nums(1)
+            coords, i = _get_path_nums(tokens, i, 1)
             if coords:
                 val = coords[0]
                 if is_rel:
@@ -583,7 +562,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     lp.v_line_to(val)
 
         elif cmd_lower == "c":
-            coords = get_nums(6)
+            coords, i = _get_path_nums(tokens, i, 6)
             if coords:
                 c1 = (coords[0], coords[1])
                 c2 = (coords[2], coords[3])
@@ -594,7 +573,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     lp.cubic_to(c1, c2, end)
 
         elif cmd_lower == "s":
-            coords = get_nums(4)
+            coords, i = _get_path_nums(tokens, i, 4)
             if coords:
                 c2 = (coords[0], coords[1])
                 end = (coords[2], coords[3])
@@ -604,7 +583,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     lp.mirror_cubic_to(c2, end)
 
         elif cmd_lower == "q":
-            coords = get_nums(4)
+            coords, i = _get_path_nums(tokens, i, 4)
             if coords:
                 c1 = (coords[0], coords[1])
                 end = (coords[2], coords[3])
@@ -614,7 +593,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     lp.quad_to(c1, end)
 
         elif cmd_lower == "t":
-            coords = get_nums(2)
+            coords, i = _get_path_nums(tokens, i, 2)
             if coords:
                 end = (coords[0], coords[1])
                 if is_rel:
@@ -623,7 +602,7 @@ def svg_path_to_path2d(svg_path: str) -> "Path2D":
                     lp.mirror_quad_to(end)
 
         elif cmd_lower == "a":
-            coords = get_nums(7)
+            coords, i = _get_path_nums(tokens, i, 7)
             if coords:
                 rx, ry = coords[0], coords[1]
                 rot_deg = coords[2]

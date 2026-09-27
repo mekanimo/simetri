@@ -322,8 +322,8 @@ def hobby_ctrl_points(
 
         >>> import simetri.graphics as sg
         >>> ctrl = sg.hobby_ctrl_points([(0, 0), (1, 1), (2, 0)], tension=1)
-        >>> len(ctrl) >= 4
-        True
+        >>> [[round(float(c), 6) for c in q[:2]] for q in ctrl]
+        [[0.0, 0.552285], [0.447715, 1.0], [1.552285, 1.0], [2.0, 0.552285]]
     """
     curve = HobbyCurve(
         points,
@@ -421,13 +421,9 @@ def hobby_shape(
     Examples:
 
         >>> import simetri.graphics as sg
-        >>> shape = sg.hobby_shape([(0, 0), (40, 30), (80, 0)], tension=1)
-        >>> len(shape.vertices) > 0
-        True
-        >>> canvas = sg.Canvas()  # doctest: +SKIP
-        >>> canvas.draw(shape)  # doctest: +SKIP
-        >>> len(sg.hobby_shape([(0, 0), (10, 5), (20, 0)], n_points=5).vertices)
-        10
+        >>> shape = sg.hobby_shape([(0, 0), (10, 5), (20, 0)], n_points=5)
+        >>> [[round(float(c), 6) for c in q[:2]] for q in shape.vertices]
+        [[0.0, 0.0], [2.005127, 2.109132], [4.40983, 3.68034], [7.109618, 4.661377], [10.0, 5.0], [10.0, 5.0], [12.890382, 4.661377], [15.59017, 3.68034], [17.994873, 2.109132], [20.0, 0.0]]
     """
     if n_points is None:
         n_points = defaults["n_hobby_points"]

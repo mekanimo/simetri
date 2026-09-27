@@ -2117,7 +2117,6 @@ shape_attributes = {
     "clip",
     "closed",
     "color",
-    "dist_tol",
     "double_color",
     "double_distance",
     "draw_double",

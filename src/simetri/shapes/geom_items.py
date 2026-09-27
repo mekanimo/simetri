@@ -77,7 +77,7 @@ def offset_box(
         True
         >>> [float(round(coord, 6)) for coord in box.vertices[0][:2]]
         [-1.0, 6.0]
-"""
+    """
 
     # Handle the single offset case
     if offset is not None:
@@ -142,7 +142,7 @@ def square(
         4
         >>> [float(round(coord, 6)) for coord in sq.vertices[0][:2]]
         [-25.0, -25.0]
-"""
+    """
     return Square(size, center, angle, **kwargs)
 
 
@@ -164,7 +164,7 @@ class Line(Shape):
         >>> line = sg.Line((0, 0), (10, 0))
         >>> line.extent.name
         'SEGMENT'
-"""
+    """
 
     def __init__(
         self,
@@ -190,9 +190,9 @@ class Line(Shape):
             >>> line = sg.Line((0, 0), (1, 0), draw_type=Extent.RAY)
             >>> line.extent.name
             'RAY'
-"""
-        dist_tol2 = defaults["dist_tol"] ** 2
-        if close_points_square(start, end, dist2=dist_tol2):
+        """
+        abs_tol2 = defaults["abs_tol"] ** 2
+        if close_points_square(start, end, dist2=abs_tol2):
             raise ValueError("Line: start and end points are the same!")
 
         if draw_type is not None:
@@ -278,7 +278,7 @@ class Line(Shape):
         x1, y1 = self.start[:2]
         x2, y2 = self.end[:2]
         dx = x2 - x1
-        if abs(dx) <= defaults["dist_tol"]:
+        if abs(dx) <= defaults["abs_tol"]:
             raise ValueError("Line is vertical; slope is undefined.")
         return (y2 - y1) / dx
 
@@ -339,7 +339,7 @@ class Line(Shape):
             >>> line = sg.Line((0, 0), (10, 0))
             >>> [float(round(coord, 6)) for coord in line.t(0.5)[:2]]
             [5.0, 0.0]
-"""
+        """
         direction = v_diff(self.end, self.start)
 
         return v_sum(self.start, v_scale(direction, t))
@@ -356,7 +356,7 @@ class Rectangle(Shape):
         'RECTANGLE'
         >>> r.width
         40.0
-"""
+    """
 
     def __init__(
         self,
@@ -516,7 +516,7 @@ class Square(Rectangle):
         'SQUARE'
         >>> sq.width
         40.0
-"""
+    """
 
     def __init__(
         self,
@@ -548,7 +548,7 @@ class Rectangle2(Rectangle):
         10.0
         >>> rect.height
         4.0
-"""
+    """
 
     def __init__(
         self, corner1: PointType, corner2: PointType, **kwargs: object
@@ -585,7 +585,7 @@ class Circle(Shape):
         >>> c = sg.Circle(radius=10, center=(5, 5))
         >>> tuple(float(x) for x in c.center[:2])
         (5.0, 5.0)
-"""
+    """
 
     def __init__(
         self,
@@ -740,7 +740,7 @@ class Segment(Shape):
         >>> seg = Segment((0, 0), (10, 0))
         >>> seg.subtype.name
         'SEGMENT'
-"""
+    """
 
     def __init__(
         self, start: PointType, end: PointType, **kwargs: object
@@ -755,8 +755,8 @@ class Segment(Shape):
         Raises:
             ValueError: If the start and end points are the same.
         """
-        dist_tol2 = defaults["dist_tol"] ** 2
-        if close_points_square(start, end, dist2=dist_tol2):
+        abs_tol2 = defaults["abs_tol"] ** 2
+        if close_points_square(start, end, dist2=abs_tol2):
             raise ValueError("Segment: start and end points are the same!")
         points = [start, end]
         super().__init__(points, **kwargs)
@@ -863,7 +863,7 @@ def circle_points(
         4
         >>> [round(coord, 6) for coord in pts[0][:2]]
         [1.0, 0.0]
-"""
+    """
     return arc_points(center, radius, 0, 2 * pi, n=n)
 
 
@@ -889,15 +889,43 @@ def arc_points(
         list[PointType]: A list of points that form a circular arc.
 
     Examples:
-        >>> pts = arc_points((0, 0), 1, 0, pi / 2, clockwise=True, n=2)
-        >>> [round(coord, 6) for coord in pts[0][:2]]
-        [0.0, 1.0]
-"""
+        >>> import simetri.graphics as sg
+        >>> pts = sg.arc_points((0, 0), 1, 0, sg.pi / 2, n=4)
+        >>> [[round(coord, 6) for coord in p[:2]] for p in pts]
+        [[1.0, 0.0], [0.866025, 0.5], [0.5, 0.866025], [0.0, 1.0]]
+        >>> pts = sg.arc_points((0, 0), 1, 0, sg.pi / 2, clockwise=True, n=4)
+        >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in pts]
+        [[1.0, 0.0], [0.0, -1.0], [-1.0, 0.0], [0.0, 1.0]]
+        >>> pts = sg.arc_points((0, 0), 1, -sg.pi / 2, 0, n=4)
+        >>> [[round(coord, 6) for coord in p[:2]] for p in pts]
+        [[0.0, -1.0], [0.5, -0.866025], [0.866025, -0.5], [1.0, 0.0]]
+        >>> pts = sg.arc_points((0, 0), 1, 0, -sg.pi / 2, clockwise=True, n=4)
+        >>> [[round(coord, 6) for coord in p[:2]] for p in pts]
+        [[1.0, 0.0], [0.866025, -0.5], [0.5, -0.866025], [0.0, -1.0]]
+        >>> pts = sg.arc_points((0, 0), 1, -sg.pi, -sg.pi / 2, n=4)
+        >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in pts]
+        [[-1.0, 0.0], [-0.866025, -0.5], [-0.5, -0.866025], [0.0, -1.0]]
+    """
     x, y = center[:2]
-    points = []
+    two_pi = 2 * pi
     if clockwise:
-        start_angle, end_angle = end_angle, start_angle
-    step = (end_angle - start_angle) / n
+        sweep = (start_angle - end_angle) % two_pi
+        if sweep == 0:
+            sweep = two_pi
+        sign = -1
+    else:
+        sweep = (end_angle - start_angle) % two_pi
+        if sweep == 0:
+            sweep = two_pi
+        sign = 1
+    if n == 1:
+        steps = 1
+    elif sweep == two_pi:
+        steps = n
+    else:
+        steps = n - 1
+    step = sign * sweep / steps
+    points = []
     for i in range(n):
         angle = start_angle + step * i
         points.append([x + radius * cos(angle), y + radius * sin(angle)])
@@ -919,7 +947,7 @@ def hex_points(side_length: float) -> list[PointType]:
         6
         >>> [round(coord, 6) for coord in pts[0][:2]]
         [1.0, 0.0]
-"""
+    """
     points = []
     for i in range(6):
         x = side_length * cos(i * 2 * pi / 6)
@@ -951,7 +979,7 @@ def rectangle_points(
         4
         >>> [round(coord, 6) for coord in pts[0][:2]]
         [-5.0, -2.0]
-"""
+    """
     from ..geom.affine import rotate
 
     x, y = pos[:2]
@@ -984,7 +1012,7 @@ def reg_poly_points_side_length(
         >>> pts = reg_poly_points_side_length(4, 2, angle=pi / 2)
         >>> bool(abs(float(pts[0][0])) < 1e-9)
         True
-"""
+    """
     rad = side_len_to_radius(n, side_len)
     sector = 2 * pi / n
     x, y = pos[:2]
@@ -1011,23 +1039,18 @@ def reg_poly_points(
         angle: Rotation angle in radians. Defaults to 0.
 
     Returns:
-        Sequence[PointType]: Vertices of the polygon (closed; first vertex is
-        repeated at the end).
+        Sequence[PointType]: ``n`` vertices (same as ``reg_poly_shape``; not
+        closed with a repeated first point).
 
     Examples:
         >>> pts = reg_poly_points(4, 1)
         >>> len(pts)
-        5
-        >>> pts[0] == pts[-1]
+        4
+        >>> pts = reg_poly_points(4, 1, angle=pi / 2)
+        >>> bool(abs(float(pts[0][0])) < 1e-9)
         True
-"""
-    points = regular_polygon_points(pos, n, r)
-
-    if angle != 0:
-        points = homogenize(points) @ rotation_matrix(angle)
-        points = [(x, y) for (x, y, _) in points]
-
-    return points
+    """
+    return regular_polygon_points(pos, n, r, angle)
 
 
 def di_star(points: Sequence[PointType], n: int) -> Group:
@@ -1044,7 +1067,7 @@ def di_star(points: Sequence[PointType], n: int) -> Group:
         >>> star = di_star([(1, 0), (0.5, 0.2)], 2)
         >>> star.type.name
         'GROUP'
-"""
+    """
     group = Group(Shape(points))
     return group.mirror(axis_x, reps=1).rotate(2 * pi / n, reps=n - 1)
 
@@ -1071,7 +1094,7 @@ def hex_grid_centers(
     Examples:
         >>> hex_grid_centers(0, 0, 1, 1, 1)
         [(0, 0)]
-"""
+    """
     centers = []
     for row in range(n_rows):
         for col in range(n_cols):
@@ -1111,7 +1134,7 @@ def rect_grid(
         >>> grid = rect_grid(0, 0, 10, 10, 1, 1, [[True]])
         >>> len(grid) > 1
         True
-"""
+    """
     width = cell_width * n_cols
     height = cell_height * n_rows
     horiz_line = line_shape((x, y), (x + width, y))
@@ -1158,7 +1181,7 @@ def reg_star_polygon(
         >>> star = reg_star_polygon(5, 2, 10)
         >>> star.subtype.name
         'SHAPE'
-"""
+    """
     angle = 2 * pi / n
     points = [(cos(angle * i) * rad, sin(angle * i) * rad) for i in range(n)]
     if n % step:
@@ -1195,7 +1218,7 @@ def star_shape(
         >>> star = star_shape([(1, 0), (0.2, 0.2)], reps=2, scale=2)
         >>> star.type.name
         'GROUP'
-"""
+    """
     shape = Shape(points, subtype=Types.STAR)
     group = Group(shape)
     group.mirror(axis_x, reps=1)
@@ -1229,7 +1252,7 @@ def dot_shape(
         3
         >>> [float(round(coord, 6)) for coord in dot.vertices[0][:2]]
         [1.0, 2.0]
-"""
+    """
     fill_color, line_color, line_width = get_defaults(
         ["fill_color", "line_color", "line_width"],
         [fill_color, line_color, line_width],
@@ -1272,7 +1295,7 @@ def rect_shape(
         False
         >>> [float(round(coord, 6)) for coord in rect.vertices[0][:2]]
         [-4.0, 0.0]
-"""
+    """
     return Rectangle(width, height, center, angle, **kwargs)
 
 
@@ -1300,10 +1323,23 @@ def arc_shape(
         Shape: A Shape object with points that form a circular arc.
 
     Examples:
-        >>> arc = arc_shape(0, 0, 1, 0, pi / 2, clockwise=True, n=2)
-        >>> [float(round(coord, 6)) for coord in arc.vertices[0][:2]]
-        [0.0, 1.0]
-"""
+        >>> import simetri.graphics as sg
+        >>> arc = sg.arc_shape(0, 0, 1, 0, sg.pi / 2, n=4)
+        >>> [[round(coord, 6) for coord in p[:2]] for p in arc.vertices]
+        [[1.0, 0.0], [0.866025, 0.5], [0.5, 0.866025], [0.0, 1.0]]
+        >>> arc = sg.arc_shape(0, 0, 1, 0, sg.pi / 2, clockwise=True, n=4)
+        >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in arc.vertices]
+        [[1.0, 0.0], [0.0, -1.0], [-1.0, 0.0], [0.0, 1.0]]
+        >>> arc = sg.arc_shape(0, 0, 1, -sg.pi / 2, 0, n=4)
+        >>> [[round(coord, 6) for coord in p[:2]] for p in arc.vertices]
+        [[0.0, -1.0], [0.5, -0.866025], [0.866025, -0.5], [1.0, 0.0]]
+        >>> arc = sg.arc_shape(0, 0, 1, 0, -sg.pi / 2, clockwise=True, n=4)
+        >>> [[round(coord, 6) for coord in p[:2]] for p in arc.vertices]
+        [[1.0, 0.0], [0.866025, -0.5], [0.5, -0.866025], [0.0, -1.0]]
+        >>> arc = sg.arc_shape(0, 0, 1, -sg.pi, -sg.pi / 2, n=4)
+        >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in arc.vertices]
+        [[-1.0, 0.0], [-0.866025, -0.5], [-0.5, -0.866025], [0.0, -1.0]]
+    """
     points = arc_points(
         (x, y), radius, start_angle, end_angle, clockwise=clockwise, n=n
     )
@@ -1331,7 +1367,7 @@ def circle_shape(
         False
         >>> tuple(float(x) for x in circ.center[:2])
         (3.0, 4.0)
-"""
+    """
     return Circle(radius, center, **kwargs)
 
 
@@ -1360,7 +1396,7 @@ def reg_poly_shape(
         False
         >>> poly.closed
         True
-"""
+    """
     x, y = pos[:2]
     points = reg_poly_points(n=n, r=r, pos=(x, y), angle=angle)
 
@@ -1390,7 +1426,7 @@ def reg_poly_shape_side_length(
         >>> poly = reg_poly_shape_side_length(4, 2, angle=pi / 2)
         >>> bool(abs(float(poly.vertices[0][0])) < 1e-9)
         True
-"""
+    """
 
     x, y = pos[:2]
     points = reg_poly_points_side_length(
@@ -1425,7 +1461,7 @@ def ellipse_shape(
         'ELLIPSE'
         >>> ell.center
         (1, 2)
-"""
+    """
     return Ellipse(width, height, center, angle, **kwargs)
 
 
@@ -1454,7 +1490,7 @@ def line_shape(
         2
         >>> line.extent.name
         'SEGMENT'
-"""
+    """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
     return Line(
@@ -1504,11 +1540,9 @@ def inflate(item: Shape, offset: float) -> Shape:
         >>> poly = sg.Shape([(-5, -5), (5, -5), (5, 5), (-5, 5)], closed=True)
         >>> [float(round(coord, 6)) for coord in inflate(poly, 5).vertices[0][:2]]
         [-10.0, -10.0]
-"""
+    """
     if not isinstance(item, Shape):
-        raise TypeError(
-            f"inflate does not support {type(item).__name__}"
-        )
+        raise TypeError(f"inflate does not support {type(item).__name__}")
 
     inflated = item.copy()
     if isinstance(item, Circle):
@@ -1540,9 +1574,7 @@ def inflate(item: Shape, offset: float) -> Shape:
         new_size = inflated.width + 2 * offset
         if new_size <= 0:
             raise ValueError("inflate would make size non-positive")
-        inflated.scale(
-            new_size / inflated.width, about=inflated.center, reps=0
-        )
+        inflated.scale(new_size / inflated.width, about=inflated.center, reps=0)
         return inflated
     if isinstance(item, Rectangle):
         new_width = inflated.width + 2 * offset
@@ -1573,9 +1605,7 @@ def inflate(item: Shape, offset: float) -> Shape:
     if not inflated.closed:
         raise ValueError("inflate requires a closed Shape")
     if len(inflated) < 3:
-        raise ValueError(
-            "inflate requires a Shape with at least 3 vertices"
-        )
+        raise ValueError("inflate requires a Shape with at least 3 vertices")
     vertices = list(offset_polygon(inflated.vertices, offset))
     if len(vertices) >= 2 and close_points_square(vertices[0], vertices[-1]):
         vertices = vertices[:-1]
@@ -1590,15 +1620,15 @@ def inflate(item: Shape, offset: float) -> Shape:
 def offset_polygon_shape(
     polygon_shape: Shape,
     offset: float = 1,
-    dist_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> Shape:
     """Return a polygon ``Shape`` with offset edges.
 
     Args:
         polygon_shape: Source polygon ``Shape``.
         offset: Offset distance (positive expands outward). Defaults to 1.
-        dist_tol: Distance tolerance for offset construction. Defaults to
-            ``defaults["dist_tol"]``.
+        abs_tol: Distance tolerance for offset construction. Defaults to
+            ``defaults["abs_tol"]``.
 
     Returns:
         Shape: A new closed polygon with offset vertices.
@@ -1610,10 +1640,10 @@ def offset_polygon_shape(
         True
         >>> [float(round(coord, 6)) for coord in out.vertices[0][:2]]
         [-7.0, -7.0]
-"""
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    vertices = offset_polygon(polygon_shape.vertices, offset, dist_tol)
+    """
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
+    vertices = offset_polygon(polygon_shape.vertices, offset, abs_tol)
 
     return Shape(vertices)
 
@@ -1765,7 +1795,7 @@ def fillet_shape_corners(
         True
         >>> len(rounded.vertices) > len(src.vertices)
         True
-"""
+    """
     vertices = fillet_corners(shape.vertices, d_vert_radius, n)
 
     new_shape = shape.copy()

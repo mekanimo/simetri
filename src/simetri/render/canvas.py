@@ -1784,7 +1784,7 @@ class Canvas:
                             displacement_x - vector_x,
                             displacement_y - vector_y,
                         )
-                        if offset <= defaults["dist_tol"]:
+                        if offset <= defaults["abs_tol"]:
                             issue_warning(
                                 "Duplicate position used for Vector"
                                 f"({kwargs['vec_start']}, {kwargs['vec_end']}).",

@@ -51,8 +51,8 @@ class Arc(Shape):
 
         >>> import simetri.graphics as sg
         >>> arc = sg.Arc((0, 0), 40, start_angle=0, span_angle=sg.pi / 2)
-        >>> len(arc.vertices) > 0
-        True
+        >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in arc.vertices]
+        [[40.0, 0.0], [39.39231, 6.945927], [37.587705, 13.680806], [34.641016, 20.0], [30.641778, 25.711504], [25.711504, 30.641778], [20.0, 34.641016], [13.680806, 37.587705], [6.945927, 39.39231], [0.0, 40.0]]
         >>> canvas = sg.Canvas()  # doctest: +SKIP
         >>> canvas.draw(arc)  # doctest: +SKIP
     """

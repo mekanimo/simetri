@@ -736,13 +736,13 @@ def set_defaults() -> None:
     # isclose(800, 721, rel_tol=.1) returns False
     # abs_tol makes a bigger difference when comparing values close to zero
 
-    _default_store.factory["abs_tol"] = 0.05  # used for comparing floats
+    _default_store.factory["abs_tol"] = 0.001  # used for comparing floats
     default_types["abs_tol"] = float
     defaults_help["abs_tol"] = (
         "Absolute tolerance. "
-        "Positive float. Length in <points>. "
-        "1in = 72pt."
-        "Used for comparing floats."
+        "Non-negative float. Used with rel_tol: "
+        "abs(a - b) <= abs_tol + rel_tol * abs(b). "
+        "For distances, a length in <points> (1in = 72pt)."
     )
 
     _default_store.factory["active"] = True  # active objects are drawn
@@ -803,54 +803,12 @@ def set_defaults() -> None:
         "SOUTHWEST, TEXT, TOP, WEST. Example: text.anchor = Anchor.NORTH"
     )
 
-    _default_store.factory["angle_abs_tol"] = 0.001  # used for comparing angles
-    default_types["angle_abs_tol"] = float
-    defaults_help["angle_abs_tol"] = (
-        "Angle absolute tolerance. "
-        "Positive float. Angle in radians. "
-        "Used for comparing angles."
-    )
-
-    _default_store.factory["angle_rel_tol"] = 0.001  # used for comparing angles
-    default_types["angle_rel_tol"] = float
-    defaults_help["angle_rel_tol"] = (
-        "Angle relative tolerance. "
-        "Positive float. Angle in radians. "
-        "Used for comparing angles."
-    )
-
-    _default_store.factory["angle_tol"] = (
-        0.001  # used for comparing angles in radians .001 rad = .057 degrees
-    )
-    default_types["angle_tol"] = float
-    defaults_help["angle_tol"] = (
-        "Angle tolerance. Positive float. Angle in radians. Used for comparing angles."
-    )
-
-    _default_store.factory["area_abs_tol"] = 0.001  # used for comparing areas
-    default_types["area_abs_tol"] = float
-    defaults_help["area_abs_tol"] = (
-        "Area absolute tolerance. Positive float.Used for comparing areas."
-    )
-
-    _default_store.factory["area_rel_tol"] = 0.001  # used for comparing areas
-    default_types["area_rel_tol"] = float
-    defaults_help["area_rel_tol"] = (
-        "Area relative tolerance. Positive float.Used for comparing areas."
-    )
-
     _default_store.factory["area_threshold"] = (
         1  # used for grouping fragments in a lace object
     )
     default_types["area_threshold"] = float
     defaults_help["area_threshold"] = (
         "Area threshold. Positive float. Used for grouping fragments in a lace object."
-    )
-
-    _default_store.factory["area_tol"] = 0.1  # used for comparing areas
-    default_types["area_tol"] = float
-    defaults_help["area_tol"] = (
-        "Area tolerance. Positive float.Used for comparing areas."
     )
 
     _default_store.factory["arrow_head_length"] = 8
@@ -1107,25 +1065,6 @@ def set_defaults() -> None:
     defaults_help["debug_mode"] = (
         "Boolean property for enabling debug mode. "
         "If True, debug information is printed."
-    )
-
-    _default_store.factory["dist_abs_tol"] = 0.05  # used for comparing distances
-    default_types["dist_abs_tol"] = float
-    defaults_help["dist_abs_tol"] = (
-        "Distance absolute tolerance. Positive float. Length in <points>."
-    )
-
-    _default_store.factory["dist_rel_tol"] = 0  # used for comparing distances
-    default_types["dist_rel_tol"] = float
-    defaults_help["dist_rel_tol"] = (
-        "Distance relative tolerance. Positive float. Used for comparing distances."
-    )
-
-    _default_store.factory["dist_tol"] = 0.05  # used for comparing points
-    default_types["dist_tol"] = float
-    defaults_help["dist_tol"] = (
-        "Distance tolerance for comparing two points. "
-        "Positive float. Length in <points>."
     )
 
     _default_store.factory["document_class"] = (
@@ -1677,6 +1616,13 @@ def set_defaults() -> None:
     defaults_help["help_suggestion_limit"] = (
         "Maximum number of similar-name suggestions shown by sg.help and sg.doc. "
         "Positive integer."
+    )
+
+    _default_store.factory["header_row_fill"] = True
+    default_types["header_row_fill"] = bool
+    defaults_help["header_row_fill"] = (
+        "Default cell fill for table header grid row (row 0 when show_header). "
+        "Boolean. Does not set fill_color; use table / cell styling for colors."
     )
 
     _default_store.factory["image_align"] = Align.CENTER
@@ -2391,7 +2337,9 @@ def set_defaults() -> None:
     )
     default_types["rel_tol"] = float
     defaults_help["rel_tol"] = (
-        "Relative tolerance. Positive float. Length in <points>. "
+        "Relative tolerance. Non-negative float. Used with abs_tol: "
+        "abs(a - b) <= abs_tol + rel_tol * abs(b). "
+        "Factory 0 means only abs_tol is used."
     )
 
     _default_store.factory["render"] = "SVG"  # Render.TEX, Render.SVG use string values
@@ -2755,6 +2703,13 @@ def set_defaults() -> None:
     defaults_help["tile_y_shift"] = (
         "Tile y shift. Float. Length in <points>. "
         "Y-axis shift of the SVG pattern tile."
+    )
+
+    _default_store.factory["table_fill"] = False
+    default_types["table_fill"] = bool
+    defaults_help["table_fill"] = (
+        "Default cell fill for table body cells. Boolean. Header row uses "
+        "header_row_fill unless overridden by table / column / row / cell layers."
     )
 
     _default_store.factory["tol"] = 0.005  # used for comparing angles and collinearity

@@ -17,7 +17,10 @@ from ...base.all_enums import (
 from ...coloring.colors import Color, black, check_color, white
 from ...geom.bbox import bounding_box
 from ...geom.homogenize import homogenize
-from ...helpers.illustration import resolve_page_vertex_labels
+from ...helpers.illustration import (
+    resolve_page_vertex_labels,
+    sketch_requests_vertex_labels,
+)
 from ..render_tikz.tikz_utils import sg_to_tikz
 from ..sketch import MaskSketch
 from ..style_map import marker_style_map
@@ -210,8 +213,6 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
 
         subtype = sketch_attrib(sketch, "subtype")
         draw_markers = sketch_attrib(sketch, "draw_markers")
-        indices = sketch_attrib(sketch, "indices")
-        show_vertex_coords = sketch_attrib(sketch, "show_vertex_coords")
 
         if subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
@@ -249,6 +250,13 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
             code = draw_image_sketch(sketch)
         elif subtype == Types.HELPLINES_SKETCH:
             code = draw_helplines_sketch(sketch)
+        elif sketch_requests_vertex_labels(sketch):
+            code = draw_shape_sketch_with_indices(
+                sketch,
+                ind,
+                canvas=canvas,
+                exceptions=suppressed_style_keys,
+            )
         elif subtype == Types.LINE_SKETCH:
             code = draw_line_sketch(
                 sketch, canvas, exceptions=suppressed_style_keys
@@ -257,17 +265,6 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
             code = draw_arc_sketch(sketch, exceptions=suppressed_style_keys)
         elif subtype == Types.PATH_SKETCH:
             code = draw_path_sketch(sketch, exceptions=suppressed_style_keys)
-        elif hasattr(sketch, "vertices") and (
-            (
-                draw_markers
-                and sketch_attrib(sketch, "marker_type") == MarkerType.INDICES
-            )
-            or indices
-            or show_vertex_coords
-        ):
-            code = draw_shape_sketch_with_indices(
-                sketch, ind, exceptions=suppressed_style_keys
-            )
         elif draw_markers:
             # Use marker rendering for shapes with markers enabled
             code = draw_shape_sketch_with_markers(

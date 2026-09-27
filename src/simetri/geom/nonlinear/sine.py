@@ -24,9 +24,9 @@ class SineWave(Shape):
     Examples:
 
         >>> import simetri.graphics as sg
-        >>> wave = sg.SineWave(period=40, amplitude=20, duration=80)
-        >>> len(wave.vertices) > 0
-        True
+        >>> wave = sg.SineWave(period=40, amplitude=20, duration=80, n_points=4)
+        >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in wave.vertices]
+        [[0.0, 0.0], [11.428571, 19.498558], [22.857143, -8.677675], [34.285714, -15.63663], [45.714286, 15.63663], [57.142857, 8.677675], [68.571429, -19.498558], [80.0, 0.0]]
         >>> canvas = sg.Canvas()  # doctest: +SKIP
         >>> canvas.draw(wave)  # doctest: +SKIP
     """
@@ -116,10 +116,10 @@ def sine_wave(
     Examples:
         >>> import simetri.graphics as sg
         >>> time, signal = sg.sine_wave(1.0, 1.0, 1.0, 4.0)
-        >>> len(time), len(signal)
-        (4, 4)
-        >>> round(float(signal[0]), 6)
-        0.0
+        >>> [round(float(x), 6) for x in time]
+        [0.0, 0.25, 0.5, 0.75]
+        >>> [round(float(x), 6) for x in signal]
+        [0.0, 1.0, 0.0, -1.0]
     """
     time = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     signal = amplitude * np.sin(2 * np.pi * frequency * time + phase)
@@ -149,8 +149,8 @@ def damping_function(
     Examples:
         >>> import simetri.graphics as sg
         >>> vals = sg.damping_function(10.0, 1.0, 4.0)
-        >>> len(vals), round(vals[0], 6), round(vals[-1], 6)
-        (4, 10.0, 4.723666)
+        >>> [round(v, 6) for v in vals]
+        [10.0, 7.788008, 6.065307, 4.723666]
     """
     return [
         amplitude * exp(-i / (duration * sample_rate))
@@ -181,9 +181,9 @@ def sine_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.sine_points(period=10, amplitude=5, duration=10, n_points=10)
-        >>> len(pts), round(pts[0][0], 6), round(pts[0][1], 6)
-        (10, 0.0, 0.0)
+        >>> pts = sg.sine_points(period=10, amplitude=5, duration=10, n_points=4)
+        >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
+        [[0.0, 0.0], [3.333333, 4.330127], [6.666667, -4.330127], [10.0, 0.0]]
     """
     phase = phase_angle
     freq = 1 / period

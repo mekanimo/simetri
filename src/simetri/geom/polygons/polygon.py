@@ -255,7 +255,7 @@ class Polyline:
 
 
 def polygon_area(
-    polygon: Sequence[PointType], dist_tol: float | None = None
+    polygon: Sequence[PointType], abs_tol: float | None = None
 ) -> float:
     """Return the signed area of a polygon.
 
@@ -264,8 +264,8 @@ def polygon_area(
 
     Args:
         polygon (Sequence[PointType]): Vertices in walk order.
-        dist_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["dist_tol"]``.
+        abs_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         float: Signed area.
@@ -279,10 +279,10 @@ def polygon_area(
         >>> sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
         1.0
 """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
-    if not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
+    abs_tol2 = abs_tol * abs_tol
+    if not close_points_square(polygon[0], polygon[-1], dist2=abs_tol2):
         polygon = list(polygon[:])
         polygon.append(polygon[0])
     area_ = 0
@@ -702,10 +702,10 @@ def polygons_union(
         >>> import simetri.graphics as sg
         >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
         >>> outer, holes = sg.polygons_union([square], [], [])
-        >>> len(outer.vertices)
-        4
-        >>> len(holes)
-        0
+        >>> [tuple(round(c, 6) for c in p[:2]) for p in outer.vertices]
+        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        >>> holes
+        Group()
         >>> sg.polygons_union([], [], [])
         Traceback (most recent call last):
         ...
@@ -743,7 +743,7 @@ def polygons_union(
 
 def all_close_points(
     points: Sequence[Sequence[float]],
-    dist_tol: float | None = None,
+    abs_tol: float | None = None,
     with_dist: bool = False,
 ) -> tuple[
     dict[int, Sequence[int]],
@@ -756,8 +756,8 @@ def all_close_points(
 
     Args:
         points (Sequence[Sequence[float]]): Rows ``[x, y, id]``.
-        dist_tol (float | None): Distance tolerance. Defaults to
-            ``defaults["dist_tol"]``.
+        abs_tol (float | None): Distance tolerance. Defaults to
+            ``defaults["abs_tol"]``.
         with_dist (bool): If True, each pair is ``(id1, id2, distance)``.
             Defaults to False.
 
@@ -768,25 +768,25 @@ def all_close_points(
     Examples:
         >>> import simetri.graphics as sg
         >>> rows = [[0, 0, 1], [0.01, 0, 2], [5, 5, 3]]
-        >>> sg.all_close_points(rows, dist_tol=0.05)
+        >>> sg.all_close_points(rows, abs_tol=0.05)
         ({1: [2], 2: [1]}, [(1, 2)])
-        >>> links, pairs = sg.all_close_points(rows, dist_tol=0.05, with_dist=True)
+        >>> links, pairs = sg.all_close_points(rows, abs_tol=0.05, with_dist=True)
         >>> links
         {1: [2], 2: [1]}
         >>> round(pairs[0][2], 2)
         0.01
 """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
     point_arr = np.array(
         points, dtype=np.float32
     )  # points array [[x1, y1, id1], ...]]
     n_rows = len(points)
     point_arr = point_arr[point_arr[:, 0].argsort()]  # sort by x values in the
     # first column
-    xmin = point_arr[:, 0] - dist_tol * 2
+    xmin = point_arr[:, 0] - abs_tol * 2
     xmin = xmin.reshape(n_rows, 1)
-    xmax = point_arr[:, 0] + dist_tol * 2
+    xmax = point_arr[:, 0] + abs_tol * 2
     xmax = xmax.reshape(n_rows, 1)
     point_arr = np.concatenate(
         (point_arr, xmin, xmax), 1
@@ -797,7 +797,7 @@ def all_close_points(
     for i in range(n_rows):
         d_connections[int(point_arr[i, 2])] = []
     pairs = []
-    dist_tol2 = dist_tol * dist_tol
+    abs_tol2 = abs_tol * abs_tol
     for i in range(n_rows):
         x, y, id1, sl_xmin, sl_xmax = point_arr[i, :]
         id1 = int(id1)
@@ -812,7 +812,7 @@ def all_close_points(
         for cand in candidates:
             id2 = int(cand[i_id])
             point2 = cand[:2]
-            if close_points_square(point, point2, dist2=dist_tol2):
+            if close_points_square(point, point2, dist2=abs_tol2):
                 d_connections[id1].append(id2)
                 d_connections[id2].append(id1)
                 if with_dist:
@@ -825,21 +825,21 @@ def all_close_points(
 
 def node_dictionaries(
     coords: Sequence[PointType],
-    dist_tol: float,
+    abs_tol: float,
     debug: bool = False,
 ) -> tuple[
     dict[int, tuple[float, ...]],
     dict[tuple[float, ...], int],
     dict[tuple[float, ...], PointType],
 ]:
-    """Return node maps for coordinates that fall within ``dist_tol``.
+    """Return node maps for coordinates that fall within ``abs_tol``.
 
     Nearby coordinates share one node id. The third map keeps the original
     coordinate for each rounded key.
 
     Args:
         coords (Sequence[PointType]): Vertices to index.
-        dist_tol (float): Distance used to merge nearby coordinates.
+        abs_tol (float): Distance used to merge nearby coordinates.
         debug (bool): If True, print the closest unmerged pair.
             Defaults to False.
 
@@ -858,7 +858,7 @@ def node_dictionaries(
         >>> rounded[(5, 5)]
         (5, 5)
 """
-    n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
+    n_round = max(0, ceil(log10(sqrt(2) / abs_tol)))
     d_rounded_coord = {}
     rounded = []
     for coord in coords:
@@ -874,7 +874,7 @@ def node_dictionaries(
         (*coordinate[:2], index)
         for index, coordinate in enumerate(rounded_coords)
     ]
-    _, close_pairs = all_close_points(indexed_coordinates, dist_tol=dist_tol)
+    _, close_pairs = all_close_points(indexed_coordinates, abs_tol=abs_tol)
     parent = list(range(len(rounded_coords)))
     for first_index, second_index in close_pairs:
         first_root = first_index
@@ -917,7 +917,7 @@ def node_dictionaries(
                 closest_points = (first_point[:2], second_point[:2])
         print(
             "Node diagnostics: "
-            f"dist_tol={dist_tol}; automatic n_round={n_round}; "
+            f"abs_tol={abs_tol}; automatic n_round={n_round}; "
             f"nodes={len(d_node_coord)}"
         )
         print(
@@ -932,7 +932,7 @@ def segment_cycles(
     segments: Sequence[LineType],
     length_bound: int = 10,
     cycle_basis: bool = False,
-    dist_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> tuple[list, list]:
     """Return closed walks formed by line segments.
 
@@ -940,8 +940,8 @@ def segment_cycles(
         segments (Sequence[LineType]): Segments ``[(p1, p2), ...]``.
         length_bound (int): Maximum cycle length. Defaults to 10.
         cycle_basis (bool): If True, use a cycle basis. Defaults to False.
-        dist_tol (float | None): Distance for merging nearby endpoints.
-            Defaults to ``defaults["dist_tol"]``.
+        abs_tol (float | None): Distance for merging nearby endpoints.
+            Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         tuple: ``(coordinate_cycles, node_id_cycles)``.
@@ -960,14 +960,14 @@ def segment_cycles(
         >>> len(nodes[0])
         4
 """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
     coordinates = []
     for seg in segments:
         coordinates.extend(seg)
 
-    d_node_coord, d_coord_node, _ = node_dictionaries(coordinates, dist_tol)
-    n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
+    d_node_coord, d_coord_node, _ = node_dictionaries(coordinates, abs_tol)
+    n_round = max(0, ceil(log10(sqrt(2) / abs_tol)))
     g_segments = [
         [d_coord_node[tuple(round_point(coord, n_round))] for coord in seg]
         for seg in segments
@@ -1172,9 +1172,15 @@ def get_partitions(
     Examples:
         >>> import simetri.graphics as sg
         >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
-        >>> group = sg.Group([square])
-        >>> len(group.all_segments)
-        4
+        >>> parts, _, outline = sg.get_partitions(sg.Group([square]))
+        Number of total cycles with less than 10 nodes: 5
+        Number of holes: 0
+        Total partition-area: 1.00, Union-area: 1.00
+        5 partitions.
+        Largest* partition has 4 edges.
+        Used 5 cycles.
+        >>> [tuple(round(c, 6) for c in p[:2]) for p in outline.vertices]
+        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
 """
     n_edges = len(shapes.all_segments)
     intersections = all_intersections(
@@ -1224,7 +1230,7 @@ def get_partitions(
     holes_area = sum([polygon_area(hole.vertices) for hole in holes])
     union_area = polygon_area(union.vertices) - holes_area
     hole_index, sorted_hole_arrays, hole_processed = _build_hole_index(holes)
-    dist_tol = defaults["dist_tol"]
+    abs_tol = defaults["abs_tol"]
 
     count = 0
     area = 0
@@ -1260,14 +1266,14 @@ def get_partitions(
                 polygon_min_y,
                 polygon_max_x,
                 polygon_max_y,
-                dist_tol,
+                abs_tol,
             )
             is_hole = False
             for hole_id in candidate_hole_ids:
                 if equal_sorted_arrays(
                     sorted_partition,
                     sorted_hole_arrays[hole_id],
-                    dist_tol,
+                    abs_tol,
                 ):
                     is_hole = True
                     hole_processed[hole_id] = True
@@ -1300,14 +1306,14 @@ def get_partitions(
 def equal_sorted_arrays(
     array1: NDArray[np.float64],
     array2: NDArray[np.float64],
-    dist_tol: float,
+    abs_tol: float,
 ) -> bool:
-    """Return True if two same-shaped point arrays match within ``dist_tol``.
+    """Return True if two same-shaped point arrays match within ``abs_tol``.
 
     Args:
         array1 (NDArray[np.float64]): First ``(n, 2)`` point array.
         array2 (NDArray[np.float64]): Second ``(n, 2)`` point array.
-        dist_tol (float): Maximum allowed per-point distance.
+        abs_tol (float): Maximum allowed per-point distance.
 
     Returns:
         bool: True if every corresponding pair is within tolerance.
@@ -1334,17 +1340,17 @@ def equal_sorted_arrays(
     n_vertices = array1.shape[0]
     if n_vertices == 0:
         return True
-    dist_tol2 = dist_tol * dist_tol
+    abs_tol2 = abs_tol * abs_tol
     if n_vertices <= 12:
         for index in range(n_vertices):
             dx = array1[index, 0] - array2[index, 0]
             dy = array1[index, 1] - array2[index, 1]
-            if dx * dx + dy * dy > dist_tol2:
+            if dx * dx + dy * dy > abs_tol2:
                 return False
         return True
     delta = array1 - array2
 
-    return bool(np.all((delta * delta).sum(axis=1) <= dist_tol2))
+    return bool(np.all((delta * delta).sum(axis=1) <= abs_tol2))
 
 
 _HOLE_DTYPE = np.dtype(
@@ -1405,9 +1411,9 @@ def _candidate_hole_ids(
     ymin: float,
     xmax: float,
     ymax: float,
-    dist_tol: float,
+    abs_tol: float,
 ) -> NDArray[np.int_]:
-    """Return hole ids whose bbox matches the given bounds within dist_tol.
+    """Return hole ids whose bbox matches the given bounds within abs_tol.
 
     Args:
         hole_index (NDArray[Any]): Index from :func:`_build_hole_index`.
@@ -1416,7 +1422,7 @@ def _candidate_hole_ids(
         ymin (float): Candidate minimum y.
         xmax (float): Candidate maximum x.
         ymax (float): Candidate maximum y.
-        dist_tol (float): Absolute tolerance for bbox matching.
+        abs_tol (float): Absolute tolerance for bbox matching.
 
     Returns:
         NDArray[np.int_]: Matching hole ids.
@@ -1434,10 +1440,10 @@ def _candidate_hole_ids(
         return np.array([], dtype=int)
     mask = (
         ~hole_processed
-        & np.isclose(hole_index["xmin"], xmin, atol=dist_tol)
-        & np.isclose(hole_index["ymin"], ymin, atol=dist_tol)
-        & np.isclose(hole_index["xmax"], xmax, atol=dist_tol)
-        & np.isclose(hole_index["ymax"], ymax, atol=dist_tol)
+        & np.isclose(hole_index["xmin"], xmin, atol=abs_tol)
+        & np.isclose(hole_index["ymin"], ymin, atol=abs_tol)
+        & np.isclose(hole_index["xmax"], xmax, atol=abs_tol)
+        & np.isclose(hole_index["ymax"], ymax, atol=abs_tol)
     )
 
     return hole_index["hole_id"][mask].astype(int)
@@ -1513,8 +1519,8 @@ def polygon_vertices(polygon: PolygonLike) -> Sequence[PointType]:
         >>> sg.polygon_vertices([(0, 0), (1, 0), (1, 1), (0, 1)])
         [(0, 0), (1, 0), (1, 1), (0, 1)]
         >>> shape = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
-        >>> len(sg.polygon_vertices(shape))
-        3
+        >>> sg.polygon_vertices(shape)
+        ((0.0, 0.0), (2.0, 0.0), (0.0, 2.0))
 """
     from ...shapes.shape import Shape
 
@@ -1544,8 +1550,8 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
         >>> import simetri.graphics as sg
         >>> sg.polygon_turns([(0, 0), (1, 0), (1, 1), (0, 1)])
         [1.0, -1.57, 1.0, -1.57, 1.0, -1.57, 1.0, -1.57]
-        >>> len(sg.polygon_turns([(0, 0), (2, 0), (0, 1)]))
-        6
+        >>> sg.polygon_turns([(0, 0), (2, 0), (0, 1)])
+        [2.0, -0.46, 2.23606797749979, -1.11, 1.0, -1.57]
 """
     n = len(vertices)
     res = []
@@ -1715,7 +1721,7 @@ def remove_duplicate_edges(
         >>> sg.remove_duplicate_edges(edges, keep_one=True)
         [((0, 0), (1, 0)), ((0, 1), (1, 1))]
 """
-    dist_tol = defaults["dist_tol"]
+    abs_tol = defaults["abs_tol"]
 
     if not keep_one:
         n = len(edges)
@@ -1748,7 +1754,7 @@ def remove_duplicate_edges(
                     if equal_edges(
                         edges[i],
                         edges[j],
-                        dist_tol=dist_tol,
+                        abs_tol=abs_tol,
                     ):
                         duplicate_mask[i] = True
                         duplicate_mask[j] = True
@@ -1781,7 +1787,7 @@ def remove_duplicate_edges(
                     if equal_edges(
                         edge,
                         unique_edges[candidate_index],
-                        dist_tol=dist_tol,
+                        abs_tol=abs_tol,
                     ):
                         duplicate = True
                         break
@@ -1892,7 +1898,7 @@ def remove_duplicate_polygons(
         >>> sg.remove_duplicate_polygons([square, same], keep_one=False)
         []
 """
-    dist_tol = defaults["dist_tol"]
+    abs_tol = defaults["abs_tol"]
     entries = []
     by_n: dict[int, list[int]] = defaultdict(list)
 
@@ -1914,7 +1920,7 @@ def remove_duplicate_polygons(
             entries[i]["start_len"],
             entries[j]["start_len"],
             rel_tol=0.0,
-            abs_tol=dist_tol,
+            abs_tol=abs_tol,
         )
 
     def _are_congruent(i: int, j: int) -> bool:
@@ -2140,7 +2146,7 @@ def polygon_cg(points: Sequence[PointType]) -> PointType | None:
 def offset_polygon(
     polygon: Sequence[PointType],
     offset: float = -1,
-    dist_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> Sequence[PointType]:
     """Return a closed polygon offset from ``polygon``.
 
@@ -2150,8 +2156,8 @@ def offset_polygon(
     Args:
         polygon (Sequence[PointType]): Polygon vertices.
         offset (float): Offset distance. Defaults to -1.
-        dist_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["dist_tol"]``.
+        abs_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         Sequence[PointType]: Closed offset ring.
@@ -2161,13 +2167,13 @@ def offset_polygon(
         >>> sg.offset_polygon([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
         [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
 """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
     polygon = list(polygon[:])
-    dist_tol2 = dist_tol * dist_tol
+    abs_tol2 = abs_tol * abs_tol
     if not right_handed(polygon):
         polygon.reverse()
-    if not close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
+    if not close_points_square(polygon[0], polygon[-1], dist2=abs_tol2):
         polygon.append(polygon[0])
     poly = []
     for i, point in enumerate(polygon[:-1]):
@@ -2182,7 +2188,7 @@ def offset_polygon(
 def double_offset_polygons(
     polygon: Sequence[PointType],
     offset: float = 1,
-    dist_tol: float | None = None,
+    abs_tol: float | None = None,
     **kwargs: Any,
 ) -> Sequence[Sequence[PointType]]:
     """Return both offset polygons of a vertex ring.
@@ -2192,8 +2198,8 @@ def double_offset_polygons(
             is treated as closed, and a clockwise ring is reversed for
             the offset calculation.
         offset (float): Offset distance. Defaults to 1.
-        dist_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["dist_tol"]``.
+        abs_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["abs_tol"]``.
         **kwargs (Any): If ``canvas`` is a canvas, both offsets are drawn.
 
     Returns:
@@ -2205,17 +2211,17 @@ def double_offset_polygons(
         >>> offsets = sg.double_offset_polygons(raw, 0.5)
         >>> raw
         [(0, 0), (2, 0), (2, 1)]
-        >>> offsets[0][0]
-        (2.118033988749895, 0.5)
-        >>> offsets[1][1]
-        (2.5, -0.5)
+        >>> offsets[0]
+        [(2.118033988749895, 0.5), (1.5, 0.5), (1.5, 0.19098300562505255), (2.118033988749895, 0.5)]
+        >>> offsets[1]
+        [(-2.118033988749895, -0.5), (2.5, -0.5), (2.5, 1.8090169943749475), (-2.118033988749895, -0.5)]
 """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
+    abs_tol2 = abs_tol * abs_tol
 
     ring = list(polygon)
-    if not close_points_square(ring[0], ring[-1], dist2=dist_tol2):
+    if not close_points_square(ring[0], ring[-1], dist2=abs_tol2):
         ring.append(ring[0])
 
     if not right_handed(ring):
@@ -2243,7 +2249,7 @@ def double_offset_polygons(
 def offset_polygon_points(
     polygon: Sequence[PointType],
     offset: float = 1,
-    dist_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> Sequence[PointType]:
     """Return a stitched offset polygon.
 
@@ -2253,8 +2259,8 @@ def offset_polygon_points(
     Args:
         polygon (Sequence[PointType]): Polygon vertices.
         offset (float): Offset distance. Defaults to 1.
-        dist_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["dist_tol"]``.
+        abs_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         Sequence[PointType]: Offset ring. A clockwise result is reversed.
@@ -2264,13 +2270,13 @@ def offset_polygon_points(
         >>> sg.offset_polygon_points([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
         [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
 """
-    return offset_polygon(polygon, offset, dist_tol)
+    return offset_polygon(polygon, offset, abs_tol)
 
 
 def polyline_length(
     polygon: Sequence[PointType],
     closed: bool = False,
-    dist_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> float:
     """Return the length of a polyline, or the perimeter if it is closed.
 
@@ -2278,8 +2284,8 @@ def polyline_length(
         polygon (Sequence[PointType]): Vertices in order.
         closed (bool): If True, include the closing edge when it is missing.
             Defaults to False.
-        dist_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["dist_tol"]``.
+        abs_tol (float | None): Distance used to decide whether the ring
+            is already closed. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         float: Path length.
@@ -2291,13 +2297,13 @@ def polyline_length(
         >>> sg.polyline_length([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
         4.0
 """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
+    abs_tol2 = abs_tol * abs_tol
+    polygon = list(polygon)
     if closed and not close_points_square(
-        polygon[0], polygon[-1], dist2=dist_tol2
+        polygon[0], polygon[-1], dist2=abs_tol2
     ):
-        polygon = polygon[:]
         polygon.append(polygon[0])
     perimeter = 0
     for i, point in enumerate(polygon[:-1]):

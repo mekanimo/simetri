@@ -24,6 +24,7 @@ from ..base.all_enums import (
     FrameShape,
     HeadPos,
     LineJoin,
+    MarkerType,
     Placement,
     TransformationType,
     Types,
@@ -385,6 +386,16 @@ def label_font_family_tikz(family: FontFamily | str) -> str:
         f"Unsupported label font family for TikZ: {family!r}. "
         "Use FontFamily or ttfamily/rmfamily/sffamily."
     )
+
+
+def _tag_font_family_for_label_bounds(family: FontFamily | str) -> FontFamily | str:
+    """Map label font-family settings to ``Tag.font_family`` for ``text_bounds``."""
+    css = label_font_family_svg(family)
+    if css == "monospace":
+        return FontFamily.MONOSPACE
+    if css == "sans-serif":
+        return FontFamily.SANSSERIF
+    return FontFamily.SERIF
 
 
 def label_font_family_svg(family: FontFamily | str) -> str:
@@ -759,9 +770,9 @@ class AnnotationArrow(Group):
 
         self.arrow = Arrow(self.elbow, self.tip, **kwargs)
         items = [self.arrow]
-        dist_tol = defaults["dist_tol"]
+        abs_tol = defaults["abs_tol"]
         landing_span = distance(self.elbow, self.landing)
-        if landing_span > dist_tol:
+        if landing_span > abs_tol:
             self.landing_line = Shape(
                 [self.elbow, self.landing], fill=False, **kwargs
             )
@@ -772,7 +783,7 @@ class AnnotationArrow(Group):
         land_dx = landing_x - elbow_x
         land_dy = landing_y - elbow_y
         land_len = hypot(land_dx, land_dy)
-        if land_len > dist_tol:
+        if land_len > abs_tol:
             unit_x = land_dx / land_len
             unit_y = land_dy / land_len
         elif landing_x >= tip_x:
@@ -1823,7 +1834,7 @@ def vec_arrow(
         displacement_x = end_x - start_x
         displacement_y = end_y - start_y
         offset = hypot(displacement_x - vector_x, displacement_y - vector_y)
-        if offset <= defaults["dist_tol"]:
+        if offset <= defaults["abs_tol"]:
             issue_warning(
                 f"Duplicate position used for Vector({start}, {end}).",
                 warning_type=WarningType.vector.duplicate,
@@ -1999,11 +2010,11 @@ class Dimension(Group):
 
         x1, y1 = p1[:2]
         x2, y2 = p2[:2]
-        dist_tol = defaults["dist_tol"]
-        if abs(x1 - x2) < dist_tol and abs(y1 - y2) < dist_tol:
+        abs_tol = defaults["abs_tol"]
+        if abs(x1 - x2) < abs_tol and abs(y1 - y2) < abs_tol:
             raise ValueError("Dimension points must be distinct.")
 
-        if abs(y1 - y2) < dist_tol:
+        if abs(y1 - y2) < abs_tol:
             dim_x1 = x1
             dim_x2 = x2
             if text_loc == "middle":
@@ -2044,7 +2055,7 @@ class Dimension(Group):
             dim2 = (dim_x2, text_y)
             stub1_tail = (dim_x1 - stub_length, text_y)
             stub2_tip = (dim_x2 + stub_length, text_y)
-        elif abs(x1 - x2) < dist_tol:
+        elif abs(x1 - x2) < abs_tol:
             dim_y1 = y1
             dim_y2 = y2
             if text_loc == "middle":
@@ -2220,17 +2231,24 @@ def vert_label_layout(shape: Shape, offset: float) -> list[dict[str, object]]:
 
 
 def _label_size_from_tag_text_bounds(
-    text: str, font_size_pt: float
+    text: str,
+    font_size_pt: float,
+    font_family: FontFamily | str | None = None,
 ) -> tuple[float, float]:
     """Return ``(width, height)`` from ``Tag.text_bounds`` (no frame padding).
 
     Uses a centered Tag with ``inner_sep=0`` so the size matches the Pillow
-    ink box used by successful overlap resolution experiments.
+    ink box. ``font_family`` must match the label draw path (sketch / defaults).
     """
+    if font_family is None:
+        tag_family = defaults["font_family"]
+    else:
+        tag_family = _tag_font_family_for_label_bounds(font_family)
     tag = Tag(
         str(text),
         pos=(0.0, 0.0),
         font_size=font_size_pt,
+        font_family=tag_family,
         align=Align.CENTER,
     )
     tag.frame.inner_sep = 0
@@ -2239,13 +2257,17 @@ def _label_size_from_tag_text_bounds(
 
 
 def estimate_index_label_bbox(
-    label: object, font_size_pt: float
+    label: object,
+    font_size_pt: float,
+    font_family: FontFamily | str | None = None,
 ) -> tuple[float, float]:
     """Width/height for an index label from ``Tag.text_bounds``.
 
     Args:
         label: Index label value (converted with ``str``).
         font_size_pt (float): Font size in points.
+        font_family: TeX switch, ``FontFamily``, or ``None`` for
+            ``defaults['index_font_family']``.
 
     Returns:
         tuple[float, float]: ``(width, height)`` of the label box.
@@ -2256,17 +2278,23 @@ def estimate_index_label_bbox(
         >>> w > 0 and h > 0
         True
     """
-    return _label_size_from_tag_text_bounds(str(label), font_size_pt)
+    if font_family is None:
+        font_family = defaults["index_font_family"]
+    return _label_size_from_tag_text_bounds(str(label), font_size_pt, font_family)
 
 
 def estimate_vertex_coord_label_bbox(
-    text: str, font_size_pt: float
+    text: str,
+    font_size_pt: float,
+    font_family: FontFamily | str | None = None,
 ) -> tuple[float, float]:
     """Width/height for a vertex coordinate label from ``Tag.text_bounds``.
 
     Args:
         text (str): Coordinate label text.
         font_size_pt (float): Font size in points.
+        font_family: TeX switch, ``FontFamily``, or ``None`` for
+            ``defaults['vertex_font_family']``.
 
     Returns:
         tuple[float, float]: ``(width, height)`` of the label box.
@@ -2277,7 +2305,9 @@ def estimate_vertex_coord_label_bbox(
         >>> w > 0 and h > 0
         True
     """
-    return _label_size_from_tag_text_bounds(text, font_size_pt)
+    if font_family is None:
+        font_family = defaults["vertex_font_family"]
+    return _label_size_from_tag_text_bounds(text, font_size_pt, font_family)
 
 
 def _centered_label_bbox(
@@ -2376,6 +2406,41 @@ def _hull_vertex_indices(vertices: Sequence) -> list[int]:
     return _vertices_on_hull_points(vertices)
 
 
+def sketch_requests_vertex_labels(sketch: Any) -> bool:
+    """Return True if a sketch should render index or vertex-coordinate labels.
+
+    Used by SVG/TikZ renderers and page-level label overlap resolution.
+
+    Args:
+        sketch: Sketch being drawn or inspected.
+
+    Returns:
+        bool: True when label geometry should be emitted.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.helpers.illustration import sketch_requests_vertex_labels
+        >>> from simetri.render.draw import create_sketch
+        >>> canvas = sg.Canvas()
+        >>> shape = sg.Shape([(0, 0), (1, 0)])
+        >>> sketch = create_sketch(shape, canvas)
+        >>> sketch.indices = True
+        >>> sketch_requests_vertex_labels(sketch)
+        True
+    """
+    if not hasattr(sketch, "vertices"):
+        return False
+    if getattr(sketch, "indices", False):
+        return True
+    if getattr(sketch, "show_vertex_coords", False):
+        return True
+    if getattr(sketch, "draw_markers", False) and getattr(
+        sketch, "marker_type", None
+    ) == MarkerType.INDICES:
+        return True
+    return False
+
+
 def _iter_label_sketches(sketches: object) -> Generator[Any, None, None]:
     """Yield shape sketches that show vertex or index labels."""
     for sketch in sketches:
@@ -2385,10 +2450,7 @@ def _iter_label_sketches(sketches: object) -> Generator[Any, None, None]:
                 yield from _iter_label_sketches(sketch_list)
         elif subtype == Types.COMPOSITE_SKETCH:
             yield from _iter_label_sketches(sketch.sketches)
-        elif hasattr(sketch, "vertices") and (
-            getattr(sketch, "indices", False)
-            or getattr(sketch, "show_vertex_coords", False)
-        ):
+        elif sketch_requests_vertex_labels(sketch):
             yield sketch
 
 
@@ -2458,9 +2520,10 @@ def _build_shape_label_rects(sketch: Any) -> list[LabelRect]:
         index_layout = vert_label_layout(sketch, index_offset)
         index_labels = [None] * n
         index_font = sketch_label_font_size_pt(sketch, "index")
+        index_family = sketch_label_font_family(sketch, "index")
         for vertex, label in index_pairs:
             pos = index_layout[vertex]["position"]
-            size = estimate_index_label_bbox(label, index_font)
+            size = estimate_index_label_bbox(label, index_font, index_family)
             entries.append(("index", vertex, pos, size))
             index_labels[vertex] = label
 
@@ -2469,9 +2532,12 @@ def _build_shape_label_rects(sketch: Any) -> list[LabelRect]:
         vertex_layout = vert_label_layout(sketch, vertex_offset)
         coord_texts = [format_vertex_coord(*vertices[i]) for i in range(n)]
         vertex_font = sketch_label_font_size_pt(sketch, "vertex")
+        vertex_family = sketch_label_font_family(sketch, "vertex")
         for i in coord_label_indices:
             pos = vertex_layout[i]["position"]
-            size = estimate_vertex_coord_label_bbox(coord_texts[i], vertex_font)
+            size = estimate_vertex_coord_label_bbox(
+                coord_texts[i], vertex_font, vertex_family
+            )
             entries.append(("vertex", i, pos, size))
 
     rects = [
@@ -2565,6 +2631,86 @@ def resolve_page_vertex_labels(sketches: object) -> None:
 
     for sketch in label_sketches:
         _apply_label_rects_to_sketch(sketch)
+
+
+def _label_rect_outline_shape(rect: LabelRect) -> Shape:
+    """Canvas-space outline for one overlap-resolution ``LabelRect``."""
+    half_w = rect.width / 2
+    half_h = rect.height / 2
+    return Shape(
+        [
+            (rect.x - half_w, rect.y - half_h),
+            (rect.x + half_w, rect.y - half_h),
+            (rect.x + half_w, rect.y + half_h),
+            (rect.x - half_w, rect.y + half_h),
+        ],
+        closed=True,
+    )
+
+
+def _draw_kind_label_bboxes(
+    canvas: Any,
+    kind: str,
+    *,
+    line_color: colors.Color,
+    line_width: float,
+    resolve: bool,
+) -> Any:
+    sketches = canvas.active_page.sketches
+    if resolve:
+        resolve_page_vertex_labels(sketches)
+    for sketch in _iter_label_sketches(sketches):
+        rects = getattr(sketch, _LABEL_RECTS_KEY, None)
+        if not rects:
+            continue
+        for rect in rects:
+            if rect.kind != kind:
+                continue
+            canvas.draw(
+                _label_rect_outline_shape(rect),
+                fill=False,
+                line_color=line_color,
+                line_width=line_width,
+            )
+    return canvas
+
+
+def draw_index_label_bboxes(
+    canvas: Any,
+    *,
+    line_color: colors.Color | None = None,
+    line_width: float = 0.5,
+    resolve: bool = True,
+) -> Any:
+    """Draw overlap boxes for index labels on ``canvas`` (maintainer debug)."""
+    if line_color is None:
+        line_color = colors.red
+    return _draw_kind_label_bboxes(
+        canvas,
+        "index",
+        line_color=line_color,
+        line_width=line_width,
+        resolve=resolve,
+    )
+
+
+def draw_vertex_label_bboxes(
+    canvas: Any,
+    *,
+    line_color: colors.Color | None = None,
+    line_width: float = 0.5,
+    resolve: bool = True,
+) -> Any:
+    """Draw overlap boxes for vertex coordinate labels (maintainer debug)."""
+    if line_color is None:
+        line_color = colors.teal
+    return _draw_kind_label_bboxes(
+        canvas,
+        "vertex",
+        line_color=line_color,
+        line_width=line_width,
+        resolve=resolve,
+    )
 
 
 def _resolve_shape_labels(sketch: Any) -> dict:

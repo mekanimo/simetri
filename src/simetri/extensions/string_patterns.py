@@ -35,16 +35,16 @@ def get_skipped_items(
 
     Examples:
         >>> get_skipped_items([0, 1, 2, 3], 2)
-        [0, 2, 0, 2, 0]
+        [0, 2]
         >>> get_skipped_items([0, 1, 2, 3], [1, 2])
-        [0, 1, 3, 0, 2, 3, 1, 2, 0]
+        [0, 1, 3, 0, 2, 3, 1, 2]
     """
     if isinstance(skip, int):
         skip_cycle = cycle([skip])
-        n_skips = 1
+        n_skips = 2
     else:
         skip_cycle = cycle(skip)
-        n_skips = len(skip)
+        n_skips = len(skip) + 1
 
     n_items = len(items)
     indices = [0]
@@ -88,18 +88,20 @@ def string_star(
     Examples:
         >>> star = string_star(7, 4, 3, 9)
         >>> len(star)
-        34
-        >>> [round(c, 4) for c in star[0][:2]]
-        [100.0, 0.0]
+        29
+        >>> [sg.round_point(star[idx], 2) for idx in (0, 10, 20, 28)]
+        [(100.0, 0.0), (-13.87, -17.4), (-22.25, 97.49), (100.0, 0.0)]
     """
     reg_poly_vertices = reg_poly_points(n_sides, r=radius)
 
     skipped_vertices = get_skipped_items(reg_poly_vertices, skip)
+    skipped_vertices += [skipped_vertices[0]]
 
     all_vertices = subdivide_segments(
         connected_pairs(skipped_vertices), n_subdivs, as_vertices=True
-    )
+    )[:-1]
 
     stepped_vertices = get_skipped_items(all_vertices, step)
+    stepped_vertices += [stepped_vertices[0]]
 
     return stepped_vertices

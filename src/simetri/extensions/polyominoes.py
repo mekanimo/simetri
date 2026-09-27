@@ -11,6 +11,45 @@ NormalizedPoly = tuple[Cell, ...]
 PolyoType = Literal["fixed", "free", "chiral"]
 
 
+def _rotate_90(p_set: NormalizedPoly) -> NormalizedPoly:
+    return tuple((y, -x) for x, y in p_set)
+
+
+def _reflect_x(p_set: NormalizedPoly) -> NormalizedPoly:
+    return tuple((-x, y) for x, y in p_set)
+
+
+def _normalize_variant(p_set: Iterable[Cell]) -> NormalizedPoly:
+    min_x = min(x for x, _ in p_set)
+    min_y = min(y for _, y in p_set)
+    return tuple(sorted((x - min_x, y - min_y) for x, y in p_set))
+
+
+def _canonical(
+    poly: set[Cell] | tuple[Cell, ...], polyo_type: PolyoType
+) -> NormalizedPoly:
+    min_x = min(x for x, _ in poly)
+    min_y = min(y for _, y in poly)
+    normalized = tuple(sorted((x - min_x, y - min_y) for x, y in poly))
+    if polyo_type == "fixed":
+        return normalized
+
+    variants = [normalized]
+    current = normalized
+    for _ in range(3):
+        current = _normalize_variant(_rotate_90(current))
+        variants.append(current)
+
+    if polyo_type == "free":
+        current = _normalize_variant(_reflect_x(normalized))
+        variants.append(current)
+        for _ in range(3):
+            current = _normalize_variant(_rotate_90(current))
+            variants.append(current)
+
+    return min(variants)
+
+
 def generate_centers(
     n: int, polyo_type: PolyoType = "free"
 ) -> list[list[Cell]]:
@@ -43,51 +82,6 @@ def generate_centers(
     if polyo_type not in valid_types:
         raise ValueError(f"polyo_type must be one of {valid_types}")
 
-    def canonical(poly: set[Cell] | tuple[Cell, ...]) -> NormalizedPoly:
-        # Shift coordinates to start at the origin (0, 0)
-        min_x = min(x for x, _ in poly)
-        min_y = min(y for _, y in poly)
-        normalized = tuple(sorted((x - min_x, y - min_y) for x, y in poly))
-
-        # Track all valid variations based on the polyomino type
-        variants = [normalized]
-
-        # 1. Fixed: No rotations, no reflections. Only shifted to origin.
-        if polyo_type == "fixed":
-            return normalized
-
-        # Helper to rotate a polyomino 90 degrees clockwise
-        def rotate_90(p_set: NormalizedPoly) -> NormalizedPoly:
-            return tuple((y, -x) for x, y in p_set)
-
-        # Helper to reflect a polyomino horizontally across the y-axis
-        def reflect_x(p_set: NormalizedPoly) -> NormalizedPoly:
-            return tuple((-x, y) for x, y in p_set)
-
-        # Helper to re-normalize a transformed shape back to the origin
-        def normalize_variant(p_set: Iterable[Cell]) -> NormalizedPoly:
-            mx = min(x for x, _ in p_set)
-            my = min(y for _, y in p_set)
-            return tuple(sorted((x - mx, y - my) for x, y in p_set))
-
-        # 2. Chiral: 4 rotations allowed, no reflections
-        curr = normalized
-        for _ in range(3):
-            curr = normalize_variant(rotate_90(curr))
-            variants.append(curr)
-
-        # 3. Free: 4 rotations AND their reflections (8 shapes total)
-        if polyo_type == "free":
-            reflected = normalize_variant(reflect_x(normalized))
-            curr_ref = reflected
-            variants.append(curr_ref)
-            for _ in range(3):
-                curr_ref = normalize_variant(rotate_90(curr_ref))
-                variants.append(curr_ref)
-
-        # Return the unique lexicographical minimum shape as the canonical ID
-        return min(variants)
-
     # Core Redelmeier-like cell growth algorithm
     # Start with a single square at the origin
     current_level = {((0, 0),)}
@@ -105,7 +99,7 @@ def generate_centers(
             for neighbor in neighbors:
                 new_poly = set(poly)
                 new_poly.add(neighbor)
-                next_level.add(canonical(new_poly))
+                next_level.add(_canonical(new_poly, polyo_type))
         current_level = next_level
 
     return [list(p) for p in current_level]
@@ -140,41 +134,6 @@ def iter_centers(
     if polyo_type not in valid_types:
         raise ValueError(f"polyo_type must be one of {valid_types}")
 
-    def canonical(poly: set[Cell] | tuple[Cell, ...]) -> NormalizedPoly:
-        min_x = min(x for x, _ in poly)
-        min_y = min(y for _, y in poly)
-        normalized = tuple(sorted((x - min_x, y - min_y) for x, y in poly))
-
-        variants = [normalized]
-
-        if polyo_type == "fixed":
-            return normalized
-
-        def rotate_90(p_set: NormalizedPoly) -> NormalizedPoly:
-            return tuple((y, -x) for x, y in p_set)
-
-        def reflect_x(p_set: NormalizedPoly) -> NormalizedPoly:
-            return tuple((-x, y) for x, y in p_set)
-
-        def normalize_variant(p_set: Iterable[Cell]) -> NormalizedPoly:
-            min_x = min(x for x, _ in p_set)
-            min_y = min(y for _, y in p_set)
-            return tuple(sorted((x - min_x, y - min_y) for x, y in p_set))
-
-        current = normalized
-        for _ in range(3):
-            current = normalize_variant(rotate_90(current))
-            variants.append(current)
-
-        if polyo_type == "free":
-            current = normalize_variant(reflect_x(normalized))
-            variants.append(current)
-            for _ in range(3):
-                current = normalize_variant(rotate_90(current))
-                variants.append(current)
-
-        return min(variants)
-
     current_level = {((0, 0),)}
 
     for _ in range(2, n + 1):
@@ -193,7 +152,7 @@ def iter_centers(
             for neighbor in neighbors:
                 new_poly = set(poly)
                 new_poly.add(neighbor)
-                next_level.add(canonical(new_poly))
+                next_level.add(_canonical(new_poly, polyo_type))
         current_level = next_level
 
     for poly in current_level:

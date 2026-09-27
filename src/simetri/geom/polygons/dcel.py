@@ -94,10 +94,8 @@ def create_square_patch() -> tuple[Face, list[Vertex]]:
     Examples:
         >>> from simetri.geom.polygons.dcel import create_square_patch
         >>> face, vertices = create_square_patch()
-        >>> len(vertices)
-        4
-        >>> (vertices[0].x, vertices[0].y)
-        (0.0, 0.0)
+        >>> [(v.x, v.y) for v in vertices]
+        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
     """
     # 1. Create vertices
     v0 = Vertex(0.0, 0.0)

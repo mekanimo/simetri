@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import networkx as nx
 
-from ..base.common import LineType, PointType
+from ..base.common import LineType, PointType, resolve_tol
 from ..config.settings import runtime_defaults as defaults
 from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import inclination_angle
@@ -84,7 +84,8 @@ def _collect_closest_angles(
 
 def _merge_shapes(
     self: Group,
-    dist_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
     merge_angle_tol: float = 0.1,
     debug: bool = False,
     keep_one_duplicate: bool = True,
@@ -92,13 +93,13 @@ def _merge_shapes(
 ) -> Group:
     """Merge connected shapes in this group into polygons and open polylines.
 
-    Builds a graph from edge endpoints (snapped within ``dist_tol``), merges
+    Builds a graph from edge endpoints (snapped within ``abs_tol``), merges
     collinear runs, then reconstructs closed cycles and open walks as
     ``Shape`` instances.
 
     Args:
-        dist_tol: Distance tolerance for snapping vertices. Defaults to
-            ``defaults["dist_tol"]`` when ``None``.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
         merge_angle_tol: Angle tolerance (radians) for treating edges as
             collinear. Defaults to 0.1.
         debug: If True, print point and angle diagnostics.
@@ -116,13 +117,12 @@ def _merge_shapes(
 
     if len(self) < 2:
         return self
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
+    _, abs_tol = resolve_tol(rel_tol, abs_tol)
+    n_round = max(0, ceil(log10(sqrt(2) / abs_tol)))
     if debug:
         print("Merge diagnostics:")
     self._set_node_dictionaries(
-        self.all_vertices, dist_tol=dist_tol, debug=debug
+        self.all_vertices, abs_tol=abs_tol, debug=debug
     )
     edges, segments = self._get_edges_and_segments(n_round=n_round)
     segments = self.merge_collinears(
@@ -328,7 +328,8 @@ def _merge_collinears(
 
 def combine_shapes(
     group: Group,
-    dist_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
     merge_angle_tol: float = 0.1,
     debug: bool = False,
     keep_one_duplicate: bool = False,
@@ -346,7 +347,8 @@ def combine_shapes(
 
     Args:
         group: Group of line-like shapes to combine.
-        dist_tol: Vertex snap tolerance. Defaults to library ``dist_tol``.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
         merge_angle_tol: Collinearity angle tolerance in radians.
         debug: If True, print merge diagnostics.
         keep_one_duplicate: If True, use ``merge_shapes`` instead.
@@ -373,7 +375,8 @@ def combine_shapes(
         return group
     if keep_one_duplicate:
         result = group.merge_shapes(
-            dist_tol=dist_tol,
+            rel_tol=rel_tol,
+            abs_tol=abs_tol,
             merge_angle_tol=merge_angle_tol,
             debug=debug,
             keep_one_duplicate=True,
@@ -382,13 +385,12 @@ def combine_shapes(
             result.set_attribs(key, value)
         return result
 
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    n_round = max(0, ceil(log10(sqrt(2) / dist_tol)))
+    _, abs_tol = resolve_tol(rel_tol, abs_tol)
+    n_round = max(0, ceil(log10(sqrt(2) / abs_tol)))
     if debug:
         print("Combine diagnostics:")
     group._set_node_dictionaries(
-        group.all_vertices, dist_tol=dist_tol, debug=debug
+        group.all_vertices, abs_tol=abs_tol, debug=debug
     )
     edges, _segments = group._get_edges_and_segments(n_round=n_round)
     d_coord_node = group.d_coord_node

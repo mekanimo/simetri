@@ -15,7 +15,7 @@ from ...base.common import PointType
 from ...group.batch import Group
 from ...shapes.geom_items import Circle
 from ..affine import rotate, rotation_matrix, scale_matrix
-from ..geom_utils import offset_point_from_start, r_polar
+from ..geom_utils import extend, r_polar
 from ..geometry import side_len_to_radius
 from ..homogenize import homogenize
 from ..points.point_utils import distance
@@ -592,8 +592,12 @@ def circle_flower(
 
         >>> import simetri.graphics as sg
         >>> flowers = sg.circle_flower(n=8, radius=20, layers=4)
-        >>> len(flowers) > 0
-        True
+        >>> len(flowers)
+        40
+        >>> flowers[0].radius, [round(float(c), 6) for c in flowers[0].center[:2]]
+        (20.0, [52.262519, 0.0])
+        >>> round(flowers[-1].radius, 6), [round(float(c), 6) for c in flowers[-1].center[:2]]
+        (1.224202, [2.262031, 2.262031])
         >>> canvas = sg.Canvas()  # doctest: +SKIP
         >>> canvas.draw(flowers)  # doctest: +SKIP
     """
@@ -665,9 +669,9 @@ def circle_tangent_to2lines(
     """
     alpha = angle_between_two_lines(line1, line2)
     dist = radius / sin(alpha / 2)
-    start = offset_point_from_start(intersection_, line1.p1, dist)
+    start = extend(intersection_, line1.p1, dist)
     center = rotate_point(start, intersection_, alpha / 2)
-    end = offset_point_from_start(intersection_, line2.p1, dist)
+    end = extend(intersection_, line2.p1, dist)
 
     return center, start, end
 

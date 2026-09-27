@@ -43,9 +43,9 @@ class Bezier(Shape):
     Examples:
 
         >>> import simetri.graphics as sg
-        >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)])
-        >>> len(curve.vertices) >= 5
-        True
+        >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5)
+        >>> [[round(float(c), 6) for c in q[:2]] for q in curve.vertices]
+        [[0.0, 0.0], [18.125, 22.5], [40.0, 30.0], [61.875, 22.5], [80.0, 0.0]]
         >>> canvas = sg.Canvas()  # doctest: +SKIP
         >>> canvas.draw(curve)  # doctest: +SKIP
     """
@@ -423,13 +423,9 @@ def bezier_points(
     Examples:
 
         >>> import simetri.graphics as sg
-        >>> pts = sg.bezier_points((0, 0), (1, 2), (2, 2), (3, 0), n_points=20)
-        >>> len(pts)
-        20
-        >>> tuple(round(x, 6) for x in pts[0])
-        (0.0, 0.0)
-        >>> tuple(round(x, 6) for x in pts[-1])
-        (3.0, 0.0)
+        >>> pts = sg.bezier_points((0, 0), (1, 2), (2, 2), (3, 0), n_points=5)
+        >>> [[round(float(c), 6) for c in q[:2]] for q in pts]
+        [[0.0, 0.0], [0.75, 1.125], [1.5, 1.5], [2.25, 1.125], [3.0, 0.0]]
     """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")
@@ -468,11 +464,9 @@ def q_bezier_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.q_bezier_points((0, 0), (1, 1), (2, 0), 10)
-        >>> len(pts)
-        10
-        >>> tuple(round(x, 6) for x in pts[-1])
-        (2.0, 0.0)
+        >>> pts = sg.q_bezier_points((0, 0), (1, 1), (2, 0), 5)
+        >>> [[round(float(c), 6) for c in q[:2]] for q in pts]
+        [[0.0, 0.0], [0.5, 0.375], [1.0, 0.5], [1.5, 0.375], [2.0, 0.0]]
     """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")

@@ -750,9 +750,10 @@ def random_rectangles(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> rectangles = sg.random_rectangles(4, 2, 8, 0, 0, 30, 30)
-        >>> len(rectangles)
-        4
+        >>> rectangles = sg.random_rectangles(2, 2, 8, 0, 0, 30, 30, seed=1)
+        >>> [[[round(float(c), 6) for c in p[:2]] for p in r.vertices] for r in rectangles]
+        [[[21.510146, 4.10977], [24.316331, 4.10977], [24.316331, 11.194372], [21.510146, 11.194372]],
+         [[17.061484, 21.313227], [22.034094, 21.313227], [22.034094, 26.010174], [17.061484, 26.010174]]]
 """
     rng = _resolve_rng(seed, rng)
     return Group(
@@ -924,7 +925,7 @@ def random_triangle(
         )
     if min_angle > max_angle:
         raise ValueError(f"min_angle ({min_angle}) > max_angle ({max_angle})")
-    angle_tolerance = defaults["angle_tol"]
+    angle_tolerance = defaults["abs_tol"]
     if (
         3 * min_angle > pi + angle_tolerance
         or 3 * max_angle < pi - angle_tolerance
@@ -988,7 +989,7 @@ def random_triangle(
             "constraints"
         )
 
-    area_tol = defaults["area_tol"]
+    abs_tol = defaults["abs_tol"]
     while True:
         side_ab = rng.uniform(min_edge_length, max_edge_length)
         side_ac = rng.uniform(min_edge_length, max_edge_length)
@@ -1002,7 +1003,7 @@ def random_triangle(
         side_bc = distance(vertex_b, vertex_c)
         if not (min_edge_length <= side_bc <= max_edge_length):
             continue
-        if abs(double_area3(vertex_a, vertex_b, vertex_c)) <= area_tol:
+        if abs(double_area3(vertex_a, vertex_b, vertex_c)) <= abs_tol:
             continue
         vertices = [vertex_a, vertex_b, vertex_c]
         if not is_ccw(vertices):
@@ -1211,8 +1212,8 @@ def random_polygon(
     if min_angle > max_angle:
         raise ValueError(f"min_angle ({min_angle}) > max_angle ({max_angle})")
 
-    angle_tolerance = defaults["angle_tol"]
-    distance_tolerance = defaults["dist_tol"]
+    angle_tolerance = defaults["abs_tol"]
+    distance_tolerance = defaults["abs_tol"]
 
     if angles is not None:
         if not closed:

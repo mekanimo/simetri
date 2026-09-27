@@ -11,13 +11,18 @@ import numpy as np
 from numpy import array
 
 from simetri.base.all_enums import Connection, Types
-from simetri.base.common import LineType, PointType, get_defaults
+from simetri.base.common import (
+    LineType,
+    PointType,
+    get_defaults,
+    resolve_tol,
+)
 from simetri.config.settings import runtime_defaults as defaults
 from simetri.geom.geom_utils import (
     close_points_square,
     connected_pairs,
+    extend,
     midpoint,
-    offset_point_from_start,
 )
 from simetri.geom.geometry import (
     bbox_overlap,
@@ -48,16 +53,22 @@ from simetri.geom.vectors import (
 from simetri.helpers.validation import is_number, is_point
 
 
-def equal_edges(edge1: LineType, edge2: LineType, dist_tol: float = 0.001) -> bool:
+def equal_edges(
+    edge1: LineType,
+    edge2: LineType,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
+) -> bool:
     """Return True if two edges have matching endpoints (either orientation).
 
     Args:
         edge1: First edge ``(p1, p2)``.
         edge2: Second edge ``(p3, p4)``.
-        dist_tol: Endpoint distance tolerance. Defaults to 0.001.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
-        bool: True if endpoints match within ``dist_tol``.
+        bool: True if endpoints match within ``abs_tol``.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -70,73 +81,93 @@ def equal_edges(edge1: LineType, edge2: LineType, dist_tol: float = 0.001) -> bo
     p3, p4 = edge2
 
     return (
-        equal_points(p1, p3, dist_tol) and equal_points(p2, p4, dist_tol)
-    ) or (equal_points(p1, p4, dist_tol) and equal_points(p2, p3, dist_tol))
+        equal_points(p1, p3, rel_tol=rel_tol, abs_tol=abs_tol)
+        and equal_points(p2, p4, rel_tol=rel_tol, abs_tol=abs_tol)
+    ) or (
+        equal_points(p1, p4, rel_tol=rel_tol, abs_tol=abs_tol)
+        and equal_points(p2, p3, rel_tol=rel_tol, abs_tol=abs_tol)
+    )
 
 
 # alias for equal_edges
-def equal_segments(edge1: LineType, edge2: LineType, dist_tol: float = 0.001) -> bool:
-    """Alias for ``equal_edges``.
-
-    Args:
-        edge1: First segment.
-        edge2: Second segment.
-        dist_tol: Endpoint distance tolerance. Defaults to 0.001.
-
-    Returns:
-        bool: True if endpoints match within ``dist_tol``.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.equal_segments(((0, 0), (1, 0)), ((0, 0), (1, 0)))
-        True
-"""
-
-    return equal_edges(edge1, edge2, dist_tol=dist_tol)
-
-
-# alias for equal_edges
-def congruent_edges(edge1: LineType, edge2: LineType, dist_tol: float = 0.001) -> bool:
-    """Alias for ``equal_edges``.
-
-    Args:
-        edge1: First edge.
-        edge2: Second edge.
-        dist_tol: Endpoint distance tolerance. Defaults to 0.001.
-
-    Returns:
-        bool: True if endpoints match within ``dist_tol``.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.congruent_edges(((0, 0), (1, 0)), ((1, 0), (0, 0)))
-        True
-"""
-
-    return equal_edges(edge1, edge2, dist_tol=dist_tol)
-
-
-# alias for equal_edges
-def congruent_segments(
-    edge1: LineType, edge2: LineType, dist_tol: float = 0.001
+def equal_segments(
+    edge1: LineType,
+    edge2: LineType,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """Alias for ``equal_edges``.
 
     Args:
         edge1: First segment.
         edge2: Second segment.
-        dist_tol: Endpoint distance tolerance. Defaults to 0.001.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
-        bool: True if endpoints match within ``dist_tol``.
+        bool: True if endpoints match within ``abs_tol``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.equal_segments(((0, 0), (1, 0)), ((0, 0), (1, 0)))
+        True
+    """
+
+    return equal_edges(edge1, edge2, rel_tol=rel_tol, abs_tol=abs_tol)
+
+
+# alias for equal_edges
+def congruent_edges(
+    edge1: LineType,
+    edge2: LineType,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
+) -> bool:
+    """Alias for ``equal_edges``.
+
+    Args:
+        edge1: First edge.
+        edge2: Second edge.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+
+    Returns:
+        bool: True if endpoints match within ``abs_tol``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.congruent_edges(((0, 0), (1, 0)), ((1, 0), (0, 0)))
+        True
+    """
+
+    return equal_edges(edge1, edge2, rel_tol=rel_tol, abs_tol=abs_tol)
+
+
+# alias for equal_edges
+def congruent_segments(
+    edge1: LineType,
+    edge2: LineType,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
+) -> bool:
+    """Alias for ``equal_edges``.
+
+    Args:
+        edge1: First segment.
+        edge2: Second segment.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+
+    Returns:
+        bool: True if endpoints match within ``abs_tol``.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.congruent_segments(((0, 0), (1, 0)), ((1, 0), (0, 0)))
         True
-"""
+    """
 
-    return equal_edges(edge1, edge2, dist_tol=dist_tol)
+    return equal_edges(edge1, edge2, rel_tol=rel_tol, abs_tol=abs_tol)
 
 
 def line_angle(start_point: PointType, end_point: PointType) -> float:
@@ -233,27 +264,13 @@ def offset_lines(
         list[LineType]: List of offset lines.
 
     Examples:
-        >>> from simetri.geom.segments.line_utils import offset_lines
-        >>> offset_lines([((0, 0), (1, 0)), ((1, 0), (1, 1))], 1)[0][1]
-        1.0
-"""
-
-    def stitch_(polyline: Sequence[LineType]) -> list:
-        res = []
-        line1 = polyline[0]
-        for i, _ in enumerate(polyline):
-            if i == len(polyline) - 1:
-                break
-            line2 = polyline[i + 1]
-            line1, line2 = stitch_lines(line1, line2)
-            res.extend(line1)
-            line1 = line2
-        res.append(line2[-1])
-        return res
-
-    poly = [offset_line(line, offset) for line in polylines]
-    poly = stitch_(poly)
-    return poly
+        >>> import simetri.graphics as sg
+        >>> sg.offset_lines([((0, 0), (2, 0)), ((2, 0), (2, 2))], 1)
+        [([0.0, 1.0], (1.0, 1.0)), ((1.0, 1.0), [1.0, 2.0])]
+    """
+    offset_segs = [offset_line(line, offset) for line in polylines]
+    points = stitch(offset_segs, closed=False, return_points=True)
+    return connected_pairs(points)
 
 
 def parallel_line(line: LineType, point: PointType) -> LineType:
@@ -305,9 +322,8 @@ def collinear3(
     a: PointType,
     b: PointType,
     c: PointType,
-    area_tol: float | None = None,
-    area_rel_tol: float | None = None,
-    area_abs_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """Return True if a, b, and c are collinear.
 
@@ -315,9 +331,8 @@ def collinear3(
         a (PointType): First point.
         b (PointType): Second point.
         c (PointType): Third point.
-        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
-        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
-        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
+        rel_tol (float, optional): Relative tolerance. Defaults to None.
+        abs_tol (float, optional): Absolute tolerance. Defaults to None.
 
     Returns:
         bool: True if the points are collinear, False otherwise.
@@ -329,29 +344,24 @@ def collinear3(
         >>> sg.collinear3((0, 0), (1, 0), (0, 1))
         False
     """
-    area_tol, area_rel_tol, area_abs_tol = get_defaults(
-        ["area_tol", "area_rel_tol", "area_abs_tol"],
-        [area_tol, area_rel_tol, area_abs_tol],
-    )
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
 
-    return abs(double_area3(a, b, c)) <= area_abs_tol
+    return abs(double_area3(a, b, c)) <= abs_tol
 
 
 def merge_consecutive_collinear_edges(
     points: Sequence[PointType],
     closed: bool = False,
-    area_tol: float | None = None,
-    area_rel_tol: float | None = None,
-    area_abs_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> list[PointType]:
     """Remove the middle points from collinear edges.
 
     Args:
         points (list[PointType]): List of points.
         closed (bool, optional): Whether the points form a closed shape. Defaults to False.
-        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
-        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
-        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
+        rel_tol (float, optional): Relative tolerance. Defaults to None.
+        abs_tol (float, optional): Absolute tolerance. Defaults to None.
 
     Returns:
         list[PointType]: List of points with collinear points removed.
@@ -361,10 +371,7 @@ def merge_consecutive_collinear_edges(
         >>> merge_consecutive_collinear_edges([(0, 0), (1, 0), (2, 0), (2, 1)])
         [(0, 0), (2, 0), (2, 1)]
     """
-    area_tol, area_rel_tol, area_abs_tol = get_defaults(
-        ["area_tol", "area_rel_tol", "area_abs_tol"],
-        [area_tol, area_rel_tol, area_abs_tol],
-    )
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
     points = points[:]
 
     while True:
@@ -382,9 +389,8 @@ def merge_consecutive_collinear_edges(
                 a,
                 b,
                 c,
-                area_tol=area_tol,
-                area_rel_tol=area_rel_tol,
-                area_abs_tol=area_abs_tol,
+                rel_tol=rel_tol,
+                abs_tol=abs_tol,
             ):
                 discarded.append(b)
                 looping = True
@@ -400,9 +406,7 @@ def merge_consecutive_collinear_edges(
     return points
 
 
-def round_segment(
-    segment: Sequence[PointType], n_digits: int = 2
-) -> LineType:
+def round_segment(segment: Sequence[PointType], n_digits: int = 2) -> LineType:
     """Round a segment to a given precision.
 
     Args:
@@ -618,9 +622,8 @@ def segment_connection(
 def collinear_segments(
     segment1: LineType,
     segment2: LineType,
-    area_tol: float | None = None,
-    area_rel_tol: float | None = None,
-    area_abs_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """
     Checks if two line segments (a1, b1) and (a2, b2) are collinear.
@@ -628,9 +631,8 @@ def collinear_segments(
     Args:
         segment1 (LineType): First line segment.
         segment2 (LineType): Second line segment.
-        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
-        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
-        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
+        rel_tol (float, optional): Relative tolerance. Defaults to None.
+        abs_tol (float, optional): Absolute tolerance. Defaults to None.
 
     Returns:
         bool: True if the segments are collinear, False otherwise.
@@ -642,36 +644,21 @@ def collinear_segments(
         >>> sg.collinear_segments([(0, 0), (2, 0)], [(0, 1), (2, 1)])
         False
     """
-    area_tol, area_rel_tol, area_abs_tol = get_defaults(
-        ["area_tol", "area_rel_tol", "area_abs_tol"],
-        [area_tol, area_rel_tol, area_abs_tol],
-    )
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
     a1, b1 = segment1
     a2, b2 = segment2
 
     return isclose(
         direction3(a1, b1, a2),
         0,
-        rel_tol=area_rel_tol,
-        abs_tol=area_abs_tol,
+        rel_tol=rel_tol,
+        abs_tol=abs_tol,
     ) and isclose(
         direction3(a1, b1, b2),
         0,
-        rel_tol=area_rel_tol,
-        abs_tol=area_abs_tol,
+        rel_tol=rel_tol,
+        abs_tol=abs_tol,
     )
-
-
-_TOLERANCES = (
-    "rel_tol",
-    "abs_tol",
-    "dist_tol",
-    "dist_rel_tol",
-    "dist_abs_tol",
-    "area_tol",
-    "area_rel_tol",
-    "area_abs_tol",
-)
 
 
 def check_intersection(
@@ -685,12 +672,6 @@ def check_intersection(
     y4: float,
     rel_tol: float | None = None,
     abs_tol: float | None = None,
-    dist_tol: float | None = None,
-    dist_rel_tol: float | None = None,
-    dist_abs_tol: float | None = None,
-    area_tol: float | None = None,
-    area_rel_tol: float | None = None,
-    area_abs_tol: float | None = None,
 ) -> tuple[Connection, list]:
     """Return a fine-grained classification of how two line segments meet.
 
@@ -709,12 +690,6 @@ def check_intersection(
         y4 (float): y-coordinate of the second point of the second line segment.
         rel_tol (float, optional): Relative tolerance. Defaults to None.
         abs_tol (float, optional): Absolute tolerance. Defaults to None.
-        dist_tol (float, optional): Distance tolerance shorthand. Defaults to None.
-        dist_rel_tol (float, optional): Relative distance tolerance. Defaults to None.
-        dist_abs_tol (float, optional): Absolute distance tolerance. Defaults to None.
-        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
-        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
-        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
 
     Returns:
         tuple[Connection, PointType | Sequence | None]: A ``Connection``
@@ -738,28 +713,8 @@ def check_intersection(
     # s1e2: start1 and end2 is connected
     # e1s2: end1 and start2 is connected
     # e1e2: end1 and end2 is connected
-    (
-        rel_tol,
-        abs_tol,
-        dist_tol,
-        dist_rel_tol,
-        dist_abs_tol,
-        area_tol,
-        area_rel_tol,
-        area_abs_tol,
-    ) = get_defaults(
-        _TOLERANCES,
-        [
-            rel_tol,
-            abs_tol,
-            dist_tol,
-            dist_rel_tol,
-            dist_abs_tol,
-            area_tol,
-            area_rel_tol,
-            area_abs_tol,
-        ],
-    )
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
+    abs_tol2 = abs_tol * abs_tol
 
     s1 = (x1, y1)
     e1 = (x2, y2)
@@ -781,14 +736,13 @@ def check_intersection(
     parallel = isclose(denom, 0, rel_tol=rel_tol, abs_tol=abs_tol)
     # angle1 = atan2(y2 - y1, x2 - x1) % pi
     # angle2 = atan2(y4 - y3, x4 - x3) % pi
-    # parallel = close_angles(angle1, angle2, angtol=defaults['angtol'])
+    # parallel = close_angles(angle1, angle2, abs_tol=defaults['abs_tol'])
 
     # Coincident end points
-    dist_tol2 = dist_abs_tol * dist_abs_tol
-    s1s2 = close_points_square(s1, s2, dist2=dist_tol2)
-    s1e2 = close_points_square(s1, e2, dist2=dist_tol2)
-    e1s2 = close_points_square(e1, s2, dist2=dist_tol2)
-    e1e2 = close_points_square(e1, e2, dist2=dist_tol2)
+    s1s2 = close_points_square(s1, s2, dist2=abs_tol2)
+    s1e2 = close_points_square(s1, e2, dist2=abs_tol2)
+    e1s2 = close_points_square(e1, s2, dist2=abs_tol2)
+    e1e2 = close_points_square(e1, e2, dist2=abs_tol2)
     connected = s1s2 or s1e2 or e1s2 or e1e2
     if parallel:
         length1 = distance((x1, y1), (x2, y2))
@@ -832,9 +786,8 @@ def check_intersection(
             if total_length < length1 + length2 and collinear_segments(
                 segment1,
                 segment2,
-                area_tol=area_tol,
-                area_rel_tol=area_rel_tol,
-                area_abs_tol=area_abs_tol,
+                rel_tol=rel_tol,
+                abs_tol=abs_tol,
             ):
                 p1 = (min_x, min_y)
                 p2 = (max_x, max_y)
@@ -965,16 +918,6 @@ def sorted_edges(polygon: Sequence[PointType]) -> list[LineType]:
 
     # order the edges:increasing x coordinates then increasing y coordinates for the start points
     # this is used for line sweep algorithm to check if the polygon is simple
-    def get_edges(polygon: Sequence[PointType]) -> list[LineType]:
-        edges = []
-        for i, p in enumerate(polygon[:-1]):
-            np = polygon[i + 1]  # next point
-            edges.append((p, np))
-        p = polygon[-1]
-        np = polygon[0]
-        edges.append((p, np))
-        return edges
-
     def compare_edges(edge1: LineType, edge2: LineType) -> int:
         x1 = edge1[0][0]
         x2 = edge2[0][0]
@@ -992,7 +935,7 @@ def sorted_edges(polygon: Sequence[PointType]) -> list[LineType]:
             else:
                 return 0
 
-    edges = get_edges(polygon)
+    edges = connected_pairs(polygon, closed=True)
     oriented_edges = []
     for edge in edges:
         start_x, start_y = edge[0][:2]
@@ -1184,8 +1127,8 @@ def all_segments_sorted(
     Examples:
         >>> from simetri.geom.segments.line_utils import all_segments_sorted
         >>> segs = all_segments_sorted([((0, 0), (2, 0)), ((1, -1), (1, 1))])
-        >>> len(segs)
-        4
+        >>> segs
+        [((0, 0), (1.0, 0.0)), ((1.0, 0.0), (2, 0)), ((1, -1), (1.0, 0.0)), ((1.0, 0.0), (1, 1))]
     """
     intersection_map, _ = all_intersections(edges, rel_tol, abs_tol)
 
@@ -1457,7 +1400,10 @@ def stitch(
 
 
 def equal_lines(
-    line1: LineType, line2: LineType, dist_tol: float | None = None
+    line1: LineType,
+    line2: LineType,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """
     Return True if two lines are close enough.
@@ -1465,27 +1411,27 @@ def equal_lines(
     Args:
         line1 (LineType): First line.
         line2 (LineType): Second line.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         bool: True if the lines are close enough, False otherwise.
 
     Examples:
-        >>> from simetri.geom.segments.line_utils import equal_lines
-        >>> equal_lines([(0, 0), (1, 0)], [(0, 0), (1, 0)])
+        >>> import simetri.graphics as sg
+        >>> sg.equal_lines([(0, 0), (1, 0)], [(0, 0), (1, 0)])
         True
     """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
+    _, abs_tol = resolve_tol(rel_tol, abs_tol)
+    abs_tol2 = abs_tol * abs_tol
     p1, p2 = line1
     p3, p4 = line2
     return (
-        close_points_square(p1, p3, dist2=dist_tol2)
-        and close_points_square(p2, p4, dist2=dist_tol2)
+        close_points_square(p1, p3, dist2=abs_tol2)
+        and close_points_square(p2, p4, dist2=abs_tol2)
     ) or (
-        close_points_square(p1, p4, dist2=dist_tol2)
-        and close_points_square(p2, p3, dist2=dist_tol2)
+        close_points_square(p1, p4, dist2=abs_tol2)
+        and close_points_square(p2, p3, dist2=abs_tol2)
     )
 
 
@@ -1502,7 +1448,7 @@ def length(line: LineType) -> float:
         >>> import simetri.graphics as sg
         >>> sg.length(((0, 0), (3, 4)))
         5.0
-"""
+    """
     p1, p2 = line
     return distance(p1, p2)
 
@@ -1528,24 +1474,13 @@ def extended_line(
         >>> extended_line(1, [(0, 0), (1, 0)])
         [(0, 0), (2.0, 0.0)]
     """
-
-    def extend(dist: float, line: LineType) -> LineType:
-        # p = (1-t)*p1 + t*p2 : parametric equation of a line segment (p1, p2)
-        line_length = length(line)
-        t = (line_length + dist) / line_length
-        p1, p2 = line
-        x1, y1 = p1[:2][:2]
-        x2, y2 = p2[:2][:2]
-        c = 1 - t
-
-        return [(x1, y1), (c * x1 + t * x2, c * y1 + t * y2)]
-
+    start, end = line
+    new_end = extend(start, end, length(line) + dist)
     if extend_both:
-        p1, p2 = extend(dist, line)
-        p1, p2 = extend(dist, [p2, p1])
-        res = [p2, p1]
+        new_start = extend(new_end, start, length((new_end, start)) + dist)
+        res = [new_start, new_end]
     else:
-        res = extend(dist, line)
+        res = [start[:2], new_end]
 
     return res
 
@@ -1582,9 +1517,7 @@ def line_through_point_angle(
     return line
 
 
-def split_segment(
-    segment: LineType, point: PointType
-) -> list[LineType] | None:
+def split_segment(segment: LineType, point: PointType) -> list[LineType] | None:
     """Split a segment into two pieces at ``point``.
 
     Args:
@@ -1612,7 +1545,10 @@ def split_segment(
 
 
 def multi_split_segment(
-    segment: LineType, points: Sequence[PointType], dist_tol: float = 0.1
+    segment: LineType,
+    points: Sequence[PointType],
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> list[LineType] | None:
     """Split a segment into multiple pieces at the given points.
 
@@ -1621,16 +1557,18 @@ def multi_split_segment(
     Args:
         segment: Line segment ``(p1, p2)``.
         points: Points that lie on the segment.
-        dist_tol: Unused legacy tolerance parameter. Defaults to 0.1.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         list: Consecutive sub-segments from start to end.
 
     Examples:
-        >>> from simetri.geom.segments.line_utils import multi_split_segment
-        >>> multi_split_segment(((0, 0), (4, 0)), [(1, 0), (3, 0)])
+        >>> import simetri.graphics as sg
+        >>> sg.multi_split_segment(((0, 0), (4, 0)), [(1, 0), (3, 0)])
         [((0, 0), (1, 0)), ((1, 0), (3, 0))]
     """
+    _, abs_tol = resolve_tol(rel_tol, abs_tol)
     p1, p2 = segment
     distances = []
     for i, pnt in enumerate(points):
@@ -1655,7 +1593,7 @@ def multi_split_segment(
     segments = []
     start = p1
     for point in points:
-        if distance(start, point) < dist_tol:
+        if distance(start, point) < abs_tol:
             continue
         segments.append((start, point))
         start = point
@@ -1791,7 +1729,7 @@ def intersection(
 
 def merge_segments(
     seg1: Sequence[PointType], seg2: Sequence[PointType]
-) -> Sequence[PointType]:
+) -> Sequence[PointType] | None:
     """Merge two segments into one if they overlap or chain.
 
     Order of endpoints does not matter. Unconnected segments are not merged.
@@ -1801,46 +1739,27 @@ def merge_segments(
         seg2: Second segment ``(p3, p4)``.
 
     Returns:
-        Sequence[PointType]: Merged segment endpoints, or the originals if
+        Sequence[PointType] | None: Merged segment endpoints, or ``None`` if
         they cannot be merged.
 
     Examples:
-        >>> from simetri.geom.segments.line_utils import merge_segments
-        >>> merge_segments([(0, 0), (2, 0)], [(2, 0), (4, 0)])
-        Traceback (most recent call last):
-        ...
-        TypeError: all_intersections() got an unexpected keyword argument 'use_intersection3'
+        >>> import simetri.graphics as sg
+        >>> sg.merge_segments([(0, 0), (2, 0)], [(2, 0), (4, 0)])
+        ((0, 0), (4, 0))
     """
-
-    # """Merge two segments into one segment if they are connected.
-    # They need to be overlapping or simply connected to each other,
-    # otherwise they will not be merged. Order doesn't matter.
-
-    # Args:
-    #     seg1 (Sequence[PointType]): First segment.
-    #     seg2 (Sequence[PointType]): Second segment.
-
-    # Returns:
-    #     Sequence[PointType]: Merged segment.
-    # """
-    Conn = Connection
-    p1, p2 = seg1
-    p3, p4 = seg2
-
-    res = all_intersections([(p1, p2), (p3, p4)], use_intersection3=True)
-    if res:
-        conn_type = next(iter(res.values()))[0][0]
-        verts = next(iter(res.values()))[0][1]
-        if conn_type in (Conn.OVERLAPS, Conn.CONGRUENT, Conn.CHAIN):
-            res = verts
-        elif conn_type == Conn.COLL_CHAIN:
-            res = (verts[0], verts[1])
-        else:
-            res = None
-    else:
-        res = None  # need this to avoid returning an empty dict
-
-    return res
+    (x1, y1), (x2, y2) = seg1[0][:2], seg1[1][:2]
+    (x3, y3), (x4, y4) = seg2[0][:2], seg2[1][:2]
+    conn_type, verts = check_intersection(x1, y1, x2, y2, x3, y3, x4, y4)
+    if conn_type in (
+        Connection.OVERLAPS,
+        Connection.CONGRUENT,
+        Connection.CONTAINS,
+        Connection.WITHIN,
+    ):
+        return (verts[0], verts[1])
+    if conn_type == Connection.COLL_CHAIN:
+        return (verts[0], verts[2])
+    return None
 
 
 def is_horizontal(line: LineType, eps: float = 0.0001) -> bool:
@@ -1930,10 +1849,8 @@ def segmentize_line(line: LineType, segment_length: float) -> list[LineType]:
     Examples:
         >>> from simetri.geom.segments.line_utils import segmentize_line
         >>> pts = segmentize_line([(0, 0), (4, 0)], 1)
-        >>> len(pts)
-        4
-        >>> round(pts[-1][0], 10), round(pts[-1][1], 10)
-        (4.0, 0.0)
+        >>> [[round(c, 10) for c in p[:2]] for p in pts]
+        [[0.0, 0.0], [1.3333333333, 0.0], [2.6666666667, 0.0], [4.0, 0.0]]
     """
     length_ = distance(line[0], line[1])
     x1, y1 = line[0][:2]
@@ -2223,21 +2140,30 @@ def fillet3(
 
     Examples:
         >>> from simetri.geom.segments.line_utils import fillet3
-        >>> line_a, line_b, center, arc = fillet3((0, 0), (1, 0), (1, 1), 0.5)
+        >>> line_a, line_b, center, angle = fillet3((0, 0), (1, 0), (1, 1), 0.5)
         >>> line_a[0], (round(line_a[1][0], 10), round(line_a[1][1], 10))
-        ((0, 0), (1.5, 0.0))
-        >>> round(center[0], 10), round(center[1], 10)
-        (1.5, -0.5)
+        ((0, 0), (0.5, 0.0))
+        >>> (round(line_b[0][0], 10), round(line_b[0][1], 10)), line_b[1]
+        ((1.0, 0.5), (1, 1))
+        >>> (round(center[0], 10), round(center[1], 10))
+        (0.5, 0.5)
+        >>> abs(angle - 3.141592653589793 / 2) < 1e-10
+        True
+
     """
-    alpha2 = angle_between_lines3(a, b, c) / 2
-    sin_alpha2 = sin(alpha2)
-    cos_alpha2 = cos(alpha2)
-    clip_length = radius * cos_alpha2 / sin_alpha2
-    d = offset_point_from_start(b, a, clip_length)
-    e = offset_point_from_start(b, c, clip_length)
-    mp = midpoint(a, c)  # [b, mp] is the bisector line
-    center = offset_point_from_start(b, mp, radius / sin_alpha2)
-    arc_angle = angle_between_lines3(e, center, d)
+    # Interior angle at b (unsigned). Signed angle_between_lines3 / 2 flips
+    # clip_length and puts the center on the exterior for one turn direction.
+    u1 = v_from_points(b, a).normalize()
+    u2 = v_from_points(b, c).normalize()
+    theta = acos(max(-1.0, min(1.0, u1.dot(u2))))
+    clip_length = radius / tan(theta / 2.0)
+    d = extend(b, a, clip_length)
+    e = extend(b, c, clip_length)
+    w_hat = (u1 + u2).normalize()
+    center_dist = radius / sin(theta / 2.0)
+    bx, by = b[:2]
+    center = (bx + w_hat.x * center_dist, by + w_hat.y * center_dist)
+    arc_angle = abs(angle_between_lines3(e, center, d))
 
     return [a, d], [e, c], center, arc_angle
 
@@ -2278,10 +2204,8 @@ def fillet_points(
     Examples:
         >>> from simetri.geom.segments.line_utils import fillet_points
         >>> pts = fillet_points((0, 0), (1, 0), (1, 1), 0.5, 3)
-        >>> len(pts)
-        3
-        >>> round(pts[-1][0], 10), round(pts[-1][1], 10)
-        (1.0, 0.5)
+        >>> [[round(c, 10) or 0.0 for c in p[:2]] for p in pts]
+        [[0.5, 0.0], [0.8535533906, 0.1464466094], [1.0, 0.5]]
     """
     if radius <= 0:
         raise ValueError("radius must be > 0")
@@ -2391,8 +2315,8 @@ def fillet_corners(
     Examples:
         >>> from simetri.geom.segments.line_utils import fillet_corners
         >>> out = fillet_corners([(0, 0), (1, 0), (1, 1), (0, 1)], {1: 0.2}, n=3)
-        >>> len(out) > len([(0, 0), (1, 0), (1, 1), (0, 1)])
-        True
+        >>> [[round(float(c), 10) or 0.0 for c in p[:2]] for p in out]
+        [[0.0, 0.0], [0.8, 0.0], [0.9414213562, 0.0585786438], [1.0, 0.2], [1.0, 1.0], [0.0, 1.0]]
     """
     count = len(vertices)
 
@@ -2752,8 +2676,8 @@ class Edge:
 
         Examples:
             >>> from simetri.geom.segments.line_utils import Edge
-            >>> len(Edge((0, 0), (1, 0)).vertices)
-            2
+            >>> [(v.x, v.y) for v in Edge((0, 0), (1, 0)).vertices]
+            [(0, 0), (1, 0)]
         """
         return [self.start, self.end]
 

@@ -8,6 +8,8 @@ operate on closed shapes.
 Examples:
     >>> tri = sg.Shape([(0, 0), (50, 0), (25, 40)], closed=True)
     >>> _ = tri.translate(10, 0)
+    >>> tri.vertices
+    ((10.0, 0.0), (60.0, 0.0), (35.0, 40.0))
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import (
     all_intersections,
     angle_between_lines3,
+    collinear_segments,
     multi_split_segment,
 )
 
@@ -65,7 +68,13 @@ from ..base.all_enums import (
     Types,
     shape_attributes,
 )
-from ..base.common import LineType, PointType, get_defaults, get_unique_id
+from ..base.common import (
+    LineType,
+    PointType,
+    get_defaults,
+    get_unique_id,
+    resolve_tol,
+)
 from ..base.common_style import CommonStyle
 from ..base.core import Base, _next_xform_matrix, _Targets
 from ..coloring.colors import Color
@@ -121,8 +130,10 @@ class Shape(Base, CommonStyle):
 
     Examples:
         >>> s = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-        >>> s.width > 0
-        True
+        >>> s.vertices
+        ((0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0))
+        >>> s.width
+        10.0
     """
 
     __slots__ = [
@@ -236,8 +247,8 @@ class Shape(Base, CommonStyle):
 
         Examples:
             >>> s = sg.Shape([(0, 0), (1, 0), (1, 1)], closed=True)
-            >>> len(s)
-            3
+            >>> s.vertices
+            ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0))
             >>> s.closed
             True
         """
@@ -471,8 +482,8 @@ class Shape(Base, CommonStyle):
             >>> line = sg.Shape([(0, 0), (1, 0), (2, 0)])
             >>> line.remove((0, 0))
             Shape(((1.0, 0.0), (2.0, 0.0)))
-            >>> len(line)
-            2
+            >>> line.vertices
+            ((1.0, 0.0), (2.0, 0.0))
         """
         ind = self.vertices.index(point)
         self.primary_points.pop(ind)
@@ -489,8 +500,8 @@ class Shape(Base, CommonStyle):
             >>> import simetri.graphics as sg
             >>> line = sg.Shape([(0, 0)])
             >>> line.append((1, 0))
-            >>> len(line)
-            2
+            >>> line.vertices
+            ((0.0, 0.0), (1.0, 0.0))
         """
         point = homogenize([point]) @ inv(self.xform_matrix)
         self.primary_points.append(tuple(point[0][:2]))
@@ -505,9 +516,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> line = sg.Shape([(0, 0), (2, 0)])
-            >>> _ = line.insert(1, (1, 0))
-            >>> len(line)
-            3
+            >>> line.insert(1, (1, 0))
+            Shape(((0.0, 0.0), (1.0, 0.0), (2.0, 0.0)))
         """
         point = homogenize([point]) @ inv(self.xform_matrix)
         self.primary_points.insert(index, tuple(point[0][:2]))
@@ -523,9 +533,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> line = sg.Shape([(0, 0)])
-            >>> _ = line.extend([(1, 0), (2, 0)])
-            >>> len(line)
-            3
+            >>> line.extend([(1, 0), (2, 0)])
+            Shape(((0.0, 0.0), (1.0, 0.0), (2.0, 0.0)))
         """
         homogenized = homogenize(points) @ inv(self.xform_matrix)
         self.primary_points.extend([tuple(x[:2]) for x in homogenized])
@@ -546,8 +555,8 @@ class Shape(Base, CommonStyle):
             >>> line = sg.Shape([(0, 0), (1, 0)])
             >>> line.pop()
             (1.0, 0.0)
-            >>> len(line)
-            1
+            >>> line.vertices
+            ((0.0, 0.0),)
         """
         point = self.vertices[index]
         self.primary_points.pop(index)
@@ -706,8 +715,8 @@ class Shape(Base, CommonStyle):
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> reordered = rect.reordered(1)
-            >>> tuple(float(x) for x in reordered.vertices[0][:2])
-            (10.0, 0.0)
+            >>> reordered.vertices
+            ((10.0, 0.0), (10.0, 10.0), (0.0, 10.0), (0.0, 0.0))
         """
         if not isinstance(index, int):
             raise TypeError("Index must be an integer")
@@ -741,53 +750,66 @@ class Shape(Base, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> line = sg.Shape([(0, 0), (5, 0)])
+            >>> line = sg.Shape([(0, 0), (5, 0), (10, 0)])
             >>> merged = line.merge_collinears()
-            >>> len(merged.vertices)
-            2
+            >>> merged.vertices
+            ((0.0, 0.0), (5.0, 0.0), (10.0, 0.0))
         """
         return Group([self]).merge_shapes()[0]
 
-    def merge(self, other: Shape, dist_tol: float | None = None) -> Self | None:
-        """Merge two shapes if they are connected. Does not work for polygons.
-        Only polyline shapes can be merged together.
+    def merge(
+        self,
+        other: Shape,
+        rel_tol: float | None = None,
+        abs_tol: float | None = None,
+    ) -> Shape:
+        """Return a new polyline by joining ``other`` after this shape.
+
+        Both shapes must be open. ``self[-1]`` must meet ``other[0]``
+        within ``abs_tol``. The duplicated join vertex is dropped. If
+        the joining edges are collinear, the join vertex is removed as
+        well. Inputs are not mutated. Use ``connect`` to append in place.
 
         Args:
-            other (Shape): The other shape to merge with.
-            dist_tol (float, optional): The distance tolerance for merging, defaults to None.
+            other: Open polyline whose first vertex meets this shape's last.
+            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
         Returns:
-            Shape or None: The merged shape or None if the shapes cannot be merged.
+            Shape: A new open polyline.
+
+        Raises:
+            ValueError: If either shape is closed, either has fewer than
+                two vertices, or the endpoints do not meet.
 
         Examples:
             >>> import simetri.graphics as sg
             >>> a = sg.Shape([(0, 0), (5, 0)])
             >>> b = sg.Shape([(5, 0), (10, 0)])
-            >>> merged = a.merge(b)
-            >>> merged is not None
-            True
-            >>> len(merged.vertices)
-            3
+            >>> a.merge(b).vertices
+            ((0.0, 0.0), (10.0, 0.0))
+            >>> c = sg.Shape([(5, 0), (5, 8)])
+            >>> a.merge(c).vertices
+            ((0.0, 0.0), (5.0, 0.0), (5.0, 8.0))
         """
-        if dist_tol is None:
-            dist_tol = defaults["dist_tol"]
-        dist_tol2 = dist_tol * dist_tol
-
-        if self.closed or other.closed or self.is_polygon or other.is_polygon:
-            res = None
+        rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
+        if self.closed or other.closed:
+            raise ValueError("Only open polylines can be merged")
+        if len(self) < 2 or len(other) < 2:
+            raise ValueError("Both shapes must have at least two vertices")
+        abs_tol2 = abs_tol * abs_tol
+        if not close_points_square(self[-1], other[0], dist2=abs_tol2):
+            raise ValueError("Shapes are not connected: self[-1] must equal other[0]")
+        verts1 = self.as_list()
+        verts2 = other.as_list()
+        if collinear_segments(
+            self.edges[-1], other.edges[0], rel_tol=rel_tol, abs_tol=abs_tol
+        ):
+            vertices = verts1[:-1] + verts2[1:]
         else:
-            vertices = self._chain_vertices(
-                self.as_list(), other.as_list(), dist_tol=dist_tol
-            )
-            if vertices:
-                closed = close_points_square(
-                    vertices[0], vertices[-1], dist2=dist_tol2
-                )
-                res = Shape(vertices, closed=closed)
-            else:
-                res = None
+            vertices = verts1[:-1] + verts2
 
-        return res
+        return Shape(vertices, closed=False)
 
     def connect(self, other: Shape) -> Self:
         """Connect two shapes by adding the other shape's vertices to self.
@@ -801,8 +823,8 @@ class Shape(Base, CommonStyle):
             >>> b = sg.Shape([(5, 0), (10, 0)])
             >>> a.connect(b)
             Shape([(0.0, 0.0), ..., (10.0, 0.0)])
-            >>> len(a)
-            4
+            >>> a.vertices
+            ((0.0, 0.0), (5.0, 0.0), (5.0, 0.0), (10.0, 0.0))
         """
         self.extend(other.vertices)
 
@@ -812,28 +834,31 @@ class Shape(Base, CommonStyle):
         self,
         verts1: Sequence[PointType],
         verts2: Sequence[PointType],
-        dist_tol: float | None = None,
+        rel_tol: float | None = None,
+        abs_tol: float | None = None,
     ) -> list[PointType] | None:
         """Chain two sets of vertices if they are connected.
 
         Args:
             verts1 (list[PointType]): The first set of vertices.
             verts2 (list[PointType]): The second set of vertices.
-            dist_tol (float, optional): The distance tolerance for chaining, defaults to None.
+            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
         Returns:
             list[PointType] or None: The chained vertices or None if the vertices cannot be chained.
         """
-        dist_tol2 = dist_tol * dist_tol
+        _, abs_tol = resolve_tol(rel_tol, abs_tol)
+        abs_tol2 = abs_tol * abs_tol
         start1, end1 = verts1[0], verts1[-1]
         start2, end2 = verts2[0], verts2[-1]
-        same_starts = close_points_square(start1, start2, dist2=dist_tol2)
-        same_ends = close_points_square(end1, end2, dist2=dist_tol2)
+        same_starts = close_points_square(start1, start2, dist2=abs_tol2)
+        same_ends = close_points_square(end1, end2, dist2=abs_tol2)
         if same_starts and same_ends:
             res = verts1
-        elif close_points_square(end1, start2, dist2=dist_tol2):
+        elif close_points_square(end1, start2, dist2=abs_tol2):
             verts2.pop(0)
-        elif close_points_square(start1, end2, dist2=dist_tol2):
+        elif close_points_square(start1, end2, dist2=abs_tol2):
             verts2.reverse()
             verts1.reverse()
             verts2.pop(0)
@@ -868,9 +893,9 @@ class Shape(Base, CommonStyle):
         Returns:
             bool: True if the vertices form a polygon, False otherwise.
         """
-        dist_tol2 = defaults["dist_tol"] ** 2
+        abs_tol2 = defaults["abs_tol"] ** 2
         return close_points_square(
-            vertices[0][:2], vertices[-1][:2], dist2=dist_tol2
+            vertices[0][:2], vertices[-1][:2], dist2=abs_tol2
         )
 
     def as_array(self, homogeneous: bool = False) -> NDArray:
@@ -885,8 +910,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> rect.as_array().shape
-            (4, 2)
+            >>> [(float(x), float(y)) for x, y in rect.as_array()]
+            [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
         """
         if homogeneous:
             # Use cached final_coords to avoid redundant matrix multiplication
@@ -904,8 +929,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> line = sg.Shape([(0, 0), (10, 0)])
-            >>> len(line.as_list())
-            2
+            >>> line.as_list()
+            [(0.0, 0.0), (10.0, 0.0)]
         """
         return list(self.vertices)
 
@@ -919,8 +944,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> rect.final_coords.shape[0]
-            4
+            >>> [(float(x), float(y), float(w)) for x, y, w in rect.final_coords]
+            [(0.0, 0.0, 1.0), (10.0, 0.0, 1.0), (10.0, 10.0, 1.0), (0.0, 10.0, 1.0)]
         """
         if self.primary_points:
             # Cache the expensive matrix multiplication
@@ -972,8 +997,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.vertices)
-            4
+            >>> rect.vertices
+            ((0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0))
         """
 
         if self.primary_points:
@@ -1002,8 +1027,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.vertex_pairs)
-            4
+            >>> rect.vertex_pairs
+            [((0.0, 0.0), (10.0, 0.0)), ((10.0, 0.0), (10.0, 10.0)), ((10.0, 10.0), (0.0, 10.0)), ((0.0, 10.0), (0.0, 0.0))]
         """
         vertices = list(self.vertices)
         if self.closed:
@@ -1020,8 +1045,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> rect.orig_coords.shape[0]
-            4
+            >>> [(float(x), float(y), float(w)) for x, y, w in rect.orig_coords]
+            [(0.0, 0.0, 1.0), (10.0, 0.0, 1.0), (10.0, 10.0, 1.0), (0.0, 10.0, 1.0)]
         """
         return self.primary_points.homogen_coords
 
@@ -1059,9 +1084,9 @@ class Shape(Base, CommonStyle):
         """
         if self.closed:
             vertices = self.vertices[:]
-            dist_tol2 = defaults["dist_tol"] ** 2
+            abs_tol2 = defaults["abs_tol"] ** 2
             if not close_points_square(
-                vertices[0], vertices[-1], dist2=dist_tol2
+                vertices[0], vertices[-1], dist2=abs_tol2
             ):
                 vertices = list(vertices) + [vertices[0]]
             res = polygon_area(vertices)
@@ -1081,9 +1106,12 @@ class Shape(Base, CommonStyle):
             >>> import simetri.graphics as sg
             >>> line = sg.Shape([(0, 0), (10, 0), (10, 10)])
             >>> line.total_length
-            10.0
+            20.0
+            >>> line2 = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
+            >>> round(float(line2.total_length), 6)
+            34.142136
         """
-        return polyline_length(self.vertices[:-1], self.closed)
+        return polyline_length(self.vertices, self.closed)
 
     @property
     def is_polygon(self) -> bool:
@@ -1111,8 +1139,8 @@ class Shape(Base, CommonStyle):
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> rect.clear()
             Shape()
-            >>> len(rect)
-            0
+            >>> rect.vertices
+            ()
         """
         self.primary_points = Points()
         self.xform_matrix = identity_matrix()
@@ -1148,9 +1176,9 @@ class Shape(Base, CommonStyle):
         col1 = (verts[:, 0] - values[:, 0]) ** 2
         col2 = (verts[:, 1] - values[:, 1]) ** 2
         distances = col1 + col2
-        dist_tol2 = defaults["dist_tol"] ** 2
+        abs_tol2 = defaults["abs_tol"] ** 2
 
-        return np.count_nonzero(distances <= dist_tol2)
+        return np.count_nonzero(distances <= abs_tol2)
 
     def copy(self) -> Shape:
         """Return a copy of the shape.
@@ -1215,8 +1243,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.edge_midpoints)
-            4
+            >>> rect.edge_midpoints
+            [(5.0, 0.0), (10.0, 5.0), (5.0, 10.0), (0.0, 5.0)]
         """
         edges = self.edges
 
@@ -1236,8 +1264,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.edges)
-            4
+            >>> rect.edges
+            (((0.0, 0.0), (10.0, 0.0)), ((10.0, 0.0), (10.0, 10.0)), ((10.0, 10.0), (0.0, 10.0)), ((0.0, 10.0), (0.0, 0.0)))
         """
         vertices = list(self.vertices[:])
         if self.closed:
@@ -1252,8 +1280,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.midpoints)
-            4
+            >>> rect.midpoints
+            [(5.0, 0.0), (10.0, 5.0), (5.0, 10.0), (0.0, 5.0)]
         """
         return [midpoint(*edge) for edge in self.edges]
 
@@ -1271,8 +1299,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.segments)
-            4
+            >>> rect.segments
+            (((0.0, 0.0), (10.0, 0.0)), ((10.0, 0.0), (10.0, 10.0)), ((10.0, 10.0), (0.0, 10.0)), ((0.0, 10.0), (0.0, 0.0)))
         """
 
         return self.edges
@@ -1288,8 +1316,8 @@ class Shape(Base, CommonStyle):
             >>> tri = sg.Shape([(0, 0), (1, 0), (1, 1)])
             >>> tri.reverse()
             Shape(((1.0, 1.0), (1.0, 0.0), (0.0, 0.0)))
-            >>> tuple(float(x) for x in tri.vertices[0][:2])
-            (1.0, 1.0)
+            >>> tri.vertices
+            ((1.0, 1.0), (1.0, 0.0), (0.0, 0.0))
         """
         self.primary_points.reverse()
 
@@ -1304,8 +1332,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> tuple(float(x) for x in rect.left[0][:2])
-            (0.0, 10.0)
+            >>> rect.left
+            ((0.0, 10.0), (0.0, 0.0))
         """
         return self.b_box.left
 
@@ -1316,8 +1344,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> tuple(float(x) for x in rect.right[0][:2])
-            (10.0, 10.0)
+            >>> rect.right
+            ((10.0, 10.0), (10.0, 0.0))
         """
         return self.b_box.right
 
@@ -1328,8 +1356,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> tuple(float(x) for x in rect.top[0][:2])
-            (0.0, 10.0)
+            >>> rect.top
+            ((0.0, 10.0), (10.0, 10.0))
         """
         return self.b_box.top
 
@@ -1340,8 +1368,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> tuple(float(x) for x in rect.bottom[0][:2])
-            (0.0, 0.0)
+            >>> rect.bottom
+            ((0.0, 0.0), (10.0, 0.0))
         """
         return self.b_box.bottom
 
@@ -1352,8 +1380,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.vert_centerline)
-            2
+            >>> rect.vert_centerline
+            ((5.0, 10.0), (5.0, 0.0))
         """
         return (self.b_box.north, self.b_box.south)
 
@@ -1364,8 +1392,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.horiz_centerline)
-            2
+            >>> rect.horiz_centerline
+            ((0.0, 5.0), (10.0, 5.0))
         """
         return (self.b_box.west, self.b_box.east)
 
@@ -1396,8 +1424,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.corners)
-            4
+            >>> rect.corners
+            ((0.0, 10.0), (0.0, 0.0), (10.0, 0.0), (10.0, 10.0))
         """
         return (self.northwest, self.southwest, self.southeast, self.northeast)
 
@@ -1410,8 +1438,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.diamond)
-            4
+            >>> rect.diamond
+            ((5.0, 10.0), (0.0, 5.0), (5.0, 0.0), (10.0, 5.0))
         """
         return (self.north, self.west, self.south, self.east)
 
@@ -1422,20 +1450,10 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.all_anchors)
-            9
+            >>> rect.all_anchors
+            ((0.0, 5.0), (0.0, 0.0), (5.0, 0.0), (10.0, 0.0), (10.0, 5.0), (10.0, 10.0), (5.0, 10.0), (0.0, 10.0), (5.0, 5.0))
         """
-        return (
-            self.west,
-            self.southwest,
-            self.south,
-            self.northeast,
-            self.east,
-            self.northeast,
-            self.north,
-            self.northwest,
-            self.midpoint,
-        )
+        return self.b_box.all_anchors
 
     @property
     def all_lines(
@@ -1455,8 +1473,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> len(rect.all_lines)
-            8
+            >>> rect.all_lines
+            (((0.0, 10.0), (0.0, 0.0)), ((0.0, 0.0), (10.0, 0.0)), ((10.0, 10.0), (10.0, 0.0)), ((0.0, 10.0), (10.0, 10.0)), ((0.0, 5.0), (10.0, 5.0)), ((5.0, 10.0), (5.0, 0.0)), ((0.0, 0.0), (10.0, 10.0)), ((10.0, 0.0), (0.0, 10.0)))
         """
         return (
             self.left,
@@ -1608,8 +1626,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> tuple(float(x) for x in rect.diagonal1[0][:2])
-            (0.0, 0.0)
+            >>> rect.diagonal1
+            ((0.0, 0.0), (10.0, 10.0))
         """
         return (self.southwest, self.northeast)
 
@@ -1620,8 +1638,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> tuple(float(x) for x in rect.diagonal2[0][:2])
-            (10.0, 0.0)
+            >>> rect.diagonal2
+            ((10.0, 0.0), (0.0, 10.0))
         """
         return (self.southeast, self.northwest)
 
@@ -1647,8 +1665,8 @@ class Shape(Base, CommonStyle):
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> inflated = rect.get_inflated_b_box(1)
-            >>> float(inflated.width)
-            12.0
+            >>> inflated.corners
+            ((-1.0, 11.0), (-1.0, -1.0), (11.0, -1.0), (11.0, 11.0))
         """
 
         if bottom_margin is None:
@@ -1681,9 +1699,8 @@ class Shape(Base, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
-            >>> p0, _ = rect.offset_line('left', 1)
-            >>> float(p0[0])
-            -1.0
+            >>> rect.offset_line('left', 1)
+            ((-1.0, 0.0), (-1.0, 10.0))
         """
         return self.b_box.offset_line(side, offset)
 
@@ -2013,8 +2030,8 @@ class Shape(Base, CommonStyle):
             >>> import simetri.graphics as sg
             >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
             >>> reordered = rect.reorder_vertices((10, 10))
-            >>> tuple(float(x) for x in reordered.vertices[0][:2])
-            (10.0, 10.0)
+            >>> reordered.vertices
+            ((10.0, 10.0), (0.0, 10.0), (0.0, 0.0), (10.0, 0.0))
         """
 
         if not isinstance(value, Sequence) or len(value) < 2:
@@ -2026,7 +2043,7 @@ class Shape(Base, CommonStyle):
                 cur_index = vertices.index(value)
             else:
                 if tol is None:
-                    tol = defaults["dist_tol"]
+                    tol = defaults["abs_tol"]
                 dist, ind = min(
                     [(distance(value, v), i) for i, v in enumerate(vertices)],
                     key=lambda x: x[0],
@@ -2044,7 +2061,7 @@ class Shape(Base, CommonStyle):
                 new_vertices = vertices[cur_index:] + vertices[:cur_index]
             else:
                 if tol is None:
-                    tol = defaults["dist_tol"]
+                    tol = defaults["abs_tol"]
                 if distance(value, vertices[cur_index]) < tol:
                     new_vertices = vertices[cur_index:] + vertices[:cur_index]
                 else:
@@ -2082,8 +2099,8 @@ def trim_margins(
     Examples:
         >>> square = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
         >>> trimmed = trim_margins(square)
-        >>> trimmed.type.name
-        'GROUP'
+        >>> trimmed
+        Group()
     """
     corners = item.b_box.get_inflated_b_box(
         -left, -bottom, -right, -top
@@ -2289,8 +2306,10 @@ class Clipping:
         >>> subject = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
         >>> window = sg.Shape([(0, 0), (5, 0), (5, 5), (0, 5)], closed=True)
         >>> pair = Clipping(subject, window)
-        >>> pair.type.name
-        'CLIPPING'
+        >>> pair.target.vertices
+        ((0.0, 0.0), (10.0, 0.0), (10.0, 10.0))
+        >>> pair.clipper.vertices
+        ((0.0, 0.0), (5.0, 0.0), (5.0, 5.0), (0.0, 5.0))
     """
 
     target: Shape | Group
@@ -2304,7 +2323,8 @@ class Clipping:
 def polygon_diff(
     shape1: Shape,
     shape2: Shape,
-    dist_tol: float = 0.01,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
     merge: bool = True,
 ) -> Group:
     """Return the difference of two closed polygons (``shape1 \\ shape2``).
@@ -2312,7 +2332,8 @@ def polygon_diff(
     Args:
         shape1: Shape to clip (must be closed).
         shape2: Clipping region (must be closed).
-        dist_tol: Intersection snap tolerance.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
         merge: If True, merge resulting edge fragments into shapes.
 
     Returns:
@@ -2331,10 +2352,11 @@ def polygon_diff(
     if not (shape1.closed and shape2.closed):
         raise Warning("Both shapes must be closed")
 
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
     segments = [[p1[:2], p2[:2]] for (p1, p2) in shape1.edges] + [
         [p1[:2], p2[:2]] for (p1, p2) in shape2.edges
     ]
-    intersections = all_intersections(segments, rel_tol=0, abs_tol=dist_tol)
+    intersections = all_intersections(segments, rel_tol=rel_tol, abs_tol=abs_tol)
 
     all_segments_ = []
     for key, value in intersections[0].items():
@@ -2364,7 +2386,8 @@ def polygon_diff(
 def polygon_difference(
     shape1: Shape,
     shape2: Shape,
-    dist_tol: float = 0.01,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
     merge: bool = True,
 ) -> Group:
     """Alias for ``polygon_diff``.
@@ -2372,7 +2395,8 @@ def polygon_difference(
     Args:
         shape1: Shape to clip.
         shape2: Clipping region.
-        dist_tol: Intersection snap tolerance.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
         merge: If True, merge resulting fragments.
 
     Returns:
@@ -2383,7 +2407,9 @@ def polygon_difference(
         >>> b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
         >>> polygon_difference(a, b)  # doctest: +SKIP
     """
-    return polygon_diff(shape1, shape2, dist_tol=dist_tol, merge=merge)
+    return polygon_diff(
+        shape1, shape2, rel_tol=rel_tol, abs_tol=abs_tol, merge=merge
+    )
 
 
 def polygon_intersection(
@@ -2412,7 +2438,8 @@ def polygon_intersection(
 def polygon_xor(
     shape1: Shape,
     shape2: Shape,
-    dist_tol: float = 0.01,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
     merge: bool = True,
 ) -> Group:
     """Return the symmetric difference of two closed polygons.
@@ -2420,7 +2447,8 @@ def polygon_xor(
     Args:
         shape1: First closed shape.
         shape2: Second closed shape.
-        dist_tol: Passed through to ``polygon_diff``.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
         merge: If True, merge the combined result.
 
     Returns:
@@ -2431,13 +2459,13 @@ def polygon_xor(
         >>> b = sg.Shape([(10, 10), (30, 10), (30, 30), (10, 30)], closed=True)
         >>> polygon_xor(a, b)  # doctest: +SKIP
     """
-    res1 = polygon_diff(shape1, shape2)
-    res2 = polygon_diff(shape2, shape1)
+    res1 = polygon_diff(shape1, shape2, rel_tol=rel_tol, abs_tol=abs_tol)
+    res2 = polygon_diff(shape2, shape1, rel_tol=rel_tol, abs_tol=abs_tol)
 
     res = Group([res1, res2])
 
     if merge:
-        res = res.merge_shapes(dist_tol=dist_tol)
+        res = res.merge_shapes(rel_tol=rel_tol, abs_tol=abs_tol)
 
     return res
 
@@ -2461,8 +2489,8 @@ def all_segments(
 
     Examples:
         >>> tri = sg.Shape([(0, 0), (10, 0), (5, 8)], closed=True)
-        >>> len(all_segments(tri)) >= 3
-        True
+        >>> all_segments(tri)
+        [((0.0, 0.0), (10.0, 0.0)), ((5.0, 8.0), (0.0, 0.0)), ((10.0, 0.0), (5.0, 8.0))]
     """
 
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
@@ -2511,6 +2539,8 @@ def get_loop(
     Examples:
         >>> edges = [((0, 0), (1, 0)), ((1, 0), (1, 1)), ((1, 1), (0, 0))]
         >>> loop = get_loop(edges, ((0, 0), (1, 0)))
+        >>> loop.vertices
+        ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0))
         >>> loop.closed
         True
     """
@@ -2567,6 +2597,8 @@ def get_partition(
     Examples:
         >>> square = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)], closed=True)
         >>> part = get_partition(square, 0)
+        >>> part.vertices
+        ((0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0))
         >>> part.closed
         True
     """

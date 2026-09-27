@@ -216,9 +216,8 @@ def _warning_type_help(obj: object) -> str:
 # Topic name -> list of public ``sg.*`` names (and brief notes as plain lines).
 d_help_topic: dict[str, list[str]] = {
     "angles": [
-        "angle_abs_tol",
-        "angle_rel_tol",
-        "angle_tol",
+        "abs_tol",
+        "rel_tol",
         # marker_angle
         # marker_phase
         "pattern_angle",
@@ -608,13 +607,13 @@ d_help_topic: dict[str, list[str]] = {
         "sg.connected_pairs",
         "sg.distance",
         "sg.distance_square",
+        "sg.extend",
         "sg.fix_degen_points",
         "sg.homogenize",
         "sg.left",
         "sg.lerp_point",
         "sg.midpoint",
         "sg.offset_point",
-        "sg.offset_point_from_start",
         "sg.on_segment",
         "sg.point_on_line_segment",
         "sg.r_polar",
@@ -818,12 +817,24 @@ d_help_topic: dict[str, list[str]] = {
         ),
     ],
     "tolerances": [
+        "abs_tol",
+        "rel_tol",
         "sg.check_angle_tol",
         "sg.check_dist_tol",
         "sg.equal_angles",
         "sg.equal_points",
         "sg.distance",
-        "See also: sg.help('angle_tol'), sg.help('area_tol'), sg.help('dist_tol')",
+        "sg.resolve_tol",
+        "See also: sg.help('tolerances_doc'), sg.help('abs_tol'), sg.help('rel_tol')",
+    ],
+    "tolerances_doc": [
+        "abs_tol",
+        "rel_tol",
+        "sg.resolve_tol",
+        "sg.get_defaults",
+        "sg.equal_points",
+        "sg.equal_angles",
+        "See also: sg.help('tolerances'), sg.help('user_settings')",
     ],
     "transforms": [
         "sg.glide_matrix",
@@ -1577,10 +1588,45 @@ def _merge_topic_entries(topic: str) -> list[str]:
     return merged
 
 
+def _queries_for_topic(topic: str) -> set[str]:
+    """Return the topic key plus aliases that resolve to it."""
+    queries = {topic}
+    for alias, dest in _TOPIC_ALIASES.items():
+        if dest == topic:
+            queries.add(alias)
+    for alias, dest in COMPILED_TOPIC_ALIASES.items():
+        if dest == topic:
+            queries.add(alias)
+    for alias, dest in SUPPLEMENT_TOPIC_ALIASES.items():
+        if dest == topic:
+            queries.add(alias)
+    return queries
+
+
+def _matching_names_for_topic(topic: str, entries: Sequence[str]) -> list[str]:
+    """Return extra leaf-substring matches not already listed on the topic."""
+    listed = "\n".join(entries)
+    seen: set[str] = set()
+    extras: list[str] = []
+    for query in sorted(_queries_for_topic(topic), key=str.casefold):
+        for name in _similar_help_names(query):
+            key = name.casefold()
+            if key in seen or name in listed:
+                continue
+            seen.add(key)
+            extras.append(name)
+    return extras
+
+
 def _format_topic(topic: str, entries: Sequence[str]) -> str:
     """Format a topic heading and its ``sg.*`` entry list."""
     lines = [f"Topic: {topic}", ""]
     lines.extend(entries)
+    extras = _matching_names_for_topic(topic, entries)
+    if extras:
+        lines.append("")
+        lines.append("Matching names:")
+        lines.extend(f"  {name}" for name in extras)
     lines.append("")
     lines.append(
         "Use sg.help(name) on a callable, or sg.help('setting') for defaults."
@@ -1855,6 +1901,14 @@ def _similar_sg_attribute_names(
             seen.add(key)
             suggestions.append(name)
 
+    leaf_matches = [
+        name for name in names if _query_in_help_leaf(query, name)
+    ]
+    for name in sorted(leaf_matches, key=lambda item: (len(item), item)):
+        add(name)
+    if suggestions:
+        return suggestions
+
     direct_matches = find_similar(query, names, limit=limit)
     for name, _score in direct_matches:
         add(name)
@@ -1965,6 +2019,19 @@ def _help_name_tokens(name: str) -> set[str]:
     return tokens
 
 
+def _help_name_leaf(name: str) -> str:
+    """Return the symbol leaf (``split_segment`` from ``sg.split_segment``)."""
+    return name.removeprefix("sg.").rsplit(".", maxsplit=1)[-1]
+
+
+def _query_in_help_leaf(query: str, name: str) -> bool:
+    """Return True if the query is a substring of the help name's leaf."""
+    query_normalized = normalize(query.removeprefix("sg."))
+    if not query_normalized:
+        return False
+    return query_normalized in normalize(_help_name_leaf(name))
+
+
 @lru_cache(maxsize=1)
 def _help_token_to_names() -> dict[str, set[str]]:
     """Map searchable tokens back to their original help names."""
@@ -1979,7 +2046,7 @@ def _help_token_to_names() -> dict[str, set[str]]:
 
 
 def _similar_help_names(query: str, limit: int | None = None) -> list[str]:
-    """Return similar help names, including matches via token pieces."""
+    """Return similar help names: leaf substring first, then fuzzy tokens."""
     limit = _resolve_help_suggestion_limit(limit)
     lookup_names = _canonical_help_names()
     suggestions: list[str] = []
@@ -1996,6 +2063,14 @@ def _similar_help_names(query: str, limit: int | None = None) -> list[str]:
         if key not in seen:
             seen.add(key)
             suggestions.append(canonical)
+
+    leaf_matches = [
+        name for name in lookup_names if _query_in_help_leaf(query, name)
+    ]
+    for name in sorted(leaf_matches, key=sort_key):
+        add(name)
+    if suggestions:
+        return suggestions
 
     direct_matches = find_similar(query, lookup_names, limit=limit)
     for name, _score in direct_matches:

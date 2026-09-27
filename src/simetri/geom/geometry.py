@@ -28,7 +28,7 @@ import numpy as np
 from numpy import array
 from numpy.typing import NDArray
 
-from ..base.common import PointType
+from ..base.common import PointType, resolve_tol
 from ..config.settings import runtime_defaults as defaults, issue_warning
 from .geom_utils import close_points_square
 from .vectors import *
@@ -83,35 +83,26 @@ def positive_angle(
 def equal_angles(
     angle1: float,
     angle2: float,
-    angle_tol: float | None = None,
-    angle_rel_tol: float | None = None,
-    angle_abs_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """Return True if two angles are equal within tolerance.
 
     Args:
         angle1: First angle in radians.
         angle2: Second angle in radians.
-        angle_tol: Angle tolerance shorthand. Defaults to None.
-        angle_rel_tol: Relative angle tolerance. Defaults to None.
-        angle_abs_tol: Absolute angle tolerance. Defaults to None.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         bool: True if the angles match within tolerance.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.equal_angles(0, 2 * sg.pi, angle_tol=1e-9)
+        >>> sg.equal_angles(0, 2 * sg.pi, abs_tol=1e-9)
         True
 """
-    if angle_tol is not None:
-        angle_rel_tol = 0
-        angle_abs_tol = angle_tol
-    else:
-        if angle_rel_tol is None:
-            angle_rel_tol = 0
-        if angle_abs_tol is None:
-            angle_abs_tol = defaults["angle_tol"]
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
 
     diff = abs(positive_angle(angle1) - positive_angle(angle2))
     circular_diff = min(diff, 2 * pi - diff)
@@ -119,8 +110,8 @@ def equal_angles(
     return isclose(
         circular_diff,
         0,
-        rel_tol=angle_rel_tol,
-        abs_tol=angle_abs_tol,
+        rel_tol=rel_tol,
+        abs_tol=abs_tol,
     )
 
 
@@ -180,7 +171,10 @@ def triangle_angles_from_sides(
 
 
 def close_angles(
-    angle1: float, angle2: float, angtol: float | None = None
+    angle1: float,
+    angle2: float,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """
     Return True if two angles are close to each other.
@@ -188,32 +182,31 @@ def close_angles(
     Args:
         angle1 (float): First angle in radians.
         angle2 (float): Second angle in radians.
-        angtol (float, optional): Angle tolerance. Defaults to None.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         bool: True if the angles are close to each other, False otherwise.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.close_angles(0.0, 0.0001, angtol=0.01)
+        >>> sg.close_angles(0.0, 0.0001, abs_tol=0.01)
         True
-        >>> sg.close_angles(0.0, sg.pi / 2, angtol=0.01)
+        >>> sg.close_angles(0.0, sg.pi / 2, abs_tol=0.01)
         False
 """
-    if angtol is None:
-        angtol = defaults["angle_tol"]
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
 
     diff = abs(angle1 - angle2) % (2 * pi)
     circular_diff = min(diff, 2 * pi - diff)
-    return circular_diff < angtol
+    return isclose(circular_diff, 0, rel_tol=rel_tol, abs_tol=abs_tol)
 
 
 def connect2(
     poly_point1: list[PointType],
     poly_point2: list[PointType],
-    dist_tol: float | None = None,
-    dist_rel_tol: float | None = None,
-    dist_abs_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> list[PointType]:
     """
     Connect two polypoints together.
@@ -221,46 +214,36 @@ def connect2(
     Args:
         poly_point1 (list[PointType]): First list of points.
         poly_point2 (list[PointType]): Second list of points.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
-        dist_rel_tol (float, optional): Relative distance tolerance. Defaults to None.
-        dist_abs_tol (float, optional): Absolute distance tolerance. Defaults to None.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         list[PointType]: Connected list of points.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.connect2([(0, 0), (1, 0)], [(1, 0), (2, 0)], dist_tol=0.001)
+        >>> sg.connect2([(0, 0), (1, 0)], [(1, 0), (2, 0)], abs_tol=0.001)
         [(0, 0), (1, 0), (2, 0)]
 """
-    if dist_tol is not None:
-        if dist_abs_tol is not None and dist_abs_tol != dist_tol:
-            raise ValueError(
-                "Use either dist_tol or both dist_rel_tol and dist_abs_tol."
-            )
-        dist_abs_tol = dist_tol
-    elif dist_abs_tol is None:
-        dist_abs_tol = defaults["dist_tol"]
-    if dist_rel_tol not in (None, 0):
-        raise ValueError("connect2 uses absolute distance tolerance.")
-    dist_tol2 = dist_abs_tol * dist_abs_tol
+    _, abs_tol = resolve_tol(rel_tol, abs_tol)
+    abs_tol2 = abs_tol * abs_tol
     start1, end1 = poly_point1[0], poly_point1[-1]
     start2, end2 = poly_point2[0], poly_point2[-1]
     pp1 = poly_point1[:]
     pp2 = poly_point2[:]
     points = []
-    if close_points_square(end1, start2, dist2=dist_tol2):
+    if close_points_square(end1, start2, dist2=abs_tol2):
         points.extend(pp1)
         points.extend(pp2[1:])
-    elif close_points_square(end1, end2, dist2=dist_tol2):
+    elif close_points_square(end1, end2, dist2=abs_tol2):
         points.extend(pp1)
         pp2.reverse()
         points.extend(pp2[1:])
-    elif close_points_square(start1, start2, dist2=dist_tol2):
+    elif close_points_square(start1, start2, dist2=abs_tol2):
         pp1.reverse()
         points.extend(pp1)
         points.extend(pp2[1:])
-    elif close_points_square(start1, end2, dist2=dist_tol2):
+    elif close_points_square(start1, end2, dist2=abs_tol2):
         pp1.reverse()
         points.extend(pp1)
         pp2.reverse()
@@ -653,7 +636,7 @@ def double_area3(a: PointType, b: PointType, c: PointType) -> float:
     vectors, i.e. **twice** the signed triangle area. Positive when
     ``a → b → c`` is counterclockwise, negative when clockwise, and near
     zero when the points are collinear. Kept as ``2 * area`` so orientation
-    and collinearity tests can compare against ``area_tol`` without an
+    and collinearity tests can compare against ``abs_tol`` without an
     extra multiply/divide.
 
     Args:

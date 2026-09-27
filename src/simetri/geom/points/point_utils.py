@@ -11,7 +11,12 @@ from numpy import array
 from numpy.typing import NDArray
 
 from simetri.base.all_enums import Types
-from simetri.base.common import LineType, PointType, get_defaults
+from simetri.base.common import (
+    LineType,
+    PointType,
+    get_defaults,
+    resolve_tol,
+)
 from simetri.config.settings import runtime_defaults as defaults
 from simetri.geom.affine import rotate_point
 from simetri.geom.geom_utils import close_points_square
@@ -43,18 +48,16 @@ def distance(p1: PointType, p2: PointType) -> float:
 def equal_points(
     point1: PointType,
     point2: PointType,
-    dist_tol: float | None = None,
-    dist_rel_tol: float | None = None,
-    dist_abs_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
-    """Return True if two points are within ``dist_tol`` of each other.
+    """Return True if two points are within ``abs_tol`` of each other.
 
     Args:
         point1: First point.
         point2: Second point.
-        dist_tol: Distance tolerance shorthand. Defaults to None.
-        dist_rel_tol: Relative distance tolerance. Defaults to None.
-        dist_abs_tol: Absolute distance tolerance. Defaults to None.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance in points. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         bool: True if the points are within the given distance.
@@ -66,29 +69,24 @@ def equal_points(
         >>> sg.equal_points((0, 0), (1, 0))
         False
 """
-    dist_tol, dist_rel_tol, dist_abs_tol = get_defaults(
-        ["dist_tol", "dist_rel_tol", "dist_abs_tol"],
-        [dist_tol, dist_rel_tol, dist_abs_tol],
-    )
+    _, abs_tol = resolve_tol(rel_tol, abs_tol)
 
-    return distance(point1, point2) <= dist_abs_tol
+    return distance(point1, point2) <= abs_tol
 
 
 def congruent_points(
     point1: PointType,
     point2: PointType,
-    dist_tol: float | None = None,
-    dist_rel_tol: float | None = None,
-    dist_abs_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """Alias for ``equal_points``.
 
     Args:
         point1: First point.
         point2: Second point.
-        dist_tol: Distance tolerance shorthand. Defaults to None.
-        dist_rel_tol: Relative distance tolerance. Defaults to None.
-        dist_abs_tol: Absolute distance tolerance. Defaults to None.
+        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance in points. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         bool: True if the points are within the given distance.
@@ -103,9 +101,8 @@ def congruent_points(
     return equal_points(
         point1,
         point2,
-        dist_tol=dist_tol,
-        dist_rel_tol=dist_rel_tol,
-        dist_abs_tol=dist_abs_tol,
+        rel_tol=rel_tol,
+        abs_tol=abs_tol,
     )
 
 
@@ -168,12 +165,8 @@ def fix_degen_points(
     points: list[PointType],
     loop: bool = False,
     closed: bool = False,
-    dist_tol: float | None = None,
-    dist_rel_tol: float | None = None,
-    dist_abs_tol: float | None = None,
-    area_tol: float | None = None,
-    area_rel_tol: float | None = None,
-    area_abs_tol: float | None = None,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
     check_collinear: bool = True,
 ) -> list[PointType]:
     """Return points with duplicates and collinear middles removed.
@@ -182,12 +175,8 @@ def fix_degen_points(
         points: Point list (mutated in place).
         loop: Whether to treat the list as a loop. Defaults to False.
         closed: Whether the polyline is closed. Defaults to False.
-        dist_tol (float, optional): Distance tolerance shorthand. Defaults to None.
-        dist_rel_tol (float, optional): Relative distance tolerance. Defaults to None.
-        dist_abs_tol (float, optional): Absolute distance tolerance. Defaults to None.
-        area_tol (float, optional): Area tolerance shorthand. Defaults to None.
-        area_rel_tol (float, optional): Relative area tolerance. Defaults to None.
-        area_abs_tol (float, optional): Absolute area tolerance. Defaults to None.
+        rel_tol (float, optional): Relative tolerance. Defaults to None.
+        abs_tol (float, optional): Absolute tolerance. Defaults to None.
         check_collinear (bool, optional): Whether to check for collinear points. Defaults to True.
 
     Returns:
@@ -201,34 +190,17 @@ def fix_degen_points(
         ... )
         [(0, 0), (1, 0), (2, 0)]
 """
-    dist_tol, dist_rel_tol, dist_abs_tol, area_tol, area_rel_tol, area_abs_tol = get_defaults(
-        [
-            "dist_tol",
-            "dist_rel_tol",
-            "dist_abs_tol",
-            "area_tol",
-            "area_rel_tol",
-            "area_abs_tol",
-        ],
-        [
-            dist_tol,
-            dist_rel_tol,
-            dist_abs_tol,
-            area_tol,
-            area_rel_tol,
-            area_abs_tol,
-        ],
-    )
-    dist_tol2 = dist_abs_tol * dist_abs_tol
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
+    abs_tol2 = abs_tol * abs_tol
     new_points = []
     for i, point in enumerate(points):
         if i == 0:
             new_points.append(point)
         else:
-            if not close_points_square(point, new_points[-1], dist2=dist_tol2):
+            if not close_points_square(point, new_points[-1], dist2=abs_tol2):
                 new_points.append(point)
     if loop and close_points_square(
-        new_points[0], new_points[-1], dist2=dist_tol2
+        new_points[0], new_points[-1], dist2=abs_tol2
     ):
         new_points.pop(-1)
 
@@ -241,9 +213,8 @@ def fix_degen_points(
         new_points = merge_consecutive_collinear_edges(
             new_points,
             closed,
-            area_tol,
-            area_rel_tol,
-            area_abs_tol,
+            rel_tol,
+            abs_tol,
         )
 
     return new_points
@@ -409,32 +380,34 @@ def left3(a: PointType, b: PointType, c: PointType) -> bool:
 
 
 def remove_duplicate_points(
-    points: list[PointType], dist_tol: float | None = None
+    points: list[PointType],
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> list[PointType]:
     """
     Return a list of points with duplicate points removed.
 
     Args:
         points (list[PointType]): List of points.
-        dist_tol (float, optional): Distance tolerance. Defaults to None.
+        rel_tol (float, optional): Relative tolerance. Defaults to None.
+        abs_tol (float, optional): Absolute tolerance. Defaults to None.
 
     Returns:
         list[PointType]: List of points with duplicate points removed.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.remove_duplicate_points([(0, 0), (0, 0), (1, 0)], dist_tol=0.001)
+        >>> sg.remove_duplicate_points([(0, 0), (0, 0), (1, 0)], abs_tol=0.001)
         [(0, 0), (1, 0)]
 """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
+    _, abs_tol = resolve_tol(rel_tol, abs_tol)
+    abs_tol2 = abs_tol * abs_tol
     new_points = []
     for i, point in enumerate(points):
         if i == 0:
             new_points.append(point)
         else:
-            dist_tol2 = dist_tol * dist_tol
-            if not close_points_square(point, new_points[-1], dist2=dist_tol2):
+            if not close_points_square(point, new_points[-1], dist2=abs_tol2):
                 new_points.append(point)
     return new_points
 
@@ -462,14 +435,7 @@ def remove_collinear_points(
 """
     from simetri.geom.segments.line_utils import collinear3
 
-    if rel_tol is None:
-        default_values = [abs_tol, None, None]
-    else:
-        default_values = [None, rel_tol, abs_tol]
-    area_tol, area_rel_tol, area_abs_tol = get_defaults(
-        ["area_tol", "area_rel_tol", "area_abs_tol"],
-        default_values,
-    )
+    rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
     n = len(points)
     closed = n > 2 and points[0] == points[-1]
     new_points = []
@@ -485,9 +451,8 @@ def remove_collinear_points(
             new_points[-1],
             point,
             points[next_index],
-            area_tol=area_tol,
-            area_rel_tol=area_rel_tol,
-            area_abs_tol=area_abs_tol,
+            rel_tol=rel_tol,
+            abs_tol=abs_tol,
         ):
             new_points.append(point)
     return new_points
@@ -993,8 +958,8 @@ def set_vertices(points: list[Vertex]) -> None:
         >>> from simetri.geom.points.point_utils import Vertex, set_vertices
         >>> verts = [Vertex(0, 0), Vertex(1, 0), Vertex(0, 1)]
         >>> set_vertices(verts)
-        >>> verts[0].next is verts[1]
-        True
+        >>> [(v.next.coords[:2], v.prev.coords[:2]) for v in verts]
+        [((1, 0), (0, 1)), ((0, 1), (0, 0)), ((0, 0), (1, 0))]
 """
     if not isinstance(points[0], Vertex):
         points = [Vertex(*p[:]) for p in points]

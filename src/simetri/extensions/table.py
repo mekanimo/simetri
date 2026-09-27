@@ -9,8 +9,9 @@ use table, column, and the column header ``Cell`` only.
 
 Notebook preview uses :class:`rich.table.Table` (Jupyter integration).
 
-Default layout values for this extension live in this module (not
-``config/settings.py``).
+Most layout defaults for this extension live in this module. Cell **fill**
+defaults use ``defaults['table_fill']`` and ``defaults['header_row_fill']`` in
+``config/settings.py`` (merged before table / column / row / cell layers).
 
 Cell indexing (read this before addressing cells):
 
@@ -51,7 +52,7 @@ from ..render.sketch import TableSketch
 from ..shapes.shape import Shape
 
 # Extension defaults (keep in this file).
-_TABLE_DEFAULT_BACKGROUND: dict[str, Any] = {"fill": False, "stroke": False}
+_TABLE_DEFAULT_STROKE = False
 _TABLE_DEFAULT_CELL_PAD_X = 6.0
 _TABLE_DEFAULT_CELL_PAD_Y = 4.0
 _TABLE_DEFAULT_COL_WIDTH_MIN = 40.0
@@ -725,12 +726,6 @@ class Range:
             value = _resolve_align(value)
         self._apply_style(kind, storage_name, value)
 
-    def _style_kwargs(self, storage_name: str, value: Any) -> dict[str, Any]:
-        kwargs = {storage_name: value}
-        if storage_name == "fill_color" and value is not None:
-            kwargs["fill"] = True
-        return kwargs
-
     def _style_store(self, cell: Cell, kind: str) -> dict[str, Any]:
         if kind == "format":
             return cell._format
@@ -756,7 +751,7 @@ class Range:
     def _apply_style(self, kind: str, storage_name: str, value: Any) -> None:
         if self._is_empty():
             raise ValueError("assignment on an empty range")
-        kwargs = self._style_kwargs(storage_name, value)
+        kwargs = {storage_name: value}
         if self._size_axis == "columns":
             for col_index in self._grid_col_indices():
                 column = self._table._columns[col_index]
@@ -973,6 +968,15 @@ def _resolve_cell_format(
     return fmt
 
 
+def _default_cell_background(table: Table, *, is_header: bool) -> dict[str, Any]:
+    from ..config.settings import runtime_defaults as defaults
+
+    fill = defaults["table_fill"]
+    if is_header:
+        fill = defaults["header_row_fill"]
+    return {"fill": fill, "stroke": _TABLE_DEFAULT_STROKE}
+
+
 def _resolve_cell_background(
     table: Table,
     grid_row: int,
@@ -981,7 +985,7 @@ def _resolve_cell_background(
     is_header = table.show_header and grid_row == 0
     data_row_index = grid_row - (1 if table.show_header else 0)
     layers = [
-        _TABLE_DEFAULT_BACKGROUND,
+        _default_cell_background(table, is_header=is_header),
         table._background,
     ]
     if col_index < len(table._columns):
@@ -1252,7 +1256,7 @@ def _background_rect_sketch(
     background: dict[str, Any],
 ) -> list:
     fill = background["fill"]
-    if not fill and background.get("fill_color") is None:
+    if not fill:
         return []
     rect = Shape(
         [
@@ -1602,7 +1606,7 @@ class Table:
         self.padding = padding
         self.font_size = font_size
         self._format: dict[str, Any] = {"font_size": font_size}
-        self._background: dict[str, Any] = dict(_TABLE_DEFAULT_BACKGROUND)
+        self._background: dict[str, Any] = {}
         self._columns: list[Column] = []
         self._rows: list[Row] = []
         self._default_column_width = column_width

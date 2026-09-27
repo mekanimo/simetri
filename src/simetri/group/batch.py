@@ -31,7 +31,7 @@ from ..base.all_enums import (
     WarningType,
     get_enum_value,
 )
-from ..base.common import LineType, PointType, get_unique_id
+from ..base.common import LineType, PointType, get_unique_id, resolve_tol
 from ..base.common_style import coerce_style_overlay
 from ..base.core import (
     STYLE_ATTRIBUTES,
@@ -45,6 +45,7 @@ from ..geom.points.point_utils import distance, fix_degen_points, round_point
 from ..geom.polygons.poly import get_polygons
 from ..geom.segments.line_utils import round_segment
 from ..helpers.modifiers import Modifier
+from ..helpers.utilities import flatten2
 from .merge import (
     _closest_angle_differences,
     _merge_collinears,
@@ -180,21 +181,6 @@ class Group(Base):
             0
         """
 
-        def flatten_elements(nested_list: Any) -> Iterator[Any]:
-            """Flatten a nested list.
-
-            Args:
-                nested_list: The nested list to flatten.
-
-            Yields:
-                The flattened elements.
-            """
-            for i in nested_list:
-                if isinstance(i, (list, tuple)):
-                    yield from flatten_elements(i)
-                else:
-                    yield i
-
         if not elements:
             self.elements = []
         elif len(elements) == 1 and isinstance(elements[0], (list, tuple)):
@@ -202,7 +188,7 @@ class Group(Base):
             for element in elements[0]:
                 if isinstance(element, (list, tuple)):
                     _elements.extend(
-                        elem for elem in flatten_elements(element) if elem
+                        elem for elem in flatten2(element) if elem
                     )
                 else:
                     if element:
@@ -215,7 +201,7 @@ class Group(Base):
             for element in elements:
                 if isinstance(element, (list, tuple)):
                     _elements.extend(
-                        elem for elem in flatten_elements(element) if elem
+                        elem for elem in flatten2(element) if elem
                     )
                 else:
                     if element:
@@ -507,13 +493,17 @@ class Group(Base):
         return len(set(elements)) != len(elements)
 
     def proximity(
-        self, dist_tol: float | None = None, n: int = 5
+        self,
+        rel_tol: float | None = None,
+        abs_tol: float | None = None,
+        n: int = 5,
     ) -> list[PointType]:
         """
         Returns the n closest points in the group.
 
         Args:
-            dist_tol (float, optional): The distance tolerance for proximity.
+            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
             n (int, optional): The number of closest points to return.
 
         Returns:
@@ -525,13 +515,12 @@ class Group(Base):
             >>> isinstance(g.proximity(n=1), list)
             True
         """
-        if dist_tol is None:
-            dist_tol = defaults["dist_tol"]
+        _, abs_tol = resolve_tol(rel_tol, abs_tol)
         vertices = self.all_vertices
         vertices = [(*v, i) for i, v in enumerate(vertices)]
         from ..geom.polygons.polygon import all_close_points
 
-        _, pairs = all_close_points(vertices, dist_tol=dist_tol, with_dist=True)
+        _, pairs = all_close_points(vertices, abs_tol=abs_tol, with_dist=True)
         return [pair for pair in pairs if pair[2] > 0][:n]
 
     def check_dist_tol(
@@ -938,7 +927,7 @@ class Group(Base):
         Examples:
             >>> import simetri.graphics as sg
             >>> g = sg.Group([sg.Shape([(0, 0), (10, 0)]), sg.Shape([(10, 0), (20, 0)])])
-            >>> g._set_node_dictionaries(g.all_vertices, dist_tol=0.01)
+            >>> g._set_node_dictionaries(g.all_vertices, abs_tol=0.01)
             >>> edges, _ = g._get_edges_and_segments()
             >>> len(g.merge_collinears(edges, merge_angle_tol=0.1))
             1
@@ -953,7 +942,8 @@ class Group(Base):
 
     def merge_shapes(
         self,
-        dist_tol: float | None = None,
+        rel_tol: float | None = None,
+        abs_tol: float | None = None,
         merge_angle_tol: float = 0.1,
         debug: bool = False,
         keep_one_duplicate: bool = True,
@@ -964,7 +954,8 @@ class Group(Base):
         graph. Unmerged content may be omitted depending on connectivity.
 
         Args:
-            dist_tol: Vertex snap tolerance. Defaults to library ``dist_tol``.
+            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
             merge_angle_tol: Collinearity angle tolerance in radians.
             debug: If True, print merge diagnostics.
             keep_one_duplicate: If True, keep one segment per ``equal_edges``
@@ -989,7 +980,8 @@ class Group(Base):
         """
         return _merge_shapes(
             self,
-            dist_tol=dist_tol,
+            rel_tol=rel_tol,
+            abs_tol=abs_tol,
             merge_angle_tol=merge_angle_tol,
             debug=debug,
             keep_one_duplicate=keep_one_duplicate,
@@ -1026,7 +1018,7 @@ class Group(Base):
     def _set_node_dictionaries(
         self,
         coords: list[PointType],
-        dist_tol: float,
+        abs_tol: float,
         debug: bool = False,
     ) -> list[dict]:
         """Set dictionaries for nodes and coordinates.
@@ -1035,7 +1027,7 @@ class Group(Base):
 
         Args:
             nodes (list[PointType]): list of vertices.
-            dist_tol (float): Distance tolerance for grouping coordinates.
+            abs_tol (float): Absolute tolerance for grouping coordinates.
             debug (bool, optional): Print node proximity diagnostics.
                 Defaults to False.
         """
@@ -1045,14 +1037,19 @@ class Group(Base):
             self.d_node_coord,
             self.d_coord_node,
             self.d_rounded_coord,
-        ) = node_dictionaries(coords, dist_tol, debug=debug)
+        ) = node_dictionaries(coords, abs_tol, debug=debug)
 
-    def all_polygons(self, dist_tol: float | None = None) -> list:
+    def all_polygons(
+        self,
+        rel_tol: float | None = None,
+        abs_tol: float | None = None,
+    ) -> list:
         """Return a list of all polygons in the group in their
         transformed positions.
 
         Args:
-            dist_tol (float, optional): The distance tolerance for proximity. Defaults to None.
+            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
 
         Returns:
             list: A list of all polygons in the group.
@@ -1063,8 +1060,7 @@ class Group(Base):
             >>> len(g.all_polygons())
             1
         """
-        if dist_tol is None:
-            dist_tol = defaults["dist_tol"]
+        _, abs_tol = resolve_tol(rel_tol, abs_tol)
         exclude = []
         include = []
         for shape in self.all_shapes:
@@ -1077,15 +1073,15 @@ class Group(Base):
         for element in include:
             points = element.vertices
             points = fix_degen_points(
-                points, dist_tol=dist_tol, closed=element.closed
+                points, abs_tol=abs_tol, closed=element.closed
             )
             polylines.append(points)
         if polylines:
             fixed_polylines = [
-                fix_degen_points(polyline, dist_tol=dist_tol, closed=True)
+                fix_degen_points(polyline, abs_tol=abs_tol, closed=True)
                 for polyline in polylines
             ]
-            polygons = get_polygons(fixed_polylines, dist_tol=dist_tol)
+            polygons = get_polygons(fixed_polylines, abs_tol=abs_tol)
             res = polygons + exclude
         else:
             res = exclude

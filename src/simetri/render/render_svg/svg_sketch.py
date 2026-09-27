@@ -129,6 +129,8 @@ def draw_line_sketch(
     sketch: LineSketch,
     canvas: Canvas,
     exceptions: Collection[str] | None = None,
+    *,
+    embed_clip_mask: bool = True,
 ) -> str:
     """Serialize a line sketch to an SVG ``<line>`` element.
 
@@ -154,7 +156,10 @@ def draw_line_sketch(
         limits = _line_limits(canvas)
         start, end = _clip_line_to_rect(start, end, limits, extent)
 
-    clip_attr, mask_attr = get_clip_mask_attrs(sketch)
+    if embed_clip_mask:
+        clip_attr, mask_attr = get_clip_mask_attrs(sketch)
+    else:
+        clip_attr, mask_attr = "", ""
     class_attr = ""
     style_attr = ""
     style_id = get_active_svg_style_id(sketch)
@@ -350,6 +355,7 @@ def draw_shape_sketch_with_indices(
     sketch: Sketch,
     index: int | None = 0,
     exceptions: Collection[str] | None = None,
+    canvas: Canvas | None = None,
 ) -> str:
     """Draw a shape sketch with optional vertex indices and coordinate labels.
 
@@ -372,6 +378,60 @@ def draw_shape_sketch_with_indices(
     Examples:
         >>> draw_shape_sketch_with_indices  # doctest: +SKIP
 """
+    if sketch_attrib(sketch, "subtype") == Types.LINE_SKETCH:
+        if canvas is None:
+            raise ValueError("canvas is required when drawing line sketches with labels")
+        shape_svg = draw_line_sketch(
+            sketch,
+            canvas,
+            exceptions=exceptions,
+            embed_clip_mask=False,
+        )
+        elements = [shape_svg]
+        index_font_size = sketch_label_font_size_pt(sketch, "index")
+        vertex_font_size = sketch_label_font_size_pt(sketch, "vertex")
+        index_font_family = label_font_family_svg(
+            sketch_label_font_family(sketch, "index")
+        )
+        vertex_font_family = label_font_family_svg(
+            sketch_label_font_family(sketch, "vertex")
+        )
+        index_draw = prepare_shape_index_labels(sketch)
+        if index_draw is not None:
+            index_positions, index_labels = index_draw
+            for (lx, ly), label in zip(index_positions, index_labels):
+                paint = svg_label_paint_attrs(
+                    sketch_label_font_color(sketch, "index"), index_font_size
+                )
+                elements.append(
+                    f'<g transform="translate({lx} {ly}) scale(1,-1)">'
+                    f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+                    f' font-family="{index_font_family}"'
+                    f' font-size="{index_font_size}" {paint}>{label}</text>'
+                    f"</g>"
+                )
+        vertex_draw = prepare_shape_vertex_coord_labels(sketch)
+        if vertex_draw is not None:
+            coord_positions, coord_labels = vertex_draw
+            for (lx, ly), text in zip(coord_positions, coord_labels):
+                paint = svg_label_paint_attrs(
+                    sketch_label_font_color(sketch, "vertex"), vertex_font_size
+                )
+                elements.append(
+                    f'<g transform="translate({lx} {ly}) scale(1,-1)">'
+                    f'<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"'
+                    f' font-family="{vertex_font_family}"'
+                    f' font-size="{vertex_font_size}" {paint}>{text}</text>'
+                    f"</g>"
+                )
+        content = "\n".join(elements)
+        clip_attr, mask_attr = get_clip_mask_attrs(sketch)
+        if index is None:
+            scope_attr = ""
+        else:
+            scope_attr = f' class="nodestyle{index}"'
+        return f"<g{scope_attr}{clip_attr}{mask_attr}>\n{content}\n</g>"
+
     vertices = sketch_attrib(sketch, "vertices")
 
     shape_type = "polygon" if sketch_attrib(sketch, "closed") else "polyline"

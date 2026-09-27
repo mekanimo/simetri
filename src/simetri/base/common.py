@@ -63,7 +63,7 @@ def gen_unique_ids() -> Iterator[int]:
         >>> gen = gen_unique_ids()
         >>> next(gen), next(gen)
         (0, 1)
-"""
+    """
     id_ = 0
     while True:
         yield id_
@@ -90,8 +90,9 @@ def get_unique_id(item: object) -> int:
         >>> item = _Item()
         >>> uid = get_unique_id(item)
         >>> d_id_obj[uid] is item
+
         True
-"""
+    """
     id_ = next(unique_id)
     d_id_obj[id_] = item
     return id_
@@ -109,9 +110,7 @@ axis_hex = (
 )  # used for 3 and 6 rotation symmetries
 
 
-def _set_Nones(
-    obj: object, args: Sequence[str], values: Sequence[Any]
-) -> None:
+def _set_Nones(obj: object, args: Sequence[str], values: Sequence[Any]) -> None:
     """
     Internally used in instance construction to set default values for None values.
 
@@ -127,8 +126,43 @@ def _set_Nones(
             setattr(obj, arg, values[i])
 
 
+def resolve_tol(
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
+) -> tuple[float, float]:
+    """Fill ``None`` tolerances from ``defaults["rel_tol"]`` and ``defaults["abs_tol"]``.
+
+    Either argument may be omitted. Factory values are ``rel_tol=0`` and
+    ``abs_tol=0.001``. Comparisons use
+
+    ``abs(a - b) <= abs_tol + rel_tol * abs(b)``
+    (NumPy ``isclose``; map ``rel_tol`` → ``rtol``, ``abs_tol`` → ``atol``).
+
+    Args:
+        rel_tol: Relative tolerance. ``None`` uses ``defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. ``None`` uses ``defaults["abs_tol"]``.
+
+    Returns:
+        tuple: ``(rel_tol, abs_tol)``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.resolve_tol()
+        (0, 0.001)
+        >>> sg.resolve_tol(abs_tol=0.05)
+        (0, 0.05)
+        >>> sg.resolve_tol(rel_tol=0.01, abs_tol=0.05)
+        (0.01, 0.05)
+    """
+    if rel_tol is None:
+        rel_tol = defaults["rel_tol"]
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
+    return (rel_tol, abs_tol)
+
+
 def get_defaults(args: Sequence[str], values: Sequence[Any]) -> list[Any]:
-    """Fill ``None`` entries from ``defaults`` (tolerance groups handled together).
+    """Fill ``None`` entries from ``defaults``.
 
     Args:
         args (list): Setting names to resolve.
@@ -139,72 +173,15 @@ def get_defaults(args: Sequence[str], values: Sequence[Any]) -> list[Any]:
 
     Examples:
         >>> from simetri.base.common import get_defaults
-        >>> get_defaults(["dist_tol"], [None])
+        >>> get_defaults(["rel_tol", "abs_tol"], [None, None])
+        [0, 0.001]
+        >>> get_defaults(["abs_tol"], [0.05])
         [0.05]
-        >>> get_defaults(["dist_rel_tol", "dist_abs_tol"], [None, None])
-        [0, 0.05]
-"""
-    res = len(args) * [None]
-    tolerance_indices = set()
-
-    for prefix in ("dist", "area", "angle"):
-        tol_name = f"{prefix}_tol"
-        rel_name = f"{prefix}_rel_tol"
-        abs_name = f"{prefix}_abs_tol"
-        index_by_name = {}
-
-        for name in (tol_name, rel_name, abs_name):
-            if name in args:
-                index_by_name[name] = args.index(name)
-
-        if not index_by_name:
-            continue
-
-        tolerance_indices.update(index_by_name.values())
-        tol_value = values[index_by_name[tol_name]] if tol_name in index_by_name else None
-        rel_value = values[index_by_name[rel_name]] if rel_name in index_by_name else None
-        abs_value = values[index_by_name[abs_name]] if abs_name in index_by_name else None
-
-        if tol_value is not None:
-            if rel_value is not None or abs_value is not None:
-                if rel_value != 0 or abs_value != tol_value:
-                    raise ValueError(
-                        f"Use either {tol_name} or both {rel_name} and {abs_name}."
-                    )
-            res[index_by_name[tol_name]] = tol_value
-            if rel_name in index_by_name:
-                res[index_by_name[rel_name]] = 0
-            if abs_name in index_by_name:
-                res[index_by_name[abs_name]] = tol_value
-            continue
-
-        if rel_name in index_by_name or abs_name in index_by_name:
-            if rel_name not in index_by_name or abs_name not in index_by_name:
-                raise ValueError(
-                    f"Both {rel_name} and {abs_name} must be requested together."
-                )
-            if (rel_value is None) != (abs_value is None):
-                raise ValueError(
-                    f"Both {rel_name} and {abs_name} must be provided together."
-                )
-            if rel_value is None:
-                res[index_by_name[rel_name]] = defaults[rel_name]
-                res[index_by_name[abs_name]] = defaults[abs_name]
-            else:
-                res[index_by_name[rel_name]] = rel_value
-                res[index_by_name[abs_name]] = abs_value
-            if tol_name in index_by_name:
-                res[index_by_name[tol_name]] = None
-            continue
-
-        res[index_by_name[tol_name]] = defaults[tol_name]
-
+    """
+    res = []
     for i, arg in enumerate(args):
-        if i in tolerance_indices:
-            continue
         if values[i] is None:
-            res[i] = defaults[arg]
+            res.append(defaults[arg])
         else:
-            res[i] = values[i]
-
+            res.append(values[i])
     return res

@@ -81,7 +81,7 @@ class BoundingBox:
         >>> bb = sg.BoundingBox((0, 0), (10, 20))
         >>> bb.northwest
         (0, 20)
-"""
+    """
 
     def __init__(
         self, southwest: PointType = None, northeast: PointType = None
@@ -163,7 +163,7 @@ class BoundingBox:
             >>> bb = BoundingBox((0, 0), (10, 20))
             >>> tuple(round(v, 10) for v in bb.angle_point(0))
             (10.0, 10.0)
-"""
+        """
         angle = positive_angle(angle)
         direction_x = np.cos(angle)
         direction_y = np.sin(angle)
@@ -200,7 +200,7 @@ class BoundingBox:
             >>> bb = BoundingBox((0, 0), (10, 20))
             >>> bb.left == ((0, 20), (0, 0))
             True
-"""
+        """
         return (self.northwest, self.southwest)
 
     @property
@@ -295,7 +295,7 @@ class BoundingBox:
             >>> from simetri.geom.bbox import BoundingBox
             >>> BoundingBox((0, 0), (10, 20)).midpoint
             (5.0, 10.0)
-"""
+        """
         x1, y1 = self.southwest
         x2, y2 = self.northeast
 
@@ -352,13 +352,14 @@ class BoundingBox:
             >>> import simetri.graphics as sg
             >>> bb = sg.BoundingBox((0, 0), (10, 20))
             >>> bb.all_anchors
-            ((0.0, 10.0), (0, 0), (5.0, 0.0), (10, 20), (10.0, 10.0), (10, 20), (5.0, 20.0), (0, 20), (5.0, 10.0))
+            ((0.0, 10.0), (0, 0), (5.0, 0.0), (10, 0), (10.0, 10.0), (10, 20), (5.0, 20.0), (0, 20), (5.0, 10.0))
         """
+        # Do not change the order. LiBeRTy (Left, Bottom, Right, Top) is the order.
         return (
             self.west,
             self.southwest,
             self.south,
-            self.northeast,
+            self.southeast,
             self.east,
             self.northeast,
             self.north,
@@ -390,10 +391,13 @@ class BoundingBox:
             >>> bb = sg.BoundingBox((0, 0), (10, 20))
             >>> len(bb.all_lines)
             8
-            >>> bb.all_lines[0] == bb.left
-            True
+            >>> bb.all_lines
+            (((0, 20), (0, 0)), ((0, 0), (10, 0)), ((10, 20), (10, 0)), ((0, 20),
+            (10, 20)), ((0.0, 10.0), (10.0, 10.0)), ((5.0, 20.0), (5.0, 0.0)),
+            ((0, 0), (10, 20)), ((10, 0), (0, 20)))
         """
 
+        # Do not change the order. LiBeRTy (Left, Bottom, Right, Top) is the order.
         return (
             self.left,
             self.bottom,
@@ -417,7 +421,7 @@ class BoundingBox:
             >>> from simetri.geom.bbox import BoundingBox
             >>> BoundingBox((0, 0), (10, 20)).width
             10.0
-"""
+        """
         return distance(self.northwest, self.northeast)
 
     @property
@@ -432,7 +436,7 @@ class BoundingBox:
             >>> from simetri.geom.bbox import BoundingBox
             >>> BoundingBox((0, 0), (10, 20)).height
             20.0
-"""
+        """
         return distance(self.northwest, self.southwest)
 
     @property
@@ -1024,7 +1028,7 @@ def bounding_box(points: Sequence[PointType]) -> BoundingBox:
         >>> bb = sg.bounding_box([(0, 0), (10, 5), (3, 8)])
         >>> bb.southwest, bb.northeast
         ((0, 0), (10, 8))
-"""
+    """
     if isinstance(points, np.ndarray):
         points = points[:, :2]
     else:

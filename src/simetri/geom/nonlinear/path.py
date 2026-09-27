@@ -17,7 +17,7 @@ from collections import deque
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from math import acos, atan2, cos, degrees, pi, radians, sin, sqrt
+from math import acos, atan2, cos, degrees, isclose, pi, radians, sin, sqrt
 from typing import Any, Self
 
 import numpy as np
@@ -44,9 +44,11 @@ from ..affine import rotation_matrix, translation_matrix
 from ..bbox import BoundingBox, bounding_box
 from ..geom_utils import close_points_square
 from ..geometry import (
+    normalize_angle,
     polar_to_cartesian,
     positive_angle,
 )
+from ..points.point_utils import distance
 from ..homogenize import homogenize
 from ..polygons.polygon import polygon_area
 from ..segments.line_utils import (
@@ -458,8 +460,8 @@ class Path2D(Group, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> p = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 5))
-            >>> len(p.all_vertices) >= 2
-            True
+            >>> [[round(c, 6) for c in q[:2]] for q in p.all_vertices]
+            [[0.0, 0.0], [10.0, 0.0], [10.0, 0.0], [10.0, 5.0]]
 """
         all_vertices = []
         for obj in self.objects:
@@ -487,8 +489,8 @@ class Path2D(Group, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> box = sg.Path2D((0, 0)).line_to((10, 5)).b_box
-            >>> box.width > 0 and box.height > 0
-            True
+            >>> box.width, box.height
+            (10.0, 5.0)
 """
 
         return bounding_box(self.all_vertices)
@@ -905,6 +907,36 @@ class Path2D(Group, CommonStyle):
         )
         return self
 
+    def r_cubic_to(
+        self,
+        r_control1: PointType,
+        r_control2: PointType,
+        r_end: PointType,
+        **kwargs: object,
+    ) -> Self:
+        """Append a cubic Bézier with relative control points and end (SVG ``c``).
+
+        Args:
+            r_control1: First control offset ``(dx, dy)`` from the pen.
+            r_control2: Second control offset ``(dx, dy)`` from the pen.
+            r_end: End offset ``(dx, dy)`` from the pen.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
+
+        Returns:
+            Self: This path.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).r_cubic_to((1, 2), (3, 2), (4, 0))
+            >>> p.pos
+            (4, 0)
+"""
+        cur_x, cur_y = self.pos
+        control1 = (cur_x + r_control1[0], cur_y + r_control1[1])
+        control2 = (cur_x + r_control2[0], cur_y + r_control2[1])
+        end = (cur_x + r_end[0], cur_y + r_end[1])
+        return self.cubic_to(control1, control2, end, **kwargs)
+
     def r_segments(
         self, r_points: Sequence[PointType], **kwargs: object
     ) -> Self:
@@ -1019,6 +1051,33 @@ class Path2D(Group, CommonStyle):
                 )
                 pos = end
         return self
+
+    def r_quad_to(
+        self,
+        r_control: PointType,
+        r_end: PointType,
+        **kwargs: object,
+    ) -> Self:
+        """Append a quadratic Bézier with relative control and end (SVG ``q``).
+
+        Args:
+            r_control: Control offset ``(dx, dy)`` from the pen.
+            r_end: End offset ``(dx, dy)`` from the pen.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
+
+        Returns:
+            Self: This path.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).r_quad_to((5, 5), (10, 0))
+            >>> p.pos
+            (10, 0)
+"""
+        cur_x, cur_y = self.pos
+        control = (cur_x + r_control[0], cur_y + r_control[1])
+        end = (cur_x + r_end[0], cur_y + r_end[1])
+        return self.quad_to(control, end, **kwargs)
 
     def mirror_cubic_to(
         self, control2: PointType, end: PointType, **kwargs: object
@@ -1317,8 +1376,10 @@ class Path2D(Group, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> p = sg.Path2D((0, 0)).arc_to(10, 10, 0, False, True, (10, 10))
-            >>> len(p.operations) >= 1
-            True
+            >>> [round(float(c), 5) for c in p.pos[:2]]
+            [10.0, 10.0]
+            >>> [round(float(c), 5) for c in p.vertices[0][:2]], [round(float(c), 5) for c in p.vertices[-1][:2]]
+            ([0.0, 0.0], [10.0, 10.0])
 """
         params = _get_svg_arc_params(
             self.pos, rx, ry, angle, large_arc_flag, sweep_flag, end
@@ -1344,6 +1405,45 @@ class Path2D(Group, CommonStyle):
                 **kwargs,
             )
         return self
+
+    def r_arc_to(
+        self,
+        rx: float,
+        ry: float,
+        angle: float,
+        large_arc_flag: bool,
+        sweep_flag: bool,
+        r_end: PointType,
+        **kwargs: object,
+    ) -> Self:
+        """Append an SVG-style elliptical arc with a relative end (SVG ``a``).
+
+        Radii, rotation, and flags match SVG ``a``; only ``r_end`` is an offset
+        from the current pen.
+
+        Args:
+            rx: Ellipse x-radius.
+            ry: Ellipse y-radius.
+            angle: Ellipse rotation in degrees.
+            large_arc_flag: Use the large arc if True.
+            sweep_flag: SVG sweep flag.
+            r_end: End offset ``(dx, dy)`` from the pen.
+            **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
+
+        Returns:
+            Self: This path.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> p = sg.Path2D((0, 0)).r_arc_to(10, 10, 0, False, True, (10, 10))
+            >>> round(float(p.pos[0]), 5), round(float(p.pos[1]), 5)
+            (10.0, 10.0)
+"""
+        cur_x, cur_y = self.pos[:2]
+        end = (cur_x + r_end[0], cur_y + r_end[1])
+        return self.arc_to(
+            rx, ry, angle, large_arc_flag, sweep_flag, end, **kwargs
+        )
 
     def blend_arc(
         self,
@@ -1372,8 +1472,10 @@ class Path2D(Group, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> p = sg.Path2D((0, 0), angle=0).blend_arc(10, 10, 0, sg.pi / 2)
-            >>> len(p.operations) == 1
-            True
+            >>> [round(float(c), 5) for c in p.pos[:2]]
+            [10.0, 10.0]
+            >>> [round(float(c), 5) for c in p.vertices[0][:2]], [round(float(c), 5) for c in p.vertices[-1][:2]]
+            ([0.0, 0.0], [10.0, 10.0])
 """
         rx = radius_x
         ry = radius_y
@@ -1450,9 +1552,11 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0)).sine(period=20, amplitude=5, duration=20)
-            >>> p.pos[0] > 0
-            True
+            >>> p = sg.Path2D((0, 0)).sine(period=20, amplitude=5, duration=20, n_points=4)
+            >>> [round(float(c), 6) or 0.0 for c in p.pos[:2]]
+            [20.0, 0.0]
+            >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in p.vertices]
+            [[0.0, 0.0], [6.666667, 4.330127], [13.333333, -4.330127], [20.0, 0.0]]
 """
 
         points = sine_points(
@@ -1491,9 +1595,11 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0), angle=sg.pi / 4).blend_sine(duration=20)
-            >>> len(p.operations) == 1
-            True
+            >>> p = sg.Path2D((0, 0), angle=sg.pi / 4).blend_sine(duration=20, n_points=4)
+            >>> [round(float(c), 5) for c in p.pos[:2]]
+            [14.14214, 14.14214]
+            >>> [[round(float(c), 6) for c in q[:2]] for q in p.vertices]
+            [[0.0, 0.0], [14.142136, 14.142136]]
 """
 
         points = sine_points(
@@ -1521,8 +1627,8 @@ class Path2D(Group, CommonStyle):
             >>> p = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 10)).close()
             >>> p.closed
             True
-            >>> len(p[-1].vertices) > 1
-            True
+            >>> [[round(c, 6) for c in q[:2]] for q in p[-1].vertices]
+            [[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]]
 """
         self.closed = True
         self._add(self.pos, PathOps.CLOSE, None, **kwargs)
@@ -1538,17 +1644,17 @@ class Path2D(Group, CommonStyle):
         Examples:
             >>> import simetri.graphics as sg
             >>> p = sg.Path2D((0, 0)).line_to((5, 0)).line_to((5, 5))
-            >>> len(p.vertices) >= 2
-            True
+            >>> [[round(c, 6) for c in q[:2]] for q in p.vertices]
+            [[0.0, 0.0], [5.0, 0.0], [5.0, 5.0]]
 """
         vertices = []
         last_vert = None
-        dist_tol2 = defaults["dist_tol"] ** 2
+        abs_tol2 = defaults["abs_tol"] ** 2
         for obj in self.objects:
             if obj is not None and obj.vertices:
                 obj_verts = obj.vertices
                 if last_vert:
-                    if close_points_square(last_vert, obj_verts[0], dist_tol2):
+                    if close_points_square(last_vert, obj_verts[0], abs_tol2):
                         vertices.extend(obj_verts[1:])
                     else:
                         vertices.extend(obj_verts)
@@ -1575,7 +1681,7 @@ class Path2D(Group, CommonStyle):
 
         vertices = []
         last_vert = None
-        dist_tol2 = defaults["dist_tol"] ** 2
+        abs_tol2 = defaults["abs_tol"] ** 2
         for obj, operation in zip(self.objects, self.operations):
             if obj is None or not obj.vertices:
                 continue
@@ -1583,7 +1689,7 @@ class Path2D(Group, CommonStyle):
             if operation.subtype in _CURVE_PATH_OPS and len(obj_verts) > 2:
                 obj_verts = [obj_verts[0], obj_verts[-1]]
             if last_vert:
-                if close_points_square(last_vert, obj_verts[0], dist_tol2):
+                if close_points_square(last_vert, obj_verts[0], abs_tol2):
                     vertices.extend(obj_verts[1:])
                 else:
                     vertices.extend(obj_verts)
@@ -2148,6 +2254,25 @@ def path_code(path2d: Path2D, n_round: int | None = None) -> str:
     return "\n".join(lines)
 
 
+def _get_path_nums(
+    tokens: Sequence[str], index: int, count: int
+) -> tuple[list[float] | None, int]:
+    nums: list[float] = []
+    i = index
+    for _ in range(count):
+        if i < len(tokens):
+            try:
+                nums.append(float(tokens[i]))
+            except ValueError:
+                break
+            i += 1
+        else:
+            break
+    if len(nums) < count:
+        return None, i
+    return nums, i
+
+
 def svg_path_to_path2d(svg_path: str) -> Path2D:
     """Parse an SVG path ``d`` string into a ``Path2D``.
 
@@ -2233,27 +2358,11 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
         cmd_lower = current_cmd.lower()
         is_rel = current_cmd == cmd_lower
 
-        def get_nums(count: int) -> list[float] | None:
-            nonlocal i
-            nums = []
-            for _ in range(count):
-                if i < len(tokens):
-                    try:
-                        nums.append(float(tokens[i]))
-                    except ValueError:
-                        break  # Hits a command?
-                    i += 1
-                else:
-                    break
-            if len(nums) < count:
-                return None
-            return nums
-
         if cmd_lower == "z":
             lp.close()
 
         elif cmd_lower == "m":
-            coords = get_nums(2)
+            coords, i = _get_path_nums(tokens, i, 2)
             if coords:
                 if is_rel:
                     lp.r_move(*coords)
@@ -2261,7 +2370,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                     lp.move_to(coords)
 
         elif cmd_lower == "l":
-            coords = get_nums(2)
+            coords, i = _get_path_nums(tokens, i, 2)
             if coords:
                 if is_rel:
                     lp.r_line(*coords)
@@ -2269,7 +2378,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                     lp.line_to(coords)
 
         elif cmd_lower == "h":
-            coords = get_nums(1)
+            coords, i = _get_path_nums(tokens, i, 1)
             if coords:
                 val = coords[0]
                 if is_rel:
@@ -2278,7 +2387,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                     lp.h_line_to(val)
 
         elif cmd_lower == "v":
-            coords = get_nums(1)
+            coords, i = _get_path_nums(tokens, i, 1)
             if coords:
                 val = coords[0]
                 if is_rel:
@@ -2287,7 +2396,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                     lp.v_line_to(val)
 
         elif cmd_lower == "c":
-            coords = get_nums(6)
+            coords, i = _get_path_nums(tokens, i, 6)
             if coords:
                 c1 = (coords[0], coords[1])
                 c2 = (coords[2], coords[3])
@@ -2302,7 +2411,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                 lp.cubic_to(c1, c2, end)
 
         elif cmd_lower == "s":
-            coords = get_nums(4)
+            coords, i = _get_path_nums(tokens, i, 4)
             if coords:
                 c2 = (coords[0], coords[1])
                 end = (coords[2], coords[3])
@@ -2327,7 +2436,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                 lp.cubic_to(c1, c2, end)
 
         elif cmd_lower == "q":
-            coords = get_nums(4)
+            coords, i = _get_path_nums(tokens, i, 4)
             if coords:
                 c1 = (coords[0], coords[1])
                 end = (coords[2], coords[3])
@@ -2338,7 +2447,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                 lp.quad_to(c1, end)
 
         elif cmd_lower == "t":
-            coords = get_nums(2)
+            coords, i = _get_path_nums(tokens, i, 2)
             if coords:
                 end = (coords[0], coords[1])
 
@@ -2360,7 +2469,7 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                 lp.quad_to(c1, end)
 
         elif cmd_lower == "a":
-            coords = get_nums(7)
+            coords, i = _get_path_nums(tokens, i, 7)
             if coords:
                 rx, ry = coords[0], coords[1]
                 rot_deg = coords[2]
@@ -2499,14 +2608,111 @@ def _get_svg_arc_params(
     return (PathOps.ARC, rx, ry, theta1, dtheta, phi)
 
 
-def shape_to_path(shape: Shape) -> Path2D:
+def _shape_edge_turn(path: Path2D, start: PointType, end: PointType) -> None:
+    """Append one shape edge using ``turn`` and ``forward``."""
+    edge_angle = line_angle(start, end)
+    turn_angle = normalize_angle(edge_angle - path.angle)
+    length = distance(start, end)
+    if length == 0:
+        return
+    path.turn(turn_angle, distance=length)
+
+
+def _shape_edge_relative(path: Path2D, start: PointType, end: PointType) -> None:
+    """Append one shape edge with relative line ops when axis-aligned."""
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+    if isclose(dx, 0.0) and isclose(dy, 0.0):
+        return
+    if isclose(dy, 0.0):
+        path.r_h_line(dx)
+    elif isclose(dx, 0.0):
+        path.r_v_line(dy)
+    else:
+        path.r_line(dx, dy)
+
+
+def shape_to_path2d(
+    shape: Shape,
+    *,
+    turns: bool = False,
+    relative: bool = False,
+) -> Path2D:
     """Convert a ``Shape`` into an equivalent ``Path2D``.
 
+    By default the pen ``move_to``s the first vertex, ``line_to``s each
+    remaining vertex, and ``close()`` when the shape is closed.
+
+    With ``turns=True``, the pen starts at the first vertex (no initial
+    ``move_to``) and each edge is recorded as ``turn(angle, distance)``.
+
+    With ``relative=True`` and ``turns=False``, axis-aligned edges use
+    ``r_h_line`` / ``r_v_line``; other edges use ``r_line``.
+
     Args:
-    shape: Source shape.
+        shape: Source shape.
+        turns: Use turtle-style ``turn`` / ``forward`` for edges.
+        relative: Use relative line ops when ``turns`` is False.
 
     Returns:
-    Path2D: Path following the shape vertices.
+        Path2D: Path following the shape vertices.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.base.all_enums import PathOperation as PO
+        >>> from simetri.geom.nonlinear.path import shape_to_path2d
+        >>> rect = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
+        >>> shape_to_path2d(rect).closed
+        True
+        >>> any(op.subtype == PO.FORWARD for op in shape_to_path2d(rect, turns=True).operations)
+        True
+        >>> ops = {op.subtype for op in shape_to_path2d(rect, relative=True).operations}
+        >>> PO.R_H_LINE in ops and PO.R_V_LINE in ops
+        True
+"""
+    vertices = shape.vertices
+    if not vertices:
+        return Path2D()
+
+    if turns:
+        path = Path2D(vertices[0])
+        start = vertices[0]
+        for vert in vertices[1:]:
+            _shape_edge_turn(path, start, vert)
+            start = vert
+        if shape.closed:
+            path.close()
+        return path
+
+    path = Path2D()
+    path.move_to(vertices[0])
+    start = vertices[0]
+    for vert in vertices[1:]:
+        if relative:
+            _shape_edge_relative(path, start, vert)
+        else:
+            path.line_to(vert)
+        start = vert
+    if shape.closed:
+        path.close()
+    return path
+
+
+def shape_to_path(
+    shape: Shape,
+    *,
+    turns: bool = False,
+    relative: bool = False,
+) -> Path2D:
+    """Convert a ``Shape`` into a ``Path2D`` (alias of ``shape_to_path2d``).
+
+    Args:
+        shape: Source shape.
+        turns: Passed to ``shape_to_path2d``.
+        relative: Passed to ``shape_to_path2d``.
+
+    Returns:
+        Path2D: Path following the shape vertices.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -2515,18 +2721,7 @@ def shape_to_path(shape: Shape) -> Path2D:
         >>> p.closed
         True
 """
-    path = Path2D()
-    path.move_to(shape[0])
-    for vert in shape.vertices[1:]:
-        path.line_to(vert)
-
-    if shape.closed:
-        path.close()
-
-    return path
-
-
-shape_to_path2d = shape_to_path
+    return shape_to_path2d(shape, turns=turns, relative=relative)
 
 
 def group_to_path(group: Group) -> Path2D:
@@ -2543,8 +2738,10 @@ def group_to_path(group: Group) -> Path2D:
         >>> from simetri.geom.nonlinear.path import group_to_path
         >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)]), sg.Shape([(2, 0), (3, 0)])])
         >>> p = group_to_path(g)
-        >>> len(p.operations) >= 2
-        True
+        >>> [op.subtype.name for op in p.operations]
+        ['MOVE_TO', 'LINE_TO', 'MOVE_TO', 'LINE_TO']
+        >>> [[round(c, 6) for c in q[:2]] for q in p.vertices]
+        [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0]]
 """
     shapes = group.all_shapes
     path = Path2D()

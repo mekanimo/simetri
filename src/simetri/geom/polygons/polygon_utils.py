@@ -20,7 +20,7 @@ from simetri.geom.vectors import cross_product_sense3, distance
 
 
 def right_handed(
-    polygon: Sequence[PointType], dist_tol: float | None = None
+    polygon: Sequence[PointType], abs_tol: float | None = None
 ) -> float:
     """Return True if the polygon walk is counter-clockwise.
 
@@ -29,8 +29,8 @@ def right_handed(
 
     Args:
         polygon (Sequence[PointType]): Vertices in walk order.
-        dist_tol (float, optional): Distance used to decide whether the
-            ring is already closed. Defaults to ``defaults["dist_tol"]``.
+        abs_tol (float, optional): Distance used to decide whether the
+            ring is already closed. Defaults to ``defaults["abs_tol"]``.
 
     Returns:
         bool: True if the walk is counter-clockwise.
@@ -44,10 +44,10 @@ def right_handed(
         >>> sg.right_handed([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
         True
 """
-    if dist_tol is None:
-        dist_tol = defaults["dist_tol"]
-    dist_tol2 = dist_tol * dist_tol
-    if close_points_square(polygon[0], polygon[-1], dist2=dist_tol2):
+    if abs_tol is None:
+        abs_tol = defaults["abs_tol"]
+    abs_tol2 = abs_tol * abs_tol
+    if close_points_square(polygon[0], polygon[-1], dist2=abs_tol2):
         poly = polygon
     else:
         poly = list(polygon) + [polygon[0]]
@@ -191,7 +191,7 @@ def get_polygon_grid_point(
         >>> sg.get_polygon_grid_point(4, (0, 1), (1, 2), circumradius=100)[1]
         100.0
 """
-    points = reg_poly_points((0, 0), n, circumradius)[:-1]
+    points = reg_poly_points((0, 0), n, circumradius)
     p1 = points[line1[0]]
     p2 = points[line1[1]]
     p3 = points[line2[0]]
