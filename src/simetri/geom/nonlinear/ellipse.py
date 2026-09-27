@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import cmath
+from collections.abc import Sequence
 from typing import Any
 from copy import deepcopy
 from math import atan2, ceil, cos, isclose, pi, sin, sqrt
@@ -10,7 +11,7 @@ from math import atan2, ceil, cos, isclose, pi, sin, sqrt
 import numpy as np
 from numpy.typing import NDArray
 
-from ...base.all_enums import TransformationType, Types
+from ...base.all_enums import InPlace, TransformationType, Types
 from ...base.common import PointType
 from ...config.settings import runtime_defaults
 from ...group.batch import Group
@@ -357,7 +358,13 @@ class Ellipse(Shape):
         xform_matrix: np.array,
         reps: int = 0,
         take: slice | None = None,
-        incr: NDArray | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
+        | None = None,
         dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,

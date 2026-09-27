@@ -22,6 +22,7 @@ from typing import Any, Self
 
 import networkx as nx
 import numpy as np
+from numpy.typing import NDArray
 
 from ..base.all_enums import Connection, InPlace, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults
@@ -69,6 +70,8 @@ _UpdateIncr = (
     | tuple[float, float]
     | tuple[Callable[..., Any], Any]
     | tuple[InPlace, Any]
+    | NDArray
+    | Sequence[Sequence[float]]
     | None
 )
 

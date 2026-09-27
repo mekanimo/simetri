@@ -6,8 +6,9 @@
 Examples:
     >>> import simetri.graphics as sg
     >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
-    >>> shape.translate(5, 0).rotate(sg.pi / 4, about=shape.midpoint).midpoint[0] > 5
-    True
+    >>> _ = shape.translate(5, 0).rotate(sg.pi / 4, about=shape.midpoint)
+    >>> tuple(round(value, 9) for value in shape.midpoint[:2])
+    (13.535533906, 5.0)
 """
 
 from __future__ import annotations
@@ -75,6 +76,8 @@ def _update_inplace(
     | tuple[float, float]
     | tuple[callable, Any]
     | tuple[InPlace, Any]
+    | NDArray
+    | Sequence[Sequence[float]]
     | None = None,
 ) -> NDArray:
     """Update a transformation matrix for one more repetition.
@@ -86,13 +89,15 @@ def _update_inplace(
       translation of both endpoints of a mirror line
     - ``(angle, about)``: rotation of a mirror line about a point
     - a sequence of the mirror forms above, applied in that order
+    - a 3x3 affine matrix (``ndarray`` or nested sequence), composed as
+      ``xform_matrix @ incr``
     - ``(callable, arg)``: callable returns one of the above increment values
     - ``(InPlace.OP, value)``: applies that operation to the current parameter
 
     Args:
         xform_matrix (NDArray): Affine matrix to update (mutated).
         xform_type (TransformationType): Kind of transform stored in the matrix.
-        incr: Increment or operator pair. Defaults to None.
+        incr: Increment, operator pair, or 3x3 affine matrix. Defaults to None.
 
     Returns:
         NDArray: The same matrix after the update.
@@ -100,6 +105,36 @@ def _update_inplace(
 
     def _is_number(value: Any) -> bool:
         return isinstance(value, (int, float, np.integer, np.floating))
+
+    def _as_affine_incr(value: Any) -> NDArray | None:
+        if isinstance(value, np.ndarray) and value.ndim == 2:
+            try:
+                arr = np.asarray(value, dtype=float)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("incr matrix must be numeric") from exc
+            if arr.shape != (3, 3):
+                raise ValueError(
+                    f"incr matrix must be 3x3, got shape {arr.shape}"
+                )
+            return arr
+        if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+            return None
+        if len(value) == 0:
+            return None
+        first = value[0]
+        if not isinstance(first, Sequence) or isinstance(first, (str, bytes)):
+            return None
+        try:
+            arr = np.asarray(value, dtype=float)
+        except (TypeError, ValueError):
+            return None
+        if arr.ndim != 2:
+            return None
+        if arr.shape != (3, 3):
+            raise ValueError(
+                f"incr matrix must be 3x3, got shape {arr.shape}"
+            )
+        return arr
 
     def _coerce_scalar(value: Any) -> float:
         if not _is_number(value):
@@ -197,6 +232,28 @@ def _update_inplace(
             xform_matrix[2, 0] = dx * scale
             xform_matrix[2, 1] = dy * scale
 
+    matrix = _as_affine_incr(incr)
+    if matrix is not None:
+        xform_matrix[:, :] = xform_matrix @ matrix
+        return xform_matrix
+
+    if (
+        isinstance(incr, Sequence)
+        and not isinstance(incr, (str, bytes))
+        and len(incr) == 2
+        and callable(incr[0])
+    ):
+        resolved = incr[0](incr[1])
+        matrix = _as_affine_incr(resolved)
+        if matrix is not None:
+            xform_matrix[:, :] = xform_matrix @ matrix
+            return xform_matrix
+        if xform_type == TransformationType.MIRROR:
+            incr = resolved
+        else:
+            _add_increment(resolved)
+            return xform_matrix
+
     if xform_type == TransformationType.MIRROR:
         line = _mirror_lines[id(xform_matrix)]
         updated_line = update_line(line, incr)
@@ -268,13 +325,13 @@ class DynRef:
         >>> box = sg.Shape([(0, 0), (100, 0), (100, 40)], closed=True)
         >>> gap = DynRef(Reference.WIDTH, ReferenceTarget.KERNEL)
         >>> row = box.translate(gap, 0, reps=2, dyn_ref=True)
-        >>> [shape.midpoint[0] for shape in row]
-        [50.0, 150.0, 250.0]
+        >>> [tuple(shape.midpoint[:2]) for shape in row]
+        [(50.0, 20.0), (150.0, 20.0), (250.0, 20.0)]
         >>> box = sg.Shape([(0, 0), (100, 0), (100, 40)], closed=True)
         >>> gap = DynRef(Reference.WIDTH, ReferenceTarget.PATTERN)
         >>> row = box.translate(gap, 0, reps=3, dyn_ref=True)
-        >>> [shape.midpoint[0] for shape in row]
-        [50.0, 150.0, 350.0, 750.0]
+        >>> [tuple(shape.midpoint[:2]) for shape in row]
+        [(50.0, 20.0), (150.0, 20.0), (350.0, 20.0), (750.0, 20.0)]
         >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
         >>> fan = box.rotate(
         ... sg.pi / 2,
@@ -289,28 +346,28 @@ class DynRef:
         ... reps=1,
         ... dyn_ref=True,
         ... )
-        >>> [shape.midpoint[0] for shape in walk]
-        [50.0, 150.0]
+        >>> [tuple(round(value, 9) for value in shape.midpoint[:2]) for shape in walk]
+        [(50.0, 20.0), (150.0, 20.0)]
         >>> spun = box.rotate(
         ... sg.pi,
         ... about=DynRef(Reference.EDGE, ReferenceTarget.ACTIVE, index=1),
         ... reps=1,
         ... dyn_ref=True,
         ... )
-        >>> [shape.midpoint[0] for shape in spun]
-        [50.0, 150.0]
+        >>> [tuple(round(value, 9) for value in shape.midpoint[:2]) for shape in spun]
+        [(50.0, 20.0), (150.0, 20.0)]
         >>> row = box.translate(
         ... DynRef(Reference.EDGE, ReferenceTarget.KERNEL, index=1),
         ... 0,
         ... reps=1,
         ... dyn_ref=True,
         ... )
-        >>> [shape.midpoint[0] for shape in row]
-        [50.0, 90.0]
+        >>> [tuple(shape.midpoint[:2]) for shape in row]
+        [(50.0, 20.0), (90.0, 20.0)]
         >>> step = DynRef(Reference.EDGE, ReferenceTarget.KERNEL, index=1)
         >>> climb = box.translate(step, reps=1, dyn_ref=True)
-        >>> [shape.midpoint[1] for shape in climb]
-        [20.0, 60.0]
+        >>> [tuple(shape.midpoint[:2]) for shape in climb]
+        [(50.0, 20.0), (50.0, 60.0)]
 """
 
     reference: Reference | Callable
@@ -519,8 +576,8 @@ class Transform:
         Examples:
             >>> import simetri.graphics as sg
             >>> step = sg.Transform.translate(10, 5)
-            >>> step.arguments[0]
-            ('dx', 10)
+            >>> step.arguments
+            (('dx', 10), ('dy', 5))
         """
         builder, arguments = _translate_builder_args(dx, dy)
         return cls(builder, tuple(arguments.items()))
@@ -540,8 +597,8 @@ class Transform:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Transform.rotate(sg.pi / 2, about=(0, 0)).arguments[0]
-            ('angle', 1.5707963267948966)
+            >>> sg.Transform.rotate(sg.pi / 2, about=(0, 0)).arguments
+            (('angle', 1.5707963267948966), ('about', (0, 0)))
         """
         return cls(rotation_matrix, (("angle", angle), ("about", about)))
 
@@ -558,8 +615,8 @@ class Transform:
         Examples:
             >>> import simetri.graphics as sg
             >>> line = [(0, 0), (1, 0)]
-            >>> sg.Transform.mirror(line).arguments[0]
-            ('about', [(0, 0), (1, 0)])
+            >>> sg.Transform.mirror(line).arguments
+            (('about', [(0, 0), (1, 0)]),)
         """
         return cls(mirror_matrix, (("about", about),))
 
@@ -581,8 +638,8 @@ class Transform:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Transform.glide([(0, 0), (10, 0)], 3).arguments[1]
-            ('glide_dist', 3)
+            >>> sg.Transform.glide([(0, 0), (10, 0)], 3).arguments
+            (('glide_line', [(0, 0), (10, 0)]), ('glide_dist', 3))
         """
         return cls(
             glide_matrix,
@@ -610,8 +667,8 @@ class Transform:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Transform.scale(2).arguments[0]
-            ('scale_x', 2)
+            >>> sg.Transform.scale(2).arguments
+            (('scale_x', 2), ('scale_y', 2), ('about', (0, 0)))
         """
         if scale_y is None:
             scale_y = scale_x
@@ -1139,9 +1196,9 @@ class Base:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> bar = sg.Shape([(0, 0), (4, 0)], closed=True)
-        >>> bar.translate(2, 0).midpoint[0]
-        4.0
+        >>> bar = sg.Shape([(0, 0), (4, 0), (4, 2), (0, 2)], closed=True)
+        >>> bar.translate(2, 0).midpoint
+        (4.0, 1.0)
     """
 
     def __getattr__(self, name: str) -> Any:
@@ -1195,6 +1252,8 @@ class Base:
         | tuple[float, float]
         | tuple[callable, Any]
         | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
         | None = None,
         dyn_ref: bool = False,
         merge: bool = False,
@@ -1237,11 +1296,18 @@ class Base:
             True
             >>> square.vertices
             ((10.0, 5.0), (11.0, 5.0))
-            >>> square.translate(0, -5).vertices[0]
-            (10.0, 0.0)
+            >>> square.translate(0, -5).vertices
+            ((10.0, 0.0), (11.0, 0.0))
             >>> mark = sg.Shape([(0, 0)])
-            >>> mark.translate((80, 40)).vertices[0][:2]
-            (80.0, 40.0)
+            >>> mark.translate((80, 40)).vertices
+            ((80.0, 40.0),)
+            >>> box = sg.Shape(
+            ... [(0, 0), (10, 0), (10, 10), (0, 10)], closed=True
+            ... )
+            >>> step = sg.translation_matrix(10, 0)
+            >>> row = box.translate(20, 0, reps=2, incr=step)
+            >>> [shape.vertices for shape in row]
+            [((0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)), ((20.0, 0.0), (30.0, 0.0), (30.0, 10.0), (20.0, 10.0)), ((50.0, 0.0), (60.0, 0.0), (60.0, 10.0), (50.0, 10.0))]
 """
         builder, arguments = _translate_builder_args(dx, dy)
         transform, dyn_ref = _make_xform(builder, dyn_ref, self, **arguments)
@@ -1278,6 +1344,8 @@ class Base:
         | tuple[float, float]
         | tuple[callable, Any]
         | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
         | None = None,
         dyn_ref: bool = False,
         merge: bool = False,
@@ -1312,14 +1380,17 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 0), (1, 0)])
-            >>> mark.translate_along([(5, 0)]) is mark
+            >>> mark = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> mark.translate_along([(10, 4)]) is mark
             True
+            >>> mark.midpoint
+            (10.0, 4.0)
+            >>> mark.vertices
+            ((9.0, 3.0), (11.0, 3.0), (11.0, 5.0), (9.0, 5.0))
             >>> mark.translate_along([(0, 0), (1, 0)], dyn_ref=True)
             Traceback (most recent call last):
                 ...
             ValueError: translate_along places copies on given path points, so dyn_ref has no transform arguments to resolve. Use translate, rotate, mirror, glide, scale, or shear instead.
-            >>> mark.translate_along([(0, 0), (5, 0)], step=1, incr=(1, 0))  # doctest: +SKIP
         """
         if dyn_ref:
             raise ValueError(
@@ -1369,6 +1440,8 @@ class Base:
         | tuple[float, float]
         | tuple[callable, Any]
         | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
         | None = None,
         dyn_ref: bool = False,
         merge: bool = False,
@@ -1393,10 +1466,10 @@ class Base:
             >>> arm = sg.Shape([(1, 0)])
             >>> arm.rotate(sg.pi / 2) is arm
             True
-            >>> abs(arm.vertices[0][0]) < 1e-9 and abs(arm.vertices[0][1] - 1) < 1e-9
-            True
-            >>> arm.rotate(-sg.pi / 2).vertices[0][0]
-            1.0
+            >>> tuple(tuple(round(coord, 10) for coord in vertex[:2]) for vertex in arm.vertices)
+            ((0.0, 1.0),)
+            >>> arm.rotate(-sg.pi / 2).vertices
+            ((1.0, 0.0),)
 """
         transform, dyn_ref = _make_xform(
             rotation_matrix, dyn_ref, self, angle=angle, about=about
@@ -1432,6 +1505,8 @@ class Base:
         | tuple[float, float]
         | tuple[callable, Any]
         | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
         | None = None,
         dyn_ref: bool = False,
         merge: bool = False,
@@ -1465,14 +1540,14 @@ class Base:
             >>> axis = [(0, 0), (100, 0)]
             >>> mark.mirror(axis) is mark
             True
-            >>> abs(mark.vertices[0][1] + 40) < 1e-9
-            True
+            >>> mark.vertices
+            ((0.0, -40.0),)
             >>> axis
             [(0, 0), (100, 0)]
             >>> mark = sg.Shape([(0, 40)])
             >>> row = mark.mirror([(0, 0), (100, 0)], reps=2, incr=40)
-            >>> [round(shape.vertices[0][1], 10) for shape in row]
-            [40.0, -40.0, 120.0]
+            >>> [tuple(shape.vertices) for shape in row]
+            [((0.0, 40.0),), ((0.0, -40.0),), ((0.0, 120.0),)]
 """
         transform, dyn_ref = _make_xform(
             mirror_matrix, dyn_ref, self, about=about
@@ -1525,6 +1600,8 @@ class Base:
         | tuple[float, float]
         | tuple[callable, Any]
         | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
         | None = None,
         dyn_ref: bool = False,
         merge: bool = False,
@@ -1552,10 +1629,8 @@ class Base:
             >>> line = [(0, 0), (1, 0)]
             >>> mark.glide(line, 2) is mark
             True
-            >>> abs(mark.vertices[0][0] - 2) < 1e-9
-            True
-            >>> abs(mark.vertices[0][1] + 1) < 1e-9
-            True
+            >>> mark.vertices
+            ((2.0, -1.0),)
             >>> line
             [(0, 0), (1, 0)]
 """
@@ -1599,6 +1674,8 @@ class Base:
         | tuple[float, float]
         | tuple[callable, Any]
         | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
         | None = None,
         dyn_ref: bool = False,
         merge: bool = False,
@@ -1624,13 +1701,13 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bar = sg.Shape([(1, 0)])
+            >>> bar = sg.Shape([(1, 1)])
             >>> bar.scale(2) is bar
             True
             >>> bar.vertices
-            ((2.0, 0.0),)
-            >>> bar.scale(1, 3).vertices[0][1]
-            0.0
+            ((2.0, 2.0),)
+            >>> bar.scale(1, 3).vertices
+            ((2.0, 6.0),)
 """
         if scale_y is None:
             scale_y = scale_x
@@ -1674,6 +1751,8 @@ class Base:
         | tuple[float, float]
         | tuple[callable, Any]
         | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
         | None = None,
         dyn_ref: bool = False,
         merge: bool = False,
@@ -1697,10 +1776,10 @@ class Base:
         Examples:
             >>> import simetri.graphics as sg
             >>> mark = sg.Shape([(1, 1)])
-            >>> mark.shear(0, 0) is mark
+            >>> mark.shear(sg.pi / 4, 0) is mark
             True
             >>> mark.vertices
-            ((1.0, 1.0),)
+            ((2.0, 1.0),)
 """
         transform, dyn_ref = _make_xform(
             shear_matrix, dyn_ref, self, theta_x=theta_x, theta_y=theta_y
@@ -1739,6 +1818,8 @@ class Base:
             >>> _ = mark.translate(3, 0)
             >>> mark.reset_xform_matrix() is mark
             True
+            >>> mark.xform_matrix.tolist()
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
         """
         self.__dict__["xform_matrix"] = np.identity(3)
         return self
@@ -1781,10 +1862,10 @@ class Base:
         Examples:
             >>> import simetri.graphics as sg
             >>> mark = sg.Shape([(0, 0), (1, 0)])
-            >>> mark.transform(mark.xform_matrix) is mark
+            >>> mark.transform(sg.translation_matrix(3, 0)) is mark
             True
             >>> mark.vertices
-            ((0.0, 0.0), (1.0, 0.0))
+            ((3.0, 0.0), (4.0, 0.0))
             >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
             >>> xform = sg.Transformation(
             ... sg.Transform.translate(40, 0),
@@ -1907,8 +1988,8 @@ class Base:
         Examples:
             >>> import simetri.graphics as sg
             >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
-            >>> box.offset_line(sg.Side.BOTTOM, 1)[0][1]
-            -1.0
+            >>> box.offset_line(sg.Side.BOTTOM, 1)
+            ((0.0, -1.0), (4.0, -1.0))
 """
         side = get_enum_value(Side, side)
         return self.b_box.offset_line(side, offset)

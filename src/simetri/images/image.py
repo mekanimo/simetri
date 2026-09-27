@@ -17,13 +17,14 @@ from collections.abc import Callable, Iterable, Sequence
 from math import degrees
 from typing import TYPE_CHECKING, Any
 
+from numpy.typing import NDArray
 from PIL import Image as PIL_Image
 from PIL import ImageDraw, ImageFilter
 
 if TYPE_CHECKING:
     from ..render.sketch import Sketch
 
-from ..base.all_enums import Anchor, ImageMode, TransformationType, Types
+from ..base.all_enums import Anchor, ImageMode, InPlace, TransformationType, Types
 from ..base.common import PointType
 from ..base.core import _update_inplace
 from ..coloring.colors import ColorLike, check_color
@@ -275,7 +276,13 @@ class Image(Rectangle):
         xform_matrix: "array",
         reps: int = 0,
         take: slice | None = None,
-        incr: float | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
+        | None = None,
         dyn_ref: bool | None = None,
         merge: bool = False,
         xform_type: TransformationType | None = None,

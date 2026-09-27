@@ -580,6 +580,8 @@ class Shape(Base, CommonStyle):
         | tuple[float, float]
         | tuple[callable, Any]
         | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
         | None = None,
         dyn_ref: Callable | None = None,
         merge: bool = False,

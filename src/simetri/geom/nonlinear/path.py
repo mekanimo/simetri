@@ -26,6 +26,7 @@ from numpy.typing import NDArray
 from ...base.all_enums import (
     Anchor,
     FillMode,
+    InPlace,
     LineCap,
     LineJoin,
     TransformationType,
@@ -1726,7 +1727,13 @@ class Path2D(Group, CommonStyle):
         xform_matrix: NDArray,
         reps: int = 0,
         take: slice | None = None,
-        incr: float | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
+        | None = None,
         dyn_ref: Callable | None = None,
         merge: bool = False,
         xform_type: TransformationType = None,
