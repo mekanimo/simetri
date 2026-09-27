@@ -8,7 +8,7 @@ import numpy as np
 
 from ...base.all_enums import SvgMaskType, SvgUnits, Types
 from ...coloring.colors import Color
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 from ...geom.bbox import bounding_box
 from .svg_colors import color_to_svg
 from .svg_sketch_utils import get_coordinates, get_shape_type, sketch_attrib
@@ -62,7 +62,7 @@ def generate_mask_def(
         for stop in stops or []:
             offset, stop_color, stop_opacity = get_mask_stop(stop)
             has_color = stop_color is not None
-            if stop_color != color_to_svg(defaults["stop_color"]):
+            if stop_color != color_to_svg(runtime_defaults["stop_color"]):
                 has_color = True
             stop_opacity_attr = (
                 f' stop-opacity="{stop_opacity}"'
@@ -79,7 +79,7 @@ def generate_mask_def(
             return value
         if value is None:
             return _normalize_svg_units(
-                defaults.get("mask_units", SvgUnits.USER_SPACE_ON_USE.value)
+                runtime_defaults.get("mask_units", SvgUnits.USER_SPACE_ON_USE.value)
             )
         text = str(value).strip()
         lowered = text.lower()
@@ -101,10 +101,10 @@ def generate_mask_def(
         if canvas._all_vertices:
             canvas_bbox = bounding_box(canvas._all_vertices)
             if canvas.border is None:
-                border_left = defaults["border"]
-                border_bottom = defaults["border"]
-                border_right = defaults["border"]
-                border_top = defaults["border"]
+                border_left = runtime_defaults["border"]
+                border_bottom = runtime_defaults["border"]
+                border_right = runtime_defaults["border"]
+                border_top = runtime_defaults["border"]
             elif isinstance(canvas.border, (int, float)):
                 border_left = canvas.border
                 border_bottom = canvas.border
@@ -235,7 +235,7 @@ def generate_mask_def(
         mask_stops = mask_data.stops
         mask_axis = mask_data.axis
         if mask_stops is not None and mask_axis is None:
-            mask_axis = defaults["mask_axis"]
+            mask_axis = runtime_defaults["mask_axis"]
         mask_units = _normalize_svg_units(None)
         mask_content_units = _normalize_svg_units(None)
     elif sketch.subtype == Types.MASK_SKETCH:

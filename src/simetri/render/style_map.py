@@ -31,7 +31,7 @@ from ..base.all_enums import (
     Types,
 )
 from ..coloring.colors import Color
-from ..config.settings import VOID, default_types, runtime_defaults as defaults
+from ..config.settings import VOID, default_types, runtime_defaults
 
 if TYPE_CHECKING:
     from .gradient import Gradient
@@ -50,7 +50,7 @@ def _set_style_args(
         obj: Style instance to mutate.
         attribs: Attribute names to initialize.
         exact: Names read from ``defaults`` without a prefix.
-        prefix: Prefix for ``defaults[f"{prefix}_{attrib}"]`` lookups.
+        prefix: Prefix for ``runtime_defaults[f"{prefix}_{attrib}"]`` lookups.
         values: Explicit overrides keyed by attribute name.
     """
     for attrib in attribs:
@@ -58,14 +58,14 @@ def _set_style_args(
             setattr(obj, attrib, values[attrib])
         else:
             if exact and attrib in exact:
-                default = defaults.get(attrib, VOID)
+                default = runtime_defaults.get(attrib, VOID)
                 if default != VOID:
                     setattr(obj, attrib, default)
             else:
                 if prefix:
-                    setattr(obj, attrib, defaults[f"{prefix}_{attrib}"])
+                    setattr(obj, attrib, runtime_defaults[f"{prefix}_{attrib}"])
                 else:
-                    default = defaults.get(attrib, VOID)
+                    default = runtime_defaults.get(attrib, VOID)
                     if default != VOID:
                         setattr(obj, attrib, default)
 
@@ -758,9 +758,9 @@ class ImageStyle:
     def __post_init__(self) -> None:
         """Initialize the ImageStyle object."""
         self.frame_style = FrameStyle()
-        self.alpha = defaults["image_alpha"]
-        self.align = defaults["image_align"]
-        self.blend_mode = defaults["image_blend_mode"]
+        self.alpha = runtime_defaults["image_alpha"]
+        self.align = runtime_defaults["image_align"]
+        self.blend_mode = runtime_defaults["image_blend_mode"]
         exact = [
             "alpha",
             "blend_mode",
@@ -828,12 +828,12 @@ class TagStyle:
         """Initialize the TagStyle object."""
         self.font_style = FontStyle()
         self.frame_style = FrameStyle()
-        self.alpha = defaults["tag_alpha"]
-        self.bold = defaults["bold"]
-        self.italic = defaults["italic"]
-        self.align = defaults["tag_align"]
-        self.blend_mode = defaults["tag_blend_mode"]
-        self.text_width = defaults["text_width"]
+        self.alpha = runtime_defaults["tag_alpha"]
+        self.bold = runtime_defaults["bold"]
+        self.italic = runtime_defaults["italic"]
+        self.align = runtime_defaults["tag_align"]
+        self.blend_mode = runtime_defaults["tag_blend_mode"]
+        self.text_width = runtime_defaults["text_width"]
         exact = [
             "alpha",
             "blend_mode",

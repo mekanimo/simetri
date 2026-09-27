@@ -68,7 +68,7 @@ from ..coloring.pastels import *
 from ..coloring.swatches import *
 from ..extensions.easing import *
 from ..extensions.l_system import l_system
-from ..extensions.string_patterns import string_star
+from ..extensions.string_patterns import string_star, get_skipped_items
 from ..extensions.table import Table as Table
 from ..extensions.times_glyphs import times_glyph
 from ..extensions.tree import TreeNode, make_tree

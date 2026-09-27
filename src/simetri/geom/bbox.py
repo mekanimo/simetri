@@ -23,8 +23,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from ..base.all_enums import Anchor, Side, Types, WarningType
-from ..base.common import PointType, defaults, get_unique_id
-from ..config.settings import VOID, issue_warning
+from ..base.common import PointType, get_unique_id
+from ..config.settings import VOID, issue_warning, runtime_defaults
 from .geom_utils import midpoint
 from .geometry import polar_to_cartesian, positive_angle
 from .points.point_utils import distance
@@ -1034,7 +1034,7 @@ def bounding_box(points: Sequence[PointType]) -> BoundingBox:
     else:
         points = np.array(points)  # numpy array of points
     n_points = len(points)
-    BB_EPSILON = defaults["BB_EPSILON"]
+    BB_EPSILON = runtime_defaults["BB_EPSILON"]
     if n_points == 0:  # empty list of points
         raise ValueError("Empty list of points")
 

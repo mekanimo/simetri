@@ -15,7 +15,7 @@ from typing import Any
 
 from ..base.all_enums import GradientType, SvgUnits, Types
 from ..coloring.colors import Color, gray, white
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..helpers.validation import check_color, check_percent
 
 __all__ = ["Gradient", "Stop", "normalize_stops"]
@@ -156,7 +156,7 @@ class Gradient:
         self.type = Types.GRADIENT
 
         if self.spread_method is None:
-            self.spread_method = defaults["gradient_spread_method"]
+            self.spread_method = runtime_defaults["gradient_spread_method"]
         self.stops = _resolve_stops(self.stops)
         if self.gradient_type == GradientType.LINEAR:
             self.center = None
@@ -166,11 +166,11 @@ class Gradient:
         else:
             self.axis = None
             if self.center is None:
-                self.center = defaults["gradient_center"]
+                self.center = runtime_defaults["gradient_center"]
             if self.focal is None:
-                self.focal = defaults["gradient_focal"]
+                self.focal = runtime_defaults["gradient_focal"]
             if self.radius is None:
-                self.radius = defaults["gradient_radius"]
+                self.radius = runtime_defaults["gradient_radius"]
             if self.radius <= 0.0:
                 raise ValueError("gradient radius must be positive.")
             self.subtype = Types.RADIAL

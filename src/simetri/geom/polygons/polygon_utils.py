@@ -7,7 +7,7 @@ import numpy as np
 
 from simetri.base.all_enums import Connection
 from simetri.base.common import PointType, get_defaults
-from simetri.config.settings import runtime_defaults as defaults
+from simetri.config.settings import runtime_defaults
 from simetri.geom.geom_utils import close_points_square, reg_poly_points
 from simetri.geom.points.point_utils import (
     remove_bad_points,
@@ -30,7 +30,7 @@ def right_handed(
     Args:
         polygon (Sequence[PointType]): Vertices in walk order.
         abs_tol (float, optional): Distance used to decide whether the
-            ring is already closed. Defaults to ``defaults["abs_tol"]``.
+            ring is already closed. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if the walk is counter-clockwise.
@@ -45,7 +45,7 @@ def right_handed(
         True
 """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     abs_tol2 = abs_tol * abs_tol
     if close_points_square(polygon[0], polygon[-1], dist2=abs_tol2):
         poly = polygon

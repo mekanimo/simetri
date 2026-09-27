@@ -24,7 +24,7 @@ from ...base.all_enums import (
     Types,
     get_enum_value,
 )
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 from ...geom.geom_utils import close_points_square
 from ...geom.points.point_utils import round_point
 from ...helpers.illustration import (
@@ -282,15 +282,15 @@ def draw_tag_sketch(sketch: Any) -> str:
             >>> pass  # doctest: +SKIP
         """
         default_fonts = [
-            defaults["main_font"],
-            defaults["sans_font"],
-            defaults["mono_font"],
+            runtime_defaults["main_font"],
+            runtime_defaults["sans_font"],
+            runtime_defaults["mono_font"],
         ]
 
         if sketch.font_family in default_fonts:
-            if sketch.font_family == defaults["main_font"]:
+            if sketch.font_family == runtime_defaults["main_font"]:
                 res = "tex_family", ""
-            elif sketch.font_family == defaults["sans_font"]:
+            elif sketch.font_family == runtime_defaults["sans_font"]:
                 res = "tex_family", "textsf"
             else:  # defaults['mono_font']
                 res = "tex_family", "texttt"
@@ -336,41 +336,40 @@ def draw_tag_sketch(sketch: Any) -> str:
     x, y = sketch.pos[:2]
 
     options = ""
-    if sketch.draw_frame and sketch.line_width > 0:
+    if sketch.draw_frame and sketch.line_width > 0 and sketch.stroke:
         options += "draw"
-        if sketch.stroke:
-            if sketch.frame_shape != FrameShape.RECTANGLE:
-                options += f", {sketch.frame_shape}, "
-            line_style_options = get_line_style_options(sketch)
-            if line_style_options:
-                options += ", " + ", ".join(line_style_options)
-            if sketch.frame_inner_sep:
-                options += f", inner sep={sketch.frame_inner_sep}"
-            else:
-                options += ", inner sep=0pt"
-            if sketch.minimum_width:
-                options += f", minimum width={sketch.minimum_width}"
-            if sketch.smooth and sketch.frame_shape not in [
-                FrameShape.CIRCLE,
-                FrameShape.ELLIPSE,
-            ]:
-                options += ", smooth"
+        if sketch.frame_shape != FrameShape.RECTANGLE:
+            options += f", {sketch.frame_shape}, "
+        line_style_options = get_line_style_options(sketch)
+        if line_style_options:
+            options += ", " + ", ".join(line_style_options)
+        if sketch.frame_inner_sep:
+            options += f", inner sep={sketch.frame_inner_sep}"
+        else:
+            options += ", inner sep=0pt"
+        if sketch.minimum_width:
+            options += f", minimum width={sketch.minimum_width}"
+        if sketch.smooth and sketch.frame_shape not in [
+            FrameShape.CIRCLE,
+            FrameShape.ELLIPSE,
+        ]:
+            options += ", smooth"
     else:
         options = "inner sep=0pt"
 
     if sketch.fill and sketch.back_color:
         options += f", fill={color_to_tikz(sketch.frame_back_color, 'frame_back_color')}"
     effective_anchor = (
-        sketch.anchor if sketch.anchor is not None else defaults["anchor"]
+        sketch.anchor if sketch.anchor is not None else runtime_defaults["anchor"]
     )
     if (
         sketch.align in (Align.LEFT, Align.FLUSH_LEFT)
-        and effective_anchor == defaults["anchor"]
+        and effective_anchor == runtime_defaults["anchor"]
     ):
         options += f", anchor={anchor_to_tikz(Anchor.WEST)}"
     elif (
         sketch.align in (Align.RIGHT, Align.FLUSH_RIGHT)
-        and effective_anchor == defaults["anchor"]
+        and effective_anchor == runtime_defaults["anchor"]
     ):
         options += f", anchor={anchor_to_tikz(Anchor.EAST)}"
     elif sketch.anchor:
@@ -401,7 +400,7 @@ def draw_tag_sketch(sketch: Any) -> str:
 
     if (
         sketch.font_color is not None
-        and sketch.font_color != defaults["font_color"]
+        and sketch.font_color != runtime_defaults["font_color"]
     ):
         options += f", text={color_to_tikz(sketch.font_color)}"
     family, font_family = get_font_family(sketch)
@@ -447,7 +446,7 @@ def draw_tag_sketch(sketch: Any) -> str:
     alpha = sketch.alpha
     if alpha is None:
         raise ValueError("TagSketch.alpha was not resolved at draw time.")
-    if alpha != defaults["tag_alpha"]:
+    if alpha != runtime_defaults["tag_alpha"]:
         if options:
             options += f", opacity={alpha}"
         else:
@@ -474,11 +473,11 @@ def draw_latex_sketch(sketch: Any) -> str:
         options.append(f"anchor={anchor_to_tikz(sketch.anchor)}")
     if (
         sketch.font_color is not None
-        and sketch.font_color != defaults["font_color"]
+        and sketch.font_color != runtime_defaults["font_color"]
     ):
         options.append(f"text={color_to_tikz(sketch.font_color)}")
 
-    font_size = sketch.font_size or defaults["font_size"]
+    font_size = sketch.font_size or runtime_defaults["font_size"]
     baseline_skip = ceil(font_size * 1.2)
     tex_formula = rf"{{\fontsize{{{font_size}}}{{{baseline_skip}}}\selectfont ${formula}$}}"
     option_str = f"[{', '.join(options)}]" if options else ""
@@ -560,42 +559,46 @@ def draw_shape_sketch_with_indices(
         return begin_scope + body + "".join(str_lines) + end_scope
 
     begin_scope = get_begin_scope(index)
-    body = get_draw(sketch)
-    if body:
-        options = []
-        style_id = get_active_tikz_style_id(sketch)
-        if style_id is not None:
-            options.append(style_id)
-        options += get_line_style_options(sketch, exceptions=exceptions)
-        if sketch.fill and sketch.closed:
-            options += get_fill_style_options(sketch, exceptions=exceptions)
-        if sketch.smooth:
-            if sketch.closed:
-                options += ["smooth cycle"]
-            else:
-                options += ["smooth"]
-        options = ", ".join(options)
-        body += f"[{options}]"
+    if sketch.draw_markers:
+        body = draw_shape_sketch_with_markers(sketch, exceptions=exceptions)
+        str_lines: list[str] = []
     else:
-        body = ""
-    vertex_coords = sketch.vertices
-
-    vertices = [str(x) for x in vertex_coords]
-    str_lines = [vertices[0]]
-    n = len(vertices)
-    for i, vertex in enumerate(vertices[1:]):
-        if (i + 1) % 6 == 0:
-            if i == n - 1:
-                str_lines.append(f" -- {vertex}\n")
-            else:
-                str_lines.append(f"\n\t-- {vertex}")
+        body = get_draw(sketch)
+        if body:
+            options = []
+            style_id = get_active_tikz_style_id(sketch)
+            if style_id is not None:
+                options.append(style_id)
+            options += get_line_style_options(sketch, exceptions=exceptions)
+            if sketch.fill and sketch.closed:
+                options += get_fill_style_options(sketch, exceptions=exceptions)
+            if sketch.smooth:
+                if sketch.closed:
+                    options += ["smooth cycle"]
+                else:
+                    options += ["smooth"]
+            options = ", ".join(options)
+            body += f"[{options}]"
         else:
-            str_lines.append(f"-- {vertex}")
+            body = ""
+        vertex_coords = sketch.vertices
 
-    if body:
-        if sketch.closed:
-            str_lines.append(" -- cycle;\n")
-        str_lines.append(";\n")
+        vertices = [str(x) for x in vertex_coords]
+        str_lines = [vertices[0]]
+        n = len(vertices)
+        for i, vertex in enumerate(vertices[1:]):
+            if (i + 1) % 6 == 0:
+                if i == n - 1:
+                    str_lines.append(f" -- {vertex}\n")
+                else:
+                    str_lines.append(f"\n\t-- {vertex}")
+            else:
+                str_lines.append(f"-- {vertex}")
+
+        if body:
+            if sketch.closed:
+                str_lines.append(" -- cycle;\n")
+            str_lines.append(";\n")
 
     index_draw = prepare_shape_index_labels(sketch)
     if index_draw is not None:

@@ -35,7 +35,7 @@ from ...base.common import (
     get_defaults,
     get_unique_id,
 )
-from ...config.settings import runtime_defaults as defaults, issue_warning
+from ...config.settings import runtime_defaults, issue_warning
 from ..geom_utils import close_points_square, midpoint
 from ..points.point_utils import (
     distance,
@@ -265,7 +265,7 @@ def polygon_area(
     Args:
         polygon (Sequence[PointType]): Vertices in walk order.
         abs_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["abs_tol"]``.
+            is already closed. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         float: Signed area.
@@ -280,7 +280,7 @@ def polygon_area(
         1.0
 """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     abs_tol2 = abs_tol * abs_tol
     if not close_points_square(polygon[0], polygon[-1], dist2=abs_tol2):
         polygon = list(polygon[:])
@@ -757,7 +757,7 @@ def all_close_points(
     Args:
         points (Sequence[Sequence[float]]): Rows ``[x, y, id]``.
         abs_tol (float | None): Distance tolerance. Defaults to
-            ``defaults["abs_tol"]``.
+            ``runtime_defaults["abs_tol"]``.
         with_dist (bool): If True, each pair is ``(id1, id2, distance)``.
             Defaults to False.
 
@@ -777,7 +777,7 @@ def all_close_points(
         0.01
 """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     point_arr = np.array(
         points, dtype=np.float32
     )  # points array [[x1, y1, id1], ...]]
@@ -941,7 +941,7 @@ def segment_cycles(
         length_bound (int): Maximum cycle length. Defaults to 10.
         cycle_basis (bool): If True, use a cycle basis. Defaults to False.
         abs_tol (float | None): Distance for merging nearby endpoints.
-            Defaults to ``defaults["abs_tol"]``.
+            Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         tuple: ``(coordinate_cycles, node_id_cycles)``.
@@ -961,7 +961,7 @@ def segment_cycles(
         4
 """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     coordinates = []
     for seg in segments:
         coordinates.extend(seg)
@@ -1230,7 +1230,7 @@ def get_partitions(
     holes_area = sum([polygon_area(hole.vertices) for hole in holes])
     union_area = polygon_area(union.vertices) - holes_area
     hole_index, sorted_hole_arrays, hole_processed = _build_hole_index(holes)
-    abs_tol = defaults["abs_tol"]
+    abs_tol = runtime_defaults["abs_tol"]
 
     count = 0
     area = 0
@@ -1537,7 +1537,7 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
 
     For each vertex, records the outgoing edge length and the signed turn
     angle at the next vertex. Angles are rounded to
-    ``defaults["turn_angle_digits"]``.
+    ``runtime_defaults["turn_angle_digits"]``.
 
     Args:
         vertices (Sequence[PointType]): Polygon vertices in walk order.
@@ -1555,7 +1555,7 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
 """
     n = len(vertices)
     res = []
-    TURN_ANGLE_DIGITS = defaults["turn_angle_digits"]
+    TURN_ANGLE_DIGITS = runtime_defaults["turn_angle_digits"]
     for i in range(n):
         vert = vertices[i]
         next_vert = vertices[(i + 1) % n]
@@ -1721,7 +1721,7 @@ def remove_duplicate_edges(
         >>> sg.remove_duplicate_edges(edges, keep_one=True)
         [((0, 0), (1, 0)), ((0, 1), (1, 1))]
 """
-    abs_tol = defaults["abs_tol"]
+    abs_tol = runtime_defaults["abs_tol"]
 
     if not keep_one:
         n = len(edges)
@@ -1898,7 +1898,7 @@ def remove_duplicate_polygons(
         >>> sg.remove_duplicate_polygons([square, same], keep_one=False)
         []
 """
-    abs_tol = defaults["abs_tol"]
+    abs_tol = runtime_defaults["abs_tol"]
     entries = []
     by_n: dict[int, list[int]] = defaultdict(list)
 
@@ -2077,9 +2077,9 @@ def double_offset_polylines(
         lines (Sequence[PointType]): Polyline vertices.
         offset (float): Offset distance. Defaults to 1.
         rel_tol (float | None): Relative stitch tolerance. Defaults to
-            ``defaults["rel_tol"]``.
+            ``runtime_defaults["rel_tol"]``.
         abs_tol (float | None): Absolute stitch tolerance. Defaults to
-            ``defaults["abs_tol"]``.
+            ``runtime_defaults["abs_tol"]``.
 
     Returns:
         list: ``[positive_offset, negative_offset]``.
@@ -2157,7 +2157,7 @@ def offset_polygon(
         polygon (Sequence[PointType]): Polygon vertices.
         offset (float): Offset distance. Defaults to -1.
         abs_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["abs_tol"]``.
+            is already closed. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         Sequence[PointType]: Closed offset ring.
@@ -2168,7 +2168,7 @@ def offset_polygon(
         [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
 """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     polygon = list(polygon[:])
     abs_tol2 = abs_tol * abs_tol
     if not right_handed(polygon):
@@ -2199,7 +2199,7 @@ def double_offset_polygons(
             the offset calculation.
         offset (float): Offset distance. Defaults to 1.
         abs_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["abs_tol"]``.
+            is already closed. Defaults to ``runtime_defaults["abs_tol"]``.
         **kwargs (Any): If ``canvas`` is a canvas, both offsets are drawn.
 
     Returns:
@@ -2217,7 +2217,7 @@ def double_offset_polygons(
         [(-2.118033988749895, -0.5), (2.5, -0.5), (2.5, 1.8090169943749475), (-2.118033988749895, -0.5)]
 """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     abs_tol2 = abs_tol * abs_tol
 
     ring = list(polygon)
@@ -2260,7 +2260,7 @@ def offset_polygon_points(
         polygon (Sequence[PointType]): Polygon vertices.
         offset (float): Offset distance. Defaults to 1.
         abs_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["abs_tol"]``.
+            is already closed. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         Sequence[PointType]: Offset ring. A clockwise result is reversed.
@@ -2285,7 +2285,7 @@ def polyline_length(
         closed (bool): If True, include the closing edge when it is missing.
             Defaults to False.
         abs_tol (float | None): Distance used to decide whether the ring
-            is already closed. Defaults to ``defaults["abs_tol"]``.
+            is already closed. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         float: Path length.
@@ -2298,7 +2298,7 @@ def polyline_length(
         4.0
 """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     abs_tol2 = abs_tol * abs_tol
     polygon = list(polygon)
     if closed and not close_points_square(

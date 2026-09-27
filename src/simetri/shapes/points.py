@@ -23,7 +23,7 @@ from numpy import allclose, ndarray
 
 from ..base.all_enums import Types
 from ..base.common import PointType
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.homogenize import homogenize
 from ..helpers.utilities import format_data, register_format_handler
 
@@ -220,8 +220,8 @@ class Points:
             and allclose(
                 self.nd_array,
                 other.nd_array,
-                rtol=defaults["rel_tol"],
-                atol=defaults["abs_tol"],
+                rtol=runtime_defaults["rel_tol"],
+                atol=runtime_defaults["abs_tol"],
             )
         )
 

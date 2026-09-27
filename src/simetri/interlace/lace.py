@@ -27,7 +27,7 @@ from ..base.all_enums import Connection, InPlace, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults
 from ..base.core import _next_xform_matrix, _Targets, _update_inplace
 from ..coloring import colors
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.geom_utils import close_points_square, connected_pairs
 from ..geom.points.point_utils import distance, lerp_point, round_point
 from ..geom.polygons.convex_hull import convex_hull
@@ -56,10 +56,10 @@ def _set_style(obj: Any, attribs: Sequence[str]) -> None:
 
     Args:
         obj: Object receiving the attributes.
-        attribs: Style attribute names copied from ``defaults["style"]``.
+        attribs: Style attribute names copied from ``runtime_defaults["style"]``.
     """
     for attr in attribs:
-        setattr(obj, attr, getattr(defaults["style"], attr))
+        setattr(obj, attr, getattr(runtime_defaults["style"], attr))
 
 
 array = np.array
@@ -354,7 +354,7 @@ class Intersection(Shape):
         if not isinstance(other, Intersection):
             return NotImplemented
         return close_points_square(
-            self.point, other.point, dist2=defaults["abs_tol"] ** 2
+            self.point, other.point, dist2=runtime_defaults["abs_tol"] ** 2
         )
 
 
@@ -467,7 +467,7 @@ class Fragment(Shape):
             ValueError: If a generated division cannot be matched to a section.
         """
         if abs_tol is None:
-            abs_tol = defaults["abs_tol"]
+            abs_tol = runtime_defaults["abs_tol"]
         abs_tol2 = abs_tol * abs_tol  # squared distance tolerance
         d_points__section = {}
         for section in self.sections:
@@ -1108,7 +1108,7 @@ class ParallelPolyline(Group):
     ) -> None:
         """Build parallel offset polylines around ``polyline`` for a lace."""
         if abs_tol is None:
-            abs_tol = defaults["abs_tol"]
+            abs_tol = runtime_defaults["abs_tol"]
         self.polyline = polyline
         self.offset = offset
         self.closed = closed
@@ -1138,7 +1138,7 @@ class ParallelPolyline(Group):
             vertices = list(polyline.vertices)
             vertices = vertices + [vertices[0]]
             offset_polygons = double_offset_polygons(
-                vertices, self.offset, abs_tol=defaults["abs_tol"]
+                vertices, self.offset, abs_tol=runtime_defaults["abs_tol"]
             )
         else:
             offset_polylines = double_offset_polylines(
@@ -1876,17 +1876,17 @@ class Lace(Group):
 
         Args:
             rel_tol: Relative tolerance for area comparison. Defaults to
-                ``defaults["rel_tol"]``.
+                ``runtime_defaults["rel_tol"]``.
             abs_tol: Absolute tolerance for area comparison. Defaults to
-                ``defaults["abs_tol"]``.
+                ``runtime_defaults["abs_tol"]``.
 
         Returns:
             list[list[list[Fragment]]]: Nested groups sorted by area.
         """
         if rel_tol is None:
-            rel_tol = defaults["rel_tol"]
+            rel_tol = runtime_defaults["rel_tol"]
         if abs_tol is None:
-            abs_tol = defaults["abs_tol"]
+            abs_tol = runtime_defaults["abs_tol"]
 
         frags = self.fragments
         vert_groups = [
@@ -1952,7 +1952,7 @@ class Lace(Group):
         """
         for i in range(n):
             vertices = item.vertices
-            abs_tol = defaults["abs_tol"]
+            abs_tol = runtime_defaults["abs_tol"]
             offset_poly = offset_polygon_points(
                 vertices, -offset * (i + 1), abs_tol=abs_tol
             )
@@ -1961,11 +1961,11 @@ class Lace(Group):
             if line_widths:
                 shape.line_width = line_widths[i]
             else:
-                shape.line_width = defaults["line_width"]
+                shape.line_width = runtime_defaults["line_width"]
             if line_colors:
                 shape.line_color = line_colors[i]
             else:
-                shape.line_color = defaults["line_color"]
+                shape.line_color = runtime_defaults["line_color"]
             item.inner_lines.append(shape)
 
     def set_plait_inner_loops(
@@ -2158,7 +2158,7 @@ class Lace(Group):
                         polyline,
                         self.offset,
                         closed=polyline.closed,
-                        abs_tol=defaults["abs_tol"],
+                        abs_tol=runtime_defaults["abs_tol"],
                     )
                 )
 
@@ -2196,7 +2196,7 @@ class Lace(Group):
     def _set_plait_ends(self) -> None:
         """Match plait edge indices with overlap sections at the same edge."""
         plaits = self.plaits
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
 
         def edge_cell_key(
             start: PointType, end: PointType
@@ -2381,7 +2381,7 @@ class Lace(Group):
                 plait.reverse()
             shape = Shape(vertices)
             shape.intersections = intersections
-            shape.fill_color = defaults["plait_color"]
+            shape.fill_color = runtime_defaults["plait_color"]
             shape.inner_polygons = None
             shape.inner_lines = None
             shape.subtype = Types.PLAIT

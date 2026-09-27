@@ -26,7 +26,7 @@ from ..base.all_enums import (
 from ..base.common import PointType
 from ..coloring import colors
 from ..coloring.colors import Color, change_lightness
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.affine import (
     rotation_matrix,
     translation_matrix,
@@ -145,11 +145,11 @@ def help_lines(
 
         grid_kwargs = dict(kwargs)
         if "line_width" not in grid_kwargs:
-            grid_kwargs["line_width"] = defaults["grid_line_width"]
+            grid_kwargs["line_width"] = runtime_defaults["grid_line_width"]
         if "line_color" not in grid_kwargs and "color" not in grid_kwargs:
-            grid_kwargs["line_color"] = defaults["grid_line_color"]
+            grid_kwargs["line_color"] = runtime_defaults["grid_line_color"]
         if "line_dash_array" not in grid_kwargs:
-            grid_kwargs["line_dash_array"] = defaults["grid_line_dash_array"]
+            grid_kwargs["line_dash_array"] = runtime_defaults["grid_line_dash_array"]
         grid_style = self.resolve_style_properties(
             style_source,
             line_style_map,
@@ -159,12 +159,12 @@ def help_lines(
         if "colors" in kwargs:
             x_axis_color, y_axis_color = kwargs["colors"]
         else:
-            x_axis_color = defaults["CS_x_color"]
-            y_axis_color = defaults["CS_y_color"]
+            x_axis_color = runtime_defaults["CS_x_color"]
+            y_axis_color = runtime_defaults["CS_y_color"]
 
         axis_kwargs = dict(kwargs)
         if "line_width" not in axis_kwargs:
-            axis_kwargs["line_width"] = defaults["CS_line_width"]
+            axis_kwargs["line_width"] = runtime_defaults["CS_line_width"]
         x_axis_kwargs = dict(axis_kwargs)
         x_axis_kwargs["line_color"] = x_axis_color
         x_axis_style = self.resolve_style_properties(
@@ -185,7 +185,7 @@ def help_lines(
         elif "color" in kwargs:
             origin_color = kwargs["color"]
         else:
-            origin_color = defaults["CS_origin_color"]
+            origin_color = runtime_defaults["CS_origin_color"]
         origin_kwargs = dict(kwargs)
         origin_kwargs["color"] = origin_color
         origin_kwargs["fill"] = True
@@ -203,7 +203,7 @@ def help_lines(
             x_axis_style,
             y_axis_style,
             origin_style,
-            defaults["CS_origin_size"],
+            runtime_defaults["CS_origin_size"],
         )
         self.active_page.sketches.append(sketch)
     else:
@@ -534,7 +534,7 @@ def rectangle(
 def draw_CS(self: Canvas, size: float | None = None, **kwargs: object) -> Self:
     """Draw the coordinate axes and an origin marker.
 
-    ``size`` None uses ``defaults["CS_size"]``. ``kwargs["colors"]`` is
+    ``size`` None uses ``runtime_defaults["CS_size"]``. ``kwargs["colors"]`` is
     ``(x_color, y_color)`` for the two axes.
 
     Args:
@@ -553,20 +553,20 @@ def draw_CS(self: Canvas, size: float | None = None, **kwargs: object) -> Self:
         True
 """
     if size is None:
-        size = defaults["CS_size"]
+        size = runtime_defaults["CS_size"]
     if "colors" in kwargs:
         x_color, y_color = kwargs["colors"]
         del kwargs["colors"]
     else:
-        x_color = defaults["CS_x_color"]
-        y_color = defaults["CS_y_color"]
+        x_color = runtime_defaults["CS_x_color"]
+        y_color = runtime_defaults["CS_y_color"]
     if "line_width" not in kwargs:
-        kwargs["line_width"] = defaults["CS_line_width"]
+        kwargs["line_width"] = runtime_defaults["CS_line_width"]
     self.line((0, 0), (size, 0), line_color=x_color, **kwargs)
     self.line((0, 0), (0, size), line_color=y_color, **kwargs)
     if "line_color" not in kwargs:
-        kwargs["line_color"] = defaults["CS_origin_color"]
-    self.circle(radius=defaults["CS_origin_size"], **kwargs)
+        kwargs["line_color"] = runtime_defaults["CS_origin_color"]
+    self.circle(radius=runtime_defaults["CS_origin_size"], **kwargs)
 
     return self
 
@@ -1027,7 +1027,7 @@ def _resolved_plait_fill_color(
     if lace is not None:
         if lace.plait_color is not None:
             return lace.plait_color
-    return defaults["plait_color"]
+    return runtime_defaults["plait_color"]
 
 
 def _resolved_shade_plaits(kwargs: DrawStyleKwargs) -> bool:
@@ -1041,7 +1041,7 @@ def _resolved_shade_plaits(kwargs: DrawStyleKwargs) -> bool:
     """
     if "shade_plaits" in kwargs:
         return kwargs["shade_plaits"]
-    return defaults["shade_plaits"]
+    return runtime_defaults["shade_plaits"]
 
 
 def shade_value(angle: float) -> float:
@@ -1519,13 +1519,13 @@ def draw_fragments(
     if "fragment_coloring" in kwargs:
         fragment_coloring = kwargs["fragment_coloring"]
     else:
-        fragment_coloring = defaults["fragment_coloring"]
+        fragment_coloring = runtime_defaults["fragment_coloring"]
     if fragment_coloring == FragmentColoring.AREA:
         items = [(fragment.area, fragment.id) for fragment in fragments]
         if lace is not None:
             threshold = lace.area_threshold
         else:
-            threshold = defaults["area_threshold"]
+            threshold = runtime_defaults["area_threshold"]
     elif fragment_coloring == FragmentColoring.RADIUS:
         if lace is None:
             raise ValueError(
@@ -1547,7 +1547,7 @@ def draw_fragments(
     if "swatch" in kwargs:
         palette = kwargs["swatch"]
     elif palette is None:
-        palette = defaults["swatch"]
+        palette = runtime_defaults["swatch"]
 
     n_palette = len(palette)
     n_bins = len(bins)
@@ -1576,11 +1576,11 @@ def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs: object) -> No
         if "percent_offsets" in kwargs:
             offsets = kwargs["percent_offsets"]
         else:
-            offsets = defaults["percent_offsets"]
+            offsets = runtime_defaults["percent_offsets"]
         if "line_widths" in kwargs:
             widths = kwargs["line_widths"]
         else:
-            widths = defaults["line_widths"]
+            widths = runtime_defaults["line_widths"]
 
         lace._set_plait_inner_lines(offsets, widths)
 
@@ -1599,7 +1599,7 @@ def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs: object) -> No
                 if widths:
                     sketch_kwargs["line_width"] = plait.line_widths[i]
                 else:
-                    sketch_kwargs["line_width"] = defaults["line_width"]
+                    sketch_kwargs["line_width"] = runtime_defaults["line_width"]
                 canvas.active_page.sketches.append(
                     create_sketch(shape, canvas, **sketch_kwargs)
                 )
@@ -1712,13 +1712,13 @@ def draw_lace(
         True
     """
     if fragment_coloring is None:
-        fragment_coloring = defaults["fragment_coloring"]
+        fragment_coloring = runtime_defaults["fragment_coloring"]
     if plait_style is None:
-        plait_style = defaults["lace_plait_style"]
+        plait_style = runtime_defaults["lace_plait_style"]
     if shade_plaits is None:
-        shade_plaits = defaults["shade_plaits"]
+        shade_plaits = runtime_defaults["shade_plaits"]
     if fillet_radii is None:
-        fillet_radii = defaults["fillet_radii"]
+        fillet_radii = runtime_defaults["fillet_radii"]
     if swatch is not None:
         palette = swatch
     elif palette is None:
@@ -1727,17 +1727,17 @@ def draw_lace(
         elif lace.swatch is not None:
             palette = lace.swatch
         else:
-            palette = defaults["swatch"]
+            palette = runtime_defaults["swatch"]
     if plait_color is None:
         plait_color = _resolved_plait_fill_color(lace, kwargs)
     if draw_fragments is None:
-        draw_fragments = defaults["draw_fragments"]
+        draw_fragments = runtime_defaults["draw_fragments"]
     if draw_plaits is None:
-        draw_plaits = defaults["draw_plaits"]
+        draw_plaits = runtime_defaults["draw_plaits"]
     if percent_offsets is None:
-        percent_offsets = defaults["percent_offsets"]
+        percent_offsets = runtime_defaults["percent_offsets"]
     if line_widths is None:
-        line_widths = defaults["line_widths"]
+        line_widths = runtime_defaults["line_widths"]
 
     style_kwargs = _lace_style_kwargs(kwargs)
     fragments = lace.fragments
@@ -2015,8 +2015,8 @@ def grid(
 
     Args:
         pos: Lower-left corner of the grid.
-        width: Length along the x-axis. None uses ``defaults["grid_size"]``.
-        height: Length along the y-axis. None uses ``defaults["grid_size"]``
+        width: Length along the x-axis. None uses ``runtime_defaults["grid_size"]``.
+        height: Length along the y-axis. None uses ``runtime_defaults["grid_size"]``
             when ``width`` is also None.
         step_size: Distance between grid lines.
         **kwargs: Style overrides for the grid lines.
@@ -2034,14 +2034,14 @@ def grid(
 """
     x, y = pos[:2]
     if width is None:
-        width = defaults["grid_size"]
-        height = defaults["grid_size"]
+        width = runtime_defaults["grid_size"]
+        height = runtime_defaults["grid_size"]
     if "line_width" not in kwargs:
-        kwargs["line_width"] = defaults["grid_line_width"]
+        kwargs["line_width"] = runtime_defaults["grid_line_width"]
     if "line_color" not in kwargs:
-        kwargs["line_color"] = defaults["grid_line_color"]
+        kwargs["line_color"] = runtime_defaults["grid_line_color"]
     if "line_dash_array" not in kwargs:
-        kwargs["line_dash_array"] = defaults["grid_line_dash_array"]
+        kwargs["line_dash_array"] = runtime_defaults["grid_line_dash_array"]
 
     line_y = Shape([(x, y), (x + width, y)], **kwargs)
     line_x = Shape([(x, y), (x, y + height)], **kwargs)
@@ -2236,7 +2236,7 @@ def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
         extend_vertices(self, item)
 
     if subtype == Types.PATH2D and kwargs.get("handles", False):
-        handle_size = defaults["handle_marker_size"]
+        handle_size = runtime_defaults["handle_marker_size"]
         half_size = handle_size / 2
         for handle in item.handles:
             if not handle:
@@ -2530,6 +2530,19 @@ def set_shape_sketch_style(
 
         setattr(sketch, k, v)
 
+    if sketch.draw_markers:
+        for name in (
+            "marker_alpha",
+            "marker_color",
+            "marker_line_style",
+            "marker_line_width",
+            "marker_radius",
+            "marker_size",
+            "marker_type",
+        ):
+            if name not in sketch.__dict__ or sketch.__dict__[name] is None:
+                setattr(sketch, name, runtime_defaults[name])
+
     if "_group_hull_points" in kwargs:
         sketch._group_hull_points = kwargs["_group_hull_points"]
 
@@ -2667,7 +2680,7 @@ def _get_tag_sketch(
         if attrib_name == "fill_color":
             fill_color = canvas.resolve_property(item, "fill_color")
             if fill_color == colors.black:
-                sketch.frame_back_color = defaults["frame_back_color"]
+                sketch.frame_back_color = runtime_defaults["frame_back_color"]
             else:
                 sketch.frame_back_color = fill_color
             continue
@@ -2921,7 +2934,7 @@ def _get_bbox_sketch(
     Returns:
         ShapeSketch: Created bounding box sketch.
     """
-    nround = defaults["tikz_nround"]
+    nround = runtime_defaults["tikz_nround"]
     vertices = [
         (round(x[0], nround), round(x[1], nround)) for x in item.corners
     ]
@@ -2944,7 +2957,7 @@ def _get_bbox_sketch(
         if name in kwargs:
             setattr(sketch, name, kwargs[name])
         else:
-            setattr(sketch, name, defaults[f"bbox_{name}"])
+            setattr(sketch, name, runtime_defaults[f"bbox_{name}"])
     for name in shape_style_map:
         if name in kwargs and name not in bbox_style_names:
             setattr(sketch, name, kwargs[name])
@@ -2964,7 +2977,7 @@ def _get_handle_sketch(
     Returns:
         list: List of created handle sketches.
     """
-    nround = defaults["tikz_nround"]
+    nround = runtime_defaults["tikz_nround"]
     vertices = [
         (round(x[0], nround), round(x[1], nround)) for x in item.vertices
     ]
@@ -2984,7 +2997,7 @@ def _get_handle_sketch(
     sketches.append(sketch)
     temp_item = Shape()
     temp_item.closed = True
-    handle_size = defaults["handle_marker_size"]
+    handle_size = runtime_defaults["handle_marker_size"]
     handle1 = RectSketch(
         item.vertices[0],
         handle_size,
@@ -3020,7 +3033,7 @@ def _get_sketch(
     if not item.vertices:
         return None
 
-    nround = defaults["tikz_nround"]
+    nround = runtime_defaults["tikz_nround"]
     vertices = [
         (round(x[0], nround), round(x[1], nround)) for x in item.vertices
     ]
@@ -3047,7 +3060,7 @@ def _get_line_sketch(
     if not item.vertices:
         return None
 
-    nround = defaults["tikz_nround"]
+    nround = runtime_defaults["tikz_nround"]
     vertices = [
         (round(x[0], nround), round(x[1], nround)) for x in item.vertices
     ]

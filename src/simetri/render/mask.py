@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from ..base.all_enums import Axis, SvgUnits, Types
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.matrices import identity_matrix
 from ..group.batch import Group
 from ..shapes.shape import Shape
@@ -78,7 +78,7 @@ def normalize_axis(axis: Axis | tuple[float, float] | None) -> tuple[float, floa
     """Return a usable mask axis.
 
     Args:
-        axis: Explicit axis value or ``None`` (uses ``defaults['mask_axis']``).
+        axis: Explicit axis value or ``None`` (uses ``runtime_defaults['mask_axis']``).
 
     Returns:
         Two endpoints ``((x0, y0), (x1, y1))`` for linear mask gradients.
@@ -89,7 +89,7 @@ def normalize_axis(axis: Axis | tuple[float, float] | None) -> tuple[float, floa
         2
     """
     if axis is None:
-        return defaults["mask_axis"]
+        return runtime_defaults["mask_axis"]
     return axis
 
 
@@ -109,11 +109,11 @@ def _normalize_units(value: str | SvgUnits | None, field_name: str) -> SvgUnits:
     """
     if value is None:
         if field_name == "mask_units":
-            default_value = defaults["mask_units"]
+            default_value = runtime_defaults["mask_units"]
         elif field_name == "mask_content_units":
-            default_value = defaults["mask_content_units"]
+            default_value = runtime_defaults["mask_content_units"]
         elif field_name == "gradient_units":
-            default_value = defaults["gradient_units"]
+            default_value = runtime_defaults["gradient_units"]
         else:
             raise ValueError(f"unsupported units field: {field_name}")
         value = default_value
@@ -179,15 +179,15 @@ def clip_mask_(
         >>> clip_mask_(canvas, None, Mask(shape=shape)) is canvas  # doctest: +SKIP
         True
     """
-    mask_opacity = defaults.get("alpha", 1.0)
+    mask_opacity = runtime_defaults.get("alpha", 1.0)
     mask_stops = None
     mask_axis = normalize_axis(None)
     mask_units = _normalize_units(
-        defaults.get("mask_units", SvgUnits.USER_SPACE_ON_USE.value),
+        runtime_defaults.get("mask_units", SvgUnits.USER_SPACE_ON_USE.value),
         "mask_units",
     )
     mask_content_units = _normalize_units(
-        defaults.get("mask_content_units", SvgUnits.USER_SPACE_ON_USE.value),
+        runtime_defaults.get("mask_content_units", SvgUnits.USER_SPACE_ON_USE.value),
         "mask_content_units",
     )
     if isinstance(mask, Mask):
@@ -221,7 +221,7 @@ def clip_mask_(
         mask_shape.transform(xform)
 
     if mask_opacity is None:
-        mask_opacity = defaults.get("alpha", 1.0)
+        mask_opacity = runtime_defaults.get("alpha", 1.0)
     if not (0.0 <= mask_opacity <= 1.0):
         raise ValueError("mask opacity must be between 0 and 1.")
     if mask_stops is not None:

@@ -906,7 +906,7 @@ class MarkerType(StrEnum):
     Valid values are: ASTERISK, BAR, CIRCLE, CROSS, DIAMOND, DIAMOND_F, EMPTY, FCIRCLE, HALF_CIRCLE,
     HALF_CIRCLE_F, HALF_DIAMOND, HALF_DIAMOND_F, HALF_SQUARE, HALF_SQUARE_F, HEXAGON, HEXAGON_F, INDICES,
     MINUS, OPLUS, OPLUS_F, O_TIMES, O_TIMES_F, PENTAGON, PENTAGON_F, PLUS, SHAPE, SQUARE, SQUARE_F, STAR,
-    TRIANGLE, TRIANGLE_F.
+    TRIANGLE, TRIANGLE_F, VECTOR.
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.MarkerType.ASTERISK.value
@@ -944,6 +944,7 @@ class MarkerType(StrEnum):
     STAR = "star"
     TRIANGLE = "triangle"
     TRIANGLE_F = "triangle*"
+    VECTOR = "vector"
 
 
 class MusicScale(StrEnum):

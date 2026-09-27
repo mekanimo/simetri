@@ -29,7 +29,7 @@ from numpy import array
 from numpy.typing import NDArray
 
 from ..base.common import PointType, resolve_tol
-from ..config.settings import runtime_defaults as defaults, issue_warning
+from ..config.settings import runtime_defaults, issue_warning
 from .geom_utils import close_points_square
 from .vectors import *
 
@@ -91,8 +91,8 @@ def equal_angles(
     Args:
         angle1: First angle in radians.
         angle2: Second angle in radians.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if the angles match within tolerance.
@@ -182,8 +182,8 @@ def close_angles(
     Args:
         angle1 (float): First angle in radians.
         angle2 (float): Second angle in radians.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if the angles are close to each other, False otherwise.
@@ -214,8 +214,8 @@ def connect2(
     Args:
         poly_point1 (list[PointType]): First list of points.
         poly_point2 (list[PointType]): Second list of points.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         list[PointType]: Connected list of points.

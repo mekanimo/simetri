@@ -21,7 +21,8 @@ from typing import TYPE_CHECKING, Any, Union
 if TYPE_CHECKING:
     from ..shapes.shape import Shape
 
-from ..config.settings import runtime_defaults as defaults
+# Not sg.defaults (factory-only). temp, then user, then factory.
+from ..config.settings import runtime_defaults
 
 # These are used for type hinting and annotations
 GraphEdgeType = tuple[int, int]
@@ -121,7 +122,7 @@ def _set_Nones(obj: object, args: Sequence[str], values: Sequence[Any]) -> None:
     """
     for i, arg in enumerate(args):
         if values[i] is None:
-            setattr(obj, arg, defaults[arg])
+            setattr(obj, arg, runtime_defaults[arg])
         else:
             setattr(obj, arg, values[i])
 
@@ -130,17 +131,18 @@ def resolve_tol(
     rel_tol: float | None = None,
     abs_tol: float | None = None,
 ) -> tuple[float, float]:
-    """Fill ``None`` tolerances from ``defaults["rel_tol"]`` and ``defaults["abs_tol"]``.
+    """Fill ``None`` tolerances from ``runtime_defaults``.
 
-    Either argument may be omitted. Factory values are ``rel_tol=0`` and
-    ``abs_tol=0.001``. Comparisons use
+    ``runtime_defaults`` is not ``sg.defaults``. A missing argument uses
+    ``temp_defaults``, then ``user_defaults``, then factory
+    (``rel_tol=0``, ``abs_tol=0.001``). Comparisons use
 
     ``abs(a - b) <= abs_tol + rel_tol * abs(b)``
     (NumPy ``isclose``; map ``rel_tol`` → ``rtol``, ``abs_tol`` → ``atol``).
 
     Args:
-        rel_tol: Relative tolerance. ``None`` uses ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. ``None`` uses ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. ``None`` uses ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. ``None`` uses ``runtime_defaults["abs_tol"]``.
 
     Returns:
         tuple: ``(rel_tol, abs_tol)``.
@@ -155,14 +157,14 @@ def resolve_tol(
         (0.01, 0.05)
     """
     if rel_tol is None:
-        rel_tol = defaults["rel_tol"]
+        rel_tol = runtime_defaults["rel_tol"]
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     return (rel_tol, abs_tol)
 
 
 def get_defaults(args: Sequence[str], values: Sequence[Any]) -> list[Any]:
-    """Fill ``None`` entries from ``defaults``.
+    """Fill ``None`` entries from ``runtime_defaults`` (not ``sg.defaults``).
 
     Args:
         args (list): Setting names to resolve.
@@ -181,7 +183,7 @@ def get_defaults(args: Sequence[str], values: Sequence[Any]) -> list[Any]:
     res = []
     for i, arg in enumerate(args):
         if values[i] is None:
-            res.append(defaults[arg])
+            res.append(runtime_defaults[arg])
         else:
             res.append(values[i])
     return res

@@ -41,7 +41,7 @@ from ..base.common import (
 from ..base.core import Base, _next_xform_matrix, _Targets
 from ..coloring import colors
 from ..coloring.swatches import swatches_255
-from ..config.settings import runtime_defaults as defaults, issue_warning
+from ..config.settings import runtime_defaults, issue_warning
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.geom_utils import midpoint
 from ..geom.geometry import (
@@ -243,7 +243,7 @@ def default_font_size_pt(key: str) -> float:
         >>> sg.default_font_size_pt('index_font_size') > 0
         True
     """
-    size = defaults[key]
+    size = runtime_defaults[key]
     if isinstance(size, (int, float)):
         return float(size)
     return latex_font_size_to_pt(FontSize(size))
@@ -301,7 +301,7 @@ def sketch_label_offset(sketch: Any, label_kind: str) -> float:
     try:
         return float(object.__getattribute__(sketch, attr))
     except AttributeError:
-        return float(defaults[attr])
+        return float(runtime_defaults[attr])
 
 
 def sketch_label_font_color(sketch: Any, label_kind: str) -> Color:
@@ -326,7 +326,7 @@ def sketch_label_font_color(sketch: Any, label_kind: str) -> Color:
         attr = "vertex_font_color"
     if attr in sketch.__dict__ and sketch.__dict__[attr] is not None:
         return sketch.__dict__[attr]
-    return defaults[attr]
+    return runtime_defaults[attr]
 
 
 def sketch_label_font_family(sketch: Any, label_kind: str) -> str | FontFamily:
@@ -351,7 +351,7 @@ def sketch_label_font_family(sketch: Any, label_kind: str) -> str | FontFamily:
         attr = "vertex_font_family"
     if attr in sketch.__dict__ and sketch.__dict__[attr] is not None:
         return sketch.__dict__[attr]
-    return defaults[attr]
+    return runtime_defaults[attr]
 
 
 def label_font_family_tikz(family: FontFamily | str) -> str:
@@ -440,7 +440,7 @@ def label_halo_color() -> Color:
         >>> isinstance(sg.label_halo_color(), sg.Color)
         True
     """
-    return defaults["label_halo_color"]
+    return runtime_defaults["label_halo_color"]
 
 
 def label_halo_stroke_width(font_size_pt: float) -> float:
@@ -451,7 +451,7 @@ def label_halo_stroke_width(font_size_pt: float) -> float:
         >>> sg.label_halo_stroke_width(10.0) > 0
         True
     """
-    scale = float(defaults["label_halo_width_scale"])
+    scale = float(runtime_defaults["label_halo_width_scale"])
     return max(0.2, font_size_pt * scale)
 
 
@@ -463,7 +463,7 @@ def label_halo_scale() -> float:
         >>> sg.label_halo_scale() > 0
         True
     """
-    return float(defaults["label_halo_scale"])
+    return float(runtime_defaults["label_halo_scale"])
 
 
 def svg_label_paint_attrs(fill_color: Color, font_size_pt: float) -> str:
@@ -677,11 +677,11 @@ class AnnotationArrow(Group):
             the landing. Defaults to None.
         landing_length (float, optional): Horizontal landing length used
             when inferring ``elbow`` or ``landing``. Defaults to None
-            (``defaults["landing_length"]``).
+            (``runtime_defaults["landing_length"]``).
         circled (bool, optional): If True, the label is a balloon
             (circled number or text). Defaults to False.
         font_size (float, optional): Label font size. Defaults to None
-            (``defaults["font_size"]``).
+            (``runtime_defaults["font_size"]``).
         **kwargs: Passed to the leader ``Arrow`` and landing ``Shape``.
 
     Examples:
@@ -770,7 +770,7 @@ class AnnotationArrow(Group):
 
         self.arrow = Arrow(self.elbow, self.tip, **kwargs)
         items = [self.arrow]
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
         landing_span = distance(self.elbow, self.landing)
         if landing_span > abs_tol:
             self.landing_line = Shape(
@@ -791,7 +791,7 @@ class AnnotationArrow(Group):
         else:
             unit_x, unit_y = -1.0, 0.0
 
-        text_gap = defaults["text_offset"]
+        text_gap = runtime_defaults["text_offset"]
         if circled:
             tag_x, tag_y = landing_x, landing_y
             tag_align = Align.CENTER
@@ -951,7 +951,7 @@ class Tag(Base):
         if frame is None:
             self.frame = TagFrame(
                 stroke=False,
-                inner_sep=defaults["frame_inner_sep"],
+                inner_sep=runtime_defaults["frame_inner_sep"],
             )
         else:
             self.frame = frame
@@ -962,18 +962,18 @@ class Tag(Base):
             setattr(self, name, None)
 
         self.draw_frame = True
-        self.alpha = defaults["tag_alpha"]
-        self.align = defaults["tag_align"]
-        self.blend_mode = defaults["tag_blend_mode"]
+        self.alpha = runtime_defaults["tag_alpha"]
+        self.align = runtime_defaults["tag_align"]
+        self.blend_mode = runtime_defaults["tag_blend_mode"]
 
         if font_family is not None:
             self.font_family = font_family
         else:
-            self.font_family = defaults["font_family"]
+            self.font_family = runtime_defaults["font_family"]
         if font_size is not None:
             self.font_size = font_size
         else:
-            self.font_size = defaults["font_size"]
+            self.font_size = runtime_defaults["font_size"]
         self.font_color = font_color
 
         if xform_matrix is None:
@@ -1257,7 +1257,7 @@ class Tag(Base):
             tuple: The bounds of the text (xmin, ymin, xmax, ymax).
         """
         if self.font_size is None:
-            font_size = defaults["font_size"]
+            font_size = runtime_defaults["font_size"]
         elif type(self.font_size) in [int, float]:
             font_size = self.font_size
         elif self.font_size in FontSize:
@@ -1266,11 +1266,11 @@ class Tag(Base):
             raise ValueError("Invalid font size.")
         if isinstance(self.font_family, FontFamily):
             if self.font_family == FontFamily.MONOSPACE:
-                font_name = defaults["mono_font"]
+                font_name = runtime_defaults["mono_font"]
             elif self.font_family == FontFamily.SANSSERIF:
-                font_name = defaults["sans_font"]
+                font_name = runtime_defaults["sans_font"]
             else:
-                font_name = defaults["main_font"]
+                font_name = runtime_defaults["main_font"]
         else:
             font_name = self.font_family
 
@@ -1332,10 +1332,10 @@ class Tag(Base):
         x, y = self.pos[:2]
         inner_sep = self.frame.inner_sep
         effective_anchor = (
-            self.anchor if self.anchor is not None else defaults["anchor"]
+            self.anchor if self.anchor is not None else runtime_defaults["anchor"]
         )
         effective_align = (
-            self.align if self.align is not None else defaults["tag_align"]
+            self.align if self.align is not None else runtime_defaults["tag_align"]
         )
 
         if effective_anchor in (
@@ -1834,7 +1834,7 @@ def vec_arrow(
         displacement_x = end_x - start_x
         displacement_y = end_y - start_y
         offset = hypot(displacement_x - vector_x, displacement_y - vector_y)
-        if offset <= defaults["abs_tol"]:
+        if offset <= runtime_defaults["abs_tol"]:
             issue_warning(
                 f"Duplicate position used for Vector({start}, {end}).",
                 warning_type=WarningType.vector.duplicate,
@@ -1926,12 +1926,12 @@ class Dimension(Group):
             length. Defaults to None.
         ext_line_extension (float, optional): How far each extension
             continues past the dimension line. ``None`` uses
-            ``defaults["overshoot"]``.
+            ``runtime_defaults["overshoot"]``.
         ext_line_offset (float, optional): Gap from the feature to the
-            start of the extension. ``None`` uses ``defaults["gap"]``.
+            start of the extension. ``None`` uses ``runtime_defaults["gap"]``.
         text_horiz_offset (float, optional): Offset of the label along
             the dimension line when ``text_loc`` is ``"left"`` or
-            ``"right"``. ``None`` uses ``defaults["ext_length2"]``.
+            ``"right"``. ``None`` uses ``runtime_defaults["ext_length2"]``.
         text_loc (str, optional): ``"middle"``, ``"left"``, or
             ``"right"``. Defaults to ``"middle"``.
         stub_length (float, optional): Outward shaft length when the
@@ -2010,7 +2010,7 @@ class Dimension(Group):
 
         x1, y1 = p1[:2]
         x2, y2 = p2[:2]
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
         if abs(x1 - x2) < abs_tol and abs(y1 - y2) < abs_tol:
             raise ValueError("Dimension points must be distinct.")
 
@@ -2241,7 +2241,7 @@ def _label_size_from_tag_text_bounds(
     ink box. ``font_family`` must match the label draw path (sketch / defaults).
     """
     if font_family is None:
-        tag_family = defaults["font_family"]
+        tag_family = runtime_defaults["font_family"]
     else:
         tag_family = _tag_font_family_for_label_bounds(font_family)
     tag = Tag(
@@ -2267,7 +2267,7 @@ def estimate_index_label_bbox(
         label: Index label value (converted with ``str``).
         font_size_pt (float): Font size in points.
         font_family: TeX switch, ``FontFamily``, or ``None`` for
-            ``defaults['index_font_family']``.
+            ``runtime_defaults['index_font_family']``.
 
     Returns:
         tuple[float, float]: ``(width, height)`` of the label box.
@@ -2279,7 +2279,7 @@ def estimate_index_label_bbox(
         True
     """
     if font_family is None:
-        font_family = defaults["index_font_family"]
+        font_family = runtime_defaults["index_font_family"]
     return _label_size_from_tag_text_bounds(str(label), font_size_pt, font_family)
 
 
@@ -2294,7 +2294,7 @@ def estimate_vertex_coord_label_bbox(
         text (str): Coordinate label text.
         font_size_pt (float): Font size in points.
         font_family: TeX switch, ``FontFamily``, or ``None`` for
-            ``defaults['vertex_font_family']``.
+            ``runtime_defaults['vertex_font_family']``.
 
     Returns:
         tuple[float, float]: ``(width, height)`` of the label box.
@@ -2306,7 +2306,7 @@ def estimate_vertex_coord_label_bbox(
         True
     """
     if font_family is None:
-        font_family = defaults["vertex_font_family"]
+        font_family = runtime_defaults["vertex_font_family"]
     return _label_size_from_tag_text_bounds(text, font_size_pt, font_family)
 
 
@@ -2358,7 +2358,7 @@ def format_vertex_coord(x: float, y: float, ndigits: int | None = None) -> str:
         True
     """
     if ndigits is None:
-        ndigits = defaults["n_vert_digits"]
+        ndigits = runtime_defaults["n_vert_digits"]
     return f"({round(float(x), ndigits)}, {round(float(y), ndigits)})"
 
 
@@ -2383,7 +2383,7 @@ def _vertices_on_hull_points(
     else:
         hull_pts = [tuple(p[:2]) for p in hull_pts]
 
-    ndigits = int(defaults["n_vert_digits"])
+    ndigits = int(runtime_defaults["n_vert_digits"])
     tol = 1e-6
     indices: list[int] = []
     for i, (vx, vy) in enumerate(verts):
@@ -2618,9 +2618,9 @@ def resolve_page_vertex_labels(sketches: object) -> None:
     for sketch in label_sketches:
         all_rects.extend(_build_shape_label_rects(sketch))
 
-    if defaults["vertices_label_avoid_overlap"] and len(all_rects) > 1:
-        gap = float(defaults["vertices_label_overlap_gap"])
-        max_iters = int(defaults["vertices_label_overlap_max_iters"])
+    if runtime_defaults["vertices_label_avoid_overlap"] and len(all_rects) > 1:
+        gap = float(runtime_defaults["vertices_label_overlap_gap"])
+        max_iters = int(runtime_defaults["vertices_label_overlap_max_iters"])
         debug = any(bool(getattr(s, "debug", False)) for s in label_sketches)
         if debug:
             print(

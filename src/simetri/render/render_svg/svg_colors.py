@@ -7,7 +7,7 @@ color strings (``rgb``/``rgba``) and related fill/stroke attributes.
 from __future__ import annotations
 
 from ...coloring.colors import Color, check_color
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 
 
 def color_to_matplotlib(color: Color) -> str:
@@ -37,7 +37,7 @@ def color_to_svg(
 
     Args:
         color: Simetri color, color string, or ``None`` to read from
-            ``defaults[property_name]``.
+            ``runtime_defaults[property_name]``.
         property_name: Key in ``defaults`` when ``color`` is ``None``.
 
     Returns:
@@ -50,7 +50,7 @@ def color_to_svg(
         True
     """
     if color is None:
-        color = defaults[property_name]
+        color = runtime_defaults[property_name]
     if isinstance(color, str):
         color = check_color(color)
     r, g, b = color.rgb255

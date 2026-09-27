@@ -23,7 +23,7 @@ from ...base.all_enums import (
     Types,
     WarningType,
 )
-from ...config.settings import runtime_defaults as defaults, issue_warning
+from ...config.settings import runtime_defaults, issue_warning
 from ...geom.bbox import bounding_box
 from ...geom.homogenize import homogenize
 from ...helpers.illustration import resolve_page_vertex_labels
@@ -361,9 +361,9 @@ def get_tex_code(canvas: Canvas) -> str:
                 else:
                     code = []
             else:
-                code.append(defaults["end_tikz"])
+                code.append(runtime_defaults["end_tikz"])
                 code.append("\\newpage")
-                code.append(defaults["begin_tikz"])
+                code.append(runtime_defaults["begin_tikz"])
                 if canvas.limits is not None or canvas.inset != 0:
                     code.append(get_limits_code(canvas))
 
@@ -382,6 +382,12 @@ def get_tex_code(canvas: Canvas) -> str:
                         sketches_to_populate.extend(sketch_list)
                 elif sketch.subtype == Types.COMPOSITE_SKETCH:
                     sketches_to_populate.extend(sketch.sketches)
+                elif sketch.subtype == Types.TABLE_SKETCH:
+                    sketches_to_populate.extend(
+                        child
+                        for child in sketch.sketches
+                        if child.subtype in _STYLEABLE_SUBTYPES
+                    )
                 elif (
                     sketch.subtype == Types.HELPLINES_SKETCH
                     or sketch.subtype == Types.LINE_SKETCH
@@ -560,7 +566,7 @@ def _mask_scope_parts(
         mask_stops = mask_data.stops
         mask_axis = mask_data.axis
         if mask_stops is not None and mask_axis is None:
-            mask_axis = defaults["mask_axis"]
+            mask_axis = runtime_defaults["mask_axis"]
     else:
         if "mask" not in sketch.__dict__:
             return "", ""
@@ -575,7 +581,7 @@ def _mask_scope_parts(
             mask_stops = mask_data.stops
             mask_axis = mask_data.axis
             if mask_stops is not None and mask_axis is None:
-                mask_axis = defaults["mask_axis"]
+                mask_axis = runtime_defaults["mask_axis"]
         elif sketch.subtype == Types.MASK_SKETCH:
             mask = mask_data
             clip = sketch.clip

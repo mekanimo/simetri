@@ -17,7 +17,7 @@ from simetri.base.common import (
     get_defaults,
     resolve_tol,
 )
-from simetri.config.settings import runtime_defaults as defaults
+from simetri.config.settings import runtime_defaults
 from simetri.geom.affine import rotate_point
 from simetri.geom.geom_utils import close_points_square
 from simetri.geom.vectors import (
@@ -56,8 +56,8 @@ def equal_points(
     Args:
         point1: First point.
         point2: Second point.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance in points. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance in points. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if the points are within the given distance.
@@ -85,8 +85,8 @@ def congruent_points(
     Args:
         point1: First point.
         point2: Second point.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance in points. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance in points. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if the points are within the given distance.
@@ -326,7 +326,7 @@ def check_consecutive_duplicates(
     Args:
         points: Points to check.
         rel_tol: Relative tolerance. Defaults to 0.
-        abs_tol: Absolute tolerance. Defaults to ``defaults['abs_tol']``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults['abs_tol']``.
 
     Returns:
         bool: True if consecutive duplicate points are found, False otherwise.
@@ -339,7 +339,7 @@ def check_consecutive_duplicates(
         False
 """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     if isinstance(points, np.ndarray):
         points = points.tolist()
     if points and len(points) > 1:

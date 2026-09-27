@@ -78,7 +78,7 @@ from ..base.common import (
 from ..base.common_style import CommonStyle
 from ..base.core import Base, _next_xform_matrix, _Targets
 from ..coloring.colors import Color
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.geometry import (
     positive_angle,
@@ -236,7 +236,7 @@ class Shape(Base, CommonStyle):
                 Stroke style.
             marker_*: Marker drawing options.
             even_odd: If True, use even-odd fill rule; ``None`` uses
-                ``defaults["even_odd"]`` at draw time.
+                ``runtime_defaults["even_odd"]`` at draw time.
             markers_only: If True, draw markers without the path.
             smooth: Prefer smooth curve rendering when applicable.
             subtype: Shape subtype. Defaults to ``Types.SHAPE``.
@@ -450,7 +450,7 @@ class Shape(Base, CommonStyle):
 
         Args:
             point: Vertex to locate in transformed coordinates.
-            abs_tol: Absolute tolerance; defaults to ``defaults['abs_tol']``.
+            abs_tol: Absolute tolerance; defaults to ``runtime_defaults['abs_tol']``.
 
         Returns:
             int: The index of the point.
@@ -464,7 +464,7 @@ class Shape(Base, CommonStyle):
         point = tuple(point[:2])
 
         if abs_tol is None:
-            abs_tol = defaults["abs_tol"]
+            abs_tol = runtime_defaults["abs_tol"]
         ind = np.where(
             (np.isclose(self.vertices, point, atol=abs_tol)).all(axis=1)
         )[0][0]
@@ -662,13 +662,13 @@ class Shape(Base, CommonStyle):
             res = allclose(
                 self.xform_matrix,
                 other.xform_matrix,
-                rtol=defaults["rel_tol"],
-                atol=defaults["abs_tol"],
+                rtol=runtime_defaults["rel_tol"],
+                atol=runtime_defaults["abs_tol"],
             ) and allclose(
                 self.primary_points.nd_array,
                 other.primary_points.nd_array,
-                rtol=defaults["rel_tol"],
-                atol=defaults["abs_tol"],
+                rtol=runtime_defaults["rel_tol"],
+                atol=runtime_defaults["abs_tol"],
             )
         else:
             res = False
@@ -772,8 +772,8 @@ class Shape(Base, CommonStyle):
 
         Args:
             other: Open polyline whose first vertex meets this shape's last.
-            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+            rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
         Returns:
             Shape: A new open polyline.
@@ -842,8 +842,8 @@ class Shape(Base, CommonStyle):
         Args:
             verts1 (list[PointType]): The first set of vertices.
             verts2 (list[PointType]): The second set of vertices.
-            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+            rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
         Returns:
             list[PointType] or None: The chained vertices or None if the vertices cannot be chained.
@@ -893,7 +893,7 @@ class Shape(Base, CommonStyle):
         Returns:
             bool: True if the vertices form a polygon, False otherwise.
         """
-        abs_tol2 = defaults["abs_tol"] ** 2
+        abs_tol2 = runtime_defaults["abs_tol"] ** 2
         return close_points_square(
             vertices[0][:2], vertices[-1][:2], dist2=abs_tol2
         )
@@ -1084,7 +1084,7 @@ class Shape(Base, CommonStyle):
         """
         if self.closed:
             vertices = self.vertices[:]
-            abs_tol2 = defaults["abs_tol"] ** 2
+            abs_tol2 = runtime_defaults["abs_tol"] ** 2
             if not close_points_square(
                 vertices[0], vertices[-1], dist2=abs_tol2
             ):
@@ -1176,7 +1176,7 @@ class Shape(Base, CommonStyle):
         col1 = (verts[:, 0] - values[:, 0]) ** 2
         col2 = (verts[:, 1] - values[:, 1]) ** 2
         distances = col1 + col2
-        abs_tol2 = defaults["abs_tol"] ** 2
+        abs_tol2 = runtime_defaults["abs_tol"] ** 2
 
         return np.count_nonzero(distances <= abs_tol2)
 
@@ -2043,7 +2043,7 @@ class Shape(Base, CommonStyle):
                 cur_index = vertices.index(value)
             else:
                 if tol is None:
-                    tol = defaults["abs_tol"]
+                    tol = runtime_defaults["abs_tol"]
                 dist, ind = min(
                     [(distance(value, v), i) for i, v in enumerate(vertices)],
                     key=lambda x: x[0],
@@ -2061,7 +2061,7 @@ class Shape(Base, CommonStyle):
                 new_vertices = vertices[cur_index:] + vertices[:cur_index]
             else:
                 if tol is None:
-                    tol = defaults["abs_tol"]
+                    tol = runtime_defaults["abs_tol"]
                 if distance(value, vertices[cur_index]) < tol:
                     new_vertices = vertices[cur_index:] + vertices[:cur_index]
                 else:
@@ -2332,8 +2332,8 @@ def polygon_diff(
     Args:
         shape1: Shape to clip (must be closed).
         shape2: Clipping region (must be closed).
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
         merge: If True, merge resulting edge fragments into shapes.
 
     Returns:
@@ -2395,8 +2395,8 @@ def polygon_difference(
     Args:
         shape1: Shape to clip.
         shape2: Clipping region.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
         merge: If True, merge resulting fragments.
 
     Returns:
@@ -2447,8 +2447,8 @@ def polygon_xor(
     Args:
         shape1: First closed shape.
         shape2: Second closed shape.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
         merge: If True, merge the combined result.
 
     Returns:

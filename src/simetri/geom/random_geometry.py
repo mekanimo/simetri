@@ -9,7 +9,7 @@ from math import atan2, cos, isclose, pi, sin, tau
 
 import numpy as np
 
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..group.batch import Group
 from ..shapes.geom_items import Circle, Square
 from ..shapes.shape import Shape
@@ -925,7 +925,7 @@ def random_triangle(
         )
     if min_angle > max_angle:
         raise ValueError(f"min_angle ({min_angle}) > max_angle ({max_angle})")
-    angle_tolerance = defaults["abs_tol"]
+    angle_tolerance = runtime_defaults["abs_tol"]
     if (
         3 * min_angle > pi + angle_tolerance
         or 3 * max_angle < pi - angle_tolerance
@@ -989,7 +989,7 @@ def random_triangle(
             "constraints"
         )
 
-    abs_tol = defaults["abs_tol"]
+    abs_tol = runtime_defaults["abs_tol"]
     while True:
         side_ab = rng.uniform(min_edge_length, max_edge_length)
         side_ac = rng.uniform(min_edge_length, max_edge_length)
@@ -1212,8 +1212,8 @@ def random_polygon(
     if min_angle > max_angle:
         raise ValueError(f"min_angle ({min_angle}) > max_angle ({max_angle})")
 
-    angle_tolerance = defaults["abs_tol"]
-    distance_tolerance = defaults["abs_tol"]
+    angle_tolerance = runtime_defaults["abs_tol"]
+    distance_tolerance = runtime_defaults["abs_tol"]
 
     if angles is not None:
         if not closed:

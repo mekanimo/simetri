@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 from ...base.all_enums import TransformationType, Types
 from ...base.common import PointType
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 from ...group.batch import Group
 from ...helpers.utilities import solve_quadratic_eq
 from ...render.style_map import shape_style_map
@@ -85,7 +85,7 @@ class Arc(Shape):
         if radius_y is None:
             radius_y = radius_x
         if n_points is None:
-            n = defaults["n_arc_points"]
+            n = runtime_defaults["n_arc_points"]
             n_points = ceil(n * abs(span_angle) / (2 * pi))
 
         vertices = elliptic_arc_points(
@@ -259,20 +259,20 @@ class Ellipse(Shape):
         """Create an ellipse.
 
         Args:
-            width: Full width. ``None`` uses ``defaults["ellipse_width_height"]``.
-            height: Full height. ``None`` uses ``defaults["ellipse_width_height"]``.
+            width: Full width. ``None`` uses ``runtime_defaults["ellipse_width_height"]``.
+            height: Full height. ``None`` uses ``runtime_defaults["ellipse_width_height"]``.
             center: Ellipse center ``(x, y)``. Defaults to ``(0, 0)``.
             angle: Rotation angle in radians. Defaults to 0.
             xform_matrix: Optional transformation matrix.
             **kwargs: Additional keyword arguments passed to ``Shape``.
         """
         if width is None or height is None:
-            default_width, default_height = defaults["ellipse_width_height"]
+            default_width, default_height = runtime_defaults["ellipse_width_height"]
             if width is None:
                 width = default_width
             if height is None:
                 height = default_height
-        n_points = defaults["n_ellipse_points"]
+        n_points = runtime_defaults["n_ellipse_points"]
         vertices = [
             tuple(p)
             for p in ellipse_points(center, width / 2, height / 2, 0, n_points)
@@ -514,7 +514,7 @@ def elliptic_arc_points(
         radius_y = radius_x
     ry = radius_y
     if n_points is None:
-        n = defaults["n_arc_points"]
+        n = runtime_defaults["n_arc_points"]
         n_points = ceil(n * abs(span_angle) / (2 * pi))
     start_angle = positive_angle(start_angle)
     clockwise = span_angle < 0
@@ -596,7 +596,7 @@ def ellipse_points(
         numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
     """
     if n_points is None:
-        n_points = defaults["n_ellipse_points"]
+        n_points = runtime_defaults["n_ellipse_points"]
 
     t = np.linspace(0, 2 * pi, n_points)
     x = center[0] + a * np.cos(t)

@@ -35,6 +35,7 @@ from simetri.base.all_enums import (
     Drawable,
     FragmentColoring,
     ImageMode,
+    MarkerType,
     PlaitStyle,
     Renderer,
     SvgLoc,
@@ -1758,6 +1759,88 @@ class Canvas:
         base_sketch_xform = self._sketch_xform_matrix
 
         for item in items:
+            marker_type = None
+            if "marker_type" in kwargs:
+                marker_type = kwargs["marker_type"]
+            elif "marker_type" in item.__dict__ and item.__dict__["marker_type"] is not None:
+                marker_type = item.__dict__["marker_type"]
+            if (
+                isinstance(item, Shape)
+                and marker_type is not None
+                and (
+                    marker_type == MarkerType.VECTOR
+                    or marker_type == MarkerType.VECTOR.value
+                )
+            ):
+                body_kwargs = dict(kwargs)
+                del body_kwargs["marker_type"]
+                if "draw_markers" in body_kwargs:
+                    del body_kwargs["draw_markers"]
+                body_kwargs["stroke"] = False
+                if "fill" in body_kwargs:
+                    wants_fill = body_kwargs["fill"]
+                elif "fill" in item.__dict__ and item.__dict__["fill"] is not None:
+                    wants_fill = item.__dict__["fill"]
+                else:
+                    wants_fill = runtime_defaults["fill"]
+                if "indices" in body_kwargs:
+                    wants_indices = bool(body_kwargs["indices"])
+                elif "indices" in item.__dict__:
+                    wants_indices = bool(item.indices)
+                else:
+                    wants_indices = False
+                if "show_vertex_coords" in body_kwargs:
+                    wants_coords = bool(body_kwargs["show_vertex_coords"])
+                elif "show_vertex_coords" in item.__dict__:
+                    wants_coords = bool(item.show_vertex_coords)
+                else:
+                    wants_coords = False
+                if wants_fill or wants_indices or wants_coords:
+                    self.draw(
+                        item,
+                        pos=pos,
+                        angle=angle,
+                        rotocenter=rotocenter,
+                        scale=scale,
+                        about=about,
+                        show=False,
+                        **body_kwargs,
+                    )
+                vector_kwargs = dict(kwargs)
+                for key in (
+                    "marker_type",
+                    "draw_markers",
+                    "indices",
+                    "show_vertex_coords",
+                    "fill",
+                    "stroke",
+                ):
+                    if key in vector_kwargs:
+                        del vector_kwargs[key]
+                pos_dx = 0.0
+                pos_dy = 0.0
+                if pos is not None:
+                    mid_x, mid_y = item.midpoint[:2]
+                    dest_x, dest_y = pos[:2]
+                    pos_dx = dest_x - mid_x
+                    pos_dy = dest_y - mid_y
+                for edge in item.edges:
+                    start_x, start_y = edge[0][:2]
+                    end_x, end_y = edge[1][:2]
+                    start = (start_x + pos_dx, start_y + pos_dy)
+                    end = (end_x + pos_dx, end_y + pos_dy)
+                    self.draw(
+                        Vector(start, end),
+                        vec_start=start,
+                        angle=angle,
+                        rotocenter=rotocenter,
+                        scale=scale,
+                        about=about,
+                        show=False,
+                        **vector_kwargs,
+                    )
+                continue
+
             vector_midpoint = None
             vector_shift = (0.0, 0.0)
             if isinstance(item, Vector):

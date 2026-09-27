@@ -37,7 +37,7 @@ from ...base.common import PointType
 from ...base.common_style import CommonStyle
 from ...base.core import _next_xform_matrix, _Targets
 from ...coloring.colors import Color
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 from ...group.batch import Group
 from ...shapes.shape import Shape
 from ..affine import rotation_matrix, translation_matrix
@@ -219,23 +219,23 @@ class Path2D(Group, CommonStyle):
             draw_fillets: Draw fillets at corners if True.
             draw_markers: Draw markers along the path if True.
             even_odd: If True, use even-odd fill rule; ``None`` uses
-                ``defaults["even_odd"]`` at draw time.
+                ``runtime_defaults["even_odd"]`` at draw time.
             back_style: Background style.
             double_distance: Spacing for double stroke.
             double_color: Color for the second stroke.
-            fill_alpha: Fill opacity. Unset values use ``defaults['fill_alpha']``.
-            fill_color: Fill color. Unset values use ``defaults['fill_color']``.
+            fill_alpha: Fill opacity. Unset values use ``runtime_defaults['fill_alpha']``.
+            fill_color: Fill color. Unset values use ``runtime_defaults['fill_color']``.
             fill_mode: Fill rule (``FillMode``). Defaults to non-zero winding.
             fillet_radius: Fillet radius when fillets are enabled.
             gradient: Optional fill gradient.
-            line_alpha: Stroke opacity. Unset values use ``defaults['line_alpha']``.
+            line_alpha: Stroke opacity. Unset values use ``runtime_defaults['line_alpha']``.
             line_cap: Stroke line cap. Defaults to butt.
-            line_color: Stroke color. Unset values use ``defaults['line_color']``.
+            line_color: Stroke color. Unset values use ``runtime_defaults['line_color']``.
             line_dash_array: Dash pattern.
             line_dash_phase: Dash phase offset.
             line_join: Stroke line join. Defaults to miter.
             line_miter_limit: Miter limit for joins.
-            line_width: Stroke width. Unset values use ``defaults['line_width']``.
+            line_width: Stroke width. Unset values use ``runtime_defaults['line_width']``.
             marker_*: Marker drawing options (same as Shape).
             markers_only: If True, draw markers without the path.
             smooth: Prefer smooth curve rendering when applicable.
@@ -340,7 +340,7 @@ class Path2D(Group, CommonStyle):
             self.objects.append(Shape(data[0]))
             self.cur_shape.extend(data[0])
         elif op_type in _BEZIER_PATH_OPS:
-            n_points = defaults["n_bezier_points"]
+            n_points = runtime_defaults["n_bezier_points"]
             curve = Bezier(data, n_points=n_points)
             self.objects.append(curve)
             self.cur_shape.extend(curve.vertices[1:])
@@ -350,7 +350,7 @@ class Path2D(Group, CommonStyle):
                 self.handles.append((data[0], data[1]))
                 self.handles.append((data[1], data[2]))
         elif op_type == PO.HOBBY_TO:
-            n_points = defaults["n_hobby_points"]
+            n_points = runtime_defaults["n_hobby_points"]
             curve = hobby_shape(data[1], n_points=n_points)
             self.objects.append(Shape(curve.vertices))
         elif op_type in _ARC_PATH_OPS:
@@ -1293,7 +1293,7 @@ class Path2D(Group, CommonStyle):
             start_angle: Arc start angle in radians.
             span_angle: Signed sweep in radians.
             rot_angle: Ellipse rotation in radians. Defaults to 0.
-            n_points: Sample count; defaults to ``defaults['n_arc_points']``.
+            n_points: Sample count; defaults to ``runtime_defaults['n_arc_points']``.
             **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
@@ -1310,7 +1310,7 @@ class Path2D(Group, CommonStyle):
         start_angle = positive_angle(start_angle)
         clockwise = span_angle < 0
         if n_points is None:
-            n_points = defaults["n_arc_points"]
+            n_points = runtime_defaults["n_arc_points"]
         points = elliptic_arc_points(
             (0, 0), rx, ry, start_angle, span_angle, n_points
         )
@@ -1463,7 +1463,7 @@ class Path2D(Group, CommonStyle):
             start_angle: Arc start angle in radians.
             span_angle: Signed sweep in radians.
             sharp: Flip the blend orientation if True. Defaults to False.
-            n_points: Sample count; defaults to ``defaults['n_arc_points']``.
+            n_points: Sample count; defaults to ``runtime_defaults['n_arc_points']``.
             **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
@@ -1482,7 +1482,7 @@ class Path2D(Group, CommonStyle):
         start_angle = positive_angle(start_angle)
         clockwise = span_angle < 0
         if n_points is None:
-            n_points = defaults["n_arc_points"]
+            n_points = runtime_defaults["n_arc_points"]
         points = elliptic_arc_points(
             (0, 0), rx, ry, start_angle, span_angle, n_points
         )
@@ -1649,7 +1649,7 @@ class Path2D(Group, CommonStyle):
 """
         vertices = []
         last_vert = None
-        abs_tol2 = defaults["abs_tol"] ** 2
+        abs_tol2 = runtime_defaults["abs_tol"] ** 2
         for obj in self.objects:
             if obj is not None and obj.vertices:
                 obj_verts = obj.vertices
@@ -1681,7 +1681,7 @@ class Path2D(Group, CommonStyle):
 
         vertices = []
         last_vert = None
-        abs_tol2 = defaults["abs_tol"] ** 2
+        abs_tol2 = runtime_defaults["abs_tol"] ** 2
         for obj, operation in zip(self.objects, self.operations):
             if obj is None or not obj.vertices:
                 continue
@@ -2067,7 +2067,7 @@ def path_code(path2d: Path2D, n_round: int | None = None) -> str:
     Args:
         path2d: Path to serialize.
         n_round: Decimal places for coordinates and lengths derived from them.
-            ``None`` uses ``defaults['n_round']``.
+            ``None`` uses ``runtime_defaults['n_round']``.
 
     Returns:
         Python source that builds an equivalent ``Path2D``.
@@ -2090,7 +2090,7 @@ def path_code(path2d: Path2D, n_round: int | None = None) -> str:
         path.line_to((10.13, 0))
     """
     if n_round is None:
-        n_round = defaults["n_round"]
+        n_round = runtime_defaults["n_round"]
     if n_round < 0:
         raise ValueError("n_round must be a nonnegative integer.")
     start_x, start_y = path2d.start[:2]

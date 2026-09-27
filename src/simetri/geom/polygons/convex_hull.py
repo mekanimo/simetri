@@ -6,7 +6,7 @@ https://www.topcoder.com/thrive/articles/Geometry%20Concepts%20part%202:%20%20Li
 
 from collections.abc import Sequence
 
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 
 Point = tuple[float, float]
 
@@ -57,7 +57,7 @@ def convex_hull(points: Sequence, on_edge: bool = False) -> list[Point]:
     if n == 1:
         return x
 
-    inf = float(defaults["INF"])
+    inf = float(runtime_defaults["INF"])
 
     # Leftmost point (lexicographic).
     p = min(range(n), key=lambda i: (x[i][0], x[i][1]))

@@ -10,7 +10,7 @@ use table, column, and the column header ``Cell`` only.
 Notebook preview uses :class:`rich.table.Table` (Jupyter integration).
 
 Most layout defaults for this extension live in this module. Cell **fill**
-defaults use ``defaults['table_fill']`` and ``defaults['header_row_fill']`` in
+defaults use ``runtime_defaults['table_fill']`` and ``runtime_defaults['header_row_fill']`` in
 ``config/settings.py`` (merged before table / column / row / cell layers).
 
 Cell indexing (read this before addressing cells):
@@ -215,7 +215,11 @@ class Cell:
         self._background: dict[str, Any] = {}
 
     def set_format(self, **kwargs: Any) -> Self:
-        """Set content styling for this cell (merged on top of row/column/table).
+        """Set cell styling (merged on top of row/column/table).
+
+        Content keys go to ``_format``. Background keys (``fill``,
+        ``fill_color``, ``stroke``, ``line_color``, ``line_width``) go to
+        ``_background``, same as ``cell.fill_color = ...``.
 
         Examples:
             >>> cell = Cell("x")
@@ -223,8 +227,13 @@ class Cell:
             True
             >>> cell._format["bold"]
             True
+            >>> _ = cell.set_format(fill=True, fill_color="gold")
+            >>> cell._background["fill"]
+            True
         """
-        self._format.update(kwargs)
+        format_kwargs, background_kwargs = _split_style_kwargs(kwargs)
+        self._format.update(format_kwargs)
+        self._background.update(background_kwargs)
         return self
 
     def set_background(self, **kwargs: Any) -> Self:
@@ -482,6 +491,25 @@ def _range_style_target(name: str) -> tuple[str, str] | None:
     if name in _RANGE_BACKGROUND_KEYS:
         return "background", name
     return None
+
+
+def _split_style_kwargs(kwargs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Split mixed style kwargs into format vs background stores."""
+    format_kwargs: dict[str, Any] = {}
+    background_kwargs: dict[str, Any] = {}
+    for name, value in kwargs.items():
+        target = _range_style_target(name)
+        if target is None:
+            format_kwargs[name] = value
+            continue
+        kind, storage_name = target
+        if storage_name in ("align", "v_align"):
+            value = _resolve_align(value)
+        if kind == "background":
+            background_kwargs[storage_name] = value
+        else:
+            format_kwargs[storage_name] = value
+    return format_kwargs, background_kwargs
 
 
 class Range:
@@ -969,11 +997,11 @@ def _resolve_cell_format(
 
 
 def _default_cell_background(table: Table, *, is_header: bool) -> dict[str, Any]:
-    from ..config.settings import runtime_defaults as defaults
+    from ..config.settings import runtime_defaults
 
-    fill = defaults["table_fill"]
+    fill = runtime_defaults["table_fill"]
     if is_header:
-        fill = defaults["header_row_fill"]
+        fill = runtime_defaults["header_row_fill"]
     return {"fill": fill, "stroke": _TABLE_DEFAULT_STROKE}
 
 

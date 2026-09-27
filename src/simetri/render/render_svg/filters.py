@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from ...base.all_enums import ColorMatrix, FilterType
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 
 Number = int | float
 NumOrStr = Number | str
@@ -333,15 +333,15 @@ class feColorMatrix(FilterPrimitive):
 
     def __post_init__(self) -> None:
         if self.matrix_type is None:
-            self.matrix_type = defaults["filter_color_matrix_type"]
+            self.matrix_type = runtime_defaults["filter_color_matrix_type"]
 
         if self.values is None:
             if self.matrix_type == ColorMatrix.SATURATE:
-                self.values = defaults["filter_color_matrix_saturate"]
+                self.values = runtime_defaults["filter_color_matrix_saturate"]
             elif self.matrix_type == ColorMatrix.HUE_ROTATE:
-                self.values = defaults["filter_color_matrix_hue_rotate"]
+                self.values = runtime_defaults["filter_color_matrix_hue_rotate"]
             else:
-                self.values = defaults["filter_color_matrix_values"]
+                self.values = runtime_defaults["filter_color_matrix_values"]
 
     def to_element(self) -> ET.Element:
         """Build an ElementTree element for this SVG filter node.

@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 import networkx as nx
 
 from ..base.common import LineType, PointType, resolve_tol
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import inclination_angle
 from ..helpers.graph import edges_to_nodes, get_cycles, is_cycle, is_open_walk
@@ -98,8 +98,8 @@ def _merge_shapes(
     ``Shape`` instances.
 
     Args:
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
         merge_angle_tol: Angle tolerance (radians) for treating edges as
             collinear. Defaults to 0.1.
         debug: If True, print point and angle diagnostics.
@@ -347,8 +347,8 @@ def combine_shapes(
 
     Args:
         group: Group of line-like shapes to combine.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
         merge_angle_tol: Collinearity angle tolerance in radians.
         debug: If True, print merge diagnostics.
         keep_one_duplicate: If True, use ``merge_shapes`` instead.

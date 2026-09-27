@@ -10,7 +10,7 @@ from PIL import ImageFont
 
 from ...base.all_enums import FontFamily, MarkerType, Types, WarningType
 from ...coloring.colors import Color
-from ...config.settings import runtime_defaults as defaults, issue_warning
+from ...config.settings import runtime_defaults, issue_warning
 from ...geom.bbox import bounding_box
 from ..pre_render import set_styles
 from .svg_colors import color_to_svg
@@ -97,7 +97,7 @@ def sketch_attrib(sketch: Any, attrib: str) -> object:
     try:
         return object.__getattribute__(sketch, attrib)
     except AttributeError:
-        return defaults.get(attrib)
+        return runtime_defaults.get(attrib)
 
 
 def get_text_size(
@@ -199,20 +199,20 @@ def get_line_style_options(
 
     if "line_alpha" not in merged_exceptions:
         line_alpha = sketch_attrib(sketch, "line_alpha")
-        if line_alpha is not None and line_alpha != defaults["line_alpha"]:
+        if line_alpha is not None and line_alpha != runtime_defaults["line_alpha"]:
             options.append(f"stroke-opacity: {line_alpha};")
 
     if "line_width" not in merged_exceptions and "line_width" in sketch_dict:
         line_width = sketch.line_width
-        if line_width != defaults["line_width"]:
+        if line_width != runtime_defaults["line_width"]:
             options.append(f"stroke-width: {line_width};")
     if "line_cap" not in merged_exceptions and "line_cap" in sketch_dict:
         line_cap = sketch.line_cap
-        if line_cap != defaults["line_cap"]:
+        if line_cap != runtime_defaults["line_cap"]:
             options.append(f"stroke-linecap: {line_cap};")
     if "line_join" not in merged_exceptions and "line_join" in sketch_dict:
         line_join = sketch.line_join
-        if line_join != defaults["line_join"]:
+        if line_join != runtime_defaults["line_join"]:
             options.append(f"stroke-linejoin: {line_join};")
 
     if "line_miter_limit" not in merged_exceptions:
@@ -266,7 +266,7 @@ def get_fill_style_options(
 
     if "fill_alpha" not in merged_exceptions:
         fill_alpha = sketch_attrib(sketch, "fill_alpha")
-        if fill_alpha != defaults["fill_alpha"]:
+        if fill_alpha != runtime_defaults["fill_alpha"]:
             options.append(f"fill-opacity: {fill_alpha};")
 
     if "even_odd" not in merged_exceptions and sketch_attrib(
@@ -459,7 +459,7 @@ def generate_marker_def(
                 coordinates = get_coordinates(marker_sketch, shape_type)
                 marker_shape_fill = sketch_attrib(marker_sketch, "fill")
                 marker_shape_fill_enabled = (
-                    defaults["fill"]
+                    runtime_defaults["fill"]
                     if marker_shape_fill is None
                     else bool(marker_shape_fill)
                 )
@@ -501,7 +501,7 @@ def generate_marker_def(
     marker_fill = sketch_attrib(sketch, "marker_fill")
     marker_line_width = sketch_attrib(sketch, "marker_line_width")
     marker_fill_enabled = (
-        defaults["fill"] if marker_fill is None else bool(marker_fill)
+        runtime_defaults["fill"] if marker_fill is None else bool(marker_fill)
     )
 
     # Convert color
@@ -885,7 +885,7 @@ def generate_gradient_def(sketch: Any, gradient_id: str) -> str:
     if gradient.units:
         units = gradient.units.value
     else:
-        units = defaults["gradient_units"]
+        units = runtime_defaults["gradient_units"]
     spread_method = gradient.spread_method
     transform = gradient.transform
     stops = gradient.stops

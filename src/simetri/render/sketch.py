@@ -32,7 +32,7 @@ from ..base.all_enums import (
 )
 from ..base.common import PointType, get_unique_id
 from ..coloring import colors
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.bbox import bounding_box
 from ..geom.homogenize import homogenize
 from ..geom.matrices import identity_matrix
@@ -1030,10 +1030,10 @@ class HelpLinesSketch:
         height = bbox.height
         spacing = self.spacing
         if spacing in (None, 0):
-            spacing = defaults["help_lines_spacing"]
+            spacing = runtime_defaults["help_lines_spacing"]
             self.spacing = spacing
 
-        d = defaults["help_lines_margin"]
+        d = runtime_defaults["help_lines_margin"]
         x1 = round_symmetric(x - d, self.spacing)
         y1 = round_symmetric(y - d, self.spacing)
         w = round_symmetric(width + 2 * d, self.spacing)

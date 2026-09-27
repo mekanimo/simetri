@@ -24,7 +24,7 @@ from simetri.coloring import colors
 
 from ..base.all_enums import Extent, Types
 from ..base.common import PointType, axis_x, get_defaults
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.affine import rotation_matrix
 from ..geom.bbox import BoundingBox
 from ..geom.geom_utils import (
@@ -128,7 +128,7 @@ def square(
     """Return a ``Square`` (side ``size``, default center ``(0, 0)``).
 
     Args:
-        size: Side length. ``None`` uses ``defaults["square_size"]``.
+        size: Side length. ``None`` uses ``runtime_defaults["square_size"]``.
         center: Center of the square. Defaults to ``(0, 0)``.
         angle: Rotation angle in radians. Defaults to 0.
         **kwargs: Passed to ``Square``.
@@ -191,7 +191,7 @@ class Line(Shape):
             >>> line.extent.name
             'RAY'
         """
-        abs_tol2 = defaults["abs_tol"] ** 2
+        abs_tol2 = runtime_defaults["abs_tol"] ** 2
         if close_points_square(start, end, dist2=abs_tol2):
             raise ValueError("Line: start and end points are the same!")
 
@@ -278,7 +278,7 @@ class Line(Shape):
         x1, y1 = self.start[:2]
         x2, y2 = self.end[:2]
         dx = x2 - x1
-        if abs(dx) <= defaults["abs_tol"]:
+        if abs(dx) <= runtime_defaults["abs_tol"]:
             raise ValueError("Line is vertical; slope is undefined.")
         return (y2 - y1) / dx
 
@@ -370,15 +370,15 @@ class Rectangle(Shape):
 
         Args:
             width: Width of the rectangle. ``None`` uses
-                ``defaults["rectangle_width_height"]``.
+                ``runtime_defaults["rectangle_width_height"]``.
             height: Height of the rectangle. ``None`` uses
-                ``defaults["rectangle_width_height"]``.
+                ``runtime_defaults["rectangle_width_height"]``.
             center: Center point. Defaults to ``(0, 0)``.
             angle: Rotation about ``center``, in radians. Defaults to 0.
             **kwargs: Additional shape keyword arguments.
         """
         if width is None or height is None:
-            default_width, default_height = defaults["rectangle_width_height"]
+            default_width, default_height = runtime_defaults["rectangle_width_height"]
             if width is None:
                 width = default_width
             if height is None:
@@ -528,13 +528,13 @@ class Square(Rectangle):
         """Initialize a Square.
 
         Args:
-            size: Side length. ``None`` uses ``defaults["square_size"]``.
+            size: Side length. ``None`` uses ``runtime_defaults["square_size"]``.
             center: Center point. Defaults to ``(0, 0)``.
             angle: Rotation about ``center``, in radians. Defaults to 0.
             **kwargs: Additional shape keyword arguments.
         """
         if size is None:
-            size = defaults["square_size"]
+            size = runtime_defaults["square_size"]
         super().__init__(size, size, center, angle, **kwargs)
         self.subtype = Types.SQUARE
 
@@ -597,13 +597,13 @@ class Circle(Shape):
         """Initialize a Circle.
 
         Args:
-            radius: Circle radius. Defaults to ``defaults["circle_radius"]``.
+            radius: Circle radius. Defaults to ``runtime_defaults["circle_radius"]``.
             center: Center point. Defaults to ``(0, 0)``.
             xform_matrix: Optional initial transform.
             **kwargs: Additional shape keyword arguments.
         """
         if radius is None:
-            radius = defaults["circle_radius"]
+            radius = runtime_defaults["circle_radius"]
 
         x, y = center[:2]
         points = [[x, y]]
@@ -755,7 +755,7 @@ class Segment(Shape):
         Raises:
             ValueError: If the start and end points are the same.
         """
-        abs_tol2 = defaults["abs_tol"] ** 2
+        abs_tol2 = runtime_defaults["abs_tol"] ** 2
         if close_points_square(start, end, dist2=abs_tol2):
             raise ValueError("Segment: start and end points are the same!")
         points = [start, end]
@@ -1280,8 +1280,8 @@ def rect_shape(
     """Return a ``Rectangle`` (width and height first, default center ``(0, 0)``).
 
     Args:
-        width: Rectangle width. ``None`` uses ``defaults["rectangle_width_height"]``.
-        height: Rectangle height. ``None`` uses ``defaults["rectangle_width_height"]``.
+        width: Rectangle width. ``None`` uses ``runtime_defaults["rectangle_width_height"]``.
+        height: Rectangle height. ``None`` uses ``runtime_defaults["rectangle_width_height"]``.
         center: Center of the rectangle. Defaults to ``(0, 0)``.
         angle: Rotation about ``center``, in radians. Defaults to 0.
         **kwargs: Additional keyword arguments passed to ``Rectangle``.
@@ -1354,7 +1354,7 @@ def circle_shape(
     """Return a ``Circle`` (radius first, default center ``(0, 0)``).
 
     Args:
-        radius: Circle radius. ``None`` uses ``defaults["circle_radius"]``.
+        radius: Circle radius. ``None`` uses ``runtime_defaults["circle_radius"]``.
         center: Center of the circle. Defaults to ``(0, 0)``.
         **kwargs: Additional keyword arguments passed to ``Circle``.
 
@@ -1446,8 +1446,8 @@ def ellipse_shape(
     """Return an ``Ellipse`` (width and height first, default center ``(0, 0)``).
 
     Args:
-        width: Full width. ``None`` uses ``defaults["ellipse_width_height"]``.
-        height: Full height. ``None`` uses ``defaults["ellipse_width_height"]``.
+        width: Full width. ``None`` uses ``runtime_defaults["ellipse_width_height"]``.
+        height: Full height. ``None`` uses ``runtime_defaults["ellipse_width_height"]``.
         center: Center of the ellipse. Defaults to ``(0, 0)``.
         angle: Rotation angle in radians. Defaults to 0.
         **kwargs: Additional keyword arguments passed to ``Ellipse``.
@@ -1628,7 +1628,7 @@ def offset_polygon_shape(
         polygon_shape: Source polygon ``Shape``.
         offset: Offset distance (positive expands outward). Defaults to 1.
         abs_tol: Distance tolerance for offset construction. Defaults to
-            ``defaults["abs_tol"]``.
+            ``runtime_defaults["abs_tol"]``.
 
     Returns:
         Shape: A new closed polygon with offset vertices.
@@ -1642,7 +1642,7 @@ def offset_polygon_shape(
         [-7.0, -7.0]
     """
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
     vertices = offset_polygon(polygon_shape.vertices, offset, abs_tol)
 
     return Shape(vertices)

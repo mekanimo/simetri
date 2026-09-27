@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 from ...base.all_enums import Types
 from ...base.common import PointType
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 from ...helpers.utilities import find_closest_value
 from ...shapes.shape import Shape
 from ..points.point_utils import distance
@@ -70,7 +70,7 @@ class Bezier(Shape):
         """
         if len(control_points) == 3:
             if n_points is None:
-                n = defaults["n_bezier_points"]
+                n = runtime_defaults["n_bezier_points"]
             else:
                 n = n_points
             vertices = q_bezier_points(*control_points, n)
@@ -85,7 +85,7 @@ class Bezier(Shape):
 
         elif len(control_points) == 4:
             if n_points is None:
-                n = defaults["n_bezier_points"]
+                n = runtime_defaults["n_bezier_points"]
             else:
                 n = n_points
             vertices = bezier_points(*control_points, n)
@@ -121,7 +121,7 @@ class Bezier(Shape):
             ValueError: If the number of control points is not 3 or 4.
         """
         self.__dict__["control_points"] = new_control_points
-        n_points = defaults["n_bezier_points"]
+        n_points = runtime_defaults["n_bezier_points"]
         if len(new_control_points) == 3:
             vertices = q_bezier_points(*new_control_points, n_points)
             self[:] = vertices

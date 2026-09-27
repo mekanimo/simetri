@@ -12,7 +12,7 @@ from typing import Any, Self
 
 from simetri.base.all_enums import WarningType
 from simetri.coloring.colors import Color
-from simetri.config.settings import runtime_defaults as defaults, issue_warning
+from simetri.config.settings import runtime_defaults, issue_warning
 
 # Public style fields copied by ``copy_style`` (color/alpha handled separately).
 STYLE_COPY_ATTRS: tuple[str, ...] = (
@@ -192,7 +192,7 @@ class CommonStyle:
       (e.g. Path2D under ``Group`` uses ``4``; default is ``3``).
 
     ``color`` / ``alpha`` fan out to line and fill when set to a non-``None``
-    value.     Unset line/fill color and alpha resolve to ``defaults[...]``.
+    value.     Unset line/fill color and alpha resolve to ``runtime_defaults[...]``.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -307,9 +307,9 @@ class CommonStyle:
 
     @property
     def line_color(self) -> Color:
-        """Stroke color. Unset values resolve to ``defaults['line_color']``."""
+        """Stroke color. Unset values resolve to ``runtime_defaults['line_color']``."""
         if self._line_color is None:
-            return defaults["line_color"]
+            return runtime_defaults["line_color"]
         return self._line_color
 
     @line_color.setter
@@ -318,9 +318,9 @@ class CommonStyle:
 
     @property
     def fill_color(self) -> Color:
-        """Fill color. Unset values resolve to ``defaults['fill_color']``."""
+        """Fill color. Unset values resolve to ``runtime_defaults['fill_color']``."""
         if self._fill_color is None:
-            return defaults["fill_color"]
+            return runtime_defaults["fill_color"]
         return self._fill_color
 
     @fill_color.setter
@@ -346,9 +346,9 @@ class CommonStyle:
 
     @property
     def line_alpha(self) -> float:
-        """Stroke alpha. Unset values resolve to ``defaults['line_alpha']``."""
+        """Stroke alpha. Unset values resolve to ``runtime_defaults['line_alpha']``."""
         if self._line_alpha is None:
-            return defaults["line_alpha"]
+            return runtime_defaults["line_alpha"]
         return self._line_alpha
 
     @line_alpha.setter
@@ -357,9 +357,9 @@ class CommonStyle:
 
     @property
     def fill_alpha(self) -> float:
-        """Fill alpha. Unset values resolve to ``defaults['fill_alpha']``."""
+        """Fill alpha. Unset values resolve to ``runtime_defaults['fill_alpha']``."""
         if self._fill_alpha is None:
-            return defaults["fill_alpha"]
+            return runtime_defaults["fill_alpha"]
         return self._fill_alpha
 
     @fill_alpha.setter

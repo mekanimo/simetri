@@ -10,7 +10,7 @@ from numpy import around
 from numpy.typing import NDArray
 
 from simetri.base.all_enums import InPlace, Types
-from simetri.config.settings import runtime_defaults as defaults
+from simetri.config.settings import runtime_defaults
 from simetri.geom.geom_utils import connected_pairs
 from simetri.geom.points.point_utils import fix_degen_points
 
@@ -535,7 +535,7 @@ def get_polygons(
     from ...helpers.graph import get_cycles, sanitize_graph_edges
 
     if abs_tol is None:
-        abs_tol = defaults["abs_tol"]
+        abs_tol = runtime_defaults["abs_tol"]
 
     nested_rounded_points = []
     for points in nested_points:

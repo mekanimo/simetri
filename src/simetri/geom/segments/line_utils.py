@@ -17,7 +17,7 @@ from simetri.base.common import (
     get_defaults,
     resolve_tol,
 )
-from simetri.config.settings import runtime_defaults as defaults
+from simetri.config.settings import runtime_defaults
 from simetri.geom.geom_utils import (
     close_points_square,
     connected_pairs,
@@ -64,8 +64,8 @@ def equal_edges(
     Args:
         edge1: First edge ``(p1, p2)``.
         edge2: Second edge ``(p3, p4)``.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if endpoints match within ``abs_tol``.
@@ -101,8 +101,8 @@ def equal_segments(
     Args:
         edge1: First segment.
         edge2: Second segment.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if endpoints match within ``abs_tol``.
@@ -128,8 +128,8 @@ def congruent_edges(
     Args:
         edge1: First edge.
         edge2: Second edge.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if endpoints match within ``abs_tol``.
@@ -155,8 +155,8 @@ def congruent_segments(
     Args:
         edge1: First segment.
         edge2: Second segment.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if endpoints match within ``abs_tol``.
@@ -1411,8 +1411,8 @@ def equal_lines(
     Args:
         line1 (LineType): First line.
         line2 (LineType): Second line.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if the lines are close enough, False otherwise.
@@ -1557,8 +1557,8 @@ def multi_split_segment(
     Args:
         segment: Line segment ``(p1, p2)``.
         points: Points that lie on the segment.
-        rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-        abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+        rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         list: Consecutive sub-segments from start to end.
@@ -1719,7 +1719,7 @@ def intersection(
         (True, (1.0, 1.0))
     """
     if rel_tol is None:
-        rel_tol = defaults["rel_tol"]
+        rel_tol = runtime_defaults["rel_tol"]
     x1, y1 = line1[0][:2]
     x2, y2 = line1[1][:2]
     x3, y3 = line2[0][:2]
@@ -1829,7 +1829,7 @@ def slope(
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
     if isclose(x1, x2, rel_tol=rel_tol, abs_tol=abs_tol):
-        res = defaults["INF"]
+        res = runtime_defaults["INF"]
     else:
         res = (y2 - y1) / (x2 - x1)
 
@@ -2522,27 +2522,27 @@ class Edge:
             isclose(
                 self.start.point,
                 start,
-                rel_tol=defaults["rel_tol"],
-                abs_tol=defaults["abs_tol"],
+                rel_tol=runtime_defaults["rel_tol"],
+                abs_tol=runtime_defaults["abs_tol"],
             )
             and isclose(
                 self.end.point,
                 end,
-                rel_tol=defaults["rel_tol"],
-                abs_tol=defaults["abs_tol"],
+                rel_tol=runtime_defaults["rel_tol"],
+                abs_tol=runtime_defaults["abs_tol"],
             )
         ) or (
             isclose(
                 self.start.point,
                 end,
-                rel_tol=defaults["rel_tol"],
-                abs_tol=defaults["abs_tol"],
+                rel_tol=runtime_defaults["rel_tol"],
+                abs_tol=runtime_defaults["abs_tol"],
             )
             and isclose(
                 self.end.point,
                 start,
-                rel_tol=defaults["rel_tol"],
-                abs_tol=defaults["abs_tol"],
+                rel_tol=runtime_defaults["rel_tol"],
+                abs_tol=runtime_defaults["abs_tol"],
             )
         )
 

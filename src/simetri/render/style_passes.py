@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 
 NON_SCOPABLE_SCOPE_KEYS = frozenset(
     ["draw_double", "double_color", "double_distance"]
@@ -12,17 +12,18 @@ NON_SCOPABLE_SCOPE_KEYS = frozenset(
 
 
 def resolve_style_value(sketch_dict: dict[str, Any], style_key: str) -> object:
-    """Resolve a style value from sketch data or defaults.
+    """Resolve a style value from sketch data or ``runtime_defaults``.
 
     Args:
         sketch_dict: Sketch ``__dict__`` or equivalent attribute bag.
         style_key: Style attribute name to resolve.
 
     Returns:
-        object: Resolved value from the sketch or ``defaults``.
+        object: Resolved value from the sketch or ``runtime_defaults``.
 
     Raises:
-        KeyError: If ``style_key`` is missing from the sketch and ``defaults``.
+        KeyError: If ``style_key`` is missing from the sketch and
+        ``runtime_defaults``.
 
     Examples:
         >>> from simetri.render.style_passes import resolve_style_value
@@ -33,9 +34,11 @@ def resolve_style_value(sketch_dict: dict[str, Any], style_key: str) -> object:
 
     if style_key in sketch_dict:
         return sketch_dict[style_key]
-    if style_key in defaults:
-        return defaults[style_key]
-    raise KeyError(f"Missing style key '{style_key}' in sketch and defaults")
+    if style_key in runtime_defaults:
+        return runtime_defaults[style_key]
+    raise KeyError(
+        f"Missing style key '{style_key}' in sketch and runtime_defaults"
+    )
 
 
 def create_style_signature(

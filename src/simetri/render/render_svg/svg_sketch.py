@@ -25,7 +25,7 @@ from ...base.all_enums import (
 )
 from ...base.common import get_unique_id
 from ...coloring.colors import Color, check_color
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 from ...geom.geom_utils import close_points_square
 from ...helpers.illustration import (
     label_font_family_svg,
@@ -434,24 +434,29 @@ def draw_shape_sketch_with_indices(
 
     vertices = sketch_attrib(sketch, "vertices")
 
-    shape_type = "polygon" if sketch_attrib(sketch, "closed") else "polyline"
-
-    class_attr = ""
-    style_attr = ""
-    style_id = get_active_svg_style_id(sketch)
-    if exceptions is None and style_id is not None:
-        class_attr = f'class="{style_id}"'
-    else:
-        line_style = get_line_style_options(sketch, exceptions=exceptions)
-        fill_style = get_fill_style_options(
-            sketch, shape_type, exceptions=exceptions
+    if sketch_attrib(sketch, "draw_markers"):
+        shape_svg = draw_shape_sketch_with_markers(
+            sketch, exceptions=exceptions
         )
-        style = f"{line_style} {fill_style}".strip()
-        style_attr = f'style="{style}"' if style else ""
+    else:
+        shape_type = "polygon" if sketch_attrib(sketch, "closed") else "polyline"
 
-    verts = " ".join([f"{vertex[0]},{vertex[1]}" for vertex in vertices])
-    attrs = " ".join([part for part in [class_attr, style_attr] if part])
-    shape_svg = f'<{shape_type} points="{verts}" {attrs}/>'
+        class_attr = ""
+        style_attr = ""
+        style_id = get_active_svg_style_id(sketch)
+        if exceptions is None and style_id is not None:
+            class_attr = f'class="{style_id}"'
+        else:
+            line_style = get_line_style_options(sketch, exceptions=exceptions)
+            fill_style = get_fill_style_options(
+                sketch, shape_type, exceptions=exceptions
+            )
+            style = f"{line_style} {fill_style}".strip()
+            style_attr = f'style="{style}"' if style else ""
+
+        verts = " ".join([f"{vertex[0]},{vertex[1]}" for vertex in vertices])
+        attrs = " ".join([part for part in [class_attr, style_attr] if part])
+        shape_svg = f'<{shape_type} points="{verts}" {attrs}/>'
 
     index_font_size = sketch_label_font_size_pt(sketch, "index")
     vertex_font_size = sketch_label_font_size_pt(sketch, "vertex")
@@ -660,7 +665,7 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
     if alpha is None:
         raise ValueError("TagSketch.alpha was not resolved at draw time.")
     opacity_attr = ""
-    if alpha != defaults["tag_alpha"]:
+    if alpha != runtime_defaults["tag_alpha"]:
         opacity_attr = f' opacity="{alpha}"'
     if clip_attr or mask_attr or opacity_attr:
         return f"<g{clip_attr}{mask_attr}{opacity_attr}>\n{content}\n</g>"
@@ -890,18 +895,18 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
     x, y = sketch_attrib(sketch, "pos")[:2]
     font_size = sketch_attrib(sketch, "font_size")
     if font_size is None:
-        font_size = defaults["font_size"]
+        font_size = runtime_defaults["font_size"]
     font_family = sketch_attrib(sketch, "font_family")
     font_color = sketch_attrib(sketch, "font_color")
     if font_color is None:
-        font_color = defaults["font_color"]
+        font_color = runtime_defaults["font_color"]
     font_color = check_color(font_color)
     bold = sketch_attrib(sketch, "bold")
     if bold is None:
-        bold = defaults["bold"]
+        bold = runtime_defaults["bold"]
     anchor = sketch_attrib(sketch, "anchor")
     if anchor is None:
-        anchor = defaults["anchor"]
+        anchor = runtime_defaults["anchor"]
 
     # Optionally auto-wrap the entire formula in \boldsymbol{} for convenience.
     # \boldsymbol preserves the italic math style (bold italic), unlike \mathbf
@@ -1090,10 +1095,10 @@ def draw_shape_sketch_with_markers(
 
         line_width = sketch_attrib(sketch, "line_width")
         if exceptions is not None and "line_width" in exceptions:
-            line_width = defaults["line_width"]
+            line_width = runtime_defaults["line_width"]
         line_alpha = sketch_attrib(sketch, "line_alpha")
         if exceptions is not None and "line_alpha" in exceptions:
-            line_alpha = defaults["line_alpha"]
+            line_alpha = runtime_defaults["line_alpha"]
 
         # Get fill styling if closed
         fill_str = '"none"'
@@ -1107,7 +1112,7 @@ def draw_shape_sketch_with_markers(
                 fill_color = color_to_svg(fill_color)
             fill_alpha = sketch_attrib(sketch, "fill_alpha")
             if exceptions is not None and "fill_alpha" in exceptions:
-                fill_alpha = defaults["fill_alpha"]
+                fill_alpha = runtime_defaults["fill_alpha"]
             fill_str = f'"{fill_color}" fill-opacity="{fill_alpha}"'
 
         fill_rule_attr = ""

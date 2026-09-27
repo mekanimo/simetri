@@ -16,7 +16,7 @@ import numpy as np
 from ..base.all_enums import Types
 from ..base.common import PointType
 from ..coloring.colors import Color
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.geom_utils import close_points_square
 from ..group.batch import Group
 from ..helpers.validation import validate_args
@@ -54,7 +54,7 @@ class Dot(Shape):
         Args:
             pos: Position of the dot. Defaults to ``(0, 0)``.
             radius: Draw radius. Defaults to 1.
-            color: Marker color. Defaults to ``defaults["dot_color"]``.
+            color: Marker color. Defaults to ``runtime_defaults["dot_color"]``.
             **kwargs: Additional shape style keyword arguments.
         """
         valid_args = shape_args
@@ -66,7 +66,7 @@ class Dot(Shape):
         if color is not None:
             self.color = color
         else:
-            self.color = defaults["dot_color"]
+            self.color = runtime_defaults["dot_color"]
 
     @property
     def pos(self) -> PointType:

@@ -10,7 +10,7 @@ import networkx as nx
 
 from ..base.all_enums import Types
 from ..base.common import PointType
-from ..config.settings import runtime_defaults as defaults
+from ..config.settings import runtime_defaults
 from ..geom.geom_utils import close_points_square
 from ..geom.points.point_utils import distance
 
@@ -290,7 +290,7 @@ class Node:
         Examples:
         """
         return close_points_square(
-            self.pos, other.pos, dist2=defaults["abs_tol"] ** 2
+            self.pos, other.pos, dist2=runtime_defaults["abs_tol"] ** 2
         )
 
 

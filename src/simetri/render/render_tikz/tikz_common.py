@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from ...base.all_enums import Anchor, BackStyle, Extent, Types
 from ...base.common import PointType
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 from ...geom.bbox import bounding_box
 from .tikz_utils import _get_gradient_shading_options, get_clip_code
 
@@ -143,7 +143,7 @@ def _mask_scope_parts(
         mask_stops = mask_data.stops
         mask_axis = mask_data.axis
         if mask_stops is not None and mask_axis is None:
-            mask_axis = defaults["mask_axis"]
+            mask_axis = runtime_defaults["mask_axis"]
     else:
         if "mask" not in sketch.__dict__:
             return "", ""
@@ -158,7 +158,7 @@ def _mask_scope_parts(
             mask_stops = mask_data.stops
             mask_axis = mask_data.axis
             if mask_stops is not None and mask_axis is None:
-                mask_axis = defaults["mask_axis"]
+                mask_axis = runtime_defaults["mask_axis"]
         else:
             mask = mask_data
             clip = True

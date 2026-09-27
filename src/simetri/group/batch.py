@@ -39,7 +39,7 @@ from ..base.core import (
     _next_xform_matrix,
     _Targets,
 )
-from ..config.settings import runtime_defaults as defaults, issue_warning
+from ..config.settings import runtime_defaults, issue_warning
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.points.point_utils import distance, fix_degen_points, round_point
 from ..geom.polygons.poly import get_polygons
@@ -502,8 +502,8 @@ class Group(Base):
         Returns the n closest points in the group.
 
         Args:
-            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+            rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
             n (int, optional): The number of closest points to return.
 
         Returns:
@@ -547,7 +547,7 @@ class Group(Base):
         if n <= 0:
             raise ValueError("n must be a positive integer.")
         if n_round is None:
-            n_round = defaults["n_round"]
+            n_round = runtime_defaults["n_round"]
         if n_round < 0:
             raise ValueError("n_round must be a nonnegative integer.")
 
@@ -595,7 +595,7 @@ class Group(Base):
         if n <= 0:
             raise ValueError("n must be a positive integer.")
         if n_round is None:
-            n_round = defaults["n_round"]
+            n_round = runtime_defaults["n_round"]
         if n_round < 0:
             raise ValueError("n_round must be a nonnegative integer.")
 
@@ -954,8 +954,8 @@ class Group(Base):
         graph. Unmerged content may be omitted depending on connectivity.
 
         Args:
-            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+            rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
             merge_angle_tol: Collinearity angle tolerance in radians.
             debug: If True, print merge diagnostics.
             keep_one_duplicate: If True, keep one segment per ``equal_edges``
@@ -1001,7 +1001,7 @@ class Group(Base):
             rounded segment geometry.
         """
         if n_round is None:
-            n_round = defaults["n_round"]
+            n_round = runtime_defaults["n_round"]
         d_coord_node = self.d_coord_node
         segments = self.all_segments
         segments = [round_segment(segment, n_round) for segment in segments]
@@ -1048,8 +1048,8 @@ class Group(Base):
         transformed positions.
 
         Args:
-            rel_tol: Relative tolerance. Defaults to ``defaults["rel_tol"]``.
-            abs_tol: Absolute tolerance. Defaults to ``defaults["abs_tol"]``.
+            rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
+            abs_tol: Absolute tolerance. Defaults to ``runtime_defaults["abs_tol"]``.
 
         Returns:
             list: A list of all polygons in the group.

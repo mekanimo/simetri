@@ -12,7 +12,7 @@ import cmath
 import numpy as np
 
 from ...base.common import PointType
-from ...config.settings import runtime_defaults as defaults
+from ...config.settings import runtime_defaults
 from ...shapes.shape import Shape
 from .bezier import bezier_points
 
@@ -413,7 +413,7 @@ def hobby_shape(
         begin_curl: Curl at the start of an open curve. Defaults to 1.
         end_curl: Curl at the end of an open curve. Defaults to 1.
         n_points: Samples per Bezier segment. Defaults to
-            ``defaults["n_hobby_points"]``.
+            ``runtime_defaults["n_hobby_points"]``.
 
     Returns:
         Shape: Polyline vertices along the smooth Hobby curve.
@@ -426,7 +426,7 @@ def hobby_shape(
         [[0.0, 0.0], [2.005127, 2.109132], [4.40983, 3.68034], [7.109618, 4.661377], [10.0, 5.0], [10.0, 5.0], [12.890382, 4.661377], [15.59017, 3.68034], [17.994873, 2.109132], [20.0, 0.0]]
     """
     if n_points is None:
-        n_points = defaults["n_hobby_points"]
+        n_points = runtime_defaults["n_hobby_points"]
     controls = hobby_ctrl_points(
         points,
         tension=tension,

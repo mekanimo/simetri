@@ -18,7 +18,7 @@ from ...base.all_enums import (
     Types,
 )
 from ...coloring.colors import Color, check_color
-from ...config.settings import runtime_defaults as defaults, tikz_defaults
+from ...config.settings import runtime_defaults, tikz_defaults
 from ...shapes.shape import Shape
 from ..sketch import ShapeSketch, TagSketch
 from ..style_map import line_style_map, marker_style_map, shape_style_map
@@ -60,18 +60,18 @@ def get_min_size(sketch: ShapeSketch) -> list[str]:
     options = []
     if sketch.frame_shape == "rectangle":
         if sketch.frame_min_width is None:
-            width = defaults["min_width"]
+            width = runtime_defaults["min_width"]
         else:
             width = sketch.frame_min_width
         if sketch.frame_min_height is None:
-            height = defaults["min_height"]
+            height = runtime_defaults["min_height"]
         else:
             height = sketch.frame_min_height
         options.append(f"minimum width = {width}")
         options.append(f"minimum height = {height}")
     else:
         if sketch.frame_min_size is None:
-            min_size = defaults["min_size"]
+            min_size = runtime_defaults["min_size"]
         else:
             min_size = sketch.frame_min_size
         options.append(f"minimum size = {min_size}")
@@ -116,7 +116,7 @@ def color_to_tikz(
 
     Args:
         color: Simetri color, color string, or ``None`` to read from
-            ``defaults[property_name]``.
+            ``runtime_defaults[property_name]``.
         property_name: Key in ``defaults`` when ``color`` is ``None``.
 
     Returns:
@@ -137,7 +137,7 @@ def color_to_tikz(
     # \definecolor{mypink3}{cmyk}{0, 0.7808, 0.4429, 0.1412}
     # \definecolor{mygray}{gray}{0.6}
     if color is None:
-        color = defaults[property_name]
+        color = runtime_defaults[property_name]
     if isinstance(color, str):
         color = check_color(color)
     r, g, b = color.rgb255
@@ -666,7 +666,7 @@ def get_axis_shading_colors(sketch: Any) -> str:
         if isinstance(color, Color):
             res = color_to_tikz(color)
         else:
-            res = defaults[color_key]
+            res = runtime_defaults[color_key]
 
         return res
 
@@ -865,13 +865,18 @@ def get_marker_options(sketch: Any) -> list[str]:
         >>> get_marker_options  # doctest: +SKIP
     """
 
-    # if mark_stroke is false make line color same as fill color
-    if sketch.draw_markers:
-        res = sg_to_tikz(
-            sketch, marker_style_map.keys(), _attrib_map_marker_style
-        )
-    else:
-        res = []
+    if not sketch.draw_markers:
+        return []
+
+    res = sg_to_tikz(
+        sketch, marker_style_map.keys(), _attrib_map_marker_style
+    )
+    marker_color = sketch.marker_color
+    if marker_color is None:
+        marker_color = runtime_defaults["marker_color"]
+    color_option = f"color={color_to_tikz(marker_color)}"
+    if not any(opt.startswith("color=") for opt in res):
+        res.append(color_option)
 
     return res
 
@@ -988,14 +993,14 @@ def get_frame_options(sketch: TagSketch) -> list[str]:
             width = sketch.frame.min_width
             height = sketch.frame.min_height
             if not width:
-                width = defaults["min_width"]
+                width = runtime_defaults["min_width"]
             if not height:
-                height = defaults["min_height"]
+                height = runtime_defaults["min_height"]
             options += "minimum width = {width}, minimum height = {height}"
         else:
             size = sketch.frame.min_size
             if not size:
-                size = defaults["min_size"]
+                size = runtime_defaults["min_size"]
             options += f"minimum size = {size}"
     return options
 
