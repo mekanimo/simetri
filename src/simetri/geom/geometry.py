@@ -528,7 +528,7 @@ def triangle_area(a: float, b: float, c: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.triangle_area(3, 4, 5)
+        >>> sg.triangle_area_from_sides(3, 4, 5)
         6.0
 """
     a_b = a - b

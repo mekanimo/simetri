@@ -1,6 +1,11 @@
 """Illustration helpers for annotations, tags, arrows, and dimensions.
 
 Examples:
+    >>> import simetri.graphics as sg
+    >>> len(sg.logo())
+    2
+    >>> sg.letter_F().vertices[0]
+    (0.0, 0.0)
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from ..base.all_enums import (
     FontSize,
     FrameShape,
     HeadPos,
+    InPlace,
     LineJoin,
     MarkerType,
     Placement,
@@ -34,6 +40,7 @@ from ..base.common import (
     PointType,
     VecType,
     _set_Nones,
+    alias_argument,
     get_defaults,
 )
 
@@ -49,7 +56,7 @@ from ..geom.geometry import (
     polar_to_cartesian,
 )
 from ..geom.matrices import identity_matrix
-from ..geom.nonlinear.ellipse import Arc
+from ..geom.nonlinear.ellipse import Arc, resolve_arc_sweep
 from ..geom.points.point_utils import distance
 from ..geom.segments.line_utils import (
     extended_line,
@@ -107,60 +114,25 @@ def logo(scale: int | float = 1) -> Group:
     Returns:
         Group: A Group object containing the logo shapes.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.logo(1)  # doctest: +SKIP
+        >>> logo = sg.logo(1)
+        >>> len(logo)
+        2
+        >>> logo[1].vertices
+        ((10.0, 0.0), (10.0, -40.0), (40.0, -40.0), (40.0, -30.0), (20.0, -30.0), (20.0, -10.0), (30.0, -10.0), (30.0, -20.0), (40.0, -20.0), (40.0, 0.0))
+        >>> logo[0].vertices
+        ((0.0, 0.0), (-40.0, 0.0), (-40.0, 60.0), (10.0, 60.0), (10.0, 20.0), (-20.0, 20.0), (-20.0, 40.0), (-10.0, 40.0), (-10.0, 30.0), (0.0, 30.0), (0.0, 50.0), (-30.0, 50.0), (-30.0, 10.0), (50.0, 10.0), (50.0, -100.0), (0.0, -100.0), (0.0, -60.0), (30.0, -60.0), (30.0, -80.0), (20.0, -80.0), (20.0, -70.0), (10.0, -70.0), (10.0, -90.0), (40.0, -90.0), (40.0, -50.0), (-40.0, -50.0), (-40.0, -10.0), (-10.0, -10.0), (-10.0, -30.0), (-20.0, -30.0), (-20.0, -20.0), (-30.0, -20.0), (-30.0, -40.0), (0.0, -40.0))
     """
     w = 10 * scale
-    points = [
-        (0, 0),
-        (-4, 0),
-        (-4, 6),
-        (1, 6),
-        (1, 2),
-        (-2, 2),
-        (-2, 4),
-        (-1, 4),
-        (-1, 3),
-        (0, 3),
-        (0, 5),
-        (-3, 5),
-        (-3, 1),
-        (5, 1),
-        (5, -10),
-        (0, -10),
-        (0, -6),
-        (3, -6),
-        (3, -8),
-        (2, -8),
-        (2, -7),
-        (1, -7),
-        (1, -9),
-        (4, -9),
-        (4, -5),
-        (-4, -5),
-        (-4, -1),
-        (-1, -1),
-        (-1, -3),
-        (-2, -3),
-        (-2, -2),
-        (-3, -2),
-        (-3, -4),
-        (0, -4),
-    ]
+    points = [  # noqa
+        (0, 0), (-4, 0), (-4, 6), (1, 6), (1, 2), (-2, 2), (-2, 4), (-1, 4), (-1, 3),
+        (0, 3), (0, 5), (-3, 5), (-3, 1), (5, 1), (5, -10), (0, -10), (0, -6), (3, -6),
+        (3, -8), (2, -8), (2, -7), (1, -7), (1, -9), (4, -9), (4, -5), (-4, -5), (-4, -1),
+        (-1, -1), (-1, -3), (-2, -3), (-2, -2), (-3, -2), (-3, -4), (0, -4), ]
 
-    points2 = [
-        (1, 0),
-        (1, -4),
-        (4, -4),
-        (4, -3),
-        (2, -3),
-        (2, -1),
-        (3, -1),
-        (3, -2),
-        (4, -2),
-        (4, 0),
-    ]
+    points2 = [(1, 0), (1, -4), (4, -4), (4, -3), (2, -3), (2, -1), (3, -1), (3, -2),  # noqa
+            (4, -2), (4, 0), ]
 
     points = [(x * w, y * w) for x, y in points]
     points2 = [(x * w, y * w) for x, y in points2]
@@ -188,11 +160,11 @@ def convert_latex_font_size(latex_font_size: FontSize) -> float:
         latex_font_size (FontSize): The LaTeX font size.
 
     Returns:
-        int: The corresponding numerical font size.
+        float: The corresponding numerical font size.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.latex_font_size_to_pt(sg.FontSize.TINY)
+        >>> sg.convert_latex_font_size(sg.FontSize.TINY)
         5
     """
     return latex_font_size_to_pt(latex_font_size)
@@ -207,8 +179,10 @@ def latex_font_size_to_pt(latex_font_size: FontSize) -> float:
     Returns:
         float: Approximate size in points.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
+        >>> sg.latex_font_size_to_pt(sg.FontSize.TINY)
+        5
         >>> sg.latex_font_size_to_pt(sg.FontSize.NORMAL)
         10
     """
@@ -238,10 +212,10 @@ def default_font_size_pt(key: str) -> float:
     Returns:
         float: Font size in points.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.default_font_size_pt('index_font_size') > 0
-        True
+        >>> sg.default_font_size_pt('index_font_size')
+        8
     """
     size = runtime_defaults[key]
     if isinstance(size, (int, float)):
@@ -259,11 +233,12 @@ def sketch_label_font_size_pt(sketch: Any, label_kind: str) -> float:
     Returns:
         float: Font size in points.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (1, 0), (0, 1)])
-        >>> sg.sketch_label_font_size_pt(shape, 'index') > 0
-        True
+        >>> from types import SimpleNamespace
+        >>> sketch = SimpleNamespace(index_font_size=12)
+        >>> sg.sketch_label_font_size_pt(sketch, 'index')
+        12.0
     """
     if label_kind == "index":
         attr = "index_font_size"
@@ -288,11 +263,12 @@ def sketch_label_offset(sketch: Any, label_kind: str) -> float:
     Returns:
         float: Radial offset in points.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (1, 0), (0, 1)])
-        >>> sg.sketch_label_offset(shape, 'index') >= 0
-        True
+        >>> from types import SimpleNamespace
+        >>> sketch = SimpleNamespace(index_offset=7)
+        >>> sg.sketch_label_offset(sketch, 'index')
+        7.0
     """
     if label_kind == "index":
         attr = "index_offset"
@@ -314,11 +290,12 @@ def sketch_label_font_color(sketch: Any, label_kind: str) -> Color:
     Returns:
         Color: Label text color.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (1, 0), (0, 1)])
-        >>> isinstance(sg.sketch_label_font_color(shape, 'index'), sg.Color)
-        True
+        >>> from types import SimpleNamespace
+        >>> sketch = SimpleNamespace(index_font_color=sg.red)
+        >>> sg.sketch_label_font_color(sketch, 'index')
+        Color(0.898, 0.0, 0.0)
     """
     if label_kind == "index":
         attr = "index_font_color"
@@ -339,11 +316,12 @@ def sketch_label_font_family(sketch: Any, label_kind: str) -> str | FontFamily:
     Returns:
         str | FontFamily: TeX switch name, CSS-ish name, or FontFamily.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (1, 0), (0, 1)])
-        >>> sg.sketch_label_font_family(shape, 'index') is not None
-        True
+        >>> from types import SimpleNamespace
+        >>> sketch = SimpleNamespace(index_font_family=sg.FontFamily.MONOSPACE)
+        >>> sg.sketch_label_font_family(sketch, 'index')
+        <FontFamily.MONOSPACE: 'monospace'>
     """
     if label_kind == "index":
         attr = "index_font_family"
@@ -363,10 +341,16 @@ def label_font_family_tikz(family: FontFamily | str) -> str:
     Returns:
         str: One of ``ttfamily``, ``rmfamily``, ``sffamily``.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> isinstance(sg.label_font_family_tikz(sg.FontFamily.SANSSERIF), str)
-        True
+        >>> sg.label_font_family_tikz(sg.FontFamily.SANSSERIF)
+        'sffamily'
+        >>> sg.label_font_family_tikz(sg.FontFamily.MONOSPACE)
+        'ttfamily'
+        >>> sg.label_font_family_tikz('sans')
+        'sffamily'
+        >>> sg.label_font_family_tikz(sg.FontFamily.SERIF)
+        'rmfamily'
     """
     if isinstance(family, FontFamily):
         if family == FontFamily.MONOSPACE:
@@ -389,7 +373,18 @@ def label_font_family_tikz(family: FontFamily | str) -> str:
 
 
 def _tag_font_family_for_label_bounds(family: FontFamily | str) -> FontFamily | str:
-    """Map label font-family settings to ``Tag.font_family`` for ``text_bounds``."""
+    """Map label font-family settings to ``Tag.font_family`` for ``text_bounds``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.helpers.illustration import _tag_font_family_for_label_bounds
+        >>> _tag_font_family_for_label_bounds(sg.FontFamily.SANSSERIF)
+        <FontFamily.SANSSERIF: 'sansserif'>
+        >>> _tag_font_family_for_label_bounds('ttfamily')
+        <FontFamily.MONOSPACE: 'monospace'>
+        >>> _tag_font_family_for_label_bounds('sans')
+        <FontFamily.SANSSERIF: 'sansserif'>
+    """
     css = label_font_family_svg(family)
     if css == "monospace":
         return FontFamily.MONOSPACE
@@ -407,10 +402,16 @@ def label_font_family_svg(family: FontFamily | str) -> str:
     Returns:
         str: ``monospace``, ``serif``, or ``sans-serif``.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> isinstance(sg.label_font_family_svg('sans'), str)
-        True
+        >>> sg.label_font_family_svg('sans')
+        'sans-serif'
+        >>> sg.label_font_family_svg(sg.FontFamily.MONOSPACE)
+        'monospace'
+        >>> sg.label_font_family_svg(sg.FontFamily.SERIF)
+        'serif'
+        >>> sg.label_font_family_svg(sg.FontFamily.SANSSERIF)
+        'sans-serif'
     """
     if isinstance(family, FontFamily):
         if family == FontFamily.MONOSPACE:
@@ -437,8 +438,8 @@ def label_halo_color() -> Color:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> isinstance(sg.label_halo_color(), sg.Color)
-        True
+        >>> sg.label_halo_color()
+        Color(1.0, 1.0, 1.0)
     """
     return runtime_defaults["label_halo_color"]
 
@@ -448,8 +449,8 @@ def label_halo_stroke_width(font_size_pt: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.label_halo_stroke_width(10.0) > 0
-        True
+        >>> sg.label_halo_stroke_width(10.0)
+        1.4000000000000001
     """
     scale = float(runtime_defaults["label_halo_width_scale"])
     return max(0.2, font_size_pt * scale)
@@ -460,8 +461,8 @@ def label_halo_scale() -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.label_halo_scale() > 0
-        True
+        >>> sg.label_halo_scale()
+        1.14
     """
     return float(runtime_defaults["label_halo_scale"])
 
@@ -471,8 +472,8 @@ def svg_label_paint_attrs(fill_color: Color, font_size_pt: float) -> str:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> 'fill=' in sg.svg_label_paint_attrs(sg.black, 12.0)
-        True
+        >>> sg.svg_label_paint_attrs(sg.black, 12.0)
+        'fill="rgb(0, 0, 0)" stroke="rgb(255, 255, 255)" stroke-width="1.6800000000000002" paint-order="stroke fill"'
     """
     fill_r, fill_g, fill_b = fill_color.rgb255
     halo_r, halo_g, halo_b = label_halo_color().rgb255
@@ -490,10 +491,10 @@ def letter_F_points() -> list[tuple[float, float]]:
     Returns:
         list: A list of points representing the letter F.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> len(sg.letter_F_points()) > 10
-        True
+        >>> sg.letter_F_points()
+        [(0.0, 0.0), (20.0, 0.0), (20.0, 40.0), (40.0, 40.0), (40.0, 60.0), (20.0, 60.0), (20.0, 80.0), (50.0, 80.0), (50.0, 100.0), (0.0, 100.0), (0.0, 0.0)]
     """
     return [
         (0.0, 0.0),
@@ -520,10 +521,12 @@ def letter_F(scale: int | float = 1, **kwargs: object) -> Shape:
     Returns:
         Shape: A Shape object representing the letter F.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> isinstance(sg.letter_F(), sg.Shape)
-        True
+        >>> sg.letter_F().vertices
+        ((0.0, 0.0), (20.0, 0.0), (20.0, 40.0), (40.0, 40.0), (40.0, 60.0), (20.0, 60.0), (20.0, 80.0), (50.0, 80.0), (50.0, 100.0), (0.0, 100.0))
+        >>> sg.letter_F(2).vertices
+        ((0.0, 0.0), (40.0, 0.0), (40.0, 80.0), (80.0, 80.0), (80.0, 120.0), (40.0, 120.0), (40.0, 160.0), (100.0, 160.0), (100.0, 200.0), (0.0, 200.0))
     """
     F = Shape(letter_F_points(), closed=True)
     if scale != 1:
@@ -545,10 +548,13 @@ def cube(size: float = 100) -> Group:
     Returns:
         Group: A Group object representing the cube.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> isinstance(sg.cube(50), sg.Group)
-        True
+        >>> cube = sg.cube(50)
+        >>> len(cube)
+        3
+        >>> [tuple(round(c, 6) for c in face.midpoint[:2]) for face in cube]
+        [(12.5, -21.650635), (-25.0, 0.0), (12.5, 21.650635)]
     """
     points = reg_poly_points_side_length(6, size, (0, 0))
     center = (0, 0)
@@ -574,8 +580,13 @@ def get_pdf_dimensions(pdf_path: str) -> tuple[float, float] | None:
         >>> import contextlib
         >>> import io
         >>> import simetri.graphics as sg
-        >>> with contextlib.redirect_stdout(io.StringIO()):
-        ...     sg.get_pdf_dimensions('__missing__.pdf') is None
+        >>> buf = io.StringIO()
+        >>> with contextlib.redirect_stdout(buf):
+        ...     result = sg.get_pdf_dimensions('__missing__.pdf')
+        >>> result is None
+        True
+        >>> 'not found' in buf.getvalue().lower()
+        True
     """
     try:
         doc = fitz.open(pdf_path)
@@ -610,13 +621,6 @@ def get_image_dimensions_from_pdf_pages(
     Note:
         Current implementation initializes ``pages`` but only appends to
         per-page ``images`` lists; callers should treat this as incomplete.
-
-    Examples:
-        >>> import contextlib
-        >>> import io
-        >>> import simetri.graphics as sg
-        >>> with contextlib.redirect_stdout(io.StringIO()):
-        ...     sg.get_image_dimensions_from_pdf_pages('__missing__.pdf') is None
     """
     try:
         doc = fitz.open(pdf_path)
@@ -646,6 +650,9 @@ def pdf_to_svg(pdf_path: str, svg_path: str) -> None:
     Args:
         pdf_path (str): The path to the PDF file.
         svg_path (str): The path to save the SVG file.
+
+    Note:
+        The example is skipped; it needs an existing PDF file.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -722,7 +729,13 @@ class AnnotationArrow(Group):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.AnnotationArrow((0, 0), "A", landing=(10, 0))  # doctest: +SKIP
+            >>> note = sg.AnnotationArrow((0, 0), "A", landing=(40, 20))
+            >>> note.tip
+            (0, 0)
+            >>> note.elbow
+            (20, 20)
+            >>> note.landing
+            (40, 20)
         """
         if elbow is None and landing is None:
             raise ValueError("AnnotationArrow requires landing or elbow.")
@@ -846,15 +859,21 @@ class TagFrame:
         min_height (float, optional): The minimum height. Defaults to None.
         min_size (float, optional): The minimum size. Defaults to None.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.TagFrame('note')  # doctest: +SKIP
+        >>> frame = sg.TagFrame()
+        >>> frame.frame_shape
+        'rectangle'
+        >>> frame.line_width
+        1
+        >>> frame.stroke
+        True
     """
 
-    frame_shape: FrameShape = "rectangle"
+    frame_shape: FrameShape | str = "rectangle"
     line_width: float = 1
-    line_dash_array: list = None
-    line_join: LineJoin = "miter"
+    line_dash_array: list | None = None
+    line_join: LineJoin | str = "miter"
     line_color: Color = colors.black
     back_color: Color = colors.white
     fill: bool = False
@@ -908,29 +927,35 @@ class Tag(Base):
         xform_matrix (array, optional): The transformation matrix. Defaults to None.
         **kwargs: Additional keyword arguments for tag styling.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.Tag('Hello', (0, 0))  # doctest: +SKIP
+        >>> tag = sg.Tag('Hello', (0, 0))
+        >>> tag.text
+        'Hello'
+        >>> tag.pos
+        [0.0, 0.0]
+        >>> str(tag)
+        'Tag(Hello)'
     """
 
     def __init__(
         self,
         text: str,
         pos: PointType,
-        font_family: str | None = None,
-        font_size: int | None = None,
-        font_color: Color = None,
+        font_family: str | FontFamily | None = None,
+        font_size: int | float | FontSize | None = None,
+        font_color: Color | None = None,
         anchor: Anchor = Anchor.CENTER,
         bold: bool = False,
         italic: bool = False,
         text_width: float | None = None,
-        placement: Placement = None,
+        placement: Placement | None = None,
         minimum_size: float | None = None,
         minimum_width: float | None = None,
         minimum_height: float | None = None,
         frame: TagFrame | None = None,
         fill: bool | None = None,
-        xform_matrix: object | None = None,
+        xform_matrix: NDArray | None = None,
         **kwargs: object,
     ) -> None:
         """Create a framed text tag.
@@ -1186,7 +1211,13 @@ class Tag(Base):
         xform_matrix: NDArray[np.float64],
         reps: int = 0,
         take: slice | None = None,
-        incr: object | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
+        | None = None,
         dyn_ref: Callable | None = None,
         merge: bool = False,
         xform_type: TransformationType | None = None,
@@ -1226,6 +1257,16 @@ class Tag(Base):
 
         Returns:
             PointType: The position of the text.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> tag = sg.Tag('A', (0, 0))
+            >>> tag.pos
+            [0.0, 0.0]
+            >>> tag.translate(10, 0)
+            Tag(A)
+            >>> tag.pos
+            [10.0, 0.0]
         """
         return (self._init_pos @ self.xform_matrix)[:2].tolist()
 
@@ -1234,6 +1275,17 @@ class Tag(Base):
 
         Returns:
             Tag: A copy of the Tag object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> tag = sg.Tag('Hello', (0, 0))
+            >>> copied = tag.copy()
+            >>> copied.text
+            'Hello'
+            >>> copied.pos
+            [0.0, 0.0]
+            >>> copied is tag
+            False
         """
         tag = Tag(self.text, self.pos, xform_matrix=self.xform_matrix)
         tag._init_pos = self._init_pos
@@ -1387,6 +1439,11 @@ class Tag(Base):
 
         Returns:
             str: ``Tag(text)`` style string.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> str(sg.Tag('Hello', (0, 0)))
+            'Tag(Hello)'
         """
         return f"Tag({self.text})"
 
@@ -1395,6 +1452,11 @@ class Tag(Base):
 
         Returns:
             str: ``Tag(text)`` style string.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Tag('Hello', (0, 0)))
+            'Tag(Hello)'
         """
         return f"Tag({self.text})"
 
@@ -1408,9 +1470,15 @@ class ArrowHead(Shape):
         points (list, optional): The points defining the arrow head. Defaults to None.
         **kwargs: Additional keyword arguments for arrow head styling.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.ArrowHead((0, 0), angle=0)  # doctest: +SKIP
+        >>> head = sg.ArrowHead(length=8, width_=3)
+        >>> head.vertices
+        ((0.0, 0.0), (0.0, -1.5), (8.0, 0.0), (0.0, 1.5))
+        >>> head.head_length
+        8
+        >>> head.head_width
+        3
     """
 
     def __init__(
@@ -1457,9 +1525,12 @@ def draw_cs_tiny(
         neg_width (int, optional): The negative length of the x-axis. Defaults to 5.
         neg_height (int, optional): The negative length of the y-axis. Defaults to 5.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.draw_cs_tiny((0, 0))  # doctest: +SKIP
+        >>> canvas = sg.Canvas()
+        >>> sg.draw_cs_tiny(canvas, (0, 0))
+        >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
+        ['CIRCLE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH']
     """
     x, y = pos[:2]
     canvas.circle(2, (x, y), fill=False, line_color=colors.gray)
@@ -1489,9 +1560,12 @@ def draw_cs_small(
         neg_width (int, optional): The negative length of the x-axis. Defaults to 5.
         neg_height (int, optional): The negative length of the y-axis. Defaults to 5.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.draw_cs_small((0, 0))  # doctest: +SKIP
+        >>> canvas = sg.Canvas()
+        >>> sg.draw_cs_small(canvas, (0, 0))
+        >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
+        ['SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH']
     """
     x, y = pos[:2]
     x_axis = arrow(
@@ -1529,9 +1603,15 @@ def arrow(
     Returns:
         Group: A Group object containing the arrow shapes.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.arrow((0, 0), (10, 0))  # doctest: +SKIP
+        >>> shaft = sg.arrow((0, 0), (10, 0))
+        >>> len(shaft)
+        2
+        >>> shaft[0].vertices
+        ((0.0, 0.0), (10.0, 0.0))
+        >>> shaft[1].vertices
+        ((0.0, 2.0), (10.0, 0.0), (0.0, -2.0))
     """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
@@ -1565,24 +1645,38 @@ class ArcArrow(Group):
     """An ArcArrow object is an arrow with an arc.
 
     Args:
-        center (PointType): The center of the arc.
-        radius (float): The radius of the arc.
-        start_angle (float): The starting angle of the arc.
-        end_angle (float): The ending angle of the arc.
-        xform_matrix (array, optional): The transformation matrix. Defaults to None.
+        center: The center of the arc.
+        radius_x: Semi-axis along x.
+        radius_y: Semi-axis along y; defaults to ``radius_x``.
+        start_angle: The starting angle of the arc in radians. Defaults to 0.
+        span_angle: Unsigned sweep in radians. Mutually exclusive with
+            ``end_angle``. At least one of ``span_angle`` or
+            ``end_angle`` is required.
+        end_angle: Ending angle in radians. Mutually exclusive with
+            ``span_angle``.
+        clockwise: If True, the arc is drawn clockwise. Defaults to False.
+        xform_matrix: The transformation matrix. Defaults to None.
         **kwargs: Additional keyword arguments for arc arrow styling.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.ArcArrow((0, 0), (10, 0), (5, 5))  # doctest: +SKIP
+        >>> arrow = sg.ArcArrow((0, 0), 20, start_angle=0, end_angle=sg.pi / 2)
+        >>> arrow.radius_x
+        20
+        >>> round(arrow.end_angle, 6)
+        1.570796
     """
 
+    @alias_argument({"radius_x": ["radius", "r", "rx"], "radius_y": "ry"})
     def __init__(
         self,
         center: PointType,
-        radius: float,
-        start_angle: float,
-        end_angle: float,
+        radius_x: float,
+        radius_y: float | None = None,
+        start_angle: float = 0,
+        span_angle: float | None = None,
+        end_angle: float | None = None,
+        clockwise: bool = False,
         xform_matrix: NDArray | None = None,
         **kwargs: object,
     ) -> None:
@@ -1593,13 +1687,29 @@ class ArcArrow(Group):
         Raises:
             AttributeError: If an invalid style keyword is provided.
         """
+        if radius_y is None:
+            radius_y = radius_x
+        signed_span = resolve_arc_sweep(
+            start_angle, span_angle, end_angle, clockwise
+        )
+        clockwise = signed_span < 0
+        if end_angle is None:
+            end_angle = start_angle + signed_span
         self.center = center
-        self.radius = radius
+        self.radius_x = radius_x
+        self.radius_y = radius_y
         self.start_angle = start_angle
+        self.span_angle = abs(signed_span)
         self.end_angle = end_angle
+        self.clockwise = clockwise
         # create the arc
         self.arc = Arc(
-            center, radius, start_angle=start_angle, end_angle=end_angle
+            center,
+            radius_x,
+            radius_y,
+            start_angle=start_angle,
+            span_angle=self.span_angle,
+            clockwise=clockwise,
         )
         self.arc.fill = False
         # create arrow_head1
@@ -1633,13 +1743,32 @@ class RadialDimension(Group):
         center (PointType): The center of the circle.
         radius (float): The radius of the circle.
         angle (float): The angle of the dimension line.
-        text_offset (float, optional): The offset for the dimension text. Defaults to None.
-        gap (float, optional): The gap between the dimension line and the text. Defaults to None.
+        text_offset (Sequence, optional): Offset for the dimension text.
+            Defaults to (0, 0).
+        gap (float, optional): The gap between the dimension line and the text.
+            Defaults to None.
+        text (str, optional): Label text. Empty string uses the radius
+            formatted to two decimal places.
+        ext_length (float, optional): Extension length when ``reverse_arrow``
+            is True. Defaults to 10.
+        reverse_arrow (bool, optional): If True, an extension line is created.
+            Defaults to False.
+        keep_inside (bool, optional): Defaults to True.
         **kwargs: Additional keyword arguments for radial dimension styling.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.RadialDimension((0, 0), 10)  # doctest: +SKIP
+        >>> dim = sg.RadialDimension((0, 0), 10)
+        >>> dim.text
+        '10.00'
+        >>> dim.center
+        (0, 0)
+        >>> dim.radius
+        10
+        >>> tuple(dim.tag.pos)
+        (5.0, 0.0)
+        >>> len(dim)
+        2
     """
 
     def __init__(
@@ -1702,9 +1831,15 @@ class Arrow(Group):
         head (Shape, optional): The shape of the arrow head. Defaults to None.
         **kwargs: Additional keyword arguments for arrow styling.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.Arrow((0, 0), (10, 0))  # doctest: +SKIP
+        >>> shaft = sg.Arrow((0, 0), (10, 0))
+        >>> shaft.p1
+        (0, 0)
+        >>> shaft.p2
+        (10, 0)
+        >>> shaft.line.vertices
+        ((0.0, 0.0), (10.0, 0.0))
     """
 
     def __init__(
@@ -1712,7 +1847,7 @@ class Arrow(Group):
         p1: PointType,
         p2: PointType,
         head_pos: HeadPos = HeadPos.END,
-        head: Shape = None,
+        head: Shape | None = None,
         line_width: float = 1,
         color: Color = colors.black,
         **kwargs: object,
@@ -1806,6 +1941,7 @@ def vec_arrow(
             match ``vec``.
 
     Examples:
+        >>> import simetri.graphics as sg
         >>> arrow = sg.vec_arrow(sg.Vector(3, 4), start=(10, 20))
         >>> arrow.p1
         (10, 20)
@@ -1873,9 +2009,17 @@ class AngularDimension(Group):
         gap (float, optional): The gap. Defaults to None.
         **kwargs: Additional keyword arguments for angular dimension styling.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.AngularDimension((0, 0), (10, 0), (0, 10))  # doctest: +SKIP
+        >>> dim = sg.AngularDimension((0, 0), 20, 0, sg.pi / 2, 0.1, 0.1)
+        >>> dim.center
+        (0, 0)
+        >>> dim.radius
+        20
+        >>> dim.start_angle
+        0
+        >>> dim.end_angle
+        1.5707963267948966
     """
 
     def __init__(
@@ -1938,9 +2082,19 @@ class Dimension(Group):
             label is not in the middle. Defaults to 15.
         **kwargs: Additional keyword arguments for dimension styling.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.Dimension((0, 0), (10, 0))  # doctest: +SKIP
+        >>> dim = sg.Dimension((0, 0), (10, 0), 'up', 8)
+        >>> dim.text
+        '10.0'
+        >>> dim.text_pos
+        (5.0, 13)
+        >>> dim.p1
+        (0, 0)
+        >>> dim.p2
+        (10, 0)
+        >>> len(dim)
+        3
     """
 
     def __init__(
@@ -2177,9 +2331,9 @@ def vert_label_layout(shape: Shape, offset: float) -> list[dict[str, object]]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (10, 0), (0, 10)])
-        >>> isinstance(sg.vert_label_layout(shape, 5.0), list)
-        True
+        >>> layout = sg.vert_label_layout(sg.Shape([(0, 0), (10, 0), (0, 10)]), 5.0)
+        >>> [(tuple(round(c, 6) for c in item['position']), item['vertex']) for item in layout]
+        [((-3.535534, -3.535534), (0.0, 0.0)), ((14.619398, -1.913417), (10.0, 0.0)), ((-1.913417, 14.619398), (0.0, 10.0))]
     """
     from simetri.geom.polygons.polygon import in_polygon
 
@@ -2272,11 +2426,13 @@ def estimate_index_label_bbox(
     Returns:
         tuple[float, float]: ``(width, height)`` of the label box.
 
-        Examples:
+    Note:
+        Size comes from Pillow glyph metrics and varies by installed font,
+        so the call is skipped in doctests.
+
+    Examples:
         >>> import simetri.graphics as sg
-        >>> w, h = sg.estimate_index_label_bbox('0', 12.0)
-        >>> w > 0 and h > 0
-        True
+        >>> sg.estimate_index_label_bbox('0', 12.0)  # doctest: +SKIP
     """
     if font_family is None:
         font_family = runtime_defaults["index_font_family"]
@@ -2299,11 +2455,13 @@ def estimate_vertex_coord_label_bbox(
     Returns:
         tuple[float, float]: ``(width, height)`` of the label box.
 
-        Examples:
+    Note:
+        Size comes from Pillow glyph metrics and varies by installed font,
+        so the call is skipped in doctests.
+
+    Examples:
         >>> import simetri.graphics as sg
-        >>> w, h = sg.estimate_vertex_coord_label_bbox('0, 0', 12.0)
-        >>> w > 0 and h > 0
-        True
+        >>> sg.estimate_vertex_coord_label_bbox('0, 0', 12.0)  # doctest: +SKIP
     """
     if font_family is None:
         font_family = runtime_defaults["vertex_font_family"]
@@ -2354,8 +2512,10 @@ def format_vertex_coord(x: float, y: float, ndigits: int | None = None) -> str:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> isinstance(sg.format_vertex_coord(1.2345, 6.789), str)
-        True
+        >>> sg.format_vertex_coord(1.2345, 6.789, ndigits=2)
+        '(1.23, 6.79)'
+        >>> sg.format_vertex_coord(1.2345, 6.789, ndigits=1)
+        '(1.2, 6.8)'
     """
     if ndigits is None:
         ndigits = runtime_defaults["n_vert_digits"]
@@ -2419,14 +2579,15 @@ def sketch_requests_vertex_labels(sketch: Any) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> from simetri.helpers.illustration import sketch_requests_vertex_labels
         >>> from simetri.render.draw import create_sketch
         >>> canvas = sg.Canvas()
         >>> shape = sg.Shape([(0, 0), (1, 0)])
         >>> sketch = create_sketch(shape, canvas)
         >>> sketch.indices = True
-        >>> sketch_requests_vertex_labels(sketch)
+        >>> sg.sketch_requests_vertex_labels(sketch)
         True
+        >>> sg.sketch_requests_vertex_labels(sg.Shape([(0, 0), (1, 0)]))
+        False
     """
     if not hasattr(sketch, "vertices"):
         return False
@@ -2609,7 +2770,7 @@ def resolve_page_vertex_labels(sketches: object) -> None:
     Returns:
         None
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
         >>> sg.resolve_page_vertex_labels([])
     """
@@ -2682,7 +2843,18 @@ def draw_index_label_bboxes(
     line_width: float = 0.5,
     resolve: bool = True,
 ) -> Any:
-    """Draw overlap boxes for index labels on ``canvas`` (maintainer debug)."""
+    """Draw overlap boxes for index labels on ``canvas`` (maintainer debug).
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(sg.Shape([(0, 0), (10, 0), (0, 10)], closed=True), indices=True)
+        Canvas()
+        >>> sg.draw_index_label_bboxes(canvas)
+        Canvas()
+        >>> len(canvas.active_page.sketches)
+        4
+    """
     if line_color is None:
         line_color = colors.red
     return _draw_kind_label_bboxes(
@@ -2701,7 +2873,21 @@ def draw_vertex_label_bboxes(
     line_width: float = 0.5,
     resolve: bool = True,
 ) -> Any:
-    """Draw overlap boxes for vertex coordinate labels (maintainer debug)."""
+    """Draw overlap boxes for vertex coordinate labels (maintainer debug).
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(
+        ...     sg.Shape([(0, 0), (10, 0), (0, 10)], closed=True),
+        ...     show_vertex_coords=True,
+        ... )
+        Canvas()
+        >>> sg.draw_vertex_label_bboxes(canvas)
+        Canvas()
+        >>> len(canvas.active_page.sketches)
+        4
+    """
     if line_color is None:
         line_color = colors.teal
     return _draw_kind_label_bboxes(
@@ -2737,9 +2923,9 @@ def prepare_shape_index_labels(
     Returns:
         tuple | None: ``(positions, labels)`` or ``None`` if indices are off.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.prepare_shape_index_labels(sg.Shape([(0, 0), (1, 0), (0, 1)]))  # doctest: +SKIP
+        >>> sg.prepare_shape_index_labels(sg.Shape([(0, 0), (1, 0), (0, 1)]))
     """
     if not getattr(sketch, "indices", False):
         return None
@@ -2762,9 +2948,9 @@ def prepare_shape_vertex_coord_labels(
     Returns:
         tuple | None: ``(positions, texts)`` or ``None`` if coords are off.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
-        >>> sg.prepare_shape_vertex_coord_labels(sg.Shape([(0, 0), (1, 0), (0, 1)]))  # doctest: +SKIP
+        >>> sg.prepare_shape_vertex_coord_labels(sg.Shape([(0, 0), (1, 0), (0, 1)]))
     """
     if not getattr(sketch, "show_vertex_coords", False):
         return None
@@ -2783,11 +2969,14 @@ def edge_label_positions(shape: Shape, offset: float) -> list:
     Returns:
         list: Label positions for each edge.
 
-        Examples:
+    Examples:
         >>> import simetri.graphics as sg
         >>> shape = sg.Shape([(0, 0), (10, 0), (0, 10)])
-        >>> len(sg.edge_label_positions(shape, 2.0)) > 0
-        True
+        >>> sg.edge_label_positions(shape, 2.0)
+        [[5.0, -2.0], [6.414213562373095, 6.414213562373095]]
+        >>> closed = sg.Shape([(0, 0), (10, 0), (0, 10)], closed=True)
+        >>> sg.edge_label_positions(closed, 2.0)
+        [[5.0, -2.0], [6.414213562373095, 6.414213562373095], [-2.0, 5.0]]
     """
     from simetri.geom.polygons.polygon import in_polygon
 
@@ -2829,8 +3018,8 @@ def edge_label_pos(
     Examples:
         >>> import simetri.graphics as sg
         >>> shape = sg.Shape([(0, 0), (10, 0), (0, 10)])
-        >>> len(sg.edge_label_pos(shape, 0, 2.0)) == 2
-        True
+        >>> sg.edge_label_pos(shape, 0, 2.0)
+        (5.0, -2.0)
     """
     from simetri.geom.polygons.polygon import in_polygon
 

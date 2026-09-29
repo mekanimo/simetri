@@ -1,5 +1,7 @@
 """Build sinusoidal wave polylines as Simetri shapes."""
 
+from __future__ import annotations
+
 from math import exp
 
 import numpy as np
@@ -27,8 +29,6 @@ class SineWave(Shape):
         >>> wave = sg.SineWave(period=40, amplitude=20, duration=80, n_points=4)
         >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in wave.vertices]
         [[0.0, 0.0], [11.428571, 19.498558], [22.857143, -8.677675], [34.285714, -15.63663], [45.714286, 15.63663], [57.142857, 8.677675], [68.571429, -19.498558], [80.0, 0.0]]
-        >>> canvas = sg.Canvas()  # doctest: +SKIP
-        >>> canvas.draw(wave)  # doctest: +SKIP
     """
 
     def __init__(
@@ -40,7 +40,7 @@ class SineWave(Shape):
         phase_angle: float = 0,
         damping: float = 0,
         rot_angle: float = 0,
-        xform_matrix: NDArray = None,
+        xform_matrix: NDArray | None = None,
         **kwargs: object,
     ) -> None:
         """Create a sine-wave shape from sampled points.
@@ -66,19 +66,28 @@ class SineWave(Shape):
         vertices = np.column_stack((x, y)).tolist()
         super().__init__(vertices, xform_matrix=xform_matrix, **kwargs)
         self.subtype = Types.SINE_WAVE
-        self.period = (period,)
-        self.amplitude = (amplitude,)
-        self.duration = (duration,)
-        self.n_points = (n_points,)
-        self.phase = (phase,)
-        self.damping = (damping,)
-        self.rot_angle = (rot_angle,)
+        self.period = period
+        self.amplitude = amplitude
+        self.duration = duration
+        self.n_points = n_points
+        self.phase = phase
+        self.damping = damping
+        self.rot_angle = rot_angle
 
-    def copy_(self) -> "SineWave":
+    def copy_(self) -> SineWave:
         """Return a new ``SineWave`` with the same parameters.
 
         Returns:
             SineWave: A copy of this sine wave.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> wave = sg.SineWave(period=40, amplitude=20, duration=80, n_points=4)
+            >>> copy = wave.copy_()
+            >>> copy.period, copy.amplitude, copy.duration, copy.n_points
+            (40, 20, 80, 4)
+            >>> copy.vertices == wave.vertices
+            True
         """
         return SineWave(
             self.period,
@@ -89,7 +98,6 @@ class SineWave(Shape):
             self.damping,
             self.rot_angle,
             self.xform_matrix,
-            **self.kwargs,
         )
 
 
@@ -99,7 +107,7 @@ def sine_wave(
     duration: float,
     sample_rate: float,
     phase: float = 0,
-) -> NDArray:
+) -> tuple[NDArray, NDArray]:
     """
     Generate a sine wave.
 
@@ -134,7 +142,7 @@ def sine_wave(
 
 def damping_function(
     amplitude: float, duration: float, sample_rate: float
-) -> tuple[NDArray, NDArray]:
+) -> list[float]:
     """
     Generates a damping function based on the given amplitude, duration, and sample rate.
 
@@ -144,7 +152,7 @@ def damping_function(
         sample_rate (float): The number of samples per second.
 
     Returns:
-        list: A list of float values representing the damping function over time.
+        list[float]: Damping samples over time.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -165,19 +173,20 @@ def sine_points(
     n_points: int = 100,
     phase_angle: float = 0,
     damping: float = 0,
-) -> NDArray:
+) -> list[list[float]]:
     """
     Generate sine wave points.
 
     Args:
-        amplitude (float): Amplitude of the wave.
-        frequency (float): Frequency of the wave.
-        duration (float): Duration of the wave.
-        sample_rate (float): Sample rate.
-        phase (float, optional): Phase angle of the wave. Defaults to 0.
-        damping (float, optional): Damping coefficient. Defaults to 0.
+        period: Period of the wave. Defaults to 40.
+        amplitude: Amplitude of the wave. Defaults to 20.
+        duration: Duration of the wave. Defaults to 40.
+        n_points: Samples per period. Defaults to 100.
+        phase_angle: Phase angle in radians. Defaults to 0.
+        damping: Damping coefficient. Defaults to 0.
+
     Returns:
-        np.ndarray: Array of points representing the sine wave.
+        list[list[float]]: ``(x, y)`` samples of the sine wave.
 
     Examples:
         >>> import simetri.graphics as sg

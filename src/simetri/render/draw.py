@@ -23,7 +23,7 @@ from ..base.all_enums import (
     drawable_types,
     get_enum_value,
 )
-from ..base.common import PointType
+from ..base.common import PointType, alias_argument
 from ..coloring import colors
 from ..coloring.colors import Color, change_lightness
 from ..config.settings import runtime_defaults
@@ -36,7 +36,10 @@ from ..geom.points.point_utils import distance
 from ..geom.homogenize import homogenize
 from ..geom.matrices import identity_matrix
 from ..geom.nonlinear.bezier import bezier_points
-from ..geom.nonlinear.ellipse import elliptic_arc_points
+from ..geom.nonlinear.ellipse import (
+    _elliptic_arc_points_from_signed,
+    resolve_arc_sweep,
+)
 from ..geom.nonlinear.path import group_to_nonzero_path, path2d_to_svg_path
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.polygons.polygon import offset_polygon
@@ -213,30 +216,37 @@ def help_lines(
     return self
 
 
+@alias_argument({"radius_x": "rx", "radius_y": "ry"})
 def arc(
     self: Canvas,
     center: PointType,
     radius_x: float,
-    radius_y: float | None,
-    start_angle: float,
-    span_angle: float,
-    rot_angle: float,
+    radius_y: float | None = None,
+    start_angle: float = 0,
+    span_angle: float | None = None,
+    rot_angle: float = 0,
     n_points: int | None = None,
+    *,
+    end_angle: float | None = None,
+    clockwise: bool = False,
     **kwargs: object,
 ) -> Self:
-    """Draw an elliptic arc from ``start_angle`` through ``span_angle``.
-
-    The arc walks counter-clockwise by ``span_angle`` radians. If
-    ``radius_y`` is None, it is set to ``radius_x``.
+    """Draw an elliptic arc from ``start_angle`` through ``span_angle``
+    or ``end_angle``.
 
     Args:
         center: Center of the arc.
         radius_x: Radius along the local x-axis.
-        radius_y: Radius along the local y-axis.
-        start_angle: Start angle in radians.
-        span_angle: Sweep angle in radians.
+        radius_y: Radius along the local y-axis; defaults to ``radius_x``.
+        start_angle: Start angle in radians. Defaults to 0.
+        span_angle: Unsigned sweep in radians. Mutually exclusive with
+            ``end_angle``. At least one of ``span_angle`` or ``end_angle``
+            is required.
         rot_angle: Rotation of the arc about ``center``, in radians.
         n_points: Number of samples along the arc.
+        end_angle: Ending angle in radians. Mutually exclusive with
+            ``span_angle``.
+        clockwise: If True, the arc is drawn clockwise. Defaults to False.
         **kwargs: Style overrides for the arc sketch.
 
     Returns:
@@ -252,8 +262,14 @@ def arc(
 """
     if radius_y is None:
         radius_y = radius_x
-    vertices = elliptic_arc_points(
-        center, radius_x, radius_y, start_angle, span_angle, n_points
+    signed_span = resolve_arc_sweep(
+        start_angle,
+        span_angle,
+        end_angle,
+        clockwise,
+    )
+    vertices = _elliptic_arc_points_from_signed(
+        center, radius_x, radius_y, start_angle, signed_span, n_points
     )
     if rot_angle != 0:
         vertices = homogenize(vertices) @ rotation_matrix(rot_angle, center)

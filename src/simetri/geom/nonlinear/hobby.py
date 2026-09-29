@@ -31,6 +31,12 @@ class HobbyPoint(complex):
         theta (float): Angle of polygonal line from this point to next.
         phi (float): Offset angle.
         psi (float): Another offset angle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> point = sg.HobbyPoint(1, 2, tension=1)
+        >>> (point.x, point.y, point.alpha)
+        (1, 2, 1.0)
     """
 
     def __new__(cls, x: float, y: float, tension: float) -> Self:
@@ -69,6 +75,11 @@ class HobbyPoint(complex):
 
         Returns:
             A string containing the point's coordinates and all of its computational values.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.HobbyPoint(0, 0, tension=1).debug_info()
+            '(0, 0) alpha=1.0, beta=1.0, theta=0, psi=0, phi=0, d_val=0'
         """
         return (
             f"{(self.x, self.y)} "
@@ -100,11 +111,17 @@ class HobbyCurve:
         end_curl (float): Curl value for the end of the curve.
         n_points (int): Number of points in the curve.
         debug_mode (bool): Whether to print debug information.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+        >>> [[round(float(c), 6) for c in q[:2]] for q in curve.get_ctrl_points()]
+        [[0.0, 0.552285], [0.447715, 1.0], [1.552285, 1.0], [2.0, 0.552285]]
     """
 
     def __init__(
         self,
-        points: list[tuple],
+        points: list[tuple[float, float]],
         tension: float = 1,
         cyclic: bool = False,
         begin_curl: float = 1,
@@ -142,6 +159,12 @@ class HobbyCurve:
 
         Returns:
             A list of (x, y) tuples representing the Bezier control points.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+            >>> len(curve.get_ctrl_points())
+            4
         """
         self.calculate_d_vals()
         self.calculate_psi_vals()
@@ -152,7 +175,15 @@ class HobbyCurve:
         return self.ctrl_pts
 
     def calculate_d_vals(self) -> None:
-        """Calculate the pairwise distances between consecutive points in the curve."""
+        """Calculate the pairwise distances between consecutive points in the curve.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.HobbyCurve([(0, 0), (3, 0), (3, 4)])
+            >>> curve.calculate_d_vals()
+            >>> round(curve.points[0].d_val, 6)
+            3.0
+        """
         # Skip last point if path is non-cyclic
         point_inds = (
             range(self.n_points) if self.is_cyclic else range(self.n_points - 1)
@@ -167,6 +198,14 @@ class HobbyCurve:
 
         Raises:
             ZeroDivisionError: If consecutive points have the same coordinates.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.HobbyCurve([(0, 0), (1, 0), (1, 1)])
+            >>> curve.calculate_d_vals()
+            >>> curve.calculate_psi_vals()
+            >>> round(curve.points[1].psi, 6)
+            1.570796
         """
         # Skip first and last point if path is non-cyclic
         point_inds = (
@@ -192,6 +231,13 @@ class HobbyCurve:
 
         This is the core of Hobby's algorithm, creating and solving a system of equations
         to find the optimal angles for smooth splines.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+            >>> _ = curve.get_ctrl_points()
+            >>> round(float(curve.points[0].theta), 6)
+            0.785398
         """
         A = np.zeros(
             self.n_points
@@ -250,7 +296,15 @@ class HobbyCurve:
             point.theta = thetas[i]
 
     def calculate_phi_vals(self) -> None:
-        """Calculate the phi values using the relationship theta + phi + psi = 0."""
+        """Calculate the phi values using the relationship theta + phi + psi = 0.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+            >>> _ = curve.get_ctrl_points()
+            >>> round(float(curve.points[1].phi + curve.points[1].theta + curve.points[1].psi), 10)
+            0.0
+        """
         for point in self.points:
             point.phi = -(point.psi + point.theta)
 
@@ -260,6 +314,13 @@ class HobbyCurve:
         Returns:
             A list of (x, y) tuples representing the control points, with two control points
             for each curve segment between consecutive points.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+            >>> _ = curve.get_ctrl_points()
+            >>> len(curve.calculate_ctrl_pts())
+            4
         """
         ctrl_pts = []
         # Skip last point if path is non-cyclic
@@ -282,7 +343,12 @@ class HobbyCurve:
         return ctrl_pts
 
     def show_debug_msg(self) -> None:
-        """Display debug information for each point if debug mode is enabled."""
+        """Display debug information for each point if debug mode is enabled.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.HobbyCurve([(0, 0), (1, 1), (2, 0)]).show_debug_msg()
+        """
         if self.debug_mode:
             for point in self.points:
                 print(point.debug_info())
@@ -298,7 +364,7 @@ class HobbyCurve:
 
 
 def hobby_ctrl_points(
-    points: list[tuple],
+    points: Sequence[PointType],
     tension: float = 1,
     cyclic: bool = False,
     begin_curl: float = 1,

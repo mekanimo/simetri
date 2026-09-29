@@ -141,6 +141,18 @@ def _format_float(
     n_digits: int | None = None,
     n_sig_digits: int | None = None,
 ) -> str:
+    """Format a float with the current print options.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.helpers.utilities import _format_float
+        >>> _format_float(1 / 3)
+        '0.3333'
+        >>> _format_float(1 / 3, n_digits=2)
+        '0.33'
+        >>> _format_float(1234.567, n_sig_digits=3)
+        '1.23e+03'
+    """
     if n_sig_digits is not None:
         return format(value, f".{n_sig_digits}g")
     suppress = _print_options["suppress"]
@@ -472,6 +484,19 @@ def _cells_neighbors(
     n_cols: int,
     diagonal_neighbors: bool,
 ) -> bool:
+    """Return True if two cell indices are neighbors on an ``n_rows`` by ``n_cols`` grid.
+
+    Examples:
+        >>> from simetri.helpers.utilities import _cells_neighbors
+        >>> _cells_neighbors(0, 1, 3, 3, False)
+        True
+        >>> _cells_neighbors(0, 2, 3, 3, False)
+        False
+        >>> _cells_neighbors(0, 4, 3, 3, True)
+        True
+        >>> _cells_neighbors(0, 4, 3, 3, False)
+        False
+    """
     row1, col1 = divmod(index1, n_cols)
     row2, col2 = divmod(index2, n_cols)
     if row2 < 0 or row2 >= n_rows or col2 < 0 or col2 >= n_cols:
@@ -708,8 +733,15 @@ def close_logger(logger: logging.Logger) -> None:
         logger (mutated): Logger whose handlers are closed and removed.
 
     Examples:
+        >>> import logging
         >>> from simetri.helpers.utilities import close_logger
-        >>> close_logger(None)  # doctest: +SKIP
+        >>> logger = logging.getLogger('simetri_close_logger_example')
+        >>> logger.addHandler(logging.StreamHandler())
+        >>> len(logger.handlers)
+        1
+        >>> close_logger(logger)
+        >>> len(logger.handlers)
+        0
     """
     for handler in logger.handlers:
         handler.close()
@@ -730,9 +762,16 @@ def get_file_path_with_rev(
         The file path with a revision number.
 
     Examples:
+        >>> import os
+        >>> import tempfile
         >>> from simetri.helpers.utilities import get_file_path_with_rev
-        >>> get_file_path_with_rev('.', __file__).endswith('.pdf')
-        True
+        >>> directory = tempfile.mkdtemp()
+        >>> script = os.path.join(directory, 'script.py')
+        >>> os.path.basename(get_file_path_with_rev(directory, script))
+        'script.pdf'
+        >>> open(os.path.join(directory, 'script.pdf'), 'w', encoding='utf-8').close()
+        >>> os.path.basename(get_file_path_with_rev(directory, script))
+        'script_1.pdf'
     """
 
     # Get the file path of the script
@@ -777,8 +816,16 @@ def remove_file_handler(
         handler: Handler to close and remove.
 
     Examples:
+        >>> import logging
         >>> from simetri.helpers.utilities import remove_file_handler
-        >>> remove_file_handler(None, None)  # doctest: +SKIP
+        >>> logger = logging.getLogger('simetri_remove_handler_example')
+        >>> handler = logging.StreamHandler()
+        >>> logger.addHandler(handler)
+        >>> len(logger.handlers)
+        1
+        >>> remove_file_handler(logger, handler)
+        >>> len(logger.handlers)
+        0
     """
     logger.removeHandler(handler)
     handler.close()
@@ -817,9 +864,20 @@ def is_file_empty(file_path: str | os.PathLike[str]) -> bool:
         True if the file is empty, False otherwise.
 
     Examples:
+        >>> import os
+        >>> import tempfile
         >>> from simetri.helpers.utilities import is_file_empty
-        >>> is_file_empty('README.md') in (True, False)
+        >>> directory = tempfile.mkdtemp()
+        >>> empty_path = os.path.join(directory, 'empty.txt')
+        >>> open(empty_path, 'w', encoding='utf-8').close()
+        >>> is_file_empty(empty_path)
         True
+        >>> full_path = os.path.join(directory, 'full.txt')
+        >>> with open(full_path, 'w', encoding='utf-8') as handle:
+        ...     handle.write('x')
+        1
+        >>> is_file_empty(full_path)
+        False
     """
     return os.path.getsize(file_path) == 0
 
@@ -911,14 +969,12 @@ def random_characters(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> excluded = ["l"]
-        >>> token = sg.random_characters(
-        ...     4, lower=True, upper=False, digit=False, exclude_chars=excluded
+        >>> sg.random_characters(4, seed=1)
+        'iKZW'
+        >>> sg.random_characters(
+        ...     4, lower=True, upper=False, digit=False, exclude_chars=['l'], seed=1
         ... )
-        >>> len(token) == 4 and token.isalpha() and token.islower() and "l" not in token
-        True
-        >>> excluded
-        ['l']
+        'etzc'
         >>> sg.random_characters(4, seed=1) == sg.random_characters(4, seed=1)
         True
     """
@@ -970,8 +1026,8 @@ def detokenize(text: str) -> str:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.detokenize("a_b & c") == "a\\_b \\& c"
-        True
+        >>> sg.detokenize("a_b & c")
+        'a\\\\_b \\\\& c'
         >>> sg.detokenize("a $b_c$ d")
         'a $b_c$ d'
     """
@@ -1018,6 +1074,10 @@ def get_text_dimensions(
 
     Returns:
         A tuple containing the width and height of the text.
+
+    Note:
+        Needs a real ``.ttf`` font path; skipped in doctests because
+        installed fonts vary.
 
     Examples:
         >>> from simetri.helpers.utilities import get_text_dimensions
@@ -1088,7 +1148,7 @@ def grid_positions(
     offset: PointType = (0, 0),
     page_height: float | None = None,
     from_top_left: bool = True,
-) -> Generator[PointType]:
+) -> Generator[PointType, None, None]:
     """Given number of rows and columns and row height and
     column width and an origin point, returns a generator of grid positions. If from_top_left is False then it starts from
     bottom right.
@@ -1294,8 +1354,8 @@ def check_directory(dir_path: str) -> tuple[bool, str]:
     Examples:
         >>> import tempfile
         >>> from simetri.helpers.utilities import check_directory
-        >>> check_directory(tempfile.gettempdir())[0]
-        True
+        >>> check_directory(tempfile.gettempdir())
+        (True, '')
     """
     error_msg = []
 
@@ -1715,8 +1775,8 @@ def random_id() -> str:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> isinstance(sg.random_id(), str) and len(sg.random_id()) > 0
-        True
+        >>> len(sg.random_id())
+        8
     """
     return base64.b64encode(os.urandom(6)).decode("ascii")
 
@@ -2131,7 +2191,7 @@ def n_permutations(n: int, k: int) -> int:
     return int(factorial(n) / factorial(n - k))
 
 
-def catalan(n: int) -> float:
+def catalan(n: int) -> int | float:
     """Calculate the nth Catalan number.
 
     Args:
@@ -2258,7 +2318,7 @@ def get_function_dependencies(
         func: Function object whose source is inspected.
 
     Returns:
-        set: Names of functions/attributes referenced in calls.
+        list[tuple[str, str]]: Names of functions/attributes referenced in calls.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -2449,7 +2509,7 @@ def best_fit_exponent(pairs: Sequence[tuple[float, float]] | ndarray) -> float:
     return exponent
 
 
-def factors(number: int) -> list:
+def factors(number: int) -> list[int]:
     """Return all positive divisors of ``number`` in ascending order.
 
     Args:
@@ -2478,7 +2538,7 @@ def factors(number: int) -> list:
     return sorted(list(factors))
 
 
-def get_cycle_size(values: list) -> list:
+def get_cycle_size(values: list) -> int:
     """Length of the longest prefix that tiles the whole list.
 
     For each ``cycle_len`` from 1 through ``len(values)``, checks whether
@@ -2487,6 +2547,9 @@ def get_cycle_size(values: list) -> list:
 
     Args:
         values: Sequence to analyze (typically index or step labels).
+
+    Returns:
+        int: Cycle length, or 0 for an empty list.
 
     Examples:
         >>> import simetri.graphics as sg

@@ -1,6 +1,14 @@
 """Property modifiers applied over time to Group objects.
 
 Examples:
+    >>> import simetri.graphics as sg
+    >>> def bump(element):
+    ...     element['n'] += 1
+    >>> target = {'n': 0}
+    >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+    >>> mod.apply(target)
+    >>> target['n']
+    1
 """
 
 from __future__ import annotations
@@ -16,7 +24,6 @@ from ..base.all_enums import Control, State
 class Modifier:
     """Used to modify the properties of a Group object.
 
-    Examples:
     Attributes:
         function (callable): The function to modify the property.
         life_span (int): The number of times the modifier can be applied.
@@ -27,12 +34,34 @@ class Modifier:
         count (int): Counter for the number of times the modifier has been applied.
         args (tuple): Additional arguments for the function.
         kwargs (dict): Additional keyword arguments for the function.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> def bump(element):
+        ...     element['n'] += 1
+        >>> target = {'n': 0}
+        >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+        >>> mod.state
+        <State.INITIAL: 'INITIAL'>
+        >>> mod.apply(target)
+        >>> target['n']
+        1
+        >>> mod.state
+        <State.RUNNING: 'RUNNING'>
+        >>> mod.apply(target)
+        >>> target['n']
+        2
+        >>> mod.state
+        <State.STOPPED: 'STOPPED'>
+        >>> mod.apply(target)
+        >>> target['n']
+        2
     """
 
     def __init__(
         self,
         function: Callable[..., Any],
-        life_span: int = 10000,
+        life_span: int | Callable[..., Any] = 10000,
         randomness: float | Callable[..., Any] | Sequence[Any] = 1.0,
         condition: bool | Callable[..., Any] = True,
         *args: object,
@@ -42,7 +71,8 @@ class Modifier:
         """
         Args:
             function (callable): The function to modify the property.
-            life_span (int, optional): The number of times the modifier can be applied. Defaults to 10000.
+            life_span (int or callable, optional): The number of times the
+                modifier can be applied. Defaults to 10000.
             randomness (float or callable, optional): Determines the randomness of the modification. Defaults to 1.0.
             condition (bool or callable, optional): Condition to apply the modification. Defaults to True.
             *args: Additional arguments for the function.
@@ -75,6 +105,18 @@ class Modifier:
 
         Returns:
             str: String representation of the Modifier object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> def bump(element):
+            ...     element['n'] += 1
+            >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+            >>> 'lifespan:2' in repr(mod)
+            True
+            >>> 'randomness:1.0' in repr(mod)
+            True
+            >>> repr(mod).startswith('Modifier(function:')
+            True
         """
         return (
             f"Modifier(function:{self.function}, lifespan:{self.life_span},"
@@ -86,6 +128,14 @@ class Modifier:
 
         Returns:
             str: String representation of the Modifier object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> def bump(element):
+            ...     element['n'] += 1
+            >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+            >>> str(mod) == repr(mod)
+            True
         """
         return self.__repr__()
 
@@ -96,6 +146,16 @@ class Modifier:
             control (Control): The control value to set the state.
 
         Examples:
+            >>> import simetri.graphics as sg
+            >>> def bump(element):
+            ...     element['n'] += 1
+            >>> mod = sg.Modifier(bump, seed=0)
+            >>> mod.set_state(sg.Control.STOP)
+            >>> mod.state
+            <State.STOPPED: 'STOPPED'>
+            >>> mod.set_state(sg.Control.RESUME)
+            >>> mod.state
+            <State.RUNNING: 'RUNNING'>
         """
         self.state = self._d_state[control]
 
@@ -114,6 +174,18 @@ class Modifier:
             object: The value obtained from the object or callable.
 
         Examples:
+            >>> import simetri.graphics as sg
+            >>> def bump(element):
+            ...     element['n'] += 1
+            >>> mod = sg.Modifier(bump, seed=0)
+            >>> mod.get_value(3, None)
+            3
+            >>> def halt(target):
+            ...     return sg.Control.STOP
+            >>> mod.get_value(halt, None)
+            <Control.STOP: 'STOP'>
+            >>> mod.state
+            <State.STOPPED: 'STOPPED'>
         """
         if callable(obj):
             res = obj(target, *args, **kwargs)
@@ -134,7 +206,31 @@ class Modifier:
         Args:
             element (object): The element to apply the modifier to.
 
+        Returns:
+            object | None: The function result, or ``None`` if the modifier
+            does not run.
+
         Examples:
+            >>> import simetri.graphics as sg
+            >>> def bump(element):
+            ...     element['n'] += 1
+            >>> target = {'n': 0}
+            >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+            >>> mod.apply(target)
+            >>> target['n']
+            1
+            >>> def counted(element, modifier):
+            ...     element['n'] += 1
+            ...     return element['n']
+            >>> target = {'n': 0}
+            >>> mod = sg.Modifier(counted, life_span=2, seed=0)
+            >>> mod.apply(target)
+            1
+            >>> mod.apply(target)
+            2
+            >>> mod.apply(target)
+            >>> target['n']
+            2
         """
         if self.active and self.can_continue(element):
             if self.n_func_args == 1:
@@ -156,6 +252,14 @@ class Modifier:
             bool: True if the modifier can continue, False otherwise.
 
         Examples:
+            >>> import simetri.graphics as sg
+            >>> def bump(element):
+            ...     element['n'] += 1
+            >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+            >>> mod.can_continue({'n': 0})
+            True
+            >>> sg.Modifier(bump, life_span=2, randomness=0.0, seed=0).can_continue({'n': 0})
+            False
         """
         if callable(self.randomness):
             randomness = self.get_value(self.randomness, target)
@@ -202,5 +306,12 @@ class Modifier:
         """Stops the modifier.
 
         Examples:
+            >>> import simetri.graphics as sg
+            >>> def bump(element):
+            ...     element['n'] += 1
+            >>> mod = sg.Modifier(bump, seed=0)
+            >>> mod.stop()
+            >>> mod.state
+            <State.STOPPED: 'STOPPED'>
         """
         self.state = State.STOPPED

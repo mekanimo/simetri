@@ -778,7 +778,9 @@ def set_defaults() -> None:
         "Boolean property for text objects. If True, the text is displayed in all caps."
     )
 
-    _default_store.factory["allow_consec_dup_points"] = False  # use all caps for text
+    _default_store.factory["allow_consec_dup_points"] = (
+        False  # use all caps for text
+    )
     default_types["allow_consec_dup_points"] = bool
     defaults_help["allow_consec_dup_points"] = (
         "Boolean property for allowing consecutive duplicate points in Shape objects. "
@@ -832,7 +834,9 @@ def set_defaults() -> None:
         "vertex coordinate labels are drawn (vertices=True)."
     )
 
-    _default_store.factory["back_color"] = colors.white  # canvas background color
+    _default_store.factory["back_color"] = (
+        colors.white
+    )  # canvas background color
     default_types["back_color"] = colors.Color
     defaults_help["back_color"] = (
         "Background color. Color object. Background color for the canvas."
@@ -899,7 +903,9 @@ def set_defaults() -> None:
     default_types["begin_doc"] = str
     defaults_help["begin_doc"] = "Used with the generated .tex file."
 
-    _default_store.factory["begin_tikz"] = "\\begin{tikzpicture}[x=1pt, y=1pt, scale=1]\n"
+    _default_store.factory["begin_tikz"] = (
+        "\\begin{tikzpicture}[x=1pt, y=1pt, scale=1]\n"
+    )
     default_types["begin_tikz"] = str
     defaults_help["begin_tikz"] = "Used with the generated .tex file."
 
@@ -965,13 +971,17 @@ def set_defaults() -> None:
         "require a personal [converters.<format>] entry."
     )
 
-    _default_store.factory["canvas_frame_color"] = colors.black  # frame color for the canvas
+    _default_store.factory["canvas_frame_color"] = (
+        colors.black
+    )  # frame color for the canvas
     default_types["canvas_frame_color"] = colors.Color
     defaults_help["canvas_frame_color"] = (
         "Frame color for the canvas. Color object."
     )
 
-    _default_store.factory["canvas_frame_margin"] = 15  # margin around the canvas frame
+    _default_store.factory["canvas_frame_margin"] = (
+        15  # margin around the canvas frame
+    )
     default_types["canvas_frame_margin"] = float
     defaults_help["canvas_frame_margin"] = "Margin around the canvas frame. "
 
@@ -983,17 +993,23 @@ def set_defaults() -> None:
         "Shadow width for the canvas frame. "
     )
 
-    _default_store.factory["canvas_frame_width"] = 45  # frame width for the canvas
+    _default_store.factory["canvas_frame_width"] = (
+        45  # frame width for the canvas
+    )
     default_types["canvas_frame_width"] = float
     defaults_help["canvas_frame_width"] = (
         "Frame width for the canvas. Positive float. Length in <points>."
     )
 
-    _default_store.factory["canvas_mask_scope"] = False  # True only on MaskSketch objects
+    _default_store.factory["canvas_mask_scope"] = (
+        False  # True only on MaskSketch objects
+    )
     default_types["canvas_mask_scope"] = bool
     defaults_help["canvas_mask_scope"] = "Canvas mask scope flag. Boolean."
 
-    _default_store.factory["canvas_size"] = None  # (width, height) canvas size in points
+    _default_store.factory["canvas_size"] = (
+        None  # (width, height) canvas size in points
+    )
     default_types["canvas_size"] = Sequence
     defaults_help["canvas_size"] = (
         "Canvas size. "
@@ -1007,7 +1023,9 @@ def set_defaults() -> None:
         "Circle radius. Positive float. Length in <points>. Radius of the circle."
     )
 
-    _default_store.factory["clip"] = False  # clip the outside of the clip_path to the canvas
+    _default_store.factory["clip"] = (
+        False  # clip the outside of the clip_path to the canvas
+    )
     default_types["clip"] = bool
     defaults_help["clip"] = (
         "Boolean property for the canvas and Group objects. "
@@ -1105,24 +1123,28 @@ def set_defaults() -> None:
         "Boolean property for using double lines. If True, double lines are used."
     )
 
-    _default_store.factory["draw_fillets"] = False  # draw rounded corners for shapes
+    _default_store.factory["draw_fillets"] = (
+        False  # draw rounded corners for shapes
+    )
     default_types["draw_fillets"] = bool
     defaults_help["draw_fillets"] = (
         "Boolean property for drawing rounded corners for shapes. "
         "If True, rounded corners are drawn."
     )
 
-    _default_store.factory["draw_frame"] = False  # draw a frame around the Tag objects
-    default_types["draw_frame"] = bool
-    defaults_help["draw_frame"] = (
-        "Boolean property for drawing a frame around Tag objects. "
-        "If True, a frame is drawn."
-    )
-
     _default_store.factory["draw_fragments"] = True
     default_types["draw_fragments"] = bool
     defaults_help["draw_fragments"] = (
         "If True, canvas.draw_lace draws lace fragments."
+    )
+
+    _default_store.factory["draw_frame"] = (
+        False  # draw a frame around the Tag objects
+    )
+    default_types["draw_frame"] = bool
+    defaults_help["draw_frame"] = (
+        "Boolean property for drawing a frame around Tag objects. "
+        "If True, a frame is drawn."
     )
 
     _default_store.factory["draw_markers"] = (
@@ -1172,7 +1194,9 @@ def set_defaults() -> None:
         "If True, the even-odd rule is used; default is False (nonzero winding)."
     )
 
-    _default_store.factory["ext_length2"] = 25  # dimension extra extension length
+    _default_store.factory["ext_length2"] = (
+        25  # dimension extra extension length
+    )
     default_types["ext_length2"] = float
     defaults_help["ext_length2"] = (
         "Dimension extra extension length. Positive float. Length in <points>."
@@ -1208,17 +1232,17 @@ def set_defaults() -> None:
         "Fill mode for shapes. FillMode enum. Valid values: EVENODD, NONZERO."
     )
 
-    _default_store.factory["fillet_radius"] = 3
-    default_types["fillet_radius"] = float
-    defaults_help["fillet_radius"] = (
-        "Radius for rounded corners (fillets). Positive float. Length in <points>."
-    )
-
     _default_store.factory["fillet_radii"] = None
     default_types["fillet_radii"] = tuple
     defaults_help["fillet_radii"] = (
         "Inner and outer fillet radii for canvas.draw_lace, as "
         "(inner, outer). None means do not fillet."
+    )
+
+    _default_store.factory["fillet_radius"] = 3
+    default_types["fillet_radius"] = float
+    defaults_help["fillet_radius"] = (
+        "Radius for rounded corners (fillets). Positive float. Length in <points>."
     )
 
     _default_store.factory["filter_color_matrix_hue_rotate"] = 0.0
@@ -1471,7 +1495,10 @@ def set_defaults() -> None:
     default_types["gradient"] = object
     defaults_help["gradient"] = "Gradient object."
 
-    _default_store.factory["gradient_center"] = (0.5, 0.5)  # radial gradient center
+    _default_store.factory["gradient_center"] = (
+        0.5,
+        0.5,
+    )  # radial gradient center
     default_types["gradient_center"] = tuple[float, float]
     defaults_help[
         "gradient_center"
@@ -1484,7 +1511,10 @@ def set_defaults() -> None:
         "Gradient end. tuple[float, float]. End for linear gradient."
     )
 
-    _default_store.factory["gradient_focal"] = (0.5, 0.5)  # radial gradient focal pooint
+    _default_store.factory["gradient_focal"] = (
+        0.5,
+        0.5,
+    )  # radial gradient focal pooint
     default_types["gradient_focal"] = tuple[float, float]
     defaults_help[
         "gradient_focal"
@@ -1499,7 +1529,9 @@ def set_defaults() -> None:
 
     # Fix this!!! Should not be SVG only!!!
 
-    _default_store.factory["gradient_spread_method"] = "pad"  # alias for spread_method
+    _default_store.factory["gradient_spread_method"] = (
+        "pad"  # alias for spread_method
+    )
     default_types["gradient_spread_method"] = str
     defaults_help["gradient_spread_method"] = (
         "Gradient spread method (alias). String. 'pad', 'reflect', or 'repeat'. "
@@ -1525,7 +1557,9 @@ def set_defaults() -> None:
         "Gradient type. GradientType enum. Valid values: LINEAR, RADIAL."
     )
 
-    _default_store.factory["gradient_units"] = "objectBoundingBox"  # gradient units
+    _default_store.factory["gradient_units"] = (
+        "objectBoundingBox"  # gradient units
+    )
     default_types["gradient_units"] = str
     defaults_help["gradient_units"] = (
         "Gradient units. String. 'userSpaceOnUse' or 'objectBoundingBox'. "
@@ -1587,6 +1621,13 @@ def set_defaults() -> None:
         "Positive float. Length in <points>."
     )
 
+    _default_store.factory["header_row_fill"] = True
+    default_types["header_row_fill"] = bool
+    defaults_help["header_row_fill"] = (
+        "Default cell fill for table header grid row (row 0 when show_header). "
+        "Boolean. Does not set fill_color; use table / cell styling for colors."
+    )
+
     _default_store.factory["help_lines_height"] = 400
     default_types["help_lines_height"] = float
     defaults_help["help_lines_height"] = (
@@ -1618,13 +1659,6 @@ def set_defaults() -> None:
         "Positive integer."
     )
 
-    _default_store.factory["header_row_fill"] = True
-    default_types["header_row_fill"] = bool
-    defaults_help["header_row_fill"] = (
-        "Default cell fill for table header grid row (row 0 when show_header). "
-        "Boolean. Does not set fill_color; use table / cell styling for colors."
-    )
-
     _default_store.factory["image_align"] = Align.CENTER
     default_types["image_align"] = Align
     defaults_help["image_align"] = (
@@ -1653,6 +1687,15 @@ def set_defaults() -> None:
         "Vertex index label text color. Dark fill with a light halo for contrast."
     )
 
+    _default_store.factory["index_font_family"] = (
+        "ttfamily"  # ttfamily, rmfamily, sffamily
+    )
+    default_types["index_font_family"] = (str, FontFamily)
+    defaults_help["index_font_family"] = (
+        "Vertex index label font family. TeX switch name "
+        "(ttfamily, rmfamily, sffamily) or FontFamily enum."
+    )
+
     _default_store.factory["index_font_size"] = (
         "small"  # tiny, scriptsize, footnotesize, small,
     )
@@ -1668,16 +1711,11 @@ def set_defaults() -> None:
         "Radial offset for vertex index labels from vertices. Scalar in points."
     )
 
-    _default_store.factory["indices_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    _default_store.factory["indices_font_family"] = (
+        "ttfamily"  # ttfamily, rmfamily, sffamily
+    )
     default_types["indices_font_family"] = str
     defaults_help["indices_font_family"] = "Indices font family. String."
-
-    _default_store.factory["index_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
-    default_types["index_font_family"] = (str, FontFamily)
-    defaults_help["index_font_family"] = (
-        "Vertex index label font family. TeX switch name "
-        "(ttfamily, rmfamily, sffamily) or FontFamily enum."
-    )
 
     _default_store.factory["INF"] = np.inf
     default_types["INF"] = float
@@ -1757,7 +1795,9 @@ def set_defaults() -> None:
         "Length in <points>."
     )
 
-    _default_store.factory["latex_compiler"] = Compiler.XELATEX  # PDFLATEX, XELATEX, LUALATEX
+    _default_store.factory["latex_compiler"] = (
+        Compiler.XELATEX
+    )  # PDFLATEX, XELATEX, LUALATEX
     default_types["latex_compiler"] = Compiler
     defaults_help["latex_compiler"] = (
         "LaTeX compiler. Compiler enum. Valid values: LATEX, PDFLATEX, XELATEX, LUALATEX."
@@ -1898,12 +1938,16 @@ def set_defaults() -> None:
         "Marker line width. Positive float. Length in <points>."
     )
 
-    _default_store.factory["marker_palette"] = seq_MATTER_256  # this needs to be a 256 color
+    _default_store.factory["marker_palette"] = (
+        seq_MATTER_256  # this needs to be a 256 color
+    )
     # palette
     default_types["marker_palette"] = Sequence
     defaults_help["marker_palette"] = "Marker palette. List of colors."
 
-    _default_store.factory["marker_radius"] = 3  # Used for MarkerType.CIRCLE, MarkerType.STAR
+    _default_store.factory["marker_radius"] = (
+        3  # Used for MarkerType.CIRCLE, MarkerType.STAR
+    )
     default_types["marker_radius"] = float
     defaults_help["marker_radius"] = (
         "Marker radius. Positive float. Length in <points>."
@@ -1915,7 +1959,7 @@ def set_defaults() -> None:
         "Custom shape to use when marker_type is SHAPE. Shape object."
     )
 
-    _default_store.factory["marker_size"] = 3  # To do: find out what the default is
+    _default_store.factory["marker_size"] = 2
     default_types["marker_size"] = float
     defaults_help["marker_size"] = (
         "Marker size. Positive float. Length in <points>."
@@ -1985,19 +2029,24 @@ def set_defaults() -> None:
         "Mask units. String. 'userSpaceOnUse' or 'objectBoundingBox'."
     )
 
-    _default_store.factory["merge"] = True  # merge transformations with reps > 0
+    _default_store.factory["merge"] = (
+        True  # merge transformations with reps > 0
+    )
     default_types["merge"] = bool
     defaults_help["merge"] = (
         "Boolean property for merging transformations. "
         "If True, transformations with reps > 0 are merged."
     )
 
-    _default_store.factory["merge_tol"] = 0.01  # if the distance between two nodes is less
+    _default_store.factory["merge_tol"] = (
+        0.01  # if the distance between two nodes is less
+    )
     # than this value,
     default_types["merge_tol"] = float
     defaults_help["merge_tol"] = (
         "Merge tolerance. Positive float. Length in <points>."
     )
+
     # defaults['min_height'] = 10
     # defaults['min_width'] = 20
     # defaults['min_size'] = 50
@@ -2055,31 +2104,41 @@ def set_defaults() -> None:
     default_types["msk_y2"] = float
     defaults_help["msk_y2"] = "Mask gradient y2. Float."
 
-    _default_store.factory["n_arc_points"] = 40  # number of proportional points for arcs
+    _default_store.factory["n_arc_points"] = (
+        40  # number of proportional points for arcs
+    )
     default_types["n_arc_points"] = int
     defaults_help["n_arc_points"] = (
         "Number of points for arcs. Positive integer."
     )
 
-    _default_store.factory["n_bezier_points"] = 40  # number of points for Bezier curves
+    _default_store.factory["n_bezier_points"] = (
+        40  # number of points for Bezier curves
+    )
     default_types["n_bezier_points"] = int
     defaults_help["n_bezier_points"] = (
         "Number of points for Bezier curves. Positive integer."
     )
 
-    _default_store.factory["n_circle_points"] = 30  # number of points for circles
+    _default_store.factory["n_circle_points"] = (
+        30  # number of points for circles
+    )
     default_types["n_circle_points"] = int
     defaults_help["n_circle_points"] = (
         "Number of points for circles. Positive integer."
     )
 
-    _default_store.factory["n_ellipse_points"] = 40  # number of points for ellipses
+    _default_store.factory["n_ellipse_points"] = (
+        40  # number of points for ellipses
+    )
     default_types["n_ellipse_points"] = int
     defaults_help["n_ellipse_points"] = (
         "Number of points for ellipses. Positive integer."
     )
 
-    _default_store.factory["n_hobby_points"] = 40  # number of points for Hobby curves
+    _default_store.factory["n_hobby_points"] = (
+        40  # number of points for Hobby curves
+    )
     default_types["n_hobby_points"] = int
     defaults_help["n_hobby_points"] = (
         "Number of points for Hobby curves. Positive integer."
@@ -2111,13 +2170,17 @@ def set_defaults() -> None:
         "Boolean property for old style numbers. If True, old style numbers are used."
     )
 
-    _default_store.factory["orientation"] = PageOrientation.PORTRAIT  # PORTRAIT, LANDSCAPE
+    _default_store.factory["orientation"] = (
+        PageOrientation.PORTRAIT
+    )  # PORTRAIT, LANDSCAPE
     default_types["orientation"] = PageOrientation
     defaults_help["orientation"] = (
         "Page orientation. PageOrientation enum. Valid values: LANDSCAPE, PORTRAIT."
     )
 
-    _default_store.factory["output_dir"] = None  # output directory for TeX files if None, use
+    _default_store.factory["output_dir"] = (
+        None  # output directory for TeX files if None, use
+    )
     # the current directory
     default_types["output_dir"] = str
     defaults_help["output_dir"] = "Output directory for TeX files. String."
@@ -2193,7 +2256,9 @@ def set_defaults() -> None:
         "Page margins. PageMargins enum. Valid values: CUSTOM, NARROW, STANDARD, WIDE."
     )
 
-    _default_store.factory["page_number_position"] = PageNumberPosition.BOTTOM_CENTER
+    _default_store.factory["page_number_position"] = (
+        PageNumberPosition.BOTTOM_CENTER
+    )
     default_types["page_number_position"] = PageNumberPosition
     defaults_help["page_number_position"] = (
         "Page number position. PageNumberPosition enum. Valid values: "
@@ -2219,7 +2284,9 @@ def set_defaults() -> None:
         "A1, A2, A3, A4, A5, A6, B0-B13."
     )
 
-    _default_store.factory["pattern_angle"] = 0  # angle of the pattern in radians
+    _default_store.factory["pattern_angle"] = (
+        0  # angle of the pattern in radians
+    )
     default_types["pattern_angle"] = float
     defaults_help["pattern_angle"] = "Pattern angle. Float. Angle in radians."
 
@@ -2233,7 +2300,9 @@ def set_defaults() -> None:
         "Pattern distance. Positive float. Length in <points>."
     )
 
-    _default_store.factory["pattern_line_width"] = 0  # line width for LINES and HATCH
+    _default_store.factory["pattern_line_width"] = (
+        0  # line width for LINES and HATCH
+    )
     default_types["pattern_line_width"] = float
     defaults_help["pattern_line_width"] = (
         "Pattern line width. Positive float. Length in <points>."
@@ -2245,7 +2314,9 @@ def set_defaults() -> None:
 
     # SVG Tile Pattern defaults (pattern tiles for SVG output)
 
-    _default_store.factory["pattern_radius"] = 10  # radius of the circle for STARS
+    _default_store.factory["pattern_radius"] = (
+        10  # radius of the circle for STARS
+    )
     default_types["pattern_radius"] = float
     defaults_help["pattern_radius"] = (
         "Pattern radius. Positive float. Length in <points>."
@@ -2299,7 +2370,9 @@ def set_defaults() -> None:
     default_types["preamble"] = str
     defaults_help["preamble"] = "Preamble. String."
 
-    _default_store.factory["PRINTTEXOUTPUT"] = True  # Print output from the TeX compiler
+    _default_store.factory["PRINTTEXOUTPUT"] = (
+        True  # Print output from the TeX compiler
+    )
     default_types["PRINTTEXOUTPUT"] = bool
 
     _default_store.factory["radius_threshold"] = (
@@ -2343,7 +2416,9 @@ def set_defaults() -> None:
         "Factory 0 means only abs_tol is used."
     )
 
-    _default_store.factory["render"] = "SVG"  # Render.TEX, Render.SVG use string values
+    _default_store.factory["render"] = (
+        "SVG"  # Render.TEX, Render.SVG use string values
+    )
     default_types["render"] = str
     defaults_help["render"] = (
         "Render output format. Render enum. Valid values: EPS, PDF, SVG, TEX."
@@ -2391,19 +2466,6 @@ def set_defaults() -> None:
     default_types["section_width"] = float
     defaults_help["section_width"] = (
         "Section width. Positive float. Length in <points>."
-    )
-
-    _default_store.factory["shaft_line_color"] = colors.black
-    default_types["shaft_line_color"] = colors.Color
-    defaults_help["shaft_line_color"] = (
-        "Arrow shaft color when drawing a Vector. Color object."
-    )
-
-    _default_store.factory["shaft_line_width"] = 1
-    default_types["shaft_line_width"] = float
-    defaults_help["shaft_line_width"] = (
-        "Arrow shaft width when drawing a Vector. "
-        "Positive float. Length in <points>."
     )
 
     _default_store.factory["shade_axis_angle"] = (
@@ -2517,6 +2579,19 @@ def set_defaults() -> None:
         "Upper right color for shading. Color object."
     )
 
+    _default_store.factory["shaft_line_color"] = colors.black
+    default_types["shaft_line_color"] = colors.Color
+    defaults_help["shaft_line_color"] = (
+        "Arrow shaft color when drawing a Vector. Color object."
+    )
+
+    _default_store.factory["shaft_line_width"] = 1
+    default_types["shaft_line_width"] = float
+    defaults_help["shaft_line_width"] = (
+        "Arrow shaft width when drawing a Vector. "
+        "Positive float. Length in <points>."
+    )
+
     _default_store.factory["show_browser"] = True
     default_types["show_browser"] = bool
     defaults_help["show_browser"] = (
@@ -2526,7 +2601,9 @@ def set_defaults() -> None:
         "See sg.help('viewer'). canvas.save(..., show=False) skips opening."
     )
 
-    _default_store.factory["show_log_on_console"] = True  # show log messages on console
+    _default_store.factory["show_log_on_console"] = (
+        True  # show log messages on console
+    )
     default_types["show_log_on_console"] = bool
     defaults_help["show_log_on_console"] = (
         "Boolean property for showing LateX log messages on console. "
@@ -2566,7 +2643,9 @@ def set_defaults() -> None:
         "Length in <points>."
     )
 
-    _default_store.factory["stop_color"] = colors.white  # default gradient stop color
+    _default_store.factory["stop_color"] = (
+        colors.white
+    )  # default gradient stop color
     default_types["stop_color"] = colors.Color
     defaults_help["stop_color"] = "Default gradient stop color. Color object."
 
@@ -2585,6 +2664,13 @@ def set_defaults() -> None:
     _default_store.factory["swatch"] = seq_MATTER_256
     default_types["swatch"] = Sequence
     defaults_help["swatch"] = "Swatch. List of colors."
+
+    _default_store.factory["table_fill"] = False
+    default_types["table_fill"] = bool
+    defaults_help["table_fill"] = (
+        "Default cell fill for table body cells. Boolean. Header row uses "
+        "header_row_fill unless overridden by table / column / row / cell layers."
+    )
 
     _default_store.factory["tag_align"] = Align.LEFT
     default_types["tag_align"] = Align
@@ -2612,7 +2698,9 @@ def set_defaults() -> None:
     default_types["temp_dir"] = str
     defaults_help["temp_dir"] = "Temporary directory. String."
 
-    _default_store.factory["text_offset"] = 5  # gap between text and dimension line
+    _default_store.factory["text_offset"] = (
+        5  # gap between text and dimension line
+    )
     default_types["text_offset"] = float
     defaults_help["text_offset"] = (
         "Text offset. Positive float. Length in <points>."
@@ -2650,7 +2738,9 @@ def set_defaults() -> None:
     default_types["tikz_scale"] = float
     defaults_help["tikz_scale"] = "TikZ scale. Positive float."
 
-    _default_store.factory["tile_angle"] = 0  # rotation angle of the tile pattern
+    _default_store.factory["tile_angle"] = (
+        0  # rotation angle of the tile pattern
+    )
     default_types["tile_angle"] = float
     defaults_help["tile_angle"] = (
         "Tile angle. Float. Angle in radians. "
@@ -2664,14 +2754,18 @@ def set_defaults() -> None:
         "Height of the SVG pattern tile."
     )
 
-    _default_store.factory["tile_scale_x"] = 1.0  # x-axis scale of the tile pattern
+    _default_store.factory["tile_scale_x"] = (
+        1.0  # x-axis scale of the tile pattern
+    )
     default_types["tile_scale_x"] = float
     defaults_help["tile_scale_x"] = (
         "Tile x scale. Positive float. Scale factor. "
         "X-axis scale factor for the SVG pattern tile."
     )
 
-    _default_store.factory["tile_scale_y"] = 1.0  # y-axis scale of the tile pattern
+    _default_store.factory["tile_scale_y"] = (
+        1.0  # y-axis scale of the tile pattern
+    )
     default_types["tile_scale_y"] = float
     defaults_help["tile_scale_y"] = (
         "Tile y scale. Positive float. Scale factor. "
@@ -2692,28 +2786,27 @@ def set_defaults() -> None:
         "Width of the SVG pattern tile."
     )
 
-    _default_store.factory["tile_x_shift"] = 0  # x-axis shift of the tile pattern
+    _default_store.factory["tile_x_shift"] = (
+        0  # x-axis shift of the tile pattern
+    )
     default_types["tile_x_shift"] = float
     defaults_help["tile_x_shift"] = (
         "Tile x shift. Float. Length in <points>. "
         "X-axis shift of the SVG pattern tile."
     )
 
-    _default_store.factory["tile_y_shift"] = 0  # y-axis shift of the tile pattern
+    _default_store.factory["tile_y_shift"] = (
+        0  # y-axis shift of the tile pattern
+    )
     default_types["tile_y_shift"] = float
     defaults_help["tile_y_shift"] = (
         "Tile y shift. Float. Length in <points>. "
         "Y-axis shift of the SVG pattern tile."
     )
 
-    _default_store.factory["table_fill"] = False
-    default_types["table_fill"] = bool
-    defaults_help["table_fill"] = (
-        "Default cell fill for table body cells. Boolean. Header row uses "
-        "header_row_fill unless overridden by table / column / row / cell layers."
+    _default_store.factory["tol"] = (
+        0.005  # used for comparing angles and collinearity
     )
-
-    _default_store.factory["tol"] = 0.005  # used for comparing angles and collinearity
     default_types["tol"] = float
     defaults_help["tol"] = "Tolerance. Positive float. Length in <points>."
 
@@ -2746,7 +2839,9 @@ def set_defaults() -> None:
         "Vertex coordinate label text color. Dark fill with a light halo for contrast."
     )
 
-    _default_store.factory["vertex_font_family"] = "ttfamily"  # ttfamily, rmfamily, sffamily
+    _default_store.factory["vertex_font_family"] = (
+        "ttfamily"  # ttfamily, rmfamily, sffamily
+    )
     default_types["vertex_font_family"] = (str, FontFamily)
     defaults_help["vertex_font_family"] = (
         "Vertex coordinate label font family. TeX switch name "
@@ -2821,7 +2916,9 @@ def set_defaults() -> None:
         "Marker for intersection points. Positive float. Length in <points>."
     )
 
-    _default_store.factory["x_visible"] = False  # do not show intersection points by default
+    _default_store.factory["x_visible"] = (
+        False  # do not show intersection points by default
+    )
     default_types["x_visible"] = bool
     defaults_help["x_visible"] = (
         "Boolean property for visible intersection points. "

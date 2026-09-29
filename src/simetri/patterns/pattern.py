@@ -33,7 +33,7 @@ from ..base.all_enums import (
     Types,
     get_enum_value,
 )
-from ..base.common import LineType, PointType
+from ..base.common import LineType, PointType, alias_argument
 from ..base.common_style import COLOR_ALPHA_ATTRS, STYLE_COPY_ATTRS, CommonStyle
 from ..base.core import DynRef, resolve_dyn_ref
 from ..geom.affine import *
@@ -716,6 +716,7 @@ class Pattern(Group, CommonStyle):
 
         return self
 
+    @alias_argument({"scale_x": "sx", "scale_y": "sy"})
     def scale(
         self,
         scale_x: float,

@@ -53,6 +53,7 @@ from simetri.base.common import (
     PointType,
     VecType,
     _set_Nones,
+    alias_argument,
 )
 from simetri.base.common_style import (
     FILL_STYLE_ATTRS,
@@ -1067,30 +1068,42 @@ class Canvas:
         draw.insert_tex(self, code, loc)
         return self
 
+    @alias_argument({"radius_x": "rx", "radius_y": "ry"})
     def arc(
         self,
         center: PointType,
         radius_x: float,
         radius_y: float | None = None,
         start_angle: float = 0,
-        span_angle: float = pi / 2,
+        span_angle: float | None = None,
         rot_angle: float = 0,
+        *,
+        end_angle: float | None = None,
+        clockwise: bool = False,
         **kwargs: object,
     ) -> Self:
-        """
-        Draw an arc with the given center, radius, start angle and end angle.
+        """Draw an arc with the given center, radii, start angle, and sweep.
+
+        Pass either ``span_angle`` or ``end_angle``, not both. Use
+        ``clockwise=True`` for a clockwise arc.
 
         Args:
-            center (PointType): The center of the arc.
-            radius_x (float): The radius of the arc.
-            radius_y (float, optional): The second radius of the arc, defaults to None.
-            start_angle (float): The start angle of the arc.
-            end_angle (float): The end angle of the arc.
-            rot_angle (float, optional): The rotation angle of the arc, defaults to 0.
-            kwargs (dict): Additional keyword arguments.
+            center: The center of the arc.
+            radius_x: Semi-axis along x.
+            radius_y: Semi-axis along y; defaults to ``radius_x``.
+            start_angle: The start angle of the arc in radians. Defaults to 0.
+            span_angle: Unsigned sweep in radians. Mutually exclusive with
+                ``end_angle``. At least one of ``span_angle`` or
+                ``end_angle`` is required.
+            rot_angle: The rotation angle of the arc. Defaults to 0.
+            end_angle: Ending angle in radians. Mutually exclusive with
+                ``span_angle``. Pass as a keyword.
+            clockwise: If True, the arc is drawn clockwise. Defaults to False.
+            kwargs: Additional keyword arguments.
 
         Returns:
             Self: The canvas object.
+
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
@@ -1104,8 +1117,6 @@ class Canvas:
             >>> tuple(round(coord, 6) for coord in sketch.vertices[-1][:2])
             (0.0, 10.0)
         """
-        if radius_y is None:
-            radius_y = radius_x
         draw.arc(
             self,
             center,
@@ -1114,6 +1125,8 @@ class Canvas:
             start_angle,
             span_angle,
             rot_angle,
+            end_angle=end_angle,
+            clockwise=clockwise,
             **kwargs,
         )
         return self
@@ -2651,6 +2664,7 @@ class Canvas:
         self._xform_matrix = rotation_matrix(angle, about) @ self._xform_matrix
         return _CanvasScope(self, "matrix", saved)
 
+    @alias_argument({"scale_x": "sx", "scale_y": "sy"})
     def scale(
         self,
         scale_x: float,

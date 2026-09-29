@@ -52,6 +52,7 @@ from .all_enums import (
 from .common import (
     LineType,
     PointType,
+    alias_argument,
 )
 
 STYLE_ATTRIBUTES = set(shape_args)
@@ -647,6 +648,7 @@ class Transform:
         )
 
     @classmethod
+    @alias_argument({"scale_x": "sx", "scale_y": "sy"})
     def scale(
         cls,
         scale_x: float | DynRef,
@@ -1663,6 +1665,7 @@ class Base:
 
         return res
 
+    @alias_argument({"scale_x": "sx", "scale_y": "sy"})
     def scale(
         self,
         scale_x: float,

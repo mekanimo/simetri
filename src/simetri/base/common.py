@@ -14,7 +14,8 @@ Examples:
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from functools import wraps
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from math import cos, pi, sin
 from typing import TYPE_CHECKING, Any, Union
 
@@ -187,3 +188,162 @@ def get_defaults(args: Sequence[str], values: Sequence[Any]) -> list[Any]:
         else:
             res.append(values[i])
     return res
+
+
+# def alias_argument(official_name, alias_name):
+#     def decorator(func):
+#         @wraps(func)
+#         def wrapper(*args, **kwargs):
+#             if alias_name in kwargs:
+#                 if official_name in kwargs:
+#                     raise TypeError(f"Received both '{official_name}' and its alias '{alias_name}'!")
+
+#                 # Warn the user (optional)
+#                 warnings.warn(f"'{alias_name}' is deprecated; use '{official_name}' instead.", DeprecationWarning)
+
+#                 # Map the alias value to the official parameter name
+#                 kwargs[official_name] = kwargs.pop(alias_name)
+#             return func(*args, **kwargs)
+#         return wrapper
+#     return decorator
+
+# @alias_argument(official_name='username', alias_name='user')
+# def greet(username):
+#     print(f"Hello, {username}!")
+
+
+def _alias_argument_map(
+    official_name: str | Mapping[str, str | Sequence[str]],
+    alias_name: str | Sequence[str] | None,
+) -> dict[str, tuple[str, ...]]:
+    if isinstance(official_name, Mapping):
+        if alias_name is not None:
+            raise TypeError(
+                "alias_name cannot be used when official_name is a mapping."
+            )
+        raw: Mapping[str, str | Sequence[str]] = official_name
+    else:
+        if alias_name is None:
+            raise TypeError(
+                "alias_name is required when official_name is not a mapping."
+            )
+        raw = {official_name: alias_name}
+
+    alias_map: dict[str, tuple[str, ...]] = {}
+    seen_aliases: dict[str, str] = {}
+    for official, aliases in raw.items():
+        if isinstance(aliases, str):
+            alias_tuple = (aliases,)
+        else:
+            alias_tuple = tuple(aliases)
+        if not alias_tuple:
+            raise ValueError(
+                f"No aliases given for official argument '{official}'."
+            )
+        for alias in alias_tuple:
+            if alias == official:
+                raise ValueError(
+                    f"Alias '{alias}' is the same as the official name."
+                )
+            if alias in seen_aliases:
+                raise ValueError(
+                    f"Alias '{alias}' is already used for "
+                    f"'{seen_aliases[alias]}'."
+                )
+            seen_aliases[alias] = official
+        alias_map[official] = alias_tuple
+    return alias_map
+
+
+def _alias_conflict_message(official: str, present: list[str]) -> str:
+    aliases_present = [name for name in present if name != official]
+    if official in present and len(aliases_present) == 1:
+        return (
+            f"Received both '{official}' and its alias '{aliases_present[0]}'!"
+        )
+    if official in present:
+        quoted = ", ".join(f"'{name}'" for name in aliases_present)
+        return f"Received both '{official}' and its aliases {quoted}!"
+    quoted = ", ".join(f"'{name}'" for name in present)
+    return f"Received multiple aliases for '{official}': {quoted}!"
+
+
+def alias_argument(
+    official_name: str | Mapping[str, str | Sequence[str]],
+    alias_name: str | Sequence[str] | None = None,
+) -> Callable:
+    """Rewrite keyword aliases to official parameter names.
+
+    One official name may have several aliases. Several official names may
+    be aliased in a single mapping.
+
+    Args:
+        official_name: Official parameter name, or a mapping of official
+            names to one alias or a sequence of aliases.
+        alias_name: Alias or sequence of aliases for ``official_name``.
+            Required when ``official_name`` is a string; omitted when it
+            is a mapping.
+
+    Returns:
+        Callable: Decorator that maps alias keywords onto official names.
+
+    Raises:
+        TypeError: If an official name and one of its aliases are both
+            given, or if two aliases for the same official name are both
+            given.
+        TypeError: If ``alias_name`` is omitted for a string
+            ``official_name``, or supplied together with a mapping.
+        ValueError: If an official name has no aliases, an alias repeats
+            the official name, or one alias is used for two official names.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> @sg.alias_argument("count", "n")
+        ... def _double(count):
+        ...     return count * 2
+        >>> _double(n=3)
+        6
+        >>> @sg.alias_argument("count", ["n", "num"])
+        ... def _double2(count):
+        ...     return count * 2
+        >>> _double2(num=4)
+        8
+        >>> @sg.alias_argument({"x": "width", "y": ["height", "h"]})
+        ... def _size(x, y):
+        ...     return (x, y)
+        >>> _size(width=2, h=3)
+        (2, 3)
+        >>> _double(count=1, n=2)
+        Traceback (most recent call last):
+            ...
+        TypeError: Received both 'count' and its alias 'n'!
+    """
+    alias_map = _alias_argument_map(official_name, alias_name)
+
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args: object, **kwargs: object) -> object:
+            for official, aliases in alias_map.items():
+                present = []
+                if official in kwargs:
+                    present.append(official)
+                for alias in aliases:
+                    if alias in kwargs:
+                        present.append(alias)  # noqa
+                if len(present) > 1:
+                    raise TypeError(_alias_conflict_message(official, present))
+                if present and present[0] != official:
+                    # Warn the user (optional)
+                    # warnings.warn(
+                    #     f"'{present[0]}' is deprecated; "
+                    #     f"use '{official}' instead.",
+                    #     DeprecationWarning,
+                    # )
+
+                    # Map the alias value to the official parameter name
+                    kwargs[official] = kwargs.pop(present[0])
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

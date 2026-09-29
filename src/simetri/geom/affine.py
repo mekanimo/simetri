@@ -24,6 +24,7 @@ from math import atan2, cos, sin, tan
 import numpy as np
 from numpy.typing import NDArray
 
+from ..base.common import alias_argument
 from ..helpers.validation import is_line, is_point
 from .homogenize import homogenize
 from .matrices import identity_matrix
@@ -258,6 +259,7 @@ def inv_glide_matrix(mirror_line: LineType, distance: float) -> NDArray:
     return trans_matrix @ mirror_mat
 
 
+@alias_argument({"scale_x": "sx", "scale_y": "sy"})
 def scale_matrix(scale_x: float, scale_y: float | None = None) -> NDArray:
     """
     Return a scale matrix in row-major form.
@@ -284,6 +286,7 @@ def scale_matrix(scale_x: float, scale_y: float | None = None) -> NDArray:
     return np.array([[scale_x, 0, 0], [0, scale_y, 0], [0, 0, 1.0]])
 
 
+@alias_argument({"scale_x": "sx", "scale_y": "sy"})
 def inv_scale_matrix(scale_x: float, scale_y: float | None = None) -> NDArray:
     """
     Return the inverse of a scale matrix in row-major form.
@@ -308,6 +311,7 @@ def inv_scale_matrix(scale_x: float, scale_y: float | None = None) -> NDArray:
     return np.array([[1 / scale_x, 0, 0], [0, 1 / scale_y, 0], [0, 0, 1.0]])
 
 
+@alias_argument({"scale_x": "sx", "scale_y": "sy"})
 def scale_in_place_matrix(
     scale_x: float, scale_y: float, about: PointType = (0, 0)
 ) -> NDArray:
@@ -670,6 +674,7 @@ def shear(
     return points @ shear_matrix(angle_x, angle_y)
 
 
+@alias_argument({"scale_x": "sx", "scale_y": "sy"})
 def scale(
     points: Sequence[PointType], scale_x: float, scale_y: float
 ) -> NDArray:
@@ -694,6 +699,7 @@ def scale(
     return points @ scale_matrix(scale_x, scale_y)
 
 
+@alias_argument({"scale_x": "sx", "scale_y": "sy"})
 def scale_in_place(
     points: Sequence[PointType],
     scale_x: float,

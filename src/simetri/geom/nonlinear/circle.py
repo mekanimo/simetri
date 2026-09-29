@@ -33,6 +33,12 @@ class Circle_:
     Attributes:
         center: Center point ``(x, y)``.
         radius: Circle radius.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> c = sg.Circle_((1, 2), 3)
+        >>> c.center, c.radius
+        ((1, 2), 3)
     """
 
     center: tuple
@@ -50,6 +56,12 @@ def tangent_points_from_point(
 
     Returns:
         tuple: Two tangent points ``(p1, p2)`` on the circle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.tangent_points_from_point(sg.Circle_((0, 0), 5), (10, 0))
+        >>> [[round(c, 6) for c in p] for p in pts]
+        [[2.5, 4.330127], [2.5, -4.330127]]
     """
 
     x, y = point[:2]
@@ -98,6 +110,14 @@ def circle_tangent_to_3_circles(
 
     Returns:
         tuple: Center (x, y) and radius of the tangent circle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> center_x, center_y, radius = sg.circle_tangent_to_3_circles(
+        ...     (0, 0), 1, (3, 0), 1, (1.5, 2.598), 1
+        ... )
+        >>> [round(v, 6) for v in (center_x, center_y, radius)]
+        [1.5, 0.865975, 0.732025]
     """
 
     x1, y1 = c1
@@ -164,6 +184,14 @@ def apollonius(
 
     Returns:
         tuple: Radius and center coordinates (x, y) of the tangent circle, or None if no solution is found.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> radius, center = sg.apollonius(1, 1, 1, 0j, 3 + 0j, 1.5 + 2.598j)
+        >>> round(radius, 6)
+        0.154701
+        >>> (round(center.real, 6), round(center.imag, 6))
+        (1.499994, 0.866003)
     """
     k1, k2, k3 = 1 / r1, 1 / r2, 1 / r3
 
@@ -204,6 +232,11 @@ def circle_tangent_to_2_circles(
 
     Returns:
         tuple: Centers (x1, y1) and (x2, y2) of the tangent circle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.circle_tangent_to_2_circles((0, 0), 1, (4, 0), 1, 1)
+        ((2.0, 0.0), (2.0, 0.0))
     """
     x1, y1 = c1
     x2, y2 = c2
@@ -466,6 +499,12 @@ def tangent_points(
 
     Returns:
         tuple: Tangent points (p1, p2, p3, p4) in world coordinates.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.tangent_points((0, 0), 2, (6, 0), 2)
+        >>> [[round(float(c), 6) or 0.0 for c in p[:2]] for p in pts]
+        [[0.0, 2.0], [6.0, 2.0], [0.0, -2.0], [6.0, -2.0]]
     """
     c1 = Circle_(center1, radius)
     c2 = Circle_(center2, radius2)
@@ -544,6 +583,11 @@ def flower_angle(r1: float, r2: float, r3: float) -> float:
 
     Returns:
         float: Angle between the lines connecting circles' centers.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.flower_angle(1, 1, 1), 6)
+        1.047198
     """
     angle = acos(
         ((r1 + r2) ** 2 + (r1 + r3) ** 2 - (r2 + r3) ** 2)
@@ -598,8 +642,6 @@ def circle_flower(
         (20.0, [52.262519, 0.0])
         >>> round(flowers[-1].radius, 6), [round(float(c), 6) for c in flowers[-1].center[:2]]
         (1.224202, [2.262031, 2.262031])
-        >>> canvas = sg.Canvas()  # doctest: +SKIP
-        >>> canvas.draw(flowers)  # doctest: +SKIP
     """
     if n < 8:
         raise ValueError("n must be greater than 7")
@@ -635,6 +677,11 @@ def circle_inversion(
 
     Returns:
         tuple: The inverted point, represented as a tuple (x, y).
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.circle_inversion((4, 0), (0, 0), 2)
+        (1.0, 0.0)
     """
     x, y = point[:2]
     cx, cy = center[:2]
@@ -666,12 +713,20 @@ def circle_tangent_to2lines(
 
     Returns:
         tuple: Center of the circle, start and end points of the tangent lines.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> line1 = sg.Line((0, 0), (10, 0))
+        >>> line2 = sg.Line((0, 0), (0, 10))
+        >>> center, start, end = sg.circle_tangent_to2lines(line1, line2, (0, 0), 2)
+        >>> [[round(float(c), 6) or 0.0 for c in p[:2]] for p in (center, start, end)]
+        [[2.0, 2.0], [2.828427, 0.0], [0.0, 2.828427]]
     """
     alpha = angle_between_two_lines(line1, line2)
     dist = radius / sin(alpha / 2)
-    start = extend(intersection_, line1.p1, dist)
-    center = rotate_point(start, intersection_, alpha / 2)
-    end = extend(intersection_, line2.p1, dist)
+    start = extend(intersection_, line1.end, dist)
+    center = rotate_point(start, alpha / 2, intersection_)
+    end = extend(intersection_, line2.end, dist)
 
     return center, start, end
 
@@ -689,6 +744,12 @@ def circle_circle_intersections(
 
     Returns:
         tuple: Intersection points of the two circles.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.circle_circle_intersections((0, 0), 2, (2, 0), 2)
+        >>> [[round(c, 6) for c in p] for p in pts]
+        [[1.0, -1.732051], [1.0, 1.732051]]
     """
     # taken from https://stackoverflow.com/questions/55816902/finding-the-
     # intersection-of-two-circles
@@ -709,7 +770,7 @@ def circle_circle_intersections(
         a = (r0**2 - r1**2 + d**2) / (2 * d)
         h = sqrt(r0**2 - a**2)
         x2 = x0 + a * (x1 - x0) / d
-        y2 = y0 + a * (x1 - x0) / d
+        y2 = y0 + a * (y1 - y0) / d
         x3 = x2 + h * (y1 - y0) / d
         y3 = y2 - h * (x1 - x0) / d
         x4 = x2 - h * (y1 - y0) / d
@@ -736,6 +797,11 @@ def tfl_by_sides(
 
     Returns:
         Intersection points of the two circles, or ``None`` if none exist.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.tfl_by_sides((0, 0), (4, 0), 2.5, 2.5)
+        ((2.0, -1.5), (2.0, 1.5))
     """
     c = sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
     if c == 0:
@@ -775,17 +841,24 @@ def circle_segment_intersection(circle: Circle, p1: PointType, p2: PointType) ->
 
     Returns:
         bool: True if the circle and the line segment intersect, False otherwise.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.circle_segment_intersection(sg.Circle(2, (0, 0)), (-3, 0), (3, 0))
+        True
+        >>> sg.circle_segment_intersection(sg.Circle(2, (0, 0)), (5, 0), (6, 0))
+        False
     """
     # if line seg and circle intersects returns true, false otherwise
     # c: circle
     # p1 and p2 are the endpoints of the line segment
 
-    x3, y3 = circle.pos[:2]
+    x3, y3 = circle.center[:2]
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
     if (
-        distance(p1, circle.pos) < circle.radius
-        or distance(p2, circle.pos) < circle.radius
+        distance(p1, circle.center) < circle.radius
+        or distance(p2, circle.center) < circle.radius
     ):
         return True
     u = ((x3 - x1) * (x2 - x1) + (y3 - y1) * (y2 - y1)) / (
@@ -795,7 +868,7 @@ def circle_segment_intersection(circle: Circle, p1: PointType, p2: PointType) ->
     if 0 <= u <= 1:
         x = x1 + u * (x2 - x1)
         y = y1 + u * (y2 - y1)
-        if distance((x, y), circle.pos) < circle.radius:
+        if distance((x, y), circle.center) < circle.radius:
             res = True
 
     return res  # p is not between lp1 and lp2
@@ -816,6 +889,13 @@ def ellipse_tangent(
 
     Returns:
         float: Slope of the tangent line, or False if the point is not on the ellipse.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(ellipse_tangent(2.0, 1.0, 2**0.5, 0.5**0.5), 6)
+        -0.5
+        >>> ellipse_tangent(2.0, 1.0, 0.0, 0.0)
+        False
     """
     if abs((x**2 / a**2) + (y**2 / b**2) - 1) > tol:
         res = False
@@ -837,6 +917,11 @@ def elliptic_arclength(t_0: float, t_1: float, a: float, b: float) -> float:
 
     Returns:
         float: Arclength of the ellipse between the given parametric angles.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(elliptic_arclength(0, sg.pi / 2, 2.0, 1.0), 6)
+        2.422112
     """
     # from: https://www.johndcook.com/blog/2022/11/02/elliptic-arc-length/
     from scipy.special import ellipeinc  # this takes too long to import!!!
@@ -858,6 +943,11 @@ def central_to_parametric_angle(a: float, b: float, phi: float) -> float:
 
     Returns:
         float: Parametric angle in radians.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(central_to_parametric_angle(2.0, 1.0, sg.pi / 4), 6)
+        1.107149
     """
     t = atan2((a / b) * sin(phi), cos(phi))
     if t < 0:
@@ -877,6 +967,11 @@ def parametric_to_central_angle(a: float, b: float, t: float) -> float:
 
     Returns:
         float: Central angle in radians.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(parametric_to_central_angle(2.0, 1.0, sg.pi / 4), 6)
+        0.463648
     """
     phi = atan2((b / a) * sin(t), cos(t))
     if phi < 0:
@@ -898,6 +993,11 @@ def ellipse_points(
 
     Returns:
         np.ndarray: Array of (x, y) coordinates of the ellipse points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> [[round(float(c), 6) or 0.0 for c in p] for p in ellipse_points((0, 0), 2, 1, 5)]
+        [[2.0, 0.0], [0.0, 1.0], [-2.0, 0.0], [0.0, -1.0], [2.0, 0.0]]
     """
     t = np.linspace(0, 2 * np.pi, n_points)
     x = center[0] + a * np.cos(t)
@@ -916,6 +1016,13 @@ def ellipse_point(a: float, b: float, angle: float) -> PointType:
 
     Returns:
         PointType: PointType on the ellipse.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> [round(c, 6) for c in ellipse_point(2.0, 1.0, 0.0)]
+        [2.0, 0.0]
+        >>> [round(c, 6) for c in ellipse_point(2.0, 1.0, sg.pi / 2)]
+        [0.0, 1.0]
     """
     r = r_polar(a, b, angle)
 
@@ -934,6 +1041,11 @@ def circle_line_intersection(
 
     Returns:
         tuple: Intersection points of the circle and the line segment.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.circle_line_intersection(sg.Circle(2, (0, 0)), (-3, 0), (3, 0))
+        ((2.0, 0.0), (-2.0, 0.0))
     """
 
     # adapted from http://mathworld.wolfram.com/Circle-LineIntersection.html
@@ -948,7 +1060,7 @@ def circle_line_intersection(
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
     r = c.radius
-    x, y = c.pos[:2]
+    x, y = c.center[:2]
 
     x1 -= x
     x2 -= x
@@ -987,14 +1099,20 @@ def circle_line_intersection(
 
 
 def circle_poly_intersection(circle: Circle, polygon: object) -> bool:
-    """Return True if the circle and the polygon intersect.
+    """Return True if the circle intersects a polygon edge.
 
     Args:
-        circle (Circle): Input circle.
-        polygon (Polygon): Input polygon.
+        circle: Input circle.
+        polygon: Polygon with a ``vertices`` sequence.
 
     Returns:
-        bool: True if the circle and the polygon intersect, False otherwise.
+        bool: True if an edge intersects the circle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> poly = sg.Shape([(0, -2), (0, 2), (2, 2), (2, -2)], closed=True)
+        >>> sg.circle_poly_intersection(sg.Circle(1, (0, 0)), poly)
+        True
     """
     points = polygon.vertices
     n = len(points)
@@ -1023,6 +1141,11 @@ def point_to_circle_distance(
 
     Returns:
         float: Distance between the point and the circle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.point_to_circle_distance((5, 0), (0, 0), 2)
+        3.0
     """
     return abs(distance(center, point) - radius)
 
@@ -1039,6 +1162,12 @@ def circle_3point(
 
     Returns:
         tuple: Center point and radius of the circle.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> center, radius = sg.circle_3point((0, 0), (2, 0), (1, 1))
+        >>> (round(center[0], 6), round(center[1], 6), round(radius, 6))
+        (1.0, 0.0, 1.0)
     """
     ax, ay = point1[:2]
     bx, by = point2[:2]

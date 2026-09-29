@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ...base.all_enums import InPlace, TransformationType, Types
-from ...base.common import PointType
+from ...base.common import PointType, alias_argument
 from ...config.settings import runtime_defaults
 from ...group.batch import Group
 from ...helpers.utilities import solve_quadratic_eq
@@ -29,10 +29,11 @@ from ..segments.line_utils import line_angle
 _ARC_ATTRIBS = frozenset(
     (
         "center",
-        "start_angle",
-        "span_angle",
+        "clockwise",
         "radius_x",
         "radius_y",
+        "span_angle",
+        "start_angle",
     )
 )
 
@@ -41,11 +42,13 @@ class Arc(Shape):
     """A circular or elliptic arc.
 
     Defined by center, ``radius_x``, optional ``radius_y``, start angle, and
-    span angle. If ``radius_y`` is omitted, the arc is circular.
+    either ``span_angle`` or ``end_angle``. If ``radius_y`` is omitted, the
+    arc is circular. ``clockwise=True`` draws clockwise.
 
     Attributes:
         start_angle: Starting angle in radians.
-        span_angle: Arc span in radians (negative draws clockwise).
+        span_angle: Unsigned sweep in radians.
+        clockwise: True when the arc is drawn clockwise.
         n_points: Number of sampled points.
 
     Examples:
@@ -54,20 +57,22 @@ class Arc(Shape):
         >>> arc = sg.Arc((0, 0), 40, start_angle=0, span_angle=sg.pi / 2)
         >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in arc.vertices]
         [[40.0, 0.0], [39.39231, 6.945927], [37.587705, 13.680806], [34.641016, 20.0], [30.641778, 25.711504], [25.711504, 30.641778], [20.0, 34.641016], [13.680806, 37.587705], [6.945927, 39.39231], [0.0, 40.0]]
-        >>> canvas = sg.Canvas()  # doctest: +SKIP
-        >>> canvas.draw(arc)  # doctest: +SKIP
     """
 
+    @alias_argument({"radius_x": "rx", "radius_y": "ry"})
     def __init__(
         self,
         center: PointType,
         radius_x: float,
         radius_y: float | None = None,
         start_angle: float = 0,
-        span_angle: float = pi / 2,
+        span_angle: float | None = None,
         rot_angle: float = 0,
         n_points: int | None = None,
         xform_matrix: NDArray | None = None,
+        *,
+        end_angle: float | None = None,
+        clockwise: bool = False,
         **kwargs: object,
     ) -> None:
         """Create a circular or elliptic arc.
@@ -77,17 +82,30 @@ class Arc(Shape):
             radius_x: Semi-axis along x (before rotation).
             radius_y: Semi-axis along y; defaults to ``radius_x`` (circle).
             start_angle: Starting angle in radians. Defaults to 0.
-            span_angle: Sweep angle in radians. Defaults to ``pi/2``.
+            span_angle: Unsigned sweep in radians. Mutually exclusive with
+                ``end_angle``. At least one of ``span_angle`` or
+                ``end_angle`` is required.
             rot_angle: Extra rotation about the center. Defaults to 0.
             n_points: Sample count; defaults from settings scaled by span.
             xform_matrix: Optional transformation matrix.
+            end_angle: Ending angle in radians. Mutually exclusive with
+                ``span_angle``.
+            clockwise: If True, the arc is drawn clockwise. Defaults to False.
             **kwargs: Additional keyword arguments passed to ``Shape``.
         """
         if radius_y is None:
             radius_y = radius_x
+        signed_span = resolve_arc_sweep(
+            start_angle,
+            span_angle,
+            end_angle,
+            clockwise,
+        )
+        clockwise = signed_span < 0
+        span_angle = abs(signed_span)
         if n_points is None:
             n = runtime_defaults["n_arc_points"]
-            n_points = ceil(n * abs(span_angle) / (2 * pi))
+            n_points = ceil(n * span_angle / (2 * pi))
 
         vertices = elliptic_arc_points(
             center,
@@ -96,6 +114,7 @@ class Arc(Shape):
             start_angle,
             span_angle,
             n_points=n_points,
+            clockwise=clockwise,
         )
         if rot_angle:
             rot_matrix = rotation_matrix(rot_angle, center)
@@ -109,6 +128,7 @@ class Arc(Shape):
         self.n_points = n_points
         self.__dict__["start_angle"] = start_angle
         self.__dict__["span_angle"] = span_angle
+        self.__dict__["clockwise"] = clockwise
         cx, cy = center[:2]
         self._c = [cx, cy, 1]
         _a = [radius_x, 0, 1]
@@ -139,20 +159,47 @@ class Arc(Shape):
             center, a, b = self._orig_triangle @ self.xform_matrix
             a = distance(center, a)
             b = distance(center, b)
-            span = self.span_angle
-            n_points = self.n_points
-            points = elliptic_arc_points(center, a, b, value, span, n_points)
+            points = elliptic_arc_points(
+                center,
+                a,
+                b,
+                value,
+                self.span_angle,
+                n_points=self.n_points,
+                clockwise=self.clockwise,
+            )
             self.primary_points = Points(points)
             self.__dict__["start_angle"] = value
         elif name == "span_angle":
             center, a, b = self._orig_triangle @ self.xform_matrix
             a = distance(center, a)
             b = distance(center, b)
-            start = self.start_angle
-            n_points = self.n_points
-            points = elliptic_arc_points(center, a, b, start, value, n_points)
+            points = elliptic_arc_points(
+                center,
+                a,
+                b,
+                self.start_angle,
+                value,
+                n_points=self.n_points,
+                clockwise=self.clockwise,
+            )
             self.primary_points = Points(points)
             self.__dict__["span_angle"] = value
+        elif name == "clockwise":
+            center, a, b = self._orig_triangle @ self.xform_matrix
+            a = distance(center, a)
+            b = distance(center, b)
+            points = elliptic_arc_points(
+                center,
+                a,
+                b,
+                self.start_angle,
+                self.span_angle,
+                n_points=self.n_points,
+                clockwise=bool(value),
+            )
+            self.primary_points = Points(points)
+            self.__dict__["clockwise"] = bool(value)
         else:
             super().__setattr__(name, value)
 
@@ -162,6 +209,11 @@ class Arc(Shape):
 
         Returns:
             PointType: The center of the arc.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> [round(float(c), 6) or 0.0 for c in sg.Arc((10, 20), 5, span_angle=sg.pi / 2).center[:2]]
+            [10.0, 20.0]
         """
         return (self._c @ self.xform_matrix).tolist()[:2]
 
@@ -171,6 +223,11 @@ class Arc(Shape):
 
         Returns:
             float: The x radius of the arc.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> round(sg.Arc((0, 0), 5, 3, span_angle=sg.pi / 2).radius_x, 6)
+            5.0
         """
         c, a, _ = self._orig_triangle @ self.xform_matrix
         return distance(a, c)
@@ -181,6 +238,11 @@ class Arc(Shape):
 
         Returns:
             float: The y radius of the arc.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> round(sg.Arc((0, 0), 5, 3, span_angle=sg.pi / 2).radius_y, 6)
+            3.0
         """
         c, _, b = self._orig_triangle @ self.xform_matrix
         return distance(b, c)
@@ -193,6 +255,13 @@ class Arc(Shape):
 
         Returns:
             Arc: Copied arc.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> arc = sg.Arc((0, 0), 10, start_angle=0, span_angle=sg.pi / 2)
+            >>> copy = arc.copy()
+            >>> copy.center == arc.center and copy.radius_x == arc.radius_x
+            True
         """
         center = self.center
         start_angle = self.start_angle
@@ -201,7 +270,13 @@ class Arc(Shape):
         radius_y = self.radius_y
 
         arc = Arc(
-            center, radius_x, radius_y, start_angle, span_angle, rot_angle=0
+            center,
+            radius_x,
+            radius_y,
+            start_angle,
+            span_angle,
+            rot_angle=0,
+            clockwise=self.clockwise,
         )
         arc.primary_points = self.primary_points.copy()
         arc.xform_matrix = self.xform_matrix.copy()
@@ -244,8 +319,6 @@ class Ellipse(Shape):
         >>> ell = sg.Ellipse(80, 40)
         >>> ell.width, ell.height
         (80.0, 40.0)
-        >>> canvas = sg.Canvas()  # doctest: +SKIP
-        >>> canvas.draw(ell)  # doctest: +SKIP
     """
 
     def __init__(
@@ -254,7 +327,7 @@ class Ellipse(Shape):
         height: float | None = None,
         center: PointType = (0, 0),
         angle: float = 0,
-        xform_matrix: NDArray = None,
+        xform_matrix: NDArray | None = None,
         **kwargs: object,
     ) -> None:
         """Create an ellipse.
@@ -324,6 +397,11 @@ class Ellipse(Shape):
 
         Returns:
             float: ``2 * a``.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Ellipse(80, 40).width
+            80.0
         """
         return 2 * self.a
 
@@ -333,6 +411,11 @@ class Ellipse(Shape):
 
         Returns:
             float: ``2 * b``.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Ellipse(80, 40).height
+            40.0
         """
         return 2 * self.b
 
@@ -342,6 +425,11 @@ class Ellipse(Shape):
 
         Returns:
             bool: Always returns True.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.Ellipse(80, 40).closed
+            True
         """
         return True
 
@@ -351,6 +439,13 @@ class Ellipse(Shape):
 
         Args:
             value: Ignored closed flag.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> ell = sg.Ellipse(80, 40)
+            >>> ell.closed = False
+            >>> ell.closed
+            True
         """
 
     def _update(
@@ -418,6 +513,13 @@ class Ellipse(Shape):
 
         Returns:
             Ellipse: A copy of the ellipse.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> ell = sg.Ellipse(80, 40)
+            >>> copy = ell.copy()
+            >>> copy.width, copy.height
+            (80.0, 40.0)
         """
         ellipse = super().copy()
         for key, value in kwargs.items():
@@ -440,6 +542,13 @@ def ellipse_tangent(
 
     Returns:
         float: Angle of the tangent line in radians.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.ellipse_tangent(2.0, 1.0, 2.0, 0.0), 6)
+        1.570796
+        >>> sg.ellipse_tangent(2.0, 1.0, 0.0, 0.0)
+        False
     """
     if abs((x**2 / a**2) + (y**2 / b**2) - 1) >= abs_tol:
         res = False
@@ -482,6 +591,11 @@ def ellipse_line_intersection(
 
     Returns:
         list: Intersection points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.ellipse_line_intersection(2.0, 1.0, (4, 0))
+        [(2.0, 0.0), (-2.0, -0.0)]
     """
     # adapted from http:# mathworld.wolfram.com/Ellipse-LineIntersection.html
     # a, b is the ellipse width/2 and height/2 and (x_0, y_0) is the point
@@ -493,32 +607,85 @@ def ellipse_line_intersection(
     return [(x, y), (-x, -y)]
 
 
-def elliptic_arc_points(
+def resolve_arc_sweep(
+    start_angle: float,
+    span_angle: float | None,
+    end_angle: float | None,
+    clockwise: bool = False,
+    *,
+    default_span: float | None = None,
+) -> float:
+    """Return a signed sweep for arc point generation.
+
+    Positive sweep is counter-clockwise. Negative sweep is clockwise.
+    Pass either ``span_angle`` or ``end_angle``, not both. ``span_angle``
+    is an unsigned sweep; ``clockwise`` selects direction.
+
+    Args:
+        start_angle: Starting angle in radians.
+        span_angle: Unsigned sweep in radians, or ``None``.
+        end_angle: Ending angle in radians, or ``None``.
+        clockwise: If True, the arc is drawn clockwise. Defaults to False.
+        default_span: Used when both ``span_angle`` and ``end_angle`` are
+            ``None``. If this is also ``None``, a ``TypeError`` is raised.
+
+    Returns:
+        float: Signed sweep in radians.
+
+    Raises:
+        TypeError: If both ``span_angle`` and ``end_angle`` are given, or
+            if neither is given and ``default_span`` is ``None``.
+        ValueError: If ``span_angle`` is negative.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.geom.nonlinear.ellipse import resolve_arc_sweep
+        >>> round(resolve_arc_sweep(0, sg.pi / 2, None), 6)
+        1.570796
+        >>> round(resolve_arc_sweep(0, sg.pi / 2, None, clockwise=True), 6)
+        -1.570796
+        >>> round(resolve_arc_sweep(0, None, sg.pi / 2), 6)
+        1.570796
+        >>> resolve_arc_sweep(0, sg.pi / 2, sg.pi / 2)
+        Traceback (most recent call last):
+            ...
+        TypeError: Received both 'span_angle' and 'end_angle'!
+    """
+    if span_angle is not None and end_angle is not None:
+        raise TypeError("Received both 'span_angle' and 'end_angle'!")
+    if span_angle is None and end_angle is None:
+        if default_span is None:
+            raise TypeError("Arc requires 'span_angle' or 'end_angle'.")
+        span_angle = default_span
+    if end_angle is not None:
+        two_pi = 2 * pi
+        if clockwise:
+            sweep = (start_angle - end_angle) % two_pi
+        else:
+            sweep = (end_angle - start_angle) % two_pi
+        if sweep == 0:
+            sweep = two_pi
+        if clockwise:
+            return -sweep
+        return sweep
+    if span_angle < 0:
+        raise ValueError(
+            "span_angle must be >= 0; use clockwise=True for clockwise arcs."
+        )
+    if clockwise:
+        return -span_angle
+    return span_angle
+
+
+def _elliptic_arc_points_from_signed(
     center: PointType,
     radius_x: float,
     radius_y: float,
     start_angle: float,
     span_angle: float,
-    n_points: int | None = None,
+    n_points: int | None,
 ) -> NDArray:
-    """Generate points on an elliptic arc.
-    These are generated from the parametric equations of the ellipse.
-    They are not evenly spaced.
-
-    Args:
-        center (tuple): (x, y) coordinates of the ellipse center.
-        radius_x (float): Length of the semi-major axis.
-        radius_y (float): Length of the semi-minor axis.
-        start_angle (float): Starting angle of the arc.
-        span_angle (float): Span angle of the arc.
-        n_points (int): Number of points to generate.
-
-    Returns:
-        numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
-    """
     rx = radius_x
-    if radius_y is None:
-        radius_y = radius_x
     ry = radius_y
     if n_points is None:
         n = runtime_defaults["n_arc_points"]
@@ -581,6 +748,59 @@ def elliptic_arc_points(
     return res
 
 
+@alias_argument({"radius_x": "rx", "radius_y": "ry"})
+def elliptic_arc_points(
+    center: PointType,
+    radius_x: float,
+    radius_y: float | None = None,
+    start_angle: float = 0,
+    span_angle: float | None = None,
+    n_points: int | None = None,
+    *,
+    end_angle: float | None = None,
+    clockwise: bool = False,
+) -> NDArray:
+    """Generate points on an elliptic arc.
+    These are generated from the parametric equations of the ellipse.
+    They are not evenly spaced.
+
+    Args:
+        center: Center of the ellipse ``(x, y)``.
+        radius_x: Semi-axis along x.
+        radius_y: Semi-axis along y; defaults to ``radius_x``.
+        start_angle: Starting angle in radians. Defaults to 0.
+        span_angle: Unsigned sweep in radians. Mutually exclusive with
+            ``end_angle``. At least one of ``span_angle`` or
+            ``end_angle`` is required.
+        n_points: Number of points to generate.
+        end_angle: Ending angle in radians. Mutually exclusive with
+            ``span_angle``.
+        clockwise: If True, the arc is drawn clockwise. Defaults to False.
+
+    Returns:
+        numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.elliptic_arc_points((0, 0), 2, 1, 0, sg.pi / 2, n_points=3)
+        >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
+        [[2.0, 0.0], [1.414214, 0.707107], [0.0, 1.0]]
+        >>> pts = sg.elliptic_arc_points(
+        ...     (0, 0), 2, 1, 0, end_angle=sg.pi / 2, n_points=3
+        ... )
+        >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
+        [[2.0, 0.0], [1.414214, 0.707107], [0.0, 1.0]]
+    """
+    if radius_y is None:
+        radius_y = radius_x
+    signed_span = resolve_arc_sweep(
+        start_angle, span_angle, end_angle, clockwise
+    )
+    return _elliptic_arc_points_from_signed(
+        center, radius_x, radius_y, start_angle, signed_span, n_points
+    )
+
+
 def ellipse_points(
     center: PointType,
     a: float,
@@ -601,6 +821,12 @@ def ellipse_points(
 
     Returns:
         numpy.ndarray: Array of (x, y) coordinates of the ellipse points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.ellipse_points((0, 0), 2, 1, 0, n_points=5)
+        >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
+        [[2.0, 0.0], [0.0, 1.0], [-2.0, 0.0], [0.0, -1.0], [2.0, 0.0]]
     """
     if n_points is None:
         n_points = runtime_defaults["n_ellipse_points"]
@@ -628,6 +854,11 @@ def elliptic_arclength(t_0: float, t_1: float, a: float, b: float) -> float:
 
     Returns:
         float: Arclength of the ellipse.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.elliptic_arclength(0, sg.pi / 2, 2.0, 1.0), 6)
+        2.422112
     """
     from scipy.special import ellipeinc  # this takes too long to import
 
@@ -648,6 +879,13 @@ def central_to_parametric_angle(a: float, b: float, phi: float) -> float:
 
     Returns:
         float: Parametric angle (in radians).
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.central_to_parametric_angle(2.0, 1.0, 0.0), 6)
+        0.0
+        >>> round(sg.central_to_parametric_angle(2.0, 1.0, sg.pi / 2), 6)
+        1.570796
     """
     t = atan2((a / b) * sin(phi), cos(phi))
     if t < 0:
@@ -667,6 +905,11 @@ def parametric_to_central_angle(a: float, b: float, t: float) -> float:
 
     Returns:
         float: Angle of the line intersecting the center and the point.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.parametric_to_central_angle(2.0, 1.0, 0.0), 6)
+        0.0
     """
     phi = atan2((b / a) * sin(t), cos(t))
     if phi < 0:
@@ -686,6 +929,11 @@ def ellipse_point(a: float, b: float, angle: float) -> PointType:
 
     Returns:
         tuple: Coordinates of the point on the ellipse.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.ellipse_point(2.0, 1.0, 0.0)
+        (2.0, 0.0)
     """
     r = r_central(a, b, angle)
 
@@ -723,6 +971,11 @@ def get_ellipse_t_for_angle(angle: float, a: float, b: float) -> float:
 
     Returns:
         float: The parameter t.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.get_ellipse_t_for_angle(0.0, 2.0, 1.0), 6)
+        0.0
     """
     t = atan2(a * sin(angle), b * cos(angle))
     if t < 0:
@@ -741,6 +994,11 @@ def ellipse_central_angle(t: float, a: float, b: float) -> float:
 
     Returns:
         float: The central angle in radians.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.ellipse_central_angle(0.0, 2.0, 1.0), 6)
+        0.0
     """
     theta = atan2(a * sin(t), b * cos(t))
 
@@ -760,7 +1018,29 @@ def ellipse_intersection(
     phi2: float,
 ) -> list[PointType]:
     """Calculate the intersection points of two ellipses.
-    The ellipses are defined by their center, radii, and rotation angle."""
+    The ellipses are defined by their center, radii, and rotation angle.
+
+    Args:
+        x1: Center x of the first ellipse.
+        y1: Center y of the first ellipse.
+        a: Semi-axis along x of the first ellipse (before rotation).
+        b: Semi-axis along y of the first ellipse (before rotation).
+        phi: Rotation of the first ellipse in radians.
+        x2: Center x of the second ellipse.
+        y2: Center y of the second ellipse.
+        c: Semi-axis along x of the second ellipse (before rotation).
+        d: Semi-axis along y of the second ellipse (before rotation).
+        phi2: Rotation of the second ellipse in radians.
+
+    Returns:
+        list[PointType]: Intersection points.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.ellipse_intersection(0, 0, 2, 2, 0, 3, 0, 2, 2, 0)
+        >>> sorted((round(float(p[0]), 6), round(float(p[1]), 6)) for p in pts)
+        [(1.5, -1.322876), (1.5, 1.322876)]
+    """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/geometry.js
     phi0 = phi2 - phi
 
@@ -785,16 +1065,32 @@ def ellipse_intersection(
     roots = []
     L = G * G + coeff_i * coeff_i
     if isclose(L, 0, rel_tol=0, abs_tol=1e-7):
-        # Gx + Hy + K = 0
-        roots = solve_quadratic_eq(G, H, K)
+        # Gx^2 + Hx + K = 0 (linear when G is 0)
+        if isclose(G, 0, rel_tol=0, abs_tol=1e-7):
+            if isclose(H, 0, rel_tol=0, abs_tol=1e-7):
+                roots = []
+            else:
+                roots = [-K / H]
+        else:
+            roots = solve_quadratic_eq(G, H, K)
 
     elif isclose(coeff_i, 0, rel_tol=0, abs_tol=1e-7):
         # Gx^2 + Hx + K = 0
-        roots = solve_quadratic_eq(G, H, K)
+        if isclose(G, 0, rel_tol=0, abs_tol=1e-7):
+            if isclose(H, 0, rel_tol=0, abs_tol=1e-7):
+                roots = []
+            else:
+                roots = [-K / H]
+        else:
+            roots = solve_quadratic_eq(G, H, K)
 
     elif isclose(G, 0, rel_tol=0, abs_tol=1e-7):
         # Hx + Jy + K = 0
-        roots = solve_quadratic_eq(H * H + J * J, 2 * K * H, K * K - J * J)
+        quad_a = H * H + J * J
+        if isclose(quad_a, 0, rel_tol=0, abs_tol=1e-7):
+            roots = []
+        else:
+            roots = solve_quadratic_eq(quad_a, 2 * K * H, K * K - J * J)
 
     else:
         # Lx^4 + Mx^3 + Nx^2 + Ox + P = 0
@@ -811,7 +1107,7 @@ def ellipse_intersection(
     # for i in range(len(roots)):
     for i, x in enumerate(roots):
         # x = roots[i]
-        if isclose(coeff_i * x + J, rel_tol=0, abs_tol=1e-7):
+        if isclose(coeff_i * x + J, 0, rel_tol=0, abs_tol=1e-7):
             y = sqrt(1 - x * x)
             points.append((x, y))
 
@@ -851,6 +1147,11 @@ def inverse_complex_number(z: complex) -> complex:
 
     Returns:
         complex: The inverse of the complex number.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.inverse_complex_number(1 + 0j)
+        (1-0j)
     """
     a = z.real
     b = z.imag
@@ -869,6 +1170,11 @@ def Re(num: float) -> complex:
 
     Returns:
         complex: ``complex(num, 0)``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.Re(3)
+        (3+0j)
     """
     return complex(num, 0)
     # return Complex(num, 0)
@@ -882,23 +1188,31 @@ def Im(num: float) -> complex:
 
     Returns:
         complex: ``complex(0, num)``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.Im(4)
+        4j
     """
     return complex(0, num)
     # return Complex(0, num)
 
 
-def Sqrt(complex_: complex) -> None:
+def Sqrt(complex_: complex) -> complex:
     """Return the principal square root of a complex number.
 
     Args:
         complex_: Complex value.
 
     Returns:
-        complex: Principal square root (note: currently does not return the
-        value — call site should use ``cmath.sqrt`` directly if needed).
+        complex: Principal square root of ``complex_``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.Sqrt(4 + 0j)
+        (2+0j)
     """
-    cmath.sqrt(complex_)
-    # return complex.sqrt
+    return cmath.sqrt(complex_)
 
 
 def Qbrt(complex_: complex) -> complex:
@@ -909,6 +1223,11 @@ def Qbrt(complex_: complex) -> complex:
 
     Returns:
         complex: One cube root of ``complex_``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.Qbrt(8 + 0j).real, 6)
+        2.0
     """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/quartic.js
 
@@ -934,6 +1253,11 @@ def solve_complex_quadratic_equation(
 
     Returns:
         list[complex]: The two roots.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.solve_complex_quadratic_equation(0, -1)
+        [(-1+0j), (1-0j)]
     """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/quartic.js
 
@@ -955,6 +1279,11 @@ def get_one_cubic_equation_root(
 
     Returns:
         complex: One cubic root.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> round(sg.get_one_cubic_equation_root(0, 0, -8).real, 6)
+        2.0
     """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/quartic.js
 
@@ -983,6 +1312,12 @@ def solve_quartic_equation(
 
     Returns:
         list[complex]: The four roots.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> roots = sg.solve_quartic_equation(0, -5, 0, 4)
+        >>> sorted(round(r.real, 6) for r in roots if abs(r.imag) < 1e-6)
+        [-2.0, -1.0, 1.0, 2.0]
     """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/geometry.js
 

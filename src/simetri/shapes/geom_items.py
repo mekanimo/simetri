@@ -23,7 +23,7 @@ import numpy as np
 from simetri.coloring import colors
 
 from ..base.all_enums import Extent, Types
-from ..base.common import PointType, axis_x, get_defaults
+from ..base.common import PointType, alias_argument, axis_x, get_defaults
 from ..config.settings import runtime_defaults
 from ..geom.affine import rotation_matrix
 from ..geom.bbox import BoundingBox
@@ -38,7 +38,7 @@ from ..geom.geometry import (
     side_len_to_radius,
 )
 from ..geom.homogenize import homogenize
-from ..geom.nonlinear.ellipse import Ellipse, ellipse_points
+from ..geom.nonlinear.ellipse import Ellipse, ellipse_points, resolve_arc_sweep
 from ..geom.points.point_utils import distance
 from ..geom.polygons.polygon import offset_polygon
 from ..geom.segments.line_utils import angle_between_lines3, fillet_corners
@@ -378,7 +378,9 @@ class Rectangle(Shape):
             **kwargs: Additional shape keyword arguments.
         """
         if width is None or height is None:
-            default_width, default_height = runtime_defaults["rectangle_width_height"]
+            default_width, default_height = runtime_defaults[
+                "rectangle_width_height"
+            ]
             if width is None:
                 width = default_width
             if height is None:
@@ -864,60 +866,71 @@ def circle_points(
         >>> [round(coord, 6) for coord in pts[0][:2]]
         [1.0, 0.0]
     """
-    return arc_points(center, radius, 0, 2 * pi, n=n)
+    return arc_points(center, radius, start_angle=0, span_angle=2 * pi, n=n)
 
 
+@alias_argument({"radius_x": ["radius", "r", "rx"], "radius_y": "ry"})
 def arc_points(
     center: PointType,
-    radius: float,
-    start_angle: float,
-    end_angle: float,
+    radius_x: float,
+    radius_y: float | None = None,
+    start_angle: float = 0,
+    span_angle: float | None = None,
+    end_angle: float | None = None,
     clockwise: bool = False,
     n: int = 20,
 ) -> list[PointType]:
-    """Return a list of points that form a circular arc with the given parameters.
+    """Return a list of points that form a circular or elliptic arc.
 
     Args:
-        center (PointType): The center point of the arc.
-        radius (float): The radius of the arc.
-        start_angle (float): The starting angle of the arc.
-        end_angle (float): The ending angle of the arc.
-        clockwise (bool, optional): Whether the arc is drawn clockwise. Defaults to False.
-        n (int, optional): The number of points in the arc. Defaults to 20.
+        center: The center point of the arc.
+        radius_x: Semi-axis along x.
+        radius_y: Semi-axis along y; defaults to ``radius_x``.
+        start_angle: The starting angle of the arc in radians. Defaults to 0.
+        span_angle: Unsigned sweep in radians. Mutually exclusive with
+            ``end_angle``. At least one of ``span_angle`` or
+            ``end_angle`` is required.
+        end_angle: Ending angle in radians. Mutually exclusive with
+            ``span_angle``.
+        clockwise: If True, the arc is drawn clockwise. Defaults to False.
+        n: The number of points in the arc. Defaults to 20.
 
     Returns:
-        list[PointType]: A list of points that form a circular arc.
+        list[PointType]: A list of points that form an arc.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.arc_points((0, 0), 1, 0, sg.pi / 2, n=4)
+        >>> pts = sg.arc_points((0, 0), 1, start_angle=0, end_angle=sg.pi / 2, n=4)
         >>> [[round(coord, 6) for coord in p[:2]] for p in pts]
         [[1.0, 0.0], [0.866025, 0.5], [0.5, 0.866025], [0.0, 1.0]]
-        >>> pts = sg.arc_points((0, 0), 1, 0, sg.pi / 2, clockwise=True, n=4)
+        >>> pts = sg.arc_points(
+        ...     (0, 0), 1, start_angle=0, span_angle=sg.pi / 2, clockwise=True, n=4
+        ... )
         >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in pts]
-        [[1.0, 0.0], [0.0, -1.0], [-1.0, 0.0], [0.0, 1.0]]
-        >>> pts = sg.arc_points((0, 0), 1, -sg.pi / 2, 0, n=4)
+        [[1.0, 0.0], [0.866025, -0.5], [0.5, -0.866025], [0.0, -1.0]]
+        >>> pts = sg.arc_points((0, 0), 1, start_angle=-sg.pi / 2, end_angle=0, n=4)
         >>> [[round(coord, 6) for coord in p[:2]] for p in pts]
         [[0.0, -1.0], [0.5, -0.866025], [0.866025, -0.5], [1.0, 0.0]]
-        >>> pts = sg.arc_points((0, 0), 1, 0, -sg.pi / 2, clockwise=True, n=4)
+        >>> pts = sg.arc_points(
+        ...     (0, 0), 1, start_angle=0, end_angle=-sg.pi / 2, clockwise=True, n=4
+        ... )
         >>> [[round(coord, 6) for coord in p[:2]] for p in pts]
         [[1.0, 0.0], [0.866025, -0.5], [0.5, -0.866025], [0.0, -1.0]]
-        >>> pts = sg.arc_points((0, 0), 1, -sg.pi, -sg.pi / 2, n=4)
+        >>> pts = sg.arc_points(
+        ...     (0, 0), 1, start_angle=-sg.pi, end_angle=-sg.pi / 2, n=4
+        ... )
         >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in pts]
         [[-1.0, 0.0], [-0.866025, -0.5], [-0.5, -0.866025], [0.0, -1.0]]
     """
+    if radius_y is None:
+        radius_y = radius_x
+    signed_span = resolve_arc_sweep(
+        start_angle, span_angle, end_angle, clockwise
+    )
     x, y = center[:2]
     two_pi = 2 * pi
-    if clockwise:
-        sweep = (start_angle - end_angle) % two_pi
-        if sweep == 0:
-            sweep = two_pi
-        sign = -1
-    else:
-        sweep = (end_angle - start_angle) % two_pi
-        if sweep == 0:
-            sweep = two_pi
-        sign = 1
+    sweep = abs(signed_span)
+    sign = -1 if signed_span < 0 else 1
     if n == 1:
         steps = 1
     elif sweep == two_pi:
@@ -928,7 +941,9 @@ def arc_points(
     points = []
     for i in range(n):
         angle = start_angle + step * i
-        points.append([x + radius * cos(angle), y + radius * sin(angle)])
+        points.append(
+            [x + radius_x * cos(angle), y + radius_y * sin(angle)]
+        )
     return points
 
 
@@ -1299,49 +1314,68 @@ def rect_shape(
     return Rectangle(width, height, center, angle, **kwargs)
 
 
+@alias_argument({"radius_x": ["radius", "r", "rx"], "radius_y": "ry"})
 def arc_shape(
-    x: float,
-    y: float,
-    radius: float,
-    start_angle: float,
-    end_angle: float,
+    center: PointType,
+    radius_x: float,
+    radius_y: float | None = None,
+    start_angle: float = 0,
+    span_angle: float | None = None,
+    end_angle: float | None = None,
     clockwise: bool = False,
     n: int = 20,
 ) -> Shape:
-    """Return a Shape object with points that form a circular arc with the given parameters.
+    """Return a Shape of a circular or elliptic arc.
 
     Args:
-        x (float): The x-coordinate of the center of the arc.
-        y (float): The y-coordinate of the center of the arc.
-        radius (float): The radius of the arc.
-        start_angle (float): The starting angle of the arc.
-        end_angle (float): The ending angle of the arc.
-        clockwise (bool, optional): Whether the arc is drawn clockwise. Defaults to False.
-        n (int, optional): The number of points to use for the arc. Defaults to 20.
+        center: The center of the arc.
+        radius_x: Semi-axis along x.
+        radius_y: Semi-axis along y; defaults to ``radius_x``.
+        start_angle: The starting angle of the arc in radians. Defaults to 0.
+        span_angle: Unsigned sweep in radians. Mutually exclusive with
+            ``end_angle``. At least one of ``span_angle`` or
+            ``end_angle`` is required.
+        end_angle: Ending angle in radians. Mutually exclusive with
+            ``span_angle``.
+        clockwise: If True, the arc is drawn clockwise. Defaults to False.
+        n: The number of points to use for the arc. Defaults to 20.
 
     Returns:
-        Shape: A Shape object with points that form a circular arc.
+        Shape: A Shape object with points that form an arc.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> arc = sg.arc_shape(0, 0, 1, 0, sg.pi / 2, n=4)
+        >>> arc = sg.arc_shape((0, 0), 1, start_angle=0, end_angle=sg.pi / 2, n=4)
         >>> [[round(coord, 6) for coord in p[:2]] for p in arc.vertices]
         [[1.0, 0.0], [0.866025, 0.5], [0.5, 0.866025], [0.0, 1.0]]
-        >>> arc = sg.arc_shape(0, 0, 1, 0, sg.pi / 2, clockwise=True, n=4)
+        >>> arc = sg.arc_shape(
+        ...     (0, 0), 1, start_angle=0, span_angle=sg.pi / 2, clockwise=True, n=4
+        ... )
         >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in arc.vertices]
-        [[1.0, 0.0], [0.0, -1.0], [-1.0, 0.0], [0.0, 1.0]]
-        >>> arc = sg.arc_shape(0, 0, 1, -sg.pi / 2, 0, n=4)
+        [[1.0, 0.0], [0.866025, -0.5], [0.5, -0.866025], [0.0, -1.0]]
+        >>> arc = sg.arc_shape((0, 0), 1, start_angle=-sg.pi / 2, end_angle=0, n=4)
         >>> [[round(coord, 6) for coord in p[:2]] for p in arc.vertices]
         [[0.0, -1.0], [0.5, -0.866025], [0.866025, -0.5], [1.0, 0.0]]
-        >>> arc = sg.arc_shape(0, 0, 1, 0, -sg.pi / 2, clockwise=True, n=4)
+        >>> arc = sg.arc_shape(
+        ...     (0, 0), 1, start_angle=0, end_angle=-sg.pi / 2, clockwise=True, n=4
+        ... )
         >>> [[round(coord, 6) for coord in p[:2]] for p in arc.vertices]
         [[1.0, 0.0], [0.866025, -0.5], [0.5, -0.866025], [0.0, -1.0]]
-        >>> arc = sg.arc_shape(0, 0, 1, -sg.pi, -sg.pi / 2, n=4)
+        >>> arc = sg.arc_shape(
+        ...     (0, 0), 1, start_angle=-sg.pi, end_angle=-sg.pi / 2, n=4
+        ... )
         >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in arc.vertices]
         [[-1.0, 0.0], [-0.866025, -0.5], [-0.5, -0.866025], [0.0, -1.0]]
     """
     points = arc_points(
-        (x, y), radius, start_angle, end_angle, clockwise=clockwise, n=n
+        center,
+        radius_x,
+        radius_y,
+        start_angle=start_angle,
+        span_angle=span_angle,
+        end_angle=end_angle,
+        clockwise=clockwise,
+        n=n,
     )
     return Shape(points, closed=False, subtype=Types.ARC)
 
@@ -1371,6 +1405,7 @@ def circle_shape(
     return Circle(radius, center, **kwargs)
 
 
+@alias_argument(official_name="r", alias_name="radius")
 def reg_poly_shape(
     n: int,
     r: float = 100,

@@ -96,6 +96,7 @@ from ..group.merge import combine_shapes
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.polygons.polygon import *
 from ..geom.polygons.polygon_utils import *
+from ..geom.polygons.triangles import *
 from ..geom.random_geometry import *
 from ..geom.segments.line_utils import *
 from ..geom.vectors import *

@@ -34,7 +34,7 @@ from ...base.all_enums import (
     get_enum_value,
 )
 from ...base.all_enums import PathOperation as PathOps
-from ...base.common import PointType
+from ...base.common import PointType, alias_argument
 from ...base.common_style import CommonStyle
 from ...base.core import _next_xform_matrix, _Targets
 from ...coloring.colors import Color
@@ -59,8 +59,9 @@ from ..segments.line_utils import (
 )
 from .bezier import Bezier
 from .ellipse import (
+    _elliptic_arc_points_from_signed,
     ellipse_tangent,
-    elliptic_arc_points,
+    resolve_arc_sweep,
 )
 from .hobby import hobby_shape
 from .sine import sine_points
@@ -182,18 +183,18 @@ class Path2D(Group, CommonStyle):
         draw_fillets: bool = False,
         draw_markers: bool = False,
         even_odd: bool | None = None,
-        back_style: Any = None,
+        back_style: object = None,
         double_distance: float | None = None,
         double_color: Color | None = None,
         fill_alpha: float | None = None,
         fill_color: Color | None = None,
         fill_mode: FillMode = FillMode.NONZERO,
         fillet_radius: float | None = None,
-        gradient: Any = None,
+        gradient: object = None,
         line_alpha: float | None = None,
         line_cap: LineCap = LineCap.BUTT,
         line_color: Color | None = None,
-        line_dash_array: Any = None,
+        line_dash_array: object = None,
         line_dash_phase: float | None = None,
         line_join: LineJoin = LineJoin.MITER,
         line_miter_limit: float | None = None,
@@ -201,9 +202,9 @@ class Path2D(Group, CommonStyle):
         marker_alpha: float | None = None,
         marker_color: Color | None = None,
         marker_radius: float | None = None,
-        marker_shape: Any = None,
+        marker_shape: object = None,
         marker_size: float | None = None,
-        marker_type: Any = None,
+        marker_type: object = None,
         markers_only: bool | None = None,
         smooth: bool | None = None,
     ) -> None:
@@ -352,8 +353,11 @@ class Path2D(Group, CommonStyle):
                 self.handles.append((data[1], data[2]))
         elif op_type == PO.HOBBY_TO:
             n_points = runtime_defaults["n_hobby_points"]
-            curve = hobby_shape(data[1], n_points=n_points)
+            start = data[0]
+            through = data[1]
+            curve = hobby_shape([start, *through], n_points=n_points)
             self.objects.append(Shape(curve.vertices))
+            self.cur_shape.extend(curve.vertices[1:])
         elif op_type in _ARC_PATH_OPS:
             self.objects.append(Shape(data[-1]))
             self.cur_shape.extend(data[-1][1:])
@@ -477,6 +481,12 @@ class Path2D(Group, CommonStyle):
 
         Returns:
             list: Drawable elements in the path group.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> path = sg.Path2D((0, 0)).line_to((10, 0))
+            >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in path.all_elements[0].vertices]
+            [[0.0, 0.0], [10.0, 0.0]]
         """
         return [obj for obj in self.objects if obj is not None]
 
@@ -799,8 +809,8 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0)).r_h_line(5)  # doctest: +SKIP
-            >>> p.pos  # doctest: +SKIP
+            >>> p = sg.Path2D((0, 0)).r_h_line(5)
+            >>> p.pos
             (5, 0)
 """
         x, y = self.pos[0] + length, self.pos[1]
@@ -839,8 +849,8 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0)).r_v_line(4)  # doctest: +SKIP
-            >>> p.pos  # doctest: +SKIP
+            >>> p = sg.Path2D((0, 0)).r_v_line(4)
+            >>> p.pos
             (0, 4)
 """
         x, y = self.pos[0], self.pos[1] + length
@@ -987,8 +997,8 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0)).hobby_to([(10, 5), (20, 0)])  # doctest: +SKIP
-            >>> p.pos  # doctest: +SKIP
+            >>> p = sg.Path2D((0, 0)).hobby_to([(10, 5), (20, 0)])
+            >>> p.pos
             (20, 0)
 """
         self._add(points[-1], PathOps.HOBBY_TO, (self.pos, points), **kwargs)
@@ -1019,8 +1029,8 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0))  # doctest: +SKIP
-            >>> p.pos  # doctest: +SKIP
+            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0))
+            >>> p.pos
             (10, 0)
 """
         self._add(
@@ -1168,8 +1178,8 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0)).mirror_quad_to((20, 0))  # doctest: +SKIP
-            >>> p.pos  # doctest: +SKIP
+            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0)).mirror_quad_to((20, 0))
+            >>> p.pos
             (20, 0)
 """
         # Get previous control point from last operation if it was a quad
@@ -1206,8 +1216,8 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0)).r_mirror_quad_to((10, 0))  # doctest: +SKIP
-            >>> p.pos  # doctest: +SKIP
+            >>> p = sg.Path2D((0, 0)).quad_to((5, 5), (10, 0)).r_mirror_quad_to((10, 0))
+            >>> p.pos
             (20, 0)
 """
         cur_x, cur_y = self.pos
@@ -1265,8 +1275,8 @@ class Path2D(Group, CommonStyle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> p = sg.Path2D((0, 0), angle=0).blend_quad(5, (10, 0))  # doctest: +SKIP
-            >>> p.pos  # doctest: +SKIP
+            >>> p = sg.Path2D((0, 0), angle=0).blend_quad(5, (10, 0))
+            >>> p.pos
             (10, 0)
 """
         pos = list(self.pos[:2])
@@ -1274,27 +1284,37 @@ class Path2D(Group, CommonStyle):
         self._add(end, PathOps.QUAD_TO, (pos, c1, end), pnt2=c1, **kwargs)
         return self
 
+    @alias_argument({"radius_x": "rx", "radius_y": "ry"})
     def arc(
         self,
         radius_x: float,
-        radius_y: float,
-        start_angle: float,
-        span_angle: float,
+        radius_y: float | None = None,
+        start_angle: float = 0,
+        span_angle: float | None = None,
         rot_angle: float = 0,
         n_points: int | None = None,
+        *,
+        end_angle: float | None = None,
+        clockwise: bool = False,
         **kwargs: object,
     ) -> Self:
         """Append an elliptic arc starting at the current pen position.
 
-        The sign of ``span_angle`` selects the drawing direction.
+        Pass either ``span_angle`` or ``end_angle``, not both. Use
+        ``clockwise=True`` for a clockwise arc.
 
         Args:
             radius_x: Ellipse half-width.
-            radius_y: Ellipse half-height.
-            start_angle: Arc start angle in radians.
-            span_angle: Signed sweep in radians.
+            radius_y: Ellipse half-height; defaults to ``radius_x``.
+            start_angle: Arc start angle in radians. Defaults to 0.
+            span_angle: Unsigned sweep in radians. Mutually exclusive with
+                ``end_angle``. At least one of ``span_angle`` or
+                ``end_angle`` is required.
             rot_angle: Ellipse rotation in radians. Defaults to 0.
             n_points: Sample count; defaults to ``runtime_defaults['n_arc_points']``.
+            end_angle: Ending angle in radians. Mutually exclusive with
+                ``span_angle``.
+            clockwise: If True, the arc is drawn clockwise. Defaults to False.
             **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
@@ -1306,14 +1326,19 @@ class Path2D(Group, CommonStyle):
             >>> round(float(p.pos[0]), 5), round(float(p.pos[1]), 5)
             (0.0, 10.0)
 """
+        if radius_y is None:
+            radius_y = radius_x
         rx = radius_x
         ry = radius_y
         start_angle = positive_angle(start_angle)
-        clockwise = span_angle < 0
+        signed_span = resolve_arc_sweep(
+            start_angle, span_angle, end_angle, clockwise
+        )
+        clockwise = signed_span < 0
         if n_points is None:
             n_points = runtime_defaults["n_arc_points"]
-        points = elliptic_arc_points(
-            (0, 0), rx, ry, start_angle, span_angle, n_points
+        points = _elliptic_arc_points_from_signed(
+            (0, 0), rx, ry, start_angle, signed_span, n_points
         )
         start = points[0]
         end = points[-1]
@@ -1342,7 +1367,7 @@ class Path2D(Group, CommonStyle):
                 rx,
                 ry,
                 start_angle,
-                span_angle,
+                signed_span,
                 rot_angle,
                 points,
             ),
@@ -1397,12 +1422,14 @@ class Path2D(Group, CommonStyle):
                 span_angle,
                 rot_angle,
             ) = params
+            signed_span = span_angle
             self.arc(
                 radius_x,
                 radius_y,
                 start_angle,
-                span_angle,
+                abs(signed_span),
                 rot_angle=rot_angle,
+                clockwise=signed_span < 0,
                 **kwargs,
             )
         return self
@@ -1446,25 +1473,37 @@ class Path2D(Group, CommonStyle):
             rx, ry, angle, large_arc_flag, sweep_flag, end, **kwargs
         )
 
+    @alias_argument({"radius_x": "rx", "radius_y": "ry"})
     def blend_arc(
         self,
         radius_x: float,
-        radius_y: float,
-        start_angle: float,
-        span_angle: float,
+        radius_y: float | None = None,
+        start_angle: float = 0,
+        span_angle: float | None = None,
         sharp: bool = False,
         n_points: int | None = None,
+        *,
+        end_angle: float | None = None,
+        clockwise: bool = False,
         **kwargs: object,
     ) -> Self:
         """Append an elliptic arc blended to the current heading.
 
+        Pass either ``span_angle`` or ``end_angle``, not both. Use
+        ``clockwise=True`` for a clockwise arc.
+
         Args:
             radius_x: Ellipse half-width.
-            radius_y: Ellipse half-height.
-            start_angle: Arc start angle in radians.
-            span_angle: Signed sweep in radians.
+            radius_y: Ellipse half-height; defaults to ``radius_x``.
+            start_angle: Arc start angle in radians. Defaults to 0.
+            span_angle: Unsigned sweep in radians. Mutually exclusive with
+                ``end_angle``. At least one of ``span_angle`` or
+                ``end_angle`` is required.
             sharp: Flip the blend orientation if True. Defaults to False.
             n_points: Sample count; defaults to ``runtime_defaults['n_arc_points']``.
+            end_angle: Ending angle in radians. Mutually exclusive with
+                ``span_angle``.
+            clockwise: If True, the arc is drawn clockwise. Defaults to False.
             **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
@@ -1478,14 +1517,19 @@ class Path2D(Group, CommonStyle):
             >>> [round(float(c), 5) for c in p.vertices[0][:2]], [round(float(c), 5) for c in p.vertices[-1][:2]]
             ([0.0, 0.0], [10.0, 10.0])
 """
+        if radius_y is None:
+            radius_y = radius_x
         rx = radius_x
         ry = radius_y
         start_angle = positive_angle(start_angle)
-        clockwise = span_angle < 0
+        signed_span = resolve_arc_sweep(
+            start_angle, span_angle, end_angle, clockwise
+        )
+        clockwise = signed_span < 0
         if n_points is None:
             n_points = runtime_defaults["n_arc_points"]
-        points = elliptic_arc_points(
-            (0, 0), rx, ry, start_angle, span_angle, n_points
+        points = _elliptic_arc_points_from_signed(
+            (0, 0), rx, ry, start_angle, signed_span, n_points
         )
         start = points[0]
         end = points[-1]
@@ -1517,11 +1561,11 @@ class Path2D(Group, CommonStyle):
                 rx,
                 ry,
                 start_angle,
-                span_angle,
+                signed_span,
                 rot_angle,
                 points,
             ),
-            kwargs,
+            **kwargs,
         )
         return self
 
@@ -1712,6 +1756,10 @@ class Path2D(Group, CommonStyle):
 
         Returns:
             Self: This path.
+
+        Note:
+            The example is skipped because ``PathOperation`` has no ``STYLE``
+            member, so ``set_style`` currently raises ``AttributeError``.
 
         Examples:
             >>> import simetri.graphics as sg
@@ -1999,7 +2047,7 @@ lin_path_svg = path2d_to_svg_path
 path2d_svg = path2d_to_svg_path
 
 
-def _format_path_code_number(value: Any, n_round: int | None = None) -> str:
+def _format_path_code_number(value: object, n_round: int | None = None) -> str:
     """Return a Python numeric literal for path-code generation."""
     if n_round is None:
         if isinstance(value, (int, np.integer)):
@@ -2029,7 +2077,7 @@ def _format_path_code_points(points: Sequence, n_round: int) -> str:
     return f"[{items}]"
 
 
-def _format_path_code_value(value: Any) -> str:
+def _format_path_code_value(value: object) -> str:
     """Return a Python literal for a style or scalar path-code value."""
     if value is None:
         return "None"
@@ -2236,8 +2284,10 @@ def path_code(path2d: Path2D, n_round: int | None = None) -> str:
                 _format_path_code_number(radius_x, n_round),
                 _format_path_code_number(radius_y, n_round),
                 _format_path_code_number(start_angle),
-                _format_path_code_number(span_angle),
+                _format_path_code_number(abs(span_angle)),
             ]
+            if span_angle < 0:
+                arguments.append("clockwise=True")
             if rot_angle != 0:
                 arguments.append(
                     f"rot_angle={_format_path_code_number(rot_angle)}"
@@ -2503,12 +2553,14 @@ def svg_path_to_path2d(svg_path: str) -> Path2D:
                         span_angle,
                         rot_angle,
                     ) = params
+                    signed_span = span_angle
                     lp.arc(
                         radius_x,
                         radius_y,
                         start_angle,
-                        span_angle,
+                        abs(signed_span),
                         rot_angle=rot_angle,
+                        clockwise=signed_span < 0,
                     )
 
     return lp
@@ -2778,6 +2830,17 @@ def group_to_nonzero_path(group: Group) -> Path2D:
 
     Raises:
         ValueError: If the group has no shape geometry.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.geom.nonlinear.path import group_to_nonzero_path
+        >>> outer = sg.Shape([(0, 0), (4, 0), (4, 4), (0, 4)], closed=True)
+        >>> inner = sg.Shape([(1, 1), (3, 1), (3, 3), (1, 3)], closed=True)
+        >>> path = group_to_nonzero_path(sg.Group([outer, inner]))
+        >>> path.fill_mode.name
+        'NONZERO'
+        >>> path.pos
+        (1.0, 1.0)
     """
     shapes = group.all_shapes
     if not shapes:

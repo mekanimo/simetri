@@ -46,8 +46,6 @@ class Bezier(Shape):
         >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5)
         >>> [[round(float(c), 6) for c in q[:2]] for q in curve.vertices]
         [[0.0, 0.0], [18.125, 22.5], [40.0, 30.0], [61.875, 22.5], [80.0, 0.0]]
-        >>> canvas = sg.Canvas()  # doctest: +SKIP
-        >>> canvas.draw(curve)  # doctest: +SKIP
     """
 
     def __init__(
@@ -119,6 +117,15 @@ class Bezier(Shape):
 
         Raises:
             ValueError: If the number of control points is not 3 or 4.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5)
+            >>> curve.control_points
+            [(0, 0), (20, 40), (60, 40), (80, 0)]
+            >>> curve.control_points = [(0, 0), (0, 40), (80, 40), (80, 0)]
+            >>> curve.control_points
+            [(0, 0), (0, 40), (80, 40), (80, 0)]
         """
         self.__dict__["control_points"] = new_control_points
         n_points = runtime_defaults["n_bezier_points"]
@@ -138,6 +145,15 @@ class Bezier(Shape):
 
         Returns:
             Shape: Copy of the Bezier curve.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5)
+            >>> copy = curve.copy()
+            >>> copy.control_points == curve.control_points
+            True
+            >>> copy.vertices == curve.vertices
+            True
         """
         # to do: copy style and other attributes
         copy_ = Bezier(
@@ -158,14 +174,24 @@ class Bezier(Shape):
 
         Returns:
             list: PointType on the Bezier curve at t.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5)
+            >>> [round(c, 6) for c in curve.point(0.0)]
+            [0.0, 0.0]
+            >>> [round(c, 6) for c in curve.point(0.5)]
+            [40.0, 30.0]
+            >>> [round(c, 6) for c in curve.point(1.0)]
+            [80.0, 0.0]
         """
-        p0, p1, p2, p3 = self.control_points
-        m = 1 - t
-        m2 = m * m
-        m3 = m2 * m
-        t2 = t * t
-        t3 = t2 * t
         if self.cubic:
+            p0, p1, p2, p3 = self.control_points
+            m = 1 - t
+            m2 = m * m
+            m3 = m2 * m
+            t2 = t * t
+            t3 = t2 * t
             x = (
                 m3 * p0[0]
                 + 3 * m2 * t * p1[0]
@@ -179,6 +205,10 @@ class Bezier(Shape):
                 + t3 * p3[1]
             )
         else:
+            p0, p1, p2 = self.control_points
+            m = 1 - t
+            m2 = m * m
+            t2 = t * t
             x = m2 * p0[0] + 2 * m * t * p1[0] + t2 * p2[0]
             y = m2 * p0[1] + 2 * m * t * p1[1] + t2 * p2[1]
 
@@ -192,6 +222,12 @@ class Bezier(Shape):
 
         Returns:
             list: Derivative of the Bezier curve at t.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5)
+            >>> [round(c, 6) for c in curve.derivative(0.0)]
+            [60.0, 120.0]
         """
         if self.cubic:
             return get_cubic_derivative(t, self.control_points)
@@ -206,6 +242,12 @@ class Bezier(Shape):
 
         Returns:
             list: Normal of the Bezier curve at t.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5)
+            >>> [round(c, 6) for c in curve.normal(0.0)]
+            [-0.894427, 0.447214]
         """
         d = self.derivative(t)
         q = np.sqrt(d[0] * d[0] + d[1] * d[1])
@@ -219,6 +261,12 @@ class Bezier(Shape):
 
         Returns:
             list: Unit tangent vector at t.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> curve = sg.Bezier([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5)
+            >>> [round(c, 6) for c in curve.tangent(0.0)]
+            [0.447214, 0.894427]
         """
         d = self.derivative(t)
         m = np.sqrt(d[0] * d[0] + d[1] * d[1])
@@ -244,6 +292,18 @@ def equidistant_points(
 
     Returns:
         tuple: Points on the Bezier curve, equidistant points, tangents, and normals.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> points, eq_points, tangents, normals = sg.equidistant_points(
+        ...     (0, 0), (1, 2), (3, 2), (4, 0), n_points=4
+        ... )
+        >>> len(eq_points)
+        4
+        >>> [round(c, 6) for c in eq_points[0][:2]]
+        [0, 0]
+        >>> [round(float(c), 6) for c in eq_points[-1][:2]]
+        [3.207133, 1.037037]
     """
     controls = [p0, p1, p2, p3]
     n = 100
@@ -288,6 +348,12 @@ def offset_points(
 
     Returns:
         list: Points on the offset curve.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.offset_points([(0, 0), (1, 2), (3, 2), (4, 0)], 1.0, 4)
+        >>> [[round(float(c), 6) for c in q[:2]] for q in pts]
+        [[-0.894427, 0.447214], [-0.856499, 0.52156], [-0.817631, 0.594763], [-0.817631, 0.594763]]
     """
     n = 100
     points = bezier_points(*controls, n_points=n)
@@ -298,9 +364,9 @@ def offset_points(
         tot += dist
         seg_lengths.append(tot)
 
+    unit_normal = normal(controls[0], controls[1])
     x, y = controls[0][:2]
-    np = normal(x, y)
-    x2, y2 = (x + offset * np[0], y + offset * np[1])
+    x2, y2 = (x + offset * unit_normal[0], y + offset * unit_normal[1])
     offset_pnts = [(x2, y2)]
     if double:
         p1, p2 = mirror_point((x, y), (x2, y2))
@@ -335,6 +401,12 @@ class BezierPoints(Shape):
         tangents (list): Tangent vectors at the points.
         normals (list): Normal vectors at the points.
         n_points (int): Number of points on the curve.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.BezierPoints([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=4)
+        >>> [[round(float(c), 6) for c in q[:2]] for q in pts.vertices]
+        [[0.0, 0.0], [15.857339, 20.740741], [39.54546, 29.996939], [64.142661, 20.740741]]
     """
 
     def __init__(
@@ -359,7 +431,7 @@ class BezierPoints(Shape):
         param_points, vertices, tangents, normals = equidistant_points(
             *control_points, n_points
         )
-        super().__init__(vertices, subtype=Types.BEZIER_POINTS, **kwargs)
+        super().__init__(vertices, **kwargs)
         self.control_points = control_points
         self.param_points = param_points
         self.tangents = tangents
@@ -377,6 +449,12 @@ class BezierPoints(Shape):
 
         Returns:
             list: Points on the offset curve.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> pts = sg.BezierPoints([(0, 0), (20, 40), (60, 40), (80, 0)], n_points=4)
+            >>> [[round(float(c), 6) for c in q[:2]] for q in pts.offsets(5)]
+            [[-4.472136, 2.236068], [12.655292, 24.58091], [39.412156, 34.995162], [67.260219, 24.649812]]
         """
         offset_points1 = []
         if double:
@@ -502,30 +580,36 @@ def split_bezier(
 
     Returns:
         tuple: Two Bezier curves split at t=z.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> left, right = sg.split_bezier((0, 0), (1, 2), (3, 2), (4, 0), 0.5, n_points=5)
+        >>> [round(float(c), 6) for c in left.point(0.0)]
+        [0.0, 0.0]
+        >>> [round(float(c), 6) for c in left.point(1.0)]
+        [2.0, 1.5]
+        >>> [round(float(c), 6) for c in right.point(0.0)]
+        [2.0, 1.5]
+        >>> [round(float(c), 6) for c in right.point(1.0)]
+        [4.0, 0.0]
     """
-    p0 = array(p0)
-    p1 = array(p1)
-    p2 = array(p2)
-    p3 = array(p3)
-    bezier1 = [
-        [p0],
-        [z * p1 - (z - 1) * p0],
-        [z**2 * p2 - 2 * z * (z - 1) * p1 + (z - 1) ** 2 * p0],
-        [
-            z**3 * p3
-            - 3 * z**2 * (z - 1) * p2
-            + 3 * z * (z - 1) ** 2 * p1
-            - (z - 1) ** 3 * p0
-        ],
-    ]
+    p0 = array(p0, dtype=float)
+    p1 = array(p1, dtype=float)
+    p2 = array(p2, dtype=float)
+    p3 = array(p3, dtype=float)
+    one_minus_z = 1.0 - z
+    p01 = one_minus_z * p0 + z * p1
+    p12 = one_minus_z * p1 + z * p2
+    p23 = one_minus_z * p2 + z * p3
+    p012 = one_minus_z * p01 + z * p12
+    p123 = one_minus_z * p12 + z * p23
+    p0123 = one_minus_z * p012 + z * p123
 
-    bezier2 = [
-        [z**3 * p0],
-        [3 * z**2 * (z - 1) * p1 - 3 * z * (z - 1) ** 2 * p0],
-        [3 * z * (z - 1) * p2 - 3 * (z - 1) ** 2 * p1],
-        [z * p3 - (z - 1) * p2],
-    ]
+    def as_xy(value: NDArray) -> tuple[float, float]:
+        return (float(value[0]), float(value[1]))
 
+    bezier1 = [as_xy(p0), as_xy(p01), as_xy(p012), as_xy(p0123)]
+    bezier2 = [as_xy(p0123), as_xy(p123), as_xy(p23), as_xy(p3)]
     return Bezier(bezier1, n_points=n_points), Bezier(
         bezier2, n_points=n_points
     )
@@ -545,22 +629,32 @@ def split_q_bezier(
 
     Returns:
         tuple: Two Bezier curves split at t=z.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> left, right = sg.split_q_bezier((0, 0), (1, 1), (2, 0), 0.5, n_points=5)
+        >>> [round(float(c), 6) for c in left.point(0.0)]
+        [0.0, 0.0]
+        >>> [round(float(c), 6) for c in left.point(1.0)]
+        [1.0, 0.5]
+        >>> [round(float(c), 6) for c in right.point(0.0)]
+        [1.0, 0.5]
+        >>> [round(float(c), 6) for c in right.point(1.0)]
+        [2.0, 0.0]
     """
-    p0 = array(p0)
-    p1 = array(p1)
-    p2 = array(p2)
-    bezier1 = [
-        [p0],
-        [z * p1 - (z - 1) * p0],
-        [z**2 * p2 - 2 * z * (z - 1) * p1 + (z - 1) ** 2 * p0],
-    ]
+    p0 = array(p0, dtype=float)
+    p1 = array(p1, dtype=float)
+    p2 = array(p2, dtype=float)
+    one_minus_z = 1.0 - z
+    p01 = one_minus_z * p0 + z * p1
+    p12 = one_minus_z * p1 + z * p2
+    p012 = one_minus_z * p01 + z * p12
 
-    bezier2 = [
-        [z**2 * p0],
-        [2 * z * (z - 1) * p1 - (z - 1) ** 2 * p0],
-        [z * p2 - (z - 1) * p1],
-    ]
+    def as_xy(value: NDArray) -> tuple[float, float]:
+        return (float(value[0]), float(value[1]))
 
+    bezier1 = [as_xy(p0), as_xy(p01), as_xy(p012)]
+    bezier2 = [as_xy(p012), as_xy(p12), as_xy(p2)]
     return Bezier(bezier1, n_points=n_points), Bezier(
         bezier2, n_points=n_points
     )
@@ -611,6 +705,16 @@ def curve(
 
     Raises:
         ValueError: If the number of control points is invalid.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> curves = sg.curve((0, 0), (1, 2), (3, 2), (4, 0))
+        >>> len(curves)
+        1
+        >>> [round(float(c), 6) for c in curves[0].point(0.0)]
+        [0.0, 0.0]
+        >>> [round(float(c), 6) for c in curves[0].point(1.0)]
+        [4.0, 0.0]
     """
     curves = [Bezier([v1, c1, c2, v2], **kwargs)]
     last_vertex = v2
@@ -654,6 +758,16 @@ def q_curve(
 
     Raises:
         ValueError: If the number of control points is invalid.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> curves = sg.q_curve((0, 0), (1, 1), (2, 0))
+        >>> len(curves)
+        1
+        >>> [round(float(c), 6) for c in curves[0].point(0.0)]
+        [0.0, 0.0]
+        >>> [round(float(c), 6) for c in curves[0].point(1.0)]
+        [2.0, 0.0]
     """
     curves = [Bezier([v1, c, v2], **kwargs)]
     last_vertex = v2
@@ -685,6 +799,11 @@ def get_quadratic_derivative(
 
     Returns:
         list: Derivative of the quadratic Bezier curve at t.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> [round(c, 6) for c in sg.get_quadratic_derivative(0.0, [(0, 0), (1, 1), (2, 0)])]
+        [2.0, 2.0]
     """
     mt = 1 - t
     d = [
@@ -708,6 +827,11 @@ def get_cubic_derivative(
 
     Returns:
         list: Derivative of the cubic Bezier curve at t.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> [round(c, 6) for c in sg.get_cubic_derivative(0.0, [(0, 0), (1, 2), (3, 2), (4, 0)])]
+        [3.0, 6.0]
     """
     mt = 1 - t
     a = mt * mt
@@ -733,6 +857,11 @@ def get_normal(d: Sequence[float]) -> list[float]:
 
     Returns:
         list: Normal of the line.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.get_normal([0, 1])
+        [-1.0, 0.0]
     """
     q = np.sqrt(d[0] * d[0] + d[1] * d[1])
     return [-d[1] / q, d[0] / q]
@@ -754,6 +883,12 @@ def segmentize_catmull_rom(
 
     Returns:
         Sequence[float]: List of points representing the segments.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> pts = sg.segmentize_catmull_rom((0, 0), (1, 0), (2, 1), (3, 0), n=2)
+        >>> [[round(float(c), 6) for c in q[:2]] for q in pts]
+        [[1.0, 0.0], [1.5, 0.5625], [2.0, 1.0]]
     """
     a = array(a[:2], dtype=float)
     b = array(b[:2], dtype=float)
