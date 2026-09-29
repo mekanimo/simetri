@@ -1113,6 +1113,9 @@ Callables / classes
 
 Missing defaults keys return an empty string.
 Unknown names list similar topics, settings, and public ``sg`` names.
+``sg.help(obj, exact=False)`` keeps an exact match and also lists similar names.
+``exclude='triangle'`` or ``exclude=('triangle', 'rectangle')`` omits
+names and topics that contain any of those strings.
 """
 )
 
@@ -1603,13 +1606,15 @@ def _queries_for_topic(topic: str) -> set[str]:
     return queries
 
 
-def _matching_names_for_topic(topic: str, entries: Sequence[str]) -> list[str]:
+def _matching_names_for_topic(
+    topic: str, entries: Sequence[str], exclude: tuple[str, ...] | None = None
+) -> list[str]:
     """Return extra leaf-substring matches not already listed on the topic."""
     listed = "\n".join(entries)
     seen: set[str] = set()
     extras: list[str] = []
     for query in sorted(_queries_for_topic(topic), key=str.casefold):
-        for name in _similar_help_names(query):
+        for name in _similar_help_names(query, exclude=exclude):
             key = name.casefold()
             if key in seen or name in listed:
                 continue
@@ -1618,11 +1623,16 @@ def _matching_names_for_topic(topic: str, entries: Sequence[str]) -> list[str]:
     return extras
 
 
-def _format_topic(topic: str, entries: Sequence[str]) -> str:
+def _format_topic(
+    topic: str, entries: Sequence[str], exclude: tuple[str, ...] | None = None
+) -> str:
     """Format a topic heading and its ``sg.*`` entry list."""
     lines = [f"Topic: {topic}", ""]
-    lines.extend(entries)
-    extras = _matching_names_for_topic(topic, entries)
+    for entry in entries:
+        if _help_name_excluded(entry, exclude):
+            continue
+        lines.append(entry)
+    extras = _matching_names_for_topic(topic, entries, exclude=exclude)
     if extras:
         lines.append("")
         lines.append("Matching names:")
@@ -1772,7 +1782,7 @@ def _group_method_hub_line(stem: str) -> str | None:
     )
 
 
-def _format_help_hub(hub_key: str) -> str:
+def _format_help_hub(hub_key: str, exclude: tuple[str, ...] | None = None) -> str:
     """Format a short help hub as line items (topic guide + related API)."""
     topic = _topic_help_hubs()[hub_key]
     path = _topic_guide_paths()[topic]
@@ -1781,12 +1791,18 @@ def _format_help_hub(hub_key: str) -> str:
     lines = [
         f"Help: {hub_key}",
         "",
-        f"- sg.help({topic!r})  — topic guide — {title}",
     ]
+    topic_line = f"- sg.help({topic!r})  — topic guide — {title}"
+    if not _help_name_excluded(topic, exclude) and not _help_name_excluded(
+        title, exclude
+    ):
+        lines.append(topic_line)
     group_line = _group_method_hub_line(stem)
-    if group_line is not None:
+    if group_line is not None and not _help_name_excluded(group_line, exclude):
         lines.append(group_line)
     for leaf in _primary_export_leaves_for_topic(topic):
+        if _help_name_excluded(leaf, exclude):
+            continue
         lines.append(f"- sg.help({leaf!r})  — function — sg.{leaf}")
     lines.append("")
     lines.append("Use sg.doc(...) with the same query to print.")
@@ -1817,7 +1833,7 @@ def _topic_guide_text(topic: str) -> str | None:
     return path.read_text(encoding="utf-8")
 
 
-def _format_topics() -> str:
+def _format_topics(exclude: tuple[str, ...] | None = None) -> str:
     """Return the sorted list of help topic names."""
     topics = sorted(
         set(all_help_topic_keys())
@@ -1826,6 +1842,10 @@ def _format_topics() -> str:
         | set(_topic_help_hubs())
         | {"help", "topics"}
     )
+    if exclude is not None:
+        topics = [
+            topic for topic in topics if not _help_name_excluded(topic, exclude)
+        ]
     return "Available help topics:\n  " + "\n  ".join(topics)
 
 
@@ -1998,6 +2018,17 @@ def _canonical_help_name(name: str) -> str:
     return name
 
 
+def _help_name_excluded(name: str, exclude: tuple[str, ...] | None) -> bool:
+    """Return True if ``name`` contains any validated exclude substring."""
+    if exclude is None:
+        return False
+    folded = normalize(name)
+    for needle in exclude:
+        if needle in folded:
+            return True
+    return False
+
+
 @lru_cache(maxsize=1)
 def _canonical_help_names() -> list[str]:
     """Return canonicalized, de-duplicated help names for suggestions."""
@@ -2045,7 +2076,9 @@ def _help_token_to_names() -> dict[str, set[str]]:
     return token_to_names
 
 
-def _similar_help_names(query: str, limit: int | None = None) -> list[str]:
+def _similar_help_names(
+    query: str, limit: int | None = None, exclude: tuple[str, ...] | None = None
+) -> list[str]:
     """Return similar help names: leaf substring first, then fuzzy tokens."""
     limit = _resolve_help_suggestion_limit(limit)
     lookup_names = _canonical_help_names()
@@ -2058,6 +2091,8 @@ def _similar_help_names(query: str, limit: int | None = None) -> list[str]:
         return (0 if name.startswith("sg.") else 1, len(name), name)
 
     def add(name: str) -> None:
+        if _help_name_excluded(name, exclude):
+            return
         canonical = _canonical_help_name(name)
         key = canonical.casefold()
         if key not in seen:
@@ -2113,9 +2148,9 @@ def _similar_help_names(query: str, limit: int | None = None) -> list[str]:
     return suggestions
 
 
-def _unknown_topic_help(query: str) -> str:
+def _unknown_topic_help(query: str, exclude: tuple[str, ...] | None = None) -> str:
     """Return similar help names when ``query`` is not an exact match."""
-    matches = _similar_help_names(query)
+    matches = _similar_help_names(query, exclude=exclude)
     if not matches:
         return (
             f"No help entry named {query!r}.\n"
@@ -2202,37 +2237,8 @@ def _help_for_simetri_data_descriptor(obj: object) -> str | None:
     return _init_parameter_help(cls, name) or ""
 
 
-def help(obj: object) -> str:
-    """Return documentation text for ``obj``.
-
-    For string keys, returns ``defaults_help[obj]`` when ``obj`` is a
-    defaults setting name (empty string if missing), or resolves public
-    ``sg`` names such as ``Canvas.draw`` and ``Shape.translate``.
-    Reserved topic
-    strings (``points``, ``lines``, ``topics``, ``help``, …) return
-    topic listings from ``d_help_topic``.     For classes (and instances of
-    Simetri types), returns the constructor signature, class docstring,
-    and ``__init__`` docstring.     For Simetri functions and methods,
-    returns a signature with resolved ``defaults``, accepted ``**kwargs``
-    when known, then the docstring.
-    For other modules and objects, returns ``inspect.getdoc(obj)``.
-
-    Args:
-        obj: Object to document, a defaults setting name, or a help topic.
-
-    Returns:
-        Documentation text, similar help names when the string is not a
-        known topic, setting, or public ``sg`` name, or an empty string
-        if none is available.
-
-    Examples:
-        >>> sg.help('topics').splitlines()[0]
-        'Available help topics:'
-        >>> 'sg.distance' in sg.help('points')
-        True
-        >>> 'shapes' in sg.help('shapess')
-        True
-    """
+def _help_text(obj: object, exclude: tuple[str, ...] | None = None) -> str:
+    """Return the exact-match help string for ``obj``."""
     if obj is help:
         return _HELP_ABOUT_HELP
 
@@ -2254,25 +2260,27 @@ def help(obj: object) -> str:
         if config_text is not None:
             return config_text
         if obj in _topic_help_hubs():
-            return _format_help_hub(obj)
+            return _format_help_hub(obj, exclude=exclude)
         if obj == "topics":
-            return _format_topics()
+            return _format_topics(exclude=exclude)
         named_obj = _named_help_objects().get(obj)
         if named_obj is None:
             named_obj = _named_help_objects().get(f"sg.{obj}")
         if named_obj is not None:
-            return help(named_obj)
+            return _help_text(named_obj)
         topic = _resolve_help_topic_key(obj)
         if topic in all_help_topic_keys():
             guide = _topic_guide_text(topic)
             if guide is not None:
                 return guide
-            return _format_topic(topic, _merge_topic_entries(topic))
+            return _format_topic(
+                topic, _merge_topic_entries(topic), exclude=exclude
+            )
         if obj in defaults:
             if obj in defaults_help:
                 return defaults_help[obj]
             return ""
-        return _unknown_topic_help(obj)
+        return _unknown_topic_help(obj, exclude=exclude)
 
     if inspect.isclass(obj):
         return _class_help(obj)
@@ -2342,17 +2350,164 @@ def _doc_title(obj: object) -> str:
     return type(obj).__qualname__
 
 
-def doc(obj: object) -> None:
+def _with_similar_help_names(
+    obj: object, text: str, exclude: tuple[str, ...] | None = None
+) -> str:
+    """Append similar help names after an exact-match help string."""
+    if text.startswith("No help entry named "):
+        return text
+    query = obj if isinstance(obj, str) else _doc_title(obj)
+    query_canonical = _canonical_help_name(query).casefold()
+    others = [
+        name
+        for name in _similar_help_names(query, exclude=exclude)
+        if _canonical_help_name(name).casefold() != query_canonical
+    ]
+    if not others:
+        return text
+    lines = [text.rstrip(), "", "Similar names:"]
+    lines.extend(f"  {name}" for name in others)
+    return "\n".join(lines)
+
+
+def _validated_exclude(
+    exclude: str | Sequence[str] | None,
+) -> tuple[str, ...] | None:
+    """Return normalized exclude needles, or raise if ``exclude`` is unusable."""
+    if exclude is None:
+        return None
+    if isinstance(exclude, str):
+        items: tuple[str, ...] = (exclude,)
+    else:
+        try:
+            items = tuple(exclude)
+        except TypeError:
+            raise TypeError(
+                "exclude must be a string or a sequence of strings, "
+                f"got {type(exclude).__name__}"
+            ) from None
+    needles: list[str] = []
+    for item in items:
+        if not isinstance(item, str):
+            raise TypeError(
+                "exclude must be a string or a sequence of strings, "
+                f"got {type(item).__name__}"
+            )
+        needle = normalize(item)
+        if not needle:
+            raise ValueError("exclude must be a non-empty string")
+        needles.append(needle)
+    if not needles:
+        raise ValueError("exclude must be a non-empty string")
+    return tuple(needles)
+
+
+def help(
+    obj: object,
+    exact: bool = True,
+    exclude: str | Sequence[str] | None = None,
+) -> str:
+    """Return documentation text for ``obj``.
+
+    For string keys, returns ``defaults_help[obj]`` when ``obj`` is a
+    defaults setting name (empty string if missing), or resolves public
+    ``sg`` names such as ``Canvas.draw`` and ``Shape.translate``.
+    Reserved topic
+    strings (``points``, ``lines``, ``topics``, ``help``, …) return
+    topic listings from ``d_help_topic``.     For classes (and instances of
+    Simetri types), returns the constructor signature, class docstring,
+    and ``__init__`` docstring.     For Simetri functions and methods,
+    returns a signature with resolved ``defaults``, accepted ``**kwargs``
+    when known, then the docstring.
+    For other modules and objects, returns ``inspect.getdoc(obj)``.
+
+    Args:
+        obj: Object to document, a defaults setting name, or a help topic.
+        exact: If True, return only the exact match. If False, also list
+            similar names. Defaults to True.
+        exclude: If set, omit listed names and topics that contain this
+            string, or any string in a sequence of strings. Defaults to None.
+
+    Returns:
+        Documentation text, similar help names when the string is not a
+        known topic, setting, or public ``sg`` name, or an empty string
+        if none is available.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.help('topics').splitlines()[0]
+        'Available help topics:'
+        >>> 'sg.distance' in sg.help('points')
+        True
+        >>> 'shapes' in sg.help('shapess')
+        True
+        >>> 'Similar names:' in sg.help('angle')
+        False
+        >>> 'sg.line_angle' in sg.help('angle', exact=False)
+        True
+        >>> listed = [
+        ...     line.strip()
+        ...     for line in sg.help('angle', exact=False, exclude='triangle').splitlines()
+        ...     if line.startswith('  sg.')
+        ... ]
+        >>> [name for name in listed if 'triangle' in name.casefold()]
+        []
+        >>> listed = [
+        ...     line.strip()
+        ...     for line in sg.help(
+        ...         'angle', exact=False, exclude=('triangle', 'rectangle')
+        ...     ).splitlines()
+        ...     if line.startswith('  sg.')
+        ... ]
+        >>> [
+        ...     name
+        ...     for name in listed
+        ...     if 'triangle' in name.casefold() or 'rectangle' in name.casefold()
+        ... ]
+        []
+    """
+    needles = _validated_exclude(exclude)
+    text = _help_text(obj, exclude=needles)
+    if exact:
+        return text
+    return _with_similar_help_names(obj, text, exclude=needles)
+
+
+def doc(
+    obj: object,
+    exact: bool = True,
+    exclude: str | Sequence[str] | None = None,
+) -> None:
     """Print documentation text for ``obj``.
 
     Args:
         obj: Object to document, a defaults setting name, or a help topic.
+        exact: If True, print only the exact match. If False, also print
+            similar names. Defaults to True.
+        exclude: If set, omit listed names and topics that contain this
+            string, or any string in a sequence of strings. Defaults to None.
 
     Examples:
+        >>> import simetri.graphics as sg
         >>> sg.doc('topics')  # doctest: +SKIP
+        >>> 'sg.line_angle' in sg.help('angle', exact=False)
+        True
+        >>> listed = [
+        ...     line.strip()
+        ...     for line in sg.help(
+        ...         'angle', exact=False, exclude=('triangle', 'rectangle')
+        ...     ).splitlines()
+        ...     if line.startswith('  sg.')
+        ... ]
+        >>> [
+        ...     name
+        ...     for name in listed
+        ...     if 'triangle' in name.casefold() or 'rectangle' in name.casefold()
+        ... ]
+        []
 """
     title = _doc_title(obj)
-    text = help(obj)
+    text = help(obj, exact=exact, exclude=exclude)
     if text:
         print(f"{title}\n{'=' * len(title)}\n{text}")
     else:

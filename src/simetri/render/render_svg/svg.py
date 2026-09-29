@@ -216,6 +216,8 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
 
         if subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
+        elif subtype == Types.TEXT_PATH_SKETCH:
+            code = draw_text_path_sketch(sketch)
         elif subtype == Types.TABLE_SKETCH:
             code = draw_table_sketch(sketch, render_sketches, ind)
         elif subtype == Types.CLIPPED_SKETCH:

@@ -1645,6 +1645,8 @@ class Types(StrEnum):
     TEX_SKETCH = "TEX_SKETCH"
     LATEX_SKETCH = "LATEX_SKETCH"
     TEXT = "TEXT"
+    TEXT_PATH = "TEXT_PATH"
+    TEXT_PATH_SKETCH = "TEXT_PATH_SKETCH"
     TEXTANCHOR = "TEXT_ANCHOR"
     TEXT_ANCHOR_LINE = "TEXT_ANCHORLINE"
     TEXT_ANCHOR_POINT = "TEXT_ANCHORPOINT"
@@ -1781,9 +1783,14 @@ class _GeometryWarnings(StrEnum):
     Use ``set_warning_off(WarningType.geometry)`` to silence all of these.
     """
 
+    clockwise_negative_span = "geometry.clockwise_negative_span"
     not_ccw = "geometry.not_ccw"
 
 
+_GeometryWarnings.clockwise_negative_span.__doc__ = (
+    "``clockwise=True`` was combined with a negative ``span_angle``; "
+    "the arc is still drawn clockwise."
+)
 _GeometryWarnings.not_ccw.__doc__ = (
     "Polygon vertices are not in counterclockwise order; the reversed "
     "sequence is used for the computation."
@@ -1966,6 +1973,7 @@ drawable_types = {
     Types.SVG_PATH,
     Types.TABLE,
     Types.TAG,
+    Types.TEXT_PATH,
     Types.TURTLE,
 }
 

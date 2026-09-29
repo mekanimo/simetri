@@ -11,9 +11,14 @@ from math import atan2, ceil, cos, isclose, pi, sin, sqrt
 import numpy as np
 from numpy.typing import NDArray
 
-from ...base.all_enums import InPlace, TransformationType, Types
+from ...base.all_enums import (
+    InPlace,
+    TransformationType,
+    Types,
+    WarningType,
+)
 from ...base.common import PointType, alias_argument
-from ...config.settings import runtime_defaults
+from ...config.settings import issue_warning, runtime_defaults
 from ...group.batch import Group
 from ...helpers.utilities import solve_quadratic_eq
 from ...render.style_map import shape_style_map
@@ -43,11 +48,12 @@ class Arc(Shape):
 
     Defined by center, ``radius_x``, optional ``radius_y``, start angle, and
     either ``span_angle`` or ``end_angle``. If ``radius_y`` is omitted, the
-    arc is circular. ``clockwise=True`` draws clockwise.
+    arc is circular. ``clockwise=True`` draws clockwise. A negative
+    ``span_angle`` also draws clockwise.
 
     Attributes:
         start_angle: Starting angle in radians.
-        span_angle: Unsigned sweep in radians.
+        span_angle: Sweep magnitude in radians (non-negative after construction).
         clockwise: True when the arc is drawn clockwise.
         n_points: Number of sampled points.
 
@@ -57,6 +63,11 @@ class Arc(Shape):
         >>> arc = sg.Arc((0, 0), 40, start_angle=0, span_angle=sg.pi / 2)
         >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in arc.vertices]
         [[40.0, 0.0], [39.39231, 6.945927], [37.587705, 13.680806], [34.641016, 20.0], [30.641778, 25.711504], [25.711504, 30.641778], [20.0, 34.641016], [13.680806, 37.587705], [6.945927, 39.39231], [0.0, 40.0]]
+        >>> cw = sg.Arc((0, 0), 40, start_angle=0, span_angle=-sg.pi / 2)
+        >>> cw.clockwise
+        True
+        >>> round(cw.span_angle, 6)
+        1.570796
     """
 
     @alias_argument({"radius_x": "rx", "radius_y": "ry"})
@@ -82,9 +93,9 @@ class Arc(Shape):
             radius_x: Semi-axis along x (before rotation).
             radius_y: Semi-axis along y; defaults to ``radius_x`` (circle).
             start_angle: Starting angle in radians. Defaults to 0.
-            span_angle: Unsigned sweep in radians. Mutually exclusive with
-                ``end_angle``. At least one of ``span_angle`` or
-                ``end_angle`` is required.
+            span_angle: Sweep in radians. A negative value draws clockwise.
+                Mutually exclusive with ``end_angle``. At least one of
+                ``span_angle`` or ``end_angle`` is required.
             rot_angle: Extra rotation about the center. Defaults to 0.
             n_points: Sample count; defaults from settings scaled by span.
             xform_matrix: Optional transformation matrix.
@@ -618,12 +629,15 @@ def resolve_arc_sweep(
     """Return a signed sweep for arc point generation.
 
     Positive sweep is counter-clockwise. Negative sweep is clockwise.
-    Pass either ``span_angle`` or ``end_angle``, not both. ``span_angle``
-    is an unsigned sweep; ``clockwise`` selects direction.
+    Pass either ``span_angle`` or ``end_angle``, not both. A negative
+    ``span_angle`` is a clockwise sweep. ``clockwise=True`` also makes
+    the sweep clockwise, using ``abs(span_angle)``. Combining
+    ``clockwise=True`` with a negative ``span_angle`` still draws
+    clockwise and issues ``WarningType.geometry.clockwise_negative_span``.
 
     Args:
         start_angle: Starting angle in radians.
-        span_angle: Unsigned sweep in radians, or ``None``.
+        span_angle: Sweep in radians, or ``None``. Negative is clockwise.
         end_angle: Ending angle in radians, or ``None``.
         clockwise: If True, the arc is drawn clockwise. Defaults to False.
         default_span: Used when both ``span_angle`` and ``end_angle`` are
@@ -635,7 +649,6 @@ def resolve_arc_sweep(
     Raises:
         TypeError: If both ``span_angle`` and ``end_angle`` are given, or
             if neither is given and ``default_span`` is ``None``.
-        ValueError: If ``span_angle`` is negative.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -644,6 +657,12 @@ def resolve_arc_sweep(
         1.570796
         >>> round(resolve_arc_sweep(0, sg.pi / 2, None, clockwise=True), 6)
         -1.570796
+        >>> round(resolve_arc_sweep(0, -sg.pi / 2, None), 6)
+        -1.570796
+        >>> sg.pause_warnings()
+        >>> round(resolve_arc_sweep(0, -sg.pi / 2, None, clockwise=True), 6)
+        -1.570796
+        >>> sg.resume_warnings()
         >>> round(resolve_arc_sweep(0, None, sg.pi / 2), 6)
         1.570796
         >>> resolve_arc_sweep(0, sg.pi / 2, sg.pi / 2)
@@ -668,12 +687,14 @@ def resolve_arc_sweep(
         if clockwise:
             return -sweep
         return sweep
-    if span_angle < 0:
-        raise ValueError(
-            "span_angle must be >= 0; use clockwise=True for clockwise arcs."
-        )
     if clockwise:
-        return -span_angle
+        if span_angle < 0:
+            issue_warning(
+                "clockwise=True with a negative span_angle is redundant; "
+                "the arc is still drawn clockwise.",
+                warning_type=WarningType.geometry.clockwise_negative_span,
+            )
+        return -abs(span_angle)
     return span_angle
 
 
@@ -769,9 +790,9 @@ def elliptic_arc_points(
         radius_x: Semi-axis along x.
         radius_y: Semi-axis along y; defaults to ``radius_x``.
         start_angle: Starting angle in radians. Defaults to 0.
-        span_angle: Unsigned sweep in radians. Mutually exclusive with
-            ``end_angle``. At least one of ``span_angle`` or
-            ``end_angle`` is required.
+        span_angle: Sweep in radians. A negative value draws clockwise.
+            Mutually exclusive with ``end_angle``. At least one of
+            ``span_angle`` or ``end_angle`` is required.
         n_points: Number of points to generate.
         end_angle: Ending angle in radians. Mutually exclusive with
             ``span_angle``.
@@ -790,6 +811,9 @@ def elliptic_arc_points(
         ... )
         >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
         [[2.0, 0.0], [1.414214, 0.707107], [0.0, 1.0]]
+        >>> pts = sg.elliptic_arc_points((0, 0), 2, 1, sg.pi / 2, -sg.pi / 2, n_points=3)
+        >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
+        [[0.0, 1.0], [1.414214, 0.707107], [2.0, 0.0]]
     """
     if radius_y is None:
         radius_y = radius_x

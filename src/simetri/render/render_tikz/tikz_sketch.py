@@ -1027,6 +1027,54 @@ def draw_path_sketch(
     return body + "".join(label_lines)
 
 
+def draw_text_path_sketch(sketch: Any) -> str:
+    """Serialize a ``TextPathSketch`` to TikZ ``text along path``.
+
+    Args:
+        sketch: Text-on-path sketch with ``path_data`` and font attributes.
+
+    Returns:
+        str: TikZ markup.
+
+    Examples:
+        >>> draw_text_path_sketch  # doctest: +SKIP
+    """
+    path_data = sketch.path_data
+    text_value = detokenize(sketch.text)
+    deco = [
+        "text along path",
+        f"text={{{text_value}}}",
+    ]
+    font_color = sketch.font_color
+    if font_color is not None:
+        deco.append(f"text color={color_to_tikz(font_color, 'font_color')}")
+    font_cmds = []
+    if sketch.italic:
+        font_cmds.append(r"\itshape")
+    if sketch.bold:
+        font_cmds.append(r"\bfseries")
+    font_size = sketch.font_size
+    if isinstance(font_size, FontSize):
+        font_cmds.append(rf"\{font_size.value}")
+    elif isinstance(font_size, (int, float)):
+        font_cmds.append(
+            rf"\fontsize{{{font_size}}}{{{font_size * 1.2}}}\selectfont"
+        )
+    if font_cmds:
+        deco.append("text font=" + "".join(font_cmds))
+    deco_text = ", ".join(deco)
+    lines = []
+    if sketch.draw_path:
+        options = get_line_style_options(sketch)
+        option_text = f"[{', '.join(options)}]" if options else ""
+        lines.append(f"\\draw{option_text} svg {{{path_data}}};\n")
+    lines.append(
+        f"\\path[decorate, decoration={{{deco_text}}}] "
+        f"svg {{{path_data}}};\n"
+    )
+    return "".join(lines)
+
+
 def draw_line_sketch(
     sketch: Any,
     canvas: Canvas | None = None,

@@ -24,6 +24,7 @@ from ..base.all_enums import (
     get_enum_value,
 )
 from ..base.common import PointType, alias_argument
+from ..base.common_style import coerce_style_overlay
 from ..coloring import colors
 from ..coloring.colors import Color, change_lightness
 from ..config.settings import runtime_defaults
@@ -31,6 +32,7 @@ from ..geom.affine import (
     rotation_matrix,
     translation_matrix,
 )
+from ..geom.bbox import bounding_box
 from ..geom.geom_utils import midpoint
 from ..geom.points.point_utils import distance
 from ..geom.homogenize import homogenize
@@ -40,7 +42,11 @@ from ..geom.nonlinear.ellipse import (
     _elliptic_arc_points_from_signed,
     resolve_arc_sweep,
 )
-from ..geom.nonlinear.path import group_to_nonzero_path, path2d_to_svg_path
+from ..geom.nonlinear.path import (
+    Path2D,
+    group_to_nonzero_path,
+    path2d_to_svg_path,
+)
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.polygons.polygon import offset_polygon
 from ..geom.segments.line_utils import (
@@ -49,7 +55,7 @@ from ..geom.segments.line_utils import (
     intersection,
 )
 from ..group.batch import Group
-from ..helpers.illustration import Tag
+from ..helpers.illustration import Tag, TextPath
 from ..helpers.utilities import (
     decompose_transformations,
     group_into_bins,
@@ -75,10 +81,12 @@ from .sketch import (
     ShapeSketch,
     Sketch,
     TagSketch,
+    TextPathSketch,
 )
 
 DrawStyleKwargs = dict[str, object]
 from .style_map import (
+    MarkerStyle,
     line_style_map,
     shape_style_map,
     tag_style_map,
@@ -239,9 +247,9 @@ def arc(
         radius_x: Radius along the local x-axis.
         radius_y: Radius along the local y-axis; defaults to ``radius_x``.
         start_angle: Start angle in radians. Defaults to 0.
-        span_angle: Unsigned sweep in radians. Mutually exclusive with
-            ``end_angle``. At least one of ``span_angle`` or ``end_angle``
-            is required.
+        span_angle: Sweep in radians. A negative value draws clockwise.
+            Mutually exclusive with ``end_angle``. At least one of
+            ``span_angle`` or ``end_angle`` is required.
         rot_angle: Rotation of the arc about ``center``, in radians.
         n_points: Number of samples along the arc.
         end_angle: Ending angle in radians. Mutually exclusive with
@@ -471,6 +479,62 @@ def text(
     self._sketch_xform_matrix = identity_matrix()
     self.active_page.sketches.append(sketch)
 
+    return self
+
+
+def text_path(
+    self: Canvas,
+    txt: str,
+    path: Path2D | Shape,
+    font_family: str | None = None,
+    font_size: int | None = None,
+    font_color: Color | None = None,
+    bold: bool = False,
+    italic: bool = False,
+    draw_path: bool = False,
+    **kwargs: object,
+) -> Self:
+    """Draw text along a path.
+
+    Args:
+        txt: Text to place on the path.
+        path: A ``Path2D`` or ``Shape``.
+        font_family: Font family. None uses the default.
+        font_size: Font size. None uses the default.
+        font_color: Color of the text. None uses the default.
+        bold: Bold type. Defaults to False.
+        italic: Italic type. Defaults to False.
+        draw_path: If True, also stroke the guide path. Defaults to False.
+        **kwargs: Extra attributes stored on the ``TextPath``.
+
+    Returns:
+        Self: The canvas.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> curve = sg.Path2D((0, 0)).line_to((80, 0))
+        >>> canvas.text_path("along", curve) is canvas
+        True
+        >>> canvas.active_page.sketches[-1].subtype.name
+        'TEXT_PATH_SKETCH'
+    """
+    item = TextPath(
+        txt,
+        path,
+        font_family=font_family,
+        font_size=font_size,
+        font_color=font_color,
+        bold=bold,
+        italic=italic,
+        draw_path=draw_path,
+        **kwargs,
+    )
+    self._sketch_xform_matrix = self.xform_matrix
+    extend_vertices(self, item)
+    sketch = create_sketch(item, self)
+    self._sketch_xform_matrix = identity_matrix()
+    self.active_page.sketches.append(sketch)
     return self
 
 
@@ -832,27 +896,250 @@ def insert_tex(self: Canvas, code: str, location: TexLoc = TexLoc.NONE) -> Self:
     return self
 
 
-def draw_bbox(self: Canvas, bbox: BoundingBox, **kwargs: object) -> Self:
-    """Draw a bounding box as a closed shape sketch.
+def _bbox_feature_style(option: object) -> dict[str, object] | None:
+    """Return draw kwargs for a bbox feature, or None to skip it.
+
+    ``False`` skips. ``True`` uses default line color and width.
+    A style dict or ``Style`` is applied as given.
+    """
+    if option is False:
+        return None
+    if option is True:
+        return {
+            "fill": False,
+            "stroke": True,
+            "line_color": runtime_defaults["line_color"],
+            "line_width": runtime_defaults["line_width"],
+        }
+    return coerce_style_overlay(option)
+
+
+def _merge_style(
+    base: dict[str, object], extra: dict[str, object]
+) -> dict[str, object]:
+    """Return ``base`` with ``extra`` keys overwriting."""
+    merged = dict(base)
+    for key in extra:
+        merged[key] = extra[key]
+    return merged
+
+
+def draw_bbox(
+    self: Canvas,
+    bbox: BoundingBox,
+    border: bool | dict[str, object] = False,
+    centerlines: bool | dict[str, object] = False,
+    diagonals: bool | dict[str, object] = False,
+    **kwargs: object,
+) -> Self:
+    """Draw a bounding box.
+
+    If ``border``, ``centerlines``, and ``diagonals`` are all False, the
+    box is drawn as a bounding-box sketch (same as ``canvas.draw(bbox)``).
+    If a flag is True, those lines use the default line color and width.
+    If a flag is a style dict, those lines use that style.
 
     Args:
         bbox: Bounding box to draw.
-        **kwargs: Style overrides forwarded to ``create_sketch``.
+        border: Rectangle outline. Defaults to False.
+        centerlines: Horizontal and vertical centerlines. Defaults to False.
+        diagonals: Both diagonals. Defaults to False.
+        **kwargs: Extra style forwarded to each drawn part, or to the
+            bounding-box sketch when all flags are False.
 
     Returns:
         Self: The canvas.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> from simetri.render.draw import draw_bbox
         >>> canvas = sg.Canvas()
-        >>> box = sg.bounding_box([(0, 0), (10, 5)])
-        >>> draw_bbox(canvas, box) is canvas
+        >>> box = sg.BoundingBox((0, 0), (10, 5))
+        >>> canvas.draw_bbox(box) is canvas
         True
+        >>> canvas.active_page.sketches[0].subtype.name
+        'BBOX_SKETCH'
+        >>> len(canvas._all_vertices)
+        4
+        >>> canvas.draw_bbox(box, border=True) is canvas
+        True
+        >>> canvas.active_page.sketches[1].subtype.name
+        'SHAPE_SKETCH'
+        >>> before = len(canvas.active_page.sketches)
+        >>> canvas.draw_bbox(box, centerlines=True, diagonals={"line_width": 2}) is canvas
+        True
+        >>> len(canvas.active_page.sketches) - before
+        4
 """
-    sketch = create_sketch(bbox, self, **kwargs)
-    self.active_page.sketches.append(sketch)
+    border_style = _bbox_feature_style(border)
+    centerlines_style = _bbox_feature_style(centerlines)
+    diagonals_style = _bbox_feature_style(diagonals)
+    if (
+        border_style is None
+        and centerlines_style is None
+        and diagonals_style is None
+    ):
+        extend_vertices(self, bbox)
+        sketch = create_sketch(bbox, self, **kwargs)
+        self.active_page.sketches.append(sketch)
+        return self
 
+    if border_style is not None:
+        draw(
+            self,
+            Shape(bbox.corners, closed=True),
+            **_merge_style(border_style, kwargs),
+        )
+    if centerlines_style is not None:
+        part_style = _merge_style(centerlines_style, kwargs)
+        vertical = bbox.vert_centerline
+        horizontal = bbox.horiz_centerline
+        draw(self, Shape([vertical[0], vertical[1]]), **part_style)
+        draw(self, Shape([horizontal[0], horizontal[1]]), **part_style)
+    if diagonals_style is not None:
+        part_style = _merge_style(diagonals_style, kwargs)
+        first = bbox.diagonal1
+        second = bbox.diagonal2
+        draw(self, Shape([first[0], first[1]]), **part_style)
+        draw(self, Shape([second[0], second[1]]), **part_style)
+
+    return self
+
+
+_GEOMETRIC_GRID_TYPES = frozenset(
+    (
+        Types.CIRCULAR_GRID,
+        Types.HEX_GRID,
+        Types.MIXED_GRID,
+        Types.SQUARE_GRID,
+    )
+)
+
+
+def draw_geometric_grid(
+    self: Canvas, grid: Group, **kwargs: object
+) -> Self:
+    """Draw a geometric grid from ``connections``, ``skip``, ``border``,
+    ``orthogonals``, ``diagonals``, and ``centerlines``.
+
+    Args:
+        grid: ``CircularGrid``, ``SquareGrid``, ``HexGrid``, or ``Grid``.
+        **kwargs: Extra style forwarded to each drawn part. ``indices=True``
+            labels the grid vertices only, not the chord endpoints.
+
+    Returns:
+        Self: The canvas.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> grid = sg.CircularGrid(n=6, radius=10)
+        >>> grid.connections = [3]
+        >>> grid.orthogonals = False
+        >>> canvas.draw(grid) is canvas
+        True
+        >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
+        ['SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'CIRCLE_SKETCH']
+        >>> canvas = sg.Canvas()
+        >>> grid = sg.SquareGrid(n=16, cell_size=25)
+        >>> canvas.draw(grid, indices=True) is canvas
+        True
+        >>> [
+        ...     len(sketch.vertices)
+        ...     for sketch in canvas.active_page.sketches
+        ...     if "indices" in sketch.__dict__ and sketch.indices
+        ... ]
+        [16]
+        >>> [
+        ...     sketch.subtype.name
+        ...     for sketch in canvas.active_page.sketches
+        ...     if "indices" not in sketch.__dict__ or not sketch.indices
+        ... ].count("SHAPE_SKETCH")
+        22
+        >>> canvas = sg.Canvas()
+        >>> grid = sg.SquareGrid(n=16, cell_size=25)
+        >>> grid.orthogonals = False
+        >>> grid.diagonals = True
+        >>> canvas.draw(grid) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        2
+        >>> canvas = sg.Canvas()
+        >>> grid = sg.SquareGrid(n=16, cell_size=25)
+        >>> grid.orthogonals = False
+        >>> grid.centerlines = True
+        >>> canvas.draw(grid) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        2
+    """
+    points = list(grid.points)
+    part_kwargs = dict(kwargs)
+    if "indices" in part_kwargs:
+        del part_kwargs["indices"]
+    line_style = {
+        "fill": False,
+        "stroke": True,
+        "line_color": runtime_defaults["grid_line_color"],
+        "line_width": runtime_defaults["grid_line_width"],
+    }
+    line_style = _merge_style(line_style, part_kwargs)
+    for first, second in grid.line_index_pairs():
+        draw(
+            self,
+            Shape([points[first], points[second]]),
+            **line_style,
+        )
+
+    ortho_style = _bbox_feature_style(grid.orthogonals)
+    if ortho_style is not None:
+        for first, second in grid.orthogonal_index_pairs():
+            draw(
+                self,
+                Shape([points[first], points[second]]),
+                **_merge_style(ortho_style, part_kwargs),
+            )
+
+    centerlines_style = _bbox_feature_style(grid.centerlines)
+    if centerlines_style is not None and points:
+        box = bounding_box(points)
+        part_style = _merge_style(centerlines_style, part_kwargs)
+        vertical = box.vert_centerline
+        horizontal = box.horiz_centerline
+        draw(self, Shape([vertical[0], vertical[1]]), **part_style)
+        draw(self, Shape([horizontal[0], horizontal[1]]), **part_style)
+
+    diag_style = _bbox_feature_style(grid.diagonals)
+    if diag_style is not None:
+        for first, second in grid.diagonal_index_pairs():
+            draw(
+                self,
+                Shape([points[first], points[second]]),
+                **_merge_style(diag_style, part_kwargs),
+            )
+
+    border_style = _bbox_feature_style(grid.border)
+    if border_style is not None:
+        draw(
+            self,
+            Shape(points, closed=True),
+            **_merge_style(border_style, part_kwargs),
+        )
+
+    if "indices" in kwargs and kwargs["indices"]:
+        index_style: dict[str, object] = {
+            "fill": False,
+            "stroke": False,
+            "indices": True,
+        }
+        for key in kwargs:
+            if key == "indices" or key.startswith("index_"):
+                index_style[key] = kwargs[key]
+        draw(self, Shape(points), **index_style)
+
+    for element in grid:
+        if element is grid._points:
+            continue
+        draw(self, element, **part_kwargs)
     return self
 
 
@@ -1813,6 +2100,96 @@ def draw_lines(self: Canvas, lines: Sequence[Sequence[PointType]], **kwargs: obj
     return self
 
 
+_MARKER_DEFAULT_KEYS = (
+    "marker_alpha",
+    "marker_color",
+    "marker_line_style",
+    "marker_line_width",
+    "marker_radius",
+    "marker_shape",
+    "marker_size",
+    "marker_type",
+)
+
+
+def _marker_style_as_draw_kwargs(marker_style: object) -> dict[str, object]:
+    """Return draw-alias kwargs from a MarkerStyle, Style, or style dict."""
+    if isinstance(marker_style, MarkerStyle):
+        return {
+            "marker_alpha": marker_style.alpha,
+            "marker_color": marker_style.color,
+            "marker_radius": marker_style.radius,
+            "marker_shape": marker_style.shape,
+            "marker_size": marker_style.size,
+            "marker_type": marker_style.marker_type,
+        }
+    return coerce_style_overlay(marker_style)
+
+
+def draw_points(
+    self: Canvas,
+    points: Sequence[PointType],
+    marker_style: object | None = None,
+    **kwargs: object,
+) -> Self:
+    """Draw markers at the given points.
+
+    If ``marker_style`` is omitted, default marker values are used.
+    A ``MarkerStyle``, style dict, or ``marker_*`` keyword arguments
+    override those defaults.
+
+    Args:
+        points: Sequence of ``(x, y)`` positions.
+        marker_style: Optional marker style. Defaults to None (library
+            marker defaults).
+        **kwargs: Extra style forwarded to ``draw``.
+
+    Returns:
+        Self: The canvas.
+
+    Raises:
+        ValueError: If ``points`` is empty.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw_points([(0, 0), (10, 0)]) is canvas
+        True
+        >>> sketch = canvas.active_page.sketches[0]
+        >>> sketch.draw_markers
+        True
+        >>> sketch.markers_only
+        True
+        >>> sketch.marker_type == sg.defaults["marker_type"]
+        True
+        >>> sketch.marker_size == sg.defaults["marker_size"]
+        True
+        >>> tuple(sketch.vertices)
+        ((0.0, 0.0), (10.0, 0.0))
+        >>> canvas.draw_points([(0, 0)], marker_size=5) is canvas
+        True
+        >>> canvas.active_page.sketches[1].marker_size
+        5
+    """
+    point_list = list(points)
+    if not point_list:
+        raise ValueError("points must be a non-empty sequence")
+    draw_kwargs: dict[str, object] = {
+        "draw_markers": True,
+        "markers_only": True,
+    }
+    for name in _MARKER_DEFAULT_KEYS:
+        draw_kwargs[name] = runtime_defaults[name]
+    if marker_style is not None:
+        overlay = _marker_style_as_draw_kwargs(marker_style)
+        for name in overlay:
+            draw_kwargs[name] = overlay[name]
+    for name in kwargs:
+        draw_kwargs[name] = kwargs[name]
+    draw(self, Shape(point_list), **draw_kwargs)
+    return self
+
+
 def draw_image(
     self: Canvas,
     image: Image,
@@ -2101,6 +2478,7 @@ regular_sketch_types = [
     Types.STAR,
     Types.TABLE,
     Types.TAG,
+    Types.TEXT_PATH,
 ]
 
 
@@ -2158,6 +2536,12 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         all_vertices.extend(vertices)
     elif item.subtype == Types.TAG:
         # Tag objects have all_vertices property that includes text bounding box
+        vertices = [
+            x[:2]
+            for x in homogenize(item.all_vertices) @ canvas._sketch_xform_matrix
+        ]
+        all_vertices.extend(vertices)
+    elif item.subtype == Types.TEXT_PATH:
         vertices = [
             x[:2]
             for x in homogenize(item.all_vertices) @ canvas._sketch_xform_matrix
@@ -2250,6 +2634,10 @@ def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
     subtype = item.subtype
     if item.type is not Types.CLIPPING:
         extend_vertices(self, item)
+
+    if subtype in _GEOMETRIC_GRID_TYPES:
+        draw_geometric_grid(self, item, **kwargs)
+        return self
 
     if subtype == Types.PATH2D and kwargs.get("handles", False):
         handle_size = runtime_defaults["handle_marker_size"]
@@ -2709,6 +3097,37 @@ def _get_tag_sketch(
         if k in _PRECEDENCE_KEYS:
             continue
         setattr(sketch, k, v)
+    return sketch
+
+
+def _get_text_path_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> TextPathSketch:
+    """Create a TextPathSketch from the given item."""
+    transformed_path = item.path.copy()
+    transformed_path._update(item.xform_matrix)
+    transformed_path._update(canvas._sketch_xform_matrix)
+    sketch = TextPathSketch(
+        text=item.text,
+        path_data=path2d_to_svg_path(transformed_path),
+        draw_path=item.draw_path,
+        vertices=list(transformed_path.all_vertices),
+        xform_matrix=canvas._sketch_xform_matrix,
+    )
+    sketch.visible = item.visible
+    sketch.font_family = canvas.resolve_property(item, "font_family")
+    sketch.font_size = canvas.resolve_property(item, "font_size")
+    sketch.font_color = canvas.resolve_property(item, "font_color")
+    sketch.bold = item.bold
+    sketch.italic = item.italic
+    if item.draw_path:
+        set_shape_sketch_style(sketch, item, canvas, **kwargs)
+        sketch.stroke = True
+        sketch.fill = False
+    for key, value in kwargs.items():
+        if key in _PRECEDENCE_KEYS:
+            continue
+        setattr(sketch, key, value)
     return sketch
 
 
@@ -3176,6 +3595,7 @@ _d_subtype_sketch = {
     Types.STAR: _get_composite_sketch,
     Types.TABLE: _get_table_sketch,
     Types.TAG: _get_tag_sketch,
+    Types.TEXT_PATH: _get_text_path_sketch,
 }
 
 

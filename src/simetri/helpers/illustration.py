@@ -55,8 +55,10 @@ from ..geom.geometry import (
     bbox_overlap,
     polar_to_cartesian,
 )
+from ..geom.homogenize import homogenize
 from ..geom.matrices import identity_matrix
 from ..geom.nonlinear.ellipse import Arc, resolve_arc_sweep
+from ..geom.nonlinear.path import Path2D, shape_to_path2d
 from ..geom.points.point_utils import distance
 from ..geom.segments.line_utils import (
     extended_line,
@@ -1461,6 +1463,182 @@ class Tag(Base):
         return f"Tag({self.text})"
 
 
+def _path2d_for_text(path: Path2D | Shape) -> Path2D:
+    """Return a Path2D copy of ``path`` for text-along-path drawing.
+
+    Raises:
+        TypeError: If ``path`` is not a ``Path2D`` or ``Shape``.
+        ValueError: If the path has no segments.
+    """
+    if isinstance(path, Path2D):
+        path2d = path.copy()
+    elif isinstance(path, Shape):
+        path2d = shape_to_path2d(path)
+    else:
+        raise TypeError("text_path path must be a Path2D or Shape.")
+    if not path2d.operations:
+        raise ValueError("text_path requires a path with at least one segment.")
+    return path2d
+
+
+class TextPath(Base):
+    """Text laid out along a path (SVG ``textPath``, TikZ ``text along path``).
+
+    The guide path is not stroked unless ``draw_path`` is True. Font
+    kwargs match ``canvas.text``; Tag frames and anchors do not apply.
+
+    Args:
+        text: String to place along the path.
+        path: A ``Path2D`` or a ``Shape`` (converted to a polyline path).
+        font_family: Font family. ``None`` uses the default.
+        font_size: Font size. ``None`` uses the default.
+        font_color: Text color. ``None`` uses the default at draw time.
+        bold: Bold type. Defaults to False.
+        italic: Italic type. Defaults to False.
+        draw_path: If True, also stroke the guide path. Defaults to False.
+        xform_matrix: Optional extra transform. Defaults to None.
+        **kwargs: Extra attributes stored on the object.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> curve = sg.Path2D((0, 0)).quad_to((50, 40), (100, 0))
+        >>> item = sg.TextPath("curve", curve)
+        >>> item.text
+        'curve'
+        >>> item.draw_path
+        False
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(item) is canvas
+        True
+        >>> canvas.active_page.sketches[-1].subtype.name
+        'TEXT_PATH_SKETCH'
+    """
+
+    def __init__(
+        self,
+        text: str,
+        path: Path2D | Shape,
+        font_family: str | FontFamily | None = None,
+        font_size: int | float | FontSize | None = None,
+        font_color: Color | None = None,
+        bold: bool = False,
+        italic: bool = False,
+        draw_path: bool = False,
+        xform_matrix: NDArray | None = None,
+        **kwargs: object,
+    ) -> None:
+        """Create text along a path. See the class docstring."""
+        self.text = text
+        self.path = _path2d_for_text(path)
+        self.type = Types.TEXT_PATH
+        self.subtype = Types.TEXT_PATH
+        self.visible = True
+        self.closed = self.path.closed
+        self.draw_path = draw_path
+        self.bold = bold
+        self.italic = italic
+        if font_family is not None:
+            self.font_family = font_family
+        else:
+            self.font_family = runtime_defaults["font_family"]
+        if font_size is not None:
+            self.font_size = font_size
+        else:
+            self.font_size = runtime_defaults["font_size"]
+        self.font_color = font_color
+        if xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+        else:
+            self.xform_matrix = get_transform(xform_matrix)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def _update(
+        self,
+        xform_matrix: NDArray[np.float64],
+        reps: int = 0,
+        take: slice | None = None,
+        incr: float
+        | tuple[float, float]
+        | tuple[callable, Any]
+        | tuple[InPlace, Any]
+        | NDArray
+        | Sequence[Sequence[float]]
+        | None = None,
+        dyn_ref: Callable | None = None,
+        merge: bool = False,
+        xform_type: TransformationType | None = None,
+    ) -> TextPath | Group:
+        if take is not None:
+            raise ValueError(
+                "TextPath._update does not support take=; "
+                "transform the whole object."
+            )
+        if reps == 0:
+            self.xform_matrix = self.xform_matrix @ xform_matrix
+            return self
+        items = [self]
+        item = self
+        if dyn_ref:
+            pattern = Group()
+            pattern.elements = items
+            targets = _Targets(self, pattern)
+        else:
+            targets = None
+        for i in range(reps):
+            item = item.copy()
+            if targets is not None:
+                targets.active = item
+            xform_matrix = _next_xform_matrix(
+                xform_matrix, xform_type, incr, dyn_ref, targets, i
+            )
+            item._update(xform_matrix)
+            items.append(item)
+        res = Group(items)
+        if merge:
+            res = res.merge_shapes()
+        return res
+
+    @property
+    def all_vertices(self) -> list[PointType]:
+        """Path vertices after this object's transform."""
+        vertices = self.path.all_vertices
+        if not vertices:
+            return []
+        return [
+            point[:2]
+            for point in (homogenize(vertices) @ self.xform_matrix).tolist()
+        ]
+
+    @property
+    def b_box(self) -> BoundingBox:
+        """Bounding box of the guide path after this object's transform."""
+        return bounding_box(self.all_vertices)
+
+    def copy(self, **kwargs: object) -> TextPath:
+        """Return a copy of this text-on-path object."""
+        copied = TextPath(
+            self.text,
+            self.path.copy(),
+            font_family=self.font_family,
+            font_size=self.font_size,
+            font_color=self.font_color,
+            bold=self.bold,
+            italic=self.italic,
+            draw_path=self.draw_path,
+            xform_matrix=self.xform_matrix.copy(),
+        )
+        for key, value in kwargs.items():
+            setattr(copied, key, value)
+        return copied
+
+    def __str__(self) -> str:
+        return f"TextPath({self.text})"
+
+    def __repr__(self) -> str:
+        return f"TextPath({self.text})"
+
+
 class ArrowHead(Shape):
     """An ArrowHead object is a shape that represents the head of an arrow.
 
@@ -1649,9 +1827,9 @@ class ArcArrow(Group):
         radius_x: Semi-axis along x.
         radius_y: Semi-axis along y; defaults to ``radius_x``.
         start_angle: The starting angle of the arc in radians. Defaults to 0.
-        span_angle: Unsigned sweep in radians. Mutually exclusive with
-            ``end_angle``. At least one of ``span_angle`` or
-            ``end_angle`` is required.
+        span_angle: Sweep in radians. A negative value draws clockwise.
+            Mutually exclusive with ``end_angle``. At least one of
+            ``span_angle`` or ``end_angle`` is required.
         end_angle: Ending angle in radians. Mutually exclusive with
             ``span_angle``.
         clockwise: If True, the arc is drawn clockwise. Defaults to False.

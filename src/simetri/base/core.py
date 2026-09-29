@@ -1355,14 +1355,16 @@ class Base:
         """Place copies of this object at points along ``path``.
 
         The first path point is used as the new position of this object.
-        Later points, taken every ``step``, are appended as copies.
+        Later points, taken every ``step``, become extra copies: a Shape
+        returns a new Group of this object plus those copies; a Group
+        appends the copies in place.
 
         Args:
             path (Sequence[PointType]): Points to place the object on.
             step (int, optional): Use every ``step``-th point after the first.
                 Defaults to 1.
-            align_tangent (bool, optional): Rotate to the path direction.
-                Defaults to False.
+            align_tangent (bool, optional): Set heading to the path
+                direction (not an added rotation). Defaults to False.
             scale (float, optional): Scale applied at each placed copy.
                 Defaults to 1.
             rotate (float, optional): Extra rotation in radians at each copy.
@@ -1371,11 +1373,13 @@ class Base:
                 same forms as ``translate``. The first copy is not shifted.
                 Later copies add this increment to their path position.
                 Defaults to None.
-            merge (bool, optional): If True and copies were appended, replace
-                this object's elements with ``merge_shapes()``. Defaults to False.
+            merge (bool, optional): If True and copies were placed, merge
+                with ``merge_shapes()``. Defaults to False.
 
         Returns:
-            Self: This object, with the extra placements appended.
+            Self: This object when ``path`` has no extra points, or this
+            Group after in-place appends. A Shape with extra copies returns
+            a new Group (this object is ``group[0]``).
 
         Raises:
             ValueError: If ``dyn_ref`` is True.
@@ -1389,6 +1393,34 @@ class Base:
             (10.0, 4.0)
             >>> mark.vertices
             ((9.0, 3.0), (11.0, 3.0), (11.0, 5.0), (9.0, 5.0))
+            >>> stamp = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+            >>> row = stamp.translate_along([(10, 4), (20, 4)])
+            >>> row.type == sg.Types.GROUP
+            True
+            >>> len(row)
+            2
+            >>> row[0] is stamp
+            True
+            >>> stamp.midpoint
+            (10.0, 4.0)
+            >>> row[1].midpoint
+            (20.0, 4.0)
+            >>> unit = sg.Group(
+            ...     [sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)]
+            ... )
+            >>> grown = unit.translate_along([(10, 4), (20, 4)])
+            >>> grown is unit
+            True
+            >>> len(unit)
+            2
+            >>> needle = sg.Shape([(0, 0), (1, 0)])
+            >>> aligned = needle.translate_along(
+            ...     [(0, 0), (1, 1), (1, 2)], align_tangent=True
+            ... )
+            >>> round(float(aligned[1].angle), 10)
+            0.7853981634
+            >>> round(float(aligned[2].angle), 10)
+            1.5707963268
             >>> mark.translate_along([(0, 0), (1, 0)], dyn_ref=True)
             Traceback (most recent call last):
                 ...
@@ -1400,14 +1432,23 @@ class Base:
                 "dyn_ref has no transform arguments to resolve. Use "
                 "translate, rotate, mirror, glide, scale, or shear instead."
             )
+        def _heading(obj: Any) -> float:
+            if obj.type == Types.GROUP:
+                return float(
+                    decompose_transformations(obj.elements[0].xform_matrix)[1]
+                )
+            return float(decompose_transformations(obj.xform_matrix)[1])
+
         x, y = path[0][:2]
         self.move_to((x, y))
         dup = self.copy()
         if align_tangent:
             tangent = line_angle(path[-1], path[0])
-            self.rotate(tangent, about=path[0], reps=0)
+            self.rotate(tangent - _heading(self), about=path[0], reps=0)
         dup2 = dup.copy()
         offset = translation_matrix(0, 0)
+        copies = []
+        previous_point = path[0]
         for i, point in enumerate(path[1::step]):
             dup2 = dup2.copy()
             px, py = point[:2]
@@ -1421,16 +1462,37 @@ class Base:
             dup2.move_to((px, py))
             if scale != 1:
                 dup2.scale(scale, about=(px, py))
+            if align_tangent:
+                tangent = line_angle(previous_point, point)
+                dup2.rotate(
+                    tangent - _heading(dup2), about=(px, py), reps=0
+                )
             if rotate != 0:
                 dup2.rotate(rotate, about=(px, py))
-            self.append(dup2)
-            if align_tangent:
-                tangent = line_angle(path[i - 1], path[i])
-                dup2.rotate(tangent, about=(px, py), reps=0)
-        if merge and len(path[1::step]) > 0:
-            merged = self.merge_shapes()
-            self[:] = merged.elements[:]
-        return self
+            copies.append(dup2)
+            previous_point = point
+        if not copies:
+            return self
+        if self.type == Types.GROUP:
+            for copy in copies:
+                self.append(copy)
+            if merge:
+                merged = self.merge_shapes()
+                self[:] = merged.elements[:]
+            return self
+        return self._translate_along_group(copies, merge)
+
+    def _translate_along_group(
+        self, copies: Sequence[Any], merge: bool
+    ) -> Any:
+        """Collect extra ``translate_along`` copies into a Group.
+
+        Shape implements this. Group does not reach it (it appends in place).
+        """
+        raise TypeError(
+            "translate_along extra path points require a Shape "
+            "(returns a new Group) or a Group (appends in place)."
+        )
 
     def rotate(
         self,

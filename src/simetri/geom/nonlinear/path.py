@@ -34,7 +34,7 @@ from ...base.all_enums import (
     get_enum_value,
 )
 from ...base.all_enums import PathOperation as PathOps
-from ...base.common import PointType, alias_argument
+from ...base.common import PointType, alias_argument, resolve_tol
 from ...base.common_style import CommonStyle
 from ...base.core import _next_xform_matrix, _Targets
 from ...coloring.colors import Color
@@ -49,9 +49,9 @@ from ..geometry import (
     polar_to_cartesian,
     positive_angle,
 )
-from ..points.point_utils import distance
+from ..points.point_utils import distance, lerp_point
 from ..homogenize import homogenize
-from ..polygons.polygon import polygon_area
+from ..polygons.polygon import polygon_area, polyline_length
 from ..segments.line_utils import (
     extended_line,
     line_angle,
@@ -112,6 +112,31 @@ _OPEN_SUBPATH_OPS = (
 )
 
 array = np.array
+
+
+def _xy_point(point: PointType) -> tuple[float, float]:
+    """Return ``(x, y)`` as floats from a 2- or 3-vector."""
+    x, y = point[:2]
+    return (float(x), float(y))
+
+
+def _polyline_point_at_length(
+    vertices: Sequence[PointType], target_length: float
+) -> tuple[float, float]:
+    """Return the point at arc length ``target_length`` along a polyline."""
+    if target_length <= 0:
+        return _xy_point(vertices[0])
+    remaining = target_length
+    for index in range(len(vertices) - 1):
+        start = vertices[index]
+        end = vertices[index + 1]
+        edge_length = distance(start, end)
+        if remaining <= edge_length:
+            if edge_length == 0:
+                return _xy_point(start)
+            return _xy_point(lerp_point(start, end, remaining / edge_length))
+        remaining -= edge_length
+    return _xy_point(vertices[-1])
 
 
 @dataclass
@@ -354,7 +379,9 @@ class Path2D(Group, CommonStyle):
         elif op_type == PO.HOBBY_TO:
             n_points = runtime_defaults["n_hobby_points"]
             start = data[0]
-            through = data[1]
+            through = list(data[1])
+            if through and close_points_square(start, through[0]):
+                through = through[1:]
             curve = hobby_shape([start, *through], n_points=n_points)
             self.objects.append(Shape(curve.vertices))
             self.cur_shape.extend(curve.vertices[1:])
@@ -489,6 +516,140 @@ class Path2D(Group, CommonStyle):
             [[0.0, 0.0], [10.0, 0.0]]
         """
         return [obj for obj in self.objects if obj is not None]
+
+    @property
+    def sections(self) -> list:
+        """Geometric sections of the path (alias of ``all_elements``).
+
+        Each drawing operation that produces geometry is one section
+        (``line_to``, ``cubic_to``, ``arc``, …). ``move_to`` and ``close``
+        do not create sections.
+
+        Returns:
+            list: The same objects as ``all_elements``.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> path = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 5))
+            >>> len(path.sections)
+            2
+            >>> path.sections[0] is path.all_elements[0]
+            True
+        """
+        return self.all_elements
+
+    def uniform_points(
+        self,
+        distance: float,
+        align_section_ends: bool = True,
+        align_path_end: bool = True,
+        rel_tol: float | None = None,
+        abs_tol: float | None = None,
+    ) -> list[tuple[float, float]]:
+        """Return points spaced by ``distance`` along the path.
+
+        Sampling restarts on each section. A section end is included when
+        the leftover stub is within tolerance of ``distance`` (or of 0),
+        or when the matching align flag is True. On the last section,
+        ``align_path_end`` is used instead of ``align_section_ends``.
+        Connected section starts are not repeated; a new subpath start is.
+
+        Args:
+            distance: Arc-length spacing. Must be positive.
+            align_section_ends: If True, always include each non-final
+                section end. Defaults to True.
+            align_path_end: If True, always include the path end.
+                Defaults to True.
+            rel_tol: Relative leftover tolerance. ``None`` uses
+                ``runtime_defaults["rel_tol"]``.
+            abs_tol: Absolute leftover tolerance. ``None`` uses
+                ``runtime_defaults["abs_tol"]``.
+
+        Returns:
+            list[tuple[float, float]]: Sample points in path order.
+
+        Raises:
+            ValueError: If ``distance`` is not positive.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> path = sg.Path2D((0, 0)).line_to((10, 0))
+            >>> path.uniform_points(5)
+            [(0.0, 0.0), (5.0, 0.0), (10.0, 0.0)]
+            >>> path.uniform_points(3, align_path_end=False)
+            [(0.0, 0.0), (3.0, 0.0), (6.0, 0.0), (9.0, 0.0)]
+            >>> corner = sg.Path2D((0, 0)).line_to((10, 0)).line_to((10, 5))
+            >>> corner.uniform_points(3)
+            [(0.0, 0.0), (3.0, 0.0), (6.0, 0.0), (9.0, 0.0), (10.0, 0.0), (10.0, 3.0), (10.0, 5.0)]
+            >>> corner.uniform_points(3, align_section_ends=False)
+            [(0.0, 0.0), (3.0, 0.0), (6.0, 0.0), (9.0, 0.0), (10.0, 3.0), (10.0, 5.0)]
+            >>> path.uniform_points(5, True, True, 0, 0.001)[-1]
+            (10.0, 0.0)
+            >>> path.uniform_points(0)
+            Traceback (most recent call last):
+                ...
+            ValueError: distance must be positive
+        """
+        if distance <= 0:
+            raise ValueError("distance must be positive")
+        rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
+        abs_tol2 = abs_tol * abs_tol
+
+        def lengths_close(first: float, second: float) -> bool:
+            return bool(
+                np.isclose(first, second, rtol=rel_tol, atol=abs_tol)
+            )
+
+        def append_unique(
+            points: list[tuple[float, float]], point: PointType
+        ) -> None:
+            xy = _xy_point(point)
+            if points and close_points_square(points[-1], xy, abs_tol2):
+                return
+            points.append(xy)
+
+        points: list[tuple[float, float]] = []
+        previous_end: tuple[float, float] | None = None
+        sections = self.sections
+        last_index = len(sections) - 1
+        for index, section in enumerate(sections):
+            vertices = list(section.vertices)
+            if not vertices:
+                continue
+            start = _xy_point(vertices[0])
+            end = _xy_point(vertices[-1])
+            connected = previous_end is not None and close_points_square(
+                previous_end, start, abs_tol2
+            )
+            if not connected:
+                append_unique(points, start)
+            if len(vertices) < 2:
+                previous_end = end
+                continue
+            section_length = polyline_length(
+                vertices, closed=False, abs_tol=abs_tol
+            )
+            last_s = 0.0
+            while True:
+                next_s = last_s + distance
+                if next_s > section_length or lengths_close(
+                    next_s, section_length
+                ):
+                    break
+                append_unique(
+                    points, _polyline_point_at_length(vertices, next_s)
+                )
+                last_s = next_s
+            leftover = section_length - last_s
+            align_end = (
+                align_path_end if index == last_index else align_section_ends
+            )
+            if lengths_close(leftover, 0.0):
+                pass
+            elif lengths_close(leftover, distance) or align_end:
+                append_unique(points, end)
+            previous_end = end
+        return points
 
     @property
     def b_box(self) -> BoundingBox:
@@ -988,8 +1149,10 @@ class Path2D(Group, CommonStyle):
     ) -> Self:
         """Append a Hobby smooth curve through ``points``.
 
+        If the first point is the current pen position, it is not repeated.
+
         Args:
-            points: Curve points after the current position.
+            points: Curve points. The first point may be the current position.
             **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
         Returns:
@@ -999,6 +1162,9 @@ class Path2D(Group, CommonStyle):
             >>> import simetri.graphics as sg
             >>> p = sg.Path2D((0, 0)).hobby_to([(10, 5), (20, 0)])
             >>> p.pos
+            (20, 0)
+            >>> q = sg.Path2D().hobby_to([(0, 0), (10, 5), (20, 0)])
+            >>> q.pos
             (20, 0)
 """
         self._add(points[-1], PathOps.HOBBY_TO, (self.pos, points), **kwargs)
@@ -1301,15 +1467,16 @@ class Path2D(Group, CommonStyle):
         """Append an elliptic arc starting at the current pen position.
 
         Pass either ``span_angle`` or ``end_angle``, not both. Use
-        ``clockwise=True`` for a clockwise arc.
+        ``clockwise=True`` or a negative ``span_angle`` for a clockwise
+        arc.
 
         Args:
             radius_x: Ellipse half-width.
             radius_y: Ellipse half-height; defaults to ``radius_x``.
             start_angle: Arc start angle in radians. Defaults to 0.
-            span_angle: Unsigned sweep in radians. Mutually exclusive with
-                ``end_angle``. At least one of ``span_angle`` or
-                ``end_angle`` is required.
+            span_angle: Sweep in radians. A negative value draws clockwise.
+                Mutually exclusive with ``end_angle``. At least one of
+                ``span_angle`` or ``end_angle`` is required.
             rot_angle: Ellipse rotation in radians. Defaults to 0.
             n_points: Sample count; defaults to ``runtime_defaults['n_arc_points']``.
             end_angle: Ending angle in radians. Mutually exclusive with
@@ -1325,6 +1492,9 @@ class Path2D(Group, CommonStyle):
             >>> p = sg.Path2D((10, 0), angle=0).arc(10, 10, 0, sg.pi / 2)
             >>> round(float(p.pos[0]), 5), round(float(p.pos[1]), 5)
             (0.0, 10.0)
+            >>> p = sg.Path2D((10, 0), angle=0).arc(10, 10, 0, -sg.pi / 2)
+            >>> round(float(p.pos[0]), 5) or 0.0, round(float(p.pos[1]), 5)
+            (0.0, -10.0)
 """
         if radius_y is None:
             radius_y = radius_x
@@ -1490,15 +1660,16 @@ class Path2D(Group, CommonStyle):
         """Append an elliptic arc blended to the current heading.
 
         Pass either ``span_angle`` or ``end_angle``, not both. Use
-        ``clockwise=True`` for a clockwise arc.
+        ``clockwise=True`` or a negative ``span_angle`` for a clockwise
+        arc.
 
         Args:
             radius_x: Ellipse half-width.
             radius_y: Ellipse half-height; defaults to ``radius_x``.
             start_angle: Arc start angle in radians. Defaults to 0.
-            span_angle: Unsigned sweep in radians. Mutually exclusive with
-                ``end_angle``. At least one of ``span_angle`` or
-                ``end_angle`` is required.
+            span_angle: Sweep in radians. A negative value draws clockwise.
+                Mutually exclusive with ``end_angle``. At least one of
+                ``span_angle`` or ``end_angle`` is required.
             sharp: Flip the blend orientation if True. Defaults to False.
             n_points: Sample count; defaults to ``runtime_defaults['n_arc_points']``.
             end_angle: Ending angle in radians. Mutually exclusive with

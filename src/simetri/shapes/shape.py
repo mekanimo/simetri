@@ -637,6 +637,15 @@ class Shape(Base, CommonStyle):
 
         return res
 
+    def _translate_along_group(
+        self, copies: Sequence[Shape], merge: bool
+    ) -> Shape | Group:
+        """Return a Group of this shape plus extra ``translate_along`` copies."""
+        result = Group([self, *copies])
+        if merge:
+            return result.merge_shapes()
+        return result
+
     def __hash__(self) -> int:
         return hash(self.id)
 

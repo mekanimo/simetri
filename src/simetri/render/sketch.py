@@ -876,6 +876,41 @@ class TagSketch:
 
 
 @dataclass
+class TextPathSketch:
+    """Snapshot of text laid out along a path.
+
+    Attributes:
+        text: String placed on the path.
+        path_data: SVG path ``d`` string in canvas sketch space.
+        draw_path: If True, also stroke the guide path.
+        vertices: Path vertices for bounding-box use.
+        xform_matrix: Affine transform at draw time.
+
+    Examples:
+        >>> from simetri.render.sketch import TextPathSketch
+        >>> sk = TextPathSketch(text="hi", path_data="M 0 0 L 10 0")
+        >>> sk.subtype.name
+        'TEXT_PATH_SKETCH'
+    """
+
+    text: str
+    path_data: str
+    draw_path: bool = False
+    vertices: list | None = None
+    xform_matrix: NDArray = None
+
+    def __post_init__(self) -> None:
+        """Set type metadata."""
+        self.type = Types.SKETCH
+        self.subtype = Types.TEXT_PATH_SKETCH
+        self.id = get_unique_id(self)
+        if self.vertices is None:
+            self.vertices = []
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+
+
+@dataclass
 class PDFSketch:
     """PDFSketch is a dataclass for creating a PDF sketch object.
 

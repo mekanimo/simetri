@@ -60,6 +60,7 @@ if TYPE_CHECKING:
         Sketch,
         TableSketch,
         TagSketch,
+        TextPathSketch,
     )
 
 
@@ -669,6 +670,59 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
         opacity_attr = f' opacity="{alpha}"'
     if clip_attr or mask_attr or opacity_attr:
         return f"<g{clip_attr}{mask_attr}{opacity_attr}>\n{content}\n</g>"
+    return content
+
+
+def draw_text_path_sketch(sketch: TextPathSketch) -> str:
+    """Serialize a ``TextPathSketch`` to SVG ``textPath`` markup.
+
+    Args:
+        sketch: Text-on-path sketch with ``path_data`` and font attributes.
+
+    Returns:
+        str: SVG fragment.
+
+    Examples:
+        >>> draw_text_path_sketch  # doctest: +SKIP
+    """
+    path_data = sketch_attrib(sketch, "path_data")
+    text = sketch_attrib(sketch, "text")
+    if text is None:
+        text = ""
+    if not isinstance(text, str):
+        text = str(text)
+    escaped_text = html.escape(html.unescape(text), quote=False)
+    path_id = f"textpath_{sketch.id}"
+    font_size = sketch_attrib(sketch, "font_size")
+    font_family = sketch_attrib(sketch, "font_family")
+    font_color = sketch_attrib(sketch, "font_color")
+    if isinstance(font_color, Color):
+        font_color = color_to_svg(font_color)
+    font_weight = "bold" if sketch_attrib(sketch, "bold") else "normal"
+    font_style = "italic" if sketch_attrib(sketch, "italic") else "normal"
+    elements = [
+        f'<defs><path id="{path_id}" d="{path_data}" '
+        f'fill="none" /></defs>'
+    ]
+    if sketch_attrib(sketch, "draw_path"):
+        line_style = get_line_style_options(sketch)
+        style_attr = f' style="{line_style}"' if line_style else ""
+        elements.append(
+            f'<path d="{path_data}" fill="none"{style_attr} />'
+        )
+    elements.append(
+        f'<text font-family="{font_family}" '
+        f'font-size="{font_size}" '
+        f'font-weight="{font_weight}" '
+        f'font-style="{font_style}" '
+        f'fill="{font_color}">'
+        f'<textPath href="#{path_id}">{escaped_text}'
+        f'</textPath></text>'
+    )
+    content = "\n".join(elements)
+    clip_attr, mask_attr = get_clip_mask_attrs(sketch)
+    if clip_attr or mask_attr:
+        return f"<g{clip_attr}{mask_attr}>\n{content}\n</g>"
     return content
 
 

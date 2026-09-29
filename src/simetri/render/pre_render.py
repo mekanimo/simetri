@@ -233,6 +233,16 @@ def collect_tikz_preamble_requirements_for_sketch(
     if sketch.subtype == Types.PATH_SKETCH and "svg.path" not in tikz_libraries:
         tikz_libraries.append("svg.path")
     if (
+        sketch.subtype == Types.TEXT_PATH_SKETCH
+        and "svg.path" not in tikz_libraries
+    ):
+        tikz_libraries.append("svg.path")
+    if (
+        sketch.subtype == Types.TEXT_PATH_SKETCH
+        and "decorations.text" not in tikz_libraries
+    ):
+        tikz_libraries.append("decorations.text")
+    if (
         "library" in sketch_dict
         and sketch.library == "fadings"
         and "fadings" not in tikz_libraries

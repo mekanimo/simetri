@@ -2719,6 +2719,7 @@ def set_defaults() -> None:
         "arrows",
         "decorations.pathmorphing",
         "decorations.markings",
+        "decorations.text",
         "backgrounds",
         "patterns",
         "patterns.meta",

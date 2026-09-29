@@ -887,9 +887,9 @@ def arc_points(
         radius_x: Semi-axis along x.
         radius_y: Semi-axis along y; defaults to ``radius_x``.
         start_angle: The starting angle of the arc in radians. Defaults to 0.
-        span_angle: Unsigned sweep in radians. Mutually exclusive with
-            ``end_angle``. At least one of ``span_angle`` or
-            ``end_angle`` is required.
+        span_angle: Sweep in radians. A negative value draws clockwise.
+            Mutually exclusive with ``end_angle``. At least one of
+            ``span_angle`` or ``end_angle`` is required.
         end_angle: Ending angle in radians. Mutually exclusive with
             ``span_angle``.
         clockwise: If True, the arc is drawn clockwise. Defaults to False.
@@ -906,6 +906,9 @@ def arc_points(
         >>> pts = sg.arc_points(
         ...     (0, 0), 1, start_angle=0, span_angle=sg.pi / 2, clockwise=True, n=4
         ... )
+        >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in pts]
+        [[1.0, 0.0], [0.866025, -0.5], [0.5, -0.866025], [0.0, -1.0]]
+        >>> pts = sg.arc_points((0, 0), 1, start_angle=0, span_angle=-sg.pi / 2, n=4)
         >>> [[round(coord, 6) or 0.0 for coord in p[:2]] for p in pts]
         [[1.0, 0.0], [0.866025, -0.5], [0.5, -0.866025], [0.0, -1.0]]
         >>> pts = sg.arc_points((0, 0), 1, start_angle=-sg.pi / 2, end_angle=0, n=4)
@@ -1332,9 +1335,9 @@ def arc_shape(
         radius_x: Semi-axis along x.
         radius_y: Semi-axis along y; defaults to ``radius_x``.
         start_angle: The starting angle of the arc in radians. Defaults to 0.
-        span_angle: Unsigned sweep in radians. Mutually exclusive with
-            ``end_angle``. At least one of ``span_angle`` or
-            ``end_angle`` is required.
+        span_angle: Sweep in radians. A negative value draws clockwise.
+            Mutually exclusive with ``end_angle``. At least one of
+            ``span_angle`` or ``end_angle`` is required.
         end_angle: Ending angle in radians. Mutually exclusive with
             ``span_angle``.
         clockwise: If True, the arc is drawn clockwise. Defaults to False.

@@ -83,6 +83,7 @@ from simetri.geom.affine import (
 from simetri.geom.bbox import bounding_box
 from simetri.geom.homogenize import homogenize
 from simetri.geom.matrices import identity_matrix
+from simetri.geom.nonlinear.path import Path2D
 from simetri.geom.vectors import Vector
 from simetri.group.batch import Group
 from simetri.helpers.file_operations import (
@@ -1085,16 +1086,17 @@ class Canvas:
         """Draw an arc with the given center, radii, start angle, and sweep.
 
         Pass either ``span_angle`` or ``end_angle``, not both. Use
-        ``clockwise=True`` for a clockwise arc.
+        ``clockwise=True`` or a negative ``span_angle`` for a clockwise
+        arc.
 
         Args:
             center: The center of the arc.
             radius_x: Semi-axis along x.
             radius_y: Semi-axis along y; defaults to ``radius_x``.
             start_angle: The start angle of the arc in radians. Defaults to 0.
-            span_angle: Unsigned sweep in radians. Mutually exclusive with
-                ``end_angle``. At least one of ``span_angle`` or
-                ``end_angle`` is required.
+            span_angle: Sweep in radians. A negative value draws clockwise.
+                Mutually exclusive with ``end_angle``. At least one of
+                ``span_angle`` or ``end_angle`` is required.
             rot_angle: The rotation angle of the arc. Defaults to 0.
             end_angle: Ending angle in radians. Mutually exclusive with
                 ``span_angle``. Pass as a keyword.
@@ -1363,6 +1365,57 @@ class Canvas:
             font_color=font_color,
             anchor=anchor,
             align=align,
+            **kwargs,
+        )
+        return self
+
+    def text_path(
+        self,
+        text: str,
+        path: Path2D | Shape,
+        font_family: str | None = None,
+        font_size: int | None = None,
+        font_color: Color | None = None,
+        bold: bool = False,
+        italic: bool = False,
+        draw_path: bool = False,
+        **kwargs: object,
+    ) -> Self:
+        """Draw text along a path.
+
+        Args:
+            text: The text to place on the path.
+            path: A ``Path2D`` or ``Shape``.
+            font_family: Font family. Defaults to None.
+            font_size: Font size. Defaults to None.
+            font_color: Text color. Defaults to None.
+            bold: Bold type. Defaults to False.
+            italic: Italic type. Defaults to False.
+            draw_path: If True, also stroke the guide path. Defaults to False.
+            kwargs: Extra attributes stored on the ``TextPath``.
+
+        Returns:
+            Self: The canvas object.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> canvas = sg.Canvas()
+            >>> curve = sg.Path2D((0, 0)).line_to((80, 0))
+            >>> canvas.text_path("along", curve) is canvas
+            True
+            >>> canvas.active_page.sketches[-1].subtype.name
+            'TEXT_PATH_SKETCH'
+        """
+        draw.text_path(
+            self,
+            txt=text,
+            path=path,
+            font_family=font_family,
+            font_size=font_size,
+            font_color=font_color,
+            bold=bold,
+            italic=italic,
+            draw_path=draw_path,
             **kwargs,
         )
         return self
@@ -2160,6 +2213,49 @@ class Canvas:
         draw.draw_lines(self, lines, **kwargs)
 
         return self
+
+    def draw_points(
+        self,
+        points: Sequence[PointType],
+        marker_style: object | None = None,
+        **kwargs: object,
+    ) -> Self:
+        """Draw markers at the given points.
+
+        If ``marker_style`` is omitted, default marker values are used.
+        A ``MarkerStyle``, style dict, or ``marker_*`` keyword arguments
+        override those defaults.
+
+        Args:
+            points: Sequence of ``(x, y)`` positions.
+            marker_style: Optional marker style. Defaults to None (library
+                marker defaults).
+            **kwargs: Extra style forwarded to ``draw``.
+
+        Returns:
+            Self: The canvas.
+
+        Raises:
+            ValueError: If ``points`` is empty.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> canvas = sg.Canvas()
+            >>> canvas.draw_points([(0, 0), (10, 0)]) is canvas
+            True
+            >>> sketch = canvas.active_page.sketches[0]
+            >>> sketch.draw_markers
+            True
+            >>> sketch.markers_only
+            True
+            >>> sketch.marker_type == sg.defaults["marker_type"]
+            True
+            >>> tuple(sketch.vertices)
+            ((0.0, 0.0), (10.0, 0.0))
+        """
+        return draw.draw_points(
+            self, points, marker_style=marker_style, **kwargs
+        )
 
     def draw_CS(self, size: float | None = None, **kwargs: object) -> Self:
         """
@@ -3092,6 +3188,52 @@ class Canvas:
         """
 
         return draw.draw_all_segments(self, item, vert_indices, **kwargs)
+
+    def draw_bbox(
+        self,
+        bbox: BoundingBox,
+        border: bool | dict[str, object] = False,
+        centerlines: bool | dict[str, object] = False,
+        diagonals: bool | dict[str, object] = False,
+        **kwargs: object,
+    ) -> Self:
+        """Draw a bounding box.
+
+        If ``border``, ``centerlines``, and ``diagonals`` are all False, the
+        box is drawn as a bounding-box sketch (same as ``canvas.draw(bbox)``).
+        If a flag is True, those lines use the default line color and width.
+        If a flag is a style dict, those lines use that style.
+
+        Args:
+            bbox: Bounding box to draw.
+            border: Rectangle outline. Defaults to False.
+            centerlines: Horizontal and vertical centerlines. Defaults to False.
+            diagonals: Both diagonals. Defaults to False.
+            **kwargs: Extra style forwarded to each drawn part, or to the
+                bounding-box sketch when all flags are False.
+
+        Returns:
+            Self: The canvas.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> canvas = sg.Canvas()
+            >>> box = sg.BoundingBox((0, 0), (10, 5))
+            >>> canvas.draw_bbox(box) is canvas
+            True
+            >>> canvas.active_page.sketches[0].subtype.name
+            'BBOX_SKETCH'
+            >>> len(canvas._all_vertices)
+            4
+        """
+        return draw.draw_bbox(
+            self,
+            bbox,
+            border=border,
+            centerlines=centerlines,
+            diagonals=diagonals,
+            **kwargs,
+        )
 
     def get_fonts_list(self) -> list[str]:
         """

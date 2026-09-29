@@ -267,6 +267,8 @@ def get_tex_code(canvas: Canvas) -> str:
         """
         if sketch.subtype == Types.TAG_SKETCH:
             code = draw_tag_sketch(sketch)
+        elif sketch.subtype == Types.TEXT_PATH_SKETCH:
+            code = draw_text_path_sketch(sketch)
         elif sketch.subtype == Types.TABLE_SKETCH:
             code, ind = draw_table_sketch(sketch, render_sketches, ind)
         elif sketch.subtype == Types.IMAGE_SKETCH:
