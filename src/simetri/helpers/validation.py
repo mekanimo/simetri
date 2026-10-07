@@ -172,7 +172,7 @@ def check_dash_array(dash_array: Any) -> bool:
 
     Examples:
         >>> from simetri.helpers.validation import check_dash_array
-        >>> check_dash_array([1, 2])
+        >>> check_dash_array([40, 80])
         True
         >>> check_dash_array(sg.LineDashArray.DASHED)
         True
@@ -219,7 +219,7 @@ def check_truthiness(value: Any) -> bool:
         >>> check_truthiness(1)
         True
         >>> from numpy import array
-        >>> check_truthiness(array([1, 2]))
+        >>> check_truthiness(array([40, 80]))
         False
 """
     try:
@@ -294,7 +294,7 @@ def check_position(pos: Any) -> bool:
         bool: True if the position is valid, False otherwise.
 
     Examples:
-        >>> check_position((1, 2))
+        >>> check_position((40, 80))
         True
         >>> check_position((1,))
         False
@@ -320,7 +320,7 @@ def check_points(points: Any) -> bool:
         bool: True if the points are valid, False otherwise.
 
     Examples:
-        >>> check_points([(0, 0), (1, 1)])
+        >>> check_points([(0, 0), (40, 40)])
         True
         >>> check_points([(0, 0), 1])
         False
@@ -386,7 +386,7 @@ def check_mask(mask: Any) -> bool:
 
     Examples:
         >>> from simetri.helpers.validation import check_mask
-        >>> check_mask(sg.Shape([(0, 0), (1, 0)]))
+        >>> check_mask(sg.Shape([(0, 0), (40, 0)]))
         True
 """
     try:
@@ -803,7 +803,7 @@ def is_point(pnt: Any) -> bool:
         bool: True if ``pnt`` has numeric x and y.
 
     Examples:
-        >>> is_point((1, 2))
+        >>> is_point((40, 80))
         True
         >>> is_point("ab")
         False
@@ -825,7 +825,7 @@ def is_line(line_: Any) -> bool:
         bool: True if the input is a line, False otherwise.
 
     Examples:
-        >>> is_line([(0, 0), (1, 1)])
+        >>> is_line([(0, 0), (40, 40)])
         True
         >>> is_line((0, 0))
         False

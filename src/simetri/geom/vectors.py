@@ -48,13 +48,13 @@ class Vector:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> v = sg.Vector(3, 4)
+        >>> v = sg.Vector(60, 80)
         >>> v.mag()
-        5.0
+        100.0
         >>> v.normalize()
         Vector(0.6, 0.8)
         >>> v
-        Vector(3, 4)
+        Vector(60, 80)
 """
 
     def __init__(self, *args: object) -> None:
@@ -74,8 +74,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(3, 4).mag()
-            5.0
+            >>> sg.Vector(60, 80).mag()
+            100.0
             >>> tuple(sg.Vector([1, 2, 3]))
             (1, 2, 3)
         """
@@ -131,8 +131,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(3, 4).x
-            3
+            >>> sg.Vector(60, 80).x
+            60
 """
         return self.data[0]
 
@@ -142,8 +142,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(3, 4).y
-            4
+            >>> sg.Vector(60, 80).y
+            80
 """
         return self.data[1]
 
@@ -153,7 +153,7 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(3, 4).z
+            >>> sg.Vector(60, 80).z
             0.0
 """
         return self.data[2] if len(self.data) > 2 else 0.0
@@ -257,7 +257,7 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(1, 2).equals(sg.Vector(1, 2))
+            >>> sg.Vector(40, 80).equals(sg.Vector(40, 80))
             True
 """
         return self.__eq__(other)
@@ -267,8 +267,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(1, 0).perp()
-            Vector(0, 1)
+            >>> sg.Vector(40, 0).perp()
+            Vector(0, 40)
 """
         return Vector(v_perp(self.data))
 
@@ -283,8 +283,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(0, 0).distance_to(sg.Vector(3, 4))
-            5.0
+            >>> sg.Vector(0, 0).distance_to(sg.Vector(60, 80))
+            100.0
 """
         if isinstance(other, Vector):
             other_data = other.data
@@ -301,8 +301,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(3, 4).mag()
-            5.0
+            >>> sg.Vector(60, 80).mag()
+            100.0
 """
         return v_length(self.data)
 
@@ -311,8 +311,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(3, 4).magnitude()
-            5.0
+            >>> sg.Vector(60, 80).magnitude()
+            100.0
 """
         return self.mag()
 
@@ -321,8 +321,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(3, 4).mag_sq()
-            25
+            >>> sg.Vector(60, 80).mag_sq()
+            10000
 """
         return sum(x * x for x in self.data)
 
@@ -339,11 +339,11 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> v = sg.Vector(0, 5)
+            >>> v = sg.Vector(0, 20)
             >>> v.normalize()
             Vector(0.0, 1.0)
             >>> v
-            Vector(0, 5)
+            Vector(0, 20)
             >>> sg.Vector(0, 0).normalize()
             Traceback (most recent call last):
             ...
@@ -362,8 +362,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(1, 2).dot(sg.Vector(3, 4))
-            11
+            >>> sg.Vector(40, 80).dot(sg.Vector(60, 80))
+            8800
 """
         if isinstance(other, Vector):
             return v_mul(self.data, other.data)
@@ -384,8 +384,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(1, 0).cross(sg.Vector(0, 1))
-            1
+            >>> sg.Vector(40, 0).cross(sg.Vector(0, 40))
+            1600
 """
         if isinstance(other, Vector):
             other_data = other.data
@@ -405,7 +405,7 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> round(sg.Vector(1, 0).angle(), 10)
+            >>> round(sg.Vector(40, 0).angle(), 10)
             0.0
 """
         return v_arg(self.data)
@@ -421,7 +421,7 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> round(sg.Vector(1, 0).angle_between(sg.Vector(0, 1)), 10)
+            >>> round(sg.Vector(40, 0).angle_between(sg.Vector(0, 40)), 10)
             1.5707963268
 """
         if isinstance(other, Vector):
@@ -447,7 +447,7 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> b = sg.Vector(1, 0).bisector(sg.Vector(0, 1))
+            >>> b = sg.Vector(40, 0).bisector(sg.Vector(0, 40))
             >>> round(b.mag(), 10)
             1.4142135624
 """
@@ -472,8 +472,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> tuple(round(x, 10) for x in sg.Vector(1, 0).rotate(sg.pi / 2))
-            (0.0, 1.0)
+            >>> tuple(round(x, 10) for x in sg.Vector(40, 0).rotate(sg.pi / 2))
+            (0.0, 40.0)
 """
         if isinstance(axis, Vector):
             axis_data = axis.data
@@ -497,8 +497,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(2, 2).project(sg.Vector(1, 0))
-            Vector(2.0, 0.0)
+            >>> sg.Vector(80, 80).project(sg.Vector(40, 0))
+            Vector(80.0, 0.0)
 """
         if isinstance(other, Vector):
             other_vec = other
@@ -525,8 +525,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(1, 1).reflect(sg.Vector(0, 1))
-            Vector(1.0, -1.0)
+            >>> sg.Vector(40, 40).reflect(sg.Vector(0, 40))
+            Vector(40.0, -40.0)
 """
         if isinstance(normal, Vector):
             n = normal
@@ -551,8 +551,8 @@ class Vector:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Vector(0, 0).lerp(sg.Vector(10, 0), 0.5)
-            Vector(5.0, 0.0)
+            >>> sg.Vector(0, 0).lerp(sg.Vector(40, 0), 0.5)
+            Vector(20.0, 0.0)
 """
         if isinstance(other, Vector):
             other_data = other.data
@@ -604,9 +604,9 @@ def v_bisector(vec1: Vec, vec2: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_bisector([1, 0], [0, 1])
+        >>> sg.v_bisector([40, 0], [0, 40])
         Vector(1.0, 1.0)
-        >>> sg.v_bisector([0, 0], [1, 0])
+        >>> sg.v_bisector([0, 0], [40, 0])
         Traceback (most recent call last):
         ...
         ZeroDivisionError: float division by zero
@@ -625,14 +625,14 @@ def v_copy(vec: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [1, 2]
+        >>> raw = [40, 80]
         >>> copied = sg.v_copy(raw)
         >>> copied
-        [1, 2]
+        [40, 80]
         >>> copied is raw
         False
-        >>> sg.v_copy(sg.Vector(1, 2))
-        Vector(1, 2)
+        >>> sg.v_copy(sg.Vector(40, 80))
+        Vector(40, 80)
 """
     return _result_like(vec, _as_data(vec))
 
@@ -648,11 +648,11 @@ def v_minus(vec: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [1, -2]
+        >>> raw = [40, -80]
         >>> sg.v_minus(raw)
-        [-1, 2]
+        [-40, 80]
         >>> raw
-        [1, -2]
+        [40, -80]
         >>> sg.v_minus(sg.Vector(0, 0))
         Vector(0, 0)
 """
@@ -664,8 +664,8 @@ def v_neg(vec: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_neg([1, -2])
-        [-1, 2]
+        >>> sg.v_neg([40, -80])
+        [-40, 80]
 """
     return v_minus(vec)
 
@@ -682,15 +682,15 @@ def v_mul(vec1: Vec, vec2: Vec | float) -> float | Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [1, 2]
+        >>> raw = [40, 80]
         >>> sg.v_mul(raw, [3, 4])
-        11
+        440
         >>> sg.v_mul(raw, 3)
-        [3, 6]
+        [120, 240]
         >>> raw
-        [1, 2]
-        >>> sg.v_mul(sg.Vector(1, 2), 3)
-        Vector(3, 6)
+        [40, 80]
+        >>> sg.v_mul(sg.Vector(40, 80), 3)
+        Vector(120, 240)
 """
     v1 = _as_data(vec1)
     if isarray(vec2):
@@ -704,8 +704,8 @@ def v_dot(vec1: Vec, vec2: Vec | float) -> float | Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_dot([1, 2], [3, 4])
-        11
+        >>> sg.v_dot([40, 80], [60, 80])
+        8800
 """
     return v_mul(vec1, vec2)
 
@@ -725,11 +725,11 @@ def v_div(vec: Vec, c: float) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [4, 2]
+        >>> raw = [80, 80]
         >>> sg.v_div(raw, 2)
-        [2.0, 1.0]
+        [40.0, 40.0]
         >>> raw
-        [4, 2]
+        [80, 80]
         >>> sg.v_div([1, 0], 0)
         Traceback (most recent call last):
         ...
@@ -750,10 +750,10 @@ def v_sum(vec1: Vec, vec2: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_sum([1, 2], [3, 4])
-        [4, 6]
-        >>> sg.v_sum(sg.Vector(1, 2), [3, 4])
-        Vector(4, 6)
+        >>> sg.v_sum([40, 80], [60, 80])
+        [100, 160]
+        >>> sg.v_sum(sg.Vector(40, 80), [60, 80])
+        Vector(100, 160)
 """
     v1 = _as_data(vec1)
     v2 = _as_data(vec2)
@@ -772,8 +772,8 @@ def v_diff(vec1: Vec, vec2: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_diff([5, 3], [1, 1])
-        [4, 2]
+        >>> sg.v_diff([20, 60], [40, 40])
+        [-20, 20]
 """
     v1 = _as_data(vec1)
     v2 = _as_data(vec2)
@@ -792,9 +792,9 @@ def v_equals(vec1: Vec, vec2: Vec) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_equals([1, 2], sg.Vector(1, 2))
+        >>> sg.v_equals([40, 80], sg.Vector(40, 80))
         True
-        >>> sg.v_equals([1, 2], [1, 3])
+        >>> sg.v_equals([40, 80], [40, 60])
         False
 """
     return list(_as_data(vec1)) == list(_as_data(vec2))
@@ -817,11 +817,11 @@ def v_cross(vec1: Vec, vec2: Vec) -> Vec | float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_cross([1, 0], [0, 1])
-        1
+        >>> sg.v_cross([40, 0], [0, 40])
+        1600
         >>> sg.v_cross([1, 0, 0], [0, 1, 0])
         [0, 0, 1]
-        >>> sg.v_cross([1, 0], [0, 1, 0])
+        >>> sg.v_cross([40, 0], [0, 1, 0])
         Traceback (most recent call last):
         ...
         ValueError: Vectors must be both 2D or both 3D for cross product.
@@ -851,8 +851,8 @@ def v_length(vec: Vec) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_length([3, 4])
-        5.0
+        >>> sg.v_length([60, 80])
+        100.0
         >>> sg.v_length(sg.Vector(0, 0))
         0.0
 """
@@ -877,16 +877,16 @@ def v_normalize(vec: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [6, 8]
+        >>> raw = [60, 80]
         >>> sg.v_normalize(raw)
         [0.6, 0.8]
         >>> raw
-        [6, 8]
-        >>> vec = sg.Vector(0, 5)
+        [60, 80]
+        >>> vec = sg.Vector(0, 20)
         >>> sg.v_normalize(vec)
         Vector(0.0, 1.0)
         >>> vec
-        Vector(0, 5)
+        Vector(0, 20)
         >>> sg.v_normalize([0, 0])
         Traceback (most recent call last):
         ...
@@ -909,9 +909,9 @@ def v_angle_between(vec1: Vec, vec2: Vec) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_angle_between([1, 0], [0, 1])
+        >>> sg.v_angle_between([40, 0], [0, 40])
         1.5707963267948966
-        >>> sg.v_angle_between([0, 0], [1, 0])
+        >>> sg.v_angle_between([0, 0], [40, 0])
         0.0
 """
     ru = v_length(vec1)
@@ -937,7 +937,7 @@ def v_arg(vec: Vec) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_arg([1, 0])
+        >>> sg.v_arg([40, 0])
         0.0
         >>> sg.v_arg([0, 0])
         0.0
@@ -966,11 +966,11 @@ def v_perp(vec: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [1, 0]
+        >>> raw = [40, 0]
         >>> sg.v_perp(raw)
-        [0, 1]
+        [0, 40]
         >>> raw
-        [1, 0]
+        [40, 0]
         >>> sg.v_perp([1, 0, 0])
         Traceback (most recent call last):
         ...
@@ -1001,11 +1001,11 @@ def v_rotated(vec: Vec, angle: float, axis: Vec | None = None) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [1, 0]
+        >>> raw = [40, 0]
         >>> sg.v_rotated(raw, 0)
-        [1.0, 0.0]
+        [40.0, 0.0]
         >>> raw
-        [1, 0]
+        [40, 0]
         >>> sg.v_rotated([1, 0, 0], 0)
         Traceback (most recent call last):
         ...
@@ -1055,13 +1055,13 @@ def v_reflect(f: Vec, vec1: Vec, vec2: Vec) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_reflect([1, 0, 0], [1, 0], [1, 1])
-        [-1.0, 1.0]
-        >>> raw = [3, 4]
-        >>> sg.v_reflect([0, 0, 0], [1, 0], raw)
-        [3, 4]
+        >>> sg.v_reflect([1, 0, 0], [40, 0], [40, 40])
+        [-40.0, 40.0]
+        >>> raw = [60, 80]
+        >>> sg.v_reflect([0, 0, 0], [40, 0], raw)
+        [60, 80]
         >>> raw
-        [3, 4]
+        [60, 80]
 """
     f_ = _as_data(f)
     v1 = _as_data(vec1)
@@ -1089,8 +1089,8 @@ def v_evaluate(line: Vec, point: Vec) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_evaluate([1, 0, -2], [2, 5])
-        0
+        >>> sg.v_evaluate([1, 0, -2], [80, 20])
+        78
         >>> sg.v_evaluate([1, 0, -2], [0, 0])
         -2
 """
@@ -1113,9 +1113,9 @@ def v_line_through(point1: Vec, point2: Vec) -> list[float]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_line_through([0, 0], [1, 0])
+        >>> sg.v_line_through([0, 0], [40, 0])
         [0.0, 1.0, 0.0]
-        >>> sg.v_line_through([1, 1], [1, 1])
+        >>> sg.v_line_through([40, 40], [40, 40])
         [0.0, 0.0, 0.0]
 """
     p1 = _as_data(point1)
@@ -1178,9 +1178,9 @@ def v_linethrough(point1: Vec, point2: Vec) -> list[float]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_linethrough([0, 0], [0, 1])
+        >>> sg.v_linethrough([0, 0], [0, 40])
         [-1.0, 0.0, -0.0]
-        >>> sg.v_linethrough([2, 2], [2, 2])
+        >>> sg.v_linethrough([80, 80], [80, 80])
         [0.0, 0.0, 0.0]
 """
     p1 = _as_data(point1)
@@ -1207,11 +1207,11 @@ def v_scale(vec: Vec, k: float) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [2, 3]
+        >>> raw = [80, 60]
         >>> sg.v_scale(raw, 2)
-        [4, 6]
+        [160, 120]
         >>> raw
-        [2, 3]
+        [80, 60]
 """
     return v_mul(vec, k)
 
@@ -1227,8 +1227,8 @@ def v_string(vec: Vec) -> str:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_string([1, 2])
-        '[ 1, 2 ]'
+        >>> sg.v_string([40, 80])
+        '[ 40, 80 ]'
 """
     return "[ " + ", ".join(str(x) for x in _as_data(vec)) + " ]"
 
@@ -1246,7 +1246,7 @@ def v_dim(vec: Vec) -> int:
         >>> import simetri.graphics as sg
         >>> sg.v_dim([1, 2, 3])
         3
-        >>> sg.v_dim(sg.Vector(1, 2))
+        >>> sg.v_dim(sg.Vector(40, 80))
         2
 """
     return len(_as_data(vec))
@@ -1267,16 +1267,16 @@ def v_rotate(vec: Vec, angle: float) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [1.0, 0.0]
+        >>> raw = [40.0, 0.0]
         >>> sg.v_rotate(raw, sg.pi / 2)
-        [6.123233995736766e-17, 1.0]
+        [2.4492935982947065e-15, 40.0]
         >>> raw
-        [1.0, 0.0]
-        >>> vec = sg.Vector(1, 0)
+        [40.0, 0.0]
+        >>> vec = sg.Vector(40, 0)
         >>> sg.v_rotate(vec, sg.pi / 2)
-        Vector(6.123233995736766e-17, 1.0)
+        Vector(2.4492935982947065e-15, 40.0)
         >>> vec
-        Vector(1, 0)
+        Vector(40, 0)
 """
     return v_rotated(vec, angle)
 
@@ -1296,9 +1296,9 @@ def v_interpolated(vec1: Vec, vec2: Vec, t: float) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_interpolated([0, 0], [10, 0], 0.5)
-        [5.0, 0.0]
-        >>> sg.v_interpolated([0, 0], [10, 0], 0)
+        >>> sg.v_interpolated([0, 0], [40, 0], 0.5)
+        [20.0, 0.0]
+        >>> sg.v_interpolated([0, 0], [40, 0], 0)
         [0, 0]
 """
     v1 = _as_data(vec1)
@@ -1319,9 +1319,9 @@ def v_from_points(start: PointType, end: PointType) -> Vec:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.v_from_points((0, 0), (3, 4))
-        Vector(3, 4)
-        >>> sg.v_from_points((1, 1), (1, 1))
+        >>> sg.v_from_points((0, 0), (60, 80))
+        Vector(60, 80)
+        >>> sg.v_from_points((40, 40), (40, 40))
         Vector(0, 0)
 """
     dx = end[0] - start[0]
@@ -1341,7 +1341,7 @@ def isarray(a: object) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.isarray([1, 2])
+        >>> sg.isarray([40, 80])
         True
         >>> sg.isarray(3)
         False
@@ -1361,9 +1361,9 @@ def distance(point1: Vec, point2: Vec) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.distance([0, 0], [3, 4])
-        5.0
-        >>> sg.distance([1, 1], [1, 1])
+        >>> sg.distance([0, 0], [60, 80])
+        100.0
+        >>> sg.distance([40, 40], [40, 40])
         0.0
 """
     p1 = _as_data(point1)
@@ -1384,10 +1384,10 @@ def dot_product3(a: PointType, b: PointType, c: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.dot_product3((2, 0), (0, 0), (0, 3))
+        >>> sg.dot_product3((80, 0), (0, 0), (0, 60))
         0
-        >>> sg.dot_product3((2, 0), (0, 0), (1, 0))
-        2
+        >>> sg.dot_product3((80, 0), (0, 0), (40, 0))
+        3200
 """
     a_x, a_y = a[:2]
     b_x, b_y = b[:2]
@@ -1414,9 +1414,9 @@ def cross_product3(a: PointType, b: PointType, c: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.cross_product3((1, 0), (0, 0), (0, 1))
-        1
-        >>> sg.cross_product3((1, 0), (0, 0), (2, 0))
+        >>> sg.cross_product3((40, 0), (0, 0), (0, 40))
+        1600
+        >>> sg.cross_product3((40, 0), (0, 0), (80, 0))
         0
 """
     a_x, a_y = a[:2]
@@ -1445,9 +1445,9 @@ def unit_vector(line: LineType) -> VecType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.unit_vector(((0, 0), (0, 5)))
+        >>> sg.unit_vector(((0, 0), (0, 20)))
         [0.0, 1.0]
-        >>> sg.unit_vector(((1, 1), (1, 1)))
+        >>> sg.unit_vector(((40, 40), (40, 40)))
         Traceback (most recent call last):
         ...
         ZeroDivisionError: float division by zero
@@ -1475,9 +1475,9 @@ def unit_vector_(line: LineType) -> Sequence[VecType]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.unit_vector_(((0, 0), (0, 5)))
+        >>> sg.unit_vector_(((0, 0), (0, 20)))
         [0.0, 1.0]
-        >>> sg.unit_vector_(((1, 1), (1, 1)))
+        >>> sg.unit_vector_(((40, 40), (40, 40)))
         Traceback (most recent call last):
         ...
         ZeroDivisionError: float division by zero
@@ -1534,7 +1534,7 @@ def vec_dir_angle(vec: Sequence[float]) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.vec_dir_angle([1, 0])
+        >>> sg.vec_dir_angle([40, 0])
         0.0
         >>> sg.vec_dir_angle([0, 0])
         0.0
@@ -1558,11 +1558,11 @@ def cross_product_sense3(a: PointType, b: PointType, c: PointType) -> int:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.cross_product_sense3((2, 0), (0, 0), (1, 0))
+        >>> sg.cross_product_sense3((80, 0), (0, 0), (40, 0))
         1
-        >>> sg.cross_product_sense3((1, 0), (0, 0), (0, 1))
+        >>> sg.cross_product_sense3((40, 0), (0, 0), (0, 40))
         1
-        >>> sg.cross_product_sense3((0, 1), (0, 0), (1, 0))
+        >>> sg.cross_product_sense3((0, 40), (0, 0), (40, 0))
         -1
 """
     cross_product = cross_product3(a, b, c)
@@ -1594,9 +1594,9 @@ def right_turn3(p1: PointType, p2: PointType, p3: PointType) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.right_turn3((0, 0), (1, 0), (1, -1))
+        >>> sg.right_turn3((0, 0), (40, 0), (40, -40))
         True
-        >>> sg.right_turn3((0, 0), (1, 0), (2, 0))
+        >>> sg.right_turn3((0, 0), (40, 0), (80, 0))
         False
 """
     return cross3(p1, p2, p3) < 0
@@ -1617,9 +1617,9 @@ def left_turn3(p1: PointType, p2: PointType, p3: PointType) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.left_turn3((0, 0), (1, 0), (0, 1))
+        >>> sg.left_turn3((0, 0), (40, 0), (0, 40))
         True
-        >>> sg.left_turn3((0, 0), (1, 0), (2, 0))
+        >>> sg.left_turn3((0, 0), (40, 0), (80, 0))
         False
 """
     return cross3(p1, p2, p3) > 0
@@ -1638,9 +1638,9 @@ def cross3(p1: PointType, p2: PointType, p3: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.cross3((0, 0), (1, 0), (0, 1))
-        1
-        >>> sg.cross3((0, 0), (1, 0), (2, 0))
+        >>> sg.cross3((0, 0), (40, 0), (0, 40))
+        1600
+        >>> sg.cross3((0, 0), (40, 0), (80, 0))
         0
 """
     x1, y1 = p2[0] - p1[0], p2[1] - p1[1]
@@ -1659,8 +1659,8 @@ def line_to_vector(line: LineType) -> VecType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.line_to_vector(((0, 0), (3, 4)))
-        [3, 4]
+        >>> sg.line_to_vector(((0, 0), (60, 80)))
+        [60, 80]
 """
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -1680,8 +1680,8 @@ def line_vector(line: LineType) -> VecType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.line_vector(((0, 0), (3, 4)))
-        Vector(3, 4)
+        >>> sg.line_vector(((0, 0), (60, 80)))
+        Vector(60, 80)
 """
     x1, y1 = line[0][:2]
     x2, y2 = line[1][:2]
@@ -1718,8 +1718,8 @@ def norm(vec: VecType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.norm([3, 4])
-        5.0
+        >>> sg.norm([60, 80])
+        100.0
         >>> sg.norm([0, 0])
         0.0
 """
@@ -1742,12 +1742,12 @@ def normalize(vec: VecType) -> VecType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [3, 4]
+        >>> raw = [60, 80]
         >>> sg.normalize(raw)
         [0.6, 0.8]
         >>> raw
-        [3, 4]
-        >>> sg.normalize([0, 5])
+        [60, 80]
+        >>> sg.normalize([0, 20])
         [0.0, 1.0]
         >>> sg.normalize([0, 0])
         Traceback (most recent call last):
@@ -1774,9 +1774,9 @@ def perp_unit_vector(line: LineType) -> VecType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.perp_unit_vector(((0, 0), (1, 0)))
+        >>> sg.perp_unit_vector(((0, 0), (40, 0)))
         [0.0, 1.0]
-        >>> sg.perp_unit_vector(((1, 1), (1, 1)))
+        >>> sg.perp_unit_vector(((40, 40), (40, 40)))
         Traceback (most recent call last):
         ...
         ZeroDivisionError: float division by zero
@@ -1810,11 +1810,11 @@ def point_to_line_vec(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.point_to_line_vec((0, 1), ((0, 0), (1, 0)))
+        >>> sg.point_to_line_vec((0, 40), ((0, 0), (40, 0)))
+        [-0.0, -40.0]
+        >>> sg.point_to_line_vec((0, 40), ((0, 0), (40, 0)), unit=True)
         [-0.0, -1.0]
-        >>> sg.point_to_line_vec((0, 1), ((0, 0), (1, 0)), unit=True)
-        [-0.0, -1.0]
-        >>> sg.point_to_line_vec((0, 1), ((1, 1), (1, 1)))
+        >>> sg.point_to_line_vec((0, 40), ((40, 40), (40, 40)))
         Traceback (most recent call last):
         ...
         ZeroDivisionError: float division by zero
@@ -1893,9 +1893,9 @@ def normal(point1: PointType, point2: PointType) -> VecType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.normal((0, 0), (1, 0))
+        >>> sg.normal((0, 0), (40, 0))
         [0.0, 1.0]
-        >>> sg.normal((1, 1), (1, 1))
+        >>> sg.normal((40, 40), (40, 40))
         Traceback (most recent call last):
         ...
         ZeroDivisionError: float division by zero

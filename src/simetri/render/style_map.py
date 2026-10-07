@@ -2113,9 +2113,9 @@ def line_style_obj(validate_types: bool = True, **kwargs: object) -> StyleObj:
 
     Examples:
         >>> line_obj = line_style_obj(validate_types=False, line_width=2)
-        >>> line_obj.line_dash_array = [5, 2]
+        >>> line_obj.line_dash_array = [20, 80]
         >>> line_obj.line_dash_array
-        [5, 2]
+        [20, 80]
 """
     return _get_style_obj(
         line_style_map, validate_types=validate_types, **kwargs

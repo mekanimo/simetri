@@ -46,8 +46,8 @@ def convex_hull(points: Sequence, on_edge: bool = False) -> list[Point]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.convex_hull([(0, 0), (1, 0), (0.5, 0.5), (0, 1)])
-        [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0)]
+        >>> sg.convex_hull([(0, 0), (40, 0), (0.5, 0.5), (0, 40)])
+        [(0.0, 0.0), (0.0, 40.0), (40.0, 0.0)]
     """
     if not points:
         return []

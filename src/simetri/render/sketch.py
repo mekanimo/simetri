@@ -8,7 +8,7 @@ Note:
     them by hand unless writing a backend.
 
 Examples:
-        >>> sk = CircleSketch(center=(0, 0), radius=10)
+        >>> sk = CircleSketch(center=(0, 0), radius=40)
         >>> sk.subtype.name
         'CIRCLE_SKETCH'
 """
@@ -60,7 +60,7 @@ class CircleSketch:
         subtype: Always ``Types.CIRCLE_SKETCH``.
     Examples:
         >>> import simetri.graphics as sg
-        >>> sk = CircleSketch(center=(0, 0), radius=10)
+        >>> sk = CircleSketch(center=(0, 0), radius=40)
         >>> sk.subtype.name
         'CIRCLE_SKETCH'
 
@@ -89,8 +89,8 @@ class CircleSketch:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> repr(sg.CircleSketch(center=(0, 0), radius=10))
-            'CircleSketch(center=(0, 0), radius=10)'
+            >>> repr(sg.CircleSketch(center=(0, 0), radius=40))
+            'CircleSketch(center=(0, 0), radius=40)'
         """
         return f"CircleSketch(center={self.center!r}, radius={self.radius!r})"
 
@@ -107,7 +107,7 @@ class EllipseSketch:
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
         >>> import simetri.graphics as sg
-        >>> sk = EllipseSketch(center=(0, 0), x_radius=5, y_radius=3)
+        >>> sk = EllipseSketch(center=(0, 0), x_radius=80, y_radius=40)
         >>> sk.subtype.name
         'ELLIPSE_SKETCH'
 
@@ -138,9 +138,9 @@ class EllipseSketch:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sk = sg.EllipseSketch(center=(0, 0), x_radius=5, y_radius=3)
+            >>> sk = sg.EllipseSketch(center=(0, 0), x_radius=80, y_radius=40)
             >>> repr(sk)
-            'EllipseSketch(center=(0, 0), x_radius=5, y_radius=3, angle=0)'
+            'EllipseSketch(center=(0, 0), x_radius=80, y_radius=40, angle=0)'
         """
         return (
             f"EllipseSketch(center={self.center!r}, x_radius={self.x_radius!r}, "
@@ -161,7 +161,7 @@ class RectangleSketch:
         subtype: Always ``Types.RECTANGLE_SKETCH``.
     Examples:
         >>> import simetri.graphics as sg
-        >>> sk = RectangleSketch((0, 0), 10, 5)
+        >>> sk = RectangleSketch((0, 0), 80, 40)
         >>> sk.subtype.name
         'RECTANGLE_SKETCH'
 
@@ -194,7 +194,7 @@ class LinesSketch:
         subtype: Always ``Types.LINES_SKETCH``.
     Examples:
         >>> import simetri.graphics as sg
-        >>> sk = LinesSketch([((0, 0), (1, 0))])
+        >>> sk = LinesSketch([((0, 0), (40, 0))])
         >>> sk.subtype.name
         'LINES_SKETCH'
 
@@ -216,8 +216,8 @@ class LinesSketch:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> repr(sg.LinesSketch([((0, 0), (1, 0))]))
-            'LinesSketch(lines=[((0, 0), (1, 0))])'
+            >>> repr(sg.LinesSketch([((0, 0), (40, 0))]))
+            'LinesSketch(lines=[((0, 0), (40, 0))])'
         """
         return f"LinesSketch(lines={self.lines!r})"
 
@@ -260,11 +260,11 @@ class LineSketch:
         Examples:
             >>> import simetri.graphics as sg
             >>> sk = sg.LineSketch(
-            ...     vertices=[(0, 0), (1, 0)],
+            ...     vertices=[(0, 0), (40, 0)],
             ...     xform_matrix=sg.identity_matrix(),
             ... )
             >>> repr(sk)
-            'LineSketch(vertices=[(0.0, 0.0), (1.0, 0.0)])'
+            'LineSketch(vertices=[(0.0, 0.0), (40.0, 0.0)])'
         """
         return f"LineSketch(vertices={self.vertices!r})"
 
@@ -397,7 +397,7 @@ class PatternSketch:
     Examples:
         >>> import simetri.graphics as sg
         >>> from simetri.patterns.pattern import Pattern
-        >>> pattern = Pattern(sg.Shape([(0, 0), (1, 0), (0, 1)]))
+        >>> pattern = Pattern(sg.Shape([(0, 0), (40, 0), (0, 40)]))
         >>> sk = PatternSketch(pattern=pattern)
         >>> sk.subtype.name
         'PATTERN_SKETCH'
@@ -424,7 +424,7 @@ class PatternSketch:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> pattern = sg.Pattern(sg.Shape([(0, 0), (1, 0), (0, 1)]))
+            >>> pattern = sg.Pattern(sg.Shape([(0, 0), (40, 0), (0, 40)]))
             >>> repr(sg.PatternSketch(pattern=pattern))
             'PatternSketch(count=1)'
         """
@@ -635,11 +635,11 @@ class ShapeSketch:
         Examples:
             >>> import simetri.graphics as sg
             >>> sk = sg.ShapeSketch(
-            ...     vertices=[(0, 0), (1, 0)],
+            ...     vertices=[(0, 0), (40, 0)],
             ...     xform_matrix=sg.identity_matrix(),
             ... )
             >>> repr(sk)
-            'ShapeSketch(vertices=[(0.0, 0.0), (1.0, 0.0)])'
+            'ShapeSketch(vertices=[(0.0, 0.0), (40.0, 0.0)])'
         """
         return f"ShapeSketch(vertices={self.vertices!r})"
 
@@ -685,11 +685,11 @@ class BezierSketch:
         Examples:
             >>> import simetri.graphics as sg
             >>> sk = sg.BezierSketch(
-            ...     [(0, 0), (1, 1), (2, 0), (3, 1)],
+            ...     [(0, 0), (40, 40), (80, 0), (60, 40)],
             ...     xform_matrix=sg.identity_matrix(),
             ... )
             >>> repr(sk)
-            'BezierSketch(control_points=[(0.0, 0.0, 1.0), (1.0, 1.0, 1.0), (2.0, 0.0, 1.0), (3.0, 1.0, 1.0)])'
+            'BezierSketch(control_points=[(0.0, 0.0, 1.0), (40.0, 40.0, 1.0), (80.0, 0.0, 1.0), (60.0, 40.0, 1.0)])'
         """
         return f"BezierSketch(control_points={self.control_points!r})"
 
@@ -735,11 +735,11 @@ class ArcSketch:
         Examples:
             >>> import simetri.graphics as sg
             >>> sk = sg.ArcSketch(
-            ...     vertices=[(0, 0), (1, 1)],
+            ...     vertices=[(0, 0), (40, 40)],
             ...     xform_matrix=sg.identity_matrix(),
             ... )
             >>> repr(sk)
-            'ArcSketch(vertices=[(0.0, 0.0), (1.0, 1.0)])'
+            'ArcSketch(vertices=[(0.0, 0.0), (40.0, 40.0)])'
         """
         return f"ArcSketch(vertices={self.vertices!r})"
 
@@ -797,12 +797,12 @@ class ClippedSketch:
         Examples:
             >>> import simetri.graphics as sg
             >>> clipper = sg.ShapeSketch(
-            ...     vertices=[(0, 0), (1, 0), (0, 1)],
+            ...     vertices=[(0, 0), (40, 0), (0, 40)],
             ...     xform_matrix=sg.identity_matrix(),
             ... )
             >>> sk = sg.ClippedSketch(sketches=[], clipper=clipper)
             >>> repr(sk)
-            'ClippedSketch(sketches=[], clipper=ShapeSketch(vertices=[(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]))'
+            'ClippedSketch(sketches=[], clipper=ShapeSketch(vertices=[(0.0, 0.0), (40.0, 0.0), (0.0, 40.0)]))'
         """
         return (
             f"ClippedSketch(sketches={self.sketches!r}, "
@@ -1168,7 +1168,7 @@ class RectSketch:
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
         >>> import simetri.graphics as sg
-        >>> sk = RectSketch((0, 0), 10, 5)
+        >>> sk = RectSketch((0, 0), 80, 40)
         >>> sk.closed
         True
 
@@ -1224,7 +1224,7 @@ class HelpLinesSketch:
     Examples:
         >>> import simetri.graphics as sg
         >>> sk = HelpLinesSketch(
-        ...     spacing=10,
+        ...     spacing=40,
         ...     cs_size=0,
         ...     grid_style={},
         ...     x_axis_style={},
@@ -1260,9 +1260,9 @@ class HelpLinesSketch:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas._all_vertices.extend([(0, 0), (10, 10)])
+            >>> canvas._all_vertices.extend([(0, 0), (40, 40)])
             >>> sk = HelpLinesSketch(
-            ...     spacing=10,
+            ...     spacing=40,
             ...     cs_size=0,
             ...     grid_style={},
             ...     x_axis_style={},

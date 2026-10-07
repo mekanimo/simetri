@@ -37,12 +37,12 @@ def reg_poly_points(
 
     Examples:
         >>> from simetri.geom.geom_utils import reg_poly_points
-        >>> points = reg_poly_points((0, 0), 4, 1)
+        >>> points = reg_poly_points((0, 0), 4, 40)
         >>> [[round(coord, 10) or 0.0 for coord in p[:2]] for p in points]
-        [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]]
-        >>> rotated = reg_poly_points((0, 0), 4, 1, angle=pi / 2)
+        [[40.0, 0.0], [0.0, 40.0], [-40.0, 0.0], [0.0, -40.0]]
+        >>> rotated = reg_poly_points((0, 0), 4, 40, angle=pi / 2)
         >>> [[round(coord, 10) or 0.0 for coord in p[:2]] for p in rotated]
-        [[0.0, 1.0], [-1.0, 0.0], [0.0, -1.0], [1.0, 0.0]]
+        [[0.0, 40.0], [-40.0, 0.0], [0.0, -40.0], [40.0, 0.0]]
     """
     step = 2 * pi / n
     x, y = pos[:2]
@@ -65,10 +65,10 @@ def r_polar(a: float, b: float, theta: float) -> float:
 
     Examples:
         >>> from simetri.geom.geom_utils import r_polar
-        >>> round(r_polar(2, 1, 0), 10)
-        2.0
-        >>> round(r_polar(2, 1, pi / 2), 10)
-        1.0
+        >>> round(r_polar(80, 40, 0), 10)
+        80.0
+        >>> round(r_polar(80, 40, pi / 2), 10)
+        40.0
     """
     return (a * b) / sqrt((b * cos(theta)) ** 2 + (a * sin(theta)) ** 2)
 
@@ -85,8 +85,8 @@ def distance_square(p1: PointType, p2: PointType) -> float:
 
     Examples:
         >>> from simetri.geom.geom_utils import distance_square
-        >>> distance_square((0, 0), (3, 4))
-        25
+        >>> distance_square((0, 0), (60, 80))
+        10000
     """
     return (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2
 
@@ -108,7 +108,7 @@ def close_points_square(
         >>> from simetri.geom.geom_utils import close_points_square
         >>> close_points_square((0, 0), (0.05, 0.05))
         True
-        >>> close_points_square((0, 0), (1, 1))
+        >>> close_points_square((0, 0), (40, 40))
         False
     """
     return distance_square(p1, p2) <= dist2
@@ -130,8 +130,8 @@ def extend(p1: PointType, p2: PointType, offset: float) -> PointType:
 
     Examples:
         >>> from simetri.geom.geom_utils import extend
-        >>> extend((0, 0), (3, 4), 5)
-        (3.0, 4.0)
+        >>> extend((0, 0), (60, 80), 100)
+        (60.0, 80.0)
     """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
@@ -152,8 +152,8 @@ def midpoint(p1: PointType, p2: PointType) -> PointType:
 
     Examples:
         >>> from simetri.geom.geom_utils import midpoint
-        >>> midpoint((0, 0), (4, 6))
-        (2.0, 3.0)
+        >>> midpoint((0, 0), (40, 60))
+        (20.0, 30.0)
     """
     return ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
 
@@ -171,8 +171,8 @@ def offset_point(point: PointType, dx: float = 0, dy: float = 0) -> PointType:
 
     Examples:
         >>> from simetri.geom.geom_utils import offset_point
-        >>> offset_point((1, 2), 3, -1)
-        (4, 1)
+        >>> offset_point((40, 80), 60, -40)
+        (100, 40)
     """
     x, y = point[:2]
     return (x + dx, y + dy)
@@ -217,11 +217,11 @@ def turning_function(
 
     Examples:
         >>> from simetri.geom.geom_utils import turning_function
-        >>> tf, s = turning_function([(0, 0), (1, 0), (1, 1)])
+        >>> tf, s = turning_function([(0, 0), (40, 0), (40, 40)])
         >>> [round(float(x), 10) for x in tf]
         [0.0, 1.5707963268, 1.5707963268]
         >>> [round(float(x), 10) for x in s]
-        [0.0, 1.0, 2.0]
+        [0.0, 40.0, 80.0]
     """
     curve = np.asarray(curve)
     if curve.shape[0] < 2:
@@ -258,7 +258,7 @@ def turning_function_metric(
 
     Examples:
         >>> from simetri.geom.geom_utils import turning_function_metric
-        >>> turning_function_metric([(0, 0), (1, 0)], [(0, 0), (1, 0)])
+        >>> turning_function_metric([(0, 0), (40, 0)], [(0, 0), (40, 0)])
         0.0
     """
     tf1, s1 = turning_function(curve1)

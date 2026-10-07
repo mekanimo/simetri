@@ -5,11 +5,11 @@ for building over/under weaving patterns that can be drawn on a canvas.
 
 Examples:
     >>> from simetri.interlace.lace import Polyline
-    >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+    >>> poly = Polyline([(0, 0), (40, 0), (20, 80)], closed=True)
     >>> len(poly.divisions)
     3
     >>> round(poly.area, 2)
-    40.0
+    1600.0
 """
 
 from __future__ import annotations
@@ -220,10 +220,10 @@ class Intersection(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Division, Intersection
-        >>> division = Division((0, 0), (10, 0))
-        >>> x = Intersection((5, 0), division)
+        >>> division = Division((0, 0), (40, 0))
+        >>> x = Intersection((20, 0), division)
         >>> round(x.point[0], 2)
-        5.0
+        20.0
         >>> x == x.copy()
         True
     """
@@ -371,9 +371,9 @@ class Partition(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Partition
-        >>> part = Partition([(0, 0), (4, 0), (4, 4), (0, 4)], closed=True)
+        >>> part = Partition([(0, 0), (80, 0), (80, 80), (0, 80)], closed=True)
         >>> round(part.area, 2)
-        16.0
+        6400.0
     """
 
     def __init__(self, points: Sequence[PointType], **kwargs: Any) -> None:
@@ -411,7 +411,7 @@ class Fragment(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Fragment
-        >>> frag = Fragment([(0, 0), (4, 0), (4, 4)])
+        >>> frag = Fragment([(0, 0), (80, 0), (80, 80)])
         >>> frag.subtype.name
         'FRAGMENT'
     """
@@ -544,10 +544,10 @@ class Section(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Polyline, Section
-        >>> poly = Polyline([(0, 0), (10, 0)], closed=False)
+        >>> poly = Polyline([(0, 0), (40, 0)], closed=False)
         >>> section = Section(poly.intersections[0], poly.intersections[1])
         >>> round(section.length, 2)
-        10.0
+        40.0
         >>> section.is_endpoint
         True
     """
@@ -697,8 +697,8 @@ class Division(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Division
-        >>> d1 = Division((0, 0), (10, 0))
-        >>> d2 = Division((10, 0), (10, 10))
+        >>> d1 = Division((0, 0), (40, 0))
+        >>> d2 = Division((40, 0), (40, 40))
         >>> d1.is_connected(d2)
         True
     """
@@ -903,10 +903,10 @@ class Polyline(Shape):
 
     Examples:
         >>> from simetri.interlace.lace import Polyline
-        >>> closed = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> closed = Polyline([(0, 0), (40, 0), (20, 80)], closed=True)
         >>> len(closed.divisions)
         3
-        >>> open_line = Polyline([(0, 0), (10, 0)], closed=False)
+        >>> open_line = Polyline([(0, 0), (40, 0)], closed=False)
         >>> len(open_line.intersections)
         2
     """
@@ -1094,7 +1094,7 @@ class ParallelPolyline(Group):
 
     Examples:
         >>> from simetri.interlace.lace import ParallelPolyline, Polyline
-        >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+        >>> poly = Polyline([(0, 0), (40, 0), (20, 80)], closed=True)
         >>> parallel = ParallelPolyline(poly, offset=2)
         >>> len(parallel.polyline_list)
         3
@@ -1127,7 +1127,7 @@ class ParallelPolyline(Group):
 
         Examples:
             >>> from simetri.interlace.lace import ParallelPolyline, Polyline
-            >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+            >>> poly = Polyline([(0, 0), (40, 0), (20, 80)], closed=True)
             >>> parallel = ParallelPolyline(poly, offset=2)
             >>> repr(parallel).startswith("ParallelPolyline(")
             True
@@ -2026,7 +2026,7 @@ class Lace(Group):
             line_width: Stroke width for every inner line.
 
         Examples:
-            >>> lace.set_plait_inner_loops(1, 1)  # doctest: +SKIP
+            >>> lace.set_plait_inner_loops(40, 40)  # doctest: +SKIP
         """
         for plait in self.plaits:
             plait.inner_lines = []
@@ -2048,7 +2048,7 @@ class Lace(Group):
             line_width: Stroke width for every inner line.
 
         Examples:
-            >>> lace.set_fragment_lines(1, 1)  # doctest: +SKIP
+            >>> lace.set_fragment_lines(40, 40)  # doctest: +SKIP
         """
         for fragment in self.fragments:
             fragment.inner_lines = []
@@ -2659,13 +2659,13 @@ def all_intersections(
 
     Examples:
         >>> from simetri.interlace.lace import Division, all_intersections
-        >>> d1 = Division((0, 0), (10, 10))
-        >>> d2 = Division((0, 10), (10, 0))
+        >>> d1 = Division((0, 0), (40, 40))
+        >>> d2 = Division((0, 40), (40, 0))
         >>> found = all_intersections([d1, d2], {}, {})
         >>> len(found)
         1
         >>> [round(x, 2) for x in found[0].point]
-        [5.0, 5.0]
+        [20.0, 20.0]
     """
     # register fake intersections at the endpoints of the open lines
     for division in division_list:
@@ -2780,8 +2780,8 @@ def merge_nodes(
 
     Examples:
         >>> from simetri.interlace.lace import Division, merge_nodes
-        >>> d1 = Division((0, 0), (10, 10))
-        >>> d2 = Division((0, 10), (10, 0))
+        >>> d1 = Division((0, 0), (40, 40))
+        >>> d2 = Division((0, 40), (40, 0))
         >>> len(merge_nodes([d1, d2], {}, {}))
         1
     """

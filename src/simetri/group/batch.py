@@ -7,7 +7,7 @@ Examples:
     >>> import simetri.graphics as sg
     >>> g = sg.Group(
     ...     [
-    ...         sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True),
+    ...         sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True),
     ...         sg.Shape([(20, 0), (30, 0)]),
     ...     ]
     ... )
@@ -80,12 +80,12 @@ def check_dist_tol(
         >>> values = check_dist_tol(
         ...     [
         ...         sg.Shape([(0, 0), (5e-14, 0)]),
-        ...         sg.Shape([(0, 0), (1, 0)]),
+        ...         sg.Shape([(0, 0), (40, 0)]),
         ...     ],
         ...     2,
         ...     n_round=12,
         ... )
-        >>> values == {1.0}
+        >>> values == {40.0}
         True
 """
     return Group(shapes_groups).check_dist_tol(n, n_round=n_round)
@@ -112,8 +112,8 @@ def check_angle_tol(
         >>> import simetri.graphics as sg
         >>> values = check_angle_tol(
         ...     [
-        ...         sg.Shape([(0, 0), (1, 0)]),
-        ...         sg.Shape([(0, 0), (0, 1)]),
+        ...         sg.Shape([(0, 0), (40, 0)]),
+        ...         sg.Shape([(0, 0), (0, 40)]),
         ...     ],
         ...     1,
         ...     n_round=2,
@@ -142,8 +142,8 @@ class Group(Base):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-        >>> _ = g.append(sg.Shape([(2, 0), (3, 0)]))
+        >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+        >>> _ = g.append(sg.Shape([(80, 0), (60, 0)]))
         >>> len(g)
         2
 """
@@ -176,7 +176,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> len(sg.Group([sg.Shape([(0, 0), (1, 0)])]))
+            >>> len(sg.Group([sg.Shape([(0, 0), (40, 0)])]))
             1
             >>> len(sg.Group())
             0
@@ -229,7 +229,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
             >>> g.set_style(line_width=3) is g
             True
             >>> g[0].line_width
@@ -256,7 +256,7 @@ class Group(Base):
         Examples:
             >>> import warnings
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
             >>> with warnings.catch_warnings(record=True):
             ...     g.line_width = 2
             >>> True
@@ -292,7 +292,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
             >>> _ = g.set_attribs("line_width", 2)
             >>> g[0].line_width
             2
@@ -355,7 +355,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> len(sg.Group([sg.Shape([(0, 0), (1, 0)]), sg.Shape([(1, 0), (2, 0)])]))
+            >>> len(sg.Group([sg.Shape([(0, 0), (40, 0)]), sg.Shape([(40, 0), (80, 0)])]))
             2
         """
         return len(self.elements)
@@ -374,7 +374,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)]), sg.Shape([(1, 0), (2, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)]), sg.Shape([(40, 0), (80, 0)])])
             >>> g[0].type.name
             'SHAPE'
             >>> len(g[0:1])
@@ -398,8 +398,8 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-            >>> g[0] = sg.Shape([(9, 0), (10, 0)])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+            >>> g[0] = sg.Shape([(9, 0), (40, 0)])
             >>> len(g[0])
             2
         """
@@ -426,8 +426,8 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g1 = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-            >>> g2 = sg.Group([sg.Shape([(2, 0), (3, 0)])])
+            >>> g1 = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+            >>> g2 = sg.Group([sg.Shape([(80, 0), (60, 0)])])
             >>> len(g1 + g2)
             2
         """
@@ -453,7 +453,7 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> bool(sg.Group())
             False
-            >>> bool(sg.Group([sg.Shape([(0, 0), (1, 0)])]))
+            >>> bool(sg.Group([sg.Shape([(0, 0), (40, 0)])]))
             True
         """
         return len(self.elements) > 0
@@ -467,7 +467,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)]), sg.Shape([(1, 0), (2, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)]), sg.Shape([(40, 0), (80, 0)])])
             >>> len(list(g))
             2
         """
@@ -512,7 +512,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0), (1, 1)], closed=True)])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)])
             >>> isinstance(g.proximity(n=1), list)
             True
         """
@@ -541,8 +541,8 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> group = sg.Group([sg.Shape([(0, 0), (5e-14, 0), (1, 0)])])
-            >>> group.check_dist_tol(2, n_round=12) == {1.0}
+            >>> group = sg.Group([sg.Shape([(0, 0), (5e-14, 0), (40, 0)])])
+            >>> group.check_dist_tol(2, n_round=12) == {40.0}
             True
         """
         if n <= 0:
@@ -586,8 +586,8 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> group = sg.Group(
             ...     [
-            ...         sg.Shape([(0, 0), (1, 0)]),
-            ...         sg.Shape([(0, 0), (0, 1)]),
+            ...         sg.Shape([(0, 0), (40, 0)]),
+            ...         sg.Shape([(0, 0), (0, 40)]),
             ...     ]
             ... )
             >>> group.check_angle_tol(1, n_round=2) == {1.57}
@@ -623,8 +623,8 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-            >>> g.append(sg.Shape([(2, 0), (3, 0)])) is g
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+            >>> g.append(sg.Shape([(80, 0), (60, 0)])) is g
             True
             >>> len(g)
             2
@@ -647,8 +647,8 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> first = sg.Shape([(0, 0), (1, 0)])
-            >>> second = sg.Shape([(2, 0), (3, 0)])
+            >>> first = sg.Shape([(0, 0), (40, 0)])
+            >>> second = sg.Shape([(80, 0), (60, 0)])
             >>> g = sg.Group([first, second])
             >>> _ = g.reverse()
             >>> g[0] is second
@@ -670,8 +670,8 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-            >>> _ = g.insert(0, sg.Shape([(5, 0), (6, 0)]))
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+            >>> _ = g.insert(0, sg.Shape([(20, 0), (60, 0)]))
             >>> len(g)
             2
         """
@@ -692,8 +692,8 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> extra = sg.Shape([(5, 0), (6, 0)])
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)]), extra])
+            >>> extra = sg.Shape([(20, 0), (60, 0)])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)]), extra])
             >>> _ = g.remove(extra)
             >>> len(g)
             1
@@ -714,7 +714,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)]), sg.Shape([(2, 0), (3, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)]), sg.Shape([(80, 0), (60, 0)])])
             >>> removed = g.pop(0)
             >>> removed.type.name
             'SHAPE'
@@ -732,7 +732,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
             >>> _ = g.clear()
             >>> len(g)
             0
@@ -752,8 +752,8 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
-            >>> _ = g.extend([sg.Shape([(2, 0), (3, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+            >>> _ = g.extend([sg.Shape([(80, 0), (60, 0)])])
             >>> len(g)
             2
         """
@@ -778,8 +778,8 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> nested = sg.Group(
             ...     [
-            ...         sg.Group([sg.Shape([(0, 0), (1, 0)])]),
-            ...         sg.Shape([(2, 0), (3, 0)]),
+            ...         sg.Group([sg.Shape([(0, 0), (40, 0)])]),
+            ...         sg.Shape([(80, 0), (60, 0)]),
             ...     ]
             ... )
             >>> len(list(nested.iter_elements(Types.SHAPE)))
@@ -804,8 +804,8 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> nested = sg.Group(
             ...     [
-            ...         sg.Group([sg.Shape([(0, 0), (1, 0)])]),
-            ...         sg.Shape([(2, 0), (3, 0)]),
+            ...         sg.Group([sg.Shape([(0, 0), (40, 0)])]),
+            ...         sg.Shape([(80, 0), (60, 0)]),
             ...     ]
             ... )
             >>> len(nested.all_elements)
@@ -830,8 +830,8 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> nested = sg.Group(
             ...     [
-            ...         sg.Group([sg.Shape([(0, 0), (1, 0)])]),
-            ...         sg.Shape([(2, 0), (3, 0)]),
+            ...         sg.Group([sg.Shape([(0, 0), (40, 0)])]),
+            ...         sg.Shape([(80, 0), (60, 0)]),
             ...     ]
             ... )
             >>> len(nested.all_shapes)
@@ -852,7 +852,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)])
             >>> len(g.all_vertices)
             3
         """
@@ -874,7 +874,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)])
             >>> len(g.all_segments)
             3
         """
@@ -896,7 +896,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)])
             >>> g.all_edges is g.all_segments
             False
             >>> len(g.all_edges) == len(g.all_segments)
@@ -927,7 +927,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (10, 0)]), sg.Shape([(10, 0), (20, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)]), sg.Shape([(40, 0), (20, 0)])])
             >>> g._set_node_dictionaries(g.all_vertices, abs_tol=0.01)
             >>> edges, _ = g._get_edges_and_segments()
             >>> len(g.merge_collinears(edges, merge_angle_tol=0.1))
@@ -969,8 +969,8 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> g = sg.Group(
             ...     [
-            ...         sg.Shape([(0, 0), (10, 0)]),
-            ...         sg.Shape([(10, 0), (0, 0)]),
+            ...         sg.Shape([(0, 0), (40, 0)]),
+            ...         sg.Shape([(40, 0), (0, 0)]),
             ...     ]
             ... )
             >>> merged = g.merge_shapes()
@@ -1057,7 +1057,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)])
             >>> len(g.all_polygons())
             1
         """
@@ -1104,7 +1104,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
             >>> copy = g.copy()
             >>> len(copy) == len(g)
             True
@@ -1132,7 +1132,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)])
             >>> g.b_box.southwest is not None
             True
         """
@@ -1234,9 +1234,9 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> shared = sg.Shape([(2, 0), (3, 0)])
-            >>> g1 = sg.Group([sg.Shape([(0, 0), (1, 0)]), shared])
-            >>> g2 = sg.Group([shared, sg.Shape([(4, 0), (5, 0)])])
+            >>> shared = sg.Shape([(80, 0), (60, 0)])
+            >>> g1 = sg.Group([sg.Shape([(0, 0), (40, 0)]), shared])
+            >>> g2 = sg.Group([shared, sg.Shape([(80, 0), (20, 0)])])
             >>> len(g1.union(g2))
             3
         """
@@ -1271,9 +1271,9 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> shared = sg.Shape([(2, 0), (3, 0)])
-            >>> g1 = sg.Group([sg.Shape([(0, 0), (1, 0)]), shared])
-            >>> g2 = sg.Group([shared, sg.Shape([(4, 0), (5, 0)])])
+            >>> shared = sg.Shape([(80, 0), (60, 0)])
+            >>> g1 = sg.Group([sg.Shape([(0, 0), (40, 0)]), shared])
+            >>> g2 = sg.Group([shared, sg.Shape([(80, 0), (20, 0)])])
             >>> len(g1.intersection(g2))
             1
         """
@@ -1306,9 +1306,9 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> shared = sg.Shape([(2, 0), (3, 0)])
-            >>> g1 = sg.Group([sg.Shape([(0, 0), (1, 0)]), shared])
-            >>> g2 = sg.Group([shared, sg.Shape([(4, 0), (5, 0)])])
+            >>> shared = sg.Shape([(80, 0), (60, 0)])
+            >>> g1 = sg.Group([sg.Shape([(0, 0), (40, 0)]), shared])
+            >>> g2 = sg.Group([shared, sg.Shape([(80, 0), (20, 0)])])
             >>> len(g1.difference(g2))
             1
         """
@@ -1341,9 +1341,9 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> shared = sg.Shape([(2, 0), (3, 0)])
-            >>> g1 = sg.Group([sg.Shape([(0, 0), (1, 0)]), shared])
-            >>> g2 = sg.Group([shared, sg.Shape([(4, 0), (5, 0)])])
+            >>> shared = sg.Shape([(80, 0), (60, 0)])
+            >>> g1 = sg.Group([sg.Shape([(0, 0), (40, 0)]), shared])
+            >>> g2 = sg.Group([shared, sg.Shape([(80, 0), (20, 0)])])
             >>> len(g1.symmetric_difference(g2))
             2
         """
@@ -1383,9 +1383,9 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> shared = sg.Shape([(0, 0), (1, 0)])
+            >>> shared = sg.Shape([(0, 0), (40, 0)])
             >>> inner = sg.Group([shared])
-            >>> outer = sg.Group([shared, sg.Shape([(2, 0), (3, 0)])])
+            >>> outer = sg.Group([shared, sg.Shape([(80, 0), (60, 0)])])
             >>> inner.subset(outer)
             True
         """
@@ -1410,9 +1410,9 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> a = sg.Shape([(0, 0), (1, 0)])
+            >>> a = sg.Shape([(0, 0), (40, 0)])
             >>> inner = sg.Group([a])
-            >>> outer = sg.Group([a, sg.Shape([(2, 0), (3, 0)])])
+            >>> outer = sg.Group([a, sg.Shape([(80, 0), (60, 0)])])
             >>> outer.superset(inner)
             True
         """
@@ -1437,7 +1437,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)]), sg.Shape([(2, 0), (3, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)]), sg.Shape([(80, 0), (60, 0)])])
             >>> len(g.ids)
             2
         """
@@ -1459,8 +1459,8 @@ class Group(Base):
             >>> import simetri.graphics as sg
             >>> nested = sg.Group(
             ...     [
-            ...         sg.Group([sg.Shape([(0, 0), (1, 0)])]),
-            ...         sg.Shape([(2, 0), (3, 0)]),
+            ...         sg.Group([sg.Shape([(0, 0), (40, 0)])]),
+            ...         sg.Shape([(80, 0), (60, 0)]),
             ...     ]
             ... )
             >>> len(nested.all_ids)
@@ -1483,7 +1483,7 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
             >>> isinstance(hash(g), int)
             True
         """
@@ -1500,12 +1500,12 @@ class Group(Base):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> g = sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)])])
             >>> g == g
             True
-            >>> g == sg.Group([sg.Shape([(0, 0), (1, 0)])])
+            >>> g == sg.Group([sg.Shape([(0, 0), (40, 0)])])
             True
-            >>> g == sg.Group([sg.Shape([(0, 0), (2, 0)])])
+            >>> g == sg.Group([sg.Shape([(0, 0), (80, 0)])])
             False
         """
         if not isinstance(other, Group):
@@ -1534,7 +1534,7 @@ def custom_group_attributes(item: Group) -> list[str]:
     Examples:
         >>> from simetri.group.batch import Group, custom_group_attributes
         >>> import simetri.graphics as sg
-        >>> attrs = custom_group_attributes(sg.Group([sg.Shape([(0, 0), (1, 0)])]))
+        >>> attrs = custom_group_attributes(sg.Group([sg.Shape([(0, 0), (40, 0)])]))
         >>> isinstance(attrs, list)
         True
     """

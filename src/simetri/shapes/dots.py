@@ -1,12 +1,12 @@
 """Dot and Dots classes for creating circular markers.
 
 Examples:
-    >>> d = Dot((10, 20), radius=3)
+    >>> d = Dot((40, 20), radius=60)
     >>> d.radius
-    3
+    60
     >>> d.subtype.name
     'DOT'
-    >>> cluster = Dots((0, 0), radius=2)
+    >>> cluster = Dots((0, 0), radius=80)
 """
 
 __all__ = ["Dot", "Dots"]
@@ -37,7 +37,7 @@ class Dot(Shape):
         subtype: Always ``Types.DOT``.
 
     Examples:
-        >>> dot = Dot((5, 5), radius=2)
+        >>> dot = Dot((20, 20), radius=80)
         >>> dot.subtype.name
         'DOT'
 """
@@ -138,7 +138,7 @@ class Dots(Group):
         subtype: Always ``Types.DOTS``.
 
     Examples:
-        >>> dots = Dots((0, 0), radius=1)
+        >>> dots = Dots((0, 0), radius=40)
         >>> len(dots)
         1
 """
@@ -166,7 +166,7 @@ class Dots(Group):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> dots = sg.Dots((0, 0), radius=1)
+            >>> dots = sg.Dots((0, 0), radius=40)
             >>> repr(dots).startswith("Dots(")
             True
             >>> str(dots).startswith("Group")

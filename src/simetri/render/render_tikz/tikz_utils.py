@@ -435,8 +435,8 @@ def get_dash_pattern(line_dash_array: Sequence[float | int]) -> str:
 
     Examples:
         >>> from simetri.render.render_tikz.tikz_utils import get_dash_pattern
-        >>> get_dash_pattern([4, 2])
-        'on 4pt off 2pt'
+        >>> get_dash_pattern([80, 80])
+        'on 80pt off 80pt'
     """
     dash_pattern = []
     for i, dash in enumerate(line_dash_array):
@@ -966,7 +966,7 @@ def is_stroked(shape: Shape) -> bool:
 
     Examples:
         >>> from simetri.render.render_tikz.tikz_utils import is_stroked
-        >>> is_stroked(sg.Circle(1))
+        >>> is_stroked(sg.Circle(40))
         True
     """
     stroke = sg.Canvas.resolve_property(None, shape, "stroke")

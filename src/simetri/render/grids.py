@@ -151,7 +151,7 @@ class Grid(Group):
     Examples:
         >>> from simetri.base.all_enums import GridType
         >>> from simetri.render.grids import Grid
-        >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+        >>> pts = [(0, 0), (40, 0), (40, 40), (0, 40)]
         >>> grid = Grid(GridType.SQUARE, points=pts, n=4)
         >>> len(grid.points)
         4
@@ -204,7 +204,7 @@ class Grid(Group):
         Examples:
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
-            >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+            >>> pts = [(0, 0), (40, 0), (40, 40), (0, 40)]
             >>> Grid(GridType.SQUARE, points=pts, n=4).points[0]
             (0.0, 0.0)
         """
@@ -242,7 +242,7 @@ class Grid(Group):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> grid = sg.CircularGrid(n=6, radius=10)
+            >>> grid = sg.CircularGrid(n=6, radius=40)
             >>> grid.connections = [3]
             >>> grid.line_index_pairs()
             [(0, 3), (1, 4), (2, 5)]
@@ -318,7 +318,7 @@ class Grid(Group):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> circ = sg.CircularGrid(n=6, radius=10)
+            >>> circ = sg.CircularGrid(n=6, radius=40)
             >>> circ.orthogonal_index_pairs()
             [(2, 4), (1, 5), (4, 5), (0, 3), (1, 2)]
             >>> sq = sg.SquareGrid(n=16, cell_size=25)
@@ -351,7 +351,7 @@ class Grid(Group):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.CircularGrid(n=6, radius=10).diagonal_index_pairs()
+            >>> sg.CircularGrid(n=6, radius=40).diagonal_index_pairs()
             []
             >>> sq = sg.SquareGrid(n=16, cell_size=25)
             >>> sq.diagonal_index_pairs()
@@ -398,10 +398,10 @@ class Grid(Group):
         Examples:
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
-            >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+            >>> pts = [(0, 0), (40, 0), (40, 40), (0, 40)]
             >>> g = Grid(GridType.SQUARE, points=pts, n=4)
             >>> g.intersect((0, 2), (1, 3))[0]
-            5.0
+            20.0
         """
         ind1, ind2 = line1
         ind3, ind4 = line2
@@ -425,10 +425,10 @@ class Grid(Group):
         Examples:
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
-            >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+            >>> pts = [(0, 0), (40, 0), (40, 40), (0, 40)]
             >>> g = Grid(GridType.SQUARE, points=pts, n=4)
             >>> g.line(0, 1)[1]
-            (10.0, 0.0)
+            (40.0, 0.0)
         """
         return (self.points[ind1], self.points[ind2])
 
@@ -444,9 +444,9 @@ class Grid(Group):
 
         Examples:
             >>> from simetri.render.grids import CircularGrid
-            >>> g = CircularGrid(n=12, radius=10)
-            >>> round(g.radial_point(5, 0)[0], 10)
-            5.0
+            >>> g = CircularGrid(n=12, radius=40)
+            >>> round(g.radial_point(20, 0)[0], 10)
+            20.0
         """
         return polar_to_cartesian(radius, index * (2 * pi / self.n))
 
@@ -466,10 +466,10 @@ class Grid(Group):
         Examples:
             >>> from simetri.base.all_enums import GridType
             >>> from simetri.render.grids import Grid
-            >>> pts = [(0, 0), (10, 0), (10, 10), (0, 10)]
+            >>> pts = [(0, 0), (40, 0), (40, 40), (0, 40)]
             >>> g = Grid(GridType.SQUARE, points=pts, n=4)
             >>> g.between(0, 1, 0.5)
-            (5.0, 0.0)
+            (20.0, 0.0)
         """
         if t < 0 or t > 1:
             raise ValueError("t must be between 0 and 1.")
@@ -665,8 +665,8 @@ def convert_basis(
 
     Examples:
         >>> from simetri.render.grids import convert_basis
-        >>> convert_basis(1, 0, ((1, 0), (0, 1)))
-        (1, 0)
+        >>> convert_basis(1, 0, ((40, 0), (0, 40)))
+        (40, 0)
     """
     return basis[0][0] * x + basis[0][1] * y, basis[1][0] * x + basis[1][1] * y
 
@@ -686,8 +686,8 @@ def convert_to_cartesian(
 
     Examples:
         >>> from simetri.render.grids import convert_to_cartesian
-        >>> convert_to_cartesian(1, 0, ((1, 0), (0, 1)))
-        (1, 0)
+        >>> convert_to_cartesian(1, 0, ((40, 0), (0, 40)))
+        (40, 0)
     """
     return basis[0][0] * x + basis[1][0] * y, basis[0][1] * x + basis[1][1] * y
 
@@ -704,8 +704,8 @@ def cartesian_to_isometric(x: float, y: float) -> tuple[float, float]:
 
     Examples:
         >>> from simetri.render.grids import cartesian_to_isometric
-        >>> cartesian_to_isometric(1, 0)[0]
-        1
+        >>> cartesian_to_isometric(40, 0)[0]
+        40
     """
     return convert_basis(x, y, ((1, 0), (cos(pi / 3), sin(pi / 3))))
 
@@ -722,7 +722,7 @@ def isometric_to_cartesian(x: float, y: float) -> tuple[float, float]:
 
     Examples:
         >>> from simetri.render.grids import isometric_to_cartesian
-        >>> isometric_to_cartesian(1, 0)[0]
-        1.0
+        >>> isometric_to_cartesian(40, 0)[0]
+        40.0
     """
     return convert_to_cartesian(x, y, ((1, 0), (cos(pi / 3), sin(pi / 3))))

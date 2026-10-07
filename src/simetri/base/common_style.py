@@ -143,11 +143,15 @@ class Style:
         return self._data[key]
 
     def __repr__(self) -> str:
-        body = ", ".join(f"{key}={value!r}" for key, value in self._data.items())
+        body = ", ".join(
+            f"{key}={value!r}" for key, value in self._data.items()
+        )
         return f"Style({body})"
 
 
-def coerce_style_overlay(mapping: Any = None, kwargs: dict | None = None) -> dict[str, Any]:
+def coerce_style_overlay(
+    mapping: Any = None, kwargs: dict | None = None
+) -> dict[str, Any]:
     """Return a dict of draw-alias keys from a Style, a dict, and/or kwargs.
 
     Keyword arguments overwrite keys from ``mapping``. Unknown keys raise.
@@ -196,7 +200,7 @@ class CommonStyle:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> mark = sg.Shape([(0, 0), (1, 0)], closed=True)
+        >>> mark = sg.Shape([(0, 0), (100, 0)], closed=True)
         >>> mark.style["line_width"] is None
         True
         >>> mark.reset_style() is mark
@@ -271,10 +275,18 @@ class CommonStyle:
 
         color = kwargs.pop("color") if "color" in kwargs else None
         alpha = kwargs.pop("alpha") if "alpha" in kwargs else None
-        line_color = kwargs.pop("line_color") if "line_color" in kwargs else None
-        fill_color = kwargs.pop("fill_color") if "fill_color" in kwargs else None
-        line_alpha = kwargs.pop("line_alpha") if "line_alpha" in kwargs else None
-        fill_alpha = kwargs.pop("fill_alpha") if "fill_alpha" in kwargs else None
+        line_color = (
+            kwargs.pop("line_color") if "line_color" in kwargs else None
+        )
+        fill_color = (
+            kwargs.pop("fill_color") if "fill_color" in kwargs else None
+        )
+        line_alpha = (
+            kwargs.pop("line_alpha") if "line_alpha" in kwargs else None
+        )
+        fill_alpha = (
+            kwargs.pop("fill_alpha") if "fill_alpha" in kwargs else None
+        )
         self._apply_color_alpha(
             color=color,
             alpha=alpha,

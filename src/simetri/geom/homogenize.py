@@ -19,8 +19,8 @@ def homogenize(points: Sequence[PointType]) -> NDArray:
 
     Examples:
         >>> from simetri.geom.homogenize import homogenize
-        >>> homogenize([(1, 2), (3, 4)]).tolist()
-        [[1.0, 2.0, 1.0], [3.0, 4.0, 1.0]]
+        >>> homogenize([(20, 40), (60, 80)]).tolist()
+        [[20.0, 40.0, 1.0], [60.0, 80.0, 1.0]]
 """
     try:
         xy_array = np.array(points, dtype=float)

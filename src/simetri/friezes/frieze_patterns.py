@@ -87,7 +87,7 @@ class HopDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> len(HopDef(dx=20, reps=2).apply(sg.Circle(5)))
+            >>> len(HopDef(dx=20, reps=2).apply(sg.Circle(40)))
             3
         """
         return self.pattern_def.apply(design)
@@ -105,7 +105,7 @@ class StepDef:
         pattern_def: Built ``PatternDef``.
 
     Examples:
-        >>> step = StepDef(mirror_offset=0, distance=10, reps=1)
+        >>> step = StepDef(mirror_offset=0, distance=40, reps=1)
         >>> step.pattern_def.transform_defs[0].type.name
         'GLIDE'
     """
@@ -125,8 +125,8 @@ class StepDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> repr(sg.StepDef(mirror_offset=0, distance=10, reps=1))
-            "StepDef(mirror_offset=0, distance=10, side=<Reference.BOTTOM: 'bottom'>, reps=1)"
+            >>> repr(sg.StepDef(mirror_offset=0, distance=40, reps=1))
+            "StepDef(mirror_offset=0, distance=40, side=<Reference.BOTTOM: 'bottom'>, reps=1)"
         """
         return (
             f"StepDef(mirror_offset={self.mirror_offset!r}, "
@@ -161,7 +161,7 @@ class StepDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> isinstance(StepDef(0, 10, reps=1).apply(sg.Circle(5)), sg.Group)
+            >>> isinstance(StepDef(0, 40, reps=1).apply(sg.Circle(40)), sg.Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -244,7 +244,7 @@ class JumpDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> isinstance(JumpDef(0, 20, reps=1).apply(sg.Circle(5)), sg.Group)
+            >>> isinstance(JumpDef(0, 20, reps=1).apply(sg.Circle(40)), sg.Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -324,7 +324,7 @@ class SidleDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> isinstance(SidleDef(0, 30, reps=1).apply(sg.Circle(5)), sg.Group)
+            >>> isinstance(SidleDef(0, 30, reps=1).apply(sg.Circle(40)), sg.Group)
             True
         """
         return self.pattern_def.apply(design)
@@ -406,7 +406,7 @@ class SpinningHopDef:
         Examples:
             >>> import simetri.graphics as sg
             >>> isinstance(
-            ...     SpinningHopDef((0, 0), 20, reps=1).apply(sg.Circle(5)), sg.Group
+            ...     SpinningHopDef((0, 0), 20, reps=1).apply(sg.Circle(40)), sg.Group
             ... )
             True
         """
@@ -500,7 +500,7 @@ class SpinningJumpDef:
         Examples:
             >>> import simetri.graphics as sg
             >>> isinstance(
-            ...     SpinningJumpDef(0, 0, 20, reps=1).apply(sg.Circle(5)), sg.Group
+            ...     SpinningJumpDef(0, 0, 20, reps=1).apply(sg.Circle(40)), sg.Group
             ... )
             True
         """
@@ -541,8 +541,8 @@ class SpinningSidleDef:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> repr(sg.SpinningSidleDef(0, 10, dx=20, reps=1))
-            'SpinningSidleDef(mirror_offset=0, glide_distance=10, dx=20, dy=0, reps=1)'
+            >>> repr(sg.SpinningSidleDef(0, 40, dx=20, reps=1))
+            'SpinningSidleDef(mirror_offset=0, glide_distance=40, dx=20, dy=0, reps=1)'
         """
         return (
             f"SpinningSidleDef(mirror_offset={self.mirror_offset!r}, "
@@ -593,7 +593,7 @@ class SpinningSidleDef:
         Examples:
             >>> import simetri.graphics as sg
             >>> isinstance(
-            ...     SpinningSidleDef(0, 10, 20, reps=1).apply(sg.Circle(5)), sg.Group
+            ...     SpinningSidleDef(0, 40, 20, reps=1).apply(sg.Circle(40)), sg.Group
             ... )
             True
         """

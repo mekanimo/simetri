@@ -1265,10 +1265,10 @@ class Tag(Base):
             >>> tag = sg.Tag('A', (0, 0))
             >>> tag.pos
             [0.0, 0.0]
-            >>> tag.translate(10, 0)
+            >>> tag.translate(40, 0)
             Tag(A)
             >>> tag.pos
-            [10.0, 0.0]
+            [40.0, 0.0]
         """
         return (self._init_pos @ self.xform_matrix)[:2].tolist()
 
@@ -1650,11 +1650,11 @@ class ArrowHead(Shape):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> head = sg.ArrowHead(length=8, width_=3)
+        >>> head = sg.ArrowHead(length=80, width_=3)
         >>> head.vertices
-        ((0.0, 0.0), (0.0, -1.5), (8.0, 0.0), (0.0, 1.5))
+        ((0.0, 0.0), (0.0, -1.5), (80.0, 0.0), (0.0, 1.5))
         >>> head.head_length
-        8
+        80
         >>> head.head_width
         3
     """
@@ -1689,9 +1689,9 @@ class ArrowHead(Shape):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> repr(sg.ArrowHead(length=8, width_=3))
+            >>> repr(sg.ArrowHead(length=80, width_=3))
             'ArrowHead([(0.0, 0.0), ..., (0.0, 1.5)])'
-            >>> str(sg.ArrowHead(length=8, width_=3)).startswith("Shape")
+            >>> str(sg.ArrowHead(length=80, width_=3)).startswith("Shape")
             True
         """
         if len(self.primary_points) == 0:
@@ -1799,13 +1799,13 @@ def arrow(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> shaft = sg.arrow((0, 0), (10, 0))
+        >>> shaft = sg.arrow((0, 0), (40, 0))
         >>> len(shaft)
         2
         >>> shaft[0].vertices
-        ((0.0, 0.0), (10.0, 0.0))
+        ((0.0, 0.0), (40.0, 0.0))
         >>> shaft[1].vertices
-        ((0.0, 2.0), (10.0, 0.0), (0.0, -2.0))
+        ((30.0, 2.0), (40.0, 0.0), (30.0, -2.0))
     """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
@@ -2061,13 +2061,13 @@ class Arrow(Group):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> shaft = sg.Arrow((0, 0), (10, 0))
+        >>> shaft = sg.Arrow((0, 0), (40, 0))
         >>> shaft.p1
         (0, 0)
         >>> shaft.p2
-        (10, 0)
+        (40, 0)
         >>> shaft.line.vertices
-        ((0.0, 0.0), (10.0, 0.0))
+        ((0.0, 0.0), (40.0, 0.0))
     """
 
     def __init__(
@@ -2145,7 +2145,7 @@ class Arrow(Group):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> arrow = sg.Arrow((0, 0), (10, 0))
+            >>> arrow = sg.Arrow((0, 0), (40, 0))
             >>> repr(arrow).startswith("Arrow(")
             True
             >>> str(arrow).startswith("Group")
@@ -2187,22 +2187,22 @@ def vec_arrow(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> arrow = sg.vec_arrow(sg.Vector(3, 4), start=(10, 20))
+        >>> arrow = sg.vec_arrow(sg.Vector(60, 80), start=(40, 20))
         >>> arrow.p1
-        (10, 20)
+        (40, 20)
+        >>> arrow.p2
+        (100, 100)
+        >>> arrow = sg.vec_arrow(sg.Vector(60, 80), end=(13, 24))
+        >>> arrow.p1
+        (-47, -56)
         >>> arrow.p2
         (13, 24)
-        >>> arrow = sg.vec_arrow(sg.Vector(3, 4), end=(13, 24))
-        >>> arrow.p1
-        (10, 20)
-        >>> arrow.p2
-        (13, 24)
-        >>> sg.vec_arrow(sg.Vector(0, 0), start=(1, 1))
+        >>> sg.vec_arrow(sg.Vector(0, 0), start=(40, 40))
         Traceback (most recent call last):
         ValueError: Cannot create an Arrow from a zero-length Vector.
-        >>> sg.vec_arrow(sg.Vector(3, 4), start=(0, 0), end=(1, 0))
+        >>> sg.vec_arrow(sg.Vector(60, 80), start=(0, 0), end=(40, 0))
         Traceback (most recent call last):
-        ValueError: start and end are not consistent with the Vector displacement (3, 4).
+        ValueError: start and end are not consistent with the Vector displacement (60, 80).
     """
     vector_x, vector_y = vec[:2]
     if vector_x == 0 and vector_y == 0:
@@ -2346,15 +2346,15 @@ class Dimension(Group):
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> dim = sg.Dimension((0, 0), (10, 0), 'up', 8)
+        >>> dim = sg.Dimension((0, 0), (40, 0), 'up', 8)
         >>> dim.text
-        '10.0'
+        '40.0'
         >>> dim.text_pos
-        (5.0, 13)
+        (20.0, 13)
         >>> dim.p1
         (0, 0)
         >>> dim.p2
-        (10, 0)
+        (40, 0)
         >>> len(dim)
         3
     """
@@ -2592,7 +2592,7 @@ class Dimension(Group):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> dim = sg.Dimension((0, 0), (10, 0), "up", 8)
+            >>> dim = sg.Dimension((0, 0), (40, 0), "up", 8)
             >>> repr(dim).startswith("Dimension(")
             True
             >>> str(dim).startswith("Group")
@@ -2610,9 +2610,9 @@ def vert_label_layout(shape: Shape, offset: float) -> list[dict[str, object]]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> layout = sg.vert_label_layout(sg.Shape([(0, 0), (10, 0), (0, 10)]), 5.0)
+        >>> layout = sg.vert_label_layout(sg.Shape([(0, 0), (40, 0), (0, 40)]), 5.0)
         >>> [(tuple(round(c, 6) for c in item['position']), item['vertex']) for item in layout]
-        [((-3.535534, -3.535534), (0.0, 0.0)), ((14.619398, -1.913417), (10.0, 0.0)), ((-1.913417, 14.619398), (0.0, 10.0))]
+        [((-3.535534, -3.535534), (0.0, 0.0)), ((44.619398, -1.913417), (40.0, 0.0)), ((-1.913417, 44.619398), (0.0, 40.0))]
     """
     from simetri.geom.polygons.polygon import in_polygon
 
@@ -2860,12 +2860,12 @@ def sketch_requests_vertex_labels(sketch: Any) -> bool:
         >>> import simetri.graphics as sg
         >>> from simetri.render.draw import create_sketch
         >>> canvas = sg.Canvas()
-        >>> shape = sg.Shape([(0, 0), (1, 0)])
+        >>> shape = sg.Shape([(0, 0), (40, 0)])
         >>> sketch = create_sketch(shape, canvas)
         >>> sketch.indices = True
         >>> sg.sketch_requests_vertex_labels(sketch)
         True
-        >>> sg.sketch_requests_vertex_labels(sg.Shape([(0, 0), (1, 0)]))
+        >>> sg.sketch_requests_vertex_labels(sg.Shape([(0, 0), (40, 0)]))
         False
     """
     if not hasattr(sketch, "vertices"):
@@ -3127,7 +3127,7 @@ def draw_index_label_bboxes(
     Examples:
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
-        >>> canvas.draw(sg.Shape([(0, 0), (10, 0), (0, 10)], closed=True), indices=True)
+        >>> canvas.draw(sg.Shape([(0, 0), (40, 0), (0, 40)], closed=True), indices=True)
         Canvas()
         >>> sg.draw_index_label_bboxes(canvas)
         Canvas()
@@ -3158,7 +3158,7 @@ def draw_vertex_label_bboxes(
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> canvas.draw(
-        ...     sg.Shape([(0, 0), (10, 0), (0, 10)], closed=True),
+        ...     sg.Shape([(0, 0), (40, 0), (0, 40)], closed=True),
         ...     show_vertex_coords=True,
         ... )
         Canvas()
@@ -3204,7 +3204,7 @@ def prepare_shape_index_labels(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.prepare_shape_index_labels(sg.Shape([(0, 0), (1, 0), (0, 1)]))
+        >>> sg.prepare_shape_index_labels(sg.Shape([(0, 0), (40, 0), (0, 40)]))
     """
     if not getattr(sketch, "indices", False):
         return None
@@ -3229,7 +3229,7 @@ def prepare_shape_vertex_coord_labels(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.prepare_shape_vertex_coord_labels(sg.Shape([(0, 0), (1, 0), (0, 1)]))
+        >>> sg.prepare_shape_vertex_coord_labels(sg.Shape([(0, 0), (40, 0), (0, 40)]))
     """
     if not getattr(sketch, "show_vertex_coords", False):
         return None
@@ -3250,12 +3250,12 @@ def edge_label_positions(shape: Shape, offset: float) -> list:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (10, 0), (0, 10)])
+        >>> shape = sg.Shape([(0, 0), (40, 0), (0, 40)])
         >>> sg.edge_label_positions(shape, 2.0)
-        [[5.0, -2.0], [6.414213562373095, 6.414213562373095]]
-        >>> closed = sg.Shape([(0, 0), (10, 0), (0, 10)], closed=True)
+        [[20.0, -2.0], [21.414213562373096, 21.414213562373096]]
+        >>> closed = sg.Shape([(0, 0), (40, 0), (0, 40)], closed=True)
         >>> sg.edge_label_positions(closed, 2.0)
-        [[5.0, -2.0], [6.414213562373095, 6.414213562373095], [-2.0, 5.0]]
+        [[20.0, -2.0], [21.414213562373096, 21.414213562373096], [-2.0, 20.0]]
     """
     from simetri.geom.polygons.polygon import in_polygon
 
@@ -3296,9 +3296,9 @@ def edge_label_pos(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> shape = sg.Shape([(0, 0), (10, 0), (0, 10)])
+        >>> shape = sg.Shape([(0, 0), (40, 0), (0, 40)])
         >>> sg.edge_label_pos(shape, 0, 2.0)
-        (5.0, -2.0)
+        (20.0, -2.0)
     """
     from simetri.geom.polygons.polygon import in_polygon
 

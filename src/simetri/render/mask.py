@@ -47,7 +47,7 @@ class Mask:
     Examples:
         >>> import simetri.graphics as sg
         >>> from simetri.render.mask import Mask
-        >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)])
+        >>> shape = sg.Shape([(0, 0), (40, 0), (40, 40)])
         >>> mask = Mask(shape=shape)
         >>> mask.type.name
         'MASK'
@@ -175,7 +175,7 @@ def clip_mask_(
         >>> import simetri.graphics as sg
         >>> from simetri.render.mask import Mask, clip_mask_
         >>> canvas = sg.Canvas()
-        >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)])
+        >>> shape = sg.Shape([(0, 0), (40, 0), (40, 40)])
         >>> clip_mask_(canvas, None, Mask(shape=shape)) is canvas  # doctest: +SKIP
         True
     """

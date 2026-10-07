@@ -240,8 +240,8 @@ class Arc(Shape):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> [round(float(c), 6) or 0.0 for c in sg.Arc((10, 20), 5, span_angle=sg.pi / 2).center[:2]]
-            [10.0, 20.0]
+            >>> [round(float(c), 6) or 0.0 for c in sg.Arc((40, 20), 5, span_angle=sg.pi / 2).center[:2]]
+            [40.0, 20.0]
         """
         return (self._c @ self.xform_matrix).tolist()[:2]
 
@@ -617,8 +617,8 @@ def r_central(a: float, b: float, theta: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.r_central(2.0, 1.0, 0.0), 6)
-        2.0
+        >>> round(sg.r_central(80.0, 40.0, 0.0), 6)
+        80.0
     """
     return (a * b) / sqrt((b * cos(theta)) ** 2 + (a * sin(theta)) ** 2)
 
@@ -639,7 +639,7 @@ def ellipse_line_intersection(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.ellipse_line_intersection(2.0, 1.0, (4, 0))
+        >>> sg.ellipse_line_intersection(2.0, 1.0, (80, 0))
         [(2.0, 0.0), (-2.0, -0.0)]
     """
     # adapted from http:# mathworld.wolfram.com/Ellipse-LineIntersection.html
@@ -837,17 +837,17 @@ def elliptic_arc_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.elliptic_arc_points((0, 0), 2, 1, 0, sg.pi / 2, n_points=3)
+        >>> pts = sg.elliptic_arc_points((0, 0), 80, 40, 0, sg.pi / 2, n_points=3)
         >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
-        [[2.0, 0.0], [1.414214, 0.707107], [0.0, 1.0]]
+        [[80.0, 0.0], [56.568542, 28.284271], [0.0, 40.0]]
         >>> pts = sg.elliptic_arc_points(
-        ...     (0, 0), 2, 1, 0, end_angle=sg.pi / 2, n_points=3
+        ...     (0, 0), 80, 40, 0, end_angle=sg.pi / 2, n_points=3
         ... )
         >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
-        [[2.0, 0.0], [1.414214, 0.707107], [0.0, 1.0]]
-        >>> pts = sg.elliptic_arc_points((0, 0), 2, 1, sg.pi / 2, -sg.pi / 2, n_points=3)
+        [[80.0, 0.0], [56.568542, 28.284271], [0.0, 40.0]]
+        >>> pts = sg.elliptic_arc_points((0, 0), 80, 40, sg.pi / 2, -sg.pi / 2, n_points=3)
         >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
-        [[0.0, 1.0], [1.414214, 0.707107], [2.0, 0.0]]
+        [[0.0, 40.0], [56.568542, 28.284271], [80.0, 0.0]]
     """
     if radius_y is None:
         radius_y = radius_x
@@ -882,9 +882,9 @@ def ellipse_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.ellipse_points((0, 0), 2, 1, 0, n_points=5)
+        >>> pts = sg.ellipse_points((0, 0), 80, 40, 0, n_points=5)
         >>> [[round(float(c), 6) or 0.0 for c in q[:2]] for q in pts]
-        [[2.0, 0.0], [0.0, 1.0], [-2.0, 0.0], [0.0, -1.0], [2.0, 0.0]]
+        [[80.0, 0.0], [0.0, 40.0], [-80.0, 0.0], [0.0, -40.0], [80.0, 0.0]]
     """
     if n_points is None:
         n_points = runtime_defaults["n_ellipse_points"]
@@ -940,7 +940,7 @@ def central_to_parametric_angle(a: float, b: float, phi: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.central_to_parametric_angle(2.0, 1.0, 0.0), 6)
+        >>> round(sg.central_to_parametric_angle(80.0, 40.0, 0.0), 6)
         0.0
         >>> round(sg.central_to_parametric_angle(2.0, 1.0, sg.pi / 2), 6)
         1.570796
@@ -966,7 +966,7 @@ def parametric_to_central_angle(a: float, b: float, t: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.parametric_to_central_angle(2.0, 1.0, 0.0), 6)
+        >>> round(sg.parametric_to_central_angle(80.0, 40.0, 0.0), 6)
         0.0
     """
     phi = atan2((b / a) * sin(t), cos(t))
@@ -990,8 +990,8 @@ def ellipse_point(a: float, b: float, angle: float) -> PointType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.ellipse_point(2.0, 1.0, 0.0)
-        (2.0, 0.0)
+        >>> sg.ellipse_point(80.0, 40.0, 0.0)
+        (80.0, 0.0)
     """
     r = r_central(a, b, angle)
 
@@ -1012,8 +1012,8 @@ def ellipse_param_point(a: float, b: float, t: float) -> PointType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.ellipse_param_point(2.0, 1.0, 0.0)
-        (2.0, 0.0)
+        >>> sg.ellipse_param_point(80.0, 40.0, 0.0)
+        (80.0, 0.0)
     """
     return (a * cos(t), b * sin(t))
 
@@ -1032,7 +1032,7 @@ def get_ellipse_t_for_angle(angle: float, a: float, b: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.get_ellipse_t_for_angle(0.0, 2.0, 1.0), 6)
+        >>> round(sg.get_ellipse_t_for_angle(0.0, 80.0, 1.0), 6)
         0.0
     """
     t = atan2(a * sin(angle), b * cos(angle))
@@ -1055,7 +1055,7 @@ def ellipse_central_angle(t: float, a: float, b: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.ellipse_central_angle(0.0, 2.0, 1.0), 6)
+        >>> round(sg.ellipse_central_angle(0.0, 80.0, 1.0), 6)
         0.0
     """
     theta = atan2(a * sin(t), b * cos(t))
@@ -1095,9 +1095,9 @@ def ellipse_intersection(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.ellipse_intersection(0, 0, 2, 2, 0, 3, 0, 2, 2, 0)
+        >>> pts = sg.ellipse_intersection(0, 0, 40, 40, 0, 60, 0, 40, 40, 0)
         >>> sorted((round(float(p[0]), 6), round(float(p[1]), 6)) for p in pts)
-        [(1.5, -1.322876), (1.5, 1.322876)]
+        [(30.0, -26.457513), (30.0, 26.457513)]
     """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/geometry.js
     phi0 = phi2 - phi
@@ -1314,8 +1314,8 @@ def solve_complex_quadratic_equation(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.solve_complex_quadratic_equation(0, -1)
-        [(-1+0j), (1-0j)]
+        >>> sg.solve_complex_quadratic_equation(0, -40)
+        [(-6.324555320336759+0j), (6.324555320336759-0j)]
     """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/quartic.js
 
@@ -1340,8 +1340,8 @@ def get_one_cubic_equation_root(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.get_one_cubic_equation_root(0, 0, -8).real, 6)
-        2.0
+        >>> round(sg.get_one_cubic_equation_root(0, 0, -80).real, 6)
+        4.308869
     """
     # Taken from https:# github.com/VoyakaGOD/intersection-of-two-ellipses/blob/master/quartic.js
 

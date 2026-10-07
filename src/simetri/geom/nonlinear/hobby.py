@@ -114,9 +114,9 @@ class HobbyCurve:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+        >>> curve = sg.HobbyCurve([(0, 0), (40, 40), (80, 0)])
         >>> [[round(float(c), 6) for c in q[:2]] for q in curve.get_ctrl_points()]
-        [[0.0, 0.552285], [0.447715, 1.0], [1.552285, 1.0], [2.0, 0.552285]]
+        [[0.0, 22.09139], [17.90861, 40.0], [62.09139, 40.0], [80.0, 22.09139]]
     """
 
     def __init__(
@@ -162,7 +162,7 @@ class HobbyCurve:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+            >>> curve = sg.HobbyCurve([(0, 0), (40, 40), (80, 0)])
             >>> len(curve.get_ctrl_points())
             4
         """
@@ -179,10 +179,10 @@ class HobbyCurve:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> curve = sg.HobbyCurve([(0, 0), (3, 0), (3, 4)])
+            >>> curve = sg.HobbyCurve([(0, 0), (60, 0), (60, 80)])
             >>> curve.calculate_d_vals()
             >>> round(curve.points[0].d_val, 6)
-            3.0
+            60.0
         """
         # Skip last point if path is non-cyclic
         point_inds = (
@@ -201,7 +201,7 @@ class HobbyCurve:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> curve = sg.HobbyCurve([(0, 0), (1, 0), (1, 1)])
+            >>> curve = sg.HobbyCurve([(0, 0), (40, 0), (40, 40)])
             >>> curve.calculate_d_vals()
             >>> curve.calculate_psi_vals()
             >>> round(curve.points[1].psi, 6)
@@ -234,7 +234,7 @@ class HobbyCurve:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+            >>> curve = sg.HobbyCurve([(0, 0), (40, 40), (80, 0)])
             >>> _ = curve.get_ctrl_points()
             >>> round(float(curve.points[0].theta), 6)
             0.785398
@@ -300,7 +300,7 @@ class HobbyCurve:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+            >>> curve = sg.HobbyCurve([(0, 0), (40, 40), (80, 0)])
             >>> _ = curve.get_ctrl_points()
             >>> round(float(curve.points[1].phi + curve.points[1].theta + curve.points[1].psi), 10)
             0.0
@@ -317,7 +317,7 @@ class HobbyCurve:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> curve = sg.HobbyCurve([(0, 0), (1, 1), (2, 0)])
+            >>> curve = sg.HobbyCurve([(0, 0), (40, 40), (80, 0)])
             >>> _ = curve.get_ctrl_points()
             >>> len(curve.calculate_ctrl_pts())
             4
@@ -347,7 +347,7 @@ class HobbyCurve:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.HobbyCurve([(0, 0), (1, 1), (2, 0)]).show_debug_msg()
+            >>> sg.HobbyCurve([(0, 0), (40, 40), (80, 0)]).show_debug_msg()
         """
         if self.debug_mode:
             for point in self.points:
@@ -387,9 +387,9 @@ def hobby_ctrl_points(
     Examples:
 
         >>> import simetri.graphics as sg
-        >>> ctrl = sg.hobby_ctrl_points([(0, 0), (1, 1), (2, 0)], tension=1)
+        >>> ctrl = sg.hobby_ctrl_points([(0, 0), (40, 40), (80, 0)], tension=1)
         >>> [[round(float(c), 6) for c in q[:2]] for q in ctrl]
-        [[0.0, 0.552285], [0.447715, 1.0], [1.552285, 1.0], [2.0, 0.552285]]
+        [[0.0, 22.09139], [17.90861, 40.0], [62.09139, 40.0], [80.0, 22.09139]]
     """
     curve = HobbyCurve(
         points,
@@ -487,9 +487,9 @@ def hobby_shape(
     Examples:
 
         >>> import simetri.graphics as sg
-        >>> shape = sg.hobby_shape([(0, 0), (10, 5), (20, 0)], n_points=5)
+        >>> shape = sg.hobby_shape([(0, 0), (40, 20), (20, 0)], n_points=5)
         >>> [[round(float(c), 6) for c in q[:2]] for q in shape.vertices]
-        [[0.0, 0.0], [2.005127, 2.109132], [4.40983, 3.68034], [7.109618, 4.661377], [10.0, 5.0], [10.0, 5.0], [12.890382, 4.661377], [15.59017, 3.68034], [17.994873, 2.109132], [20.0, 0.0]]
+        [[0.0, 0.0], [-3.912294, 19.985868], [8.297592, 33.404816], [26.358682, 35.121356], [40.0, 20.0], [40.0, 20.0], [40.252568, 11.133414], [36.079436, 3.920564], [28.866586, -0.252568], [20.0, 0.0]]
     """
     if n_points is None:
         n_points = runtime_defaults["n_hobby_points"]

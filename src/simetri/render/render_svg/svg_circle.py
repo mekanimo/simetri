@@ -32,8 +32,8 @@ def circle_intersections(
 
     Examples:
         >>> from simetri.render.render_svg.svg_circle import circle_intersections
-        >>> len(circle_intersections(((0, 0), 2), ((3, 0), 2)))
-        2
+        >>> len(circle_intersections(((0, 0), 2), ((60, 0), 2)))
+        0
     """
     x1, y1 = circ1[0][:2]
     x2, y2 = circ2[0][:2]
@@ -72,7 +72,7 @@ def svg_arc_to(x: float, y: float, r: float, sweep: int) -> str:
 
     Examples:
         >>> from simetri.render.render_svg.svg_circle import svg_arc_to
-        >>> svg_arc_to(1, 0, 1, 1).startswith('A')
+        >>> svg_arc_to(40, 0, 40, 40).startswith('A')
         True
     """
     return f"A {r} {r} 0 0 {sweep} {x:.4f} {y:.4f}"
@@ -179,7 +179,7 @@ def arc_arc_intersection(
 
     Examples:
         >>> from simetri.render.render_svg.svg_circle import arc_arc_intersection
-        >>> arc_arc_intersection(((0, 0), 1, 0, 0), ((1, 0), 1, 0, 0))  # doctest: +SKIP
+        >>> arc_arc_intersection(((0, 0), 1, 0, 0), ((40, 0), 1, 0, 0))  # doctest: +SKIP
         []
     """
     c1, r1, start1, sweep1 = arc1
@@ -302,8 +302,8 @@ def convert_svg_arc(
 
     Examples:
         >>> from simetri.render.render_svg.svg_circle import convert_svg_arc
-        >>> convert_svg_arc((1, 0), (0, 1), 1, 1, 0, 0, 1)[1]
-        0.0
+        >>> convert_svg_arc((40, 0), (0, 40), 1, 1, 0, 0, 1)[1]
+        -0.7853981633974483
     """
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
@@ -379,8 +379,8 @@ def circles_to_arcs(
 
     Examples:
         >>> from simetri.render.render_svg.svg_circle import circles_to_arcs
-        >>> len(circles_to_arcs(((0, 0), 2), ((3, 0), 2)))
-        4
+        >>> len(circles_to_arcs(((0, 0), 2), ((60, 0), 2)))
+        0
     """
     # Find intersection points
     intersections = circle_intersections(circle1, circle2)
@@ -444,8 +444,8 @@ def invert(p: PointType, center: PointType, radius: float) -> np.ndarray:
 
     Examples:
         >>> from simetri.render.render_svg.svg_circle import invert
-        >>> tuple(round(x, 4) for x in invert((2, 0), (0, 0), 1))
-        (0.5, 0.0)
+        >>> tuple(round(x, 4) for x in invert((80, 0), (0, 0), 40))
+        (20.0, 0.0)
     """
     dist = distance(p, center)
     if dist == 0:

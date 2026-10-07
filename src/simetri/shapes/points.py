@@ -5,7 +5,7 @@
 
 Examples:
     >>> import simetri.graphics as sg
-    >>> pts = sg.Points([(0, 0), (1, 0), (1, 1)])
+    >>> pts = sg.Points([(0, 0), (40, 0), (40, 40)])
     >>> len(pts)
     3
     >>> pts.nd_array.shape
@@ -70,10 +70,10 @@ class Points:
         nd_array_changed: Set when the cache should be refreshed by Shape.
 
     Examples:
-        >>> pts = sg.Points([(0, 0), (10, 0)])
-        >>> _ = pts.append((10, 10))
+        >>> pts = sg.Points([(0, 0), (40, 0)])
+        >>> _ = pts.append((40, 40))
         >>> list(pts)
-        [(0, 0), (10, 0), (10, 10)]
+        [(0, 0), (40, 0), (40, 40)]
 """
 
     def __init__(self, coords: Sequence[PointType] | None = None) -> None:

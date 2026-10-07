@@ -25,11 +25,11 @@ class Node:
     Examples:
         >>> import simetri.graphics as sg
         >>> from simetri.helpers.graph import Node
-        >>> Node(3, 4).pos
-        (3, 4)
+        >>> Node(60, 80).pos
+        (60, 80)
         >>> Node(0, 0) == Node(0, 0)
         True
-        >>> Node(0, 0) == Node(1, 0)
+        >>> Node(0, 0) == Node(40, 0)
         False
     """
 
@@ -46,8 +46,8 @@ class Node:
         Examples:
             >>> import simetri.graphics as sg
             >>> from simetri.helpers.graph import Node
-            >>> Node(3, 4).pos
-            (3, 4)
+            >>> Node(60, 80).pos
+            (60, 80)
         """
         return (self.x, self.y)
 
@@ -65,7 +65,7 @@ class Node:
             >>> from simetri.helpers.graph import Node
             >>> Node(0, 0) == Node(0, 0)
             True
-            >>> Node(0, 0) == Node(10, 0)
+            >>> Node(0, 0) == Node(40, 0)
             False
         """
         return close_points_square(
@@ -87,11 +87,11 @@ class GraphEdge:
     Examples:
         >>> import simetri.graphics as sg
         >>> from simetri.helpers.graph import GraphEdge, Node
-        >>> edge = GraphEdge(Node(0, 0), Node(3, 4))
+        >>> edge = GraphEdge(Node(0, 0), Node(60, 80))
         >>> edge.length
-        5.0
+        100.0
         >>> tuple(node.pos for node in edge.nodes)
-        ((0, 0), (3, 4))
+        ((0, 0), (60, 80))
     """
 
     start: Node
@@ -112,9 +112,9 @@ class GraphEdge:
         Examples:
             >>> import simetri.graphics as sg
             >>> from simetri.helpers.graph import GraphEdge, Node
-            >>> edge = GraphEdge(Node(0, 0), Node(1, 0))
+            >>> edge = GraphEdge(Node(0, 0), Node(40, 0))
             >>> tuple(node.pos for node in edge.nodes)
-            ((0, 0), (1, 0))
+            ((0, 0), (40, 0))
         """
         return (self.start, self.end)
 
@@ -259,10 +259,10 @@ def longest_chain(edges: Sequence[Sequence[Any]]) -> list[tuple[Any, Any]]:
 
     Examples:
         >>> from simetri.helpers.graph import longest_chain
-        >>> longest_chain([(1, 2), (0, 1), (2, 3)])
-        [(0, 1), (1, 2), (2, 3)]
-        >>> longest_chain([(0, 1), (1, 2), (2, 0)])
-        [(0, 1), (1, 2), (2, 0)]
+        >>> longest_chain([(40, 80), (0, 40), (80, 60)])
+        [(0, 40), (40, 80), (80, 60)]
+        >>> longest_chain([(0, 40), (40, 80), (80, 0)])
+        [(0, 40), (40, 80), (80, 0)]
         >>> longest_chain([])
         []
     """
@@ -350,7 +350,7 @@ def is_open_walk(graph: nx.Graph, island: Sequence[Any]) -> bool:
         >>> path = nx.path_graph(3)
         >>> is_open_walk(path, [0, 1, 2])
         True
-        >>> is_open_walk(path, [0, 1])
+        >>> is_open_walk(path, [0, 40])
         True
         >>> is_open_walk(nx.cycle_graph(3), [0, 1, 2])
         False
@@ -520,8 +520,8 @@ def sanitize_weighted_graph_edges(
 
     Examples:
         >>> from simetri.helpers.graph import sanitize_weighted_graph_edges
-        >>> sanitize_weighted_graph_edges([(1, 0, 5), (0, 1, 9), (2, 3, 1)])
-        [(1, 0, 5), (2, 3, 1)]
+        >>> sanitize_weighted_graph_edges([(40, 0, 20), (0, 40, 9), (80, 60, 1)])
+        [(40, 0, 20), (80, 60, 1)]
     """
     clean_edges = []
     s_seen = set()
@@ -549,8 +549,8 @@ def sanitize_graph_edges(
 
     Examples:
         >>> from simetri.helpers.graph import sanitize_graph_edges
-        >>> sanitize_graph_edges([(1, 0), (0, 1), (2, 3), (3, 2)])
-        [(0, 1), (2, 3)]
+        >>> sanitize_graph_edges([(40, 0), (0, 40), (80, 60), (60, 80)])
+        [(0, 40), (60, 80)]
     """
     s_edge_set = set()
     for edge in edges:

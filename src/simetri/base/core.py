@@ -5,10 +5,10 @@
 
 Examples:
     >>> import simetri.graphics as sg
-    >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
-    >>> _ = shape.translate(5, 0).rotate(sg.pi / 4, about=shape.midpoint)
+    >>> shape = sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)
+    >>> _ = shape.translate(20, 0).rotate(sg.pi / 4, about=shape.midpoint)
     >>> tuple(round(value, 9) for value in shape.midpoint[:2])
-    (13.535533906, 5.0)
+    (54.142135624, 20.0)
 """
 
 from __future__ import annotations
@@ -132,9 +132,7 @@ def _update_inplace(
         if arr.ndim != 2:
             return None
         if arr.shape != (3, 3):
-            raise ValueError(
-                f"incr matrix must be 3x3, got shape {arr.shape}"
-            )
+            raise ValueError(f"incr matrix must be 3x3, got shape {arr.shape}")
         return arr
 
     def _coerce_scalar(value: Any) -> float:
@@ -197,7 +195,6 @@ def _update_inplace(
             xform_matrix[2, 1] = dy * scale
 
     def _apply_operator(ip_op: InPlace, value: Any) -> None:
-
         oper = operators[ip_op]
 
         if xform_type == TransformationType.TRANSLATE:
@@ -369,7 +366,7 @@ class DynRef:
         >>> climb = box.translate(step, reps=1, dyn_ref=True)
         >>> [tuple(shape.midpoint[:2]) for shape in climb]
         [(50.0, 20.0), (50.0, 60.0)]
-"""
+    """
 
     reference: Reference | Callable
     target: ReferenceTarget = ReferenceTarget.ACTIVE
@@ -539,7 +536,7 @@ class Transform:
         >>> moved = box.transform(xform)
         >>> tuple(round(value, 10) for value in moved.midpoint[:2])
         (-20.0, 90.0)
-"""
+    """
 
     builder: Callable
     arguments: tuple[tuple[str, Any], ...]
@@ -576,9 +573,9 @@ class Transform:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> step = sg.Transform.translate(10, 5)
+            >>> step = sg.Transform.translate(40, 20)
             >>> step.arguments
-            (('dx', 10), ('dy', 5))
+            (('dx', 40), ('dy', 20))
         """
         builder, arguments = _translate_builder_args(dx, dy)
         return cls(builder, tuple(arguments.items()))
@@ -615,9 +612,9 @@ class Transform:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> line = [(0, 0), (1, 0)]
+            >>> line = [(0, 0), (100, 0)]
             >>> sg.Transform.mirror(line).arguments
-            (('about', [(0, 0), (1, 0)]),)
+            (('about', [(0, 0), (100, 0)]),)
         """
         return cls(mirror_matrix, (("about", about),))
 
@@ -639,8 +636,8 @@ class Transform:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Transform.glide([(0, 0), (10, 0)], 3).arguments
-            (('glide_line', [(0, 0), (10, 0)]), ('glide_dist', 3))
+            >>> sg.Transform.glide([(0, 0), (60, 0)], 40).arguments
+            (('glide_line', [(0, 0), (60, 0)]), ('glide_dist', 40))
         """
         return cls(
             glide_matrix,
@@ -746,7 +743,7 @@ class Transformation:
         >>> copies = box.transform(xform, reps=1, dyn_ref=True)
         >>> [tuple(shape.midpoint[:2]) for shape in copies]
         [(50.0, 20.0), (50.0, 120.0)]
-"""
+    """
 
     steps: tuple[Transform, ...]
 
@@ -975,7 +972,7 @@ def resolve_dyn_ref(
         100.0
         >>> sg.resolve_dyn_ref(40, kernel=box, pattern=box)
         40
-"""
+    """
     if active is None:
         active = kernel
     targets = _Targets(kernel, pattern)
@@ -1198,9 +1195,9 @@ class Base:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> bar = sg.Shape([(0, 0), (4, 0), (4, 2), (0, 2)], closed=True)
-        >>> bar.translate(2, 0).midpoint
-        (4.0, 1.0)
+        >>> bar = sg.Shape([(0, 0), (40, 0), (40, 20), (0, 20)], closed=True)
+        >>> bar.translate(20, 0).midpoint
+        (40.0, 10.0)
     """
 
     def __getattr__(self, name: str) -> Any:
@@ -1218,12 +1215,12 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> square = sg.Shape([(0, 0), (2, 0), (2, 2)], closed=True)
+            >>> square = sg.Shape([(0, 0), (20, 0), (20, 20)], closed=True)
             >>> square.southwest
             (0.0, 0.0)
             >>> square.midpoint
-            (1.0, 1.0)
-"""
+            (10.0, 10.0)
+        """
         if name in anchors:
             if name.startswith("bbox_"):
                 name = name[4:]
@@ -1293,24 +1290,24 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> square = sg.Shape([(0, 0), (1, 0)])
-            >>> square.translate(10, 5) is square
+            >>> square = sg.Shape([(0, 0), (40, 0)])
+            >>> square.translate(40, 20) is square
             True
             >>> square.vertices
-            ((10.0, 5.0), (11.0, 5.0))
-            >>> square.translate(0, -5).vertices
-            ((10.0, 0.0), (11.0, 0.0))
+            ((40.0, 20.0), (80.0, 20.0))
+            >>> square.translate(0, -20).vertices
+            ((40.0, 0.0), (80.0, 0.0))
             >>> mark = sg.Shape([(0, 0)])
             >>> mark.translate((80, 40)).vertices
             ((80.0, 40.0),)
             >>> box = sg.Shape(
-            ... [(0, 0), (10, 0), (10, 10), (0, 10)], closed=True
+            ... [(0, 0), (40, 0), (40, 40), (0, 40)], closed=True
             ... )
-            >>> step = sg.translation_matrix(10, 0)
-            >>> row = box.translate(20, 0, reps=2, incr=step)
+            >>> step = sg.translation_matrix(40, 0)
+            >>> row = box.translate(80, 0, reps=2, incr=step)
             >>> [shape.vertices for shape in row]
-            [((0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)), ((20.0, 0.0), (30.0, 0.0), (30.0, 10.0), (20.0, 10.0)), ((50.0, 0.0), (60.0, 0.0), (60.0, 10.0), (50.0, 10.0))]
-"""
+            [((0.0, 0.0), (40.0, 0.0), (40.0, 40.0), (0.0, 40.0)), ((80.0, 0.0), (120.0, 0.0), (120.0, 40.0), (80.0, 40.0)), ((200.0, 0.0), (240.0, 0.0), (240.0, 40.0), (200.0, 40.0))]
+        """
         builder, arguments = _translate_builder_args(dx, dy)
         transform, dyn_ref = _make_xform(builder, dyn_ref, self, **arguments)
         if self.type == Types.SHAPE:
@@ -1386,15 +1383,15 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
-            >>> mark.translate_along([(10, 4)]) is mark
+            >>> mark = sg.Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)
+            >>> mark.translate_along([(60, 40)]) is mark
             True
             >>> mark.midpoint
-            (10.0, 4.0)
+            (60.0, 40.0)
             >>> mark.vertices
-            ((9.0, 3.0), (11.0, 3.0), (11.0, 5.0), (9.0, 5.0))
-            >>> stamp = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
-            >>> row = stamp.translate_along([(10, 4), (20, 4)])
+            ((40.0, 20.0), (80.0, 20.0), (80.0, 60.0), (40.0, 60.0))
+            >>> stamp = sg.Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)
+            >>> row = stamp.translate_along([(60, 40), (80, 40)])
             >>> row.type == sg.Types.GROUP
             True
             >>> len(row)
@@ -1402,26 +1399,26 @@ class Base:
             >>> row[0] is stamp
             True
             >>> stamp.midpoint
-            (10.0, 4.0)
+            (60.0, 40.0)
             >>> row[1].midpoint
-            (20.0, 4.0)
+            (80.0, 40.0)
             >>> unit = sg.Group(
-            ...     [sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)]
+            ...     [sg.Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)]
             ... )
-            >>> grown = unit.translate_along([(10, 4), (20, 4)])
+            >>> grown = unit.translate_along([(60, 40), (80, 40)])
             >>> grown is unit
             True
             >>> len(unit)
             2
-            >>> needle = sg.Shape([(0, 0), (1, 0)])
+            >>> needle = sg.Shape([(0, 0), (40, 0)])
             >>> aligned = needle.translate_along(
-            ...     [(0, 0), (1, 1), (1, 2)], align_tangent=True
+            ...     [(0, 0), (40, 40), (40, 80)], align_tangent=True
             ... )
             >>> round(float(aligned[1].angle), 10)
             0.7853981634
             >>> round(float(aligned[2].angle), 10)
             1.5707963268
-            >>> mark.translate_along([(0, 0), (1, 0)], dyn_ref=True)
+            >>> mark.translate_along([(0, 0), (40, 0)], dyn_ref=True)
             Traceback (most recent call last):
                 ...
             ValueError: translate_along places copies on given path points, so dyn_ref has no transform arguments to resolve. Use translate, rotate, mirror, glide, scale, or shear instead.
@@ -1432,6 +1429,7 @@ class Base:
                 "dyn_ref has no transform arguments to resolve. Use "
                 "translate, rotate, mirror, glide, scale, or shear instead."
             )
+
         def _heading(obj: Any) -> float:
             if obj.type == Types.GROUP:
                 return float(
@@ -1464,9 +1462,7 @@ class Base:
                 dup2.scale(scale, about=(px, py))
             if align_tangent:
                 tangent = line_angle(previous_point, point)
-                dup2.rotate(
-                    tangent - _heading(dup2), about=(px, py), reps=0
-                )
+                dup2.rotate(tangent - _heading(dup2), about=(px, py), reps=0)
             if rotate != 0:
                 dup2.rotate(rotate, about=(px, py))
             copies.append(dup2)
@@ -1482,9 +1478,7 @@ class Base:
             return self
         return self._translate_along_group(copies, merge)
 
-    def _translate_along_group(
-        self, copies: Sequence[Any], merge: bool
-    ) -> Any:
+    def _translate_along_group(self, copies: Sequence[Any], merge: bool) -> Any:
         """Collect extra ``translate_along`` copies into a Group.
 
         Shape implements this. Group does not reach it (it appends in place).
@@ -1527,14 +1521,14 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> arm = sg.Shape([(1, 0)])
+            >>> arm = sg.Shape([(40, 0)])
             >>> arm.rotate(sg.pi / 2) is arm
             True
             >>> tuple(tuple(round(coord, 10) for coord in vertex[:2]) for vertex in arm.vertices)
-            ((0.0, 1.0),)
+            ((0.0, 40.0),)
             >>> arm.rotate(-sg.pi / 2).vertices
-            ((1.0, 0.0),)
-"""
+            ((40.0, 0.0),)
+        """
         transform, dyn_ref = _make_xform(
             rotation_matrix, dyn_ref, self, angle=angle, about=about
         )
@@ -1612,7 +1606,7 @@ class Base:
             >>> row = mark.mirror([(0, 0), (100, 0)], reps=2, incr=40)
             >>> [tuple(shape.vertices) for shape in row]
             [((0.0, 40.0),), ((0.0, -40.0),), ((0.0, 120.0),)]
-"""
+        """
         transform, dyn_ref = _make_xform(
             mirror_matrix, dyn_ref, self, about=about
         )
@@ -1689,15 +1683,15 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 1)])
-            >>> line = [(0, 0), (1, 0)]
-            >>> mark.glide(line, 2) is mark
+            >>> mark = sg.Shape([(0, 40)])
+            >>> line = [(0, 0), (60, 0)]
+            >>> mark.glide(line, 40) is mark
             True
             >>> mark.vertices
-            ((2.0, -1.0),)
+            ((40.0, -40.0),)
             >>> line
-            [(0, 0), (1, 0)]
-"""
+            [(0, 0), (60, 0)]
+        """
         transform, dyn_ref = _make_xform(
             glide_matrix,
             dyn_ref,
@@ -1766,14 +1760,14 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bar = sg.Shape([(1, 1)])
+            >>> bar = sg.Shape([(40, 40)])
             >>> bar.scale(2) is bar
             True
             >>> bar.vertices
-            ((2.0, 2.0),)
+            ((80.0, 80.0),)
             >>> bar.scale(1, 3).vertices
-            ((2.0, 6.0),)
-"""
+            ((80.0, 240.0),)
+        """
         if scale_y is None:
             scale_y = scale_x
         transform, dyn_ref = _make_xform(
@@ -1840,12 +1834,12 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(1, 1)])
+            >>> mark = sg.Shape([(40, 40)])
             >>> mark.shear(sg.pi / 4, 0) is mark
             True
             >>> mark.vertices
-            ((2.0, 1.0),)
-"""
+            ((80.0, 40.0),)
+        """
         transform, dyn_ref = _make_xform(
             shear_matrix, dyn_ref, self, theta_x=theta_x, theta_y=theta_y
         )
@@ -1879,8 +1873,8 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 0), (1, 0)])
-            >>> _ = mark.translate(3, 0)
+            >>> mark = sg.Shape([(0, 0), (40, 0)])
+            >>> _ = mark.translate(40, 0)
             >>> mark.reset_xform_matrix() is mark
             True
             >>> mark.xform_matrix.tolist()
@@ -1926,11 +1920,11 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 0), (1, 0)])
-            >>> mark.transform(sg.translation_matrix(3, 0)) is mark
+            >>> mark = sg.Shape([(0, 0), (40, 0)])
+            >>> mark.transform(sg.translation_matrix(40, 0)) is mark
             True
             >>> mark.vertices
-            ((3.0, 0.0), (4.0, 0.0))
+            ((40.0, 0.0), (80.0, 0.0))
             >>> box = sg.Shape([(0, 0), (100, 0), (100, 40), (0, 40)], closed=True)
             >>> xform = sg.Transformation(
             ... sg.Transform.translate(40, 0),
@@ -1938,7 +1932,7 @@ class Base:
             ... )
             >>> tuple(round(value, 10) for value in box.transform(xform).midpoint[:2])
             (-20.0, 90.0)
-"""
+        """
         if isinstance(xform, Transformation):
             transform, dyn_ref = _make_composite_xform(xform, dyn_ref, self)
         else:
@@ -1994,12 +1988,12 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 0), (2, 0)])
-            >>> mark.move((10, 0)) is mark
+            >>> mark = sg.Shape([(0, 0), (40, 0)])
+            >>> mark.move((60, 0)) is mark
             True
             >>> mark.midpoint
-            (10.0, 0.0)
-"""
+            (60.0, 0.0)
+        """
         return self.move_to(pos, anchor, **kwargs)
 
     def move_to(
@@ -2021,15 +2015,15 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> mark = sg.Shape([(0, 0), (2, 0)])
-            >>> target = (10, 4)
+            >>> mark = sg.Shape([(0, 0), (40, 0)])
+            >>> target = (60, 40)
             >>> mark.move_to(target, anchor=sg.Anchor.SOUTHWEST) is mark
             True
             >>> mark.southwest
-            (10.0, 4.0)
+            (60.0, 40.0)
             >>> target
-            (10, 4)
-"""
+            (60, 40)
+        """
         x, y = pos[:2]
         anchor = get_enum_value(Anchor, anchor)
         x1, y1 = getattr(self.b_box, anchor)
@@ -2052,10 +2046,10 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
-            >>> box.offset_line(sg.Side.BOTTOM, 1)
-            ((0.0, -1.0), (4.0, -1.0))
-"""
+            >>> box = sg.Shape([(0, 0), (80, 0), (80, 40)], closed=True)
+            >>> box.offset_line(sg.Side.BOTTOM, 20)
+            ((0.0, -20.0), (80.0, -20.0))
+        """
         side = get_enum_value(Side, side)
         return self.b_box.offset_line(side, offset)
 
@@ -2074,11 +2068,11 @@ class Base:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> box = sg.Shape([(0, 0), (4, 0), (4, 2)], closed=True)
-            >>> box.offset_point(sg.Anchor.SOUTHWEST, 1, 2)
-            [1.0, 2.0]
-            >>> box.offset_point(sg.Anchor.NORTHEAST, -1, 0)
-            [3.0, 2.0]
-"""
+            >>> box = sg.Shape([(0, 0), (80, 0), (80, 40)], closed=True)
+            >>> box.offset_point(sg.Anchor.SOUTHWEST, 20, 40)
+            [20.0, 40.0]
+            >>> box.offset_point(sg.Anchor.NORTHEAST, -20, 0)
+            [60.0, 40.0]
+        """
         anchor = get_enum_value(Anchor, anchor)
         return self.b_box.offset_point(anchor, dx, dy)

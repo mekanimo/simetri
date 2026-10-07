@@ -4,7 +4,7 @@
 
 Examples:
     >>> from simetri.shapes.lines import Lines
-    >>> lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
+    >>> lines = Lines([((0, 0), (40, 0)), ((40, 0), (40, 40))])
     >>> len(lines)
     2
 """
@@ -29,7 +29,7 @@ class Lines:
 
     Examples:
         >>> from simetri.shapes.lines import Lines
-        >>> lines = Lines([((0, 0), (1, 0)), ((1, 0), (1, 1))])
+        >>> lines = Lines([((0, 0), (40, 0)), ((40, 0), (40, 40))])
         >>> len(lines)
         2
 """
@@ -89,9 +89,9 @@ class Lines:
 
         Examples:
             >>> from simetri.shapes.lines import Lines
-            >>> repr(Lines([((0, 0), (1, 0))]))
-            'Line([((0, 0), (1, 0))])'
-            >>> str(Lines([((0, 0), (1, 0))])).startswith("Lines")
+            >>> repr(Lines([((0, 0), (40, 0))]))
+            'Line([((0, 0), (40, 0))])'
+            >>> str(Lines([((0, 0), (40, 0))])).startswith("Lines")
             True
         """
         return f"Line({self.point_pairs})"

@@ -516,9 +516,9 @@ class Grid(Shape):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> repr(sg.Grid((0, 0), (10, 10), 1, 1))
-            'Grid(((0.0, 0.0), (10.0, 10.0)))'
-            >>> str(sg.Grid((0, 0), (10, 10), 1, 1)).startswith("Shape")
+            >>> repr(sg.Grid((0, 0), (40, 40), 1, 1))
+            'Grid(((0.0, 0.0), (40.0, 40.0)))'
+            >>> str(sg.Grid((0, 0), (40, 40), 1, 1)).startswith("Shape")
             True
         """
         if len(self.primary_points) == 0:

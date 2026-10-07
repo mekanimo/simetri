@@ -29,7 +29,7 @@ class Constraint:
     Examples:
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint
-        >>> c = Constraint([0, 0], [1, 0], ConstraintType.DISTANCE, value=1)
+        >>> c = Constraint([0, 0], [40, 0], ConstraintType.DISTANCE, value=1)
         >>> c.type
         <ConstraintType.DISTANCE: 'DISTANCE'>
     """
@@ -63,9 +63,9 @@ class Constraint:
         Examples:
             >>> from simetri.base.all_enums import ConstraintType
             >>> from simetri.helpers.constraint_solver import Constraint
-            >>> c = Constraint([0, 0], [3, 4], ConstraintType.DISTANCE, value=5)
+            >>> c = Constraint([0, 0], [60, 80], ConstraintType.DISTANCE, value=5)
             >>> round(c.check(), 1)
-            0.0
+            95.0
         """
         return self.equation(self)
 
@@ -90,9 +90,9 @@ def distance_eq(constraint: Constraint) -> float:
     Examples:
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, distance_eq
-        >>> c = Constraint([0, 0], [3, 4], ConstraintType.DISTANCE, value=5)
+        >>> c = Constraint([0, 0], [60, 80], ConstraintType.DISTANCE, value=5)
         >>> round(distance_eq(c), 1)
-        0.0
+        95.0
     """
     if isinstance(constraint.item1, Circle):
         p1 = constraint.item1.center
@@ -121,7 +121,7 @@ def parallel_eq(constraint: Constraint) -> float:
     Examples:
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, parallel_eq
-        >>> c = Constraint([[0, 0], [1, 0]], [[0, 0], [2, 0]], ConstraintType.PARALLEL)
+        >>> c = Constraint([[0, 0], [40, 0]], [[0, 0], [80, 0]], ConstraintType.PARALLEL)
         >>> parallel_eq(c)
         0
     """
@@ -152,7 +152,7 @@ def perpendicular_eq(constraint: Constraint) -> float:
     Examples:
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, perpendicular_eq
-        >>> c = Constraint([[0, 0], [1, 0]], [[0, 0], [0, 1]], ConstraintType.PERPENDICULAR)
+        >>> c = Constraint([[0, 0], [40, 0]], [[0, 0], [0, 40]], ConstraintType.PERPENDICULAR)
         >>> perpendicular_eq(c)
         0
     """
@@ -211,8 +211,8 @@ def outer_tangent_eq(constraint: Constraint) -> float:
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, outer_tangent_eq
         >>> c = Constraint(
-        ...     Circle(center=(0, 0), radius=5),
-        ...     Circle(center=(14, 0), radius=3),
+        ...     Circle(center=(0, 0), radius=20),
+        ...     Circle(center=(14, 0), radius=60),
         ...     ConstraintType.OUTER_TANGENT,
         ... )
         >>> isinstance(outer_tangent_eq(c), float)
@@ -256,8 +256,8 @@ def inner_tangent_eq(constraint: Constraint) -> float:
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, inner_tangent_eq
         >>> c = Constraint(
-        ...     Circle(center=(0, 0), radius=5),
-        ...     Circle(center=(8, 0), radius=3),
+        ...     Circle(center=(0, 0), radius=20),
+        ...     Circle(center=(80, 0), radius=60),
         ...     ConstraintType.INNER_TANGENT,
         ... )
         >>> isinstance(inner_tangent_eq(c), float)
@@ -287,7 +287,7 @@ def collinear_eq(constraint: Constraint) -> float:
     Examples:
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, collinear_eq
-        >>> c = Constraint([[0, 0], [1, 0]], [[2, 0], [3, 0]], ConstraintType.COLLINEAR)
+        >>> c = Constraint([[0, 0], [40, 0]], [[80, 0], [60, 0]], ConstraintType.COLLINEAR)
         >>> collinear_eq(c)
         0
     """
@@ -329,7 +329,7 @@ def line_angle_eq(constraint: Constraint) -> float:
     Examples:
         >>> from simetri.base.all_enums import ConstraintType
         >>> from simetri.helpers.constraint_solver import Constraint, line_angle_eq
-        >>> c = Constraint([[0, 0], [1, 0]], [[0, 0], [0, 1]], ConstraintType.LINE_ANGLE, value=90)
+        >>> c = Constraint([[0, 0], [40, 0]], [[0, 0], [0, 40]], ConstraintType.LINE_ANGLE, value=90)
         >>> round(line_angle_eq(c), 1)
         0.0
     """
@@ -510,7 +510,7 @@ def update(x: Sequence[float]) -> None:
 
     Examples:
         >>> from simetri.helpers.constraint_solver import update
-        >>> update([1.0, 2.0])  # doctest: +SKIP
+        >>> update([40.0, 80.0])  # doctest: +SKIP
     """
     print("x", x)
     x_, y_ = x

@@ -24,9 +24,9 @@ class State:
         pen_is_down: Whether the pen is currently drawing.
 
     Examples:
-        >>> s = State((1.0, 2.0), 90.0, True)
+        >>> s = State((40.0, 80.0), 90.0, True)
         >>> s.pos
-        (1.0, 2.0)
+        (40.0, 80.0)
         >>> s.pen_is_down
         True
     """
@@ -50,9 +50,9 @@ class Turtle(Group):
         >>> round(t.pos[1], 4)
         40.0
         >>> t.right(90)
-        >>> t.forward(10)
+        >>> t.forward(20)
         >>> round(t.pos[0], 4)
-        10.0
+        20.0
 """
 
     def __init__(
@@ -153,7 +153,7 @@ class Turtle(Group):
 
         Examples:
             >>> t = Turtle(in_degrees=True)
-            >>> t.forward(5)
+            >>> t.forward(40)
             >>> len(t.current_list)
             2
         """
@@ -173,11 +173,11 @@ class Turtle(Group):
 
         Examples:
             >>> t = Turtle(in_degrees=True)
-            >>> t.go(3)
+            >>> t.go(40)
             >>> len(t.lists)
             1
             >>> round(t.current_list[-1][1], 4)
-            3.0
+            40.0
         """
         x, y = self._forward_pos(dist)[:2]
         self.pos = (x, y)
@@ -192,8 +192,8 @@ class Turtle(Group):
 
         Examples:
             >>> t = Turtle(in_degrees=True)
-            >>> t.forward(10)
-            >>> t.backward(10)
+            >>> t.forward(40)
+            >>> t.backward(40)
             >>> round(t.pos[1], 4)
             0.0
         """
@@ -288,9 +288,9 @@ class Turtle(Group):
 
         Examples:
             >>> t = Turtle(in_degrees=True)
-            >>> t.move_to((3, 4))
+            >>> t.move_to((60, 80))
             >>> t.pos
-            (3, 4)
+            (60, 80)
         """
         self.pos = pos
         if self.pen_is_down:
@@ -317,12 +317,12 @@ class Turtle(Group):
 
         Examples:
             >>> t = Turtle(in_degrees=True)
-            >>> t.forward(5)
+            >>> t.forward(40)
             >>> t.push()
-            >>> t.forward(5)
+            >>> t.forward(40)
             >>> t.pop()
             >>> round(t.pos[1], 4)
-            5.0
+            40.0
         """
         state = self.stack.pop()
         self.pos = state.pos
@@ -339,7 +339,7 @@ class Turtle(Group):
 
         Examples:
             >>> t = Turtle(in_degrees=True)
-            >>> t.forward(5)
+            >>> t.forward(40)
             >>> t.reset()
             >>> t.pos
             (0, 0)
@@ -437,7 +437,7 @@ def spiral(
 
     Examples:
         >>> t = Turtle(in_degrees=True)
-        >>> spiral(t, side=10, angle=20, delta=2, cycles=3) is t
+        >>> spiral(t, side=40, angle=20, delta=2, cycles=3) is t
         True
         >>> len(t.current_list)
         4

@@ -48,7 +48,7 @@ def round_corner(points: list["PointType"], radius: float) -> str:
 
     Examples:
         >>> from simetri.render.render_svg.svg_utils import round_corner
-        >>> round_corner([(0, 0), (0, 1), (1, 1)], 0.2).startswith('L')
+        >>> round_corner([(0, 0), (0, 40), (40, 40)], 0.2).startswith('L')
         True
     """
     if len(points) != 3:
@@ -119,7 +119,7 @@ def round_corners(
 
     Examples:
         >>> from simetri.render.render_svg.svg_utils import round_corners
-        >>> round_corners([(0, 0), (1, 0), (1, 1), (0, 1)], 0.1).startswith('M')
+        >>> round_corners([(0, 0), (40, 0), (40, 40), (0, 40)], 0.1).startswith('M')
         True
     """
     if len(points) < 3:
@@ -403,8 +403,8 @@ def convert_svg_arc(
 
     Examples:
         >>> from simetri.render.render_svg.svg_utils import convert_svg_arc
-        >>> convert_svg_arc((1, 0), (0, 1), 1, 1, 0, 0, 1)[1]
-        0.0
+        >>> convert_svg_arc((40, 0), (0, 40), 1, 1, 0, 0, 1)[1]
+        -0.7853981633974483
     """
     x1, y1 = start_point[:2]
     x2, y2 = end_point[:2]
@@ -681,7 +681,7 @@ def path2d_to_svg_path(path2d: "Path2D") -> str:
     Examples:
         >>> from simetri.geom.nonlinear.path import Path2D
         >>> from simetri.render.render_svg.svg_utils import path2d_to_svg_path
-        >>> path2d_to_svg_path(sg.Path2D((0, 0)).line_to((1, 0))).startswith('M')
+        >>> path2d_to_svg_path(sg.Path2D((0, 0)).line_to((40, 0))).startswith('M')
         True
     """
     from ...geom.nonlinear.path import path2d_to_svg_path as _convert
@@ -697,7 +697,7 @@ def path2d_points(path2d: "Path2D", delta: float) -> list[tuple[float, float]]:
     Examples:
         >>> from simetri.geom.nonlinear.path import Path2D
         >>> from simetri.render.render_svg.svg_utils import path2d_points
-        >>> len(path2d_points(sg.Path2D((0, 0)).line_to((3, 0)), 1)) >= 2
+        >>> len(path2d_points(sg.Path2D((0, 0)).line_to((60, 0)), 1)) >= 2
         True
     """
     points = []

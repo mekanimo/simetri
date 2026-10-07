@@ -38,7 +38,7 @@ def hop(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> mark = sg.Shape([(0, 0), (10, 0)])
+        >>> mark = sg.Shape([(0, 0), (40, 0)])
         >>> row = hop(mark, vector=(20, 0), reps=2)
         >>> row.__class__.__name__
         'Group'
@@ -63,7 +63,7 @@ def p1(design: Group | Shape, vector: VecType = (1, 0), reps: int = 3) -> Group:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> mark = sg.Shape([(0, 0), (10, 0)])
+        >>> mark = sg.Shape([(0, 0), (40, 0)])
         >>> row = p1(mark, vector=(15, 0), reps=1)
         >>> len(row)
         2
@@ -91,8 +91,8 @@ def jump(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
-        >>> axis = ((0, -5), (100, -5))
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+        >>> axis = ((0, -20), (100, -20))
         >>> row = jump(band, axis, 20, reps=1)
         >>> len(row)
         4
@@ -126,8 +126,8 @@ def jump_along(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
-        >>> axis = ((0, -5), (100, -5))
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+        >>> axis = ((0, -20), (100, -20))
         >>> path = [(0, 0), (30, 0)]
         >>> row = jump_along(band, axis, path, reps=1)
         >>> len(row)
@@ -158,8 +158,8 @@ def sidle(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
-        >>> axis = ((0, -5), (100, -5))
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+        >>> axis = ((0, -20), (100, -20))
         >>> row = sidle(band, axis, 20, reps=1)
         >>> len(row)
         4
@@ -190,8 +190,8 @@ def sidle_along(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
-        >>> axis = ((0, -5), (100, -5))
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+        >>> axis = ((0, -20), (100, -20))
         >>> path = [(0, 0), (30, 0)]
         >>> row = sidle_along(band, axis, path, reps=1)
         >>> len(row)
@@ -222,8 +222,8 @@ def spinning_hop(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
-        >>> row = spinning_hop(band, (5, 0), 20, 0, reps=1)
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+        >>> row = spinning_hop(band, (20, 0), 20, 0, reps=1)
         >>> len(row)
         4
         >>> row is band
@@ -257,10 +257,10 @@ def spinning_jump(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
         >>> row = spinning_jump(
         ...     band,
-        ...     ((0, -5), (100, -5)),
+        ...     ((0, -20), (100, -20)),
         ...     ((0, 0), (0, 100)),
         ...     20,
         ...     reps=1,
@@ -301,11 +301,11 @@ def spinning_sidle(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
         >>> row = spinning_sidle(
         ...     band,
-        ...     ((0, -5), (100, -5)),
-        ...     ((0, -5), (100, -5)),
+        ...     ((0, -20), (100, -20)),
+        ...     ((0, -20), (100, -20)),
         ...     10,
         ...     20,
         ...     reps=1,
@@ -342,8 +342,8 @@ def step(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
-        >>> axis = ((0, -5), (100, -5))
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+        >>> axis = ((0, -20), (100, -20))
         >>> row = step(band, axis, 10, reps=1)
         >>> len(row)
         4
@@ -379,8 +379,8 @@ def step_along(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> band = sg.Group([sg.Shape([(0, 0), (10, 0)])])
-        >>> axis = ((0, -5), (100, -5))
+        >>> band = sg.Group([sg.Shape([(0, 0), (40, 0)])])
+        >>> axis = ((0, -20), (100, -20))
         >>> path = [(0, 0), (30, 0)]
         >>> row = step_along(band, axis, 10, path, reps=1)
         >>> len(row)

@@ -78,9 +78,9 @@ class BoundingBox:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> bb = sg.BoundingBox((0, 0), (10, 20))
+        >>> bb = sg.BoundingBox((0, 0), (40, 80))
         >>> bb.northwest
-        (0, 20)
+        (0, 80)
     """
 
     def __init__(
@@ -94,9 +94,9 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
             >>> bb.southwest, bb.northeast
-            ((0, 0), (10, 20))
+            ((0, 0), (40, 80))
             >>> empty = sg.BoundingBox()
             >>> empty.southwest is None
             True
@@ -126,8 +126,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> repr(sg.BoundingBox((0, 0), (10, 20)))
-            'BoundingBox((0, 0), (10, 20))'
+            >>> repr(sg.BoundingBox((0, 0), (40, 80)))
+            'BoundingBox((0, 0), (40, 80))'
             >>> repr(sg.BoundingBox())
             'BoundingBox()'
         """
@@ -147,9 +147,9 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((-2, -1), (4, 5))
+            >>> bb = sg.BoundingBox((-40, -20), (80, 100))
             >>> bb.sw
-            (-2, -1)
+            (-40, -20)
         """
         if name in self._aliases:
             if name == "center":
@@ -174,9 +174,9 @@ class BoundingBox:
 
         Examples:
             >>> from simetri.geom.bbox import BoundingBox
-            >>> bb = BoundingBox((0, 0), (10, 20))
+            >>> bb = BoundingBox((0, 0), (40, 80))
             >>> tuple(round(v, 10) for v in bb.angle_point(0))
-            (10.0, 10.0)
+            (40.0, 40.0)
         """
         angle = positive_angle(angle)
         direction_x = np.cos(angle)
@@ -211,8 +211,8 @@ class BoundingBox:
 
         Examples:
             >>> from simetri.geom.bbox import BoundingBox
-            >>> bb = BoundingBox((0, 0), (10, 20))
-            >>> bb.left == ((0, 20), (0, 0))
+            >>> bb = BoundingBox((0, 0), (40, 80))
+            >>> bb.left == ((0, 80), (0, 0))
             True
         """
         return (self.northwest, self.southwest)
@@ -227,8 +227,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
-            >>> bb.right == ((10, 20), (10, 0))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
+            >>> bb.right == ((40, 80), (40, 0))
             True
         """
         return (self.northeast, self.southeast)
@@ -243,8 +243,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
-            >>> bb.top == ((0, 20), (10, 20))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
+            >>> bb.top == ((0, 80), (40, 80))
             True
         """
         return (self.northwest, self.northeast)
@@ -259,8 +259,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
-            >>> bb.bottom == ((0, 0), (10, 0))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
+            >>> bb.bottom == ((0, 0), (40, 0))
             True
         """
         return (self.southwest, self.southeast)
@@ -275,8 +275,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
-            >>> bb.vert_centerline == ((5.0, 20.0), (5.0, 0.0))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
+            >>> bb.vert_centerline == ((20.0, 80.0), (20.0, 0.0))
             True
         """
         return (self.north, self.south)
@@ -291,8 +291,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
-            >>> bb.horiz_centerline == ((0.0, 10.0), (10.0, 10.0))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
+            >>> bb.horiz_centerline == ((0.0, 40.0), (40.0, 40.0))
             True
         """
         return (self.west, self.east)
@@ -307,8 +307,8 @@ class BoundingBox:
 
         Examples:
             >>> from simetri.geom.bbox import BoundingBox
-            >>> BoundingBox((0, 0), (10, 20)).midpoint
-            (5.0, 10.0)
+            >>> BoundingBox((0, 0), (40, 80)).midpoint
+            (20.0, 40.0)
         """
         x1, y1 = self.southwest
         x2, y2 = self.northeast
@@ -330,9 +330,9 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
             >>> bb.corners
-            ((0, 20), (0, 0), (10, 0), (10, 20))
+            ((0, 80), (0, 0), (40, 0), (40, 80))
         """
         return (self.northwest, self.southwest, self.southeast, self.northeast)
 
@@ -348,9 +348,9 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
             >>> bb.diamond
-            ((5.0, 20.0), (0.0, 10.0), (5.0, 0.0), (10.0, 10.0))
+            ((20.0, 80.0), (0.0, 40.0), (20.0, 0.0), (40.0, 40.0))
         """
         return (self.north, self.west, self.south, self.east)
 
@@ -364,9 +364,9 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
             >>> bb.all_anchors
-            ((0.0, 10.0), (0, 0), (5.0, 0.0), (10, 0), (10.0, 10.0), (10, 20), (5.0, 20.0), (0, 20), (5.0, 10.0))
+            ((0.0, 40.0), (0, 0), (20.0, 0.0), (40, 0), (40.0, 40.0), (40, 80), (20.0, 80.0), (0, 80), (20.0, 40.0))
         """
         # Do not change the order. LiBeRTy (Left, Bottom, Right, Top) is the order.
         return (
@@ -402,13 +402,13 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
             >>> len(bb.all_lines)
             8
             >>> bb.all_lines
-            (((0, 20), (0, 0)), ((0, 0), (10, 0)), ((10, 20), (10, 0)), ((0, 20),
-            (10, 20)), ((0.0, 10.0), (10.0, 10.0)), ((5.0, 20.0), (5.0, 0.0)),
-            ((0, 0), (10, 20)), ((10, 0), (0, 20)))
+            (((0, 80), (0, 0)), ((0, 0), (40, 0)), ((40, 80), (40, 0)), ((0, 80),
+            (40, 80)), ((0.0, 40.0), (40.0, 40.0)), ((20.0, 80.0), (20.0, 0.0)),
+            ((0, 0), (40, 80)), ((40, 0), (0, 80)))
         """
 
         # Do not change the order. LiBeRTy (Left, Bottom, Right, Top) is the order.
@@ -433,8 +433,8 @@ class BoundingBox:
 
         Examples:
             >>> from simetri.geom.bbox import BoundingBox
-            >>> BoundingBox((0, 0), (10, 20)).width
-            10.0
+            >>> BoundingBox((0, 0), (40, 80)).width
+            40.0
         """
         return distance(self.northwest, self.northeast)
 
@@ -448,8 +448,8 @@ class BoundingBox:
 
         Examples:
             >>> from simetri.geom.bbox import BoundingBox
-            >>> BoundingBox((0, 0), (10, 20)).height
-            20.0
+            >>> BoundingBox((0, 0), (40, 80)).height
+            80.0
         """
         return distance(self.northwest, self.southwest)
 
@@ -463,8 +463,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).size
-            (10.0, 20.0)
+            >>> sg.BoundingBox((0, 0), (40, 80)).size
+            (40.0, 80.0)
         """
         return (self.width, self.height)
 
@@ -478,8 +478,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).west
-            (0.0, 10.0)
+            >>> sg.BoundingBox((0, 0), (40, 80)).west
+            (0.0, 40.0)
         """
         return midpoint(*self.left)
 
@@ -493,8 +493,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).south
-            (5.0, 0.0)
+            >>> sg.BoundingBox((0, 0), (40, 80)).south
+            (20.0, 0.0)
         """
         return midpoint(*self.bottom)
 
@@ -508,8 +508,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).east
-            (10.0, 10.0)
+            >>> sg.BoundingBox((0, 0), (40, 80)).east
+            (40.0, 40.0)
         """
         return midpoint(*self.right)
 
@@ -523,8 +523,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).north
-            (5.0, 20.0)
+            >>> sg.BoundingBox((0, 0), (40, 80)).north
+            (20.0, 80.0)
         """
         return midpoint(*self.top)
 
@@ -538,8 +538,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).northwest
-            (0, 20)
+            >>> sg.BoundingBox((0, 0), (40, 80)).northwest
+            (0, 80)
         """
         return self.__dict__["northwest"]
 
@@ -553,8 +553,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).northeast
-            (10, 20)
+            >>> sg.BoundingBox((0, 0), (40, 80)).northeast
+            (40, 80)
         """
         return self.__dict__["northeast"]
 
@@ -568,7 +568,7 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).southwest
+            >>> sg.BoundingBox((0, 0), (40, 80)).southwest
             (0, 0)
         """
         return self.__dict__["southwest"]
@@ -583,8 +583,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).southeast
-            (10, 0)
+            >>> sg.BoundingBox((0, 0), (40, 80)).southeast
+            (40, 0)
         """
         return self.__dict__["southeast"]
 
@@ -598,8 +598,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).diagonal1
-            ((0, 0), (10, 20))
+            >>> sg.BoundingBox((0, 0), (40, 80)).diagonal1
+            ((0, 0), (40, 80))
         """
         return (self.southwest, self.northeast)
 
@@ -613,8 +613,8 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.BoundingBox((0, 0), (10, 20)).diagonal2
-            ((10, 0), (0, 20))
+            >>> sg.BoundingBox((0, 0), (40, 80)).diagonal2
+            ((40, 0), (0, 80))
         """
         return (self.southeast, self.northwest)
 
@@ -639,10 +639,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
-            >>> inflated = bb.get_inflated_b_box(1, 2, 3, 4)
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
+            >>> inflated = bb.get_inflated_b_box(20, 40, 60, 80)
             >>> inflated.southwest, inflated.northeast
-            ((-1, -2), (13, 24))
+            ((-20, -40), (100, 160))
         """
 
         if bottom_margin is None:
@@ -676,9 +676,9 @@ class BoundingBox:
         Examples:
             >>> from simetri.base.all_enums import Side
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
-            >>> bb.offset_line(Side.LEFT, 2)
-            ((-2, 0), (-2, 20))
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
+            >>> bb.offset_line(Side.LEFT, 40)
+            ((-40, 0), (-40, 80))
         """
         if isinstance(side, str):
             side = Side[side.upper()]
@@ -729,9 +729,9 @@ class BoundingBox:
         Examples:
             >>> from simetri.base.all_enums import Anchor
             >>> import simetri.graphics as sg
-            >>> bb = sg.BoundingBox((0, 0), (10, 20))
-            >>> bb.offset_point(Anchor.NORTHWEST, 1, -2)
-            [1, 18]
+            >>> bb = sg.BoundingBox((0, 0), (40, 80))
+            >>> bb.offset_point(Anchor.NORTHWEST, 20, -40)
+            [20, 40]
         """
         if isinstance(anchor, str):
             anchor = Anchor[anchor.upper()]
@@ -758,10 +758,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.centered(ref)
-            (25.0, 5.0)
+            (100.0, 20.0)
         """
 
         x, y = item.midpoint[:2]
@@ -785,10 +785,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.left_of(ref)
-            (15.0, 5.0)
+            (60.0, 20.0)
         """
         x, y = item.west[:2]
         w2 = self.width / 2
@@ -812,10 +812,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.right_of(ref)
-            (35.0, 5.0)
+            (140.0, 20.0)
         """
         x, y = item.east[:2]
         w2 = self.width / 2
@@ -839,10 +839,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.above(ref)
-            (25.0, 20.0)
+            (100.0, 80.0)
         """
         x, y = item.north[:2]
         h2 = self.height / 2
@@ -866,10 +866,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.below(ref)
-            (25.0, -10.0)
+            (100.0, -40.0)
         """
         x, y = item.south[:2]
         h2 = self.height / 2
@@ -893,10 +893,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.above_left(ref)
-            (15.0, 20.0)
+            (60.0, 80.0)
         """
         x, y = item.northwest[:]
         w2 = self.width / 2
@@ -922,10 +922,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.above_right(ref)
-            (35.0, 20.0)
+            (140.0, 80.0)
         """
         x, y = item.northeast[:2]
         w2 = self.width / 2
@@ -951,10 +951,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.below_left(ref)
-            (15.0, -10.0)
+            (60.0, -40.0)
         """
         x, y = item.southwest[:2]
         w2 = self.width / 2
@@ -980,10 +980,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
             >>> tag.below_right(ref)
-            (35.0, -10.0)
+            (140.0, -40.0)
         """
         x, y = item.southeast[:2]
         w2 = self.width / 2
@@ -1010,10 +1010,10 @@ class BoundingBox:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> ref = sg.Shape([(20, 0), (30, 0), (30, 10), (20, 10)])
-            >>> tag = sg.BoundingBox((0, 0), (10, 20))
-            >>> tag.polar_pos(ref, 0, 5)
-            (30.0, 5.0)
+            >>> ref = sg.Shape([(80, 0), (120, 0), (120, 40), (80, 40)])
+            >>> tag = sg.BoundingBox((0, 0), (40, 80))
+            >>> tag.polar_pos(ref, 0, 20)
+            (120.0, 20.0)
         """
 
         x, y = item.midpoint[:2]
@@ -1039,9 +1039,9 @@ def bounding_box(points: Sequence[PointType]) -> BoundingBox:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> bb = sg.bounding_box([(0, 0), (10, 5), (3, 8)])
+        >>> bb = sg.bounding_box([(0, 0), (80, 40), (24, 64)])
         >>> bb.southwest, bb.northeast
-        ((0, 0), (10, 8))
+        ((0, 0), (80, 64))
     """
     if isinstance(points, np.ndarray):
         points = points[:, :2]

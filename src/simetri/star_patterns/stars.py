@@ -3,9 +3,9 @@
 Examples:
     >>> import simetri.graphics as sg
     >>> from simetri.star_patterns.stars import Star, rosette
-    >>> petal = sg.Shape([(0, 0), (20, 5), (0, 10)])
+    >>> petal = sg.Shape([(0, 0), (20, 20), (0, 40)])
     >>> len(rosette(8, petal))
-    4
+    6
     >>> Star(8, circumradius=100).n
     8
 """
@@ -42,9 +42,9 @@ def rosette(
     Examples:
         >>> import simetri.graphics as sg
         >>> from simetri.star_patterns.stars import rosette
-        >>> petal = sg.Shape([(0, 0), (20, 5), (0, 10)])
+        >>> petal = sg.Shape([(0, 0), (20, 20), (0, 40)])
         >>> len(rosette(8, petal))
-        4
+        6
         >>> len(rosette(6, petal, cyclic=True, merge=False))
         6
     """
@@ -131,7 +131,7 @@ class Star(Group):
             50
             >>> Star(7).inner_radius
             54.12
-            >>> Star(8, circumradius=10, inner_radius=5)
+            >>> Star(8, circumradius=40, inner_radius=20)
             Traceback (most recent call last):
                 ...
             ValueError: Only one of circumradius or inner_radius can be specified.

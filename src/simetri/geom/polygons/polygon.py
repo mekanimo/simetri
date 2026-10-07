@@ -73,8 +73,8 @@ def _shape(*args: Any, **kwargs: Any) -> Shape:
 
     Examples:
         >>> from simetri.geom.polygons.polygon import _shape
-        >>> _shape([(0, 0), (1, 0)]).vertices
-        ((0.0, 0.0), (1.0, 0.0))
+        >>> _shape([(0, 0), (40, 0)]).vertices
+        ((0.0, 0.0), (40.0, 0.0))
 """
     from simetri.shapes.shape import Shape
 
@@ -272,12 +272,12 @@ def polygon_area(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1)])
-        1.0
-        >>> sg.polygon_area([(0, 0), (0, 1), (1, 1), (1, 0)])
-        -1.0
-        >>> sg.polygon_area([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
-        1.0
+        >>> sg.polygon_area([(0, 0), (40, 0), (40, 40), (0, 40)])
+        1600.0
+        >>> sg.polygon_area([(0, 0), (0, 40), (40, 40), (40, 0)])
+        -1600.0
+        >>> sg.polygon_area([(0, 0), (40, 0), (40, 40), (0, 40), (0, 0)])
+        1600.0
 """
     if abs_tol is None:
         abs_tol = runtime_defaults["abs_tol"]
@@ -309,10 +309,10 @@ def ccw_positive_vertices(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.ccw_positive_vertices([(0, 0), (1, 0), (1, 1)])
-        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
-        >>> sg.ccw_positive_vertices([(0, 0), (0, 1), (1, 0)])
-        [(1.0, 0.0), (0.0, 1.0), (0.0, 0.0)]
+        >>> sg.ccw_positive_vertices([(0, 0), (40, 0), (40, 40)])
+        [(0.0, 0.0), (40.0, 0.0), (40.0, 40.0)]
+        >>> sg.ccw_positive_vertices([(0, 0), (0, 40), (40, 0)])
+        [(40.0, 0.0), (0.0, 40.0), (0.0, 0.0)]
 """
     verts = [(float(x), float(y)) for x, y in vertices]
     if polygon_area(verts) < 0:
@@ -609,8 +609,8 @@ def _segment_containment_counts(
 
     Examples:
         >>> from simetri.geom.polygons.polygon import _segment_containment_counts
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-        >>> list(_segment_containment_counts([(0.5, 0.5), (2, 2)], [square]))
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
+        >>> list(_segment_containment_counts([(0.5, 0.5), (80, 80)], [square]))
         [1, 0]
 """
     counts = np.zeros(len(midpoints), dtype=np.int16)
@@ -638,12 +638,12 @@ def point_inside_polygon(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
         >>> sg.point_inside_polygon((0.5, 0.5), square)
         True
         >>> sg.point_inside_polygon((0.5, 0), square)
         False
-        >>> sg.point_inside_polygon((2, 2), square)
+        >>> sg.point_inside_polygon((80, 80), square)
         False
 """
     x, y = p
@@ -700,10 +700,10 @@ def polygons_union(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> square = sg.Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)
         >>> outer, holes = sg.polygons_union([square], [], [])
         >>> [tuple(round(c, 6) for c in p[:2]) for p in outer.vertices]
-        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        [(0.0, 0.0), (40.0, 0.0), (40.0, 40.0), (0.0, 40.0)]
         >>> holes
         Group()
         >>> sg.polygons_union([], [], [])
@@ -849,14 +849,14 @@ def node_dictionaries(
     Examples:
         >>> import simetri.graphics as sg
         >>> nodes, coord_node, rounded = sg.node_dictionaries(
-        ... [(0, 0), (0.01, 0), (5, 5)], 0.05
+        ... [(0, 0), (0.01, 0), (20, 20)], 0.05
         ... )
         >>> nodes
-        {0: (0, 0), 1: (5, 5)}
+        {0: (0, 0), 1: (20, 20)}
         >>> coord_node[(0, 0)] == coord_node[(0.01, 0)]
         True
-        >>> rounded[(5, 5)]
-        (5, 5)
+        >>> rounded[(20, 20)]
+        (20, 20)
 """
     n_round = max(0, ceil(log10(sqrt(2) / abs_tol)))
     d_rounded_coord = {}
@@ -949,14 +949,14 @@ def segment_cycles(
     Examples:
         >>> import simetri.graphics as sg
         >>> square = [
-        ... ((0, 0), (1, 0)),
-        ... ((1, 0), (1, 1)),
-        ... ((1, 1), (0, 1)),
-        ... ((0, 1), (0, 0)),
+        ... ((0, 0), (40, 0)),
+        ... ((40, 0), (40, 40)),
+        ... ((40, 40), (0, 40)),
+        ... ((0, 40), (0, 0)),
         ... ]
         >>> coords, nodes = sg.segment_cycles(square)
         >>> coords
-        [[(0, 0), (1, 0), (1, 1), (0, 1)]]
+        [[(0, 0), (40, 0), (40, 40), (0, 40)]]
         >>> len(nodes[0])
         4
 """
@@ -1002,10 +1002,10 @@ def segments_from_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.segments_from_points([(2, 0), (0, 0), (1, 0)])
-        [((0, 0), (1, 0)), ((1, 0), (2, 0))]
-        >>> sg.segments_from_points([(0, 0), (1, 0)])
-        [((0, 0), (1, 0))]
+        >>> sg.segments_from_points([(80, 0), (0, 0), (40, 0)])
+        [((0, 0), (40, 0)), ((40, 0), (80, 0))]
+        >>> sg.segments_from_points([(0, 0), (40, 0)])
+        [((0, 0), (40, 0))]
         >>> sg.segments_from_points([(0, 0)]) is None
         True
 """
@@ -1039,7 +1039,7 @@ def set_fills(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> outer = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+        >>> outer = sg.Shape([(0, 0), (80, 0), (80, 80), (0, 80)], closed=True)
         >>> edges = {frozenset(edge): {outer.id} for edge in outer.edges}
         >>> sg.set_fills([outer], edges)
         >>> outer.fill
@@ -1104,10 +1104,10 @@ def any_point_inside_polygon(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-        >>> sg.any_point_inside_polygon([(2, 2), (0.2, 0.2)], square)
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
+        >>> sg.any_point_inside_polygon([(80, 80), (0.2, 0.2)], square)
         True
-        >>> sg.any_point_inside_polygon([(2, 2), (3, 3)], square)
+        >>> sg.any_point_inside_polygon([(80, 80), (60, 60)], square)
         False
         >>> sg.any_point_inside_polygon([(0.5, 0)], square)
         False
@@ -1171,16 +1171,16 @@ def get_partitions(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> square = sg.Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)
         >>> parts, _, outline = sg.get_partitions(sg.Group([square]))
         Number of total cycles with less than 10 nodes: 5
         Number of holes: 0
-        Total partition-area: 1.00, Union-area: 1.00
+        Total partition-area: 1600.00, Union-area: 1600.00
         5 partitions.
         Largest* partition has 4 edges.
         Used 5 cycles.
         >>> [tuple(round(c, 6) for c in p[:2]) for p in outline.vertices]
-        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        [(0.0, 0.0), (40.0, 0.0), (40.0, 40.0), (0.0, 40.0)]
 """
     n_edges = len(shapes.all_segments)
     intersections = all_intersections(
@@ -1320,8 +1320,8 @@ def equal_sorted_arrays(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-        >>> same = [(1, 1), (0, 1), (0, 0), (1, 0)]
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
+        >>> same = [(40, 40), (0, 40), (0, 0), (40, 0)]
         >>> sg.equal_sorted_arrays(
         ... sg.sorted_polygon_xy_array(square),
         ... sg.sorted_polygon_xy_array(same),
@@ -1330,7 +1330,7 @@ def equal_sorted_arrays(
         True
         >>> sg.equal_sorted_arrays(
         ... sg.sorted_polygon_xy_array(square),
-        ... sg.sorted_polygon_xy_array([(0, 0), (2, 0), (0, 2)]),
+        ... sg.sorted_polygon_xy_array([(0, 0), (80, 0), (0, 80)]),
         ... 0.05,
         ... )
         False
@@ -1464,9 +1464,9 @@ def polygon_xy_array(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> [tuple(row) for row in sg.polygon_xy_array([(0, 0), (1, 0), (1, 1)])]
-        [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
-        >>> sg.polygon_xy_array([(3, 4)]).shape
+        >>> [tuple(row) for row in sg.polygon_xy_array([(0, 0), (40, 0), (40, 40)])]
+        [(0.0, 0.0), (40.0, 0.0), (40.0, 40.0)]
+        >>> sg.polygon_xy_array([(60, 80)]).shape
         (1, 2)
 """
     from simetri.shapes.shape import Shape
@@ -1495,8 +1495,8 @@ def sorted_polygon_xy_array(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> [tuple(row) for row in sg.sorted_polygon_xy_array([(1, 1), (0, 0), (0, 1)])]
-        [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
+        >>> [tuple(row) for row in sg.sorted_polygon_xy_array([(40, 40), (0, 0), (0, 40)])]
+        [(0.0, 0.0), (0.0, 40.0), (40.0, 40.0)]
 """
     array = polygon_xy_array(polygon)
     order = np.lexsort((array[:, 1], array[:, 0]))
@@ -1516,11 +1516,11 @@ def polygon_vertices(polygon: PolygonLike) -> Sequence[PointType]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.polygon_vertices([(0, 0), (1, 0), (1, 1), (0, 1)])
-        [(0, 0), (1, 0), (1, 1), (0, 1)]
-        >>> shape = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
+        >>> sg.polygon_vertices([(0, 0), (40, 0), (40, 40), (0, 40)])
+        [(0, 0), (40, 0), (40, 40), (0, 40)]
+        >>> shape = sg.Shape([(0, 0), (80, 0), (0, 80)], closed=True)
         >>> sg.polygon_vertices(shape)
-        ((0.0, 0.0), (2.0, 0.0), (0.0, 2.0))
+        ((0.0, 0.0), (80.0, 0.0), (0.0, 80.0))
 """
     from ...shapes.shape import Shape
 
@@ -1548,10 +1548,10 @@ def polygon_turns(vertices: Sequence[PointType]) -> list[float]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.polygon_turns([(0, 0), (1, 0), (1, 1), (0, 1)])
-        [1.0, -1.57, 1.0, -1.57, 1.0, -1.57, 1.0, -1.57]
-        >>> sg.polygon_turns([(0, 0), (2, 0), (0, 1)])
-        [2.0, -0.46, 2.23606797749979, -1.11, 1.0, -1.57]
+        >>> sg.polygon_turns([(0, 0), (40, 0), (40, 40), (0, 40)])
+        [40.0, -1.57, 40.0, -1.57, 40.0, -1.57, 40.0, -1.57]
+        >>> sg.polygon_turns([(0, 0), (80, 0), (0, 40)])
+        [80.0, -0.46, 89.44271909999159, -1.11, 40.0, -1.57]
 """
     n = len(vertices)
     res = []
@@ -1618,10 +1618,10 @@ def congruent_polygons(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-        >>> sg.congruent_polygons(square, [(1, 1), (2, 1), (2, 2), (1, 2)])
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
+        >>> sg.congruent_polygons(square, [(40, 40), (80, 40), (80, 80), (40, 80)])
         True
-        >>> sg.congruent_polygons(square, [(0, 0), (2, 0), (0, 2)])
+        >>> sg.congruent_polygons(square, [(0, 0), (80, 0), (0, 80)])
         False
 """
     from ...helpers.utilities import equal_cycles
@@ -1672,10 +1672,10 @@ def equal_polygons(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-        >>> sg.equal_polygons(square, [(1, 0), (1, 1), (0, 1), (0, 0)])
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
+        >>> sg.equal_polygons(square, [(40, 0), (40, 40), (0, 40), (0, 0)])
         True
-        >>> sg.equal_polygons(square, [(0, 0), (2, 0), (0, 2)])
+        >>> sg.equal_polygons(square, [(0, 0), (80, 0), (0, 80)])
         False
 """
     return congruent_polygons(polygon1, polygon2, mirror, rel_tol, abs_tol)
@@ -1698,11 +1698,11 @@ def congruent_shapes(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> left = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
-        >>> right = sg.Shape([(10, 0), (11, 0), (11, 1), (10, 1)], closed=True)
+        >>> left = sg.Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)
+        >>> right = sg.Shape([(40, 0), (80, 0), (80, 40), (40, 40)], closed=True)
         >>> sg.congruent_shapes(left, right)
         True
-        >>> other = sg.Shape([(0, 0), (2, 0), (0, 2)], closed=True)
+        >>> other = sg.Shape([(0, 0), (80, 0), (0, 80)], closed=True)
         >>> sg.congruent_shapes(left, other)
         False
 """
@@ -1728,11 +1728,11 @@ def remove_duplicate_edges(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> edges = [((0, 0), (1, 0)), ((1, 0), (0, 0)), ((0, 1), (1, 1))]
+        >>> edges = [((0, 0), (40, 0)), ((40, 0), (0, 0)), ((0, 40), (40, 40))]
         >>> sg.remove_duplicate_edges(edges)
-        [((0, 1), (1, 1))]
+        [((0, 40), (40, 40))]
         >>> sg.remove_duplicate_edges(edges, keep_one=True)
-        [((0, 0), (1, 0)), ((0, 1), (1, 1))]
+        [((0, 0), (40, 0)), ((0, 40), (40, 40))]
 """
     abs_tol = runtime_defaults["abs_tol"]
 
@@ -1836,12 +1836,12 @@ def polygon_verts_and_bbox(
     Examples:
         >>> import simetri.graphics as sg
         >>> verts, min_x, min_y, max_x, max_y = sg.polygon_verts_and_bbox(
-        ... [(0, 0), (1, 0), (1, 1), (0, 1)]
+        ... [(0, 0), (40, 0), (40, 40), (0, 40)]
         ... )
         >>> verts
-        [(0, 0), (1, 0), (1, 1), (0, 1)]
+        [(0, 0), (40, 0), (40, 40), (0, 40)]
         >>> (min_x, min_y, max_x, max_y)
-        (0, 0, 1, 1)
+        (0, 0, 40, 40)
 """
     from ...group.batch import Group
     from ...shapes.shape import Shape
@@ -1903,11 +1903,11 @@ def remove_duplicate_polygons(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
-        >>> same = [(1, 0), (1, 1), (0, 1), (0, 0)]
-        >>> tri = [(0, 0), (2, 0), (0, 2)]
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
+        >>> same = [(40, 0), (40, 40), (0, 40), (0, 0)]
+        >>> tri = [(0, 0), (80, 0), (0, 80)]
         >>> sg.remove_duplicate_polygons([square, same, tri])
-        [[(0, 0), (1, 0), (1, 1), (0, 1)], [(0, 0), (2, 0), (0, 2)]]
+        [[(0, 0), (40, 0), (40, 40), (0, 40)], [(0, 0), (80, 0), (0, 80)]]
         >>> sg.remove_duplicate_polygons([square, same], keep_one=False)
         []
 """
@@ -1990,7 +1990,7 @@ def symmetric_difference(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = sg.Shape([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+        >>> square = sg.Shape([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)
         >>> group = sg.Group([square])
         >>> square.closed
         True
@@ -2024,14 +2024,14 @@ def in_polygon(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
         >>> sg.in_polygon((0.5, 0.5), square)
         True
         >>> sg.in_polygon((0.5, 0), square)
         True
         >>> sg.in_polygon((0.5, 0), square, exclude_border=True)
         False
-        >>> sg.in_polygon((2, 2), square)
+        >>> sg.in_polygon((80, 80), square)
         False
 """
     _, y = point[:2]
@@ -2069,8 +2069,8 @@ def double_offset_lines(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.double_offset_lines(((0, 0), (2, 0)), 1)
-        ([[0.0, 1.0], [2.0, 1.0]], [[0.0, -1.0], [2.0, -1.0]])
+        >>> sg.double_offset_lines(((0, 0), (80, 0)), 1)
+        ([[0.0, 1.0], [80.0, 1.0]], [[0.0, -1.0], [80.0, -1.0]])
 """
     line1 = offset_line(line, offset)
     line2 = offset_line(line, -offset)
@@ -2099,8 +2099,8 @@ def double_offset_polylines(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.double_offset_polylines([(0, 0), (2, 0), (2, 2)], 1)
-        [[[0.0, 1.0], (1.0, 1.0), [1.0, 2.0]], [[0.0, -1.0], (3.0, -1.0), [3.0, 2.0]]]
+        >>> sg.double_offset_polylines([(0, 0), (80, 0), (80, 80)], 1)
+        [[[0.0, 1.0], (79.0, 1.0), [79.0, 80.0]], [[0.0, -1.0], (81.0, -1.0), [81.0, 80.0]]]
 """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     lines1 = []
@@ -2129,11 +2129,11 @@ def polygon_cg(points: Sequence[PointType]) -> PointType | None:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.polygon_cg([(0, 0), (1, 0), (1, 1), (0, 1)])
-        [0.5, 0.5]
-        >>> sg.polygon_cg([(0, 0), (2, 0), (0, 2)])
-        [0.6666666666666666, 0.6666666666666666]
-        >>> sg.polygon_cg([(0, 0), (1, 0), (2, 0)]) is None
+        >>> sg.polygon_cg([(0, 0), (40, 0), (40, 40), (0, 40)])
+        [20.0, 20.0]
+        >>> sg.polygon_cg([(0, 0), (80, 0), (0, 80)])
+        [26.666666666666668, 26.666666666666668]
+        >>> sg.polygon_cg([(0, 0), (40, 0), (80, 0)]) is None
         True
 """
     cx = cy = 0
@@ -2177,8 +2177,8 @@ def offset_polygon(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.offset_polygon([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
-        [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
+        >>> sg.offset_polygon([(0, 0), (40, 0), (40, 40), (0, 40)], 0.5)
+        [(-0.5, -0.5), (40.5, -0.5), (40.5, 40.5), (-0.5, 40.5), (-0.5, -0.5)]
 """
     if abs_tol is None:
         abs_tol = runtime_defaults["abs_tol"]
@@ -2220,14 +2220,14 @@ def double_offset_polygons(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> raw = [(0, 0), (2, 0), (2, 1)]
+        >>> raw = [(0, 0), (80, 0), (80, 40)]
         >>> offsets = sg.double_offset_polygons(raw, 0.5)
         >>> raw
-        [(0, 0), (2, 0), (2, 1)]
+        [(0, 0), (80, 0), (80, 40)]
         >>> offsets[0]
-        [(2.118033988749895, 0.5), (1.5, 0.5), (1.5, 0.19098300562505255), (2.118033988749895, 0.5)]
+        [(2.1180339887498945, 0.5), (79.5, 0.5), (79.5, 39.19098300562505), (2.1180339887498945, 0.5)]
         >>> offsets[1]
-        [(-2.118033988749895, -0.5), (2.5, -0.5), (2.5, 1.8090169943749475), (-2.118033988749895, -0.5)]
+        [(-2.118033988749895, -0.5), (80.5, -0.5), (80.5, 40.80901699437495), (-2.118033988749895, -0.5)]
 """
     if abs_tol is None:
         abs_tol = runtime_defaults["abs_tol"]
@@ -2280,8 +2280,8 @@ def offset_polygon_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.offset_polygon_points([(0, 0), (1, 0), (1, 1), (0, 1)], 0.5)
-        [(-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5), (-0.5, -0.5)]
+        >>> sg.offset_polygon_points([(0, 0), (40, 0), (40, 40), (0, 40)], 0.5)
+        [(-0.5, -0.5), (40.5, -0.5), (40.5, 40.5), (-0.5, 40.5), (-0.5, -0.5)]
 """
     return offset_polygon(polygon, offset, abs_tol)
 
@@ -2305,10 +2305,10 @@ def polyline_length(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.polyline_length([(0, 0), (3, 0), (3, 4)])
-        7.0
-        >>> sg.polyline_length([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
-        4.0
+        >>> sg.polyline_length([(0, 0), (60, 0), (60, 80)])
+        140.0
+        >>> sg.polyline_length([(0, 0), (40, 0), (40, 40), (0, 40)], closed=True)
+        160.0
 """
     if abs_tol is None:
         abs_tol = runtime_defaults["abs_tol"]
@@ -2339,9 +2339,9 @@ def polygon_internal_angles(vertices: Sequence[PointType]) -> Sequence[float]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.polygon_internal_angles([(0, 0), (1, 0), (1, 1), (0, 1)])
+        >>> sg.polygon_internal_angles([(0, 0), (40, 0), (40, 40), (0, 40)])
         [1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966]
-        >>> sg.polygon_internal_angles([(0, 0), (1, 0)])
+        >>> sg.polygon_internal_angles([(0, 0), (40, 0)])
         []
 """
     n = len(vertices)

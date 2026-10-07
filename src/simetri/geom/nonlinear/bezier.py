@@ -325,14 +325,14 @@ def equidistant_points(
     Examples:
         >>> import simetri.graphics as sg
         >>> points, eq_points, tangents, normals = sg.equidistant_points(
-        ...     (0, 0), (1, 2), (3, 2), (4, 0), n_points=4
+        ...     (0, 0), (40, 80), (60, 80), (80, 0), n_points=4
         ... )
         >>> len(eq_points)
         4
         >>> [round(c, 6) for c in eq_points[0][:2]]
         [0, 0]
         >>> [round(float(c), 6) for c in eq_points[-1][:2]]
-        [3.207133, 1.037037]
+        [68.970699, 35.702479]
     """
     controls = [p0, p1, p2, p3]
     n = 100
@@ -380,9 +380,9 @@ def offset_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.offset_points([(0, 0), (1, 2), (3, 2), (4, 0)], 1.0, 4)
+        >>> pts = sg.offset_points([(0, 0), (40, 80), (60, 80), (80, 0)], 1.0, 4)
         >>> [[round(float(c), 6) for c in q[:2]] for q in pts]
-        [[-0.894427, 0.447214], [-0.856499, 0.52156], [-0.817631, 0.594763], [-0.817631, 0.594763]]
+        [[-0.894427, 0.447214], [0.313431, 2.850626], [0.313431, 2.850626], [1.509272, 5.20523]]
     """
     n = 100
     points = bezier_points(*controls, n_points=n)
@@ -530,9 +530,9 @@ def bezier_points(
     Examples:
 
         >>> import simetri.graphics as sg
-        >>> pts = sg.bezier_points((0, 0), (1, 2), (2, 2), (3, 0), n_points=5)
+        >>> pts = sg.bezier_points((0, 0), (40, 80), (80, 80), (60, 0), n_points=5)
         >>> [[round(float(c), 6) for c in q[:2]] for q in pts]
-        [[0.0, 0.0], [0.75, 1.125], [1.5, 1.5], [2.25, 1.125], [3.0, 0.0]]
+        [[0.0, 0.0], [29.0625, 45.0], [52.5, 60.0], [64.6875, 45.0], [60.0, 0.0]]
     """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")
@@ -571,9 +571,9 @@ def q_bezier_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.q_bezier_points((0, 0), (1, 1), (2, 0), 5)
+        >>> pts = sg.q_bezier_points((0, 0), (40, 40), (80, 0), 5)
         >>> [[round(float(c), 6) for c in q[:2]] for q in pts]
-        [[0.0, 0.0], [0.5, 0.375], [1.0, 0.5], [1.5, 0.375], [2.0, 0.0]]
+        [[0.0, 0.0], [20.0, 15.0], [40.0, 20.0], [60.0, 15.0], [80.0, 0.0]]
     """
     if n_points < 5:
         raise ValueError("n_points must be at least 5.")
@@ -612,15 +612,15 @@ def split_bezier(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> left, right = sg.split_bezier((0, 0), (1, 2), (3, 2), (4, 0), 0.5, n_points=5)
+        >>> left, right = sg.split_bezier((0, 0), (40, 80), (60, 80), (80, 0), 0.5, n_points=5)
         >>> [round(float(c), 6) for c in left.point(0.0)]
         [0.0, 0.0]
         >>> [round(float(c), 6) for c in left.point(1.0)]
-        [2.0, 1.5]
+        [47.5, 60.0]
         >>> [round(float(c), 6) for c in right.point(0.0)]
-        [2.0, 1.5]
+        [47.5, 60.0]
         >>> [round(float(c), 6) for c in right.point(1.0)]
-        [4.0, 0.0]
+        [80.0, 0.0]
     """
     p0 = array(p0, dtype=float)
     p1 = array(p1, dtype=float)
@@ -661,15 +661,15 @@ def split_q_bezier(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> left, right = sg.split_q_bezier((0, 0), (1, 1), (2, 0), 0.5, n_points=5)
+        >>> left, right = sg.split_q_bezier((0, 0), (40, 40), (80, 0), 0.5, n_points=5)
         >>> [round(float(c), 6) for c in left.point(0.0)]
         [0.0, 0.0]
         >>> [round(float(c), 6) for c in left.point(1.0)]
-        [1.0, 0.5]
+        [40.0, 20.0]
         >>> [round(float(c), 6) for c in right.point(0.0)]
-        [1.0, 0.5]
+        [40.0, 20.0]
         >>> [round(float(c), 6) for c in right.point(1.0)]
-        [2.0, 0.0]
+        [80.0, 0.0]
     """
     p0 = array(p0, dtype=float)
     p1 = array(p1, dtype=float)
@@ -701,7 +701,7 @@ def mirror_point(cp: PointType, vertex: PointType) -> PointType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> end = sg.mirror_point((2, 0), (1, 0))[-1]
+        >>> end = sg.mirror_point((80, 0), (40, 0))[-1]
         >>> tuple(round(c, 10) for c in end[:2])
         (0.0, 0.0)
     """
@@ -737,13 +737,13 @@ def curve(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> curves = sg.curve((0, 0), (1, 2), (3, 2), (4, 0))
+        >>> curves = sg.curve((0, 0), (40, 80), (60, 80), (80, 0))
         >>> len(curves)
         1
         >>> [round(float(c), 6) for c in curves[0].point(0.0)]
         [0.0, 0.0]
         >>> [round(float(c), 6) for c in curves[0].point(1.0)]
-        [4.0, 0.0]
+        [80.0, 0.0]
     """
     curves = [Bezier([v1, c1, c2, v2], **kwargs)]
     last_vertex = v2
@@ -790,13 +790,13 @@ def q_curve(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> curves = sg.q_curve((0, 0), (1, 1), (2, 0))
+        >>> curves = sg.q_curve((0, 0), (40, 40), (80, 0))
         >>> len(curves)
         1
         >>> [round(float(c), 6) for c in curves[0].point(0.0)]
         [0.0, 0.0]
         >>> [round(float(c), 6) for c in curves[0].point(1.0)]
-        [2.0, 0.0]
+        [80.0, 0.0]
     """
     curves = [Bezier([v1, c, v2], **kwargs)]
     last_vertex = v2
@@ -831,8 +831,8 @@ def get_quadratic_derivative(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> [round(c, 6) for c in sg.get_quadratic_derivative(0.0, [(0, 0), (1, 1), (2, 0)])]
-        [2.0, 2.0]
+        >>> [round(c, 6) for c in sg.get_quadratic_derivative(0.0, [(0, 0), (40, 40), (80, 0)])]
+        [80.0, 80.0]
     """
     mt = 1 - t
     d = [
@@ -859,8 +859,8 @@ def get_cubic_derivative(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> [round(c, 6) for c in sg.get_cubic_derivative(0.0, [(0, 0), (1, 2), (3, 2), (4, 0)])]
-        [3.0, 6.0]
+        >>> [round(c, 6) for c in sg.get_cubic_derivative(0.0, [(0, 0), (40, 80), (60, 80), (80, 0)])]
+        [120.0, 240.0]
     """
     mt = 1 - t
     a = mt * mt
@@ -889,7 +889,7 @@ def get_normal(d: Sequence[float]) -> list[float]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.get_normal([0, 1])
+        >>> sg.get_normal([0, 40])
         [-1.0, 0.0]
     """
     q = np.sqrt(d[0] * d[0] + d[1] * d[1])
@@ -915,9 +915,9 @@ def segmentize_catmull_rom(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.segmentize_catmull_rom((0, 0), (1, 0), (2, 1), (3, 0), n=2)
+        >>> pts = sg.segmentize_catmull_rom((0, 0), (40, 0), (80, 40), (60, 0), n=2)
         >>> [[round(float(c), 6) for c in q[:2]] for q in pts]
-        [[1.0, 0.0], [1.5, 0.5625], [2.0, 1.0]]
+        [[40.0, 0.0], [63.75, 22.5], [80.0, 40.0]]
     """
     a = array(a[:2], dtype=float)
     b = array(b[:2], dtype=float)

@@ -132,8 +132,8 @@ def build_sketch_style_ids(style_sketch_dict: dict[str, list[int]]) -> dict[int,
 
     Examples:
         >>> from simetri.render.style_passes import build_sketch_style_ids
-        >>> build_sketch_style_ids({"style_1": [3, 4]})
-        {3: ['style_1'], 4: ['style_1']}
+        >>> build_sketch_style_ids({"style_1": [60, 80]})
+        {60: ['style_1'], 80: ['style_1']}
     """
 
     sketch_style_ids = {}

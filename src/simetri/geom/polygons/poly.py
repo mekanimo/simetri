@@ -47,7 +47,7 @@ def to_array(points: list | tuple | NDArray) -> NDArray:
 
     Examples:
         >>> from simetri.geom.polygons.poly import to_array
-        >>> arr = to_array([(0, 0), (1, 2)])
+        >>> arr = to_array([(0, 0), (40, 80)])
         >>> arr.shape
         (2, 3)
         >>> arr[0, 2]
@@ -133,7 +133,7 @@ class Poly:
 
         Examples:
             >>> from simetri.geom.polygons.poly import Poly
-            >>> poly = Poly([(0, 0), (1, 0), (1, 1)], closed=True)
+            >>> poly = Poly([(0, 0), (40, 0), (40, 40)], closed=True)
             >>> poly.closed
             True
             >>> poly.primary_points.shape
@@ -152,8 +152,8 @@ class Poly:
 
         Examples:
             >>> from simetri.geom.polygons.poly import Poly
-            >>> repr(Poly([(0, 0), (1, 0), (1, 1)], closed=True))
-            'Poly([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]])'
+            >>> repr(Poly([(0, 0), (40, 0), (40, 40)], closed=True))
+            'Poly([[0.0, 0.0], [40.0, 0.0], [40.0, 40.0]])'
         """
         if len(self.primary_points) == 0:
             return "Poly()"
@@ -545,9 +545,9 @@ def get_polygons(
 
     Examples:
         >>> from simetri.geom.polygons.poly import get_polygons
-        >>> polys = get_polygons([[(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]])
+        >>> polys = get_polygons([[(0, 0), (40, 0), (40, 40), (0, 40), (0, 0)]])
         >>> polys
-        [[(1, 0), (0, 0), (0, 1), (1, 1)]]
+        [[(0, 40), (0, 0), (40, 0), (40, 40)]]
     """
     from ...helpers.graph import get_cycles, sanitize_graph_edges
 

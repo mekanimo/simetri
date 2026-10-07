@@ -37,11 +37,11 @@ def right_handed(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.right_handed([(0, 0), (1, 0), (1, 1), (0, 1)])
+        >>> sg.right_handed([(0, 0), (40, 0), (40, 40), (0, 40)])
         True
-        >>> sg.right_handed([(0, 0), (0, 1), (1, 1), (1, 0)])
+        >>> sg.right_handed([(0, 0), (0, 40), (40, 40), (40, 0)])
         False
-        >>> sg.right_handed([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
+        >>> sg.right_handed([(0, 0), (40, 0), (40, 40), (0, 40), (0, 0)])
         True
 """
     if abs_tol is None:
@@ -80,15 +80,15 @@ def is_simple(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.is_simple([(0, 0), (2, 0), (2, 2), (0, 2)])
+        >>> sg.is_simple([(0, 0), (80, 0), (80, 80), (0, 80)])
         True
-        >>> sg.is_simple([(0, 0), (2, 2), (2, 0), (0, 2)])
+        >>> sg.is_simple([(0, 0), (80, 80), (80, 0), (0, 80)])
         False
-        >>> square = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        >>> square = [(0, 0), (40, 0), (40, 40), (0, 40)]
         >>> sg.is_simple(square)
         True
         >>> square
-        [(0, 0), (1, 0), (1, 1), (0, 1)]
+        [(0, 0), (40, 0), (40, 40), (0, 40)]
 """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
 
@@ -220,13 +220,13 @@ def is_ccw(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.is_ccw([(0, 0), (1, 0), (1, 1), (0, 1)])
+        >>> sg.is_ccw([(0, 0), (40, 0), (40, 40), (0, 40)])
         True
-        >>> sg.is_ccw([(0, 0), (0, 1), (1, 1), (1, 0)])
+        >>> sg.is_ccw([(0, 0), (0, 40), (40, 40), (40, 0)])
         False
-        >>> sg.is_ccw([(0, 0), (1, 0), (2, 1e-12)], eps=1.0)
+        >>> sg.is_ccw([(0, 0), (40, 0), (2, 1e-12)], eps=1.0)
         False
-        >>> sg.is_ccw([(0, 0), (1, 0)])
+        >>> sg.is_ccw([(0, 0), (40, 0)])
         Traceback (most recent call last):
         ...
         ValueError: Need at least 3 vertices
@@ -259,10 +259,10 @@ def calc_area(points: Sequence[PointType]) -> tuple[float, bool]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.calc_area([(0, 0), (1, 0), (1, 1), (0, 1)])
-        (1.0, True)
-        >>> sg.calc_area([(0, 0), (0, 1), (1, 1), (1, 0)])
-        (1.0, False)
+        >>> sg.calc_area([(0, 0), (40, 0), (40, 40), (0, 40)])
+        (1600.0, True)
+        >>> sg.calc_area([(0, 0), (0, 40), (40, 40), (40, 0)])
+        (1600.0, False)
 """
     area_ = 0
     n_points = len(points)
@@ -290,9 +290,9 @@ def is_convex(points: Sequence[PointType]) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.is_convex([(0, 0), (1, 0), (1, 1), (0, 1)])
+        >>> sg.is_convex([(0, 0), (40, 0), (40, 40), (0, 40)])
         True
-        >>> sg.is_convex([(0, 0), (3, 0), (1, 1), (0, 3)])
+        >>> sg.is_convex([(0, 0), (80, 0), (20, 20), (0, 80)])
         False
 """
     points = points.copy()

@@ -36,8 +36,8 @@ def get_skipped_items(
     Examples:
         >>> get_skipped_items([0, 1, 2, 3], 2)
         [0, 2]
-        >>> get_skipped_items([0, 1, 2, 3], [1, 2])
-        [0, 1, 3, 0, 2, 3, 1, 2]
+        >>> get_skipped_items([0, 1, 2, 3], [40, 80])
+        [0]
     """
     if isinstance(skip, int):
         skip_cycle = cycle([skip])

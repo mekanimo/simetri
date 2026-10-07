@@ -36,9 +36,9 @@ class Circle_:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> c = sg.Circle_((1, 2), 3)
+        >>> c = sg.Circle_((40, 80), 3)
         >>> c.center, c.radius
-        ((1, 2), 3)
+        ((40, 80), 3)
     """
 
     center: tuple
@@ -59,9 +59,9 @@ def tangent_points_from_point(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.tangent_points_from_point(sg.Circle_((0, 0), 5), (10, 0))
+        >>> pts = sg.tangent_points_from_point(sg.Circle_((0, 0), 5), (40, 0))
         >>> [[round(c, 6) for c in p] for p in pts]
-        [[2.5, 4.330127], [2.5, -4.330127]]
+        [[0.625, 4.960784], [0.625, -4.960784]]
     """
 
     x, y = point[:2]
@@ -114,10 +114,10 @@ def circle_tangent_to_3_circles(
     Examples:
         >>> import simetri.graphics as sg
         >>> center_x, center_y, radius = sg.circle_tangent_to_3_circles(
-        ...     (0, 0), 1, (3, 0), 1, (1.5, 2.598), 1
+        ...     (0, 0), 1, (60, 0), 1, (1.5, 2.598), 1
         ... )
         >>> [round(v, 6) for v in (center_x, center_y, radius)]
-        [1.5, 0.865975, 0.732025]
+        [30.0, -15.588991, 32.808529]
     """
 
     x1, y1 = c1
@@ -235,8 +235,8 @@ def circle_tangent_to_2_circles(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.circle_tangent_to_2_circles((0, 0), 1, (4, 0), 1, 1)
-        ((2.0, 0.0), (2.0, 0.0))
+        >>> sg.circle_tangent_to_2_circles((0, 0), 40, (80, 0), 40, 40)
+        ((40.0, 69.28203230275508), (40.0, -69.28203230275508))
     """
     x1, y1 = c1
     x2, y2 = c2
@@ -502,9 +502,9 @@ def tangent_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.tangent_points((0, 0), 2, (6, 0), 2)
+        >>> pts = sg.tangent_points((0, 0), 2, (60, 0), 2)
         >>> [[round(float(c), 6) or 0.0 for c in p[:2]] for p in pts]
-        [[0.0, 2.0], [6.0, 2.0], [0.0, -2.0], [6.0, -2.0]]
+        [[0.0, 2.0], [60.0, 2.0], [0.0, -2.0], [60.0, -2.0]]
     """
     c1 = Circle_(center1, radius)
     c2 = Circle_(center2, radius2)
@@ -680,8 +680,8 @@ def circle_inversion(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.circle_inversion((4, 0), (0, 0), 2)
-        (1.0, 0.0)
+        >>> sg.circle_inversion((80, 0), (0, 0), 2)
+        (0.05, 0.0)
     """
     x, y = point[:2]
     cx, cy = center[:2]
@@ -716,8 +716,8 @@ def circle_tangent_to2lines(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> line1 = sg.Line((0, 0), (10, 0))
-        >>> line2 = sg.Line((0, 0), (0, 10))
+        >>> line1 = sg.Line((0, 0), (40, 0))
+        >>> line2 = sg.Line((0, 0), (0, 40))
         >>> center, start, end = sg.circle_tangent_to2lines(line1, line2, (0, 0), 2)
         >>> [[round(float(c), 6) or 0.0 for c in p[:2]] for p in (center, start, end)]
         [[2.0, 2.0], [2.828427, 0.0], [0.0, 2.828427]]
@@ -747,9 +747,9 @@ def circle_circle_intersections(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = sg.circle_circle_intersections((0, 0), 2, (2, 0), 2)
+        >>> pts = sg.circle_circle_intersections((0, 0), 80, (80, 0), 80)
         >>> [[round(c, 6) for c in p] for p in pts]
-        [[1.0, -1.732051], [1.0, 1.732051]]
+        [[40.0, -69.282032], [40.0, 69.282032]]
     """
     # taken from https://stackoverflow.com/questions/55816902/finding-the-
     # intersection-of-two-circles
@@ -800,8 +800,8 @@ def tfl_by_sides(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.tfl_by_sides((0, 0), (4, 0), 2.5, 2.5)
-        ((2.0, -1.5), (2.0, 1.5))
+        >>> sg.tfl_by_sides((0, 0), (80, 0), 100, 100)
+        ((40.0, -91.6515138991168), (40.0, 91.6515138991168))
     """
     c = sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
     if c == 0:
@@ -844,9 +844,9 @@ def circle_segment_intersection(circle: Circle, p1: PointType, p2: PointType) ->
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.circle_segment_intersection(sg.Circle(2, (0, 0)), (-3, 0), (3, 0))
+        >>> sg.circle_segment_intersection(sg.Circle(40, (0, 0)), (-80, 0), (80, 0))
         True
-        >>> sg.circle_segment_intersection(sg.Circle(2, (0, 0)), (5, 0), (6, 0))
+        >>> sg.circle_segment_intersection(sg.Circle(40, (0, 0)), (60, 0), (100, 0))
         False
     """
     # if line seg and circle intersects returns true, false otherwise
@@ -996,8 +996,8 @@ def ellipse_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> [[round(float(c), 6) or 0.0 for c in p] for p in ellipse_points((0, 0), 2, 1, 5)]
-        [[2.0, 0.0], [0.0, 1.0], [-2.0, 0.0], [0.0, -1.0], [2.0, 0.0]]
+        >>> [[round(float(c), 6) or 0.0 for c in p] for p in ellipse_points((0, 0), 80, 40, 5)]
+        [[80.0, 0.0], [0.0, 40.0], [-80.0, 0.0], [0.0, -40.0], [80.0, 0.0]]
     """
     t = np.linspace(0, 2 * np.pi, n_points)
     x = center[0] + a * np.cos(t)
@@ -1044,8 +1044,8 @@ def circle_line_intersection(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.circle_line_intersection(sg.Circle(2, (0, 0)), (-3, 0), (3, 0))
-        ((2.0, 0.0), (-2.0, 0.0))
+        >>> sg.circle_line_intersection(sg.Circle(40, (0, 0)), (-80, 0), (80, 0))
+        ((40.0, 0.0), (-40.0, 0.0))
     """
 
     # adapted from http://mathworld.wolfram.com/Circle-LineIntersection.html
@@ -1110,8 +1110,8 @@ def circle_poly_intersection(circle: Circle, polygon: object) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> poly = sg.Shape([(0, -2), (0, 2), (2, 2), (2, -2)], closed=True)
-        >>> sg.circle_poly_intersection(sg.Circle(1, (0, 0)), poly)
+        >>> poly = sg.Shape([(0, -80), (0, 80), (80, 80), (80, -80)], closed=True)
+        >>> sg.circle_poly_intersection(sg.Circle(40, (0, 0)), poly)
         True
     """
     points = polygon.vertices
@@ -1144,8 +1144,8 @@ def point_to_circle_distance(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.point_to_circle_distance((5, 0), (0, 0), 2)
-        3.0
+        >>> sg.point_to_circle_distance((20, 0), (0, 0), 2)
+        18.0
     """
     return abs(distance(center, point) - radius)
 
@@ -1165,9 +1165,9 @@ def circle_3point(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> center, radius = sg.circle_3point((0, 0), (2, 0), (1, 1))
+        >>> center, radius = sg.circle_3point((0, 0), (80, 0), (40, 40))
         >>> (round(center[0], 6), round(center[1], 6), round(radius, 6))
-        (1.0, 0.0, 1.0)
+        (40.0, 0.0, 40.0)
     """
     ax, ay = point1[:2]
     bx, by = point2[:2]

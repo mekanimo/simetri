@@ -8,7 +8,7 @@ Examples:
     >>> from simetri.patterns.lattice import lattice_p4
     >>> import simetri.graphics as sg
     >>> lat = lattice_p4(a=40)
-    >>> _ = lat.populate_unit(sg.Circle(5, (10, 10)))
+    >>> _ = lat.populate_unit(sg.Circle(40, (40, 40)))
     >>> len(lat.pattern)
     4
 """
@@ -62,8 +62,8 @@ def basis_to_cart(
         tuple[float, float]: Cartesian point ``(x, y)``.
 
     Examples:
-        >>> basis_to_cart(1, 0, (10, 0), (0, 10))
-        (10, 0)
+        >>> basis_to_cart(1, 0, (40, 0), (0, 40))
+        (40, 0)
     """
     ux, uy = u
     vx, vy = v
@@ -93,9 +93,9 @@ def cart_to_basis(
         ValueError: If ``u`` and ``v`` are linearly dependent.
 
     Examples:
-        >>> cart_to_basis(10, 20, (10, 0), (0, 10))
-        (1.0, 2.0)
-        >>> cart_to_basis(1, 1, (1, 0), (2, 0))  # doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> cart_to_basis(10, 20, (40, 0), (0, 40))
+        (0.25, 0.5)
+        >>> cart_to_basis(1, 1, (40, 0), (80, 0))  # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         ValueError: Basis vectors are linearly dependent.
     """
@@ -153,7 +153,7 @@ class Isometry:
         take: Optional slice selecting which copies to keep.
 
     Examples:
-        >>> isom = Isometry(IsometryType.TRANSLATION, quantifier=(1, 0), reps=2)
+        >>> isom = Isometry(IsometryType.TRANSLATION, quantifier=(40, 0), reps=2)
         >>> isom.reps
         2
     """
@@ -338,7 +338,7 @@ class Lattice:
         Examples:
             >>> import simetri.graphics as sg
             >>> lat = lattice_p4(a=20)
-            >>> _ = lat.populate_unit(sg.Circle(3, (5, 5)))
+            >>> _ = lat.populate_unit(sg.Circle(20, (20, 20)))
             >>> isom = Isometry(IsometryType.IDENTITY, reps=0)
             >>> lat.apply(isom) is lat.pattern
             True
@@ -393,7 +393,7 @@ class Lattice:
         Examples:
             >>> import simetri.graphics as sg
             >>> lat = lattice_p4(a=20)
-            >>> _ = lat.populate_unit(sg.Circle(3, (5, 5)))
+            >>> _ = lat.populate_unit(sg.Circle(20, (20, 20)))
             >>> len(lat.pattern)
             4
         """
@@ -428,8 +428,8 @@ class Lattice:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> lat = Lattice(LatType.SQR, a=10)
-            >>> row = lat.span(sg.Shape([(0, 0), (1, 0)]), horizontal=True, reps=2)
+            >>> lat = Lattice(LatType.SQR, a=40)
+            >>> row = lat.span(sg.Shape([(0, 0), (40, 0)]), horizontal=True, reps=2)
             >>> len(row)
             3
         """
@@ -471,7 +471,7 @@ class Lattice:
         Examples:
             >>> import simetri.graphics as sg
             >>> lat = Lattice(LatType.SQR, a=10)
-            >>> _ = lat.expand(sg.Shape([(0, 0), (1, 0)]), reps1=1, reps2=1)
+            >>> _ = lat.expand(sg.Shape([(0, 0), (40, 0)]), reps1=1, reps2=1)
             >>> lat.pattern is not None
             True
         """
@@ -532,8 +532,8 @@ class Lattice:
 
         Examples:
             >>> lat = Lattice(LatType.SQR, a=10)
-            >>> lat.cartesian_to_basis((10, 0))
-            (1.0, 0.0)
+            >>> lat.cartesian_to_basis((40, 0))
+            (4.0, 0.0)
         """
         x, y = point
         return cart_to_basis(x, y, self.u, self.v)
@@ -549,8 +549,8 @@ class Lattice:
 
         Examples:
             >>> lat = Lattice(LatType.SQR, a=10)
-            >>> lat.basis_to_cartesian((1, 0))
-            (10.0, 0.0)
+            >>> lat.basis_to_cartesian((40, 0))
+            (400.0, 0.0)
         """
         a, b = point
         return basis_to_cart(a, b, self.u, self.v)

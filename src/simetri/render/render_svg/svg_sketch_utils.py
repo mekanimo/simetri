@@ -288,8 +288,8 @@ def get_dash_pattern(line_dash_array: Sequence[float | int]) -> str:
 
     Examples:
         >>> from simetri.render.render_svg.svg_sketch_utils import get_dash_pattern
-        >>> get_dash_pattern([4, 2])
-        '4 2'
+        >>> get_dash_pattern([80, 80])
+        '80 80'
     """
 
     return " ".join([str(x) for x in line_dash_array])

@@ -223,7 +223,7 @@ def collect_tikz_preamble_requirements_for_sketch(
         >>> from simetri.render.sketch import CircleSketch
         >>> libs, pkgs = [], []
         >>> collect_tikz_preamble_requirements_for_sketch(
-        ...     CircleSketch(center=(0, 0), radius=10), libs, pkgs,
+        ...     CircleSketch(center=(0, 0), radius=40), libs, pkgs,
         ... )
         >>> isinstance(libs, list)
         True

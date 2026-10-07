@@ -69,7 +69,7 @@ class Vertex(Shape):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> origin = [vertex for vertex in mesh.vertices if vertex.point == (0.0, 0.0)][0]
             >>> len(list(origin.outgoing_halfedges()))
             2
@@ -94,7 +94,7 @@ class Vertex(Shape):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> origin = [vertex for vertex in mesh.vertices if vertex.point == (0.0, 0.0)][0]
             >>> len(origin.incident_faces())
             2
@@ -118,7 +118,7 @@ class Vertex(Shape):
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
             >>> _ = mesh.build_from_polygons(
-            ...     [[(0, 0), (1, 0), (1, 1), (0, 1)]]
+            ...     [[(0, 0), (40, 0), (40, 40), (0, 40)]]
             ... )
             >>> vertex = mesh.vertices[0]
             >>> copied = vertex.copy()
@@ -183,7 +183,7 @@ class Face(Shape):
         Examples:
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> face = mesh.bounded_faces[0]
             >>> copied = face.copy()
             >>> copied is face
@@ -232,12 +232,12 @@ class Face(Shape):
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
             >>> face = mesh.add_face(
-            ...     [(0, 0), (10, 0), (10, 10), (0, 10)]
+            ...     [(0, 0), (80, 0), (80, 80), (0, 80)]
             ... )
-            >>> _ = face.add_hole([(3, 3), (7, 3), (7, 7), (3, 7)])
+            >>> _ = face.add_hole([(20, 20), (60, 20), (60, 60), (20, 60)])
             >>> len(face.inner_boundaries)
             1
-            >>> mesh.contains(face, (5, 5))
+            >>> mesh.contains(face, (40, 40))
             False
             >>> mesh.validate()
             True
@@ -268,9 +268,9 @@ class Face(Shape):
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
             >>> face = mesh.add_face(
-            ...     [(0, 0), (10, 0), (10, 10), (0, 10)]
+            ...     [(0, 0), (80, 0), (80, 80), (0, 80)]
             ... )
-            >>> hole = [(3, 3), (7, 3), (7, 7), (3, 7)]
+            >>> hole = [(20, 20), (60, 20), (60, 60), (20, 60)]
             >>> _ = face.add_hole(hole)
             >>> _ = face.remove_hole(hole)
             >>> face.inner_boundaries
@@ -302,7 +302,7 @@ class Face(Shape):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> interior = mesh.bounded_faces[0]
             >>> len(list(interior.boundary_halfedges()))
             4
@@ -315,10 +315,10 @@ class Face(Shape):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> interior = mesh.bounded_faces[0]
             >>> sorted(vertex.point for vertex in interior.boundary_vertices())
-            [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
+            [(0.0, 0.0), (0.0, 40.0), (40.0, 0.0), (40.0, 40.0)]
         """
         return [half_edge.origin for half_edge in self.boundary_halfedges()]
 
@@ -370,7 +370,7 @@ class HalfEdge(Shape):
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
             >>> _ = mesh.build_from_polygons(
-            ...     [[(0, 0), (1, 0), (1, 1), (0, 1)]]
+            ...     [[(0, 0), (40, 0), (40, 40), (0, 40)]]
             ... )
             >>> half_edge = mesh.half_edges[0]
             >>> copied = half_edge.copy()
@@ -492,7 +492,7 @@ class Edge(Shape):
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
             >>> _ = mesh.build_from_polygons(
-            ...     [[(0, 0), (1, 0), (1, 1), (0, 1)]]
+            ...     [[(0, 0), (40, 0), (40, 40), (0, 40)]]
             ... )
             >>> edge = mesh.edges[0]
             >>> copied = edge.copy()
@@ -529,7 +529,7 @@ class Edge(Shape):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> edge = mesh.edges[0]
             >>> len(edge.adjacent_faces())
             2
@@ -783,13 +783,13 @@ class DCEL(Group):
     Examples:
         >>> import simetri.graphics as sg
         >>> mesh = sg.DCEL()
-        >>> mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]]) is mesh
+        >>> mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]]) is mesh
         True
         >>> len(mesh.bounded_faces)
         1
         >>> mesh.validate()
         True
-        >>> square = sg.Shape([(0, 0), (2, 0), (2, 2), (0, 2)], closed=True)
+        >>> square = sg.Shape([(0, 0), (80, 0), (80, 80), (0, 80)], closed=True)
         >>> from_shape = sg.DCEL(polygons=square)
         >>> len(from_shape.bounded_faces)
         1
@@ -850,7 +850,7 @@ class DCEL(Group):
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
             >>> _ = mesh.build_from_polygons(
-            ...     [[(0, 0), (1, 0), (1, 1), (0, 1)]]
+            ...     [[(0, 0), (40, 0), (40, 40), (0, 40)]]
             ... )
             >>> copied = mesh.copy()
             >>> copied is mesh
@@ -936,10 +936,10 @@ class DCEL(Group):
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
             >>> a = mesh.add_vertex((0, 0))
-            >>> b = mesh.add_vertex((1, 0))
+            >>> b = mesh.add_vertex((40, 0))
             >>> edge = mesh.add_edge(a, b)
             >>> edge.segment
-            ((0.0, 0.0), (1.0, 0.0))
+            ((0.0, 0.0), (40.0, 0.0))
         """
         if vertex_a is vertex_b:
             raise ValueError("Cannot add a self-loop")
@@ -975,10 +975,10 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (2, 0), (2, 2), (0, 2)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (80, 0), (80, 80), (0, 80)]])
             >>> interior = mesh.bounded_faces[0]
             >>> va = [v for v in mesh.vertices if v.point == (0.0, 0.0)][0]
-            >>> vb = [v for v in mesh.vertices if v.point == (2.0, 2.0)][0]
+            >>> vb = [v for v in mesh.vertices if v.point == (80.0, 80.0)][0]
             >>> edge = mesh.connect_vertices(va, vb, face=interior)
             >>> len(mesh.bounded_faces)
             2
@@ -1002,7 +1002,7 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> len(mesh.edges)
             4
             >>> mesh.validate()
@@ -1031,11 +1031,11 @@ class DCEL(Group):
         Examples:
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
-            >>> face = mesh.add_face([(0, 0), (4, 0), (4, 3), (0, 3)])
+            >>> face = mesh.add_face([(0, 0), (80, 0), (80, 60), (0, 60)])
             >>> len(mesh.bounded_faces)
             1
             >>> mesh.face_area(face)
-            12.0
+            4800.0
             >>> mesh.validate()
             True
         """
@@ -1141,7 +1141,7 @@ class DCEL(Group):
         Examples:
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
-            >>> face = mesh.add_face([(0, 0), (3, 0), (3, 2), (0, 2)])
+            >>> face = mesh.add_face([(0, 0), (60, 0), (60, 80), (0, 80)])
             >>> mesh.remove_face(face) is mesh
             True
             >>> mesh.bounded_faces
@@ -1280,11 +1280,11 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (2, 0), (2, 1), (0, 1)]])
-            >>> bottom = _edge_with_points(mesh, (0.0, 0.0), (2.0, 0.0))
-            >>> result = mesh.split_edge(bottom, (1, 0))
+            >>> _ = mesh.build_from_polygons([[(0, 0), (80, 0), (80, 40), (0, 40)]])
+            >>> bottom = _edge_with_points(mesh, (0.0, 0.0), (80.0, 0.0))
+            >>> result = mesh.split_edge(bottom, (40, 0))
             >>> result.vertex.point
-            (1.0, 0.0)
+            (40.0, 0.0)
             >>> mesh.validate()
             True
         """
@@ -1378,10 +1378,10 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (2, 0), (2, 2), (0, 2)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (80, 0), (80, 80), (0, 80)]])
             >>> interior = mesh.bounded_faces[0]
             >>> va = [v for v in mesh.vertices if v.point == (0.0, 0.0)][0]
-            >>> vb = [v for v in mesh.vertices if v.point == (2.0, 2.0)][0]
+            >>> vb = [v for v in mesh.vertices if v.point == (80.0, 80.0)][0]
             >>> result = mesh.split_face(interior, va, vb)
             >>> len(mesh.bounded_faces)
             2
@@ -1428,10 +1428,10 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (2, 0), (2, 2), (0, 2)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (80, 0), (80, 80), (0, 80)]])
             >>> interior = mesh.bounded_faces[0]
             >>> va = [v for v in mesh.vertices if v.point == (0.0, 0.0)][0]
-            >>> vb = [v for v in mesh.vertices if v.point == (2.0, 2.0)][0]
+            >>> vb = [v for v in mesh.vertices if v.point == (80.0, 80.0)][0]
             >>> _ = mesh.split_face(interior, va, vb)
             >>> shared = mesh.shared_edges(mesh.bounded_faces[0], mesh.bounded_faces[1])
             >>> survivor = mesh.merge_faces(mesh.bounded_faces[0], mesh.bounded_faces[1])
@@ -1476,10 +1476,10 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (2, 0), (2, 2), (0, 2)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (80, 0), (80, 80), (0, 80)]])
             >>> interior = mesh.bounded_faces[0]
             >>> va = [v for v in mesh.vertices if v.point == (0.0, 0.0)][0]
-            >>> vb = [v for v in mesh.vertices if v.point == (2.0, 2.0)][0]
+            >>> vb = [v for v in mesh.vertices if v.point == (80.0, 80.0)][0]
             >>> chord = mesh.split_face(interior, va, vb).edge
             >>> mesh.remove_edge(chord) is mesh.bounded_faces[0]
             True
@@ -1520,7 +1520,7 @@ class DCEL(Group):
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
             >>> a = mesh.add_vertex((0, 0))
-            >>> b = mesh.add_vertex((1, 0))
+            >>> b = mesh.add_vertex((40, 0))
             >>> edge = mesh.add_edge(a, b)
             >>> mesh.collapse_edge(edge) is a
             True
@@ -1571,8 +1571,8 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (2, 0), (2, 2), (0, 2)]])
-            >>> result = mesh.insert_segment(((0, 0), (2, 2)))
+            >>> _ = mesh.build_from_polygons([[(0, 0), (80, 0), (80, 80), (0, 80)]])
+            >>> result = mesh.insert_segment(((0, 0), (80, 80)))
             >>> len(mesh.bounded_faces)
             2
             >>> mesh.validate()
@@ -1643,9 +1643,9 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (2, 0), (2, 2), (0, 2)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (80, 0), (80, 80), (0, 80)]])
             >>> interior = mesh.bounded_faces[0]
-            >>> result = mesh.split_face_by_line(interior, [(1, -1), (1, 3)])
+            >>> result = mesh.split_face_by_line(interior, [(40, -40), (40, 60)])
             >>> len(result.faces)
             2
             >>> mesh.validate()
@@ -1753,10 +1753,10 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> mesh.locate_face((0.5, 0.5)) is mesh.bounded_faces[0]
             True
-            >>> mesh.locate_face((5, 5)) is mesh.outer_face
+            >>> mesh.locate_face((80, 80)) is mesh.outer_face
             True
         """
         for face in self.bounded_faces:
@@ -1777,7 +1777,7 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> mesh.contains(mesh.bounded_faces[0], (0.5, 0.5))
             True
         """
@@ -1808,9 +1808,9 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> mesh.face_area(mesh.bounded_faces[0])
-            1.0
+            1600.0
         """
         if face is self.outer_face:
             return inf
@@ -1833,9 +1833,9 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> mesh.face_centroid(mesh.bounded_faces[0])
-            (0.5, 0.5)
+            (20.0, 20.0)
         """
         if face is self.outer_face:
             raise ValueError("unbounded face has no centroid")
@@ -1891,7 +1891,7 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> mesh.adjacent_faces(mesh.bounded_faces[0]) == [mesh.outer_face]
             True
         """
@@ -1921,7 +1921,7 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> len(mesh.shared_edges(mesh.bounded_faces[0], mesh.outer_face))
             4
         """
@@ -2103,7 +2103,7 @@ class DCEL(Group):
         Examples:
             >>> from simetri.geom.polygons.dcel import DCEL
             >>> mesh = DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> mesh.validate()
             True
             >>> mesh.validate(check_geometry=True)
@@ -2205,12 +2205,12 @@ class DCEL(Group):
         Examples:
             >>> import simetri.graphics as sg
             >>> mesh = sg.DCEL()
-            >>> _ = mesh.build_from_polygons([[(0, 0), (1, 0), (1, 1), (0, 1)]])
+            >>> _ = mesh.build_from_polygons([[(0, 0), (40, 0), (40, 40), (0, 40)]])
             >>> a = mesh.add_vertex((0, 0))
-            >>> b = mesh.add_vertex((1, 0))
+            >>> b = mesh.add_vertex((40, 0))
             >>> mesh.edge_between(a, b).segment
-            ((0.0, 0.0), (1.0, 0.0))
-            >>> mesh.edge_between(a, mesh.add_vertex((2, 2))) is None
+            ((0.0, 0.0), (40.0, 0.0))
+            >>> mesh.edge_between(a, mesh.add_vertex((80, 80))) is None
             True
         """
         target = {vertex_a, vertex_b}
@@ -2912,9 +2912,9 @@ def overlay(dcel_a: DCEL, dcel_b: DCEL) -> DCEL:
     Examples:
         >>> from simetri.geom.polygons.dcel import DCEL, overlay
         >>> a = DCEL()
-        >>> _ = a.build_from_polygons([[(0, 0), (2, 0), (2, 2), (0, 2)]])
+        >>> _ = a.build_from_polygons([[(0, 0), (80, 0), (80, 80), (0, 80)]])
         >>> b = DCEL()
-        >>> _ = b.build_from_polygons([[(1, 1), (3, 1), (3, 3), (1, 3)]])
+        >>> _ = b.build_from_polygons([[(40, 40), (60, 40), (60, 60), (40, 60)]])
         >>> combined = overlay(a, b)
         >>> combined.validate()
         True

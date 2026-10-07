@@ -6,7 +6,7 @@ importing these private functions directly.
 
 Examples:
     >>> import simetri.graphics as sg
-    >>> g = sg.Group([sg.Shape([(0, 0), (10, 0)]), sg.Shape([(10, 0), (20, 0)])])
+    >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)]), sg.Shape([(40, 0), (20, 0)])])
     >>> len(g.merge_shapes())
     1
 """

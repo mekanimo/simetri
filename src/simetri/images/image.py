@@ -193,17 +193,17 @@ class Image(Rectangle):
             >>> im.mode
             'RGB'
             >>> im = sg.Image(
-            ...     size=(10, 20),
+            ...     size=(40, 20),
             ...     mode="RGB",
-            ...     pos=(5, 6),
+            ...     pos=(20, 60),
             ...     anchor=sg.Anchor.SOUTHWEST,
             ... )
             >>> im.anchor == sg.Anchor.SOUTHWEST
             True
             >>> im.pos[0], im.pos[1]
-            (5.0, 6.0)
+            (20.0, 60.0)
             >>> im.southwest[0], im.southwest[1]
-            (5.0, 6.0)
+            (20.0, 60.0)
         """
         anchor = kwargs.pop("anchor", Anchor.CENTER)
         file_path = None
@@ -409,13 +409,13 @@ class Image(Rectangle):
             >>> im.pos[0], im.pos[1]
             (5.0, 6.0)
             >>> im = sg.Image(
-            ...     size=(10, 20),
+            ...     size=(40, 20),
             ...     mode="RGB",
-            ...     pos=(5, 6),
+            ...     pos=(20, 60),
             ...     anchor=sg.Anchor.SOUTHWEST,
             ... )
             >>> im.pos[0], im.pos[1]
-            (5.0, 6.0)
+            (20.0, 60.0)
         """
         name = get_enum_value(Anchor, self.__dict__["anchor"])
         if name == "center":
@@ -434,11 +434,11 @@ class Image(Rectangle):
         Examples:
             >>> import simetri.graphics as sg
             >>> im = sg.Image(size=(4, 4), mode="RGB")
-            >>> im.pos = (10, 20)
+            >>> im.pos = (40, 20)
             >>> im.pos[0], im.pos[1]
-            (10.0, 20.0)
+            (40.0, 20.0)
             >>> im = sg.Image(
-            ...     size=(10, 20),
+            ...     size=(40, 20),
             ...     mode="RGB",
             ...     anchor=sg.Anchor.SOUTHWEST,
             ... )
@@ -497,7 +497,7 @@ class Image(Rectangle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Image(size=(2, 2), mode="L").mode
+            >>> sg.Image(size=(80, 80), mode="L").mode
             'L'
         """
         return self.pil_img.mode
@@ -661,7 +661,7 @@ class Image(Rectangle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> im = sg.Image(size=(2, 2), mode="P")
+            >>> im = sg.Image(size=(80, 80), mode="P")
             >>> callable(im.apply_transparency)
             True
         """
@@ -788,8 +788,8 @@ class Image(Rectangle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Image(size=(2, 2), mode="L").getcolors()
-            [(4, 0)]
+            >>> sg.Image(size=(80, 80), mode="L").getcolors()
+            [(6400, 0)]
         """
         return self.pil_img.getcolors(maxcolors)
 
@@ -798,8 +798,8 @@ class Image(Rectangle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> len(list(sg.Image(size=(2, 2), mode="L").getdata()))
-            4
+            >>> len(list(sg.Image(size=(80, 80), mode="L").getdata()))
+            6400
         """
         return self.pil_img.getdata(band)
 
@@ -808,7 +808,7 @@ class Image(Rectangle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Image(size=(2, 2), mode="L").getextrema()
+            >>> sg.Image(size=(80, 80), mode="L").getextrema()
             (0, 0)
         """
         return self.pil_img.getextrema()
@@ -818,7 +818,7 @@ class Image(Rectangle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> sg.Image(size=(2, 2), mode="L").getpixel((0, 0))
+            >>> sg.Image(size=(80, 80), mode="L").getpixel((0, 0))
             0
         """
         return self.pil_img.getpixel(xy)
@@ -832,7 +832,7 @@ class Image(Rectangle):
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> len(sg.Image(size=(2, 2), mode="L").histogram())
+            >>> len(sg.Image(size=(80, 80), mode="L").histogram())
             256
         """
         return self.pil_img.histogram(mask, extrema)
@@ -1416,7 +1416,7 @@ def draw_on_image(
         >>> from simetri.images.image import draw_on_image
         >>> base = sg.Image(size=(20, 20), mode="RGB")
         >>> canvas = sg.Canvas()
-        >>> _ = canvas.line((0, 0), (10, 10))
+        >>> _ = canvas.line((0, 0), (40, 40))
         >>> out = draw_on_image(canvas.active_page.sketches[0], base)
         >>> out.width
         20

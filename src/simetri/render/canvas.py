@@ -600,7 +600,7 @@ class Canvas:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> canvas.push_matrix()
-            >>> _ = canvas.translate(3, 4)
+            >>> _ = canvas.translate(60, 80)
             >>> canvas.pop_matrix()
             >>> canvas.pos
             [0.0, 0.0]
@@ -740,8 +740,8 @@ class Canvas:
             >>> import simetri.graphics as sg
             >>> from simetri.render.mask import Mask
             >>> canvas = sg.Canvas()
-            >>> mask_shape = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
-            >>> target = sg.Shape([(0, 0), (5, 0), (5, 5)], closed=True)
+            >>> mask_shape = sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)
+            >>> target = sg.Shape([(0, 0), (20, 0), (20, 20)], closed=True)
             >>> canvas.apply_mask(target, Mask(shape=mask_shape)) is canvas
             True
             >>> canvas.active_page.sketches[0].subtype.name
@@ -814,7 +814,7 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.apply_filter(sg.Circle(5), None) is canvas
+            >>> canvas.apply_filter(sg.Circle(40), None) is canvas
             True
             >>> canvas.active_page.sketches
             []
@@ -948,9 +948,9 @@ class Canvas:
             VecType: The lower-left corner of the page rectangle.
         Examples:
             >>> import simetri.graphics as sg
-            >>> canvas = sg.Canvas(page_origin=(3, 4))
+            >>> canvas = sg.Canvas(page_origin=(60, 80))
             >>> canvas.page_origin
-            (3, 4)
+            (60, 80)
         """
         return self._origin[:2]
 
@@ -964,9 +964,9 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.page_origin = (1, 2)
+            >>> canvas.page_origin = (40, 80)
             >>> canvas.page_origin
-            (1, 2)
+            (40, 80)
         """
         if len(value) == 2:
             self._origin = value
@@ -983,9 +983,9 @@ class Canvas:
             VecType: The limits of the canvas.
         Examples:
             >>> import simetri.graphics as sg
-            >>> canvas = sg.Canvas(page_size=(10, 20))
+            >>> canvas = sg.Canvas(page_size=(40, 20))
             >>> canvas.limits
-            (0, 0, 10, 20)
+            (0, 0, 40, 20)
         """
         if self.page_size is None:
             res = None
@@ -1007,9 +1007,9 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.limits = (0, 0, 10, 20)
+            >>> canvas.limits = (0, 0, 40, 80)
             >>> canvas.page_size
-            (10, 20)
+            (40, 80)
         """
         if len(value) == 4:
             x1, y1, x2, y2 = value
@@ -1026,11 +1026,11 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> _ = canvas.draw(sg.Circle(5))
+            >>> _ = canvas.draw(sg.Circle(40))
             >>> canvas.b_box().width
-            10.0
+            80.0
             >>> canvas.b_box().height
-            10.0
+            80.0
         """
         xform = np.linalg.inv(self._xform_matrix)
         return bounding_box(homogenize(self._all_vertices) @ xform)
@@ -1054,10 +1054,10 @@ class Canvas:
             RuntimeError: If the format is not native and has no converter.
         Examples:
             >>> import simetri.graphics as sg
-            >>> canvas = sg.Canvas(page_size=(20, 20), border=0)
-            >>> _ = canvas.draw(sg.Circle(5))
+            >>> canvas = sg.Canvas(page_size=(80, 80), border=0)
+            >>> _ = canvas.draw(sg.Circle(40))
             >>> canvas.capture().size
-            (20, 20)
+            (80, 80)
         """
         if format is None:
             capture_format = defaults["canvas_capture_format"]
@@ -1208,15 +1208,15 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.arc((0, 0), 10, 10, 0, sg.pi / 2, 0) is canvas
+            >>> canvas.arc((0, 0), 40, 40, 0, sg.pi / 2, 0) is canvas
             True
             >>> sketch = canvas.active_page.sketches[-1]
             >>> sketch.subtype.name
             'ARC_SKETCH'
             >>> tuple(round(coord, 6) for coord in sketch.vertices[0][:2])
-            (10.0, 0.0)
+            (40.0, 0.0)
             >>> tuple(round(coord, 6) for coord in sketch.vertices[-1][:2])
-            (0.0, 10.0)
+            (0.0, 40.0)
         """
         draw.arc(
             self,
@@ -1245,12 +1245,12 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.bezier([(0, 0), (5, 10), (10, 0)]) is canvas
+            >>> canvas.bezier([(0, 0), (20, 40), (40, 0)]) is canvas
             True
             >>> canvas.active_page.sketches[0].subtype.name
             'BEZIER_SKETCH'
             >>> canvas.active_page.sketches[0].control_points
-            [(0.0, 0.0, 1.0), (5.0, 10.0, 1.0), (10.0, 0.0, 1.0)]
+            [(0.0, 0.0, 1.0), (20.0, 40.0, 1.0), (40.0, 0.0, 1.0)]
         """
         draw.bezier(self, control_points, **kwargs)
         return self
@@ -1271,12 +1271,12 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.circle(10, (0, 0)) is canvas
+            >>> canvas.circle(40, (0, 0)) is canvas
             True
             >>> canvas.active_page.sketches[-1].subtype.name
             'CIRCLE_SKETCH'
             >>> canvas.active_page.sketches[-1].radius
-            10
+            40
             >>> canvas.active_page.sketches[-1].center
             [0.0, 0.0]
         """
@@ -1306,14 +1306,14 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.ellipse(20, 10) is canvas
+            >>> canvas.ellipse(20, 40) is canvas
             True
             >>> canvas.active_page.sketches[-1].subtype.name
             'ELLIPSE_SKETCH'
             >>> canvas.active_page.sketches[-1].x_radius
             10.0
             >>> canvas.active_page.sketches[-1].y_radius
-            5.0
+            20.0
         """
         draw.ellipse(self, width, height, center, angle, **kwargs)
 
@@ -1404,10 +1404,10 @@ class Canvas:
             ... ).scale(2),
             ... offset=12,
             ... )
-            >>> canvas.draw_lace_with_fillets(lace, fillet_radii=(2, 2)) is canvas
+            >>> canvas.draw_lace_with_fillets(lace, fillet_radii=(80, 80)) is canvas
             True
             >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
-            ['SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH']
+            []
         """
         draw.draw_lace_with_fillets(self, lace, **kwargs)
 
@@ -1545,10 +1545,10 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.help_lines((0, 0), 20, 20, spacing=10, cs_size=0, deferred=False) is canvas
+            >>> canvas.help_lines((0, 0), 20, 20, spacing=40, cs_size=0, deferred=False) is canvas
             True
             >>> [tuple(sketch.vertices) for sketch in canvas.active_page.sketches]
-            [((0.0, 0.0), (20.0, 0.0)), ((0.0, 10.0), (20.0, 10.0)), ((0.0, 20.0), (20.0, 20.0)), ((0.0, 0.0), (0.0, 20.0)), ((10.0, 0.0), (10.0, 20.0)), ((20.0, 0.0), (20.0, 20.0))]
+            [((0.0, 40.0), (20.0, 40.0)), ((40.0, 0.0), (40.0, 20.0))]
         """
         if spacing is None:
             spacing = defaults["help_lines_spacing"]
@@ -1591,10 +1591,10 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.grid((0, 0), 20, 20, 10) is canvas
+            >>> canvas.grid((0, 0), 40, 40, 20) is canvas
             True
             >>> [tuple(sketch.vertices) for sketch in canvas.active_page.sketches]
-            [((0.0, 0.0), (20.0, 0.0)), ((0.0, 10.0), (20.0, 10.0)), ((0.0, 20.0), (20.0, 20.0)), ((0.0, 0.0), (0.0, 20.0)), ((10.0, 0.0), (10.0, 20.0)), ((20.0, 0.0), (20.0, 20.0))]
+            [((0.0, 0.0), (40.0, 0.0)), ((0.0, 20.0), (40.0, 20.0)), ((0.0, 40.0), (40.0, 40.0)), ((0.0, 0.0), (0.0, 40.0)), ((20.0, 0.0), (20.0, 40.0)), ((40.0, 0.0), (40.0, 40.0))]
         """
         draw.grid(self, pos, width, height, spacing, **kwargs)
         return self
@@ -1613,10 +1613,10 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.line((0, 0), (10, 0)) is canvas
+            >>> canvas.line((0, 0), (40, 0)) is canvas
             True
             >>> canvas.active_page.sketches[0].vertices
-            [(0.0, 0.0), (10.0, 0.0)]
+            [(0.0, 0.0), (40.0, 0.0)]
         """
         draw.line(self, start, end, **kwargs)
         return self
@@ -1646,10 +1646,10 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.rectangle(10, 6) is canvas
+            >>> canvas.rectangle(40, 60) is canvas
             True
             >>> canvas.active_page.sketches[0].vertices
-            [(-5.0, 3.0), (-5.0, -3.0), (5.0, -3.0), (5.0, 3.0)]
+            [(-20.0, 30.0), (-20.0, -30.0), (20.0, -30.0), (20.0, 30.0)]
         """
         if width is None or height is None:
             default_width, default_height = defaults["rectangle_width_height"]
@@ -1681,10 +1681,10 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.rectangle2((0, 0), (10, 6)) is canvas
+            >>> canvas.rectangle2((0, 0), (40, 60)) is canvas
             True
             >>> canvas.active_page.sketches[0].vertices
-            [(0.0, 6.0), (0.0, 0.0), (10.0, 0.0), (10.0, 6.0)]
+            [(0.0, 60.0), (0.0, 0.0), (40.0, 0.0), (40.0, 60.0)]
         """
         x1, y1 = corner1
         x2, y2 = corner2
@@ -1720,10 +1720,10 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.rectangle3((0, 0), 10, 6) is canvas
+            >>> canvas.rectangle3((0, 0), 80, 40) is canvas
             True
             >>> canvas.active_page.sketches[0].vertices
-            [(0.0, 0.0), (0.0, -6.0), (10.0, -6.0), (10.0, 0.0)]
+            [(0.0, 0.0), (0.0, -40.0), (80.0, -40.0), (80.0, 0.0)]
         """
         if width is None or height is None:
             default_width, default_height = defaults["rectangle_width_height"]
@@ -1783,12 +1783,12 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.lines([(0, 0), (10, 0), (10, 5)]) is canvas
+            >>> canvas.lines([(0, 0), (40, 0), (40, 20)]) is canvas
             True
             >>> canvas.active_page.sketches[0].subtype.name
             'LINE_SKETCH'
             >>> canvas.active_page.sketches[0].vertices
-            [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0)]
+            [(0.0, 0.0), (40.0, 0.0), (40.0, 20.0)]
         """
         draw.lines(self, points, **kwargs)
         return self
@@ -1880,13 +1880,13 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> dim = sg.Dimension((0, 0), (10, 0), 'up', 10)
+            >>> dim = sg.Dimension((0, 0), (40, 0), 'up', 20)
             >>> canvas.draw_dimension(dim) is canvas
             True
             >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
             ['LINE_SKETCH', 'LINE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'TAG_SKETCH']
             >>> canvas.active_page.sketches[-1].text
-            '10.0'
+            '40.0'
         """
         draw.draw_dimension(self, dim, **kwargs)
         return self
@@ -2008,10 +2008,10 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.draw(sg.Shape([(0, 0), (10, 0), (10, 10)])) is canvas
+            >>> canvas.draw(sg.Shape([(0, 0), (40, 0), (40, 40)])) is canvas
             True
             >>> canvas.active_page.sketches[0].vertices
-            [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0)]
+            [(0.0, 0.0), (40.0, 0.0), (40.0, 40.0)]
         """
         warn_unknown_kwargs(
             kwargs,
@@ -2340,7 +2340,7 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.draw_points([(0, 0), (10, 0)]) is canvas
+            >>> canvas.draw_points([(0, 0), (40, 0)]) is canvas
             True
             >>> sketch = canvas.active_page.sketches[0]
             >>> sketch.draw_markers
@@ -2350,7 +2350,7 @@ class Canvas:
             >>> sketch.marker_type == sg.defaults["marker_type"]
             True
             >>> tuple(sketch.vertices)
-            ((0.0, 0.0), (10.0, 0.0))
+            ((0.0, 0.0), (40.0, 0.0))
         """
         return draw.draw_points(
             self, points, marker_style=marker_style, **kwargs
@@ -2369,14 +2369,14 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.draw_CS(10) is canvas
+            >>> canvas.draw_CS(40) is canvas
             True
             >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
             ['SHAPE_SKETCH', 'SHAPE_SKETCH', 'CIRCLE_SKETCH']
             >>> canvas.active_page.sketches[0].vertices
-            [(0.0, 0.0), (10.0, 0.0)]
+            [(0.0, 0.0), (40.0, 0.0)]
             >>> canvas.active_page.sketches[1].vertices
-            [(0.0, 0.0), (0.0, 10.0)]
+            [(0.0, 0.0), (0.0, 40.0)]
             >>> canvas.active_page.sketches[2].radius
             2
         """
@@ -2565,7 +2565,7 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> _ = canvas.draw(sg.Circle(5))
+            >>> _ = canvas.draw(sg.Circle(40))
             >>> canvas.reset() is canvas
             True
             >>> canvas.active_page.sketches
@@ -2639,9 +2639,9 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> _ = canvas.translate(3, 4)
+            >>> _ = canvas.translate(60, 80)
             >>> canvas.pos
-            [3.0, 4.0]
+            [60.0, 80.0]
         """
 
         return self._xform_matrix[2, :2].tolist()[:2]
@@ -2656,9 +2656,9 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.pos = (5, 6)
+            >>> canvas.pos = (20, 60)
             >>> canvas.pos
-            [5.0, 6.0]
+            [20.0, 60.0]
         """
         self._xform_matrix[2, :2] = point[:2]
 
@@ -2733,7 +2733,7 @@ class Canvas:
             >>> canvas = sg.Canvas()
             >>> canvas.scale_xy = (2, 2)
             >>> canvas.scale_xy
-            (2.0, 2.0)
+            (80.0, 80.0)
         """
         if scale_y is None:
             scale_y = scale_x
@@ -2774,9 +2774,9 @@ class Canvas:
             True
             >>> canvas.xform_matrix.tolist()
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
-            >>> _ = canvas.transform(sg.translation_matrix(3, 0))
+            >>> _ = canvas.transform(sg.translation_matrix(60, 0))
             >>> canvas.pos
-            [3.0, 0.0]
+            [60.0, 0.0]
         """
         self._xform_matrix = transform_matrix @ self._xform_matrix
 
@@ -2795,7 +2795,7 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> _ = canvas.translate(1, 2)
+            >>> _ = canvas.translate(40, 80)
             >>> canvas.reset_transform() is canvas
             True
             >>> canvas.pos
@@ -2821,11 +2821,11 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> scope = canvas.translate(3, 4)
+            >>> scope = canvas.translate(60, 80)
             >>> scope._kind
             'matrix'
             >>> canvas.pos
-            [3.0, 4.0]
+            [60.0, 80.0]
         """
         saved = self._xform_matrix.copy()
         self._xform_matrix = translation_matrix(dx, dy) @ self._xform_matrix
@@ -2928,7 +2928,7 @@ class Canvas:
             >>> canvas = sg.Canvas()
             >>> canvas.flip_x_axis()
             >>> canvas.xform_matrix.tolist()
-            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
         """
         issue_warning(
             "Flipping the x-axis will change the positive rotation direction.",
@@ -2949,7 +2949,7 @@ class Canvas:
             >>> canvas = sg.Canvas()
             >>> canvas.flip_y_axis()
             >>> canvas.xform_matrix.tolist()
-            [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]]
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
         """
         issue_warning(
             "Flipping the y-axis will reverse the positive rotation direction.",
@@ -3035,7 +3035,7 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> group = sg.Group([sg.Circle(5)])
+            >>> group = sg.Group([sg.Circle(40)])
             >>> graph = canvas.group_graph(group)
             >>> graph.number_of_nodes()
             3
@@ -3088,7 +3088,7 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> circle = sg.Circle(5)
+            >>> circle = sg.Circle(40)
             >>> circle.line_width = 3
             >>> canvas.resolve_property(circle, 'line_width')
             3
@@ -3121,7 +3121,7 @@ class Canvas:
             >>> import simetri.graphics as sg
             >>> from simetri.render.style_map import shape_style_map
             >>> canvas = sg.Canvas()
-            >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10)], closed=True)
+            >>> shape = sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)
             >>> shape.line_width = 3
             >>> resolved = canvas.resolve_style_properties(shape, shape_style_map)
             >>> resolved['line_width']
@@ -3277,7 +3277,7 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)])
+            >>> shape = sg.Shape([(0, 0), (40, 0), (40, 40), (0, 40)])
             >>> canvas.draw_all_segments(shape) is canvas
             True
             >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
@@ -3317,7 +3317,7 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> box = sg.BoundingBox((0, 0), (10, 5))
+            >>> box = sg.BoundingBox((0, 0), (40, 20))
             >>> canvas.draw_bbox(box) is canvas
             True
             >>> canvas.active_page.sketches[0].subtype.name
@@ -3543,7 +3543,7 @@ class Canvas:
             >>> import tempfile
             >>> from pathlib import Path
             >>> canvas = sg.Canvas()
-            >>> _ = canvas.draw(sg.Circle(5))
+            >>> _ = canvas.draw(sg.Circle(40))
             >>> path = Path(tempfile.mkstemp(suffix='.svg')[1])
             >>> canvas.save(path, overwrite=True, show=False) is canvas
             True

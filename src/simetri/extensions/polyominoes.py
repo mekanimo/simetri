@@ -176,10 +176,10 @@ def iter_polyominoes(
         ``Figure`` instances with cells on a ``size``-point grid.
 
     Examples:
-        >>> fig = next(iter_polyominoes(1, size=10))
+        >>> fig = next(iter_polyominoes(1, size=40))
         >>> fig.__class__.__name__
         'Figure'
-        >>> len(list(iter_polyominoes(2, size=10)))
+        >>> len(list(iter_polyominoes(2, size=40)))
         1
     """
     res = iter_centers(n=n, polyo_type=polyo_type)

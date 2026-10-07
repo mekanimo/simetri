@@ -130,8 +130,8 @@ def triangle_centroid3(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.triangle_centroid3((0, 0), (3, 0), (0, 3))
-        (1.0, 1.0)
+        >>> sg.triangle_centroid3((0, 0), (60, 0), (0, 60))
+        (20.0, 20.0)
 """
 
     cx = (p1[0] + p2[0] + p3[0]) / 3
@@ -156,7 +156,7 @@ def triangle_angles_from_sides(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> A, B, C = sg.triangle_angles_from_sides(1, 1, 1)
+        >>> A, B, C = sg.triangle_angles_from_sides(60, 60, 60)
         >>> round(A, 10) == round(B, 10) == round(C, 10)
         True
 """
@@ -222,8 +222,8 @@ def connect2(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.connect2([(0, 0), (1, 0)], [(1, 0), (2, 0)], abs_tol=0.001)
-        [(0, 0), (1, 0), (2, 0)]
+        >>> sg.connect2([(0, 0), (40, 0)], [(40, 0), (80, 0)], abs_tol=0.001)
+        [(0, 0), (40, 0), (80, 0)]
 """
     _, abs_tol = resolve_tol(rel_tol, abs_tol)
     abs_tol2 = abs_tol * abs_tol
@@ -267,8 +267,8 @@ def trim_shape(shape: Shape, trim_func: Callable, value: float) -> Shape:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> s = sg.rectangle(10, 10)
-        >>> trimmed = sg.trim_shape(s, sg.trim_right, 5)
+        >>> s = sg.rectangle(40, 40)
+        >>> trimmed = sg.trim_shape(s, sg.trim_right, 20)
         >>> len(trimmed) >= 3  # doctest: +SKIP
         True
 """
@@ -315,8 +315,8 @@ def global_to_local(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> tuple(round(c, 10) for c in sg.global_to_local(1, 0, 0, 0, sg.pi / 2))
-        (0.0, -1.0)
+        >>> tuple(round(c, 10) for c in sg.global_to_local(40, 0, 0, 0, sg.pi / 2))
+        (0.0, -40.0)
 """
     sin_theta = sin(theta)
     cos_theta = cos(theta)
@@ -341,9 +341,9 @@ def get_quadrant(x: float, y: float) -> int:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.get_quadrant(1, 1)
+        >>> sg.get_quadrant(40, 40)
         1
-        >>> sg.get_quadrant(-1, -1)
+        >>> sg.get_quadrant(-40, -40)
         3
 """
     return int(floor((atan2(y, x) % (tau)) / (pi / 2)) + 1)
@@ -386,8 +386,8 @@ def ndarray_to_xy_list(arr: NDArray) -> Sequence[PointType]:
     Examples:
         >>> import simetri.graphics as sg
         >>> import numpy as np
-        >>> sg.ndarray_to_xy_list(np.array([[1.0, 2.0], [3.0, 4.0]]))
-        [[1.0, 2.0], [3.0, 4.0]]
+        >>> sg.ndarray_to_xy_list(np.array([[20.0, 40.0], [60.0, 80.0]]))
+        [[20.0, 40.0], [60.0, 80.0]]
 """
     return arr[:, :2].tolist()
 
@@ -405,8 +405,8 @@ def radius_to_side_len(n: int, radius: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.radius_to_side_len(4, 1), 10)
-        1.4142135624
+        >>> round(sg.radius_to_side_len(4, 40), 10)
+        56.5685424949
 """
     return 2 * radius * sin(pi / n)
 
@@ -422,8 +422,8 @@ def tokenize_svg_path(path: str) -> list[str]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.tokenize_svg_path('M10 20 L30 40')
-        ['M', '10', '20', 'L', '30', '40']
+        >>> sg.tokenize_svg_path('M40 80 L120 160')
+        ['M', '40', '80', 'L', '120', '160']
 """
     return re.findall(r"[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+)", path)
 
@@ -444,7 +444,7 @@ def law_of_cosines(a: float, b: float, c: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.law_of_cosines(1, 1, 1), 10)
+        >>> round(sg.law_of_cosines(60, 60, 60), 10)
         1.0471975512
 """
     return acos((b**2 + c**2 - a**2) / (2 * b * c))
@@ -463,8 +463,8 @@ def side_len_to_radius(n: int, side_len: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.side_len_to_radius(4, 2), 10)
-        1.4142135624
+        >>> round(sg.side_len_to_radius(4, 40), 10)
+        28.2842712475
 """
     return side_len / (2 * sin(pi / n))
 
@@ -481,8 +481,8 @@ def tri_to_cart(points: Sequence[PointType]) -> NDArray:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> [[round(x, 10) for x in row] for row in sg.tri_to_cart([[1, 0], [0, 1]]).tolist()]
-        [[1.0, 0.0], [0.5, 0.8660254038]]
+        >>> [[round(x, 10) for x in row] for row in sg.tri_to_cart([[40, 0], [0, 40]]).tolist()]
+        [[40.0, 0.0], [20.0, 34.6410161514]]
 """
     u = [1, 0]
     v = cos(pi / 3), sin(pi / 3)
@@ -503,9 +503,9 @@ def cart_to_tri(points: Sequence[PointType]) -> NDArray:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> pts = [[1.0, 0.0], [0.0, 1.0]]
+        >>> pts = [[40.0, 0.0], [0.0, 40.0]]
         >>> sg.cart_to_tri(sg.tri_to_cart(pts)).round(10).tolist()
-        [[1.0, 0.0], [-0.0, 1.0]]
+        [[40.0, 0.0], [-0.0, 40.0]]
 """
     u = [1, 0]
     v = cos(pi / 3), sin(pi / 3)
@@ -528,8 +528,8 @@ def triangle_area(a: float, b: float, c: float) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.triangle_area_from_sides(3, 4, 5)
-        6.0
+        >>> sg.triangle_area_from_sides(60, 80, 100)
+        2400.0
 """
     a_b = a - b
     return sqrt((a + (b + c)) * (c - (a_b)) * (c + (a_b)) * (a + (b - c))) / 4
@@ -563,9 +563,9 @@ def bbox_overlap(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.bbox_overlap(0, 0, 2, 2, 1, 1, 3, 3)
+        >>> sg.bbox_overlap(0, 0, 40, 40, 20, 20, 60, 60)
         True
-        >>> sg.bbox_overlap(0, 0, 1, 1, 2, 2, 3, 3)
+        >>> sg.bbox_overlap(0, 0, 20, 20, 40, 40, 60, 60)
         False
 """
     return not (
@@ -587,11 +587,11 @@ def polar_to_cartesian(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.polar_to_cartesian(1, 0)
-        (1.0, 0.0)
-        >>> x, y = sg.polar_to_cartesian(1, sg.pi / 2)
+        >>> sg.polar_to_cartesian(40, 0)
+        (40.0, 0.0)
+        >>> x, y = sg.polar_to_cartesian(40, sg.pi / 2)
         >>> round(x, 10), round(y, 10)
-        (0.0, 1.0)
+        (0.0, 40.0)
 """
     dx, dy = center
     return (r * cos(theta) + dx, r * sin(theta) + dy)
@@ -611,11 +611,11 @@ def cartesian_to_polar(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.cartesian_to_polar(1, 0)
-        (1.0, 0.0)
-        >>> r, theta = sg.cartesian_to_polar(0, 1)
+        >>> sg.cartesian_to_polar(40, 0)
+        (40.0, 0.0)
+        >>> r, theta = sg.cartesian_to_polar(0, 40)
         >>> r, theta == sg.pi / 2
-        (1.0, True)
+        (40.0, True)
 """
     dx, dy = center
     x -= dx
@@ -649,10 +649,10 @@ def double_area3(a: PointType, b: PointType, c: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.double_area3((0, 0), (1, 0), (0, 1))
-        1
-        >>> sg.double_area3((0, 0), (1, 0), (0, 1)) / 2  # geometric triangle area
-        0.5
+        >>> sg.double_area3((0, 0), (60, 0), (0, 60))
+        3600
+        >>> sg.double_area3((0, 0), (60, 0), (0, 60)) / 2  # geometric triangle area
+        1800.0
 """
     return (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])
 

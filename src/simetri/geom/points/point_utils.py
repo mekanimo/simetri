@@ -39,8 +39,8 @@ def distance(p1: PointType, p2: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.distance((0, 0), (3, 4))
-        5.0
+        >>> sg.distance((0, 0), (60, 80))
+        100.0
 """
     return hypot(p2[0] - p1[0], p2[1] - p1[1])
 
@@ -66,7 +66,7 @@ def equal_points(
         >>> import simetri.graphics as sg
         >>> sg.equal_points((0, 0), (0.0005, 0))
         True
-        >>> sg.equal_points((0, 0), (1, 0))
+        >>> sg.equal_points((0, 0), (40, 0))
         False
 """
     _, abs_tol = resolve_tol(rel_tol, abs_tol)
@@ -95,7 +95,7 @@ def congruent_points(
         >>> import simetri.graphics as sg
         >>> sg.congruent_points((0, 0), (0.0005, 0))
         True
-        >>> sg.congruent_points((0, 0), (1, 0))
+        >>> sg.congruent_points((0, 0), (40, 0))
         False
 """
     return equal_points(
@@ -121,7 +121,7 @@ def offset_point_on_line(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.offset_point_on_line((0, 0), [(0, 0), (1, 0)], 2)
+        >>> sg.offset_point_on_line((0, 0), [(0, 0), (40, 0)], 2)
         (2.0, 0.0)
 """
     x, y = point[:2]
@@ -151,7 +151,7 @@ def perp_offset_point(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.perp_offset_point((0, 0), [(0, 0), (1, 0)], 1)
+        >>> sg.perp_offset_point((0, 0), [(0, 0), (40, 0)], 1)
         [0.0, 1.0]
 """
     unit_vec = perp_unit_vector(line)
@@ -185,10 +185,10 @@ def fix_degen_points(
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.fix_degen_points(
-        ...     [(0, 0), (0, 0), (1, 0), (2, 0)],
+        ...     [(0, 0), (0, 0), (40, 0), (80, 0)],
         ...     check_collinear=False,
         ... )
-        [(0, 0), (1, 0), (2, 0)]
+        [(0, 0), (40, 0), (80, 0)]
 """
     rel_tol, abs_tol = resolve_tol(rel_tol, abs_tol)
     abs_tol2 = abs_tol * abs_tol
@@ -275,10 +275,10 @@ def direction3(p: PointType, q: PointType, r: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.direction3((0, 0), (1, 0), (1, 1))
-        -1
-        >>> sg.direction3((0, 0), (1, 0), (1, -1))
-        1
+        >>> sg.direction3((0, 0), (40, 0), (40, 40))
+        -1600
+        >>> sg.direction3((0, 0), (40, 0), (40, -40))
+        1600
 """
     return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
 
@@ -296,9 +296,9 @@ def between3(a: PointType, b: PointType, c: PointType) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.between3((0, 0), (2, 0), (1, 0))
+        >>> sg.between3((0, 0), (80, 0), (40, 0))
         True
-        >>> sg.between3((0, 0), (2, 0), (3, 0))
+        >>> sg.between3((0, 0), (40, 0), (80, 0))
         False
 """
     from simetri.geom.segments.line_utils import collinear3
@@ -333,9 +333,9 @@ def check_consecutive_duplicates(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.check_consecutive_duplicates([(0, 0), (0, 0), (1, 0)], abs_tol=0.001)
+        >>> sg.check_consecutive_duplicates([(0, 0), (0, 0), (40, 0)], abs_tol=0.001)
         True
-        >>> sg.check_consecutive_duplicates([(0, 0), (1, 0)], abs_tol=0.001)
+        >>> sg.check_consecutive_duplicates([(0, 0), (40, 0)], abs_tol=0.001)
         False
 """
     if abs_tol is None:
@@ -367,9 +367,9 @@ def left3(a: PointType, b: PointType, c: PointType) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.left3((0, 0), (1, 0), (0, 1))
+        >>> sg.left3((0, 0), (40, 0), (0, 40))
         True
-        >>> sg.left3((0, 0), (1, 0), (0, -1))
+        >>> sg.left3((0, 0), (40, 0), (0, -40))
         False
 """
 
@@ -397,8 +397,8 @@ def remove_duplicate_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.remove_duplicate_points([(0, 0), (0, 0), (1, 0)], abs_tol=0.001)
-        [(0, 0), (1, 0)]
+        >>> sg.remove_duplicate_points([(0, 0), (0, 0), (40, 0)], abs_tol=0.001)
+        [(0, 0), (40, 0)]
 """
     _, abs_tol = resolve_tol(rel_tol, abs_tol)
     abs_tol2 = abs_tol * abs_tol
@@ -430,8 +430,8 @@ def remove_collinear_points(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.remove_collinear_points([(0, 0), (1, 0), (2, 0)], abs_tol=0.001)
-        [(0, 0), (2, 0)]
+        >>> sg.remove_collinear_points([(0, 0), (40, 0), (80, 0)], abs_tol=0.001)
+        [(0, 0), (80, 0)]
 """
     from simetri.geom.segments.line_utils import collinear3
 
@@ -473,9 +473,9 @@ def clockwise3(p: PointType, q: PointType, r: PointType) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.clockwise3((0, 0), (1, 0), (0, 1))
+        >>> sg.clockwise3((0, 0), (40, 0), (0, 40))
         -1
-        >>> sg.clockwise3((0, 0), (0, 1), (1, 0))
+        >>> sg.clockwise3((0, 0), (0, 40), (40, 0))
         1
 """
     px, py = p[:2]
@@ -508,9 +508,9 @@ def on_segment(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.on_segment((0, 0), (2, 0), (1, 0))
+        >>> sg.on_segment((0, 0), (80, 0), (40, 0))
         True
-        >>> sg.on_segment((0, 0), (2, 0), (3, 0))
+        >>> sg.on_segment((0, 0), (40, 0), (80, 0))
         False
 """
 
@@ -543,8 +543,8 @@ def lerp_point(p1: PointType, p2: PointType, t: float) -> PointType:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.lerp_point((0, 0), (10, 0), 0.5)
-        (5.0, 0.0)
+        >>> sg.lerp_point((0, 0), (40, 0), 0.5)
+        (20.0, 0.0)
 """
     x1, y1 = p1[:2]
     x2, y2 = p2[:2]
@@ -562,7 +562,7 @@ def angle(point: PointType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> round(sg.angle((1, 0)), 10)
+        >>> round(sg.angle((40, 0)), 10)
         0.0
         >>> round(sg.angle((0, 1)), 10)
         1.5707963268
@@ -589,7 +589,7 @@ def point_on_line(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.point_on_line((1, 1), [(0, 0), (2, 2)], abs_tol=0.001)
+        >>> sg.point_on_line((40, 40), [(0, 0), (80, 80)], abs_tol=0.001)
         True
 """
     from simetri.geom.segments.line_utils import slope
@@ -620,9 +620,9 @@ def point_on_line_segment(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.point_on_line_segment((1, 0), [(0, 0), (2, 0)], abs_tol=0.001)
+        >>> sg.point_on_line_segment((40, 0), [(0, 0), (80, 0)], abs_tol=0.001)
         True
-        >>> sg.point_on_line_segment((3, 0), [(0, 0), (2, 0)], abs_tol=0.001)
+        >>> sg.point_on_line_segment((100, 0), [(0, 0), (80, 0)], abs_tol=0.001)
         False
 """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
@@ -647,8 +647,8 @@ def point_to_line_distance(point: PointType, line: LineType) -> float:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.point_to_line_distance((0, 1), [(0, 0), (1, 0)])
-        1.0
+        >>> sg.point_to_line_distance((0, 40), [(0, 0), (40, 0)])
+        40.0
 """
     x0, y0 = point
     x1, y1 = line[0][:2]
@@ -676,9 +676,9 @@ def point_to_line_seg_distance(
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.point_to_line_seg_distance((1, 1), (0, 0), (2, 0))
-        1.0
-        >>> sg.point_to_line_seg_distance((5, 0), (0, 0), (2, 0))
+        >>> sg.point_to_line_seg_distance((40, 40), (0, 0), (80, 0))
+        40.0
+        >>> sg.point_to_line_seg_distance((100, 0), (0, 0), (80, 0))
         False
 """
     if lp1[:2] == lp2[:2]:
@@ -712,8 +712,8 @@ def flat_points(connected_segments: Sequence[LineType]) -> list[PointType]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.flat_points([((0, 0), (1, 0)), ((1, 0), (1, 1))])
-        [(0, 0), (1, 0), (1, 1)]
+        >>> sg.flat_points([((0, 0), (40, 0)), ((40, 0), (40, 40))])
+        [(0, 0), (40, 0), (40, 40)]
 """
     points = [line[0] for line in connected_segments]
     points.append(connected_segments[-1][1])
@@ -732,10 +732,10 @@ def point_in_quad(point: PointType, quad: list[PointType]) -> bool:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> quad = [(0, 0), (2, 0), (2, 2), (0, 2)]
-        >>> sg.point_in_quad((1, 1), quad)
+        >>> quad = [(0, 0), (80, 0), (80, 80), (0, 80)]
+        >>> sg.point_in_quad((40, 40), quad)
         True
-        >>> sg.point_in_quad((3, 3), quad)
+        >>> sg.point_in_quad((100, 100), quad)
         False
 """
     x, y = point[:2]
@@ -763,8 +763,8 @@ def remove_bad_points(points: list[PointType]) -> list[PointType]:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.remove_bad_points([(0, 0), (0, 0), (1, 0), (2, 0)])
-        [(0, 0), (1, 0), (2, 0)]
+        >>> sg.remove_bad_points([(0, 0), (0, 0), (40, 0), (80, 0)])
+        [(0, 0), (40, 0), (80, 0)]
 """
     EPSILON = 1e-16
     n_points = len(points)
@@ -822,11 +822,11 @@ class Vertex(list):
 
     Examples:
         >>> from simetri.geom.points.point_utils import Vertex
-        >>> v = Vertex(1, 2, 3)
+        >>> v = Vertex(40, 80, 60)
         >>> v.coords
-        (1, 2, 3)
+        (40, 80, 60)
         >>> v.copy().coords
-        (1, 2, 3)
+        (40, 80, 60)
 """
 
     def __init__(self, x: float, y: float, z: float = 0) -> None:
@@ -839,8 +839,8 @@ class Vertex(list):
 
         Examples:
             >>> from simetri.geom.points.point_utils import Vertex
-            >>> Vertex(1, 2).coords
-            (1, 2, 0)
+            >>> Vertex(40, 80).coords
+            (40, 80, 0)
         """
         super().__init__((x, y, z))
         self.x = x
@@ -864,8 +864,8 @@ class Vertex(list):
 
         Examples:
             >>> from simetri.geom.points.point_utils import Vertex
-            >>> Vertex(1, 2).copy().coords
-            (1, 2, 0)
+            >>> Vertex(40, 80).copy().coords
+            (40, 80, 0)
 """
         return Vertex(self.x, self.y, self.z)
 
@@ -881,8 +881,8 @@ class Vertex(list):
 
         Examples:
             >>> from simetri.geom.points.point_utils import Vertex
-            >>> Vertex(3, 4).coords
-            (3, 4, 0)
+            >>> Vertex(60, 80).coords
+            (60, 80, 0)
 """
         return (self.x, self.y, self.z)
 
@@ -892,8 +892,8 @@ class Vertex(list):
 
         Examples:
             >>> from simetri.geom.points.point_utils import Vertex
-            >>> Vertex(2, 3).array.tolist()
-            [2.0, 3.0, 1.0]
+            >>> Vertex(80, 60).array.tolist()
+            [80.0, 60.0, 1.0]
 """
         return array([self.x, self.y, 1.0], dtype=float)
 
@@ -902,8 +902,8 @@ class Vertex(list):
 
         Examples:
             >>> from simetri.geom.points.point_utils import Vertex
-            >>> Vertex(2, 3).v_tuple()
-            (2, 3, 0)
+            >>> Vertex(80, 60).v_tuple()
+            (80, 60, 0)
 """
         return (self.x, self.y, self.z)
 
@@ -918,7 +918,7 @@ class Vertex(list):
 
         Examples:
             >>> from simetri.geom.points.point_utils import Vertex
-            >>> Vertex(0, 0).below(Vertex(0, 1))
+            >>> Vertex(0, 0).below(Vertex(0, 40))
             True
 """
         res = False
@@ -937,7 +937,7 @@ class Vertex(list):
 
         Examples:
             >>> from simetri.geom.points.point_utils import Vertex
-            >>> Vertex(0, 1).above(Vertex(0, 0))
+            >>> Vertex(0, 40).above(Vertex(0, 0))
             True
 """
         if self.y > other.y or self.y == other.y and self.x < other.x:
@@ -956,10 +956,10 @@ def set_vertices(points: list[Vertex]) -> None:
 
     Examples:
         >>> from simetri.geom.points.point_utils import Vertex, set_vertices
-        >>> verts = [Vertex(0, 0), Vertex(1, 0), Vertex(0, 1)]
+        >>> verts = [Vertex(0, 0), Vertex(40, 0), Vertex(0, 40)]
         >>> set_vertices(verts)
         >>> [(v.next.coords[:2], v.prev.coords[:2]) for v in verts]
-        [((1, 0), (0, 1)), ((0, 1), (0, 0)), ((0, 0), (1, 0))]
+        [((40, 0), (0, 40)), ((0, 40), (0, 0)), ((0, 0), (40, 0))]
 """
     if not isinstance(points[0], Vertex):
         points = [Vertex(*p[:]) for p in points]
@@ -989,10 +989,10 @@ def project_point_on_line(point: Vertex, line: tuple[Vertex, Vertex]) -> Vertex:
 
     Examples:
         >>> from simetri.geom.points.point_utils import Vertex, project_point_on_line
-        >>> v = Vertex(1, 1)
-        >>> p = project_point_on_line(v, (Vertex(0, 0), Vertex(2, 0)))
+        >>> v = Vertex(40, 40)
+        >>> p = project_point_on_line(v, (Vertex(0, 0), Vertex(80, 0)))
         >>> (p.x, p.y)
-        (1.0, 0.0)
+        (40.0, 0.0)
 """
     v = point
     a, b = line
