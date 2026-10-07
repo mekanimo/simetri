@@ -74,6 +74,19 @@ class Stop:
         self.type = Types.STOP
         self.subtype = Types.STOP
 
+    def __repr__(self) -> str:
+        """Return a Stop string from offset, color, and opacity.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Stop(0.0, color=sg.Color(0, 0, 0)))
+            'Stop(offset=0.0, color=Color(0, 0, 0), opacity=None)'
+        """
+        return (
+            f"Stop(offset={self.offset!r}, color={self.color!r}, "
+            f"opacity={self.opacity!r})"
+        )
+
 
 def _resolve_stops(
     stops: Sequence[Stop] | Sequence[tuple[Any, ...]],

@@ -344,6 +344,38 @@ class Path2D(Group, CommonStyle):
 """
         return bool(self.operations)
 
+    def __str__(self) -> str:
+        """Return a string representation of the path.
+
+        Returns:
+            str: The string representation of the path.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> str(sg.Path2D()).startswith("Path2D")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            res = "Path2D()"
+        elif len(self.elements) in [1, 2]:
+            res = f"Path2D({self.elements})"
+        else:
+            res = f"Path2D({self.elements[0]}...{self.elements[-1]})"
+        return res
+
+    def __repr__(self) -> str:
+        """Return a string representation of the path.
+
+        Returns:
+            str: The string representation of the path.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Path2D()) == str(sg.Path2D())
+            True
+        """
+        return self.__str__()
+
     def _create_object(self) -> None:
         """Build geometry for the most recently appended operation."""
         PO = PathOps

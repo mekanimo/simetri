@@ -147,6 +147,23 @@ class Poly:
         self.subtype = Types.POLY
         self._bbox = PolyBBox()  # empty bounding box
 
+    def __repr__(self) -> str:
+        """Return a Poly string from this polygon's primary points.
+
+        Examples:
+            >>> from simetri.geom.polygons.poly import Poly
+            >>> repr(Poly([(0, 0), (1, 0), (1, 1)], closed=True))
+            'Poly([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]])'
+        """
+        if len(self.primary_points) == 0:
+            return "Poly()"
+        if len(self.primary_points) < 4:
+            return f"Poly({self.primary_points[:, :2].tolist()})"
+        return (
+            f"Poly([{self.primary_points[0, :2].tolist()}, ..., "
+            f"{self.primary_points[-1, :2].tolist()}])"
+        )
+
     @property
     def vertices(self) -> tuple[PointType, ...]:
         # return self.primary_points @ self.xform_matrix

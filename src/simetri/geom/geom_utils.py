@@ -114,9 +114,7 @@ def close_points_square(
     return distance_square(p1, p2) <= dist2
 
 
-def extend(
-    p1: PointType, p2: PointType, offset: float
-) -> PointType:
+def extend(p1: PointType, p2: PointType, offset: float) -> PointType:
     """Return the point on the line through ``p1``–``p2`` at distance ``offset`` from ``p1``.
 
     Args:
@@ -276,3 +274,88 @@ def turning_function_metric(
         s_common[1] - s_common[0]
     )
     return metric
+
+
+import math
+
+
+def compute_turning_angles(polygon):
+    """Compute cumulative turning angles and cumulative lengths for a polygon."""
+    n = len(polygon)
+    cum_lengths = [0.0]
+    total_length = 0.0
+
+    # Compute edge lengths
+    lengths = []
+    for i in range(n):
+        p1 = polygon[i]
+        p2 = polygon[(i + 1) % n]
+        dx = p2[0] - p1[0]
+        dy = p2[1] - p1[1]
+        l = math.hypot(dx, dy)
+        lengths.append(l)
+        total_length += l
+
+    # Normalized cumulative lengths (parameterized from 0 to 1)
+    for l in lengths[:-1]:
+        total_length_so_far = cum_lengths[-1] + (
+            l / total_length if total_length > 0 else 0
+        )
+        cum_lengths.append(total_length_so_far)
+    cum_lengths.append(1.0)  # Ensure exact closure
+
+    # Compute turning angles
+    angles = [0.0]
+    current_angle = 0.0
+    for i in range(n):
+        p0 = polygon[i - 1]
+        p1 = polygon[i]
+        p2 = polygon[(i + 1) % n]
+
+        v1 = (p1[0] - p0[0], p1[1] - p0[1])
+        v2 = (p2[0] - p1[0], p2[1] - p1[1])
+
+        cross = v1[0] * v2[1] - v1[1] * v2[0]
+        dot = v1[0] * v2[0] + v1[1] * v2[1]
+        turn = math.atan2(cross, dot)
+        current_angle += turn
+        angles.append(current_angle)
+
+    return cum_lengths, angles
+
+
+def turning_function_distance(poly_a, poly_b):
+    """Approximate the L2 distance between turning functions of two polygons."""
+    t_a, a_a = compute_turning_angles(poly_a)
+    t_b, a_b = compute_turning_angles(poly_b)
+
+    # Sample union of breakpoints to compute L2 norm via trapezoidal integration
+    all_t = sorted(set(t_a + t_b))
+
+    def eval_tf(t_vals, a_vals, t):
+        if t <= t_vals[0]:
+            return a_vals[0]
+        if t >= t_vals[-1]:
+            return a_vals[-1]
+        for i in range(len(t_vals) - 1):
+            if t_vals[i] <= t <= t_vals[i + 1]:
+                dt = t_vals[i + 1] - t_vals[i]
+                if dt == 0:
+                    return a_vals[i]
+                r = (t - t_vals[i]) / dt
+                return a_vals[i] * (1 - r) + a_vals[i + 1] * r
+        return a_vals[-1]
+
+    # Integrate squared difference
+    dist_sq = 0.0
+    for i in range(len(all_t) - 1):
+        t1 = all_t[i]
+        t2 = all_t[i + 1]
+        dt = t2 - t1
+        if dt <= 0:
+            continue
+        mid_t = (t1 + t2) / 2.0
+        diff_mid = eval_tf(t_a, a_a, mid_t) - eval_tf(t_b, a_b, mid_t)
+        dist_sq += (diff_mid**2) * dt
+
+    return math.sqrt(dist_sq)

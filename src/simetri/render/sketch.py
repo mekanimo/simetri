@@ -84,6 +84,16 @@ class CircleSketch:
         self.center = center
         self.closed = True
 
+    def __repr__(self) -> str:
+        """Return a CircleSketch string from center and radius.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.CircleSketch(center=(0, 0), radius=10))
+            'CircleSketch(center=(0, 0), radius=10)'
+        """
+        return f"CircleSketch(center={self.center!r}, radius={self.radius!r})"
+
 
 @dataclass
 class EllipseSketch:
@@ -122,6 +132,20 @@ class EllipseSketch:
             center = (center @ self.xform_matrix).tolist()[0][:2]
         self.center = center
         self.closed = True
+
+    def __repr__(self) -> str:
+        """Return an EllipseSketch string from center and radii.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sk = sg.EllipseSketch(center=(0, 0), x_radius=5, y_radius=3)
+            >>> repr(sk)
+            'EllipseSketch(center=(0, 0), x_radius=5, y_radius=3, angle=0)'
+        """
+        return (
+            f"EllipseSketch(center={self.center!r}, x_radius={self.x_radius!r}, "
+            f"y_radius={self.y_radius!r}, angle={self.angle!r})"
+        )
 
 
 @dataclass
@@ -187,6 +211,16 @@ class LinesSketch:
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
+    def __repr__(self) -> str:
+        """Return a LinesSketch string from the stored lines.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.LinesSketch([((0, 0), (1, 0))]))
+            'LinesSketch(lines=[((0, 0), (1, 0))])'
+        """
+        return f"LinesSketch(lines={self.lines!r})"
+
 
 @dataclass
 class LineSketch:
@@ -219,6 +253,20 @@ class LineSketch:
             vertices = vertices @ self.xform_matrix
         self.vertices = [tuple(x) for x in vertices[:, :2]]
         self._raw_vertices = self.vertices[:]
+
+    def __repr__(self) -> str:
+        """Return a LineSketch string from the stored vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sk = sg.LineSketch(
+            ...     vertices=[(0, 0), (1, 0)],
+            ...     xform_matrix=sg.identity_matrix(),
+            ... )
+            >>> repr(sk)
+            'LineSketch(vertices=[(0.0, 0.0), (1.0, 0.0)])'
+        """
+        return f"LineSketch(vertices={self.vertices!r})"
 
     @staticmethod
     def _line_limits(
@@ -371,6 +419,17 @@ class PatternSketch:
         self.count = self.pattern.count
         self.closed = self.pattern.closed
 
+    def __repr__(self) -> str:
+        """Return a PatternSketch string from the pattern count.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> pattern = sg.Pattern(sg.Shape([(0, 0), (1, 0), (0, 1)]))
+            >>> repr(sg.PatternSketch(pattern=pattern))
+            'PatternSketch(count=1)'
+        """
+        return f"PatternSketch(count={self.count!r})"
+
 
 @dataclass
 class ImageSketch:
@@ -416,6 +475,18 @@ class ImageSketch:
             w, h = self.image.size
             self.size = scale[0] * w, scale[1] * h
         self.image = self.image.copy()
+
+    def __repr__(self) -> str:
+        """Return an ImageSketch string from position and size.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> from PIL import Image as PILImage
+            >>> image = sg.Image(PILImage.new("RGB", (2, 2)))
+            >>> repr(sg.ImageSketch(image=image))
+            'ImageSketch(pos=(0.0, 0.0), size=(2, 2))'
+        """
+        return f"ImageSketch(pos={self.pos!r}, size={self.size!r})"
 
 
 @dataclass
@@ -471,6 +542,16 @@ class LatexSketch:
             pos = (pos @ self.xform_matrix).tolist()[0][:2]
         self.pos = pos
 
+    def __repr__(self) -> str:
+        """Return a LatexSketch string from the formula and position.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.LatexSketch(r"x^2", (0, 0)))
+            "LatexSketch(formula='x^2', pos=(0, 0))"
+        """
+        return f"LatexSketch(formula={self.formula!r}, pos={self.pos!r})"
+
 
 @dataclass
 class MaskSketch:
@@ -497,6 +578,16 @@ class MaskSketch:
         self.id = get_unique_id(self)
         self.code = ""
         self.location = TexLoc.NONE
+
+    def __repr__(self) -> str:
+        """Return a MaskSketch string from the mask and clip flag.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.MaskSketch())
+            'MaskSketch(mask=None, clip=True)'
+        """
+        return f"MaskSketch(mask={self.mask!r}, clip={self.clip!r})"
 
 
 @dataclass
@@ -538,6 +629,20 @@ class ShapeSketch:
             vertices = vertices @ self.xform_matrix
         self.vertices = [tuple(x) for x in vertices[:, :2]]
 
+    def __repr__(self) -> str:
+        """Return a ShapeSketch string from the stored vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sk = sg.ShapeSketch(
+            ...     vertices=[(0, 0), (1, 0)],
+            ...     xform_matrix=sg.identity_matrix(),
+            ... )
+            >>> repr(sk)
+            'ShapeSketch(vertices=[(0.0, 0.0), (1.0, 0.0)])'
+        """
+        return f"ShapeSketch(vertices={self.vertices!r})"
+
 
 @dataclass
 class BezierSketch:
@@ -574,6 +679,20 @@ class BezierSketch:
         self.control_points = [tuple(x) for x in control_points[:, :3]]
         self.closed = False
 
+    def __repr__(self) -> str:
+        """Return a BezierSketch string from the control points.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sk = sg.BezierSketch(
+            ...     [(0, 0), (1, 1), (2, 0), (3, 1)],
+            ...     xform_matrix=sg.identity_matrix(),
+            ... )
+            >>> repr(sk)
+            'BezierSketch(control_points=[(0.0, 0.0, 1.0), (1.0, 1.0, 1.0), (2.0, 0.0, 1.0), (3.0, 1.0, 1.0)])'
+        """
+        return f"BezierSketch(control_points={self.control_points!r})"
+
 
 @dataclass
 class ArcSketch:
@@ -609,6 +728,20 @@ class ArcSketch:
         self.subtype = Types.ARC_SKETCH
         self.id = get_unique_id(self)
         self.closed = self.mode != CurveMode.OPEN
+
+    def __repr__(self) -> str:
+        """Return an ArcSketch string from the stored vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sk = sg.ArcSketch(
+            ...     vertices=[(0, 0), (1, 1)],
+            ...     xform_matrix=sg.identity_matrix(),
+            ... )
+            >>> repr(sk)
+            'ArcSketch(vertices=[(0.0, 0.0), (1.0, 1.0)])'
+        """
+        return f"ArcSketch(vertices={self.vertices!r})"
 
 
 @dataclass
@@ -658,6 +791,24 @@ class ClippedSketch:
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
+    def __repr__(self) -> str:
+        """Return a ClippedSketch string from the sketches and clipper.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> clipper = sg.ShapeSketch(
+            ...     vertices=[(0, 0), (1, 0), (0, 1)],
+            ...     xform_matrix=sg.identity_matrix(),
+            ... )
+            >>> sk = sg.ClippedSketch(sketches=[], clipper=clipper)
+            >>> repr(sk)
+            'ClippedSketch(sketches=[], clipper=ShapeSketch(vertices=[(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]))'
+        """
+        return (
+            f"ClippedSketch(sketches={self.sketches!r}, "
+            f"clipper={self.clipper!r})"
+        )
+
 
 @dataclass
 class MaskedSketch:
@@ -682,6 +833,16 @@ class MaskedSketch:
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
+    def __repr__(self) -> str:
+        """Return a MaskedSketch string from the sketches and mask.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.MaskedSketch(sketches=[[]], mask=None))
+            'MaskedSketch(sketches=[[]], mask=None)'
+        """
+        return f"MaskedSketch(sketches={self.sketches!r}, mask={self.mask!r})"
+
 
 @dataclass
 class FilteredSketch:
@@ -702,6 +863,19 @@ class FilteredSketch:
         self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
+
+    def __repr__(self) -> str:
+        """Return a FilteredSketch string from the sketches and filters.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.FilteredSketch(sketches=[], filter_s=[]))
+            'FilteredSketch(sketches=[], filter_s=[])'
+        """
+        return (
+            f"FilteredSketch(sketches={self.sketches!r}, "
+            f"filter_s={self.filter_s!r})"
+        )
 
 
 @dataclass
@@ -729,6 +903,16 @@ class PathSketch:
         self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
+
+    def __repr__(self) -> str:
+        """Return a PathSketch string from the child sketches.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.PathSketch(sketches=[]))
+            'PathSketch(sketches=[])'
+        """
+        return f"PathSketch(sketches={self.sketches!r})"
 
 
 @dataclass
@@ -828,6 +1012,16 @@ class FrameSketch:
         self.subtype = Types.FRAME_SKETCH
         self.id = get_unique_id(self)
 
+    def __repr__(self) -> str:
+        """Return a FrameSketch string from the frame shape.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.FrameSketch())
+            "FrameSketch(frame_shape='rectangle')"
+        """
+        return f"FrameSketch(frame_shape={self.frame_shape!r})"
+
 
 @dataclass
 class TagSketch:
@@ -874,6 +1068,16 @@ class TagSketch:
             pos = (pos @ self.xform_matrix).tolist()[0][:2]
         self.pos = pos
 
+    def __repr__(self) -> str:
+        """Return a TagSketch string from the text and position.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.TagSketch(text="hi", pos=(0, 0)))
+            "TagSketch(text='hi', pos=(0, 0))"
+        """
+        return f"TagSketch(text={self.text!r}, pos={self.pos!r})"
+
 
 @dataclass
 class TextPathSketch:
@@ -908,6 +1112,17 @@ class TextPathSketch:
             self.vertices = []
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
+
+    def __repr__(self) -> str:
+        """Return a TextPathSketch string from the text and path data.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sk = sg.TextPathSketch(text="hi", path_data="M 0 0 L 10 0")
+            >>> repr(sk)
+            "TextPathSketch(text='hi', path_data='M 0 0 L 10 0')"
+        """
+        return f"TextPathSketch(text={self.text!r}, path_data={self.path_data!r})"
 
 
 @dataclass
@@ -1104,6 +1319,16 @@ class CompositeSketch:
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
 
+    def __repr__(self) -> str:
+        """Return a CompositeSketch string from the child sketches.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.CompositeSketch(sketches=[]))
+            'CompositeSketch(sketches=[])'
+        """
+        return f"CompositeSketch(sketches={self.sketches!r})"
+
 
 @dataclass
 class TableSketch:
@@ -1137,6 +1362,22 @@ class TableSketch:
         self.id = get_unique_id(self)
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
+
+    def __repr__(self) -> str:
+        """Return a TableSketch string from the grid layout.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sk = sg.TableSketch((0, 0), [10.0], [5.0], [])
+            >>> repr(sk)
+            'TableSketch(pos=(0, 0), column_widths=[10.0], row_heights=[5.0], sketches=[], show_lines=True)'
+        """
+        return (
+            f"TableSketch(pos={self.pos!r}, "
+            f"column_widths={self.column_widths!r}, "
+            f"row_heights={self.row_heights!r}, "
+            f"sketches={self.sketches!r}, show_lines={self.show_lines!r})"
+        )
 
 
 Sketch: TypeAlias = (

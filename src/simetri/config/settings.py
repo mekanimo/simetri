@@ -736,7 +736,7 @@ def set_defaults() -> None:
     # isclose(800, 721, rel_tol=.1) returns False
     # abs_tol makes a bigger difference when comparing values close to zero
 
-    _default_store.factory["abs_tol"] = 0.001  # used for comparing floats
+    _default_store.factory["abs_tol"] = 0.01
     default_types["abs_tol"] = float
     defaults_help["abs_tol"] = (
         "Absolute tolerance. "

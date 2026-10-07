@@ -1596,6 +1596,8 @@ def congruent_polygons(
     polygon1: PolygonLike,
     polygon2: PolygonLike,
     mirror: bool = False,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """Return True if ``polygon1`` and ``polygon2`` are congruent.
 
@@ -1606,6 +1608,10 @@ def congruent_polygons(
         polygon1 (PolygonLike): First polygon as a ``Shape`` or points.
         polygon2 (PolygonLike): Second polygon as a ``Shape`` or points.
         mirror (bool): If True, a reflection also counts as congruent.
+        rel_tol (float | None): Relative tolerance for turn comparison.
+            Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol (float | None): Absolute tolerance for turn comparison.
+            Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True if the polygons are congruent.
@@ -1620,6 +1626,7 @@ def congruent_polygons(
 """
     from ...helpers.utilities import equal_cycles
 
+    rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
     verts1 = polygon_vertices(polygon1)
     verts2 = polygon_vertices(polygon2)
     if len(verts1) != len(verts2):
@@ -1629,13 +1636,13 @@ def congruent_polygons(
         poly2_turns = polygon_turns(verts2)
 
         if mirror:
-            if equal_cycles(poly1_turns, poly2_turns):
+            if equal_cycles(poly1_turns, poly2_turns, rel_tol, abs_tol):
                 res = True
             else:
                 poly2_turns.reverse()
-                res = equal_cycles(poly1_turns, poly2_turns)
+                res = equal_cycles(poly1_turns, poly2_turns, rel_tol, abs_tol)
         else:
-            res = equal_cycles(poly1_turns, poly2_turns)
+            res = equal_cycles(poly1_turns, poly2_turns, rel_tol, abs_tol)
 
     return res
 
@@ -1644,6 +1651,8 @@ def equal_polygons(
     polygon1: PolygonLike,
     polygon2: PolygonLike,
     mirror: bool = False,
+    rel_tol: float | None = None,
+    abs_tol: float | None = None,
 ) -> bool:
     """Return True if two polygons are congruent.
 
@@ -1653,6 +1662,10 @@ def equal_polygons(
         polygon1 (PolygonLike): First polygon.
         polygon2 (PolygonLike): Second polygon.
         mirror (bool): If True, a reflection also counts. Defaults to False.
+        rel_tol (float | None): Relative tolerance for turn comparison.
+            Defaults to ``runtime_defaults["rel_tol"]``.
+        abs_tol (float | None): Absolute tolerance for turn comparison.
+            Defaults to ``runtime_defaults["abs_tol"]``.
 
     Returns:
         bool: True when the polygons match under congruence.
@@ -1665,7 +1678,7 @@ def equal_polygons(
         >>> sg.equal_polygons(square, [(0, 0), (2, 0), (0, 2)])
         False
 """
-    return congruent_polygons(polygon1, polygon2, mirror)
+    return congruent_polygons(polygon1, polygon2, mirror, rel_tol, abs_tol)
 
 
 def congruent_shapes(

@@ -152,6 +152,22 @@ class Star(Group):
         self._initialize(n)
         super().__init__(**kwargs)
 
+    def __repr__(self) -> str:
+        """Return a Star string from this star's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Star(8, circumradius=100))
+            'Star()'
+            >>> str(sg.Star(8, circumradius=100))
+            'Group()'
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "Star()"
+        if len(self.elements) in [1, 2]:
+            return f"Star({self.elements})"
+        return f"Star({self.elements[0]}...{self.elements[-1]})"
+
     def _initialize(self, n: int) -> None:
         """Initialize internal kernel/petal geometry for ``n`` points.
 

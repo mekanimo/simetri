@@ -1797,6 +1797,7 @@ shape_args = [
 draw_extra_kwargs = [
     "vertices",
     "indices",
+    "face_indices",
     "index_offset",
     "vertex_offset",
     "index_font_size",

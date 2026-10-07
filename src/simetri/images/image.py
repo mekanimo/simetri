@@ -24,17 +24,24 @@ from PIL import ImageDraw, ImageFilter
 if TYPE_CHECKING:
     from ..render.sketch import Sketch
 
-from ..base.all_enums import Anchor, ImageMode, InPlace, TransformationType, Types
+from ..base.all_enums import (
+    Anchor,
+    ImageMode,
+    InPlace,
+    TransformationType,
+    Types,
+    get_enum_value,
+)
 from ..base.common import PointType
 from ..base.core import _update_inplace
 from ..coloring.colors import ColorLike, check_color
 from ..geom.affine import (
     rotation_matrix,
     scale_in_place_matrix,
-    translation_matrix,
 )
 from ..geom.matrices import identity_matrix
 from ..group.batch import Group
+from ..helpers.utilities import decompose_transformations
 from ..shapes.geom_items import Rectangle
 
 
@@ -167,11 +174,12 @@ class Image(Rectangle):
 
         Args:
             img: File path, Pillow image, or ``None`` to create a blank image.
-            pos: Placement on the canvas (rectangle center).
+            pos: Canvas point for the image ``anchor``.
             size: Required when ``img`` is ``None`` (new image dimensions).
             mode: Pillow mode when creating a blank image.
             **kwargs: Forwarded to :class:`~simetri.shapes.geom_items.Rectangle`
                 and Pillow ``Image.new`` when applicable.
+                ``anchor`` chooses which point of the image sits on ``pos``.
 
         Raises:
             FileNotFoundError: If ``img`` is a path that does not exist.
@@ -184,7 +192,20 @@ class Image(Rectangle):
             10
             >>> im.mode
             'RGB'
+            >>> im = sg.Image(
+            ...     size=(10, 20),
+            ...     mode="RGB",
+            ...     pos=(5, 6),
+            ...     anchor=sg.Anchor.SOUTHWEST,
+            ... )
+            >>> im.anchor == sg.Anchor.SOUTHWEST
+            True
+            >>> im.pos[0], im.pos[1]
+            (5.0, 6.0)
+            >>> im.southwest[0], im.southwest[1]
+            (5.0, 6.0)
         """
+        anchor = kwargs.pop("anchor", Anchor.CENTER)
         file_path = None
         if img is None:
             img = PIL_Image.new(mode=mode, size=size, **kwargs)
@@ -203,11 +224,15 @@ class Image(Rectangle):
         self.__dict__["pil_img"] = img
         kwargs["fill"] = False
         kwargs["stroke"] = False
-        super().__init__(width, height, center=pos, **kwargs)
+        left, bottom, right, top = _anchor_bounds(
+            anchor, pos, width, height
+        )
+        center = ((left + right) / 2, (bottom + top) / 2)
+        super().__init__(width, height, center=center, **kwargs)
         self.file_path = file_path
         self.type = Types.IMAGE
         self.subtype = Types.IMAGE
-        self.anchor = kwargs.get("anchor", Anchor.CENTER)
+        self.__dict__["anchor"] = anchor
         if "xform_matrix" in kwargs:
             self.xform_matrix = kwargs["xform_matrix"]
         else:
@@ -314,6 +339,10 @@ class Image(Rectangle):
             )
         if reps == 0:
             self.xform_matrix = self.xform_matrix @ xform_matrix
+            if "_final_coords" in self.__dict__:
+                delattr(self, "_final_coords")
+            if "_vertices" in self.__dict__:
+                delattr(self, "_vertices")
             return self
         images = [self]
         image = self
@@ -328,27 +357,79 @@ class Image(Rectangle):
             return res.merge_images()
         return res
 
+    def _drawn_extent(self, pixels: int, axis: int) -> int | float:
+        """Drawn length on one axis.
+
+        ``axis`` 0 is width and 1 is height. A scale of 1 returns the
+        pixel count unchanged.
+        """
+        _translation, _rotation, scale = decompose_transformations(
+            self.xform_matrix
+        )
+        factor = float(scale[axis])
+        if factor == 1:
+            return pixels
+        return pixels * factor
+
+    @property
+    def anchor(self) -> Anchor:
+        """Which point of the image ``pos`` refers to.
+
+        Changing the anchor keeps the current ``pos`` and moves the
+        image so the new anchor sits on that point.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> im = sg.Image(size=(10, 20), mode="RGB", pos=(0, 0))
+            >>> im.anchor = sg.Anchor.SOUTHWEST
+            >>> im.pos[0], im.pos[1]
+            (0.0, 0.0)
+            >>> im.southwest[0], im.southwest[1]
+            (0.0, 0.0)
+        """
+        return self.__dict__["anchor"]
+
+    @anchor.setter
+    def anchor(self, value: Anchor) -> None:
+        """Set the image anchor, keeping ``pos`` fixed."""
+        point = self.pos
+        self.__dict__["anchor"] = value
+        self.move_to(point, anchor=value)
+
     @property
     def pos(self) -> PointType:
-        """The position of the image.
+        """Canvas point named by ``anchor``.
 
-        Returns:
-            PointType: The position of the image.
+        The default anchor is ``Anchor.CENTER``. With
+        ``Anchor.SOUTHWEST``, ``pos`` is the lower-left corner.
 
         Examples:
             >>> import simetri.graphics as sg
             >>> im = sg.Image(size=(4, 4), mode="RGB", pos=(5, 6))
             >>> im.pos[0], im.pos[1]
             (5.0, 6.0)
+            >>> im = sg.Image(
+            ...     size=(10, 20),
+            ...     mode="RGB",
+            ...     pos=(5, 6),
+            ...     anchor=sg.Anchor.SOUTHWEST,
+            ... )
+            >>> im.pos[0], im.pos[1]
+            (5.0, 6.0)
         """
-        return self.midpoint
+        name = get_enum_value(Anchor, self.__dict__["anchor"])
+        if name == "center":
+            name = "midpoint"
+        return getattr(self.b_box, name)
 
     @pos.setter
     def pos(self, point: PointType) -> None:
-        """Set the position of the image.
+        """Move the image so ``anchor`` lands on ``point``.
+
+        This is the same move as ``move_to(point, anchor=self.anchor)``.
 
         Args:
-            point (PointType): The new position of the image.
+            point (PointType): The new canvas point for ``anchor``.
 
         Examples:
             >>> import simetri.graphics as sg
@@ -356,11 +437,19 @@ class Image(Rectangle):
             >>> im.pos = (10, 20)
             >>> im.pos[0], im.pos[1]
             (10.0, 20.0)
+            >>> im = sg.Image(
+            ...     size=(10, 20),
+            ...     mode="RGB",
+            ...     anchor=sg.Anchor.SOUTHWEST,
+            ... )
+            >>> _ = im.scale(0.5)
+            >>> im.pos = (30, 40)
+            >>> im.pos[0], im.pos[1]
+            (30.0, 40.0)
+            >>> im.southwest[0], im.southwest[1]
+            (30.0, 40.0)
         """
-        x, y = self.pos[:2]
-        dx = point[0] - x
-        dy = point[1] - y
-        self.xform_matrix = translation_matrix(dx, dy) @ self.xform_matrix
+        self.move_to(point, anchor=self.__dict__["anchor"])
 
     @property
     def pil_img(self) -> PIL_Image.Image:
@@ -414,43 +503,47 @@ class Image(Rectangle):
         return self.pil_img.mode
 
     @property
-    def size(self) -> tuple[int, int]:
-        """Width and height in pixels.
+    def size(self) -> tuple[int | float, int | float]:
+        """Drawn width and height.
+
+        Unscaled, this is the pixel size. ``scale`` multiplies both axes.
 
         Examples:
             >>> import simetri.graphics as sg
             >>> sg.Image(size=(5, 7), mode="RGB").size
             (5, 7)
+            >>> im = sg.Image(size=(10, 20), mode="RGB")
+            >>> _ = im.scale(0.6)
+            >>> im.size
+            (6.0, 12.0)
         """
-        return self.pil_img.size
+        return (self.width, self.height)
 
     @property
-    def width(self) -> int:
-        """The width of the image.
+    def width(self) -> int | float:
+        """Drawn width of the image.
 
-        Returns:
-            int: The width of the image in pixels.
+        Unscaled, this is the pixel width. ``scale`` multiplies it.
 
         Examples:
             >>> import simetri.graphics as sg
             >>> sg.Image(size=(5, 7), mode="RGB").width
             5
         """
-        return self.pil_img.size[0]
+        return self._drawn_extent(self.pil_img.size[0], 0)
 
     @property
-    def height(self) -> int:
-        """The height of the image.
+    def height(self) -> int | float:
+        """Drawn height of the image.
 
-        Returns:
-            int: The height of the image in pixels.
+        Unscaled, this is the pixel height. ``scale`` multiplies it.
 
         Examples:
             >>> import simetri.graphics as sg
             >>> sg.Image(size=(5, 7), mode="RGB").height
             7
         """
-        return self.pil_img.size[1]
+        return self._drawn_extent(self.pil_img.size[1], 1)
 
     @property
     def info(self) -> dict[str, object]:
@@ -617,11 +710,12 @@ class Image(Rectangle):
             >>> copy.width, copy is not im
             (4, True)
         """
-        img = Image(pos=self.pos, img=self.pil_img.copy())
+        img = Image(
+            pos=self.pos, img=self.pil_img.copy(), anchor=self.anchor
+        )
         img.primary_points = self.primary_points.copy()
         img.xform_matrix = self.xform_matrix
         img.file_path = self.file_path
-        img.anchor = self.anchor
 
         for k, v in kwargs.items():
             setattr(img, k, v)

@@ -94,6 +94,19 @@ from ..geom.points.point_utils import *
 from ..geom.polygons.arrangement import prune_shapes
 from ..group.merge import combine_shapes
 from ..geom.polygons.convex_hull import convex_hull
+from ..geom.polygons.dcel import (
+    DCEL,
+    Face,
+    HalfEdge,
+    SplitEdgeResult,
+    SplitFaceResult,
+    SplitResult,
+    create_square_patch,
+    difference,
+    get_face_vertices,
+    overlay,
+    union,
+)
 from ..geom.polygons.polygon import *
 from ..geom.polygons.polygon_utils import *
 from ..geom.polygons.triangles import *
@@ -171,6 +184,19 @@ LinPath = Path2D
 # Explicit public re-exports (star-imports can drop or shadow these).
 from ..config.settings import defaults, temp_defaults, user_defaults
 from ..base.common_style import Style
+from ..geom.polygons.dcel import (
+    DCEL,
+    Face,
+    HalfEdge,
+    SplitEdgeResult,
+    SplitFaceResult,
+    SplitResult,
+    create_square_patch,
+    difference,
+    get_face_vertices,
+    overlay,
+    union,
+)
 from ..helpers.help_utils import _similar_sg_attribute_names, doc, help
 from ..render.render_svg.svg_utils import (
     extract_glyph_path,

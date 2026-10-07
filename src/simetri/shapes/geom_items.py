@@ -202,6 +202,22 @@ class Line(Shape):
         self.subtype = Types.LINE
         self.extent = extent
 
+    def __repr__(self) -> str:
+        """Return a Line string from this line's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Line((0, 0), (10, 0)))
+            'Line(((0.0, 0.0), (10.0, 0.0)))'
+            >>> str(sg.Line((0, 0), (10, 0)))
+            'Shape(((0.0, 0.0), (10.0, 0.0)))'
+        """
+        if len(self.primary_points) == 0:
+            return "Line()"
+        if len(self.primary_points) < 4:
+            return f"Line({self.vertices})"
+        return f"Line([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
     def __setattr__(self, name: str, value: object) -> None:
         if name == "draw_type":
             name = "extent"
@@ -401,6 +417,22 @@ class Rectangle(Shape):
         super().__init__(vertices, closed=True, **kwargs)
         self.subtype = Types.RECTANGLE
 
+    def __repr__(self) -> str:
+        """Return a Rectangle string from this rectangle's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Rectangle(40, 20))
+            'Rectangle([(-20.0, -10.0), ..., (-20.0, 10.0)])'
+            >>> str(sg.Rectangle(40, 20)).startswith("Shape")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "Rectangle()"
+        if len(self.primary_points) < 4:
+            return f"Rectangle({self.vertices})"
+        return f"Rectangle([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
     def __setattr__(self, name: str, value: object) -> None:
         """Set an attribute of the rectangle.
 
@@ -540,6 +572,22 @@ class Square(Rectangle):
         super().__init__(size, size, center, angle, **kwargs)
         self.subtype = Types.SQUARE
 
+    def __repr__(self) -> str:
+        """Return a Square string from this square's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Square(40))
+            'Square([(-20.0, -20.0), ..., (-20.0, 20.0)])'
+            >>> str(sg.Square(40)).startswith("Shape")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "Square()"
+        if len(self.primary_points) < 4:
+            return f"Square({self.vertices})"
+        return f"Square([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
 
 class Rectangle2(Rectangle):
     """A rectangle defined by two opposite corners.
@@ -570,6 +618,24 @@ class Rectangle2(Rectangle):
         width = x_max - x_min
         height = y_max - y_min
         super().__init__(width, height, center, **kwargs)
+
+    def __repr__(self) -> str:
+        """Return a Rectangle string from this rectangle's vertices.
+
+        The subtype is ``RECTANGLE``, so the name is Rectangle.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Rectangle2((0, 0), (10, 4)))
+            'Rectangle([(0.0, 0.0), ..., (0.0, 4.0)])'
+            >>> str(sg.Rectangle2((0, 0), (10, 4))).startswith("Shape")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "Rectangle()"
+        if len(self.primary_points) < 4:
+            return f"Rectangle({self.vertices})"
+        return f"Rectangle([{self.vertices[0]}, ..., {self.vertices[-1]}])"
 
 
 class Circle(Shape):
@@ -612,6 +678,22 @@ class Circle(Shape):
         super().__init__(points, xform_matrix=xform_matrix, **kwargs)
         self.subtype = Types.CIRCLE
         self._radius = radius
+
+    def __repr__(self) -> str:
+        """Return a Circle string from this circle's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Circle(radius=10, center=(5, 5)))
+            'Circle(((5.0, 5.0),))'
+            >>> str(sg.Circle(radius=10, center=(5, 5)))
+            'Shape(((5.0, 5.0),))'
+        """
+        if len(self.primary_points) == 0:
+            return "Circle()"
+        if len(self.primary_points) < 4:
+            return f"Circle({self.vertices})"
+        return f"Circle([{self.vertices[0]}, ..., {self.vertices[-1]}])"
 
     def __setattr__(self, name: str, value: object) -> None:
         """Set an attribute of the circle.

@@ -121,6 +121,20 @@ class BoundingBox:
 
         self.id = get_unique_id(self)
 
+    def __repr__(self) -> str:
+        """Return a BoundingBox string from the opposite corners.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.BoundingBox((0, 0), (10, 20)))
+            'BoundingBox((0, 0), (10, 20))'
+            >>> repr(sg.BoundingBox())
+            'BoundingBox()'
+        """
+        if self.southwest is None or self.northeast is None:
+            return "BoundingBox()"
+        return f"BoundingBox({self.southwest!r}, {self.northeast!r})"
+
     def __getattr__(self, name: str) -> Any:
         """
         Get the attribute with the given name.

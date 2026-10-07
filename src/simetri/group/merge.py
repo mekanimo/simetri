@@ -169,6 +169,10 @@ def _merge_shapes(
                 shape = Shape(vertices)
                 new_shapes.append(shape)
 
+    style_source = self.elements[0]
+    for shape in new_shapes:
+        shape.copy_style(style_source)
+
     group = Group(new_shapes)
     for k, v in kwargs.items():
         group.set_attribs(k, v)

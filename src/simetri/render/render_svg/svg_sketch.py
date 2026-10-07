@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import html
 import io
+import mimetypes
+import os
 import re
 from collections.abc import Callable, Collection
 from dataclasses import dataclass
@@ -83,6 +86,16 @@ class SvgSketch:
         """Set sketch type tags for inserted SVG fragments."""
         self.type = Types.SKETCH
         self.subtype = Types.SVG_SKETCH
+
+    def __repr__(self) -> str:
+        """Return an SvgSketch string from the markup and location.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.SvgSketch(code="<g/>"))
+            "SvgSketch(code='<g/>', location=<SvgLoc.NONE: 'NONE'>)"
+        """
+        return f"SvgSketch(code={self.code!r}, location={self.location!r})"
 
 
 @dataclass
@@ -821,6 +834,39 @@ def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
     return content
 
 
+def _svg_image_data_href(sketch: ImageSketch) -> str:
+    """Return a data-URI href for an image sketch.
+
+    Uses the original file bytes when ``file_path`` is set. Otherwise
+    encodes ``sketch.image.pil_img``.
+
+    Raises:
+        FileNotFoundError: If ``file_path`` is set and the file is missing.
+        ValueError: If there is no file path and no Pillow image to encode.
+    """
+    file_path = sketch_attrib(sketch, "file_path")
+    if file_path is not None:
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File {file_path} not found.")
+        with open(file_path, "rb") as image_file:
+            data = image_file.read()
+        mime_type, _encoding = mimetypes.guess_type(file_path)
+        if mime_type is None:
+            mime_type = "image/png"
+    else:
+        image = sketch.image
+        pil_img = image.pil_img
+        buffer = io.BytesIO()
+        image_format = pil_img.format or "PNG"
+        pil_img.save(buffer, format=image_format)
+        data = buffer.getvalue()
+        mime_type = f"image/{image_format.lower()}"
+        if mime_type == "image/jpg":
+            mime_type = "image/jpeg"
+    encoded = base64.b64encode(data).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
+
+
 def draw_image_sketch(sketch: ImageSketch) -> str:
     """Serialize an ``ImageSketch`` to an SVG ``<image>`` element.
 
@@ -849,8 +895,9 @@ def draw_image_sketch(sketch: ImageSketch) -> str:
     # Get anchor offset
     anchor = sketch_attrib(sketch, "anchor")
 
-    # Calculate anchor offset
-    # In SVG, image x,y is at top-left, so we need to adjust based on anchor
+    # Calculate anchor offset in the y-up frame used after the local
+    # counter-flip below. That flip leaves the image lower-left at the
+    # origin, so southwest needs no extra shift.
     def _anchor_offset(
         anchor: Anchor, width: float, height: float
     ) -> tuple[float, float]:
@@ -858,21 +905,21 @@ def draw_image_sketch(sketch: ImageSketch) -> str:
             case Anchor.CENTER:
                 res = (-width / 2, -height / 2)
             case Anchor.NORTH:
-                res = (-width / 2, 0)
-            case Anchor.SOUTH:
                 res = (-width / 2, -height)
+            case Anchor.SOUTH:
+                res = (-width / 2, 0)
             case Anchor.EAST:
                 res = (-width, -height / 2)
             case Anchor.WEST:
                 res = (0, -height / 2)
             case Anchor.NORTHEAST:
-                res = (-width, 0)
-            case Anchor.NORTHWEST:
-                res = (0, 0)
-            case Anchor.SOUTHEAST:
                 res = (-width, -height)
-            case Anchor.SOUTHWEST:
+            case Anchor.NORTHWEST:
                 res = (0, -height)
+            case Anchor.SOUTHEAST:
+                res = (-width, 0)
+            case Anchor.SOUTHWEST:
+                res = (0, 0)
 
         return res
 
@@ -897,11 +944,11 @@ def draw_image_sketch(sketch: ImageSketch) -> str:
         f' transform="{" ".join(transforms)}"' if transforms else ""
     )
 
-    # Use href (modern SVG) or xlink:href (legacy)
-    file_path = sketch_attrib(sketch, "file_path")
+    # Embed the raster so viewers can show the SVG without a local path.
+    href = _svg_image_data_href(sketch)
 
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)
-    return f'<image x="0" y="0" width="{width}" height="{height}" href="{file_path}"{transform_attr}{clip_attr}{mask_attr} />'
+    return f'<image x="0" y="0" width="{width}" height="{height}" href="{href}"{transform_attr}{clip_attr}{mask_attr} />'
 
 
 # Friendly name → matplotlib mathtext.fontset mapping

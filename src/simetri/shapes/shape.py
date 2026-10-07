@@ -93,6 +93,7 @@ from ..geom.polygons.polygon import (
     polyline_length,
 )
 from ..group.batch import Group
+from ..group.merge import combine_shapes
 from ..helpers.utilities import (
     decompose_transformations,
     get_transform,
@@ -633,7 +634,12 @@ class Shape(Base, CommonStyle):
             res = Group(shapes)
 
         if merge and reps > 0:
-            return res.merge_shapes()
+            merged = combine_shapes(res)
+            for shape in merged:
+                shape.copy_style(self)
+            if len(merged) == 1:
+                return merged[0]
+            return merged
 
         return res
 
@@ -2329,6 +2335,20 @@ class Clipping:
     def __post_init__(self) -> None:
         self.type = Types.CLIPPING
         self.subtype = Types.CLIPPING
+
+    def __repr__(self) -> str:
+        """Return a Clipping string from the target and clipper.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> pair = sg.Clipping(
+            ...     sg.Shape([(0, 0), (1, 0)]),
+            ...     sg.Shape([(0, 0), (1, 0), (0, 1)], closed=True),
+            ... )
+            >>> repr(pair)
+            'Clipping(target=Shape(((0.0, 0.0), (1.0, 0.0))), clipper=Shape(((0.0, 0.0), (1.0, 0.0), (0.0, 1.0))))'
+        """
+        return f"Clipping(target={self.target!r}, clipper={self.clipper!r})"
 
 
 def polygon_diff(

@@ -58,6 +58,16 @@ class HopDef:
         self.subtype = Types.HOP_DEF
         self._build_pattern()
 
+    def __repr__(self) -> str:
+        """Return a HopDef string from dx, dy, and reps.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.HopDef(dx=20, reps=2))
+            'HopDef(dx=20, dy=0, reps=2)'
+        """
+        return f"HopDef(dx={self.dx!r}, dy={self.dy!r}, reps={self.reps!r})"
+
     def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
         if name == "reps" and "pattern_def" in self.__dict__:
@@ -109,6 +119,20 @@ class StepDef:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.STEP_DEF
         self._build_pattern()
+
+    def __repr__(self) -> str:
+        """Return a StepDef string from the glide parameters.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.StepDef(mirror_offset=0, distance=10, reps=1))
+            "StepDef(mirror_offset=0, distance=10, side=<Reference.BOTTOM: 'bottom'>, reps=1)"
+        """
+        return (
+            f"StepDef(mirror_offset={self.mirror_offset!r}, "
+            f"distance={self.distance!r}, side={self.side!r}, "
+            f"reps={self.reps!r})"
+        )
 
     def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
@@ -171,6 +195,20 @@ class JumpDef:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.JUMP_DEF
         self._build_pattern()
+
+    def __repr__(self) -> str:
+        """Return a JumpDef string from the mirror and translation parameters.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.JumpDef(mirror_offset=0, distance=20, reps=1))
+            "JumpDef(mirror_offset=0, distance=20, side=<Reference.BOTTOM: 'bottom'>, reps=1)"
+        """
+        return (
+            f"JumpDef(mirror_offset={self.mirror_offset!r}, "
+            f"distance={self.distance!r}, side={self.side!r}, "
+            f"reps={self.reps!r})"
+        )
 
     def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
@@ -236,6 +274,19 @@ class SidleDef:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SIDLE_DEF
         self._build_pattern()
+
+    def __repr__(self) -> str:
+        """Return a SidleDef string from the mirror and translation parameters.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.SidleDef(mirror_offset=0, dx=30, reps=1))
+            'SidleDef(mirror_offset=0, dx=30, reps=1)'
+        """
+        return (
+            f"SidleDef(mirror_offset={self.mirror_offset!r}, "
+            f"dx={self.dx!r}, reps={self.reps!r})"
+        )
 
     def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
@@ -305,6 +356,19 @@ class SpinningHopDef:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_HOP_DEF
         self._build_pattern()
+
+    def __repr__(self) -> str:
+        """Return a SpinningHopDef string from the rotation and translation.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.SpinningHopDef((0, 0), dx=20, reps=1))
+            'SpinningHopDef(rotocenter=(0, 0), dx=20, dy=0, reps=1)'
+        """
+        return (
+            f"SpinningHopDef(rotocenter={self.rotocenter!r}, "
+            f"dx={self.dx!r}, dy={self.dy!r}, reps={self.reps!r})"
+        )
 
     def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
@@ -377,6 +441,20 @@ class SpinningJumpDef:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_JUMP_DEF
         self._build_pattern()
+
+    def __repr__(self) -> str:
+        """Return a SpinningJumpDef string from the mirrors and translation.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.SpinningJumpDef(0, 0, dx=20, reps=1))
+            'SpinningJumpDef(mirror_offset1=0, mirror_offset2=0, dx=20, dy=0, reps=1)'
+        """
+        return (
+            f"SpinningJumpDef(mirror_offset1={self.mirror_offset1!r}, "
+            f"mirror_offset2={self.mirror_offset2!r}, dx={self.dx!r}, "
+            f"dy={self.dy!r}, reps={self.reps!r})"
+        )
 
     def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)
@@ -457,6 +535,20 @@ class SpinningSidleDef:
         self.type = Types.PATTERN_DEF
         self.subtype = Types.SPINNING_SIDLE_DEF
         self._build_pattern()
+
+    def __repr__(self) -> str:
+        """Return a SpinningSidleDef string from the mirror, glide, and translation.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.SpinningSidleDef(0, 10, dx=20, reps=1))
+            'SpinningSidleDef(mirror_offset=0, glide_distance=10, dx=20, dy=0, reps=1)'
+        """
+        return (
+            f"SpinningSidleDef(mirror_offset={self.mirror_offset!r}, "
+            f"glide_distance={self.glide_distance!r}, dx={self.dx!r}, "
+            f"dy={self.dy!r}, reps={self.reps!r})"
+        )
 
     def __setattr__(self, name: str, value: object) -> None:
         super().__setattr__(name, value)

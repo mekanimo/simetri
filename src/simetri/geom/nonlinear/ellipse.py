@@ -146,6 +146,23 @@ class Arc(Shape):
         _b = [0, radius_y, 1]
         self._orig_triangle = [self._c[:], _a, _b]
 
+    def __repr__(self) -> str:
+        """Return an Arc string from this arc's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> arc = sg.Arc((0, 0), 10, start_angle=0, span_angle=sg.pi / 2)
+            >>> repr(arc).startswith("Arc([")
+            True
+            >>> str(arc).startswith("Shape")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "Arc()"
+        if len(self.primary_points) < 4:
+            return f"Arc({self.vertices})"
+        return f"Arc([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
     def __setattr__(self, name: str, value: object) -> None:
         """Set an attribute of the arc.
 
@@ -379,6 +396,23 @@ class Ellipse(Shape):
         self.smooth = True
         self.closed = True
         self.subtype = Types.ELLIPSE
+
+    def __repr__(self) -> str:
+        """Return an Ellipse string from this ellipse's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> ell = sg.Ellipse(80, 40)
+            >>> repr(ell).startswith("Ellipse([")
+            True
+            >>> str(ell).startswith("Shape")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "Ellipse()"
+        if len(self.primary_points) < 4:
+            return f"Ellipse({self.vertices})"
+        return f"Ellipse([{self.vertices[0]}, ..., {self.vertices[-1]}])"
 
     def __setattr__(self, name: str, value: object) -> None:
         """Set an attribute of the ellipse.

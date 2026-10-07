@@ -48,7 +48,7 @@ from ..geom.nonlinear.path import (
     path2d_to_svg_path,
 )
 from ..geom.polygons.convex_hull import convex_hull
-from ..geom.polygons.polygon import offset_polygon
+from ..geom.polygons.polygon import offset_polygon, polygon_area
 from ..geom.segments.line_utils import (
     inclination_angle,
     intersect,
@@ -150,7 +150,7 @@ def help_lines(
         True
         >>> len(canvas.active_page.sketches) > 0
         True
-"""
+    """
     if deferred:
         style_source = SimpleNamespace(type=Types.SKETCH)
 
@@ -160,7 +160,9 @@ def help_lines(
         if "line_color" not in grid_kwargs and "color" not in grid_kwargs:
             grid_kwargs["line_color"] = runtime_defaults["grid_line_color"]
         if "line_dash_array" not in grid_kwargs:
-            grid_kwargs["line_dash_array"] = runtime_defaults["grid_line_dash_array"]
+            grid_kwargs["line_dash_array"] = runtime_defaults[
+                "grid_line_dash_array"
+            ]
         grid_style = self.resolve_style_properties(
             style_source,
             line_style_map,
@@ -267,7 +269,7 @@ def arc(
         True
         >>> canvas.active_page.sketches[-1].subtype.name
         'ARC_SKETCH'
-"""
+    """
     if radius_y is None:
         radius_y = radius_x
     signed_span = resolve_arc_sweep(
@@ -300,7 +302,9 @@ def arc(
     return self
 
 
-def bezier(self: Canvas, control_points: Sequence[PointType], **kwargs: object) -> Self:
+def bezier(
+    self: Canvas, control_points: Sequence[PointType], **kwargs: object
+) -> Self:
     """Draw a Bezier curve through the given control points.
 
     Args:
@@ -317,7 +321,7 @@ def bezier(self: Canvas, control_points: Sequence[PointType], **kwargs: object) 
         True
         >>> len(canvas.active_page.sketches)
         1
-"""
+    """
     self._all_vertices.extend(control_points)
     self._sketch_xform_matrix = self.xform_matrix
     sketch = BezierSketch(control_points, self._sketch_xform_matrix)
@@ -333,7 +337,9 @@ def bezier(self: Canvas, control_points: Sequence[PointType], **kwargs: object) 
     return self
 
 
-def circle(self: Canvas, radius: float, center: PointType = (0, 0), **kwargs: object) -> Self:
+def circle(
+    self: Canvas, radius: float, center: PointType = (0, 0), **kwargs: object
+) -> Self:
     """Draw a circle with the given radius and optional center.
 
     Args:
@@ -351,7 +357,7 @@ def circle(self: Canvas, radius: float, center: PointType = (0, 0), **kwargs: ob
         True
         >>> canvas.active_page.sketches[-1].subtype.name
         'CIRCLE_SKETCH'
-"""
+    """
     x, y = center[:2]
     p1 = x - radius, y - radius
     p2 = x + radius, y + radius
@@ -400,7 +406,7 @@ def ellipse(
         True
         >>> canvas.active_page.sketches[-1].subtype.name
         'ELLIPSE_SKETCH'
-"""
+    """
     x, y = center[:2]
     x_radius = width / 2
     y_radius = height / 2
@@ -459,7 +465,7 @@ def text(
         True
         >>> len(canvas.active_page.sketches)
         1
-"""
+    """
     # first create a Tag object
     tag_obj = Tag(
         txt,
@@ -538,7 +544,9 @@ def text_path(
     return self
 
 
-def line(self: Canvas, start: PointType, end: PointType, **kwargs: object) -> Self:
+def line(
+    self: Canvas, start: PointType, end: PointType, **kwargs: object
+) -> Self:
     """Draw a line segment from start to end.
 
     Args:
@@ -556,9 +564,10 @@ def line(self: Canvas, start: PointType, end: PointType, **kwargs: object) -> Se
         True
         >>> len(canvas.active_page.sketches)
         1
-"""
+    """
     self._sketch_xform_matrix = self.xform_matrix
     line_shape = Shape([start, end], closed=False, **kwargs)
+    extend_vertices(self, line_shape)
     line_sketch = create_sketch(line_shape, self, **kwargs)
     self.active_page.sketches.append(line_sketch)
     self._sketch_xform_matrix = identity_matrix()
@@ -592,7 +601,7 @@ def rectangle(
         True
         >>> len(canvas.active_page.sketches)
         1
-"""
+    """
     x, y = center[:2]
     w2 = width / 2
     h2 = height / 2
@@ -631,7 +640,7 @@ def draw_CS(self: Canvas, size: float | None = None, **kwargs: object) -> Self:
         True
         >>> len(canvas.active_page.sketches) >= 2
         True
-"""
+    """
     if size is None:
         size = runtime_defaults["CS_size"]
     if "colors" in kwargs:
@@ -668,7 +677,7 @@ def lines(self: Canvas, points: Sequence[PointType], **kwargs: object) -> Self:
         True
         >>> len(canvas.active_page.sketches)
         1
-"""
+    """
     self._all_vertices.extend(points)
     self._sketch_xform_matrix = self.xform_matrix
     sketch = LineSketch(points, self._sketch_xform_matrix, **kwargs)
@@ -796,7 +805,7 @@ def draw_latex(
         True
         >>> canvas.active_page.sketches[-1].visible
         False
-"""
+    """
     self._sketch_xform_matrix = self.xform_matrix
     sketch = LatexSketch(
         formula=formula,
@@ -863,7 +872,7 @@ def insert_svg(self: Canvas, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
         True
         >>> len(canvas.active_page.sketches)
         1
-"""
+    """
     active_sketches = self.active_page.sketches
     sketch = SvgSketch(code, location=location)
     active_sketches.append(sketch)
@@ -888,7 +897,7 @@ def insert_tex(self: Canvas, code: str, location: TexLoc = TexLoc.NONE) -> Self:
         True
         >>> len(canvas.active_page.sketches)
         1
-"""
+    """
     active_sketches = self.active_page.sketches
     sketch = TexSketch(code, location=location)
     active_sketches.append(sketch)
@@ -969,7 +978,7 @@ def draw_bbox(
         True
         >>> len(canvas.active_page.sketches) - before
         4
-"""
+    """
     border_style = _bbox_feature_style(border)
     centerlines_style = _bbox_feature_style(centerlines)
     diagonals_style = _bbox_feature_style(diagonals)
@@ -1015,9 +1024,7 @@ _GEOMETRIC_GRID_TYPES = frozenset(
 )
 
 
-def draw_geometric_grid(
-    self: Canvas, grid: Group, **kwargs: object
-) -> Self:
+def draw_geometric_grid(self: Canvas, grid: Group, **kwargs: object) -> Self:
     """Draw a geometric grid from ``connections``, ``skip``, ``border``,
     ``orthogonals``, ``diagonals``, and ``centerlines``.
 
@@ -1162,7 +1169,7 @@ def draw_pattern(self: Canvas, pattern: Pattern, **kwargs: object) -> Self:
         >>> from simetri.render.draw import draw_pattern
         >>> draw_pattern(canvas, pat) is canvas
         True
-"""
+    """
     active_sketches = self.active_page.sketches
     shapes = pattern.get_shapes()
     for shape in shapes:
@@ -1191,7 +1198,7 @@ def draw_group(self: Canvas, group: Group, **kwargs: object) -> Self:
         True
         >>> len(canvas.active_page.sketches)
         1
-"""
+    """
     sketch = create_sketch(group, self, **kwargs)
     self.active_page.sketches.append(sketch)
 
@@ -1259,7 +1266,7 @@ def draw_hobby(
         >>> canvas = sg.Canvas()
         >>> draw_hobby(canvas, [(0, 0), (10, 0)], [(5, 5), (5, -5)]) is canvas
         True
-"""
+    """
     n = len(points)
     if cyclic:
         for i in range(n):
@@ -1368,7 +1375,7 @@ def shade_value(angle: float) -> float:
         1.0
         >>> shade_value(0)
         0.0
-"""
+    """
     if not 0 <= angle <= 2 * pi:
         raise ValueError("Angle must be between 0 and 2 pi radians.")
 
@@ -1746,14 +1753,14 @@ def draw_lace_with_fillets(self: Canvas, lace: Lace, **kwargs: object) -> None:
     """
     fillet_radii = kwargs["fillet_radii"]
     remaining = {
-        name: value
-        for name, value in kwargs.items()
-        if name != "fillet_radii"
+        name: value for name, value in kwargs.items() if name != "fillet_radii"
     }
     draw_lace(self, lace, fillet_radii=fillet_radii, **remaining)
 
 
-def draw_plaits(self: Canvas, lace: Lace | None = None, **kwargs: object) -> None:
+def draw_plaits(
+    self: Canvas, lace: Lace | None = None, **kwargs: object
+) -> None:
     """Draw lace plaits, optionally using a plait style handler.
 
     Args:
@@ -1831,9 +1838,7 @@ def draw_fragments(
             threshold = runtime_defaults["area_threshold"]
     elif fragment_coloring == FragmentColoring.RADIUS:
         if lace is None:
-            raise ValueError(
-                "FragmentColoring.RADIUS requires a Lace object."
-            )
+            raise ValueError("FragmentColoring.RADIUS requires a Lace object.")
         center = lace.center
         items = [
             (distance(center, fragment.CG), fragment.id)
@@ -1841,9 +1846,7 @@ def draw_fragments(
         ]
         threshold = lace.radius_threshold
     else:
-        raise ValueError(
-            f"Unknown fragment_coloring: {fragment_coloring!r}"
-        )
+        raise ValueError(f"Unknown fragment_coloring: {fragment_coloring!r}")
 
     bins = group_into_bins(items, threshold)
 
@@ -1867,10 +1870,13 @@ def draw_fragments(
             draw(self, fragment, **draw_kwargs)
 
 
-def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs: object) -> None:
+def _handle_plait_innerlines(
+    canvas: Canvas, lace: Lace, **kwargs: object
+) -> None:
     """Handle INNERLINES plait style."""
     style_kwargs = _lace_style_kwargs(kwargs)
     for plait in lace.plaits:
+        extend_vertices(canvas, plait)
         canvas.active_page.sketches.append(
             create_sketch(plait, canvas, **style_kwargs)
         )
@@ -1898,6 +1904,7 @@ def _handle_plait_innerlines(canvas: Canvas, lace: Lace, **kwargs: object) -> No
             for i in range(len(plait.lerp_points[0])):
                 points = [pnts[i] for pnts in plait.lerp_points]
                 shape = Shape(points)
+                extend_vertices(canvas, shape)
                 sketch_kwargs = dict(style_kwargs)
                 if widths:
                     sketch_kwargs["line_width"] = plait.line_widths[i]
@@ -1960,6 +1967,7 @@ def _draw_default_plaits(
     for plait in plaits:
         draw_kwargs = dict(style_kwargs)
         draw_kwargs["fill_color"] = fill_color
+        extend_vertices(canvas, plait)
         canvas.active_page.sketches.append(
             create_sketch(plait, canvas, **draw_kwargs)
         )
@@ -2070,7 +2078,9 @@ def draw_lace(
     return self
 
 
-def draw_lines(self: Canvas, lines: Sequence[Sequence[PointType]], **kwargs: object) -> Self:
+def draw_lines(
+    self: Canvas, lines: Sequence[Sequence[PointType]], **kwargs: object
+) -> Self:
     """Draw a collection of line segments onto the canvas.
 
     Args:
@@ -2202,7 +2212,8 @@ def draw_image(
     Args:
         image: Image object to be drawn.
         position: Position to draw the image at.
-        scale: Scale to draw the image at.
+        scale: Extra scale applied on top of ``image.size``.
+            ``None`` uses ``(1, 1)``.
         **kwargs: Additional keyword arguments.
 
     Returns:
@@ -2221,20 +2232,18 @@ def draw_image(
     if not image.visible:
         return self
 
-    translation, rotation, decomposed_scale = decompose_transformations(
-        image.xform_matrix
-    )
+    _translation, rotation, _ = decompose_transformations(image.xform_matrix)
     if position is None:
         x, y = image.pos[:2]
     else:
         x, y = position[:2]
-    dx, dy = translation
-    pos = [x + dx, y + dy]
+    pos = [x, y]
 
     if scale is None:
-        scale = decomposed_scale
+        scale = (1, 1)
 
     self._sketch_xform_matrix = self.xform_matrix
+    extend_vertices(self, image)
     sketch = ImageSketch(
         image,
         pos=pos,
@@ -2318,6 +2327,30 @@ def draw_pdf(
         pos = pos[:2] if pos else (0, 0)
         scale = scale if scale is not None else 1.0
         file_path = pdf
+    if size is None:
+        placed = [pos]
+    else:
+        width, height = size
+        if isinstance(scale, (int, float)):
+            sx = sy = float(scale)
+        else:
+            sx, sy = float(scale[0]), float(scale[1])
+        half_w = width * sx / 2
+        half_h = height * sy / 2
+        x, y = pos[:2]
+        placed = [
+            (x - half_w, y - half_h),
+            (x + half_w, y - half_h),
+            (x + half_w, y + half_h),
+            (x - half_w, y + half_h),
+        ]
+        if angle:
+            placed = (
+                homogenize(placed) @ rotation_matrix(angle, (x, y))
+            ).tolist()
+    self._sketch_xform_matrix = self.xform_matrix
+    _extend_canvas_space_points(self, placed)
+    self._sketch_xform_matrix = identity_matrix()
     sketch = PDFSketch(
         file_path,
         pos=pos,
@@ -2367,31 +2400,24 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     if item.dim_line:
         _add_sketch(create_sketch(item.dim_line, self, **kwargs))
     if item.arrow1:
-        _add_sketch(create_sketch(item.arrow1, self, **kwargs))
+        _add_sketch(create_sketch(item.arrow1, self))
         _add_sketch(create_sketch(item.mid_line, self))
     if item.arrow2:
-        _add_sketch(create_sketch(item.arrow2, self, **kwargs))
+        _add_sketch(create_sketch(item.arrow2, self))
     x, y = item.text_pos[:2]
-    tag = Tag(
-        item.text,
-        (x, y),
-        font_size=item.font_size,
-        fill=True,
-        anchor=item.text_anchor,
-        align=item.text_align,
-        **kwargs,
-    )
+    tag_kwargs = dict(kwargs)
+    if "font_size" not in tag_kwargs:
+        tag_kwargs["font_size"] = item.font_size
+    if "anchor" not in tag_kwargs:
+        tag_kwargs["anchor"] = item.text_anchor
+    if "align" not in tag_kwargs:
+        tag_kwargs["align"] = item.text_align
+    if "fill" not in tag_kwargs:
+        tag_kwargs["fill"] = runtime_defaults["fill"]
+    tag = Tag(item.text, (x, y), **tag_kwargs)
     # extend vertices with the Tag's bounding box
     extend_vertices(self, tag)
-    tag_sketch = create_sketch(tag, self, **kwargs)
-    tag_sketch.draw_frame = True
-    tag_sketch.fill = True
-    tag_sketch.font_color = colors.black
-    tag_sketch.back_style = BackStyle.COLOR
-    tag_sketch.frame_back_color = colors.white
-    tag_sketch.back_color = colors.white
-    tag_sketch.stroke = False
-    self.active_page.sketches.append(tag_sketch)
+    self.active_page.sketches.append(create_sketch(tag, self, **kwargs))
 
     return self
 
@@ -2424,7 +2450,7 @@ def grid(
         True
         >>> len(canvas.active_page.sketches) > 0
         True
-"""
+    """
     x, y = pos[:2]
     if width is None:
         width = runtime_defaults["grid_size"]
@@ -2452,11 +2478,15 @@ regular_sketch_types = [
     Types.BEZIER,
     Types.CIRCLE,
     Types.CIRCULAR_GRID,
+    Types.DCEL,
     Types.DIVISION,
     Types.DOT,
     Types.DOTS,
+    Types.EDGE,
     Types.ELLIPSE,
+    Types.FACE,
     Types.FRAGMENT,
+    Types.HALF_EDGE,
     Types.HEX_GRID,
     Types.LINE,
     Types.MIXED_GRID,
@@ -2479,6 +2509,7 @@ regular_sketch_types = [
     Types.TABLE,
     Types.TAG,
     Types.TEXT_PATH,
+    Types.VERTEX,
 ]
 
 
@@ -2488,10 +2519,7 @@ def _canvas_space_points(
     """Map drawable points into current canvas sketch space."""
     if not points:
         return []
-    return [
-        x[:2]
-        for x in homogenize(points) @ canvas._sketch_xform_matrix
-    ]
+    return [x[:2] for x in homogenize(points) @ canvas._sketch_xform_matrix]
 
 
 def _extend_canvas_space_points(
@@ -2554,9 +2582,7 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         for plait in item.plaits:
             all_vertices.extend(_canvas_space_points(canvas, plait.corners))
         for fragment in item.fragments:
-            all_vertices.extend(
-                _canvas_space_points(canvas, fragment.corners)
-            )
+            all_vertices.extend(_canvas_space_points(canvas, fragment.corners))
     elif item.subtype == Types.PATH2D:
         vertices = [
             x[:2]
@@ -2564,10 +2590,8 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         ]
         all_vertices.extend(vertices)
     elif item.subtype == Types.PATTERN:
-        all_vertices.extend(
-            _canvas_space_points(canvas, item.all_vertices)
-        )
-    elif item.subtype in (Types.GROUP, Types.ANNOTATION):
+        all_vertices.extend(_canvas_space_points(canvas, item.all_vertices))
+    elif item.subtype in (Types.ANNOTATION, Types.DCEL, Types.GROUP):
         for element in item:
             extend_vertices(canvas, element)
     elif item.subtype == Types.FIGURE:
@@ -2583,7 +2607,9 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         all_vertices.extend(corners)
 
 
-def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object) -> Self:
+def draw(
+    self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
+) -> Self:
     """Draw an item on the canvas.
 
     Args:
@@ -2610,7 +2636,19 @@ def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
         Traceback (most recent call last):
             ...
         TypeError: Cannot draw a Lattice. Draw lattice.pattern instead.
-"""
+        >>> mesh = sg.DCEL()
+        >>> _ = mesh.build_from_polygons([[(0, 0), (10, 0), (10, 10), (0, 10)]])
+        >>> dcel_canvas = sg.Canvas()
+        >>> dcel_canvas.draw(mesh) is dcel_canvas
+        True
+        >>> len(dcel_canvas.active_page.sketches)
+        1
+        >>> labeled = sg.Canvas()
+        >>> labeled.draw(mesh, face_indices=True) is labeled
+        True
+        >>> len(labeled.active_page.sketches)
+        2
+    """
     try:
         draw_list = item.draw_list
     except AttributeError:
@@ -2659,12 +2697,21 @@ def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
                     ],
                 )
 
-    if subtype in (Types.GROUP, Types.STAR, Types.ANNOTATION):
+    if subtype in (Types.GROUP, Types.STAR, Types.ANNOTATION, Types.DCEL):
         group_kwargs = dict(kwargs)
         if kwargs.get("vertex_on_hull") and "_group_hull_points" not in kwargs:
             group_kwargs["_group_hull_points"] = convex_hull(
                 item.all_vertices, on_edge=True
             )
+        index_requested = False
+        face_index_requested = False
+        if subtype == Types.DCEL:
+            if "indices" in group_kwargs:
+                index_requested = bool(group_kwargs["indices"])
+                del group_kwargs["indices"]
+            if "face_indices" in group_kwargs:
+                face_index_requested = bool(group_kwargs["face_indices"])
+                del group_kwargs["face_indices"]
         if subtype == Types.GROUP and group_kwargs.get("non_zero"):
             compound_path = group_to_nonzero_path(item)
             active_sketches.extend(
@@ -2672,7 +2719,60 @@ def draw(self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
             )
         else:
             for group_item in item:
+                if subtype == Types.DCEL and group_item is item.outer_face:
+                    continue
                 draw(self, group_item, **group_kwargs)
+            if subtype == Types.DCEL:
+                for edge in item.edges:
+                    if edge.half_edge is None:
+                        continue
+                    left, right = edge.adjacent_faces()
+                    if left is not right:
+                        continue
+                    draw(self, edge, **group_kwargs)
+                if index_requested:
+                    points = [vertex.point for vertex in item.vertices]
+                    index_style: dict[str, object] = {
+                        "fill": False,
+                        "stroke": False,
+                        "indices": True,
+                    }
+                    for key in kwargs:
+                        if key == "indices" or key.startswith("index_"):
+                            index_style[key] = kwargs[key]
+                    if points:
+                        draw(self, Shape(points), **index_style)
+                if face_index_requested:
+                    tag_kwargs: dict[str, object] = {}
+                    if "index_font_size" in kwargs:
+                        tag_kwargs["font_size"] = kwargs["index_font_size"]
+                    if "index_font_color" in kwargs:
+                        tag_kwargs["font_color"] = kwargs["index_font_color"]
+                    if "index_font_family" in kwargs:
+                        tag_kwargs["font_family"] = kwargs["index_font_family"]
+                    for index, face in enumerate(item.faces):
+                        if face is item.outer_face:
+                            continue
+                        tag_obj = Tag(str(index), face.midpoint, **tag_kwargs)
+                        tag_obj.draw_frame = False
+                        draw(self, tag_obj)
+    elif subtype == Types.FACE and item.inner_boundaries:
+        # Holes belong to the face; same path as canvas.draw(group, non_zero=True).
+        if item.mesh is None:
+            raise ValueError("face with holes is not linked to a DCEL")
+        outer_points = [vertex.point for vertex in item.boundary_vertices()]
+        rings = [Shape(outer_points, closed=True)]
+        outer_area = polygon_area(outer_points)
+        for cycle in item.mesh.holes(item):
+            points = [vertex.point for vertex in cycle]
+            # group_to_nonzero_path reverses non-outer rings; feed matching
+            # winding (DCEL hole cycles are opposite the outer).
+            if polygon_area(points) * outer_area < 0:
+                points = list(reversed(points))
+            rings.append(Shape(points, closed=True))
+        hole_kwargs = dict(kwargs)
+        hole_kwargs["non_zero"] = True
+        draw(self, Group(rings), **hole_kwargs)
     elif subtype in regular_sketch_types:
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
@@ -2738,7 +2838,7 @@ def draw_all_segments(
         >>> shape = sg.Shape([(0, 0), (10, 0), (10, 10), (0, 10)])
         >>> canvas.draw_all_segments(shape) is canvas
         True
-"""
+    """
     segments = all_segments(item)
     count = 0
     for i, edge in enumerate(segments):
@@ -2783,9 +2883,7 @@ def get_clipped_sketch(
         'CLIPPED_SKETCH'
     """
     if target.type == Types.GROUP:
-        sketches = [
-            get_sketches(item, canvas, **kwargs) for item in target
-        ]
+        sketches = [get_sketches(item, canvas, **kwargs) for item in target]
     else:
         sketches = [get_sketches(target, canvas, **kwargs)]
     clipper = get_sketches(clipper, canvas)
@@ -2924,9 +3022,7 @@ def set_shape_sketch_style(
     elif "non_zero" in kwargs and kwargs["non_zero"] is not None:
         use_nonzero = bool(kwargs["non_zero"])
         sketch.even_odd = not use_nonzero
-        sketch.fill_mode = (
-            FillMode.NONZERO if use_nonzero else FillMode.EVENODD
-        )
+        sketch.fill_mode = FillMode.NONZERO if use_nonzero else FillMode.EVENODD
 
     for k, v in kwargs.items():
         if k in _PRESEDENCE_KEYS or k in _NON_STYLE_KEYS:
@@ -3037,7 +3133,7 @@ def get_verts_in_new_pos(item: Shape, **kwargs: object) -> list[PointType]:
         >>> shape = sg.Shape([(0, 0), (2, 0), (2, 2)])
         >>> get_verts_in_new_pos(shape, pos=(3, 1))[0]
         [2.0, 0.0]
-"""
+    """
     if "pos" in kwargs:
         x, y = item.midpoint[:2]
         x1, y1 = kwargs["pos"][:2]
@@ -3519,12 +3615,12 @@ def _get_image_sketch(
     Returns:
         ImageSketch: Created ImageSketch.
     """
-    _, rotation, scale = decompose_transformations(item.xform_matrix)
+    _, rotation, _ = decompose_transformations(item.xform_matrix)
     sketch = ImageSketch(
         item,
         pos=item.pos,
         angle=rotation,
-        scale=scale,
+        scale=(1, 1),
         anchor=item.anchor,
         size=item.size,
         file_path=item.file_path,
@@ -3565,11 +3661,15 @@ _d_subtype_sketch = {
     Types.BOUNDING_BOX: _get_bbox_sketch,
     Types.CIRCLE: _get_circle_sketch,
     Types.CIRCULAR_GRID: _get_composite_sketch,
+    Types.DCEL: _get_composite_sketch,
     Types.DIVISION: _get_sketch,
     Types.DOT: _get_circle_sketch,
     Types.DOTS: _get_dots_sketch,
+    Types.EDGE: _get_sketch,
     Types.ELLIPSE: _get_sketch,
+    Types.FACE: _get_sketch,
     Types.FRAGMENT: _get_sketch,
+    Types.HALF_EDGE: _get_sketch,
     Types.HANDLE: _get_handle_sketch,
     Types.HEX_GRID: _get_composite_sketch,
     Types.IMAGE: _get_image_sketch,
@@ -3596,6 +3696,7 @@ _d_subtype_sketch = {
     Types.TABLE: _get_table_sketch,
     Types.TAG: _get_tag_sketch,
     Types.TEXT_PATH: _get_text_path_sketch,
+    Types.VERTEX: _get_sketch,
 }
 
 

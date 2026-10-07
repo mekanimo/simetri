@@ -85,8 +85,16 @@ class Lines:
         return f"Lines({self.point_pairs})"
 
     def __repr__(self) -> str:
-        """Return a string representation of the lines."""
-        return f"Lines({self.point_pairs})"
+        """Return a Line string of these point pairs.
+
+        Examples:
+            >>> from simetri.shapes.lines import Lines
+            >>> repr(Lines([((0, 0), (1, 0))]))
+            'Line([((0, 0), (1, 0))])'
+            >>> str(Lines([((0, 0), (1, 0))])).startswith("Lines")
+            True
+        """
+        return f"Line({self.point_pairs})"
 
     def __getitem__(
         self, subscript: int | slice

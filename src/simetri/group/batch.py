@@ -51,6 +51,7 @@ from .merge import (
     _merge_collinears,
     _merge_shapes,
     _segment_angles,
+    combine_shapes,
 )
 
 if TYPE_CHECKING:
@@ -1213,7 +1214,10 @@ class Group(Base):
                 elements = new[:]
                 new = []
         if merge and reps > 0:
-            merged = self.merge_shapes()
+            style_source = self.elements[0]
+            merged = combine_shapes(self)
+            for shape in merged:
+                shape.copy_style(style_source)
             self[:] = merged.elements[:]
         # check if the bounding-boxes of the elements have changes
 

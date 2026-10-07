@@ -160,3 +160,20 @@ class Dots(Group):
         """
         dot = Dot(pos=pos, radius=radius, color=color, **kwargs)
         super().__init__([dot], subtype=Types.DOTS, **kwargs)
+
+    def __repr__(self) -> str:
+        """Return a Dots string from this group's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> dots = sg.Dots((0, 0), radius=1)
+            >>> repr(dots).startswith("Dots(")
+            True
+            >>> str(dots).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "Dots()"
+        if len(self.elements) in [1, 2]:
+            return f"Dots({self.elements})"
+        return f"Dots({self.elements[0]}...{self.elements[-1]})"

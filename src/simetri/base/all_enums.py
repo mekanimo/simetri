@@ -1097,6 +1097,74 @@ class PageSize(StrEnum):
     A5 = "a5paper"
     A6 = "a6paper"
 
+    def in_points(self) -> tuple[float, float]:
+        """Return ``(width, height)`` in points, portrait.
+
+        ISO sizes are millimetres. Letter, legal, and executive are
+        inches. One inch is 72 points.
+
+        Returns:
+            tuple[float, float]: Width and height in points.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> sg.PageSize.A3.in_points()
+            (841.89, 1190.55)
+            >>> sg.PageSize.LETTER.in_points()
+            (612.0, 792.0)
+        """
+        if self in _PAGE_SIZE_MM:
+            width_mm, height_mm = _PAGE_SIZE_MM[self]
+            return (
+                _millimetres_to_points(width_mm),
+                _millimetres_to_points(height_mm),
+            )
+        width_in, height_in = _PAGE_SIZE_INCHES[self]
+        return (
+            float(width_in * _POINTS_PER_INCH),
+            float(height_in * _POINTS_PER_INCH),
+        )
+
+
+_POINTS_PER_INCH = 72
+_MM_PER_INCH = 25.4
+
+
+def _millimetres_to_points(millimetres: float) -> float:
+    """Convert millimetres to points at 72 points per inch."""
+    return round(millimetres * _POINTS_PER_INCH / _MM_PER_INCH, 2)
+
+
+_PAGE_SIZE_INCHES: dict[PageSize, tuple[float, float]] = {
+    PageSize.LETTER: (8.5, 11),
+    PageSize.LEGAL: (8.5, 14),
+    PageSize.EXECUTIVE: (7.25, 10.5),
+}
+
+_PAGE_SIZE_MM: dict[PageSize, tuple[int, int]] = {
+    PageSize.B0: (1000, 1414),
+    PageSize.B1: (707, 1000),
+    PageSize.B2: (500, 707),
+    PageSize.B3: (353, 500),
+    PageSize.B4: (250, 353),
+    PageSize.B5: (176, 250),
+    PageSize.B6: (125, 176),
+    PageSize.B7: (88, 125),
+    PageSize.B8: (62, 88),
+    PageSize.B9: (44, 62),
+    PageSize.B10: (31, 44),
+    PageSize.B11: (22, 31),
+    PageSize.B12: (15, 22),
+    PageSize.B13: (11, 15),
+    PageSize.A0: (841, 1189),
+    PageSize.A1: (594, 841),
+    PageSize.A2: (420, 594),
+    PageSize.A3: (297, 420),
+    PageSize.A4: (210, 297),
+    PageSize.A5: (148, 210),
+    PageSize.A6: (105, 148),
+}
+
 
 class PathOperation(StrEnum):
     """PathOperation is used to set the type of path operation.
@@ -1522,6 +1590,7 @@ class Types(StrEnum):
     CS = "CS"
     CURVE = "CURVE"
     CURVE_SKETCH = "CURVE_SKETCH"
+    DCEL = "DCEL"
     DIMENSION = "DIMENSION"
     DIRECTED = "DIRECTED_GRAPH"
     DIVISION = "DIVISION"
@@ -1531,6 +1600,7 @@ class Types(StrEnum):
     ELLIPSE = "ELLIPSE"
     ELLIPSE_SKETCH = "ELLIPSE_SKETCH"
     ELLIPTIC_ARC = "ELLIPTIC_ARC"
+    FACE = "FACE"
     FILL_STYLE = "FILL_STYLE"
     FILTERED_SKETCH = "FILTERED_SKETCH"
     FIGURE = "FIGURE"
@@ -1547,6 +1617,7 @@ class Types(StrEnum):
     GRID_STYLE = "GRID_STYLE"
     GROUP = "GROUP"
     HANDLE = "HANDLE"
+    HALF_EDGE = "HALF_EDGE"
     HELPLINES_SKETCH = "HELPLINES_SKETCH"
     HEXAGONAL = "HEXAGONAL"
     HEX_GRID = "HEX_GRID"
@@ -1939,14 +2010,17 @@ drawable_types = {
     Types.BOUNDING_BOX,
     Types.CIRCLE,
     Types.CIRCULAR_GRID,
+    Types.DCEL,
     Types.DIMENSION,
     Types.DIVISION,
     Types.DOT,
     Types.DOTS,
     Types.EDGE,
     Types.ELLIPSE,
+    Types.FACE,
     Types.FRAGMENT,
     Types.GROUP,
+    Types.HALF_EDGE,
     Types.HEX_GRID,
     Types.IMAGE,
     Types.INTERSECTION,
@@ -1975,6 +2049,7 @@ drawable_types = {
     Types.TAG,
     Types.TEXT_PATH,
     Types.TURTLE,
+    Types.VERTEX,
 }
 
 shape_types = {
@@ -1986,7 +2061,9 @@ shape_types = {
     Types.CURVE,
     Types.DIVISION,
     Types.ELLIPSE,
+    Types.FACE,
     Types.FRAME,
+    Types.HALF_EDGE,
     Types.INTERSECTION,
     Types.LINE,
     Types.POLYLINE,
@@ -1994,6 +2071,7 @@ shape_types = {
     Types.SECTION,
     Types.SHAPE,
     Types.SINE_WAVE,
+    Types.VERTEX,
 }
 
 group_types = {
@@ -2003,6 +2081,7 @@ group_types = {
     Types.ARROW,
     Types.BATCH,
     Types.CIRCULAR_GRID,
+    Types.DCEL,
     Types.DIMENSION,
     Types.DOTS,
     Types.GROUP,

@@ -726,6 +726,27 @@ def inject_border_and_filepath(
     return code_save
 
 
+def forward_slash_path(path: str | os.PathLike[str]) -> str:
+    """Return ``path`` with backslashes written as forward slashes.
+
+    TeX and SVG accept this form on Linux, macOS, and Windows.
+
+    Args:
+        path: A filesystem path.
+
+    Returns:
+        str: The same path using ``/`` separators.
+
+    Examples:
+        >>> from simetri.helpers.file_operations import forward_slash_path
+        >>> forward_slash_path("C:\\\\FB\\\\m336_block_three_gr4.png")
+        'C:/FB/m336_block_three_gr4.png'
+        >>> forward_slash_path("/home/user/fig.png")
+        '/home/user/fig.png'
+    """
+    return os.fspath(path).replace("\\", "/")
+
+
 def path_join(
     path: str | os.PathLike[str], *paths: str | os.PathLike[str]
 ) -> str:

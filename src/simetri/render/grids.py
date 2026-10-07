@@ -514,6 +514,23 @@ class CircularGrid(Grid):
 
         self.append(Circle(radius, center, fill=False))
 
+    def __repr__(self) -> str:
+        """Return a CircularGrid string from this grid's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> grid = sg.CircularGrid(n=6, radius=20)
+            >>> repr(grid).startswith("CircularGrid(")
+            True
+            >>> str(grid).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "CircularGrid()"
+        if len(self.elements) in [1, 2]:
+            return f"CircularGrid({self.elements})"
+        return f"CircularGrid({self.elements[0]}...{self.elements[-1]})"
+
 
 class HexGrid(Grid):
     """A grid formed by connections of regular polygon points.
@@ -541,6 +558,23 @@ class HexGrid(Grid):
         super().__init__(
             GridType.HEXAGONAL, center, 6, radius, points, n_circles
         )
+
+    def __repr__(self) -> str:
+        """Return a HexGrid string from this grid's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> grid = sg.HexGrid(radius=50)
+            >>> repr(grid).startswith("HexGrid(")
+            True
+            >>> str(grid).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "HexGrid()"
+        if len(self.elements) in [1, 2]:
+            return f"HexGrid({self.elements})"
+        return f"HexGrid({self.elements[0]}...{self.elements[-1]})"
 
 
 class SquareGrid(Grid):
@@ -594,6 +628,23 @@ class SquareGrid(Grid):
         points = coords
         radius = (2 * (cell_size * sqrt(n)) ** 2) ** 0.5
         super().__init__(GridType.SQUARE, center, n, radius, points)
+
+    def __repr__(self) -> str:
+        """Return a SquareGrid string from this grid's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> grid = sg.SquareGrid(n=16, cell_size=25)
+            >>> repr(grid).startswith("SquareGrid(")
+            True
+            >>> str(grid).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "SquareGrid()"
+        if len(self.elements) in [1, 2]:
+            return f"SquareGrid({self.elements})"
+        return f"SquareGrid({self.elements[0]}...{self.elements[-1]})"
 
 
 # change of basis conversion

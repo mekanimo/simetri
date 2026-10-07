@@ -511,6 +511,22 @@ class Grid(Shape):
             [p1, p2], xform_matrix=None, subtype=Types.GRID, **kwargs
         )
 
+    def __repr__(self) -> str:
+        """Return a Grid string from this grid's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Grid((0, 0), (10, 10), 1, 1))
+            'Grid(((0.0, 0.0), (10.0, 10.0)))'
+            >>> str(sg.Grid((0, 0), (10, 10), 1, 1)).startswith("Shape")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "Grid()"
+        if len(self.primary_points) < 4:
+            return f"Grid({self.vertices})"
+        return f"Grid([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
 
 def _build_fading_code(
     fade_id: str,

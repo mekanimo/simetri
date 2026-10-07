@@ -99,6 +99,35 @@ class Bezier(Shape):
             raise ValueError("Invalid number of control points.")
         self.__dict__["control_points"] = control_points
 
+    def __repr__(self) -> str:
+        """Return a Bezier or Q_BEZIER string from this curve's vertices.
+
+        Subtype ``BEZIER`` prints ``Bezier``. Subtype ``Q_BEZIER`` prints
+        the enum token ``Q_BEZIER``.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> cubic = sg.Bezier(
+            ...     [(0, 0), (20, 40), (60, 40), (80, 0)], n_points=5
+            ... )
+            >>> repr(cubic)
+            'Bezier([(0.0, 0.0), ..., (80.0, 0.0)])'
+            >>> quad = sg.Bezier([(0, 0), (20, 40), (80, 0)], n_points=5)
+            >>> repr(quad)
+            'Q_BEZIER([(0.0, 0.0), ..., (80.0, 0.0)])'
+            >>> str(cubic).startswith("Shape")
+            True
+        """
+        if self.subtype == Types.Q_BEZIER:
+            name = "Q_BEZIER"
+        else:
+            name = "Bezier"
+        if len(self.primary_points) == 0:
+            return f"{name}()"
+        if len(self.primary_points) < 4:
+            return f"{name}({self.vertices})"
+        return f"{name}([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
     @property
     def control_points(self) -> Sequence[PointType]:
         """Return the control points of the Bezier curve.

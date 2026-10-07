@@ -46,6 +46,21 @@ class UniPoly(Shape):
         self.connected_edges = []
         self.connected_vertices = []
 
+    def __repr__(self) -> str:
+        """Return a UniPoly string from this polygon's vertices.
+
+        Examples:
+            >>> from simetri.tilings.unipatch import UniPoly
+            >>> poly = UniPoly(4)
+            >>> repr(poly).startswith("UniPoly(")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "UniPoly()"
+        if len(self.primary_points) < 4:
+            return f"UniPoly({self.vertices})"
+        return f"UniPoly([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
     def _snap(
         free_shape: UniPoly,
         ref1: float,
@@ -80,6 +95,20 @@ class UniPatch(Group):
         elements = self.init(signature)
         super().__init__(elements)
         self.subtype = Types.UNIPATCH
+
+    def __repr__(self) -> str:
+        """Return a UniPatch string from this patch's elements.
+
+        Examples:
+            >>> from simetri.tilings.unipatch import UniPatch
+            >>> repr(UniPatch(3)).startswith("UniPatch(")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "UniPatch()"
+        if len(self.elements) in [1, 2]:
+            return f"UniPatch({self.elements})"
+        return f"UniPatch({self.elements[0]}...{self.elements[-1]})"
 
     def init(self, signature: str | int | list[int]) -> None:
         """Build element list for ``signature`` (stub).

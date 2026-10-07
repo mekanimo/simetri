@@ -42,6 +42,8 @@ from simetri.base.all_enums import (
     FragmentColoring,
     ImageMode,
     MarkerType,
+    PageOrientation,
+    PageSize,
     PlaitStyle,
     Renderer,
     SvgLoc,
@@ -273,6 +275,21 @@ def warn_vertex_coord_label_sizing(canvas: Canvas) -> None:
     canvas._vertex_label_sizing_warned = True
 
 
+def _oriented_page_points(
+    page_size: PageSize, orientation: PageOrientation
+) -> tuple[float, float]:
+    """Return a standard page size in points for ``orientation``."""
+    width, height = page_size.in_points()
+    if orientation is PageOrientation.PORTRAIT:
+        return (width, height)
+    if orientation is PageOrientation.LANDSCAPE:
+        return (height, width)
+    raise ValueError(
+        "page_orientation must be PageOrientation.PORTRAIT "
+        "or PageOrientation.LANDSCAPE."
+    )
+
+
 class Canvas:
     """Main drawing surface for shapes, text, and pages.
 
@@ -296,8 +313,9 @@ class Canvas:
         self,
         back_color: Color | None = None,
         border: float | None = None,
-        page_size: VecType | None = None,
+        page_size: VecType | PageSize | None = None,
         page_origin: PointType | None = (0, 0),
+        page_orientation: PageOrientation = PageOrientation.PORTRAIT,
         **kwargs: object,
     ) -> None:
         """Create a canvas with optional background, border, and page size.
@@ -308,9 +326,14 @@ class Canvas:
             back_color: Background color of the canvas.
             border: Border width applied to all margins. Negative
                 values clip the output.
-            page_size: Page size with ``page_origin`` at ``(0, 0)``.
+            page_size: Page size in points, with ``page_origin`` at
+                ``(0, 0)``. A ``PageSize`` member is converted to points.
+                ``page_orientation`` swaps that pair for landscape.
                 Calculated automatically unless specified.
             page_origin: Origin of the page coordinate system.
+            page_orientation: ``PageOrientation.PORTRAIT`` or
+                ``PageOrientation.LANDSCAPE``. Used when ``page_size``
+                is a ``PageSize`` member.
             **kwargs: Style and positioning options such as ``fill``,
                 ``line_width``, ``line_color``, and ``fill_color``.
 
@@ -323,11 +346,23 @@ class Canvas:
             True
             >>> canvas.active_page.sketches
             []
+            >>> sg.Canvas(page_size=sg.PageSize.A3).page_size
+            (841.89, 1190.55)
+            >>> sg.Canvas(
+            ...     page_size=sg.PageSize.A3,
+            ...     page_orientation=sg.PageOrientation.LANDSCAPE,
+            ... ).page_size
+            (1190.55, 841.89)
         """
         validate_args(kwargs, canvas_args)
         _set_Nones(self, ["back_color", "border"], [back_color, border])
-        self._size = page_size
         self._origin = [0, 0]
+        self._page_orientation = PageOrientation.PORTRAIT
+        self._standard_page_size = None
+        self._size = None
+        self.page_orientation = page_orientation
+        if page_size is not None:
+            self.page_size = page_size
         self.border = border
         self.__dict__["margins"] = None
         self.__dict__["book_margins"] = None
@@ -512,11 +547,13 @@ class Canvas:
                 self.active_page.margins = margins
             self.__dict__["book_margins"] = book_margins
             self.__dict__["margins"] = margins
-        elif name in ["page_size", "page_origin", "limits"]:
+        elif name in ["page_size", "page_origin", "page_orientation", "limits"]:
             if name == "page_size":
                 type(self).page_size.fset(self, value)
             elif name == "page_origin":
                 type(self).page_origin.fset(self, value)
+            elif name == "page_orientation":
+                type(self).page_orientation.fset(self, value)
             elif name == "limits":
                 type(self).limits.fset(self, value)
         elif name == "size":
@@ -819,7 +856,7 @@ class Canvas:
         return self._size
 
     @page_size.setter
-    def page_size(self, value: VecType) -> None:
+    def page_size(self, value: VecType | PageSize) -> None:
         """
         Set the size of the page rectangle.
 
@@ -831,7 +868,15 @@ class Canvas:
             >>> canvas.page_size = (100, 200)
             >>> canvas.page_size
             (100, 200)
+            >>> canvas.page_size = sg.PageSize.A4
+            >>> canvas.page_size
+            (595.28, 841.89)
         """
+        if isinstance(value, PageSize):
+            self._standard_page_size = value
+            value = _oriented_page_points(value, self._page_orientation)
+        else:
+            self._standard_page_size = None
         if len(value) == 2:
             self._size = value
             x, y = self.page_origin[:2]
@@ -839,6 +884,60 @@ class Canvas:
             self._limits = (x, y, x + w, y + h)
         else:
             raise ValueError("page_size must be a tuple of 2 values.")
+
+    @property
+    def page_orientation(self) -> PageOrientation:
+        """Page orientation used for a standard ``page_size``.
+
+        Returns:
+            PageOrientation: Portrait or landscape.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> canvas = sg.Canvas(page_size=sg.PageSize.A3)
+            >>> canvas.page_orientation = sg.PageOrientation.LANDSCAPE
+            >>> canvas.page_size
+            (1190.55, 841.89)
+            >>> canvas.page_orientation = sg.PageOrientation.PORTRAIT
+            >>> canvas.page_size
+            (841.89, 1190.55)
+        """
+        return self._page_orientation
+
+    @page_orientation.setter
+    def page_orientation(self, value: PageOrientation) -> None:
+        """Set the orientation used for a standard ``page_size``.
+
+        A numeric ``page_size`` is left unchanged.
+
+        Args:
+            value: ``PageOrientation.PORTRAIT`` or
+                ``PageOrientation.LANDSCAPE``.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> canvas = sg.Canvas(page_size=(100, 200))
+            >>> canvas.page_orientation = sg.PageOrientation.LANDSCAPE
+            >>> canvas.page_size
+            (100, 200)
+        """
+        if (
+            value is PageOrientation.PORTRAIT
+            or value is PageOrientation.LANDSCAPE
+        ):
+            self._page_orientation = value
+        else:
+            raise ValueError(
+                "page_orientation must be PageOrientation.PORTRAIT "
+                "or PageOrientation.LANDSCAPE."
+            )
+        standard = self._standard_page_size
+        if standard is None:
+            return
+        width, height = _oriented_page_points(standard, value)
+        self._size = (width, height)
+        x, y = self.page_origin[:2]
+        self._limits = (x, y, x + width, y + height)
 
     @property
     def page_origin(self) -> VecType:

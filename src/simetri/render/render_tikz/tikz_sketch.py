@@ -27,6 +27,7 @@ from ...base.all_enums import (
 from ...config.settings import runtime_defaults
 from ...geom.geom_utils import close_points_square
 from ...geom.points.point_utils import round_point
+from ...helpers.file_operations import forward_slash_path
 from ...helpers.illustration import (
     label_font_family_tikz,
     label_halo_color,
@@ -83,6 +84,16 @@ class TexSketch:
         """Set sketch type tags for inserted TeX fragments."""
         self.type = Types.SKETCH
         self.subtype = Types.TEX_SKETCH
+
+    def __repr__(self) -> str:
+        """Return a TexSketch string from the source and location.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.TexSketch(code="x"))
+            "TexSketch(code='x', location=<TexLoc.NONE: 'NONE'>)"
+        """
+        return f"TexSketch(code={self.code!r}, location={self.location!r})"
 
 
 """TikZ Sketch"""
@@ -895,7 +906,15 @@ def draw_image_sketch(
         options.append(f"anchor = {anchor_to_tikz(sketch.anchor)}")
 
     # res = f"\\node[draw, {', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
-    res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
+    file_path = sketch.file_path
+    if file_path is not None:
+        file_path = forward_slash_path(file_path)
+    width, height = sketch.size
+    res = (
+        f"\\node[{', '.join(options)}]at({x}, {y}) "
+        f"{{\\includegraphics[width={width}pt,height={height}pt]"
+        f"{{{file_path}}}}};\n"
+    )
     end_scope = get_end_scope()
     if begin_scope:
         return begin_scope + res + end_scope
@@ -931,7 +950,10 @@ def draw_pdf_sketch(
     if sketch.anchor != Anchor.CENTER:
         options.append(f"anchor = {anchor_to_tikz(sketch.anchor)}")
 
-    res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
+    file_path = sketch.file_path
+    if file_path is not None:
+        file_path = forward_slash_path(file_path)
+    res = f"\\node[{', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{file_path}}}}};\n"
     end_scope = get_end_scope()
     if begin_scope:
         return begin_scope + res + end_scope

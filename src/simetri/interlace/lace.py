@@ -1122,6 +1122,24 @@ class ParallelPolyline(Group):
         self.overlaps = None
         self.under = under
 
+    def __repr__(self) -> str:
+        """Return a ParallelPolyline string from this group's elements.
+
+        Examples:
+            >>> from simetri.interlace.lace import ParallelPolyline, Polyline
+            >>> poly = Polyline([(0, 0), (10, 0), (5, 8)], closed=True)
+            >>> parallel = ParallelPolyline(poly, offset=2)
+            >>> repr(parallel).startswith("ParallelPolyline(")
+            True
+            >>> str(parallel).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "ParallelPolyline()"
+        if len(self.elements) in [1, 2]:
+            return f"ParallelPolyline({self.elements})"
+        return f"ParallelPolyline({self.elements[0]}...{self.elements[-1]})"
+
     @property
     def sections(self) -> list[Section]:
         """Return the sections of the parallel polyline.
@@ -1346,6 +1364,27 @@ class Lace(Group):
                 f"Lace does not own style attributes; unexpected keyword "
                 f"arguments: {sorted(kwargs)}"
             )
+
+    def __repr__(self) -> str:
+        """Return a Lace string from this lace's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> shp1 = sg.Shape(
+            ...     [(0, -70), (50, 70), (100, -70), (150, 70), (200, -70)]
+            ... )
+            >>> shp2 = sg.Line((-40, 0), (240, 0))
+            >>> lace = sg.Lace(sg.Group(shp1, shp2).scale(2), offset=12)
+            >>> repr(lace).startswith("Lace(")
+            True
+            >>> str(lace).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "Lace()"
+        if len(self.elements) in [1, 2]:
+            return f"Lace({self.elements})"
+        return f"Lace({self.elements[0]}...{self.elements[-1]})"
 
     @property
     def center(self) -> PointType:

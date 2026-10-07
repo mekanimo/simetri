@@ -364,8 +364,15 @@ def check_subtype(subtype: Any) -> bool:
         True
         >>> check_subtype("CIRCLE")
         False
-"""
-    return isinstance(subtype, Types)
+    """
+    if isinstance(subtype, Types):
+        return True
+    if not isinstance(subtype, enum.Enum):
+        return False
+    return (
+        type(subtype).__name__ == "Types"
+        and subtype.name in Types.__members__
+    )
 
 
 def check_mask(mask: Any) -> bool:

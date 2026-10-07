@@ -19,6 +19,7 @@ from ...base.all_enums import (
 )
 from ...coloring.colors import Color, check_color
 from ...config.settings import runtime_defaults, tikz_defaults
+from ...helpers.file_operations import forward_slash_path
 from ...shapes.shape import Shape
 from ..sketch import ShapeSketch, TagSketch
 from ..style_map import line_style_map, marker_style_map, shape_style_map
@@ -946,10 +947,11 @@ def transform_image(
     ty = _format_translation(m32, translation_unit)
 
     # `transform shape` ensures the \\includegraphics is transformed (not just the anchor).
+    image_path = forward_slash_path(image_url)
     return (
         "\\node[inner sep=0pt, transform shape, "
         f"cm={{{a},{b},{c},{d},({tx},{ty})}}] "
-        f"{{\\includegraphics{{{image_url}}}}};"
+        f"{{\\includegraphics{{{image_path}}}}};"
     )
 
 

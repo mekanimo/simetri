@@ -1684,6 +1684,22 @@ class ArrowHead(Shape):
 
         self.kwargs = kwargs
 
+    def __repr__(self) -> str:
+        """Return an ArrowHead string from this head's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.ArrowHead(length=8, width_=3))
+            'ArrowHead([(0.0, 0.0), ..., (0.0, 1.5)])'
+            >>> str(sg.ArrowHead(length=8, width_=3)).startswith("Shape")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "ArrowHead()"
+        if len(self.primary_points) < 4:
+            return f"ArrowHead({self.vertices})"
+        return f"ArrowHead([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
 
 def draw_cs_tiny(
     canvas: Any,
@@ -1913,6 +1929,23 @@ class ArcArrow(Group):
                 raise AttributeError(f"{k}. Invalid attribute!")
         self.xform_matrix = get_transform(xform_matrix)
 
+    def __repr__(self) -> str:
+        """Return an ArcArrow string from this arrow's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> arrow = sg.ArcArrow((0, 0), 20, start_angle=0, end_angle=sg.pi / 2)
+            >>> repr(arrow).startswith("ArcArrow(")
+            True
+            >>> str(arrow).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "ArcArrow()"
+        if len(self.elements) in [1, 2]:
+            return f"ArcArrow({self.elements})"
+        return f"ArcArrow({self.elements[0]}...{self.elements[-1]})"
+
 
 class RadialDimension(Group):
     """A RadialDimension object is a dimension that represents a radius.
@@ -1997,6 +2030,23 @@ class RadialDimension(Group):
         self._items = [self.arrow, self.tag]
 
         super().__init__(self._items, subtype=Types.RADIAL_DIMENSION, **kwargs)
+
+    def __repr__(self) -> str:
+        """Return a RadialDimension string from this dimension's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> dim = sg.RadialDimension((0, 0), 10)
+            >>> repr(dim).startswith("RadialDimension(")
+            True
+            >>> str(dim).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "RadialDimension()"
+        if len(self.elements) in [1, 2]:
+            return f"RadialDimension({self.elements})"
+        return f"RadialDimension({self.elements[0]}...{self.elements[-1]})"
 
 
 class Arrow(Group):
@@ -2089,6 +2139,23 @@ class Arrow(Group):
 
         items = [self.line] + self.heads
         super().__init__(items, subtype=Types.ARROW, **kwargs)
+
+    def __repr__(self) -> str:
+        """Return an Arrow string from this arrow's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> arrow = sg.Arrow((0, 0), (10, 0))
+            >>> repr(arrow).startswith("Arrow(")
+            True
+            >>> str(arrow).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "Arrow()"
+        if len(self.elements) in [1, 2]:
+            return f"Arrow({self.elements})"
+        return f"Arrow({self.elements[0]}...{self.elements[-1]})"
 
 
 def vec_arrow(
@@ -2228,6 +2295,23 @@ class AngularDimension(Group):
         self.text_offset = text_offset
         self.gap = gap
         super().__init__(subtype=Types.ANGULAR_DIMENSION, **kwargs)
+
+    def __repr__(self) -> str:
+        """Return an AngularDimension string from this dimension's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> dim = sg.AngularDimension((0, 0), 20, 0, sg.pi / 2, 0.1, 0.1)
+            >>> repr(dim)
+            'AngularDimension()'
+            >>> str(dim)
+            'Group()'
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "AngularDimension()"
+        if len(self.elements) in [1, 2]:
+            return f"AngularDimension({self.elements})"
+        return f"AngularDimension({self.elements[0]}...{self.elements[-1]})"
 
 
 class Dimension(Group):
@@ -2502,6 +2586,23 @@ class Dimension(Group):
             self.append(self.arrow1)
             self.append(self.arrow2)
             self.append(self.mid_line)
+
+    def __repr__(self) -> str:
+        """Return a Dimension string from this dimension's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> dim = sg.Dimension((0, 0), (10, 0), "up", 8)
+            >>> repr(dim).startswith("Dimension(")
+            True
+            >>> str(dim).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "Dimension()"
+        if len(self.elements) in [1, 2]:
+            return f"Dimension({self.elements})"
+        return f"Dimension({self.elements[0]}...{self.elements[-1]})"
 
 
 def vert_label_layout(shape: Shape, offset: float) -> list[dict[str, object]]:

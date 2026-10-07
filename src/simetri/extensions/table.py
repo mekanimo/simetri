@@ -1656,6 +1656,16 @@ class Table:
                 column = self._append_column(header)
                 column.set_format(align=align)
 
+    def __repr__(self) -> str:
+        """Return a Table string from this table's title.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> repr(sg.Table(title="Parameters"))
+            "Table(title='Parameters')"
+        """
+        return f"Table(title={self.title!r})"
+
     @property
     def columns(self) -> Range:
         """``Range`` over the grid; ``width`` sets column widths.

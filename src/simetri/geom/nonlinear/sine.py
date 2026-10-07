@@ -74,6 +74,25 @@ class SineWave(Shape):
         self.damping = damping
         self.rot_angle = rot_angle
 
+    def __repr__(self) -> str:
+        """Return a SineWave string from this wave's vertices.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> wave = sg.SineWave(
+            ...     period=40, amplitude=20, duration=80, n_points=4
+            ... )
+            >>> repr(wave).startswith("SineWave([")
+            True
+            >>> str(wave).startswith("Shape")
+            True
+        """
+        if len(self.primary_points) == 0:
+            return "SineWave()"
+        if len(self.primary_points) < 4:
+            return f"SineWave({self.vertices})"
+        return f"SineWave([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
     def copy_(self) -> SineWave:
         """Return a new ``SineWave`` with the same parameters.
 
