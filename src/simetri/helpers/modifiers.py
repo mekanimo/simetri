@@ -1,14 +1,32 @@
-"""Property modifiers applied over time to Group objects.
+"""Modifiers change each new element of a transformation with repetitions. Only Group objects
+can have modifiers. If we need to modify a single shape object then we can create a group
+with only one element and assign modifiers to this group.
+
+A modifier function can have zero or any number of arguments. This function is called
+during the repetitions of a transformation.
+Zero arguments: Nothing is passed.
+One argument: The element being transformed is passed.
+Two arguments: The element and the modifier object is passed.
+Three or more arguments and/or kwargs: The element, modifier, *modifier.args, and **modifier.kwargs
+
+
 
 Examples:
     >>> import simetri.graphics as sg
-    >>> def bump(element):
-    ...     element['n'] += 1
-    >>> target = {'n': 0}
-    >>> mod = sg.Modifier(bump, life_span=2, seed=0)
-    >>> mod.apply(target)
-    >>> target['n']
-    1
+    >>> def rotator(element, modifier, mult=1):
+    ...     element.rotate(mult * sg.pi / 2, about=element.center)
+    >>> def painter(element):
+    ...     element.fill_color = sg.change_lightness(
+    ...         element.fill_color, -0.2
+    ...     )
+    >>> square = sg.reg_poly_shape(4, 40)
+    >>> square.fill_color = sg.gold
+    >>> group = sg.Group([square])
+    >>> group.modifiers = [
+    ...     sg.Modifier(rotator, life_span=1),
+    ...     sg.Modifier(painter),
+    ... ]
+    >>> group.translate(80, 0, reps=15)
 """
 
 from __future__ import annotations
@@ -22,39 +40,40 @@ from ..base.all_enums import Control, State
 
 
 class Modifier:
-    """Used to modify the properties of a Group object.
+    """Change elements created by a transformation with repetitions.
+
+    Put modifiers on a group (``group.modifiers``). A transform with
+    ``reps`` copies each element, applies the transform, then calls
+    each modifier on that copy. A one-argument function receives the
+    element, as ``painter`` does. A function with further parameters
+    receives the element and this modifier, then the arguments stored
+    on the *modifier.args and **modifier.kwargs.
 
     Attributes:
-        function (callable): The function to modify the property.
-        life_span (int): The number of times the modifier can be applied.
-        randomness (float or callable): Determines the randomness of the modification.
-        condition (bool or callable): Condition to apply the modification.
-        state (State): The current state of the modifier.
-        _d_state (dict): Mapping of control states to modifier states.
-        count (int): Counter for the number of times the modifier has been applied.
-        args (tuple): Additional arguments for the function.
-        kwargs (dict): Additional keyword arguments for the function.
+        function (callable): Called on each transformed element.
+        life_span (int): How many transformed elements this modifier
+            still accepts.
+        randomness (float or callable): Whether the modifier is applied.
+        float is the percent chance that it will be applied and callable must return
+        True or False, if True then the modifier is applied
+        condition (bool or callable): Whether the modifier is applied.
+        state (State): The current state of the modifier. 'INITIAL', 'RUNNING', or 'STOPPED'.
+        count (int): How many times this modifier has run.
+        args (tuple): Extra positional arguments for the function.
+        kwargs (dict): Extra keyword arguments for the function.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> def bump(element):
-        ...     element['n'] += 1
-        >>> target = {'n': 0}
-        >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+        >>> def rotator(element, modifier):
+        ...     element.rotate(sg.pi / 2, about=element.center)
+        >>> square = sg.reg_poly_shape(4, 40)
+        >>> mod = sg.Modifier(rotator, life_span=2)
         >>> mod.state
         <State.INITIAL: 'INITIAL'>
-        >>> mod.apply(target)
-        >>> target['n']
-        1
-        >>> mod.state
-        <State.RUNNING: 'RUNNING'>
-        >>> mod.apply(target)
-        >>> target['n']
-        2
-        >>> mod.state
-        <State.STOPPED: 'STOPPED'>
-        >>> mod.apply(target)
-        >>> target['n']
+        >>> squares = sg.Group(square)
+        >>> squares.modifiers = [mod]
+        >>> squares.translate(square.width, 0, reps=4)
+        >>> mod.count
         2
     """
 
@@ -70,10 +89,9 @@ class Modifier:
     ) -> None:
         """
         Args:
-            function (callable): The function to modify the property.
-            life_span (int or callable, optional): The number of times the
-                modifier can be applied. Defaults to 10000.
-            randomness (float or callable, optional): Determines the randomness of the modification. Defaults to 1.0.
+            function (callable): Called on each transformed element.
+            life_span (int or callable, optional): How many times the modifier is applied.
+            randomness (float or callable, optional): Possibility of modifier being applied.
             condition (bool or callable, optional): Condition to apply the modification. Defaults to True.
             *args: Additional arguments for the function.
             seed (int, optional): Seed for a local RNG used by randomness checks.
@@ -108,9 +126,9 @@ class Modifier:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> def bump(element):
-            ...     element['n'] += 1
-            >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+            >>> def rotator(element, modifier):
+            ...     element.rotate(sg.pi / 2, about=element.center)
+            >>> mod = sg.Modifier(rotator, life_span=2)
             >>> 'lifespan:2' in repr(mod)
             True
             >>> 'randomness:1.0' in repr(mod)
@@ -131,9 +149,9 @@ class Modifier:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> def bump(element):
-            ...     element['n'] += 1
-            >>> mod = sg.Modifier(bump, life_span=2, seed=0)
+            >>> def rotator(element, modifier):
+            ...     element.rotate(sg.pi / 2, about=element.center)
+            >>> mod = sg.Modifier(rotator, life_span=2)
             >>> str(mod) == repr(mod)
             True
         """
@@ -147,9 +165,9 @@ class Modifier:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> def bump(element):
-            ...     element['n'] += 1
-            >>> mod = sg.Modifier(bump, seed=0)
+            >>> def rotator(element, modifier):
+            ...     element.rotate(sg.pi / 2, about=element.center)
+            >>> mod = sg.Modifier(rotator)
             >>> mod.set_state(sg.Control.STOP)
             >>> mod.state
             <State.STOPPED: 'STOPPED'>
@@ -175,9 +193,11 @@ class Modifier:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> def bump(element):
-            ...     element['n'] += 1
-            >>> mod = sg.Modifier(bump, seed=0)
+            >>> def painter(element):
+            ...     element.fill_color = sg.change_lightness(
+            ...         element.fill_color, -0.2
+            ...     )
+            >>> mod = sg.Modifier(painter)
             >>> mod.get_value(3, None)
             3
             >>> def halt(target):
@@ -198,13 +218,18 @@ class Modifier:
     def apply(self, element: object) -> Any | None:
         """Applies the modifier to an element.
 
-        If a function returns a control value, it will be applied to the modifier.
-        Control.STOP, Control.PAUSE, Control.RESUME, and Control.RESTART are the only control values.
-        Functions should have the following signature:
-        def funct(target, modifier, *args, **kwargs):
+        Called on each copy made by a transformation with repetitions.
+        A one-argument function receives the element, as ``painter`` does.
+        A function with further parameters receives the element, this
+        modifier, and the arguments stored on the modifier, as
+        ``rotator(element, modifier, mult=1)`` does. If the function
+        returns a control value, that value is applied to this modifier.
+        ``Control.STOP``, ``Control.PAUSE``, ``Control.RESUME``, and
+        ``Control.RESTART`` are the control values.
 
         Args:
-            element (object): The element to apply the modifier to.
+            element (object): The transformed element (mutated when the
+                modifier function changes it).
 
         Returns:
             object | None: The function result, or ``None`` if the modifier
@@ -212,25 +237,28 @@ class Modifier:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> def bump(element):
-            ...     element['n'] += 1
-            >>> target = {'n': 0}
-            >>> mod = sg.Modifier(bump, life_span=2, seed=0)
-            >>> mod.apply(target)
-            >>> target['n']
+            >>> def painter(element):
+            ...     element.fill_color = sg.change_lightness(
+            ...         element.fill_color, -0.2
+            ...     )
+            >>> square = sg.reg_poly_shape(4, 40)
+            >>> square.fill_color = sg.gold
+            >>> sg.Modifier(painter).apply(square)
+            >>> painted = sg.change_lightness(sg.gold, -0.2)
+            >>> square.fill_color == painted
+            True
+            >>> def rotator(element, modifier):
+            ...     element.rotate(sg.pi / 2, about=element.center)
+            ...     return modifier.count + 1
+            >>> square = sg.reg_poly_shape(4, 40)
+            >>> mod = sg.Modifier(rotator, life_span=2)
+            >>> mod.apply(square)
             1
-            >>> def counted(element, modifier):
-            ...     element['n'] += 1
-            ...     return element['n']
-            >>> target = {'n': 0}
-            >>> mod = sg.Modifier(counted, life_span=2, seed=0)
-            >>> mod.apply(target)
-            1
-            >>> mod.apply(target)
+            >>> mod.apply(square)
             2
-            >>> mod.apply(target)
-            >>> target['n']
-            2
+            >>> mod.apply(square)
+            >>> tuple(round(c, 6) for c in square.vertices[0][:2])
+            (-40.0, 0.0)
         """
         if self.active and self.can_continue(element):
             if self.n_func_args == 1:
@@ -239,8 +267,6 @@ class Modifier:
                 res = self.function(element, self, *self.args, **self.kwargs)
             self._update_state()
             return res
-        else:
-            self.state = State.STOPPED
 
     def can_continue(self, target: object) -> bool:
         """Checks if the modifier can continue to be applied.
@@ -253,18 +279,22 @@ class Modifier:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> def bump(element):
-            ...     element['n'] += 1
-            >>> mod = sg.Modifier(bump, life_span=2, seed=0)
-            >>> mod.can_continue({'n': 0})
+            >>> def rotator(element, modifier):
+            ...     element.rotate(sg.pi / 2, about=element.center)
+            >>> square = sg.reg_poly_shape(4, 40)
+            >>> mod = sg.Modifier(rotator, life_span=2)
+            >>> mod.can_continue(square)
             True
-            >>> sg.Modifier(bump, life_span=2, randomness=0.0, seed=0).can_continue({'n': 0})
+            >>> sg.Modifier(
+            ...     rotator, life_span=2, randomness=0.0
+            ... ).can_continue(square)
             False
         """
         if callable(self.randomness):
             randomness = self.get_value(self.randomness, target)
         elif isinstance(self.randomness, float):
-            randomness = self.randomness >= self._rng.random()
+            rand_val = self._rng.random()
+            randomness = self.randomness >= rand_val
         elif isinstance(self.randomness, (list, tuple)):
             randomness = self._rng.choice(self.randomness)
 
@@ -307,9 +337,11 @@ class Modifier:
 
         Examples:
             >>> import simetri.graphics as sg
-            >>> def bump(element):
-            ...     element['n'] += 1
-            >>> mod = sg.Modifier(bump, seed=0)
+            >>> def painter(element):
+            ...     element.fill_color = sg.change_lightness(
+            ...         element.fill_color, -0.2
+            ...     )
+            >>> mod = sg.Modifier(painter)
             >>> mod.stop()
             >>> mod.state
             <State.STOPPED: 'STOPPED'>

@@ -552,9 +552,7 @@ def all_cells_connected(
                 j
                 for j in cells
                 if j not in visited
-                and _cells_neighbors(
-                    i, j, n_rows, n_cols, diagonal_neighbors
-                )
+                and _cells_neighbors(i, j, n_rows, n_cols, diagonal_neighbors)
             )
 
         res = len(visited) == len(cells)
@@ -1331,10 +1329,7 @@ def decompose_transformations(
         about_x, about_y = about_xy[:2]
         mapped_x = about_x * m00 + about_y * m10 + m20
         mapped_y = about_x * m01 + about_y * m11 + m21
-        if (
-            hypot(mapped_x - about_x, mapped_y - about_y)
-            <= defaults["abs_tol"]
-        ):
+        if hypot(mapped_x - about_x, mapped_y - about_y) <= defaults["abs_tol"]:
             about = (float(about_x), float(about_y))
         else:
             about = (0.0, 0.0)
@@ -1563,6 +1558,34 @@ def axis(angle: float, length: float = 10) -> LineType:
     return (x1, y1), (x2, y2)
 
 
+def flatten_points(nested: Sequence[Sequence]) -> list[tuple[float]]:
+    """
+    Recursively flatten lists at any depth and return a flat list of tuples.
+    - Lists are flattened.
+    - Tuples are preserved (not flattened).
+    - Other types raise TypeError (adjust if you want to keep them).
+
+    Example:
+      [[(1, 2)], [[(3, 4), (5, 6)]], (7, 8)] -> [(1, 2), (3, 4), (5, 6), (7, 8)]
+    """
+    out: list[tuple[float]] = []
+
+    def walk(x: Any) -> None:
+        if isinstance(x, list):
+            for y in x:
+                walk(y)
+        elif isinstance(x, tuple):
+            out.append(x)
+        else:
+            raise TypeError(
+                f"Expected list or tuple, got {type(x).__name__}: {x!r}"
+            )
+
+    walk(nested)
+
+    return out
+
+
 def flatten(points: object) -> list[float]:
     """Flatten the points and return it as a list.
 
@@ -1570,7 +1593,7 @@ def flatten(points: object) -> list[float]:
         points: A sequence of points.
 
     Returns:
-        A flattened list of points.
+        A flattened list of floats.
 
     Examples:
         >>> import simetri.graphics as sg

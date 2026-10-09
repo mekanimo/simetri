@@ -19,12 +19,6 @@ from ..points.point_utils import distance
 from ..segments.line_utils import line_angle, line_by_point_angle_length
 from ..vectors import norm, normal, normalize
 
-cubic_poly_matrix = array(
-    [[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]]
-)
-
-quad_poly_matrix = array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
-
 
 class Bezier(Shape):
     """A Bezier curve defined by control points.
@@ -79,6 +73,7 @@ class Bezier(Shape):
                 **kwargs,
             )
             self.cubic = False
+            quad_poly_matrix = array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
             self.matrix = quad_poly_matrix @ array(control_points)
 
         elif len(control_points) == 4:
@@ -94,6 +89,9 @@ class Bezier(Shape):
                 **kwargs,
             )
             self.cubic = True
+            cubic_poly_matrix = array(
+                [[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]]
+            )
             self.matrix = cubic_poly_matrix @ array(control_points)
         else:
             raise ValueError("Invalid number of control points.")
@@ -502,9 +500,6 @@ class BezierPoints(Shape):
         return offset_points1
 
 
-M = array([[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]])
-
-
 def bezier_points(
     p0: PointType,
     p1: PointType,
@@ -542,14 +537,12 @@ def bezier_points(
     t = np.linspace(0, 1, n)
     t2 = t * t
     t3 = t2 * t
+    M = array([[1, 0, 0, 0], [-3, 3, 0, 0], [3, -6, 3, 0], [-1, 3, -3, 1]])
     T = np.column_stack((f, t, t2, t3))
     TM = T @ M
     P = array([p0, p1, p2, p3])
 
     return TM @ P
-
-
-MQ = array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
 
 
 def q_bezier_points(
@@ -582,6 +575,7 @@ def q_bezier_points(
     f = np.ones(n)
     t = np.linspace(0, 1, n)
     t2 = t * t
+    MQ = array([[1, 0, 0], [-2, 2, 0], [1, -2, 1]])
     T = np.column_stack((f, t, t2))
     TMQ = T @ MQ
     P = array([p0, p1, p2])
@@ -845,9 +839,7 @@ def get_quadratic_derivative(
     return [mt * d[0] + t * d[2], mt * d[1] + t * d[3]]
 
 
-def get_cubic_derivative(
-    t: float, points: Sequence[PointType]
-) -> list[float]:
+def get_cubic_derivative(t: float, points: Sequence[PointType]) -> list[float]:
     """Return the derivative of a cubic Bezier curve at t.
 
     Args:
@@ -937,3 +929,209 @@ def segmentize_catmull_rom(
         points.append([q[0], q[1]])
         t += dt
     return points
+
+
+def _spline_segment_points(total_points: int, n_segments: int) -> list[int]:
+    """Return per-segment sample counts for a composite Bezier curve.
+
+    Each segment needs at least 5 samples to match the single-segment Bezier
+    utilities. Adjacent segments share an endpoint, so a spline with
+    ``n_segments`` requires at least ``4 * n_segments + 1`` total unique points.
+    """
+    min_points = 4 * n_segments + 1
+    if total_points < min_points:
+        raise ValueError(
+            f"n_points must be at least {min_points} for a spline with "
+            f"{n_segments} segment(s)."
+        )
+
+    per_segment = [5] * n_segments
+    extra = total_points - min_points
+    for i in range(extra):
+        per_segment[i % n_segments] += 1
+
+    return per_segment
+
+
+def _join_spline_vertices(curves: Sequence[Bezier]) -> list[PointType]:
+    """Return the sampled spline vertices without duplicated join points."""
+    vertices = []
+    for i, curve in enumerate(curves):
+        curve_vertices = [tuple(map(float, p[:2])) for p in curve.vertices]
+        if i:
+            curve_vertices = curve_vertices[1:]
+        vertices.extend(curve_vertices)
+    return vertices
+
+
+class _BezierSpline(Shape):
+    """Shared implementation for composite quadratic and cubic Bezier curves."""
+
+    _stride = 0
+    _segment_size = 0
+    _subtype = Types.SHAPE
+    _name = "Spline"
+
+    def __init__(
+        self,
+        controls: Sequence[PointType],
+        xform_matrix: array = None,
+        n_points: int | None = None,
+        **kwargs: object,
+    ) -> None:
+        self._set_geometry(controls, n_points)
+        super().__init__(
+            self._vertices,
+            subtype=self._subtype,
+            xform_matrix=xform_matrix,
+            **kwargs,
+        )
+
+    def __repr__(self) -> str:
+        """Return a concise spline representation."""
+        if len(self.primary_points) == 0:
+            return f"{self._name}()"
+        if len(self.primary_points) < 4:
+            return f"{self._name}({self.vertices})"
+        return f"{self._name}([{self.vertices[0]}, ..., {self.vertices[-1]}])"
+
+    @property
+    def control_points(self) -> Sequence[PointType]:
+        """Return the control points used to define the spline."""
+        return self.__dict__["control_points"]
+
+    @control_points.setter
+    def control_points(self, new_control_points: Sequence[PointType]) -> None:
+        """Set new control points and rebuild the spline geometry."""
+        self._set_geometry(new_control_points, self.n_points)
+        self[:] = self._vertices
+        self.subtype = self._subtype
+
+    def copy(self, **kwargs: object) -> Shape:
+        """Return a copy of the spline."""
+        copy_ = type(self)(
+            self.control_points,
+            xform_matrix=self.xform_matrix,
+            n_points=self.n_points,
+        )
+        for k, v in kwargs.items():
+            setattr(copy_, k, v)
+        return copy_
+
+    def point(self, t: float) -> list[float]:
+        """Return the point on the spline at parameter ``t``."""
+        curve, local_t = self._curve_at(t)
+        return curve.point(local_t)
+
+    def derivative(self, t: float) -> list[float]:
+        """Return the derivative of the spline at parameter ``t``."""
+        curve, local_t = self._curve_at(t)
+        return curve.derivative(local_t)
+
+    def normal(self, t: float) -> list[float]:
+        """Return the unit normal of the spline at parameter ``t``."""
+        curve, local_t = self._curve_at(t)
+        return curve.normal(local_t)
+
+    def tangent(self, t: float) -> list[float]:
+        """Return the unit tangent of the spline at parameter ``t``."""
+        curve, local_t = self._curve_at(t)
+        return curve.tangent(local_t)
+
+    def _curve_at(self, t: float) -> tuple[Bezier, float]:
+        if not 0 <= t <= 1:
+            raise ValueError("t must satisfy 0 <= t <= 1.")
+
+        if t == 1:
+            return self.curves[-1], 1.0
+
+        scaled = t * self.n_segments
+        index = int(scaled)
+        local_t = scaled - index
+        return self.curves[index], local_t
+
+    def _set_geometry(
+        self, controls: Sequence[PointType], n_points: int | None
+    ) -> None:
+        self._validate_controls(controls)
+        n_segments = ((len(controls) - 1) // self._stride)
+        if n_points is None:
+            total_points = (
+                (runtime_defaults["n_bezier_points"] - 1) * n_segments + 1
+            )
+        else:
+            total_points = n_points
+
+        points_per_segment = _spline_segment_points(total_points, n_segments)
+        curves = []
+        for i, seg_points in enumerate(points_per_segment):
+            start = i * self._stride
+            stop = start + self._segment_size
+            curves.append(Bezier(controls[start:stop], n_points=seg_points))
+
+        self.__dict__["control_points"] = controls
+        self.__dict__["curves"] = curves
+        self.__dict__["n_segments"] = n_segments
+        self.__dict__["n_points"] = total_points
+        self._vertices = _join_spline_vertices(curves)
+
+    def _validate_controls(self, controls: Sequence[PointType]) -> None:
+        if len(controls) < self._segment_size:
+            raise ValueError(
+                f"{self._name} requires at least {self._segment_size} control points."
+            )
+        if (len(controls) - 1) % self._stride != 0:
+            raise ValueError(
+                f"Invalid number of control points for {self._name.lower()}."
+            )
+
+
+class SplineQ(_BezierSpline):
+    """A composite quadratic Bezier curve.
+
+    The control points are given in walk order as
+    ``[v0, c0, v1, c1, v2, ...]`` so each additional segment contributes a
+    control point and an endpoint.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> spline = sg.SplineQ([(0, 0), (20, 40), (40, 0), (60, -40), (80, 0)], n_points=9)
+        >>> len(spline.curves)
+        2
+        >>> [round(c, 6) for c in spline.point(0.0)]
+        [0.0, 0.0]
+        >>> [round(c, 6) for c in spline.point(1.0)]
+        [80.0, 0.0]
+    """
+
+    _stride = 2
+    _segment_size = 3
+    _subtype = Types.Q_BEZIER
+    _name = "SplineQ"
+
+
+class SplineC(_BezierSpline):
+    """A composite cubic Bezier curve.
+
+    The control points are given in walk order as
+    ``[v0, c0, c1, v1, c2, c3, v2, ...]`` so each additional segment
+    contributes two control points and an endpoint.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> spline = sg.SplineC(
+        ...     [(0, 0), (20, 40), (40, 40), (60, 0), (80, -40), (100, -40), (120, 0)],
+        ...     n_points=9,
+        ... )
+        >>> len(spline.curves)
+        2
+        >>> [round(c, 6) for c in spline.point(0.0)]
+        [0.0, 0.0]
+        >>> [round(c, 6) for c in spline.point(1.0)]
+        [120.0, 0.0]
+    """
+
+    _stride = 3
+    _segment_size = 4
+    _subtype = Types.BEZIER
+    _name = "SplineC"

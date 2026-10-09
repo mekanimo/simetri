@@ -90,7 +90,6 @@ from ..geom.points.point_utils import (
 from ..geom.polygons.polygon import (
     in_polygon,
     polygon_area,
-    polyline_length,
 )
 from ..group.batch import Group
 from ..group.merge import combine_shapes
@@ -309,6 +308,17 @@ class Shape(Base, CommonStyle):
 
         self._b_box = None
 
+    def _clear_geometry_caches(self) -> None:
+        """Clear cached transformed geometry derived from vertices."""
+        for attr in (
+            "_final_coords",
+            "_vertices",
+            "_edge_lengths",
+            "_total_length",
+        ):
+            if attr in self.__dict__:
+                delattr(self, attr)
+
     def _get_closed(
         self, points: Sequence[PointType], closed: bool
     ) -> tuple[bool, list[PointType]]:
@@ -437,6 +447,7 @@ class Shape(Base, CommonStyle):
             self.primary_points.nd_array_changed = True
         else:
             raise TypeError("Invalid subscript type")
+        self._clear_geometry_caches()
 
     def __delitem__(self, subscript: int | slice) -> Self:
         """Delete the point(s) at the given subscript.
@@ -445,6 +456,7 @@ class Shape(Base, CommonStyle):
             subscript: Index or slice into ``primary_points``.
         """
         del self.primary_points[subscript]
+        self._clear_geometry_caches()
 
     def index(self, point: PointType, abs_tol: float | None = None) -> int:
         """Return the index of the given point.
@@ -488,6 +500,7 @@ class Shape(Base, CommonStyle):
         """
         ind = self.vertices.index(point)
         self.primary_points.pop(ind)
+        self._clear_geometry_caches()
 
         return self
 
@@ -506,6 +519,8 @@ class Shape(Base, CommonStyle):
         """
         point = homogenize([point]) @ inv(self.xform_matrix)
         self.primary_points.append(tuple(point[0][:2]))
+        self._clear_geometry_caches()
+        return self
 
     def insert(self, index: int, point: PointType) -> Self:
         """Insert a point at a given index.
@@ -522,6 +537,7 @@ class Shape(Base, CommonStyle):
         """
         point = homogenize([point]) @ inv(self.xform_matrix)
         self.primary_points.insert(index, tuple(point[0][:2]))
+        self._clear_geometry_caches()
 
         return self
 
@@ -539,6 +555,7 @@ class Shape(Base, CommonStyle):
         """
         homogenized = homogenize(points) @ inv(self.xform_matrix)
         self.primary_points.extend([tuple(x[:2]) for x in homogenized])
+        self._clear_geometry_caches()
 
         return self
 
@@ -561,6 +578,7 @@ class Shape(Base, CommonStyle):
         """
         point = self.vertices[index]
         self.primary_points.pop(index)
+        self._clear_geometry_caches()
 
         return point
 
@@ -606,11 +624,7 @@ class Shape(Base, CommonStyle):
                 self.fillet_radius = fillet_radius * scale
 
             self.xform_matrix = self.xform_matrix @ xform_matrix
-            # Invalidate coordinate caches when transformation changes
-            if "_final_coords" in self.__dict__:
-                delattr(self, "_final_coords")
-            if "_vertices" in self.__dict__:
-                delattr(self, "_vertices")
+            self._clear_geometry_caches()
             res = self
         else:
             shapes = [self]
@@ -1035,6 +1049,36 @@ class Shape(Base, CommonStyle):
         return res
 
     @property
+    def edge_lengths(self) -> list[float]:
+        """Return the lengths of the shape edges.
+
+        For closed shapes, the closing edge from the last vertex back to the
+        first is included.
+
+        Returns:
+            list[float]: Edge lengths in vertex order.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> line = sg.Shape([(0, 0), (30, 40), (60, 40)])
+            >>> [round(float(x), 6) for x in line.edge_lengths]
+            [50.0, 30.0]
+            >>> tri = sg.Shape([(0, 0), (3, 0), (3, 4)], closed=True)
+            >>> [round(float(x), 6) for x in tri.edge_lengths]
+            [3.0, 4.0, 5.0]
+        """
+        if not self.primary_points:
+            return []
+        if (
+            "_edge_lengths" not in self.__dict__
+            or self.primary_points.nd_array_changed
+        ):
+            self._edge_lengths = tuple(
+                distance(*edge) for edge in self.edges
+            )
+        return list(self._edge_lengths)
+
+    @property
     def vertex_pairs(self) -> list[tuple[PointType, PointType]]:
         """Return a list of connected pairs of vertices.
 
@@ -1128,7 +1172,14 @@ class Shape(Base, CommonStyle):
             >>> round(float(line2.total_length), 6)
             136.568542
         """
-        return polyline_length(self.vertices, self.closed)
+        if not self.primary_points:
+            return 0.0
+        if (
+            "_total_length" not in self.__dict__
+            or self.primary_points.nd_array_changed
+        ):
+            self._total_length = float(sum(self.edge_lengths))
+        return self._total_length
 
     @property
     def is_polygon(self) -> bool:
@@ -1162,11 +1213,7 @@ class Shape(Base, CommonStyle):
         self.primary_points = Points()
         self.xform_matrix = identity_matrix()
         self._b_box = None
-        # Clear coordinate caches
-        if "_final_coords" in self.__dict__:
-            delattr(self, "_final_coords")
-        if "_vertices" in self.__dict__:
-            delattr(self, "_vertices")
+        self._clear_geometry_caches()
 
         return self
 
@@ -1337,6 +1384,7 @@ class Shape(Base, CommonStyle):
             ((40.0, 40.0), (40.0, 0.0), (0.0, 0.0))
         """
         self.primary_points.reverse()
+        self._clear_geometry_caches()
 
         return self
 
