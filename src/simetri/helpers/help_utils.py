@@ -366,17 +366,15 @@ d_help_topic: dict[str, list[str]] = {
         "See also: sg.help('dynamic_references_doc'), sg.help('transforms')",
     ],
     "dimensioning_doc": [
+        "sg.AlignedDimension",
         "sg.Dimension",
         "sg.AnnotationArrow",
         "sg.RadialDimension",
         "sg.AngularDimension",
-        "sg.Anchor",
         "sg.defaults['gap']",
         "sg.defaults['overshoot']",
         "sg.defaults['text_offset']",
-        "sg.defaults['aligned_text']",
         "sg.defaults['landing_length']",
-        "sg.defaults['rev_arrow_length']",
         "See also: sg.help('canvas_doc'), sg.help('tags')",
     ],
     "drawing_laces_doc": [
@@ -938,6 +936,7 @@ d_help_topic: dict[str, list[str]] = {
 d_help_topic["segments"] = list(d_help_topic["lines"])
 
 _TOPIC_ALIASES = {
+    "AlignedDimension": "dimensioning_doc",
     "AnnotationArrow": "dimensioning_doc",
     "BoundingBox": "bounding_box_doc",
     "BoundingBoxes": "bounding_box_doc",

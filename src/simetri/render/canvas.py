@@ -23,7 +23,6 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
-from math import atan2, cos, hypot, pi, sin
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Self
@@ -41,7 +40,6 @@ from simetri.base.all_enums import (
     Drawable,
     FragmentColoring,
     ImageMode,
-    MarkerType,
     PageOrientation,
     PageSize,
     PlaitStyle,
@@ -86,7 +84,6 @@ from simetri.geom.bbox import bounding_box
 from simetri.geom.homogenize import homogenize
 from simetri.geom.matrices import identity_matrix
 from simetri.geom.nonlinear.path import Path2D
-from simetri.geom.vectors import Vector
 from simetri.group.batch import Group
 from simetri.helpers.file_operations import (
     open_saved_file,
@@ -107,6 +104,7 @@ from simetri.images.image import Image, draw_on_image as draw_sketches_on_image
 from simetri.interlace.lace import Lace
 from simetri.notebook import display
 from simetri.render import draw
+from simetri.render import vector_draw
 from simetri.render.render_tikz.tikz import get_tex_code
 from simetri.render.render_tikz.tikz_sketch import TexSketch
 from simetri.render.mask import Mask
@@ -206,8 +204,7 @@ def normalize_canvas_border(
     if isinstance(border, (list, tuple, np.ndarray)) and len(border) == 4:
         return tuple(border)
     raise ValueError(
-        "Canvas.border must be a numeric value or a tuple of 4 "
-        "numeric values."
+        "Canvas.border must be a numeric value or a tuple of 4 numeric values."
     )
 
 
@@ -725,9 +722,7 @@ class Canvas:
                 del self._style_overlay[key]
         return self
 
-    def apply_mask(
-        self, target: Shape | Group, mask: Mask
-    ) -> Self:
+    def apply_mask(self, target: Shape | Group, mask: Mask) -> Self:
         """Apply a mask to a drawable target and append a masked sketch.
 
         Args:
@@ -748,9 +743,7 @@ class Canvas:
             'MASKED_SKETCH'
         """
         if target.type == Types.GROUP:
-            sketches = [
-                draw.get_sketches(item, self) for item in target
-            ]
+            sketches = [draw.get_sketches(item, self) for item in target]
         else:
             sketches = [draw.get_sketches(target, self)]
 
@@ -1232,7 +1225,9 @@ class Canvas:
         )
         return self
 
-    def bezier(self, control_points: Sequence[PointType], **kwargs: object) -> Self:
+    def bezier(
+        self, control_points: Sequence[PointType], **kwargs: object
+    ) -> Self:
         """
         Draw a bezier curve.
 
@@ -1353,9 +1348,7 @@ class Canvas:
 
         return self
 
-    def draw_plaits(
-        self, lace: Lace | None = None, **kwargs: object
-    ) -> Self:
+    def draw_plaits(self, lace: Lace | None = None, **kwargs: object) -> Self:
         """Draw lace plaits.
 
         Args:
@@ -1383,9 +1376,7 @@ class Canvas:
 
         return self
 
-    def draw_lace_with_fillets(
-        self, lace: Lace, **kwargs: object
-    ) -> Self:
+    def draw_lace_with_fillets(self, lace: Lace, **kwargs: object) -> Self:
         """Draw a lace with filleted plait geometry.
 
         Args:
@@ -1986,11 +1977,25 @@ class Canvas:
                 the Vector, a warning is issued; if they disagree,
                 ``ValueError`` is raised. Several Vectors in one call
                 share the same ``vec_start`` or ``vec_end``.
-                ``shaft_line_color`` / ``shaft_line_width`` /
-                ``shaft_line_dash_array`` style the shaft;
+                ``shaft_line_color`` / ``shaft_line_dash_array`` /
+                ``shaft_line_width`` style the shaft;
                 ``head_fill_color`` / ``head_line_color`` /
                 ``head_line_width`` style the head; ``color`` and
-                ``alpha`` style both.
+                ``alpha`` style both. A ``Dimension`` uses those arrow
+                names for its dimension line, ``ext_line_alpha`` /
+                ``ext_line_color`` / ``ext_line_dash_array`` /
+                ``ext_line_width`` for both extension lines, and
+                ``tag_bold`` / ``tag_fill`` / ``tag_fill_color`` /
+                ``tag_font_alpha`` / ``tag_font_color`` /
+                ``tag_font_family`` / ``tag_font_size`` /
+                ``tag_line_color`` / ``tag_line_width`` / ``tag_stroke``
+                for the label.
+                ``tag_stroke`` defaults to False. ``color`` and
+                ``alpha`` set every part; a prefixed name wins.
+                An ``AnnotationArrow`` uses the same shaft, head, and
+                tag names. Shaft style covers the angled shaft and the
+                landing. Its ``tag_stroke`` stays as it is unless
+                given: False for a note, True for a balloon.
             pos (PointType, optional): Midpoint where the item is drawn.
                 For a group, this is the group's midpoint; every member is
                 shifted by the same ``(dx, dy)``. The item is not moved.
@@ -2008,10 +2013,9 @@ class Canvas:
         Examples:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
-            >>> canvas.draw(sg.Shape([(0, 0), (40, 0), (40, 40)])) is canvas
-            True
-            >>> canvas.active_page.sketches[0].vertices
-            [(0.0, 0.0), (40.0, 0.0), (40.0, 40.0)]
+            >>> triangle = sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)
+            >>> canvas.draw(triangle, fill_color=sg.blue, pos=(40, 0))
+            Canvas()
         """
         warn_unknown_kwargs(
             kwargs,
@@ -2026,270 +2030,44 @@ class Canvas:
         else:
             items = item_s
 
-        if "vec_start" in kwargs and "vec_end" in kwargs:
-            vector_count = 0
-            for item in items:
-                if isinstance(item, Vector):
-                    vector_count += 1
-            if vector_count > 1:
-                raise ValueError(
-                    "Cannot use both vec_start and vec_end when drawing "
-                    "more than one Vector."
-                )
+        vector_draw.prepare_vector_batch(items, kwargs, pos)
 
         base_sketch_xform = self._sketch_xform_matrix
 
         for item in items:
-            marker_type = None
-            if "marker_type" in kwargs:
-                marker_type = kwargs["marker_type"]
-            elif "marker_type" in item.__dict__ and item.__dict__["marker_type"] is not None:
-                marker_type = item.__dict__["marker_type"]
-            if (
-                isinstance(item, Shape)
-                and marker_type is not None
-                and (
-                    marker_type == MarkerType.VECTOR
-                    or marker_type == MarkerType.VECTOR.value
+            if vector_draw.is_vector_marker_shape(item, kwargs):
+                vector_draw.draw_vector_marker_shape(
+                    self,
+                    item,
+                    pos=pos,
+                    angle=angle,
+                    rotocenter=rotocenter,
+                    scale=scale,
+                    about=about,
+                    draw_kwargs=kwargs,
                 )
-            ):
-                body_kwargs = dict(kwargs)
-                del body_kwargs["marker_type"]
-                if "draw_markers" in body_kwargs:
-                    del body_kwargs["draw_markers"]
-                body_kwargs["stroke"] = False
-                if "fill" in body_kwargs:
-                    wants_fill = body_kwargs["fill"]
-                elif "fill" in item.__dict__ and item.__dict__["fill"] is not None:
-                    wants_fill = item.__dict__["fill"]
-                else:
-                    wants_fill = runtime_defaults["fill"]
-                if "indices" in body_kwargs:
-                    wants_indices = bool(body_kwargs["indices"])
-                elif "indices" in item.__dict__:
-                    wants_indices = bool(item.indices)
-                else:
-                    wants_indices = False
-                if "show_vertex_coords" in body_kwargs:
-                    wants_coords = bool(body_kwargs["show_vertex_coords"])
-                elif "show_vertex_coords" in item.__dict__:
-                    wants_coords = bool(item.show_vertex_coords)
-                else:
-                    wants_coords = False
-                if wants_fill or wants_indices or wants_coords:
-                    self.draw(
-                        item,
-                        pos=pos,
-                        angle=angle,
-                        rotocenter=rotocenter,
-                        scale=scale,
-                        about=about,
-                        show=False,
-                        **body_kwargs,
-                    )
-                vector_kwargs = dict(kwargs)
-                for key in (
-                    "marker_type",
-                    "draw_markers",
-                    "indices",
-                    "show_vertex_coords",
-                    "fill",
-                    "stroke",
-                ):
-                    if key in vector_kwargs:
-                        del vector_kwargs[key]
-                pos_dx = 0.0
-                pos_dy = 0.0
-                if pos is not None:
-                    mid_x, mid_y = item.midpoint[:2]
-                    dest_x, dest_y = pos[:2]
-                    pos_dx = dest_x - mid_x
-                    pos_dy = dest_y - mid_y
-                for edge in item.edges:
-                    start_x, start_y = edge[0][:2]
-                    end_x, end_y = edge[1][:2]
-                    start = (start_x + pos_dx, start_y + pos_dy)
-                    end = (end_x + pos_dx, end_y + pos_dy)
-                    self.draw(
-                        Vector(start, end),
-                        vec_start=start,
-                        angle=angle,
-                        rotocenter=rotocenter,
-                        scale=scale,
-                        about=about,
-                        show=False,
-                        **vector_kwargs,
-                    )
                 continue
 
-            vector_midpoint = None
-            vector_shift = (0.0, 0.0)
-            if isinstance(item, Vector):
-                vector_x, vector_y = item[:2]
-                if vector_x == 0 and vector_y == 0:
-                    raise ValueError("Cannot draw a zero-length Vector.")
-                if pos is not None and (
-                    "vec_start" in kwargs or "vec_end" in kwargs
-                ):
-                    raise ValueError(
-                        "Cannot combine pos with vec_start or vec_end "
-                        "when drawing a Vector."
-                    )
-                if "vec_start" in kwargs:
-                    start_x, start_y = kwargs["vec_start"][:2]
-                    vector_shift = (start_x, start_y)
-                if "vec_end" in kwargs:
-                    end_x, end_y = kwargs["vec_end"][:2]
-                    if "vec_start" in kwargs:
-                        start_x, start_y = kwargs["vec_start"][:2]
-                        displacement_x = end_x - start_x
-                        displacement_y = end_y - start_y
-                        offset = hypot(
-                            displacement_x - vector_x,
-                            displacement_y - vector_y,
-                        )
-                        if offset <= defaults["abs_tol"]:
-                            issue_warning(
-                                "Duplicate position used for Vector"
-                                f"({kwargs['vec_start']}, {kwargs['vec_end']}).",
-                                warning_type=WarningType.vector.duplicate,
-                            )
-                        else:
-                            raise ValueError(
-                                "vec_start and vec_end are not consistent "
-                                "with the Vector displacement "
-                                f"{(vector_x, vector_y)}."
-                            )
-                    else:
-                        vector_shift = (
-                            end_x - vector_x,
-                            end_y - vector_y,
-                        )
-                head_length = defaults["arrow_head_length"]
-                half_width = defaults["arrow_head_width"] / 2
-                vector_angle = atan2(vector_y, vector_x)
-                cosine = cos(vector_angle)
-                sine = sin(vector_angle)
-                head_local = (
-                    (-head_length, 0),
-                    (-head_length, -half_width),
-                    (0, 0),
-                    (-head_length, half_width),
+            drawable, part_kwargs = vector_draw.drawable_for_item(
+                item, kwargs
+            )
+            sketch_xform = base_sketch_xform
+            if pos is not None:
+                mid_x, mid_y = drawable.midpoint[:2]
+                dest_x, dest_y = pos[:2]
+                dx = dest_x - mid_x
+                dy = dest_y - mid_y
+                sketch_xform = translation_matrix(dx, dy) @ sketch_xform
+            if scale[0] != 1 or scale[1] != 1:
+                sketch_xform = (
+                    scale_in_place_matrix(*scale[:2], about) @ sketch_xform
                 )
-                head_vertices = []
-                for local_x, local_y in head_local:
-                    head_vertices.append(
-                        (
-                            local_x * cosine - local_y * sine + vector_x,
-                            local_x * sine + local_y * cosine + vector_y,
-                        )
-                    )
-                shaft = Shape(
-                    [(0, 0), (vector_x, vector_y)],
-                    closed=False,
-                    fill=False,
-                    line_width=defaults["shaft_line_width"],
-                    line_color=defaults["shaft_line_color"],
+            if angle != 0:
+                sketch_xform = (
+                    rotation_matrix(angle, rotocenter) @ sketch_xform
                 )
-                head = Shape(
-                    head_vertices,
-                    closed=True,
-                    fill=True,
-                    line_width=defaults["head_line_width"],
-                    line_color=defaults["head_line_color"],
-                    fill_color=defaults["head_fill_color"],
-                )
-                drawables = (shaft, head)
-                vector_midpoint = (vector_x / 2, vector_y / 2)
-                shaft_kwargs = dict(kwargs)
-                head_kwargs = dict(kwargs)
-                prefixed_keys = [
-                    key
-                    for key in kwargs
-                    if key.startswith("shaft_") or key.startswith("head_")
-                ]
-                replaced_keys = (
-                    "line_color",
-                    "line_width",
-                    "line_dash_array",
-                    "fill_color",
-                    "vec_start",
-                    "vec_end",
-                )
-                for key in prefixed_keys:
-                    del shaft_kwargs[key]
-                    del head_kwargs[key]
-                for key in replaced_keys:
-                    if key in shaft_kwargs:
-                        del shaft_kwargs[key]
-                    if key in head_kwargs:
-                        del head_kwargs[key]
-                for key, value in kwargs.items():
-                    if key.startswith("shaft_"):
-                        mapped = key[len("shaft_") :]
-                        shaft_kwargs[mapped] = value
-                        if mapped == "line_color" and "color" in shaft_kwargs:
-                            del shaft_kwargs["color"]
-                    elif key.startswith("head_"):
-                        mapped = key[len("head_") :]
-                        if mapped in ("line_color", "fill_color"):
-                            if "color" in head_kwargs:
-                                if (
-                                    mapped == "fill_color"
-                                    and "line_color" not in head_kwargs
-                                ):
-                                    head_kwargs["line_color"] = head_kwargs[
-                                        "color"
-                                    ]
-                                if (
-                                    mapped == "line_color"
-                                    and "fill_color" not in head_kwargs
-                                ):
-                                    head_kwargs["fill_color"] = head_kwargs[
-                                        "color"
-                                    ]
-                                del head_kwargs["color"]
-                        head_kwargs[mapped] = value
-            else:
-                drawables = (item,)
-                shaft_kwargs = kwargs
-                head_kwargs = kwargs
-
-            for drawable in drawables:
-                sketch_xform = base_sketch_xform
-                if vector_midpoint is not None:
-                    shift_x, shift_y = vector_shift
-                    if shift_x != 0 or shift_y != 0:
-                        sketch_xform = (
-                            translation_matrix(shift_x, shift_y)
-                            @ sketch_xform
-                        )
-                if pos is not None:
-                    if vector_midpoint is None:
-                        mid_x, mid_y = drawable.midpoint[:2]
-                    else:
-                        mid_x, mid_y = vector_midpoint
-                    dest_x, dest_y = pos[:2]
-                    dx = dest_x - mid_x
-                    dy = dest_y - mid_y
-                    sketch_xform = translation_matrix(dx, dy) @ sketch_xform
-                if scale[0] != 1 or scale[1] != 1:
-                    sketch_xform = (
-                        scale_in_place_matrix(*scale[:2], about)
-                        @ sketch_xform
-                    )
-                if angle != 0:
-                    sketch_xform = (
-                        rotation_matrix(angle, rotocenter) @ sketch_xform
-                    )
-                self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
-                if drawable is drawables[-1] and vector_midpoint is not None:
-                    part_kwargs = head_kwargs
-                elif vector_midpoint is not None:
-                    part_kwargs = shaft_kwargs
-                else:
-                    part_kwargs = kwargs
-                draw.draw(self, drawable, **part_kwargs)
+            self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
+            draw.draw(self, drawable, **part_kwargs)
 
         self._sketch_xform_matrix = identity_matrix()
         if show:
@@ -2417,7 +2195,9 @@ class Canvas:
         draw.draw_pdf(self, pdf, pos, size, scale, angle, **kwargs)
         return self
 
-    def draw_image(self, image: Image, pos: PointType, **kwargs: object) -> Self:
+    def draw_image(
+        self, image: Image, pos: PointType, **kwargs: object
+    ) -> Self:
         """
         Draw an image on the canvas.
 
@@ -2831,9 +2611,7 @@ class Canvas:
         self._xform_matrix = translation_matrix(dx, dy) @ self._xform_matrix
         return _CanvasScope(self, "matrix", saved)
 
-    def rotate(
-        self, angle: float, about: PointType = (0, 0)
-    ) -> _CanvasScope:
+    def rotate(self, angle: float, about: PointType = (0, 0)) -> _CanvasScope:
         """
         Rotate the canvas by angle in radians about the given point.
 

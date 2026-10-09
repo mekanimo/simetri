@@ -1,12 +1,4 @@
-"""Illustration helpers for annotations, tags, arrows, and dimensions.
-
-Examples:
-    >>> import simetri.graphics as sg
-    >>> len(sg.logo())
-    2
-    >>> sg.letter_F().vertices[0]
-    (0.0, 0.0)
-"""
+"""Illustration helpers for annotations, tags, arrows, and dimensions."""
 
 from __future__ import annotations
 
@@ -128,13 +120,54 @@ def logo(scale: int | float = 1) -> Group:
     """
     w = 10 * scale
     points = [  # noqa
-        (0, 0), (-4, 0), (-4, 6), (1, 6), (1, 2), (-2, 2), (-2, 4), (-1, 4), (-1, 3),
-        (0, 3), (0, 5), (-3, 5), (-3, 1), (5, 1), (5, -10), (0, -10), (0, -6), (3, -6),
-        (3, -8), (2, -8), (2, -7), (1, -7), (1, -9), (4, -9), (4, -5), (-4, -5), (-4, -1),
-        (-1, -1), (-1, -3), (-2, -3), (-2, -2), (-3, -2), (-3, -4), (0, -4), ]
+        (0, 0),
+        (-4, 0),
+        (-4, 6),
+        (1, 6),
+        (1, 2),
+        (-2, 2),
+        (-2, 4),
+        (-1, 4),
+        (-1, 3),
+        (0, 3),
+        (0, 5),
+        (-3, 5),
+        (-3, 1),
+        (5, 1),
+        (5, -10),
+        (0, -10),
+        (0, -6),
+        (3, -6),
+        (3, -8),
+        (2, -8),
+        (2, -7),
+        (1, -7),
+        (1, -9),
+        (4, -9),
+        (4, -5),
+        (-4, -5),
+        (-4, -1),
+        (-1, -1),
+        (-1, -3),
+        (-2, -3),
+        (-2, -2),
+        (-3, -2),
+        (-3, -4),
+        (0, -4),
+    ]
 
-    points2 = [(1, 0), (1, -4), (4, -4), (4, -3), (2, -3), (2, -1), (3, -1), (3, -2),  # noqa
-            (4, -2), (4, 0), ]
+    points2 = [
+        (1, 0),
+        (1, -4),
+        (4, -4),
+        (4, -3),
+        (2, -3),
+        (2, -1),
+        (3, -1),
+        (3, -2),  # noqa
+        (4, -2),
+        (4, 0),
+    ]
 
     points = [(x * w, y * w) for x, y in points]
     points2 = [(x * w, y * w) for x, y in points2]
@@ -374,7 +407,9 @@ def label_font_family_tikz(family: FontFamily | str) -> str:
     )
 
 
-def _tag_font_family_for_label_bounds(family: FontFamily | str) -> FontFamily | str:
+def _tag_font_family_for_label_bounds(
+    family: FontFamily | str,
+) -> FontFamily | str:
     """Map label font-family settings to ``Tag.font_family`` for ``text_bounds``.
 
     Examples:
@@ -667,6 +702,217 @@ def pdf_to_svg(pdf_path: str, svg_path: str) -> None:
         f.write(svg)
 
 
+_ANNOTATION_HEAD_KEYS = {
+    "head_fill_alpha": "fill_alpha",
+    "head_fill_color": "fill_color",
+    "head_line_alpha": "line_alpha",
+    "head_line_color": "line_color",
+    "head_line_width": "line_width",
+}
+_ANNOTATION_SHAFT_KEYS = {
+    "shaft_line_alpha": "line_alpha",
+    "shaft_line_color": "line_color",
+    "shaft_line_dash_array": "line_dash_array",
+    "shaft_line_width": "line_width",
+}
+_ANNOTATION_TAG_KEYS = {
+    "tag_bold": "bold",
+    "tag_fill": "fill",
+    "tag_fill_color": "fill_color",
+    "tag_font_alpha": "font_alpha",
+    "tag_font_color": "font_color",
+    "tag_font_family": "font_family",
+    "tag_font_size": "font_size",
+    "tag_line_color": "line_color",
+    "tag_line_width": "line_width",
+    "tag_stroke": "stroke",
+}
+
+
+_LEADER_LINE_KEYS = (
+    "line_alpha",
+    "line_color",
+    "line_dash_array",
+    "line_width",
+)
+
+
+def _split_annotation_kwargs(
+    draw_kwargs: dict[str, object],
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Separate annotation part styles from leader shape kwargs."""
+    style_names = set(_ANNOTATION_HEAD_KEYS)
+    style_names.update(_ANNOTATION_SHAFT_KEYS)
+    style_names.update(_ANNOTATION_TAG_KEYS)
+    style_names.update(_LEADER_LINE_KEYS)
+    style_kwargs: dict[str, object] = {}
+    leader_kwargs: dict[str, object] = {}
+    for key, value in draw_kwargs.items():
+        if key in style_names or key in ("alpha", "color"):
+            style_kwargs[key] = value
+        else:
+            leader_kwargs[key] = value
+    return style_kwargs, leader_kwargs
+
+
+def _annotation_part(
+    draw_kwargs: dict[str, object],
+    names: dict[str, str],
+) -> dict[str, object]:
+    """Remove known part names and return them without the prefix."""
+    part: dict[str, object] = {}
+    for key, suffix in names.items():
+        if key not in draw_kwargs:
+            continue
+        part[suffix] = draw_kwargs[key]
+        del draw_kwargs[key]
+    return part
+
+
+def _stated_style(part: dict[str, object], name: str) -> tuple[bool, object]:
+    """Return whether ``name`` was passed and is not the default marker."""
+    if name not in part or part[name] is None:
+        return False, None
+    return True, part[name]
+
+
+def _annotation_line_style(
+    part: dict[str, object],
+    color: object,
+    alpha: object,
+) -> dict[str, object]:
+    """Line style for an annotation shaft and its landing."""
+    style: dict[str, object] = {}
+    stated, value = _stated_style(part, "line_color")
+    if stated:
+        style["line_color"] = value
+    elif color is not None:
+        style["line_color"] = color
+    stated, value = _stated_style(part, "line_width")
+    if stated:
+        style["line_width"] = value
+    stated, value = _stated_style(part, "line_dash_array")
+    if stated:
+        style["line_dash_array"] = value
+    stated, value = _stated_style(part, "line_alpha")
+    if stated:
+        style["line_alpha"] = value
+    elif alpha is not None:
+        style["line_alpha"] = alpha
+    return style
+
+
+def _annotation_head_style(
+    part: dict[str, object],
+    color: object,
+    alpha: object,
+) -> dict[str, object]:
+    """Arrowhead style for an annotation."""
+    style: dict[str, object] = {}
+    stated, value = _stated_style(part, "fill_color")
+    if stated:
+        style["fill_color"] = value
+    elif color is not None:
+        style["fill_color"] = color
+    stated, value = _stated_style(part, "line_color")
+    if stated:
+        style["line_color"] = value
+    elif color is not None:
+        style["line_color"] = color
+    stated, value = _stated_style(part, "line_width")
+    if stated:
+        style["line_width"] = value
+    stated, value = _stated_style(part, "fill_alpha")
+    if stated:
+        style["fill_alpha"] = value
+    elif alpha is not None:
+        style["fill_alpha"] = alpha
+    stated, value = _stated_style(part, "line_alpha")
+    if stated:
+        style["line_alpha"] = value
+    elif alpha is not None:
+        style["line_alpha"] = alpha
+    return style
+
+
+def _apply_annotation_style(shape: object, style: dict[str, object]) -> None:
+    """Set one resolved style on an annotation part."""
+    if shape is None:
+        return
+    for name, value in style.items():
+        setattr(shape, name, value)
+
+
+def _style_annotation(
+    item: AnnotationArrow, draw_kwargs: dict[str, object]
+) -> dict[str, object]:
+    """Apply shaft, head, and tag styles. Return the remaining kwargs.
+
+    ``draw_kwargs`` is copied. ``item`` is mutated.
+    """
+    kwargs = dict(draw_kwargs)
+    color = kwargs["color"] if "color" in kwargs else None
+    alpha = kwargs["alpha"] if "alpha" in kwargs else None
+    if "color" in kwargs:
+        del kwargs["color"]
+    if "alpha" in kwargs:
+        del kwargs["alpha"]
+    leader_line: dict[str, object] = {}
+    for name in _LEADER_LINE_KEYS:
+        if name not in kwargs:
+            continue
+        leader_line[name] = kwargs[name]
+        del kwargs[name]
+    shaft_part = _annotation_part(kwargs, _ANNOTATION_SHAFT_KEYS)
+    for name, value in leader_line.items():
+        if name not in shaft_part:
+            shaft_part[name] = value
+    shaft_style = _annotation_line_style(shaft_part, color, alpha)
+    head_style = _annotation_head_style(
+        _annotation_part(kwargs, _ANNOTATION_HEAD_KEYS), color, alpha
+    )
+    tag_part = _annotation_part(kwargs, _ANNOTATION_TAG_KEYS)
+    _apply_annotation_style(item.arrow.line, shaft_style)
+    _apply_annotation_style(item.landing_line, shaft_style)
+    for head in item.arrow.heads:
+        _apply_annotation_style(head, head_style)
+    stated, value = _stated_style(tag_part, "font_color")
+    if stated:
+        item.tag.font_color = value
+    elif color is not None:
+        item.tag.font_color = color
+    stated, value = _stated_style(tag_part, "font_size")
+    if stated:
+        item.tag.font_size = value
+    stated, value = _stated_style(tag_part, "font_family")
+    if stated:
+        item.tag.font_family = value
+    stated, value = _stated_style(tag_part, "font_alpha")
+    if stated:
+        item.tag.font_alpha = value
+    elif alpha is not None:
+        item.tag.font_alpha = alpha
+    stated, value = _stated_style(tag_part, "bold")
+    if stated:
+        item.tag.bold = value
+    stated, value = _stated_style(tag_part, "fill")
+    if stated:
+        item.tag.fill = value
+    stated, value = _stated_style(tag_part, "fill_color")
+    if stated:
+        item.tag.fill_color = value
+    stated, value = _stated_style(tag_part, "stroke")
+    if stated:
+        item.tag.stroke = value
+    stated, value = _stated_style(tag_part, "line_color")
+    if stated:
+        item.tag.line_color = value
+    stated, value = _stated_style(tag_part, "line_width")
+    if stated:
+        item.tag.line_width = value
+    return kwargs
+
+
 # annotation is a label with a broken leader and an arrow
 class AnnotationArrow(Group):
     """A leader from a feature point to text or a circled number.
@@ -691,7 +937,19 @@ class AnnotationArrow(Group):
             (circled number or text). Defaults to False.
         font_size (float, optional): Label font size. Defaults to None
             (``runtime_defaults["font_size"]``).
-        **kwargs: Passed to the leader ``Arrow`` and landing ``Shape``.
+        **kwargs: ``shaft_line_alpha``, ``shaft_line_color``,
+            ``shaft_line_dash_array``, and ``shaft_line_width`` style
+            the angled shaft and the landing. ``head_fill_alpha``,
+            ``head_fill_color``, ``head_line_alpha``,
+            ``head_line_color``, and ``head_line_width`` style the
+            arrowhead. ``tag_bold``, ``tag_fill``, ``tag_fill_color``,
+            ``tag_font_alpha``, ``tag_font_color``, ``tag_font_family``,
+            ``tag_font_size``, ``tag_line_color``, ``tag_line_width``,
+            and ``tag_stroke`` style the label. ``color`` and ``alpha``
+            set every part; a prefixed name wins. ``tag_stroke`` is
+            left unchanged unless given. Other shape kwargs, such as
+            ``line_color``, go to the leader ``Arrow`` and the landing
+            ``Shape``.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -708,6 +966,26 @@ class AnnotationArrow(Group):
         >>> balloon.text
         '1'
         >>> balloon.tag.frame_shape == sg.FrameShape.CIRCLE
+        True
+        >>> balloon.tag.stroke
+        True
+        >>> note.tag.stroke
+        False
+        >>> styled = sg.AnnotationArrow(
+        ...     (0, 0),
+        ...     "A",
+        ...     landing=(40, 20),
+        ...     head_fill_color=sg.red,
+        ...     shaft_line_color=sg.blue,
+        ...     tag_font_color=sg.green,
+        ... )
+        >>> styled.arrow.line.line_color == sg.blue
+        True
+        >>> styled.landing_line.line_color == sg.blue
+        True
+        >>> styled.arrow.heads[0].fill_color == sg.red
+        True
+        >>> styled.tag.font_color == sg.green
         True
         >>> sg.AnnotationArrow((0, 0), "A")  # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
@@ -783,13 +1061,14 @@ class AnnotationArrow(Group):
             self.elbow = (elbow_x, elbow_y)
             self.landing = (landing_x, landing_y)
 
-        self.arrow = Arrow(self.elbow, self.tip, **kwargs)
+        style_kwargs, leader_kwargs = _split_annotation_kwargs(kwargs)
+        self.arrow = Arrow(self.elbow, self.tip, **leader_kwargs)
         items = [self.arrow]
         abs_tol = runtime_defaults["abs_tol"]
         landing_span = distance(self.elbow, self.landing)
         if landing_span > abs_tol:
             self.landing_line = Shape(
-                [self.elbow, self.landing], fill=False, **kwargs
+                [self.elbow, self.landing], fill=False, **leader_kwargs
             )
             items.append(self.landing_line)
         else:
@@ -828,6 +1107,7 @@ class AnnotationArrow(Group):
             self.tag.stroke = True
             self.tag.fill = True
             self.tag.fill_color = colors.white
+        _style_annotation(self, style_kwargs)
         items.append(self.tag)
         super().__init__(items, subtype=Types.ANNOTATION)
 
@@ -1386,10 +1666,14 @@ class Tag(Base):
         x, y = self.pos[:2]
         inner_sep = self.frame.inner_sep
         effective_anchor = (
-            self.anchor if self.anchor is not None else runtime_defaults["anchor"]
+            self.anchor
+            if self.anchor is not None
+            else runtime_defaults["anchor"]
         )
         effective_align = (
-            self.align if self.align is not None else runtime_defaults["tag_align"]
+            self.align
+            if self.align is not None
+            else runtime_defaults["tag_align"]
         )
 
         if effective_anchor in (
@@ -2241,18 +2525,30 @@ def vec_arrow(
 
 
 class AngularDimension(Group):
-    """An AngularDimension object is a dimension that represents an angle.
+    """An angle dimension: two extension lines, an arc, and a label.
+
+    The arc runs counter-clockwise from ``start_angle`` to
+    ``end_angle`` at ``radius``. ``gap_angle`` shortens the arc at
+    each end. The extension lines lie on the two sides, from ``gap``
+    out to ``radius * (1 + ext_angle)``. The label is the full sweep
+    in radians, outside the arc by ``text_offset``.
 
     Args:
-        center (PointType): The center of the angle.
-        radius (float): The radius of the angle.
-        start_angle (float): The starting angle.
-        end_angle (float): The ending angle.
-        ext_angle (float): The extension angle.
-        gap_angle (float): The gap angle.
-        text_offset (float, optional): The text offset. Defaults to None.
-        gap (float, optional): The gap. Defaults to None.
-        **kwargs: Additional keyword arguments for angular dimension styling.
+        center (PointType): The vertex of the angle.
+        radius (float): Radius of the dimension arc.
+        start_angle (float): First side, in radians.
+        end_angle (float): Second side, in radians. The sweep is
+            counter-clockwise from ``start_angle`` to ``end_angle``.
+        ext_angle (float): Extra radius of each extension past the
+            arc, as a fraction of ``radius`` via ``1 + ext_angle``.
+        gap_angle (float): Angle cut from each end of the dimension arc.
+        text_offset (float, optional): Distance from the arc to the
+            label. ``None`` uses ``runtime_defaults["text_offset"]``.
+        gap (float, optional): Distance from the vertex to the start
+            of each extension. ``None`` uses ``runtime_defaults["gap"]``.
+        text (str, optional): Label text. ``None`` uses the sweep in
+            radians. Defaults to None.
+        **kwargs: Additional keyword arguments for dimension styling.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -2265,6 +2561,10 @@ class AngularDimension(Group):
         0
         >>> dim.end_angle
         1.5707963267948966
+        >>> dim.text
+        '1.5707963267948966'
+        >>> len(dim)
+        3
     """
 
     def __init__(
@@ -2277,15 +2577,45 @@ class AngularDimension(Group):
         gap_angle: float,
         text_offset: float | None = None,
         gap: float | None = None,
+        text: str | None = None,
         **kwargs: object,
     ) -> None:
-        """Create an angular dimension annotation.
+        """Create an angular dimension with extension lines and an arc.
 
         See the class docstring for argument details.
         """
-        text_offset, gap = get_defaults(
-            ["text_offset", "gap"], [text_offset, gap]
+        text_offset, gap, font_size = get_defaults(
+            ["text_offset", "gap", "font_size"],
+            [text_offset, gap, None],
         )
+        if radius <= 0:
+            raise ValueError("AngularDimension radius must be positive.")
+        if ext_angle < 0:
+            raise ValueError("AngularDimension ext_angle must be non-negative.")
+        if gap_angle < 0:
+            raise ValueError("AngularDimension gap_angle must be non-negative.")
+        if gap < 0:
+            raise ValueError("AngularDimension gap must be non-negative.")
+        if gap >= radius:
+            raise ValueError("AngularDimension gap must be less than radius.")
+        abs_tol = runtime_defaults["abs_tol"]
+        sweep = (end_angle - start_angle) % (2 * pi)
+        if sweep < abs_tol:
+            raise ValueError("AngularDimension angle must be nonzero.")
+        if sweep - 2 * gap_angle <= abs_tol:
+            raise ValueError(
+                "AngularDimension gap_angle removes the dimension arc."
+            )
+        if text is None:
+            text = str(sweep)
+        center_x, center_y = center[:2]
+        arc_start = start_angle + gap_angle
+        arc_end = start_angle + sweep - gap_angle
+        mid_angle = start_angle + sweep / 2
+        self.text_pos = polar_to_cartesian(
+            radius + text_offset, mid_angle, (center_x, center_y)
+        )
+
         self.center = center
         self.radius = radius
         self.start_angle = start_angle
@@ -2294,7 +2624,49 @@ class AngularDimension(Group):
         self.gap_angle = gap_angle
         self.text_offset = text_offset
         self.gap = gap
-        super().__init__(subtype=Types.ANGULAR_DIMENSION, **kwargs)
+        self.text = text
+        self.font_size = font_size
+        self.kwargs = kwargs
+        self.text_anchor = Anchor.CENTER
+        self.text_align = Align.CENTER
+        self.ext3 = None
+        self.arrow1 = None
+        self.arrow2 = None
+        self.mid_line = None
+
+        outer = radius * (1.0 + ext_angle)
+        self.ext1 = Line(
+            polar_to_cartesian(gap, start_angle, (center_x, center_y)),
+            polar_to_cartesian(outer, start_angle, (center_x, center_y)),
+        )
+        self.ext2 = Line(
+            polar_to_cartesian(gap, end_angle, (center_x, center_y)),
+            polar_to_cartesian(outer, end_angle, (center_x, center_y)),
+        )
+        self.dim_line = ArcArrow(
+            (center_x, center_y),
+            radius,
+            start_angle=arc_start,
+            end_angle=arc_end,
+        )
+        self.dim_line.line = self.dim_line.arc
+        self.dim_line.heads = [
+            self.dim_line.arrow_head1,
+            self.dim_line.arrow_head2,
+        ]
+        self.tag = Tag(
+            text,
+            pos=self.text_pos,
+            fill=True,
+            anchor=self.text_anchor,
+            align=self.text_align,
+            font_size=self.font_size,
+        )
+        super().__init__(
+            [self.ext1, self.ext2, self.dim_line],
+            subtype=Types.ANGULAR_DIMENSION,
+            **kwargs,
+        )
 
     def __repr__(self) -> str:
         """Return an AngularDimension string from this dimension's elements.
@@ -2302,10 +2674,10 @@ class AngularDimension(Group):
         Examples:
             >>> import simetri.graphics as sg
             >>> dim = sg.AngularDimension((0, 0), 20, 0, sg.pi / 2, 0.1, 0.1)
-            >>> repr(dim)
-            'AngularDimension()'
-            >>> str(dim)
-            'Group()'
+            >>> repr(dim).startswith("AngularDimension(")
+            True
+            >>> str(dim).startswith("Group")
+            True
         """
         if self.elements is None or len(self.elements) == 0:
             return "AngularDimension()"
@@ -2605,6 +2977,269 @@ class Dimension(Group):
         return f"Dimension({self.elements[0]}...{self.elements[-1]})"
 
 
+_ALIGNED_SIDES = {
+    "lower_left": (-1.0, -1.0),
+    "lower_right": (1.0, -1.0),
+    "upper_left": (-1.0, 1.0),
+    "upper_right": (1.0, 1.0),
+}
+
+
+def _aligned_side_normal(angle: float, side: str) -> tuple[float, float]:
+    """Return the unit normal of ``angle`` that faces ``side``."""
+    if side not in _ALIGNED_SIDES:
+        raise ValueError(
+            "AlignedDimension side must be upper_left, upper_right, "
+            "lower_left, or lower_right."
+        )
+    desired_x, desired_y = _ALIGNED_SIDES[side]
+    left_x = -sin(angle)
+    left_y = cos(angle)
+    left_dot = left_x * desired_x + left_y * desired_y
+    right_dot = -left_dot
+    if left_dot >= right_dot:
+        return (left_x, left_y)
+    return (-left_x, -left_y)
+
+
+class AlignedDimension(Group):
+    """A dimension whose line, arrows, and extension lines share one angle.
+
+    ``angle`` is the direction of the dimension line, in radians. ``None``
+    uses the direction from ``p1`` to ``p2``. Extension lines are
+    perpendicular to that direction. ``side`` picks which perpendicular
+    faces that quadrant: ``upper_left``, ``upper_right``, ``lower_left``,
+    or ``lower_right``. The label is the length of the dimension line.
+
+    Args:
+        p1 (PointType): First feature point.
+        p2 (PointType): Second feature point.
+        side (str): ``upper_left``, ``upper_right``, ``lower_left``, or
+            ``lower_right``.
+        text_offset (float): Distance from the gap to the dimension line.
+        text (str, optional): Label text. ``None`` uses the dimension-line
+            length. Defaults to None.
+        ext_line_extension (float, optional): How far each extension
+            continues past the dimension line. ``None`` uses
+            ``runtime_defaults["overshoot"]``.
+        ext_line_offset (float, optional): Gap from the feature to the
+            start of the extension. ``None`` uses ``runtime_defaults["gap"]``.
+        text_horiz_offset (float, optional): Offset of the label along
+            the dimension line when ``text_loc`` is ``"left"`` or
+            ``"right"``. ``None`` uses ``runtime_defaults["ext_length2"]``.
+        text_loc (str, optional): ``"middle"``, ``"left"``, or
+            ``"right"``. Defaults to ``"middle"``.
+        stub_length (float, optional): Outward shaft length when the
+            label is not in the middle. Defaults to 15.
+        angle (float, optional): Dimension-line direction in radians.
+            ``None`` uses the direction from ``p1`` to ``p2``.
+        **kwargs: Additional keyword arguments for dimension styling.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> dim = sg.AlignedDimension((0, 0), (40, 0), "upper_right", 8)
+        >>> dim.angle
+        0.0
+        >>> dim.text
+        '40.0'
+        >>> dim.text_pos
+        (20.0, 13.0)
+        >>> dim.subtype == sg.Types.ALIGNED_DIMENSION
+        True
+        >>> low = sg.AlignedDimension((0, 0), (40, 0), "lower_left", 8)
+        >>> low.text_pos
+        (20.0, -13.0)
+        >>> tilted = sg.AlignedDimension(
+        ...     (0, 0), (40, 30), "upper_left", 8, angle=0.0
+        ... )
+        >>> tilted.angle
+        0.0
+        >>> round(tilted.dim_line.p1[1], 6) == round(tilted.dim_line.p2[1], 6)
+        True
+        >>> sg.AlignedDimension((0, 0), (0, 0), "upper_right", 8)  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ValueError: AlignedDimension points must be distinct.
+        >>> sg.AlignedDimension((0, 0), (0, 40), "upper_right", 8, angle=0)  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ValueError: AlignedDimension length is zero at this angle.
+        >>> sg.AlignedDimension((0, 0), (40, 0), "above", 8)  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ValueError: AlignedDimension side must be upper_left, upper_right, lower_left, or lower_right.
+    """
+
+    def __init__(
+        self,
+        p1: PointType,
+        p2: PointType,
+        side: str,
+        text_offset: float,
+        text: str | None = None,
+        ext_line_extension: float | None = None,
+        ext_line_offset: float | None = None,
+        text_horiz_offset: float | None = None,
+        text_loc: str = "middle",
+        stub_length: float = 15,
+        angle: float | None = None,
+        **kwargs: object,
+    ) -> None:
+        """Create an aligned dimension with extension lines and arrows.
+
+        See the class docstring for argument details.
+        """
+        (
+            ext_line_extension,
+            ext_line_offset,
+            text_horiz_offset,
+            font_size,
+        ) = get_defaults(
+            [
+                "overshoot",
+                "gap",
+                "ext_length2",
+                "font_size",
+            ],
+            [
+                ext_line_extension,
+                ext_line_offset,
+                text_horiz_offset,
+                None,
+            ],
+        )
+        x1, y1 = p1[:2]
+        x2, y2 = p2[:2]
+        abs_tol = runtime_defaults["abs_tol"]
+        if abs(x1 - x2) < abs_tol and abs(y1 - y2) < abs_tol:
+            raise ValueError("AlignedDimension points must be distinct.")
+        if angle is None:
+            angle = line_angle(p1, p2)
+        normal_x, normal_y = _aligned_side_normal(angle, side)
+        height1 = x1 * normal_x + y1 * normal_y
+        height2 = x2 * normal_x + y2 * normal_y
+        dist_to_line = ext_line_offset + text_offset
+        if height1 >= height2:
+            line_height = height1 + dist_to_line
+        else:
+            line_height = height2 + dist_to_line
+        offset1 = line_height - height1
+        offset2 = line_height - height2
+        dim1 = (x1 + normal_x * offset1, y1 + normal_y * offset1)
+        dim2 = (x2 + normal_x * offset2, y2 + normal_y * offset2)
+        span_x = dim2[0] - dim1[0]
+        span_y = dim2[1] - dim1[1]
+        span = hypot(span_x, span_y)
+        if span < abs_tol:
+            raise ValueError("AlignedDimension length is zero at this angle.")
+        if text is None:
+            text = str(distance(dim1, dim2))
+        along_x = span_x / span
+        along_y = span_y / span
+        dim1_x, dim1_y = dim1
+        dim2_x, dim2_y = dim2
+        if text_loc == "middle":
+            text_x = (dim1_x + dim2_x) / 2
+            text_y = (dim1_y + dim2_y) / 2
+            text_anchor = Anchor.CENTER
+            text_align = Align.CENTER
+        elif text_loc == "left":
+            text_x = dim1_x - along_x * text_horiz_offset
+            text_y = dim1_y - along_y * text_horiz_offset
+            text_anchor = Anchor.CENTER
+            text_align = Align.RIGHT
+        else:
+            text_x = dim2_x + along_x * text_horiz_offset
+            text_y = dim2_y + along_y * text_horiz_offset
+            text_anchor = Anchor.CENTER
+            text_align = Align.LEFT
+
+        self.p1 = p1
+        self.p2 = p2
+        self.side = side
+        self.angle = angle
+        self.text_offset = text_offset
+        self.text = text
+        self.ext_line_extension = ext_line_extension
+        self.ext_line_offset = ext_line_offset
+        self.text_horiz_offset = text_horiz_offset
+        self.text_loc = text_loc
+        self.stub_length = stub_length
+        self.font_size = font_size
+        self.kwargs = kwargs
+        self.text_pos = (text_x, text_y)
+        self.text_anchor = text_anchor
+        self.text_align = text_align
+        self.ext3 = None
+        self.arrow1 = None
+        self.arrow2 = None
+        self.dim_line = None
+        self.mid_line = None
+
+        super().__init__(subtype=Types.ALIGNED_DIMENSION, **kwargs)
+
+        self.tag = Tag(
+            text,
+            pos=(text_x, text_y),
+            fill=True,
+            anchor=self.text_anchor,
+            align=self.text_align,
+            font_size=self.font_size,
+        )
+        self.ext1 = Line(
+            (x1 + normal_x * ext_line_offset, y1 + normal_y * ext_line_offset),
+            (
+                dim1_x + normal_x * ext_line_extension,
+                dim1_y + normal_y * ext_line_extension,
+            ),
+        )
+        self.ext2 = Line(
+            (x2 + normal_x * ext_line_offset, y2 + normal_y * ext_line_offset),
+            (
+                dim2_x + normal_x * ext_line_extension,
+                dim2_y + normal_y * ext_line_extension,
+            ),
+        )
+        self.append(self.ext1)
+        self.append(self.ext2)
+        if text_loc == "middle":
+            self.dim_line = Arrow(dim1, dim2, head_pos=HeadPos.BOTH)
+            self.append(self.dim_line)
+        else:
+            self.arrow1 = Arrow(
+                (
+                    dim1_x - along_x * stub_length,
+                    dim1_y - along_y * stub_length,
+                ),
+                dim1,
+                head_pos=HeadPos.END,
+            )
+            self.arrow2 = Arrow(
+                dim2,
+                (
+                    dim2_x + along_x * stub_length,
+                    dim2_y + along_y * stub_length,
+                ),
+                head_pos=HeadPos.START,
+            )
+            self.mid_line = Line(dim1, dim2)
+            self.append(self.arrow1)
+            self.append(self.arrow2)
+            self.append(self.mid_line)
+
+    def __repr__(self) -> str:
+        """Return an AlignedDimension string from this dimension's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> dim = sg.AlignedDimension((0, 0), (40, 0), "upper_right", 8)
+            >>> repr(dim).startswith("AlignedDimension(")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "AlignedDimension()"
+        if len(self.elements) in [1, 2]:
+            return f"AlignedDimension({self.elements})"
+        return f"AlignedDimension({self.elements[0]}...{self.elements[-1]})"
+
+
 def vert_label_layout(shape: Shape, offset: float) -> list[dict[str, object]]:
     """Return label anchor, outward direction, and vertex for each vertex.
 
@@ -2715,7 +3350,9 @@ def estimate_index_label_bbox(
     """
     if font_family is None:
         font_family = runtime_defaults["index_font_family"]
-    return _label_size_from_tag_text_bounds(str(label), font_size_pt, font_family)
+    return _label_size_from_tag_text_bounds(
+        str(label), font_size_pt, font_family
+    )
 
 
 def estimate_vertex_coord_label_bbox(
@@ -2874,9 +3511,10 @@ def sketch_requests_vertex_labels(sketch: Any) -> bool:
         return True
     if getattr(sketch, "show_vertex_coords", False):
         return True
-    if getattr(sketch, "draw_markers", False) and getattr(
-        sketch, "marker_type", None
-    ) == MarkerType.INDICES:
+    if (
+        getattr(sketch, "draw_markers", False)
+        and getattr(sketch, "marker_type", None) == MarkerType.INDICES
+    ):
         return True
     return False
 

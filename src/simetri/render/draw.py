@@ -55,7 +55,7 @@ from ..geom.segments.line_utils import (
     intersection,
 )
 from ..group.batch import Group
-from ..helpers.illustration import Tag, TextPath
+from ..helpers.illustration import Tag, TextPath, _style_annotation
 from ..helpers.utilities import (
     decompose_transformations,
     group_into_bins,
@@ -2365,12 +2365,122 @@ def draw_pdf(
     return self
 
 
+def _pop_prefixed(draw_kwargs: dict[str, object], prefix: str) -> dict[str, object]:
+    """Remove ``prefix`` keys and return them without the prefix."""
+    part: dict[str, object] = {}
+    for key in list(draw_kwargs):
+        if key.startswith(prefix):
+            part[key[len(prefix) :]] = draw_kwargs[key]
+            del draw_kwargs[key]
+    return part
+
+
+def _stated(part: dict[str, object], name: str) -> tuple[bool, object]:
+    """Return whether ``name`` was passed and is not the default marker."""
+    if name not in part or part[name] is None:
+        return False, None
+    return True, part[name]
+
+
+def _line_part_style(
+    part: dict[str, object],
+    color: object,
+    alpha: object,
+) -> dict[str, object]:
+    """Line style for an extension line, shaft, or dimension mid-line."""
+    style: dict[str, object] = {}
+    stated, value = _stated(part, "line_color")
+    if stated:
+        style["line_color"] = value
+    elif color is not None:
+        style["line_color"] = color
+    stated, value = _stated(part, "line_width")
+    if stated:
+        style["line_width"] = value
+    stated, value = _stated(part, "line_dash_array")
+    if stated:
+        style["line_dash_array"] = value
+    stated, value = _stated(part, "line_alpha")
+    if stated:
+        style["line_alpha"] = value
+    elif alpha is not None:
+        style["line_alpha"] = alpha
+    return style
+
+
+def _head_part_style(
+    part: dict[str, object],
+    color: object,
+    alpha: object,
+) -> dict[str, object]:
+    """Head style shared by every arrow head on a dimension."""
+    style: dict[str, object] = {}
+    stated, value = _stated(part, "fill_color")
+    if stated:
+        style["fill_color"] = value
+    elif color is not None:
+        style["fill_color"] = color
+    stated, value = _stated(part, "line_color")
+    if stated:
+        style["line_color"] = value
+    elif color is not None:
+        style["line_color"] = color
+    stated, value = _stated(part, "line_width")
+    if stated:
+        style["line_width"] = value
+    stated, value = _stated(part, "fill_alpha")
+    if stated:
+        style["fill_alpha"] = value
+    elif alpha is not None:
+        style["fill_alpha"] = alpha
+    stated, value = _stated(part, "line_alpha")
+    if stated:
+        style["line_alpha"] = value
+    elif alpha is not None:
+        style["line_alpha"] = alpha
+    return style
+
+
+def _apply_part_style(shape: Drawable | None, style: dict[str, object]) -> None:
+    """Set resolved style attributes on one dimension part."""
+    if shape is None:
+        return
+    for name, value in style.items():
+        setattr(shape, name, value)
+
+
+def _apply_arrow_style(
+    arrow: object,
+    shaft_style: dict[str, object],
+    head_style: dict[str, object],
+) -> None:
+    """Style one dimension arrow. ``arrow1`` and ``arrow2`` use this same pair."""
+    if arrow is None:
+        return
+    _apply_part_style(arrow.line, shaft_style)
+    for head in arrow.heads:
+        _apply_part_style(head, head_style)
+
+
 def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     """Draw the dimension object.
 
     Args:
         item: Dimension object to be drawn.
-        **kwargs: Additional keyword arguments.
+        **kwargs: ``ext_line_alpha``, ``ext_line_color``,
+            ``ext_line_dash_array``, and ``ext_line_width`` style both
+            extension lines. ``shaft_line_alpha``, ``shaft_line_color``,
+            ``shaft_line_dash_array``, and ``shaft_line_width`` style
+            the dimension line and, when the label is at the side, both
+            arrow shafts and the line between them. ``head_fill_alpha``,
+            ``head_fill_color``, ``head_line_alpha``,
+            ``head_line_color``, and ``head_line_width`` style every
+            arrow head. ``tag_bold``, ``tag_fill``,
+            ``tag_fill_color``, ``tag_font_alpha``, ``tag_font_color``,
+            ``tag_font_family``, ``tag_font_size``, ``tag_line_color``,
+            ``tag_line_width``, and ``tag_stroke`` style the label.
+            ``tag_stroke`` defaults to False. ``color`` and ``alpha``
+            set every part; a prefixed name wins.
 
     Returns:
         Self: The canvas object.
@@ -2394,30 +2504,98 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
         else:
             self.active_page.sketches.append(sketch)
 
+    draw_kwargs = dict(kwargs)
+    ext_style = _line_part_style(
+        _pop_prefixed(draw_kwargs, "ext_"),
+        draw_kwargs["color"] if "color" in draw_kwargs else None,
+        draw_kwargs["alpha"] if "alpha" in draw_kwargs else None,
+    )
+    common_color = draw_kwargs["color"] if "color" in draw_kwargs else None
+    common_alpha = draw_kwargs["alpha"] if "alpha" in draw_kwargs else None
+    if "color" in draw_kwargs:
+        del draw_kwargs["color"]
+    if "alpha" in draw_kwargs:
+        del draw_kwargs["alpha"]
+    shaft_style = _line_part_style(
+        _pop_prefixed(draw_kwargs, "shaft_"), common_color, common_alpha
+    )
+    head_style = _head_part_style(
+        _pop_prefixed(draw_kwargs, "head_"), common_color, common_alpha
+    )
+    tag_part = _pop_prefixed(draw_kwargs, "tag_")
+
     for ext in [item.ext1, item.ext2, item.ext3]:
         if ext:
-            _add_sketch(create_sketch(ext, self, **kwargs))
+            _apply_part_style(ext, ext_style)
+            _add_sketch(create_sketch(ext, self, **draw_kwargs))
+    _apply_arrow_style(item.dim_line, shaft_style, head_style)
+    _apply_arrow_style(item.arrow1, shaft_style, head_style)
+    _apply_arrow_style(item.arrow2, shaft_style, head_style)
+    _apply_part_style(item.mid_line, shaft_style)
     if item.dim_line:
-        _add_sketch(create_sketch(item.dim_line, self, **kwargs))
+        _add_sketch(create_sketch(item.dim_line, self, **draw_kwargs))
     if item.arrow1:
-        _add_sketch(create_sketch(item.arrow1, self))
-        _add_sketch(create_sketch(item.mid_line, self))
+        _add_sketch(create_sketch(item.arrow1, self, **draw_kwargs))
+        _add_sketch(create_sketch(item.mid_line, self, **draw_kwargs))
     if item.arrow2:
-        _add_sketch(create_sketch(item.arrow2, self))
+        _add_sketch(create_sketch(item.arrow2, self, **draw_kwargs))
     x, y = item.text_pos[:2]
-    tag_kwargs = dict(kwargs)
-    if "font_size" not in tag_kwargs:
+    tag_kwargs: dict[str, object] = {}
+    if "font_size" in tag_part and tag_part["font_size"] is not None:
+        tag_kwargs["font_size"] = tag_part["font_size"]
+    elif "font_size" in draw_kwargs:
+        tag_kwargs["font_size"] = draw_kwargs["font_size"]
+    else:
         tag_kwargs["font_size"] = item.font_size
-    if "anchor" not in tag_kwargs:
+    if "anchor" in draw_kwargs:
+        tag_kwargs["anchor"] = draw_kwargs["anchor"]
+    else:
         tag_kwargs["anchor"] = item.text_anchor
-    if "align" not in tag_kwargs:
+    if "align" in draw_kwargs:
+        tag_kwargs["align"] = draw_kwargs["align"]
+    else:
         tag_kwargs["align"] = item.text_align
-    if "fill" not in tag_kwargs:
+    if "fill" in tag_part and tag_part["fill"] is not None:
+        tag_kwargs["fill"] = tag_part["fill"]
+    elif "fill" in draw_kwargs:
+        tag_kwargs["fill"] = draw_kwargs["fill"]
+    else:
         tag_kwargs["fill"] = runtime_defaults["fill"]
+    if "stroke" in tag_part and tag_part["stroke"] is not None:
+        tag_kwargs["stroke"] = tag_part["stroke"]
+    else:
+        tag_kwargs["stroke"] = False
+    stated, value = _stated(tag_part, "font_color")
+    if stated:
+        tag_kwargs["font_color"] = value
+    elif common_color is not None:
+        tag_kwargs["font_color"] = common_color
+    stated, value = _stated(tag_part, "font_family")
+    if stated:
+        tag_kwargs["font_family"] = value
+    font_alpha = None
+    stated, value = _stated(tag_part, "font_alpha")
+    if stated:
+        font_alpha = value
+    elif common_alpha is not None:
+        font_alpha = common_alpha
+    stated, value = _stated(tag_part, "bold")
+    if stated:
+        tag_kwargs["bold"] = value
+    stated, value = _stated(tag_part, "fill_color")
+    if stated:
+        tag_kwargs["fill_color"] = value
+    stated, value = _stated(tag_part, "line_color")
+    if stated:
+        tag_kwargs["line_color"] = value
+    stated, value = _stated(tag_part, "line_width")
+    if stated:
+        tag_kwargs["line_width"] = value
     tag = Tag(item.text, (x, y), **tag_kwargs)
-    # extend vertices with the Tag's bounding box
+    if font_alpha is not None:
+        tag.font_alpha = font_alpha
     extend_vertices(self, tag)
-    self.active_page.sketches.append(create_sketch(tag, self, **kwargs))
+    self.active_page.sketches.append(create_sketch(tag, self))
 
     return self
 
@@ -2697,6 +2875,8 @@ def draw(
                     ],
                 )
 
+    if subtype == Types.ANNOTATION:
+        kwargs = _style_annotation(item, kwargs)
     if subtype in (Types.GROUP, Types.STAR, Types.ANNOTATION, Types.DCEL):
         group_kwargs = dict(kwargs)
         if kwargs.get("vertex_on_hull") and "_group_hull_points" not in kwargs:
@@ -2781,12 +2961,16 @@ def draw(
         draw_image(self, item, **kwargs)
     elif subtype == Types.PATTERN:
         draw_pattern(self, item, **kwargs)
-    elif subtype == Types.DIMENSION:
+    elif subtype in (
+        Types.ALIGNED_DIMENSION,
+        Types.ANGULAR_DIMENSION,
+        Types.DIMENSION,
+    ):
         self.draw_dimension(item, **kwargs)
     elif subtype == Types.ARROW:
+        active_sketches.append(create_sketch(item.line, self, **kwargs))
         for head in item.heads:
             active_sketches.append(create_sketch(head, self, **kwargs))
-        active_sketches.append(create_sketch(item.line, self, **kwargs))
     elif subtype == Types.LACE:
         self.draw_lace(item, **kwargs)
     elif subtype == Types.FIGURE:

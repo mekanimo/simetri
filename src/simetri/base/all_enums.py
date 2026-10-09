@@ -1562,6 +1562,7 @@ class Types(StrEnum):
     """
 
     ALPHA_GROUP = "ALPHA_GROUP"
+    ALIGNED_DIMENSION = "ALIGNED_DIMENSION"
     ANGULAR_DIMENSION = "ANGULAR DIMENSION"
     ANNOTATION = "ANNOTATION"
     ARC = "ARC"
@@ -2000,6 +2001,8 @@ class WarningType:
 
 
 drawable_types = {
+    Types.ALIGNED_DIMENSION,
+    Types.ANGULAR_DIMENSION,
     Types.ANNOTATION,
     Types.ARC,
     Types.ARC_ARROW,
@@ -2075,6 +2078,7 @@ shape_types = {
 }
 
 group_types = {
+    Types.ALIGNED_DIMENSION,
     Types.ANGULAR_DIMENSION,
     Types.ANNOTATION,
     Types.ARC_ARROW,
