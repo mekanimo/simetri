@@ -28,7 +28,7 @@ from ...config.settings import runtime_defaults
 from ...geom.geom_utils import close_points_square
 from ...geom.points.point_utils import round_point
 from ...helpers.file_operations import forward_slash_path
-from ...helpers.illustration import (
+from ...helpers.labels import (
     label_font_family_tikz,
     label_halo_color,
     label_halo_stroke_width,
@@ -488,6 +488,8 @@ def draw_latex_sketch(sketch: Any) -> str:
     ):
         options.append(f"text={color_to_tikz(sketch.font_color)}")
 
+    if sketch.angle:
+        options.append(f"rotate={degrees(sketch.angle)}")
     font_size = sketch.font_size or runtime_defaults["font_size"]
     baseline_skip = ceil(font_size * 1.2)
     tex_formula = rf"{{\fontsize{{{font_size}}}{{{baseline_skip}}}\selectfont ${formula}$}}"

@@ -48,6 +48,7 @@ from ..helpers.modifiers import Modifier
 from ..helpers.utilities import flatten2
 from .merge import (
     _closest_angle_differences,
+    _copy_style_from_members,
     _merge_collinears,
     _merge_shapes,
     _segment_angles,
@@ -1214,10 +1215,8 @@ class Group(Base):
                 elements = new[:]
                 new = []
         if merge and reps > 0:
-            style_source = self.elements[0]
             merged = combine_shapes(self)
-            for shape in merged:
-                shape.copy_style(style_source)
+            _copy_style_from_members(self, merged)
             self[:] = merged.elements[:]
         # check if the bounding-boxes of the elements have changes
 

@@ -6,6 +6,7 @@ filters, masks), shape elements, and page framing via ``get_svg_code``.
 
 from __future__ import annotations
 
+from math import degrees
 from typing import TYPE_CHECKING, Any
 
 from ...base.all_enums import (
@@ -17,7 +18,7 @@ from ...base.all_enums import (
 from ...coloring.colors import Color, black, check_color, white
 from ...geom.bbox import bounding_box
 from ...geom.homogenize import homogenize
-from ...helpers.illustration import (
+from ...helpers.labels import (
     resolve_page_vertex_labels,
     sketch_requests_vertex_labels,
 )
@@ -417,6 +418,15 @@ def svg_shape(
     ):
         fill_rule_attr = ' fill-rule="evenodd"'
 
+    transform_attr = ""
+    if shape_type == "ellipse":
+        angle = sketch_attrib(sketch, "angle")
+        if angle:
+            center_x, center_y = sketch_attrib(sketch, "center")[:2]
+            transform_attr = (
+                f' transform="rotate({degrees(angle)} {center_x} {center_y})"'
+            )
+
     draw_double = sketch_attrib(sketch, "draw_double")
     if draw_double:
         line_width = sketch_attrib(sketch, "line_width")
@@ -452,7 +462,8 @@ def svg_shape(
         ).strip()
         outer_element = (
             f"<{shape_type}\n"
-            f'style="{outer_style}"{fill_rule_attr}{clip_attr}{mask_attr}\n'
+            f'style="{outer_style}"{fill_rule_attr}{clip_attr}{mask_attr}'
+            f"{transform_attr}\n"
             f"{coordinates}\n"
             f"/>"
         )
@@ -461,7 +472,10 @@ def svg_shape(
             double_color = defaults["double_color"]
         gap_stroke = color_to_svg(check_color(double_color))
         gap_style = f"stroke: {gap_stroke}; stroke-width: {double_distance}; fill: none;"
-        gap_element = f'<{shape_type}\nstyle="{gap_style}"\n{coordinates}\n/>'
+        gap_element = (
+            f'<{shape_type}\nstyle="{gap_style}"{transform_attr}\n'
+            f"{coordinates}\n/>"
+        )
         return f"{outer_element}\n{gap_element}"
 
     class_attr = ""
@@ -481,7 +495,7 @@ def svg_shape(
             style_attr = f' style="{style}"'
 
     return f"""<{shape_type}
-{class_attr}{style_attr}{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}
+{class_attr}{style_attr}{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}{transform_attr}
 {coordinates}
 />"""
 

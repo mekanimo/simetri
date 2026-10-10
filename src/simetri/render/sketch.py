@@ -81,6 +81,10 @@ class CircleSketch:
         else:
             center = homogenize([self.center])
             center = (center @ self.xform_matrix).tolist()[0][:2]
+            _, _, scale = decompose_transformations(self.xform_matrix)
+            scale_x = float(scale[0])
+            if scale_x != 1.0:
+                self.radius = float(self.radius) * scale_x
         self.center = center
         self.closed = True
 
@@ -130,6 +134,15 @@ class EllipseSketch:
         else:
             center = homogenize([self.center])
             center = (center @ self.xform_matrix).tolist()[0][:2]
+            _, rotation, scale = decompose_transformations(self.xform_matrix)
+            scale_x = float(scale[0])
+            scale_y = float(scale[1])
+            if scale_x != 1.0:
+                self.x_radius = float(self.x_radius) * scale_x
+            if scale_y != 1.0:
+                self.y_radius = float(self.y_radius) * scale_y
+            if rotation != 0:
+                self.angle = float(self.angle) + float(rotation)
         self.center = center
         self.closed = True
 
@@ -464,16 +477,34 @@ class ImageSketch:
         self.subtype = Types.IMAGE_SKETCH
         self.id = get_unique_id(self)
 
+        if self.angle is None:
+            self.angle = 0
         if self.xform_matrix is None:
             self.xform_matrix = identity_matrix()
-            self.pos = self.image.pos
-            self.size = self.image.size
+            if self.pos is None:
+                self.pos = self.image.pos
+            if self.size is None:
+                self.size = self.image.size
         else:
-            pos = homogenize([self.image.pos])
+            if self.pos is None:
+                pos = self.image.pos
+            else:
+                pos = self.pos
+            pos = homogenize([pos])
             self.pos = (pos @ self.xform_matrix).tolist()[0][:2]
-            _, _, scale = decompose_transformations(self.xform_matrix)
-            w, h = self.image.size
-            self.size = scale[0] * w, scale[1] * h
+            _, rotation, scale = decompose_transformations(self.xform_matrix)
+            if self.size is None:
+                self.size = self.image.size
+            scale_x = float(scale[0])
+            scale_y = float(scale[1])
+            if scale_x != 1.0 or scale_y != 1.0:
+                width, height = self.size
+                self.size = (
+                    scale_x * float(width),
+                    scale_y * float(height),
+                )
+            if rotation != 0:
+                self.angle = float(self.angle) + float(rotation)
         self.image = self.image.copy()
 
     def __repr__(self) -> str:
@@ -524,6 +555,7 @@ class LatexSketch:
     font_color: object = None
     bold: bool = False
     anchor: Anchor = None
+    angle: float = 0
     xform_matrix: NDArray = None
     formula_size: tuple | None = None  # (W, H) in points, filled by draw_latex
 
@@ -540,6 +572,12 @@ class LatexSketch:
         else:
             pos = homogenize([self.pos])
             pos = (pos @ self.xform_matrix).tolist()[0][:2]
+            _, rotation, scale = decompose_transformations(self.xform_matrix)
+            scale_x = float(scale[0])
+            if scale_x != 1.0:
+                self.font_size = float(self.font_size) * scale_x
+            if rotation != 0:
+                self.angle = float(self.angle) + float(rotation)
         self.pos = pos
 
     def __repr__(self) -> str:
@@ -1155,6 +1193,18 @@ class PDFSketch:
         self.type = Types.SKETCH
         self.subtype = Types.PDF_SKETCH
         self.id = get_unique_id(self)
+        if self.xform_matrix is None:
+            self.xform_matrix = identity_matrix()
+            return
+        if self.pos is not None:
+            pos = homogenize([self.pos])
+            self.pos = (pos @ self.xform_matrix).tolist()[0][:2]
+        _, rotation, scale = decompose_transformations(self.xform_matrix)
+        if rotation != 0:
+            self.angle = float(self.angle) + float(rotation)
+        scale_x = float(scale[0])
+        if scale_x != 1.0 and isinstance(self.scale, (int, float)):
+            self.scale = float(self.scale) * scale_x
 
 
 @dataclass

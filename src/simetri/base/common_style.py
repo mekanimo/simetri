@@ -276,16 +276,28 @@ class CommonStyle:
         color = kwargs.pop("color") if "color" in kwargs else None
         alpha = kwargs.pop("alpha") if "alpha" in kwargs else None
         line_color = (
-            kwargs.pop("line_color") if "line_color" in kwargs else None
+            # kwargs.pop("line_color") if "line_color" in kwargs else None
+            kwargs.pop("line_color")
+            if "line_color" in kwargs
+            else runtime_defaults["line_color"]
         )
         fill_color = (
-            kwargs.pop("fill_color") if "fill_color" in kwargs else None
+            # kwargs.pop("fill_color") if "fill_color" in kwargs else None
+            kwargs.pop("fill_color")
+            if "fill_color" in kwargs
+            else runtime_defaults["fill_color"]
         )
         line_alpha = (
-            kwargs.pop("line_alpha") if "line_alpha" in kwargs else None
+            # kwargs.pop("line_alpha") if "line_alpha" in kwargs else None
+            kwargs.pop("line_alpha")
+            if "line_alpha" in kwargs
+            else runtime_defaults["line_alpha"]
         )
         fill_alpha = (
-            kwargs.pop("fill_alpha") if "fill_alpha" in kwargs else None
+            # kwargs.pop("fill_alpha") if "fill_alpha" in kwargs else None
+            kwargs.pop("fill_alpha")
+            if "fill_alpha" in kwargs
+            else runtime_defaults["fill_alpha"]
         )
         self._apply_color_alpha(
             color=color,

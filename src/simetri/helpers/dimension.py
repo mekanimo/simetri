@@ -13,7 +13,6 @@ from ..geom.points.point_utils import distance
 from ..geom.segments.line_utils import (
     extended_line,
     line_angle,
-    line_by_point_angle_length,
 )
 from ..group.batch import Group
 from ..shapes.geom_items import Line
@@ -133,6 +132,8 @@ class RadialDimension(Group):
         if len(self.elements) in [1, 2]:
             return f"RadialDimension({self.elements})"
         return f"RadialDimension({self.elements[0]}...{self.elements[-1]})"
+
+
 class AngularDimension(Group):
     """An angle dimension: two extension lines, an arc, and a label.
 
@@ -308,16 +309,17 @@ class AngularDimension(Group):
 class Dimension(Group):
     """A linear dimension: extension lines, dimension line, and a label.
 
-    ``p1`` and ``p2`` decide the kind: same ``y`` is horizontal, same
-    ``x`` is vertical, otherwise the dimension is aligned to the
-    segment (diagonal). The label position is stored on ``text_pos``.
+    ``orientation`` is ``"horizontal"`` or ``"vertical"``. ``None``
+    compares the two points: the larger change in ``x`` is horizontal,
+    and the larger change in ``y`` is vertical. An equal change is
+    horizontal. The label position is stored on ``text_pos``.
 
     Args:
         p1 (PointType): First feature point.
         p2 (PointType): Second feature point.
         side (str): Which side of the features the dimension line is
-            on. Horizontal or diagonal: ``"up"`` or ``"down"``.
-            Vertical: ``"left"`` or ``"right"``.
+            on. Horizontal: ``"up"`` or ``"down"``. Vertical:
+            ``"left"`` or ``"right"``.
         text_offset (float, optional): Distance from the gap to the
             dimension line. ``None`` uses ``runtime_defaults["text_offset"]``.
         text (str, optional): Label text. ``None`` uses the measured
@@ -329,15 +331,19 @@ class Dimension(Group):
         ext_line_offset (float, optional): Gap from the feature to the
             start of the extension. ``None`` uses ``runtime_defaults["gap"]``.
         text_horiz_offset (float, optional): Offset of the label along
-            the dimension line when ``text_loc`` is ``"left"`` or
-            ``"right"``. ``None`` uses ``runtime_defaults["ext_length2"]``.
-        text_loc (str, optional): ``"middle"``, ``"left"``, or
-            ``"right"``. Defaults to ``"middle"``.
+            the dimension line when ``text_loc`` is not ``"middle"``.
+            ``None`` uses ``runtime_defaults["ext_length2"]``.
+        text_loc (str, optional): ``"middle"``, or a side.
+            Horizontal: ``"left"`` or ``"right"``. Vertical: ``"up"``
+            or ``"down"``. Defaults to ``"middle"``.
         stub_length (float, optional): Outward shaft length when the
             label is not in the middle. ``None`` uses
             ``runtime_defaults["stub_length"]``.
         show_midline (bool, optional): Draw the line between the side
             arrows. Defaults to True.
+        orientation (str, optional): ``"horizontal"`` or ``"vertical"``.
+            ``None`` uses the larger change in ``x`` or ``y``. An equal
+            change is horizontal. Defaults to None.
         **kwargs: Additional keyword arguments for dimension styling.
 
     Examples:
@@ -345,8 +351,16 @@ class Dimension(Group):
         >>> dim = sg.Dimension((0, 0), (40, 0), 'up', 8)
         >>> dim.text
         '40.0'
-        >>> sg.Dimension((0, 0), (1, 1), "up", 8).text
-        '1.41'
+        >>> dim.orientation
+        'horizontal'
+        >>> sg.Dimension((0, 0), (0, 40), "right").orientation
+        'vertical'
+        >>> sg.Dimension((0, 0), (40, 10), "up").orientation
+        'horizontal'
+        >>> sg.Dimension((0, 0), (10, 40), "right").orientation
+        'vertical'
+        >>> sg.Dimension((0, 0), (10, 10), "up").orientation
+        'horizontal'
         >>> dim.text_pos
         (20.0, 13)
         >>> dim.p1
@@ -362,6 +376,13 @@ class Dimension(Group):
         True
         >>> hidden.midline in hidden.elements
         False
+        >>> outer = sg.Dimension((0, 40), (0, 0), "right", text_loc="up")
+        >>> outer.text_pos
+        (10, 65)
+        >>> outer.arrow1.p1[1]
+        55
+        >>> outer.arrow2.p2[1]
+        -15
         >>> plain = sg.Dimension((0, 0), (40, 0), "up")
         >>> plain.text_offset
         5
@@ -384,6 +405,7 @@ class Dimension(Group):
         text_loc: str = "middle",
         stub_length: float | None = None,
         show_midline: bool = True,
+        orientation: str | None = None,
         **kwargs: object,
     ) -> None:
         """Create a linear dimension with extension lines and arrows.
@@ -415,8 +437,28 @@ class Dimension(Group):
                 None,
             ],
         )
+        x1, y1 = p1[:2]
+        x2, y2 = p2[:2]
+        abs_tol = runtime_defaults["abs_tol"]
+        if abs(x1 - x2) < abs_tol and abs(y1 - y2) < abs_tol:
+            raise ValueError("Dimension points must be distinct.")
+        if orientation is None:
+            dy = abs(y1 - y2)
+            dx = abs(x1 - x2)
+            if dy > dx:
+                orientation = "vertical"
+            else:
+                orientation = "horizontal"
+
+        elif orientation not in ("horizontal", "vertical"):
+            raise ValueError(
+                "Dimension orientation must be 'horizontal' or 'vertical'."
+            )
         if text is None:
-            text = _format_dim_value(distance(p1, p2))
+            if orientation == "horizontal":
+                text = _format_dim_value(abs(x2 - x1))
+            else:
+                text = _format_dim_value(abs(y2 - y1))
 
         self.p1 = p1
         self.p2 = p2
@@ -429,6 +471,7 @@ class Dimension(Group):
         self.text_loc = text_loc
         self.stub_length = stub_length
         self.show_midline = show_midline
+        self.orientation = orientation
         self.font_size = font_size
         self.kwargs = kwargs
         self.ext1 = None
@@ -444,13 +487,11 @@ class Dimension(Group):
 
         super().__init__(subtype=Types.DIMENSION, **kwargs)
 
-        x1, y1 = p1[:2]
-        x2, y2 = p2[:2]
-        abs_tol = runtime_defaults["abs_tol"]
-        if abs(x1 - x2) < abs_tol and abs(y1 - y2) < abs_tol:
-            raise ValueError("Dimension points must be distinct.")
-
-        if abs(y1 - y2) < abs_tol:
+        if orientation == "horizontal":
+            if side not in ("up", "down"):
+                raise ValueError("Dimension side must be up or down.")
+            if abs(x2 - x1) < abs_tol:
+                raise ValueError("Dimension length is zero.")
             dim_x1 = x1
             dim_x2 = x2
             if text_loc == "middle":
@@ -461,126 +502,87 @@ class Dimension(Group):
                 text_x = x1 - text_horiz_offset
                 self.text_anchor = Anchor.CENTER
                 self.text_align = Align.RIGHT
-            else:
+            elif text_loc == "right":
                 text_x = x2 + text_horiz_offset
                 self.text_anchor = Anchor.CENTER
                 self.text_align = Align.LEFT
-            if side == "up":
-                text_y = y1 + ext_line_offset + text_offset
-                y_p1_start = y1 + ext_line_offset
-                y_p1_end = text_y + ext_line_extension
-                y_p2_start = y2 + ext_line_offset
-                y_p2_end = (
-                    y2 + ext_line_offset + text_offset + ext_line_extension
-                )
             else:
-                text_y = y1 - ext_line_offset - text_offset
+                raise ValueError(
+                    "Dimension text_loc must be middle, left, or right."
+                )
+            if side == "up":
+                base_y = y1 if y1 >= y2 else y2
+                text_y = base_y + ext_line_offset + text_offset
+                y_end = text_y + ext_line_extension
+                y_p1_start = y1 + ext_line_offset
+                y_p2_start = y2 + ext_line_offset
+            else:
+                base_y = y1 if y1 <= y2 else y2
+                text_y = base_y - ext_line_offset - text_offset
+                y_end = text_y - ext_line_extension
                 y_p1_start = y1 - ext_line_offset
-                y_p1_end = (
-                    y1 - ext_line_offset - text_offset - ext_line_extension
-                )
                 y_p2_start = y2 - ext_line_offset
-                y_p2_end = (
-                    y2 - ext_line_offset - text_offset - ext_line_extension
-                )
             ext1_start = (x1, y_p1_start)
-            ext1_end = (x1, y_p1_end)
+            ext1_end = (x1, y_end)
             ext2_start = (x2, y_p2_start)
-            ext2_end = (x2, y_p2_end)
+            ext2_end = (x2, y_end)
             dim1 = (dim_x1, text_y)
             dim2 = (dim_x2, text_y)
-            stub1_tail = (dim_x1 - stub_length, text_y)
-            stub2_tip = (dim_x2 + stub_length, text_y)
-        elif abs(x1 - x2) < abs_tol:
+            if x1 <= x2:
+                stub1_tail = (dim_x1 - stub_length, text_y)
+                stub2_tip = (dim_x2 + stub_length, text_y)
+            else:
+                stub1_tail = (dim_x1 + stub_length, text_y)
+                stub2_tip = (dim_x2 - stub_length, text_y)
+        else:
+            if side not in ("left", "right"):
+                raise ValueError("Dimension side must be left or right.")
+            if abs(y2 - y1) < abs_tol:
+                raise ValueError("Dimension length is zero.")
             dim_y1 = y1
             dim_y2 = y2
+            low_y = y1 if y1 <= y2 else y2
+            high_y = y2 if y1 <= y2 else y1
             if text_loc == "middle":
                 text_y = (y1 + y2) / 2
                 self.text_anchor = Anchor.CENTER
                 self.text_align = Align.CENTER
-            elif text_loc == "left":
-                text_y = y1 - text_horiz_offset
-                self.text_anchor = Anchor.CENTER
-                self.text_align = Align.RIGHT
-            else:
-                text_y = y2 + text_horiz_offset
-                self.text_anchor = Anchor.CENTER
-                self.text_align = Align.LEFT
-            if side == "right":
-                text_x = x1 + ext_line_offset + text_offset
-                x_p1_start = x1 + ext_line_offset
-                x_p1_end = text_x + ext_line_extension
-                x_p2_start = x2 + ext_line_offset
-                x_p2_end = (
-                    x2 + ext_line_offset + text_offset + ext_line_extension
-                )
-            else:
-                text_x = x1 - ext_line_offset - text_offset
-                x_p1_start = x1 - ext_line_offset
-                x_p1_end = (
-                    x1 - ext_line_offset - text_offset - ext_line_extension
-                )
-                x_p2_start = x2 - ext_line_offset
-                x_p2_end = (
-                    x2 - ext_line_offset - text_offset - ext_line_extension
-                )
-            ext1_start = (x_p1_start, y1)
-            ext1_end = (x_p1_end, y1)
-            ext2_start = (x_p2_start, y2)
-            ext2_end = (x_p2_end, y2)
-            dim1 = (text_x, dim_y1)
-            dim2 = (text_x, dim_y2)
-            stub1_tail = (text_x, dim_y1 - stub_length)
-            stub2_tip = (text_x, dim_y2 + stub_length)
-        else:
-            dim_angle = line_angle(p1, p2)
-            if side == "up":
-                normal_angle = dim_angle + pi / 2
-            else:
-                normal_angle = dim_angle - pi / 2
-            along_x = cos(dim_angle)
-            along_y = sin(dim_angle)
-            dist_to_line = ext_line_offset + text_offset
-            ext_end_length = dist_to_line + ext_line_extension
-            ext1_start = line_by_point_angle_length(
-                p1, normal_angle, ext_line_offset
-            )[1]
-            ext1_end = line_by_point_angle_length(
-                p1, normal_angle, ext_end_length
-            )[1]
-            ext2_start = line_by_point_angle_length(
-                p2, normal_angle, ext_line_offset
-            )[1]
-            ext2_end = line_by_point_angle_length(
-                p2, normal_angle, ext_end_length
-            )[1]
-            dim1 = line_by_point_angle_length(p1, normal_angle, dist_to_line)[1]
-            dim2 = line_by_point_angle_length(p2, normal_angle, dist_to_line)[1]
-            dim1_x, dim1_y = dim1[:2]
-            dim2_x, dim2_y = dim2[:2]
-            if text_loc == "middle":
-                text_x = (dim1_x + dim2_x) / 2
-                text_y = (dim1_y + dim2_y) / 2
+            elif text_loc == "down":
+                text_y = low_y - text_horiz_offset
                 self.text_anchor = Anchor.CENTER
                 self.text_align = Align.CENTER
-            elif text_loc == "left":
-                text_x = dim1_x - along_x * text_horiz_offset
-                text_y = dim1_y - along_y * text_horiz_offset
+            elif text_loc == "up":
+                text_y = high_y + text_horiz_offset
                 self.text_anchor = Anchor.CENTER
-                self.text_align = Align.RIGHT
+                self.text_align = Align.CENTER
             else:
-                text_x = dim2_x + along_x * text_horiz_offset
-                text_y = dim2_y + along_y * text_horiz_offset
-                self.text_anchor = Anchor.CENTER
-                self.text_align = Align.LEFT
-            stub1_tail = (
-                dim1_x - along_x * stub_length,
-                dim1_y - along_y * stub_length,
-            )
-            stub2_tip = (
-                dim2_x + along_x * stub_length,
-                dim2_y + along_y * stub_length,
-            )
+                raise ValueError(
+                    "Dimension text_loc must be middle, up, or down."
+                )
+            if side == "right":
+                base_x = x1 if x1 >= x2 else x2
+                text_x = base_x + ext_line_offset + text_offset
+                x_end = text_x + ext_line_extension
+                x_p1_start = x1 + ext_line_offset
+                x_p2_start = x2 + ext_line_offset
+            else:
+                base_x = x1 if x1 <= x2 else x2
+                text_x = base_x - ext_line_offset - text_offset
+                x_end = text_x - ext_line_extension
+                x_p1_start = x1 - ext_line_offset
+                x_p2_start = x2 - ext_line_offset
+            ext1_start = (x_p1_start, y1)
+            ext1_end = (x_end, y1)
+            ext2_start = (x_p2_start, y2)
+            ext2_end = (x_end, y2)
+            dim1 = (text_x, dim_y1)
+            dim2 = (text_x, dim_y2)
+            if y1 <= y2:
+                stub1_tail = (text_x, dim_y1 - stub_length)
+                stub2_tip = (text_x, dim_y2 + stub_length)
+            else:
+                stub1_tail = (text_x, dim_y1 + stub_length)
+                stub2_tip = (text_x, dim_y2 - stub_length)
 
         self.text_pos = (text_x, text_y)
 

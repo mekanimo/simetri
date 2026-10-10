@@ -10,7 +10,7 @@ from simetri.base.common import PointType, VecType
 from simetri.config.settings import runtime_defaults
 from simetri.geom.vectors import Vector
 from simetri.group.batch import Group
-from simetri.helpers.illustration import Arrow, vec_arrow
+from simetri.helpers.arrows import Arrow, vec_arrow
 from simetri.shapes.shape import Shape
 
 _VECTOR_PLACEMENT_KEYS = frozenset({"vec_end", "vec_start"})

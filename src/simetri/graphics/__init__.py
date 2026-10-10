@@ -114,8 +114,11 @@ from ..geom.random_geometry import *
 from ..geom.segments.line_utils import *
 from ..geom.vectors import *
 from ..group.batch import *
+from ..helpers.arrows import *
 from ..helpers.constraint_solver import Constraint, solve
+from ..helpers.dimension import *
 from ..helpers.illustration import *
+from ..helpers.labels import *
 from ..helpers.modifiers import *
 from ..helpers.validation import check_version
 from ..images.image import Image, open_img

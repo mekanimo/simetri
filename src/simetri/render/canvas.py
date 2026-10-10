@@ -153,6 +153,29 @@ class _CanvasScope:
         return getattr(self._canvas, name)
 
 
+class _SketchMatrixScope:
+    """Apply the canvas matrix while sketches are created, then clear it."""
+
+    def __init__(self, canvas: Canvas) -> None:
+        self._canvas = canvas
+
+    def __enter__(self) -> Canvas:
+        canvas = self._canvas
+        canvas._sketch_xform_matrix = (
+            canvas._xform_matrix @ canvas._sketch_xform_matrix
+        )
+        return canvas
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool:
+        self._canvas._sketch_xform_matrix = identity_matrix()
+        return False
+
+
 def _save_renderer(extension: str) -> Renderer:
     """Return the renderer family for the output extension."""
     if extension == ".svg":
@@ -1274,6 +1297,11 @@ class Canvas:
             40
             >>> canvas.active_page.sketches[-1].center
             [0.0, 0.0]
+            >>> scaled = sg.Canvas()
+            >>> with scaled.scale(2, 2):
+            ...     _ = scaled.circle(10)
+            >>> scaled.active_page.sketches[-1].radius
+            20.0
         """
         draw.circle(self, radius, center, **kwargs)
         return self
@@ -1309,6 +1337,11 @@ class Canvas:
             10.0
             >>> canvas.active_page.sketches[-1].y_radius
             20.0
+            >>> turned = sg.Canvas()
+            >>> with turned.rotate(sg.pi / 2):
+            ...     _ = turned.ellipse(40, 20, (40, 0))
+            >>> round(turned.active_page.sketches[-1].angle, 4)
+            1.5708
         """
         draw.ellipse(self, width, height, center, angle, **kwargs)
 
@@ -1344,7 +1377,8 @@ class Canvas:
             >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
             ['SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH']
         """
-        draw.draw_fragments(self, lace, palette, **kwargs)
+        with _SketchMatrixScope(self):
+            draw.draw_fragments(self, lace, palette, **kwargs)
 
         return self
 
@@ -1372,7 +1406,8 @@ class Canvas:
             >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
             ['SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH']
         """
-        draw.draw_plaits(self, lace, **kwargs)
+        with _SketchMatrixScope(self):
+            draw.draw_plaits(self, lace, **kwargs)
 
         return self
 
@@ -1400,7 +1435,8 @@ class Canvas:
             >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
             []
         """
-        draw.draw_lace_with_fillets(self, lace, **kwargs)
+        with _SketchMatrixScope(self):
+            draw.draw_lace_with_fillets(self, lace, **kwargs)
 
         return self
 
@@ -1445,6 +1481,13 @@ class Canvas:
             'A'
             >>> canvas.active_page.sketches[0].pos
             [0.0, 0.0]
+            >>> turned = sg.Canvas()
+            >>> with turned.rotate(sg.pi / 2):
+            ...     _ = turned.text('A', (40, 0))
+            >>> round(turned.active_page.sketches[0].angle, 4)
+            1.5708
+            >>> [round(value, 4) for value in turned.active_page.sketches[0].pos]
+            [0.0, 40.0]
         """
         draw.text(
             self,
@@ -1839,23 +1882,40 @@ class Canvas:
             True
             >>> [sketch.subtype.name for sketch in canvas.active_page.sketches]
             ['SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH', 'SHAPE_SKETCH']
+            >>> moved = sg.Canvas()
+            >>> with moved.translate(220, 0):
+            ...     _ = moved.draw_lace(lace)
+            >>> round(
+            ...     moved.active_page.sketches[0].vertices[0][0]
+            ...     - canvas.active_page.sketches[0].vertices[0][0]
+            ... )
+            220
+            >>> via_draw = sg.Canvas()
+            >>> with via_draw.translate(220, 0):
+            ...     _ = via_draw.draw(lace)
+            >>> round(
+            ...     via_draw.active_page.sketches[0].vertices[0][0]
+            ...     - canvas.active_page.sketches[0].vertices[0][0]
+            ... )
+            220
         """
-        draw.draw_lace(
-            self,
-            lace,
-            fragment_coloring=fragment_coloring,
-            plait_style=plait_style,
-            shade_plaits=shade_plaits,
-            fillet_radii=fillet_radii,
-            palette=palette,
-            swatch=swatch,
-            plait_color=plait_color,
-            draw_fragments=draw_fragments,
-            draw_plaits=draw_plaits,
-            percent_offsets=percent_offsets,
-            line_widths=line_widths,
-            **kwargs,
-        )
+        with _SketchMatrixScope(self):
+            draw.draw_lace(
+                self,
+                lace,
+                fragment_coloring=fragment_coloring,
+                plait_style=plait_style,
+                shade_plaits=shade_plaits,
+                fillet_radii=fillet_radii,
+                palette=palette,
+                swatch=swatch,
+                plait_color=plait_color,
+                draw_fragments=draw_fragments,
+                draw_plaits=draw_plaits,
+                percent_offsets=percent_offsets,
+                line_widths=line_widths,
+                **kwargs,
+            )
         return self
 
     def draw_dimension(self, dim: Shape, **kwargs: object) -> Self:
@@ -1879,7 +1939,8 @@ class Canvas:
             >>> canvas.active_page.sketches[-1].text
             '40.0'
         """
-        draw.draw_dimension(self, dim, **kwargs)
+        with _SketchMatrixScope(self):
+            draw.draw_dimension(self, dim, **kwargs)
         return self
 
     def draw_widget(self, item: Drawable, **kwargs: object) -> Self:
@@ -1901,7 +1962,8 @@ class Canvas:
             >>> canvas.active_page.sketches[0].subtype.name
             'COMPOSITE_SKETCH'
         """
-        draw.draw_widget(self, item, **kwargs)
+        with _SketchMatrixScope(self):
+            draw.draw_widget(self, item, **kwargs)
         return self
 
     def begin_style(self, style: str) -> Self:
@@ -2016,6 +2078,11 @@ class Canvas:
             >>> triangle = sg.Shape([(0, 0), (40, 0), (40, 40)], closed=True)
             >>> canvas.draw(triangle, fill_color=sg.blue, pos=(40, 0))
             Canvas()
+            >>> scaled = sg.Canvas()
+            >>> scaled.draw(sg.Shape([(0, 0), (10, 0)]), scale=2)
+            Canvas()
+            >>> scaled.active_page.sketches[0].vertices[1]
+            (20.0, 0.0)
         """
         warn_unknown_kwargs(
             kwargs,
@@ -2031,6 +2098,8 @@ class Canvas:
             items = item_s
 
         vector_draw.prepare_vector_batch(items, kwargs, pos)
+        if isinstance(scale, (int, float)):
+            scale = (float(scale), float(scale))
 
         base_sketch_xform = self._sketch_xform_matrix
 
@@ -2129,10 +2198,16 @@ class Canvas:
             True
             >>> tuple(sketch.vertices)
             ((0.0, 0.0), (40.0, 0.0))
+            >>> moved = sg.Canvas()
+            >>> with moved.translate(100, 0):
+            ...     _ = moved.draw_points([(0, 0)])
+            >>> moved.active_page.sketches[0].vertices[0]
+            (100.0, 0.0)
         """
-        return draw.draw_points(
-            self, points, marker_style=marker_style, **kwargs
-        )
+        with _SketchMatrixScope(self):
+            return draw.draw_points(
+                self, points, marker_style=marker_style, **kwargs
+            )
 
     def draw_CS(self, size: float | None = None, **kwargs: object) -> Self:
         """
@@ -2191,6 +2266,11 @@ class Canvas:
             'PDF_SKETCH'
             >>> canvas.active_page.sketches[0].file_path
             'missing.pdf'
+            >>> moved = sg.Canvas()
+            >>> with moved.translate(40, 0):
+            ...     _ = moved.draw_pdf('missing.pdf', (0, 0))
+            >>> moved.active_page.sketches[0].pos
+            [40.0, 0.0]
         """
         draw.draw_pdf(self, pdf, pos, size, scale, angle, **kwargs)
         return self
@@ -2211,12 +2291,12 @@ class Canvas:
             >>> import simetri.graphics as sg
             >>> canvas = sg.Canvas()
             >>> image = sg.Image(size=(2, 2), mode='RGB')
-            >>> canvas.draw_image(image, (0, 0)) is canvas
+            >>> canvas.draw_image(image, (30, 0)) is canvas
             True
             >>> canvas.active_page.sketches[0].subtype.name
             'IMAGE_SKETCH'
             >>> canvas.active_page.sketches[0].pos
-            [0.0, 0.0]
+            [30.0, 0.0]
         """
         draw.draw_image(self, image, pos, **kwargs)
         return self
@@ -3103,14 +3183,15 @@ class Canvas:
             >>> len(canvas._all_vertices)
             4
         """
-        return draw.draw_bbox(
-            self,
-            bbox,
-            border=border,
-            centerlines=centerlines,
-            diagonals=diagonals,
-            **kwargs,
-        )
+        with _SketchMatrixScope(self):
+            return draw.draw_bbox(
+                self,
+                bbox,
+                border=border,
+                centerlines=centerlines,
+                diagonals=diagonals,
+                **kwargs,
+            )
 
     def get_fonts_list(self) -> list[str]:
         """

@@ -55,7 +55,8 @@ from ..geom.segments.line_utils import (
     intersection,
 )
 from ..group.batch import Group
-from ..helpers.illustration import Tag, TextPath, _style_annotation
+from ..helpers.arrows import _style_annotation
+from ..helpers.illustration import Tag, TextPath
 from ..helpers.utilities import (
     decompose_transformations,
     group_into_bins,
@@ -94,7 +95,7 @@ from .style_map import (
 
 if TYPE_CHECKING:
     from ..geom.bbox import BoundingBox
-    from ..helpers.illustration import Dimension
+    from ..helpers.dimension import Dimension
     from ..images.image import PDF, Image
     from ..interlace.lace import Lace
     from ..patterns.pattern import Pattern
@@ -337,6 +338,25 @@ def bezier(
     return self
 
 
+def _circle_sketch(
+    center: PointType, radius: float, matrix: object
+) -> CircleSketch | EllipseSketch:
+    """Return a circle sketch, or an ellipse when the axis scales differ.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.render.draw import _circle_sketch
+        >>> _circle_sketch((0, 0), 10, sg.identity_matrix()).subtype.name
+        'CIRCLE_SKETCH'
+    """
+    _, _, scale = decompose_transformations(matrix)
+    scale_x = float(scale[0])
+    scale_y = float(scale[1])
+    if abs(scale_x - scale_y) > runtime_defaults["abs_tol"]:
+        return EllipseSketch(center, radius, radius, 0, matrix)
+    return CircleSketch(center, radius, matrix)
+
+
 def circle(
     self: Canvas, radius: float, center: PointType = (0, 0), **kwargs: object
 ) -> Self:
@@ -365,7 +385,7 @@ def circle(
     p4 = x + radius, y - radius
     self._all_vertices.extend([p1, p2, p3, p4])
     self._sketch_xform_matrix = self.xform_matrix
-    sketch = CircleSketch(center, radius, self._sketch_xform_matrix)
+    sketch = _circle_sketch(center, radius, self._sketch_xform_matrix)
     self._sketch_xform_matrix = identity_matrix()
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
@@ -822,7 +842,9 @@ def draw_latex(
         setattr(sketch, name, value)
     # Measure the formula's rendered bounding box so we can register the
     # correct canvas extents in _all_vertices.
-    W, H = _measure_latex_formula(formula, font_size, font_family, bold)
+    W, H = _measure_latex_formula(
+        formula, sketch.font_size, font_family, bold
+    )
     sketch.formula_size = (W, H)
 
     # Compute the anchor offset within the formula box (same table as svg.py)
@@ -1411,7 +1433,7 @@ def plait_emboss1(self: Canvas, lace: Lace, **kwargs: object) -> None:
         for i, overlap in enumerate(plait.overlaps):
             quad = Shape([inter._point for inter in overlap[1].intersections])
             ind1 = plait.ends[i]
-            ind2 = ind1 + 1
+            ind2 = (ind1 + 1) % n
             p1 = vertices[ind1]
             p2 = vertices[ind2]
             mp = midpoint(p1, p2)
@@ -1973,6 +1995,10 @@ def _draw_default_plaits(
         )
 
 
+_draw_fragments = draw_fragments
+_draw_plaits = draw_plaits
+
+
 def draw_lace(
     self: Canvas,
     lace: Lace,
@@ -2062,7 +2088,7 @@ def draw_lace(
         fragment_kwargs = dict(style_kwargs)
         fragment_kwargs["fragments"] = fragments
         fragment_kwargs["fragment_coloring"] = fragment_coloring
-        self.draw_fragments(lace, palette=palette, **fragment_kwargs)
+        _draw_fragments(self, lace, palette=palette, **fragment_kwargs)
 
     if draw_plaits:
         plait_kwargs = dict(style_kwargs)
@@ -2073,7 +2099,7 @@ def draw_lace(
         plait_kwargs["line_widths"] = line_widths
         if plait_style is not None:
             plait_kwargs["plait_style"] = plait_style
-        self.draw_plaits(lace, **plait_kwargs)
+        _draw_plaits(self, lace, **plait_kwargs)
 
     return self
 
@@ -2242,7 +2268,9 @@ def draw_image(
     if scale is None:
         scale = (1, 1)
 
-    self._sketch_xform_matrix = self.xform_matrix
+    owns_matrix = (self._sketch_xform_matrix == identity_matrix()).all()
+    if owns_matrix:
+        self._sketch_xform_matrix = self.xform_matrix
     extend_vertices(self, image)
     sketch = ImageSketch(
         image,
@@ -2254,7 +2282,8 @@ def draw_image(
         anchor=image.anchor,
         xform_matrix=self._sketch_xform_matrix,
     )
-    self._sketch_xform_matrix = identity_matrix()
+    if owns_matrix:
+        self._sketch_xform_matrix = identity_matrix()
     for attrib_name in shape_style_map:
         attrib_value = self.resolve_property(image, attrib_name)
         setattr(sketch, attrib_name, attrib_value)
@@ -2350,14 +2379,15 @@ def draw_pdf(
             ).tolist()
     self._sketch_xform_matrix = self.xform_matrix
     _extend_canvas_space_points(self, placed)
-    self._sketch_xform_matrix = identity_matrix()
     sketch = PDFSketch(
         file_path,
         pos=pos,
         scale=scale,
-        angle=angle,
+        angle=angle if angle is not None else 0,
         size=size,
+        xform_matrix=self._sketch_xform_matrix,
     )
+    self._sketch_xform_matrix = identity_matrix()
     for attrib_name, attrib_value in kwargs.items():
         setattr(sketch, attrib_name, attrib_value)
     self.active_page.sketches.append(sketch)
@@ -2394,9 +2424,13 @@ def _line_part_style(
         style["line_color"] = value
     elif color is not None:
         style["line_color"] = color
+    else:
+        style["line_color"] = runtime_defaults["dim_color"]
     stated, value = _stated(part, "line_width")
     if stated:
         style["line_width"] = value
+    else:
+        style["line_width"] = runtime_defaults["dim_line_width"]
     stated, value = _stated(part, "line_dash_array")
     if stated:
         style["line_dash_array"] = value
@@ -2420,11 +2454,15 @@ def _head_part_style(
         style["fill_color"] = value
     elif color is not None:
         style["fill_color"] = color
+    else:
+        style["fill_color"] = runtime_defaults["dim_color"]
     stated, value = _stated(part, "line_color")
     if stated:
         style["line_color"] = value
     elif color is not None:
         style["line_color"] = color
+    else:
+        style["line_color"] = runtime_defaults["dim_color"]
     stated, value = _stated(part, "line_width")
     if stated:
         style["line_width"] = value
@@ -2487,10 +2525,17 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> from simetri.helpers.illustration import Dimension
         >>> canvas = sg.Canvas()
-        >>> dim = Dimension((0, 0), (40, 0), "up", 5)
+        >>> dim = sg.Dimension((0, 0), (40, 0), "up", 5)
         >>> canvas.draw_dimension(dim) is canvas
+        True
+        >>> dim.ext1.line_width
+        0.75
+        >>> dim.dim_line.line.line_width
+        0.75
+        >>> dim.ext1.line_color == sg.colors.dark_gray
+        True
+        >>> dim.dim_line.head.fill_color == sg.colors.dark_gray
         True
     """
     for shape in item.all_shapes:
@@ -2531,12 +2576,14 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     _apply_arrow_style(item.dim_line, shaft_style, head_style)
     _apply_arrow_style(item.arrow1, shaft_style, head_style)
     _apply_arrow_style(item.arrow2, shaft_style, head_style)
-    _apply_part_style(item.mid_line, shaft_style)
+    if item.midline is not None and item.show_midline:
+        _apply_part_style(item.midline, shaft_style)
     if item.dim_line:
         _add_sketch(create_sketch(item.dim_line, self, **draw_kwargs))
     if item.arrow1:
         _add_sketch(create_sketch(item.arrow1, self, **draw_kwargs))
-        _add_sketch(create_sketch(item.mid_line, self, **draw_kwargs))
+        if item.midline is not None and item.show_midline:
+            _add_sketch(create_sketch(item.midline, self, **draw_kwargs))
     if item.arrow2:
         _add_sketch(create_sketch(item.arrow2, self, **draw_kwargs))
     x, y = item.text_pos[:2]
@@ -2570,6 +2617,8 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
         tag_kwargs["font_color"] = value
     elif common_color is not None:
         tag_kwargs["font_color"] = common_color
+    else:
+        tag_kwargs["font_color"] = runtime_defaults["dim_color"]
     stated, value = _stated(tag_part, "font_family")
     if stated:
         tag_kwargs["font_family"] = value
@@ -2588,6 +2637,10 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     stated, value = _stated(tag_part, "line_color")
     if stated:
         tag_kwargs["line_color"] = value
+    elif common_color is not None:
+        tag_kwargs["line_color"] = common_color
+    else:
+        tag_kwargs["line_color"] = runtime_defaults["dim_color"]
     stated, value = _stated(tag_part, "line_width")
     if stated:
         tag_kwargs["line_width"] = value
@@ -2695,7 +2748,7 @@ def _canvas_space_points(
     canvas: Canvas, points: Sequence[PointType]
 ) -> list[tuple[float, float]]:
     """Map drawable points into current canvas sketch space."""
-    if not points:
+    if points is None or len(points) == 0:
         return []
     return [x[:2] for x in homogenize(points) @ canvas._sketch_xform_matrix]
 
@@ -2966,13 +3019,13 @@ def draw(
         Types.ANGULAR_DIMENSION,
         Types.DIMENSION,
     ):
-        self.draw_dimension(item, **kwargs)
+        draw_dimension(self, item, **kwargs)
     elif subtype == Types.ARROW:
         active_sketches.append(create_sketch(item.line, self, **kwargs))
         for head in item.heads:
             active_sketches.append(create_sketch(head, self, **kwargs))
     elif subtype == Types.LACE:
-        self.draw_lace(item, **kwargs)
+        draw_lace(self, item, **kwargs)
     elif subtype == Types.FIGURE:
         if getattr(item, "draw_geometry", True) and item.geometry is not None:
             draw(self, item.geometry, **kwargs)
@@ -3377,6 +3430,12 @@ def _get_tag_sketch(
         if k in _PRECEDENCE_KEYS:
             continue
         setattr(sketch, k, v)
+    _, rotation, scale = decompose_transformations(canvas._sketch_xform_matrix)
+    if rotation != 0:
+        sketch.angle = float(sketch.angle) + float(rotation)
+    scale_x = float(scale[0])
+    if scale_x != 1.0 and isinstance(sketch.font_size, (int, float)):
+        sketch.font_size = float(sketch.font_size) * scale_x
     return sketch
 
 
@@ -3469,10 +3528,10 @@ def _get_circle_sketch(
     Returns:
         CircleSketch: Created CircleSketch.
     """
-    sketch = CircleSketch(
+    sketch = _circle_sketch(
         item.center,
         item.radius,
-        xform_matrix=canvas._sketch_xform_matrix,
+        canvas._sketch_xform_matrix,
     )
     set_shape_sketch_style(sketch, item, canvas, **kwargs)
 

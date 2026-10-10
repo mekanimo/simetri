@@ -26,7 +26,7 @@ from ...base.all_enums import (
 from ...config.settings import runtime_defaults, issue_warning
 from ...geom.bbox import bounding_box
 from ...geom.homogenize import homogenize
-from ...helpers.illustration import resolve_page_vertex_labels
+from ...helpers.labels import resolve_page_vertex_labels
 from ...base.common import PointType
 from ...shapes.points import Points
 from ...shapes.shape import Shape

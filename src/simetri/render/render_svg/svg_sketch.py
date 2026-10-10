@@ -30,7 +30,7 @@ from ...base.common import get_unique_id
 from ...coloring.colors import Color, check_color
 from ...config.settings import runtime_defaults
 from ...geom.geom_utils import close_points_square
-from ...helpers.illustration import (
+from ...helpers.labels import (
     label_font_family_svg,
     prepare_shape_index_labels,
     prepare_shape_vertex_coord_labels,
@@ -1123,9 +1123,14 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
     sub_y = ay - H
 
     clip_attr, mask_attr = get_clip_mask_attrs(sketch)
+    angle = sketch_attrib(sketch, "angle")
+    if angle:
+        rotate_attr = f" rotate({degrees(angle)})"
+    else:
+        rotate_attr = ""
 
     return (
-        f'<g transform="translate({x},{y}) scale(1,-1)"'
+        f'<g transform="translate({x},{y}){rotate_attr} scale(1,-1)"'
         f"{clip_attr}{mask_attr}>\n"
         f'  <svg x="{sub_x:.4f}" y="{sub_y:.4f}" width="{W:.4f}" height="{H:.4f}"'
         f' viewBox="{vb}" xmlns="http://www.w3.org/2000/svg"'

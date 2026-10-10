@@ -1085,6 +1085,19 @@ def set_defaults() -> None:
         "If True, debug information is printed."
     )
 
+    _default_store.factory["dim_color"] = colors.dark_gray
+    default_types["dim_color"] = colors.Color
+    defaults_help["dim_color"] = (
+        "Color of dimension lines, arrow heads, and labels. Color object."
+    )
+
+    _default_store.factory["dim_line_width"] = 0.75
+    default_types["dim_line_width"] = float
+    defaults_help["dim_line_width"] = (
+        "Line width of dimension extension lines and arrow shafts. "
+        "Positive float. Length in <points>."
+    )
+
     _default_store.factory["document_class"] = (
         DocumentClass.STANDALONE
     )  # STANDALONE, ARTICLE, BOOK,
@@ -1192,6 +1205,13 @@ def set_defaults() -> None:
     defaults_help["even_odd"] = (
         "Boolean property for using the even-odd rule for filling shapes. "
         "If True, the even-odd rule is used; default is False (nonzero winding)."
+    )
+
+    _default_store.factory["ext_angle"] = 0  # angular extension past the arc
+    default_types["ext_angle"] = float
+    defaults_help["ext_angle"] = (
+        "Angular dimension extension past the arc, as a fraction of the "
+        "radius. Nonnegative float."
     )
 
     _default_store.factory["ext_length2"] = (
@@ -1487,6 +1507,13 @@ def set_defaults() -> None:
     default_types["gap"] = float
     defaults_help["gap"] = (
         "Dimension extension gap. Positive float. Length in <points>."
+    )
+
+    _default_store.factory["gap_angle"] = 0  # angular arc clearance
+    default_types["gap_angle"] = float
+    defaults_help["gap_angle"] = (
+        "Angle cut from each end of an angular dimension arc. "
+        "Nonnegative float. Angle in radians."
     )
 
     # Gradient defaults
@@ -2128,6 +2155,12 @@ def set_defaults() -> None:
         "Number of points for circles. Positive integer."
     )
 
+    _default_store.factory["n_dim_digits"] = 2
+    default_types["n_dim_digits"] = int
+    defaults_help["n_dim_digits"] = (
+        "Decimal places for automatic dimension labels. Nonnegative integer."
+    )
+
     _default_store.factory["n_ellipse_points"] = (
         40  # number of points for ellipses
     )
@@ -2659,6 +2692,13 @@ def set_defaults() -> None:
     default_types["stroke"] = bool
     defaults_help["stroke"] = (
         "Boolean property for stroke. If True, stroke is used."
+    )
+
+    _default_store.factory["stub_length"] = 15  # side-arrow shaft length
+    default_types["stub_length"] = float
+    defaults_help["stub_length"] = (
+        "Outward shaft length when a dimension label is not in the middle. "
+        "Positive float. Length in <points>."
     )
 
     _default_store.factory["swatch"] = seq_MATTER_256

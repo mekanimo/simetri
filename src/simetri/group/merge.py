@@ -9,16 +9,30 @@ Examples:
     >>> g = sg.Group([sg.Shape([(0, 0), (40, 0)]), sg.Shape([(40, 0), (20, 0)])])
     >>> len(g.merge_shapes())
     1
+    >>> inner = sg.Group(
+    ...     [
+    ...         sg.Shape([(0, 0), (40, 0)], line_width=4),
+    ...         sg.Shape([(40, 0), (80, 0)]),
+    ...     ]
+    ... )
+    >>> outer = sg.Group(inner, sg.Shape([(80, 0), (120, 0)]))
+    >>> merged = outer.merge_shapes()
+    >>> len(merged)
+    1
+    >>> merged[0].line_width
+    4
 """
 
 from __future__ import annotations
 
 from math import ceil, degrees, log10, pi, sqrt
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
+from ..base.all_enums import Types
 from ..base.common import LineType, PointType, resolve_tol
+from ..base.common_style import CommonStyle
 from ..config.settings import runtime_defaults
 from ..geom.polygons.polygon_utils import right_handed
 from ..geom.segments.line_utils import inclination_angle
@@ -82,6 +96,56 @@ def _collect_closest_angles(
     return _closest_angle_differences(angles, n)
 
 
+def _first_style_source(item: Any) -> CommonStyle | None:
+    """Return the first object that owns stroke and fill style.
+
+    A group has no style. Members are searched in order, and a group
+    member is searched the same way, including groups inside groups.
+    An object that is not a group and does not own style is skipped.
+
+    Args:
+        item: A drawable, or a group of drawables.
+
+    Returns:
+        CommonStyle | None: The first styled object, or ``None`` when
+        every member is a group or has no style.
+    """
+    if isinstance(item, CommonStyle):
+        return item
+    if item.type == Types.GROUP:
+        for element in item.elements:
+            source = _first_style_source(element)
+            if source is not None:
+                return source
+    return None
+
+
+def _copy_style_from_members(root: Any, shapes: Any) -> None:
+    """Copy style from the first styled member of ``root`` onto ``shapes``.
+
+    ``shapes`` is iterated. Groups in that sequence are skipped. When a
+    styled recipient exists and ``root`` contains no styled object,
+    ``ValueError`` is raised.
+
+    Args:
+        root: Group or drawable searched for the style source.
+        shapes: Merged drawables that receive the style (mutated).
+    """
+    recipients = [
+        shape for shape in shapes if isinstance(shape, CommonStyle)
+    ]
+    if not recipients:
+        return
+    style_source = _first_style_source(root)
+    if style_source is None:
+        raise ValueError(
+            "Cannot copy style onto merged shapes: "
+            "the group contains no styled object."
+        )
+    for shape in recipients:
+        shape.copy_style(style_source)
+
+
 def _merge_shapes(
     self: Group,
     rel_tol: float | None = None,
@@ -95,7 +159,9 @@ def _merge_shapes(
 
     Builds a graph from edge endpoints (snapped within ``abs_tol``), merges
     collinear runs, then reconstructs closed cycles and open walks as
-    ``Shape`` instances.
+    ``Shape`` instances. Stroke and fill are copied from the first
+    styled object in the group. Groups inside the group are searched.
+    A group itself is not a style source.
 
     Args:
         rel_tol: Relative tolerance. Defaults to ``runtime_defaults["rel_tol"]``.
@@ -169,9 +235,7 @@ def _merge_shapes(
                 shape = Shape(vertices)
                 new_shapes.append(shape)
 
-    style_source = self.elements[0]
-    for shape in new_shapes:
-        shape.copy_style(style_source)
+    _copy_style_from_members(self, new_shapes)
 
     group = Group(new_shapes)
     for k, v in kwargs.items():
