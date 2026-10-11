@@ -196,6 +196,7 @@ class Lattice:
         b: float | None = None,
         theta: float | None = None,
         origin: PointType = (0, 0),
+        wp_group: str | None = None,
     ) -> None:
         """Create a 2D lattice.
 
@@ -205,6 +206,7 @@ class Lattice:
             b: Secondary spacing (RECT/PAR). Defaults to None.
             theta: Angle between basis vectors when not implied by type.
             origin: Cartesian origin. Defaults to ``(0, 0)``.
+            wp_group: Wallpaper group. Optional. (p1, p2, pg, cmm, etc.)
 
         Raises:
             ValueError: If the basis vectors are linearly dependent.
@@ -221,6 +223,7 @@ class Lattice:
         }
         self.type = Types.LATTICE
         self.subtype = subtype
+        self.wp_group = wp_group
         self.a = a
         self.b = b
 
@@ -1131,7 +1134,7 @@ def lattice_p6(a: float) -> Lattice:
         >>> len(lattice_p6(a=30).isometries)
         2
     """
-    lat = Lattice(LatType.HEX, a=a)
+    lat = Lattice(LatType.HEX, a=a, wp_group="p6")
 
     isom1 = Isometry(
         IsometryType.ROTATION,
@@ -1162,7 +1165,7 @@ def lattice_p6m(a: float = 40) -> Lattice:
         >>> len(lattice_p6m(a=30).isometries)
         3
     """
-    lat = Lattice(LatType.HEX, a=a)
+    lat = Lattice(LatType.HEX, a=a, wp_group="p6m")
 
     isom1 = Isometry(
         IsometryType.MIRROR,
@@ -1199,7 +1202,7 @@ def lattice_p31m(a: float = 40) -> Lattice:
         >>> len(lattice_p31m(a=30).isometries)
         2
     """
-    lat = Lattice(LatType.HEX, a=a)
+    lat = Lattice(LatType.HEX, a=a, wp_group="p31m")
 
     isom1 = Isometry(
         IsometryType.ROTATION,
@@ -1234,7 +1237,7 @@ def lattice_p3m1(a: float = 40) -> Lattice:
         >>> len(lattice_p3m1(a=30).isometries)
         3
     """
-    lat = Lattice(LatType.HEX, a=a)
+    lat = Lattice(LatType.HEX, a=a, wp_group="p3m1")
 
     isom1 = Isometry(
         IsometryType.MIRROR,
@@ -1274,7 +1277,7 @@ def lattice_p3(a: float = 40) -> Lattice:
         >>> len(lattice_p3(a=30).isometries)
         2
     """
-    lat = Lattice(LatType.HEX, a=a)
+    lat = Lattice(LatType.HEX, a=a, wp_group="p3")
 
     isom1 = Isometry(
         IsometryType.ROTATION,
@@ -1308,7 +1311,7 @@ def lattice_p4(a: float = 40) -> Lattice:
         >>> len(lattice_p4(a=30).isometries)
         1
     """
-    lat = Lattice(LatType.SQR, a=a)
+    lat = Lattice(LatType.SQR, a=a, wp_group="p4")
 
     isom1 = Isometry(
         IsometryType.ROTATION, (LatRef.COORD, (0.5, 0.5)), pi / 2, reps=3
@@ -1334,7 +1337,7 @@ def lattice_p4m(a: float = 40) -> Lattice:
         >>> len(lattice_p4m(a=30).isometries)
         2
     """
-    lat = Lattice(LatType.SQR, a=a)
+    lat = Lattice(LatType.SQR, a=a, wp_group="p4m")
 
     isom1 = Isometry(
         IsometryType.MIRROR,
@@ -1366,7 +1369,7 @@ def lattice_p4g(a: float = 40) -> Lattice:
         >>> len(lattice_p4g(a=30).isometries)
         2
     """
-    lat = Lattice(LatType.SQR, a=a)
+    lat = Lattice(LatType.SQR, a=a, wp_group="p4g")
 
     isom1 = Isometry(
         IsometryType.MIRROR,
@@ -1405,7 +1408,7 @@ def lattice_p1(
         >>> len(lattice_p1(a=20, b=25).isometries)
         1
     """
-    lat = Lattice(lat_type, a=a, b=b, theta=theta)
+    lat = Lattice(lat_type, a=a, b=b, theta=theta, wp_group="p1")
     # p1 = unit.edge_midpoint(0)
     # p2 = unit.edge_midpoint(3)
     isom1 = Isometry(
@@ -1448,9 +1451,9 @@ def lattice_pm(
         ValueError: Invalid lattice type.
     """
     if lat_type == LatType.SQR:
-        lat = Lattice(lat_type, a=a)
+        lat = Lattice(lat_type, a=a, wp_group="pm")
     elif lat_type == LatType.RECT:
-        lat = Lattice(lat_type, a=a, b=b)
+        lat = Lattice(lat_type, a=a, b=b, wp_group="pm")
     else:
         raise ValueError("Invalid lattice type.")
 
@@ -1495,9 +1498,9 @@ def lattice_pmm(
     """
     if b is not None:
         lat_type = LatType.RECT
-        lat = Lattice(lat_type, a=a, b=b)
+        lat = Lattice(lat_type, a=a, b=b, wp_group="pmm")
     else:
-        lat = Lattice(lat_type, a=a)
+        lat = Lattice(lat_type, a=a, wp_group="pmm")
 
     axis1 = (LatRef.AXIS, ((LatRef.COORD, (0.5, 0)), (LatRef.COORD, (0.5, 1))))
     isom1 = Isometry(IsometryType.MIRROR, axis1, reps=1)
@@ -1535,7 +1538,7 @@ def lattice_p2(
     """
     if b is None:
         b = a
-    lat = Lattice(lat_type, a=a, b=b, theta=theta)
+    lat = Lattice(lat_type, a=a, b=b, theta=theta, wp_group="p2")
 
     isom = Isometry(
         IsometryType.ROTATION, (LatRef.COORD, (0.5, 0.5)), pi, reps=1
@@ -1569,7 +1572,7 @@ def lattice_pg(
         >>> len(lattice_pg(a=30).isometries)
         1
     """
-    lat = Lattice(lat_type, a=a, b=b)
+    lat = Lattice(lat_type, a=a, b=b, wp_group="pg")
 
     axis = (LatRef.AXIS, ((LatRef.LERP, (3, 0.5)), (LatRef.LERP, (1, 0.5))))
 
@@ -1604,7 +1607,7 @@ def lattice_pmg(
         >>> len(lattice_pmg(a=30).isometries)
         2
     """
-    lat = Lattice(lat_type, a=a, b=b)
+    lat = Lattice(lat_type, a=a, b=b, wp_group="pmg")
 
     isom1 = Isometry(
         IsometryType.ROTATION, (LatRef.COORD, (0.5, 0.25)), pi, reps=1
@@ -1638,7 +1641,7 @@ def lattice_pgg(
         >>> len(lattice_pgg(a=30).isometries)
         2
     """
-    lat = Lattice(lat_type, a=a, b=b)
+    lat = Lattice(lat_type, a=a, b=b, wp_group="pgg")
 
     axis1 = (
         LatRef.AXIS,
@@ -1678,7 +1681,7 @@ def lattice_cm(
         2
     """
     lat_type = LatType.RHOMB
-    lat = Lattice(lat_type, a=a, b=a, theta=theta)
+    lat = Lattice(lat_type, a=a, b=a, theta=theta, wp_group="cm")
     if glide_dist is None:
         glide_dist = a
 
@@ -1716,7 +1719,7 @@ def lattice_cmm(a: float = 100, theta: float = 2 * pi / 5) -> Lattice:
         2
     """
     lat_type = LatType.RHOMB
-    lat = Lattice(lat_type, a=a, b=a, theta=theta)
+    lat = Lattice(lat_type, a=a, b=a, theta=theta, wp_group="cmm")
 
     axis1 = (LatRef.AXIS, ((LatRef.VERTEX, 0), (LatRef.VERTEX, 2)))
     isom1 = Isometry(IsometryType.MIRROR, axis1, reps=1)

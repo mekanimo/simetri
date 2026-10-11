@@ -12,7 +12,7 @@ from typing import Any, Self
 
 from simetri.base.all_enums import WarningType
 from simetri.coloring.colors import Color
-from simetri.config.settings import runtime_defaults, issue_warning
+from simetri.config.settings import issue_warning, runtime_defaults, user_defaults
 
 # Public style fields copied by ``copy_style`` (color/alpha handled separately).
 STYLE_COPY_ATTRS: tuple[str, ...] = (
@@ -196,12 +196,13 @@ class CommonStyle:
       (e.g. Path2D under ``Group`` uses ``4``; default is ``3``).
 
     ``color`` / ``alpha`` fan out to line and fill when set to a non-``None``
-    value.     Unset line/fill color and alpha resolve to ``runtime_defaults[...]``.
+    value. Omitted line/fill color and alpha, and omitted
+    ``STYLE_COPY_ATTRS`` fields, are stored from ``user_defaults`` at init.
 
     Examples:
         >>> import simetri.graphics as sg
         >>> mark = sg.Shape([(0, 0), (100, 0)], closed=True)
-        >>> mark.style["line_width"] is None
+        >>> mark.style["line_width"] == sg.user_defaults["line_width"]
         True
         >>> mark.reset_style() is mark
         True
@@ -260,6 +261,8 @@ class CommonStyle:
         """Initialize owned style from ``kwargs`` (mutated).
 
         Pops known color/alpha and ``STYLE_COPY_ATTRS`` keys from ``kwargs``.
+        A missing key or a ``None`` value is stored from ``user_defaults``.
+        ``color`` and ``alpha`` stay ``None`` unless passed.
         Leaves any non-style keys for the caller. Typical subclass ``__init__``:
 
             def __init__(self, points=None, **kwargs):
@@ -275,30 +278,10 @@ class CommonStyle:
 
         color = kwargs.pop("color") if "color" in kwargs else None
         alpha = kwargs.pop("alpha") if "alpha" in kwargs else None
-        line_color = (
-            # kwargs.pop("line_color") if "line_color" in kwargs else None
-            kwargs.pop("line_color")
-            if "line_color" in kwargs
-            else runtime_defaults["line_color"]
-        )
-        fill_color = (
-            # kwargs.pop("fill_color") if "fill_color" in kwargs else None
-            kwargs.pop("fill_color")
-            if "fill_color" in kwargs
-            else runtime_defaults["fill_color"]
-        )
-        line_alpha = (
-            # kwargs.pop("line_alpha") if "line_alpha" in kwargs else None
-            kwargs.pop("line_alpha")
-            if "line_alpha" in kwargs
-            else runtime_defaults["line_alpha"]
-        )
-        fill_alpha = (
-            # kwargs.pop("fill_alpha") if "fill_alpha" in kwargs else None
-            kwargs.pop("fill_alpha")
-            if "fill_alpha" in kwargs
-            else runtime_defaults["fill_alpha"]
-        )
+        line_color = kwargs.pop("line_color") if "line_color" in kwargs else None
+        fill_color = kwargs.pop("fill_color") if "fill_color" in kwargs else None
+        line_alpha = kwargs.pop("line_alpha") if "line_alpha" in kwargs else None
+        fill_alpha = kwargs.pop("fill_alpha") if "fill_alpha" in kwargs else None
         self._apply_color_alpha(
             color=color,
             alpha=alpha,
@@ -307,10 +290,22 @@ class CommonStyle:
             line_alpha=line_alpha,
             fill_alpha=fill_alpha,
         )
+        if self._line_color is None:
+            self._line_color = user_defaults["line_color"]
+        if self._fill_color is None:
+            self._fill_color = user_defaults["fill_color"]
+        if self._line_alpha is None:
+            self._line_alpha = user_defaults["line_alpha"]
+        if self._fill_alpha is None:
+            self._fill_alpha = user_defaults["fill_alpha"]
 
         for name in STYLE_COPY_ATTRS:
-            if name in kwargs:
+            if name in kwargs and kwargs[name] is not None:
                 setattr(self, name, kwargs.pop(name))
+            else:
+                if name in kwargs:
+                    kwargs.pop(name)
+                setattr(self, name, user_defaults[name])
 
     @property
     def color(self) -> Color | None:
@@ -466,25 +461,27 @@ class CommonStyle:
         self._apply_style_overlay(overlay)
 
     def reset_style(self) -> Self:
-        """Set all owned style fields to ``None`` (use defaults)."""
-        self._init_color_alpha_state()
-        self._init_style_copy_attrs()
+        """Store current ``user_defaults`` on every owned style field.
+
+        ``color`` and ``alpha`` stay unset (``None``).
+        """
+        self._init_from_style_kwargs({})
         return self
 
     def reset_line_style(self) -> Self:
-        """Set owned stroke fields to ``None`` (use defaults)."""
+        """Store current ``user_defaults`` on owned stroke fields."""
         for name in LINE_STYLE_ATTRS:
             if name in _COLOR_ALPHA_RAW:
-                setattr(self, _COLOR_ALPHA_RAW[name], None)
+                setattr(self, _COLOR_ALPHA_RAW[name], user_defaults[name])
             else:
-                setattr(self, name, None)
+                setattr(self, name, user_defaults[name])
         return self
 
     def reset_fill_style(self) -> Self:
-        """Set owned fill fields to ``None`` (use defaults)."""
+        """Store current ``user_defaults`` on owned fill fields."""
         for name in FILL_STYLE_ATTRS:
             if name in _COLOR_ALPHA_RAW:
-                setattr(self, _COLOR_ALPHA_RAW[name], None)
+                setattr(self, _COLOR_ALPHA_RAW[name], user_defaults[name])
             else:
-                setattr(self, name, None)
+                setattr(self, name, user_defaults[name])
         return self

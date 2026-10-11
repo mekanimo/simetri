@@ -111,11 +111,12 @@ class Shape(Base, CommonStyle):
     fill and boolean operations.
     If the first and last points coincide then the last point is removed.
 
-    Most style overrides default to None and are resolved later from defaults.
-    ``color`` sets both ``line_color`` and ``fill_color``. ``alpha`` sets both
-    ``line_alpha`` and ``fill_alpha``. Reading an unset ``line_color`` /
-    ``fill_color`` / ``line_alpha`` / ``fill_alpha`` returns the matching
-    configured default. Use sg.doc(sg.Shape) to see the defaults.
+    Omitted style arguments are stored from ``user_defaults`` at init.
+    ``color`` and ``alpha`` stay unset unless passed. ``color`` sets both
+    ``line_color`` and ``fill_color``. ``alpha`` sets both ``line_alpha``
+    and ``fill_alpha``. Reading a ``line_color`` / ``fill_color`` /
+    ``line_alpha`` / ``fill_alpha`` that was later set to ``None`` returns
+    the matching configured default. Use sg.doc(sg.Shape) to see the defaults.
 
     Style color/alpha properties and ``copy_style`` come from ``CommonStyle``.
 
@@ -235,8 +236,8 @@ class Shape(Base, CommonStyle):
                 line_dash_phase / line_join / line_miter_limit / line_width:
                 Stroke style.
             marker_*: Marker drawing options.
-            even_odd: If True, use even-odd fill rule; ``None`` uses
-                ``runtime_defaults["even_odd"]`` at draw time.
+            even_odd: If True, use even-odd fill rule. Omitted uses
+                ``user_defaults["even_odd"]`` at init.
             markers_only: If True, draw markers without the path.
             smooth: Prefer smooth curve rendering when applicable.
             subtype: Shape subtype. Defaults to ``Types.SHAPE``.
