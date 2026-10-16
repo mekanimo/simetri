@@ -19,13 +19,13 @@ Cell indexing (read this before addressing cells):
   labels (no ``A``, ``B``, ``C`` coordinates).
 - **Columns** are always numbered ``0``, ``1``, ``2``, … left to right.
 - Two row conventions exist:
-  - **Grid row** — used by :attr:`Table.cells`, :meth:`Table.range`, and
-    ``table.cells[row, col]``. Row ``0`` is the **header** when
-    ``show_header`` is True; the first body row is grid row ``1`` in that
-    case. When ``show_header`` is False, grid row ``0`` is the first body row.
-  - **Data row** — used by :meth:`Table.cell`, :meth:`Table.row`,
-    :meth:`Table.populate`, and ``table.rows[i]``. Row ``0`` is always the
-    first **body** row; the header is not counted.
+  - **Grid row** — used by :attr:`Table.cells`, :meth:`Table.range`,
+    :meth:`Table.cell`, and ``table.cells[row, col]``. Row ``0`` is the
+    **header** when a header row is shown; the next row is ``1``. With no
+    header, row ``0`` is the first body row.
+  - **Data row** — used by :meth:`Table.row`, :meth:`Table.populate`, and
+    ``table.rows[i]``. Row ``0`` is the first **body** row; the header is
+    not counted.
 - :attr:`Table.columns` uses **column indices** ``0``, ``1``, … on the full
   grid (including the header row in the underlying ``Range``).
 """
@@ -43,7 +43,7 @@ from rich.table import Table as RichTable
 
 from ..base.all_enums import Align, Anchor, Types
 from ..base.common import PointType
-from ..coloring.colors import gray
+from ..coloring.colors import Color, gray, white
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.affine import translation_matrix
 from ..helpers.illustration import Tag
@@ -55,7 +55,6 @@ from ..shapes.shape import Shape
 _TABLE_DEFAULT_STROKE = False
 _TABLE_DEFAULT_CELL_PAD_X = 6.0
 _TABLE_DEFAULT_CELL_PAD_Y = 4.0
-_TABLE_DEFAULT_COL_WIDTH_MIN = 40.0
 _TABLE_DEFAULT_COLUMN_ALIGN = Align.CENTER
 _TABLE_DEFAULT_FONT_SIZE = 10.0
 _TABLE_DEFAULT_FORMAT: dict[str, Any] = {
@@ -68,7 +67,6 @@ _TABLE_DEFAULT_MIN_WIDTH: int | None = None
 _TABLE_DEFAULT_PADDING = (0, 1)
 _TABLE_DEFAULT_POS: PointType = (0.0, 0.0)
 _TABLE_DEFAULT_ROW_ALIGN = Align.VERT_CENTER
-_TABLE_DEFAULT_ROW_HEIGHT_MIN = 16.0
 _TABLE_DEFAULT_SHOW_HEADER = True
 _TABLE_DEFAULT_SHOW_LINES = True
 _TABLE_DEFAULT_TITLE = ""
@@ -218,8 +216,9 @@ class Cell:
         """Set cell styling (merged on top of row/column/table).
 
         Content keys go to ``_format``. Background keys (``fill``,
-        ``fill_color``, ``stroke``, ``line_color``, ``line_width``) go to
-        ``_background``, same as ``cell.fill_color = ...``.
+        ``fill_color``, ``fill_alpha``, ``stroke``, ``line_color``,
+        ``line_alpha``, ``line_width``) go to ``_background``, same as
+        ``cell.fill_color = ...``.
 
         Examples:
             >>> cell = Cell("x")
@@ -436,7 +435,9 @@ def _explicit_indices(picked: list[int]) -> tuple[int, ...] | None:
 _RANGE_BACKGROUND_KEYS = frozenset(
     {
         "fill",
+        "fill_alpha",
         "fill_color",
+        "line_alpha",
         "line_color",
         "line_width",
         "stroke",
@@ -516,10 +517,10 @@ class Range:
     """Rectangular grid region (inclusive bounds, 0-based grid indices).
 
     **Grid coordinates:** ``row`` and ``col`` are integers starting at ``0``.
-    Column ``0`` is the leftmost column. Row ``0`` is the header row when
-    ``show_header`` is True; otherwise row ``0`` is the first data row. This
-    matches :attr:`Table.cells` and :meth:`Table.range` — not
-    :meth:`Table.cell` (data-row indices).
+    Column ``0`` is the leftmost column. Row numbering follows the table
+    origin: top-down by default, bottom-up when ``table.from_bottom_left`` is
+    True. The header row is included only when explicit headers are shown. This
+    matches :attr:`Table.cells`, :meth:`Table.range`, and :meth:`Table.cell`.
 
     Single cell: ``table.range(r, c, r, c).cell`` or ``table.cells[r, c]``.
 
@@ -538,7 +539,7 @@ class Range:
         >>> table = Table(columns=["A", "B"])
         >>> _ = table.add_row(1, 2)
         >>> table.cells.font_size = 12
-        >>> table.cell(0, 0).content
+        >>> table.cell(1, 0).content
         1
         >>> table.column(0).header
         'A'
@@ -789,9 +790,7 @@ class Range:
                     column.set_background(**kwargs)
             return
         if self._size_axis == "rows":
-            header_rows = (
-                1 if self._table.show_header and self._table._columns else 0
-            )
+            header_rows = 1 if _has_header_row(self._table) else 0
             for grid_row in self._grid_row_indices():
                 data_row = grid_row - header_rows
                 row = self._table._rows[data_row]
@@ -863,7 +862,7 @@ class Range:
             >>> table = Table(columns=["A"])
             >>> _ = table.add_row("x")
             >>> _ = table.rows.set_format(bold=True)
-            >>> table.cell(0, 0)._format["bold"]
+            >>> table.cell(1, 0)._format["bold"]
             True
         """
         for cell in self:
@@ -877,7 +876,7 @@ class Range:
             >>> table = Table(columns=["A"])
             >>> _ = table.add_row("x")
             >>> _ = table.rows.set_background(fill=True)
-            >>> table.cell(0, 0)._background["fill"]
+            >>> table.cell(1, 0)._background["fill"]
             True
         """
         for cell in self:
@@ -908,10 +907,10 @@ class Range:
             self._table._sizes_for_span(len(grid_rows), height, kind="row"),
             strict=True,
         ):
-            if self._table.show_header and grid_row == 0:
+            if _has_header_row(self._table) and grid_row == 0:
                 self._table._header_row_height = row_height
             else:
-                data_row = grid_row - (1 if self._table.show_header else 0)
+                data_row = grid_row - (1 if _has_header_row(self._table) else 0)
                 self._table._rows[data_row]._height = row_height
 
     def _common_column_width(self) -> float | None:
@@ -930,9 +929,9 @@ class Range:
 
     def _stored_grid_row_height(self, grid_row: int) -> float | None:
         table = self._table
-        if table.show_header and grid_row == 0:
+        if _has_header_row(table) and grid_row == 0:
             return table._header_row_height
-        data_row = grid_row - (1 if table.show_header else 0)
+        data_row = grid_row - (1 if _has_header_row(table) else 0)
         return table._rows[data_row]._height
 
     def _common_row_height(self) -> float | None:
@@ -967,13 +966,31 @@ class Range:
         return _union_bounding_boxes(boxes)
 
 
+def _rich_color(color: Color | str) -> str:
+    """Return a color string Rich can parse.
+
+    Examples:
+        >>> _rich_color(white)
+        'rgb(255, 255, 255)'
+        >>> _rich_color("blue")
+        'blue'
+    """
+    if isinstance(color, str):
+        return color
+    red = int(round(color.red * 255))
+    green = int(round(color.green * 255))
+    blue = int(round(color.blue * 255))
+    return f"rgb({red}, {green}, {blue})"
+
+
 def _resolve_cell_format(
     table: Table,
     grid_row: int,
     col_index: int,
 ) -> dict[str, Any]:
-    is_header = table.show_header and grid_row == 0
-    data_row_index = grid_row - (1 if table.show_header else 0)
+    has_header = _has_header_row(table)
+    is_header = has_header and grid_row == 0
+    data_row_index = grid_row - (1 if has_header else 0)
     layers = [
         _TABLE_DEFAULT_FORMAT,
         table._format,
@@ -993,6 +1010,11 @@ def _resolve_cell_format(
     if is_header and _TABLE_DEFAULT_HEADER_BOLD and "bold" not in fmt:
         fmt = dict(fmt)
         fmt["bold"] = True
+    if is_header and "font_color" not in fmt:
+        background = _resolve_cell_background(table, grid_row, col_index)
+        if background["fill"]:
+            fmt = dict(fmt)
+            fmt["font_color"] = white
     return fmt
 
 
@@ -1010,8 +1032,9 @@ def _resolve_cell_background(
     grid_row: int,
     col_index: int,
 ) -> dict[str, Any]:
-    is_header = table.show_header and grid_row == 0
-    data_row_index = grid_row - (1 if table.show_header else 0)
+    has_header = _has_header_row(table)
+    is_header = has_header and grid_row == 0
+    data_row_index = grid_row - (1 if has_header else 0)
     layers = [
         _default_cell_background(table, is_header=is_header),
         table._background,
@@ -1032,10 +1055,42 @@ def _resolve_cell_background(
 
 def _grid_dimensions(table: Table) -> tuple[int, int]:
     column_count = len(table._columns)
-    row_count = len(table._rows) + (
-        1 if table.show_header and table._columns else 0
-    )
+    row_count = len(table._rows) + (1 if _has_header_row(table) else 0)
     return column_count, row_count
+
+
+def _has_header_row(table: Table) -> bool:
+    return table.show_header and table._explicit_headers and bool(table._columns)
+
+
+def _public_body_grid_rows(table: Table) -> list[int]:
+    header_offset = 1 if _has_header_row(table) else 0
+    rows = list(range(header_offset, header_offset + len(table._rows)))
+    if table.from_bottom_left:
+        rows.reverse()
+    return rows
+
+
+def _public_full_grid_rows(table: Table) -> list[int]:
+    body_rows = _public_body_grid_rows(table)
+    if not _has_header_row(table):
+        return body_rows
+    if table.from_bottom_left:
+        return body_rows + [0]
+    return [0] + body_rows
+
+
+def _storage_row_index(table: Table, row_index: int) -> int:
+    if row_index < 0 or row_index >= len(table._rows):
+        raise IndexError(f"row index {row_index} out of range")
+    if table.from_bottom_left:
+        return len(table._rows) - 1 - row_index
+    return row_index
+
+
+def _grid_row_from_data_row(table: Table, row_index: int) -> int:
+    header_offset = 1 if _has_header_row(table) else 0
+    return header_offset + _storage_row_index(table, row_index)
 
 
 def _empty_grid_range(table: Table) -> Range:
@@ -1067,6 +1122,35 @@ def _cell_content_size(content: Any, font_size: float) -> tuple[float, float]:
     return box.width, box.height
 
 
+def _table_padding_xy(table: Table) -> tuple[float, float]:
+    padding = table.padding
+    if type(padding) in (int, float):
+        if padding < 0:
+            raise ValueError("padding must be non-negative")
+        value = float(padding)
+        return value, value
+    if not isinstance(padding, Sequence) or isinstance(padding, (str, bytes)):
+        raise ValueError(
+            "padding must be a non-negative number or a (horizontal, vertical) pair"
+        )
+    values = list(padding)
+    if len(values) != 2:
+        raise ValueError(
+            "padding must be a non-negative number or a (horizontal, vertical) pair"
+        )
+    horizontal, vertical = values
+    if (
+        type(horizontal) not in (int, float)
+        or type(vertical) not in (int, float)
+        or horizontal < 0
+        or vertical < 0
+    ):
+        raise ValueError(
+            "padding must be a non-negative number or a (horizontal, vertical) pair"
+        )
+    return float(horizontal), float(vertical)
+
+
 def compute_table_layout(
     table: Table,
 ) -> tuple[list[float], list[float], int]:
@@ -1082,25 +1166,30 @@ def compute_table_layout(
         2
         >>> len(heights)
         2
+        >>> square = Table(size=(2, 2), column_width=30, row_height=30, padding=0)
+        >>> compute_table_layout(square)
+        ([30, 30], [30, 30], 2)
     """
     column_count, grid_row_count = _grid_dimensions(table)
     if column_count == 0:
         return [], [], 0
 
-    col_widths = [_TABLE_DEFAULT_COL_WIDTH_MIN] * column_count
-    row_heights = [_TABLE_DEFAULT_ROW_HEIGHT_MIN] * grid_row_count
+    col_widths = [0.0] * column_count
+    row_heights = [0.0] * grid_row_count
 
-    pad_x = 2 * _TABLE_DEFAULT_CELL_PAD_X
-    pad_y = 2 * _TABLE_DEFAULT_CELL_PAD_Y
+    padding_x, padding_y = _table_padding_xy(table)
+    pad_x = 2 * padding_x
+    pad_y = 2 * padding_y
+    has_header = _has_header_row(table)
 
     for grid_row in range(grid_row_count):
         for col_index in range(column_count):
             fmt = _resolve_cell_format(table, grid_row, col_index)
             font_size = fmt["font_size"]
-            if table.show_header and grid_row == 0:
+            if has_header and grid_row == 0:
                 content = table._columns[col_index].header_cell.content
             else:
-                data_row = grid_row - (1 if table.show_header else 0)
+                data_row = grid_row - (1 if has_header else 0)
                 content = table._rows[data_row].cells[col_index].content
             content_w, content_h = _cell_content_size(content, font_size)
             col_widths[col_index] = max(
@@ -1116,14 +1205,14 @@ def compute_table_layout(
             col_widths[col_index] = max(col_widths[col_index], width)
 
     for grid_row in range(grid_row_count):
-        if table.show_header and grid_row == 0:
+        if has_header and grid_row == 0:
             header_height = table._header_row_height
             if header_height is not None:
                 row_heights[grid_row] = max(
                     row_heights[grid_row], header_height
                 )
         else:
-            data_row = grid_row - (1 if table.show_header else 0)
+            data_row = grid_row - (1 if has_header else 0)
             height = table._rows[data_row]._height
             if height is not None:
                 row_heights[grid_row] = max(row_heights[grid_row], height)
@@ -1257,19 +1346,19 @@ def _cell_anchor_pos(
     y_bottom: float,
     h_align: Align,
     v_align: Align,
+    padding_x: float,
+    padding_y: float,
 ) -> PointType:
-    pad_x = _TABLE_DEFAULT_CELL_PAD_X
-    pad_y = _TABLE_DEFAULT_CELL_PAD_Y
     if h_align in (Align.LEFT, Align.FLUSH_LEFT):
-        x = x_left + pad_x
+        x = x_left + padding_x
     elif h_align in (Align.RIGHT, Align.FLUSH_RIGHT):
-        x = x_right - pad_x
+        x = x_right - padding_x
     else:
         x = (x_left + x_right) / 2
     if v_align in (Align.TOP,):
-        y = y_top - pad_y
+        y = y_top - padding_y
     elif v_align in (Align.BOTTOM,):
-        y = y_bottom + pad_y
+        y = y_bottom + padding_y
     else:
         y = (y_top + y_bottom) / 2
     return (x, y)
@@ -1301,8 +1390,12 @@ def _background_rect_sketch(
     }
     if "fill_color" in background:
         sketch_kwargs["fill_color"] = background["fill_color"]
+    if "fill_alpha" in background:
+        sketch_kwargs["fill_alpha"] = background["fill_alpha"]
     if "line_color" in background:
         sketch_kwargs["line_color"] = background["line_color"]
+    if "line_alpha" in background:
+        sketch_kwargs["line_alpha"] = background["line_alpha"]
     if "line_width" in background:
         sketch_kwargs["line_width"] = background["line_width"]
     return get_sketches(rect, canvas, **sketch_kwargs)
@@ -1341,40 +1434,40 @@ def _split_cell_sketches(
     x_right: float,
     y_bottom: float,
     fmt: dict[str, Any],
+    padding_x: float,
+    padding_y: float,
     **kwargs: Any,
 ) -> list:
-    pad_x = _TABLE_DEFAULT_CELL_PAD_X
-    pad_y = _TABLE_DEFAULT_CELL_PAD_Y
     x_mid = (x_left + x_right) / 2
     y_mid = (y_top + y_bottom) / 2
     if content.kind == SplitCell.VERTICAL:
         divider = Shape([(x_mid, y_top), (x_mid, y_bottom)])
-        first_pos = (x_left + pad_x, y_mid)
-        second_pos = (x_right - pad_x, y_mid)
+        first_pos = (x_left + padding_x, y_mid)
+        second_pos = (x_right - padding_x, y_mid)
         first_align = Align.LEFT
         first_anchor = Anchor.WEST
         second_align = Align.RIGHT
         second_anchor = Anchor.EAST
     elif content.kind == SplitCell.HORIZONTAL:
         divider = Shape([(x_left, y_mid), (x_right, y_mid)])
-        first_pos = (x_mid, y_top - pad_y)
-        second_pos = (x_mid, y_bottom + pad_y)
+        first_pos = (x_mid, y_top - padding_y)
+        second_pos = (x_mid, y_bottom + padding_y)
         first_align = Align.CENTER
         first_anchor = Anchor.NORTH
         second_align = Align.CENTER
         second_anchor = Anchor.SOUTH
     elif content.kind == SplitCell.DIAGONAL_DOWN:
         divider = Shape([(x_left, y_top), (x_right, y_bottom)])
-        first_pos = (x_left + pad_x, y_bottom + pad_y)
-        second_pos = (x_right - pad_x, y_top - pad_y)
+        first_pos = (x_left + padding_x, y_bottom + padding_y)
+        second_pos = (x_right - padding_x, y_top - padding_y)
         first_align = Align.LEFT
         first_anchor = Anchor.SOUTHWEST
         second_align = Align.RIGHT
         second_anchor = Anchor.NORTHEAST
     else:
         divider = Shape([(x_left, y_bottom), (x_right, y_top)])
-        first_pos = (x_left + pad_x, y_top - pad_y)
-        second_pos = (x_right - pad_x, y_bottom + pad_y)
+        first_pos = (x_left + padding_x, y_top - padding_y)
+        second_pos = (x_right - padding_x, y_bottom + padding_y)
         first_align = Align.LEFT
         first_anchor = Anchor.NORTHWEST
         second_align = Align.RIGHT
@@ -1492,6 +1585,7 @@ def build_table_sketch(table: Table, canvas: Any, **kwargs: Any) -> TableSketch:
     pos = table.pos[:2]
     sketches: list = []
     grid_row_count = len(row_heights)
+    padding_x, padding_y = _table_padding_xy(table)
 
     if table.title:
         title_y = pos[1] + _TABLE_DEFAULT_TITLE_PAD
@@ -1523,6 +1617,7 @@ def build_table_sketch(table: Table, canvas: Any, **kwargs: Any) -> TableSketch:
             _grid_line_sketches(table, canvas, pos, col_widths, row_heights)
         )
 
+    has_header = _has_header_row(table)
     for grid_row in range(grid_row_count):
         for col_index in range(column_count):
             fmt = _resolve_cell_format(table, grid_row, col_index)
@@ -1534,12 +1629,19 @@ def build_table_sketch(table: Table, canvas: Any, **kwargs: Any) -> TableSketch:
                 pos, col_widths, row_heights, grid_row, col_index
             )
             cell_pos = _cell_anchor_pos(
-                x_left, y_top, x_right, y_bottom, h_align, v_align
+                x_left,
+                y_top,
+                x_right,
+                y_bottom,
+                h_align,
+                v_align,
+                padding_x,
+                padding_y,
             )
-            if table.show_header and grid_row == 0:
+            if has_header and grid_row == 0:
                 content = table._columns[col_index].header_cell.content
             else:
-                data_row = grid_row - (1 if table.show_header else 0)
+                data_row = grid_row - (1 if has_header else 0)
                 content = table._rows[data_row].cells[col_index].content
             if isinstance(content, Cell):
                 content = content.content
@@ -1553,6 +1655,8 @@ def build_table_sketch(table: Table, canvas: Any, **kwargs: Any) -> TableSketch:
                         x_right,
                         y_bottom,
                         fmt,
+                        padding_x,
+                        padding_y,
                         **kwargs,
                     )
                 )
@@ -1589,20 +1693,24 @@ class Table:
     """Documentation table with Rich notebook and vector export.
 
     **Cell indexing:** 0-based column indices ``0``, ``1``, … everywhere.
-    Use **grid rows** for :attr:`cells` and :meth:`range` (row ``0`` may be
-    the header). Use **data rows** for :meth:`cell`, :meth:`row`, and
-    :meth:`populate` (row ``0`` is the first body row). See the module
-    docstring for the full convention. Header strings in ``columns=["A", "B"]``
-    are display labels only — not column coordinates.
+    Use **grid rows** for :attr:`cells`, :meth:`range`, and :meth:`cell`
+    (row ``0`` is the header when a header is shown; the next row is ``1``).
+    Use **data rows** for :meth:`row` and :meth:`populate` (row ``0`` is the
+    first body row). See the module docstring for the full convention.
+    Header strings in ``columns=["A", "B"]`` are display labels only — not
+    column coordinates.
 
     Examples:
         >>> table = Table(
         ...     title="Parameters",
         ...     columns=["Name", "Value"],
+        ...     size=(2, 2),
         ...     column_align=[Align.LEFT, Align.RIGHT],
         ... )
-        >>> _ = table.add_row("n_sides", 7)
-        >>> _ = table.add_row("skip", 3)
+        >>> table.cell(1, 0).content = "n_sides"
+        >>> table.cell(1, 1).content = 7
+        >>> table.cell(2, 0).content = "skip"
+        >>> table.cell(2, 1).content = 3
         >>> table.build_rich_table()  # doctest: +ELLIPSIS
         <rich.table.Table object at ...>
 """
@@ -1612,6 +1720,8 @@ class Table:
         title: str = _TABLE_DEFAULT_TITLE,
         columns: Sequence[str] | None = None,
         *,
+        size: tuple[int, int] | None = None,
+        from_bottom_left: bool = False,
         pos: PointType = _TABLE_DEFAULT_POS,
         show_header: bool = _TABLE_DEFAULT_SHOW_HEADER,
         show_lines: bool = _TABLE_DEFAULT_SHOW_LINES,
@@ -1622,14 +1732,53 @@ class Table:
         font_size: float = _TABLE_DEFAULT_FONT_SIZE,
         row_height: float | None = None,
     ) -> None:
-        """Create an empty table with optional column headers."""
+        """Create an empty table with optional column headers and size.
+
+        Args:
+            title: Table title for notebook and vector output.
+            columns: Optional column header labels.
+            size: Optional ``(rows, columns)`` body size to pre-create.
+            from_bottom_left: Whether row indexing starts at the bottom.
+            pos: Northwest table position.
+            show_header: Whether to show the header row.
+            show_lines: Whether to stroke grid lines.
+            column_align: Optional per-column alignment list.
+            column_width: Default width applied to created columns.
+            min_width: Minimum total table width after layout.
+            padding: Cell padding for vector layout and Rich preview.
+            font_size: Base font size.
+            row_height: Default height applied to created rows.
+
+        Raises:
+            ValueError: If ``size`` is not two non-negative integers, or if
+                ``columns`` has more labels than ``size[1]``.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> table = sg.Table(size=(2, 3))
+            >>> len(table._rows), len(table._columns)
+            (2, 3)
+            >>> bottom = sg.Table(size=(2, 1), from_bottom_left=True)
+            >>> bottom.cell(0, 0).content = "south"
+            >>> bottom.cell(1, 0).content = "north"
+            >>> bottom.row(0).cells[0].content
+            'south'
+            >>> no_headers = sg.Table(size=(1, 1))
+            >>> len(no_headers.cells.cells)
+            1
+            >>> sized = sg.Table(columns=["A", "B"], size=(1, 3))
+            >>> sized.column_headers
+            ['A', 'B', '']
+        """
         self.title = title
         self.pos = pos
         self.type = Types.TABLE
         self.subtype = Types.TABLE
         self.visible = True
+        self.from_bottom_left = from_bottom_left
         self.show_header = show_header
         self.show_lines = show_lines
+        self._explicit_headers = False
         self.min_width = min_width
         self.padding = padding
         self.font_size = font_size
@@ -1641,13 +1790,45 @@ class Table:
         self._default_row_height = row_height
         self._header_row_height: float | None = row_height
 
-        if columns is not None:
+        row_count = 0
+        target_column_count = 0
+        if size is not None:
+            if len(size) != 2:
+                raise ValueError("size must be a (rows, columns) tuple")
+            row_count, target_column_count = size
+            if (
+                type(row_count) is not int
+                or type(target_column_count) is not int
+                or row_count < 0
+                or target_column_count < 0
+            ):
+                raise ValueError(
+                    "size must contain two non-negative integers"
+                )
+
+        if (
+            size is not None
+            and columns is not None
+            and len(columns) > target_column_count
+        ):
+            raise ValueError(
+                "columns has more labels than the requested size columns"
+            )
+
+        explicit_headers = list(columns) if columns is not None else []
+        headers = list(explicit_headers)
+        if target_column_count > len(headers):
+            headers.extend([""] * (target_column_count - len(headers)))
+
+        if explicit_headers:
+            self._explicit_headers = True
+        if headers:
             aligns = (
                 list(column_align)
                 if column_align is not None
-                else [_TABLE_DEFAULT_COLUMN_ALIGN] * len(columns)
+                else [_TABLE_DEFAULT_COLUMN_ALIGN] * len(headers)
             )
-            for index, header in enumerate(columns):
+            for index, header in enumerate(headers):
                 align = (
                     aligns[index]
                     if index < len(aligns)
@@ -1655,6 +1836,9 @@ class Table:
                 )
                 column = self._append_column(header)
                 column.set_format(align=align)
+
+        for _ in range(row_count):
+            self.add_row(*([""] * len(self._columns)))
 
     def __repr__(self) -> str:
         """Return a Table string from this table's title.
@@ -1678,6 +1862,7 @@ class Table:
         column_count, grid_row_count = _grid_dimensions(self)
         if column_count == 0 or grid_row_count == 0:
             return Range(self, 0, 0, -1, -1, size_axis="columns")
+        public_rows = tuple(_public_full_grid_rows(self))
         return Range(
             self,
             0,
@@ -1685,6 +1870,7 @@ class Table:
             grid_row_count - 1,
             column_count - 1,
             size_axis="columns",
+            explicit_grid_rows=public_rows,
         )
 
     @property
@@ -1702,8 +1888,9 @@ class Table:
         """``Range`` over data rows; ``height`` sets row heights.
 
         ``table.rows[i]`` uses **data-row** indices: ``0`` is the first body
-        row (not the header). This differs from ``table.cells[i, …]``, which
-        uses **grid-row** indices.
+        row at the current origin (top by default, bottom when
+        ``from_bottom_left`` is True). This differs from ``table.cells[i, …]``,
+        which uses **grid-row** indices.
 
         Examples:
             >>> table = Table(columns=["A"])
@@ -1714,44 +1901,51 @@ class Table:
         column_count, grid_row_count = _grid_dimensions(self)
         if column_count == 0:
             return Range(self, 0, 0, -1, -1, size_axis="rows")
-        header_rows = 1 if self.show_header and self._columns else 0
-        if grid_row_count - header_rows <= 0:
+        public_rows = _public_body_grid_rows(self)
+        if not public_rows:
             return Range(self, 0, 0, -1, -1, size_axis="rows")
         return Range(
             self,
-            header_rows,
+            public_rows[0],
             0,
-            grid_row_count - 1,
+            public_rows[-1],
             column_count - 1,
             size_axis="rows",
+            explicit_grid_rows=tuple(public_rows),
         )
 
     @property
     def cells(self) -> Range:
-        """``Range`` over the full grid (header row included when shown).
+        """``Range`` over the full grid (header row included when present).
 
         Index as ``table.cells[grid_row, col]`` — both axes 0-based **grid**
-        indices. With the default header, ``cells[0, col]`` is the header and
-        ``cells[1, 0]`` is the top-left body cell. For body-only row numbers
-        use :meth:`cell` or :meth:`populate` instead.
+        indices. Row numbering follows the table origin. With explicit headers
+        and ``show_header=True``, the header is row ``0`` only when
+        ``from_bottom_left`` is False; with ``from_bottom_left=True`` the header
+        is the last grid row. For body-only row numbers use :meth:`cell` or
+        :meth:`populate` instead.
 
         Examples:
             >>> table = Table(columns=["A"])
             >>> _ = table.add_row("z")
+            >>> table.cells[0, 0].content
+            'A'
             >>> table.cells[1, 0].content
             'z'
-            >>> table.cell(0, 0).content
+            >>> table.cell(1, 0).content
             'z'
         """
         column_count, grid_row_count = _grid_dimensions(self)
         if column_count == 0 or grid_row_count == 0:
             return _empty_grid_range(self)
+        public_rows = tuple(_public_full_grid_rows(self))
         return Range(
             self,
             0,
             0,
             grid_row_count - 1,
             column_count - 1,
+            explicit_grid_rows=public_rows,
         )
 
     def range(
@@ -1764,7 +1958,9 @@ class Table:
         """Return an inclusive rectangular region (0-based grid indices).
 
         Same row/column convention as :attr:`cells`: grid row ``0`` is the
-        header when ``show_header`` is True. Column indices start at ``0``.
+        first row at the current origin. The header is included only when
+        explicit headers exist and ``show_header`` is True. Column indices start
+        at ``0``.
 
         Args:
             row_start: Top grid row of the range.
@@ -1778,7 +1974,18 @@ class Table:
             >>> table.range(1, 0, 1, 0).content
             1
         """
-        return Range(self, row_start, col_start, row_end, col_end)
+        public_rows = _public_full_grid_rows(self)
+        start = min(row_start, row_end)
+        end = max(row_start, row_end)
+        picked_rows = public_rows[start : end + 1]
+        return Range(
+            self,
+            picked_rows[0],
+            col_start,
+            picked_rows[-1],
+            col_end,
+            explicit_grid_rows=tuple(picked_rows),
+        )
 
     def _sizes_for_span(
         self,
@@ -1827,10 +2034,10 @@ class Table:
             self._sizes_for_span(span, size, kind="row"),
             strict=True,
         ):
-            if self.show_header and grid_row == 0:
+            if _has_header_row(self) and grid_row == 0:
                 self._header_row_height = height
             else:
-                data_row = grid_row - (1 if self.show_header else 0)
+                data_row = grid_row - (1 if _has_header_row(self) else 0)
                 self._rows[data_row]._height = height
 
     def _cell_at_grid(self, grid_row: int, col_index: int) -> Cell:
@@ -1840,26 +2047,30 @@ class Table:
             raise IndexError(f"column index {col_index} out of range")
         if grid_row < 0 or grid_row >= grid_row_count:
             raise IndexError(f"grid row {grid_row} out of range")
-        if self.show_header and grid_row == 0:
+        if _has_header_row(self) and grid_row == 0:
             return self._columns[col_index].header_cell
-        data_row = grid_row - (1 if self.show_header else 0)
+        data_row = grid_row - (1 if _has_header_row(self) else 0)
         return self._rows[data_row].cells[col_index]
 
     def cell(self, row_index: int, col_index: int) -> Cell:
-        """Return a body cell at ``(row_index, col_index)``.
+        """Return the cell at ``(row_index, col_index)``.
 
-        **Data-row** indices: ``row_index`` ``0`` is the first body row
-        (header not counted). ``col_index`` ``0`` is the leftmost column.
-        Equivalent body cell on the grid: ``cells[row_index + 1, col_index]``
-        when ``show_header`` is True.
+        Row ``0`` is the header when a header row is shown. The next row is
+        ``1``. With no header, row ``0`` is the first body row.
+        ``col_index`` ``0`` is the leftmost column.
 
         Examples:
             >>> table = Table(columns=["A"])
             >>> _ = table.add_row("v")
             >>> table.cell(0, 0).content
+            'A'
+            >>> table.cell(1, 0).content
             'v'
         """
-        return self._rows[row_index].cells[col_index]
+        if _has_header_row(self):
+            return self._cell_at_grid(row_index, col_index)
+        storage_index = _storage_row_index(self, row_index)
+        return self._rows[storage_index].cells[col_index]
 
     def column(self, col_index: int) -> Column:
         """Return the column at ``col_index``.
@@ -1880,7 +2091,8 @@ class Table:
             >>> table.row(0).cells[0].content
             9
         """
-        return self._rows[row_index]
+        storage_index = _storage_row_index(self, row_index)
+        return self._rows[storage_index]
 
     def set_format(self, **kwargs: Any) -> Self:
         """Apply format to the table and every cell (including headers).
@@ -1914,6 +2126,54 @@ class Table:
             column.set_background(**kwargs)
         for row in self._rows:
             row.set_background(**kwargs)
+        return self
+
+    def reset(self) -> Self:
+        """Empty all cells and clear table, row, column, and cell styling.
+
+        The table keeps its current row and column counts, title, position,
+        and visibility settings. Header labels are cleared because header cells
+        are part of the grid.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> table = sg.Table(columns=["A"], size=(1, 1))
+            >>> table.cell(0, 0).content = "x"
+            >>> _ = table.column(0).set_format(align=sg.Align.RIGHT)
+            >>> table.rows.height = 24
+            >>> table.reset() is table
+            True
+            >>> table.column_headers
+            ['']
+            >>> table.cell(0, 0).content
+            ''
+            >>> table.column(0)._format
+            {}
+            >>> table.row(0)._height is None
+            True
+        """
+        self.font_size = _TABLE_DEFAULT_FONT_SIZE
+        self._format = {}
+        self._background = {}
+        self._header_row_height = self._default_row_height
+
+        for column in self._columns:
+            column._format = {}
+            column._background = {}
+            column._width = self._default_column_width
+            column.header = ""
+            column.header_cell._format = {}
+            column.header_cell._background = {}
+
+        for row in self._rows:
+            row._format = {}
+            row._background = {}
+            row._height = self._default_row_height
+            for cell in row.cells:
+                cell.content = ""
+                cell._format = {}
+                cell._background = {}
+
         return self
 
     def __getattr__(self, name: str) -> Any:
@@ -1975,7 +2235,7 @@ class Table:
 
     def _row_bbox(self, row_index: int) -> BoundingBox:
         _, row_heights, column_count = compute_table_layout(self)
-        grid_row = row_index + (1 if self.show_header and self._columns else 0)
+        grid_row = _grid_row_from_data_row(self, row_index)
         if grid_row >= len(row_heights):
             return BoundingBox()
         boxes = [
@@ -2043,6 +2303,7 @@ class Table:
             >>> col.header
             'New'
         """
+        self._explicit_headers = True
         column = self._append_column(header)
         column.set_format(align=align)
         return column
@@ -2068,7 +2329,12 @@ class Table:
         row._height = self._default_row_height
         while len(row.cells) < len(self._columns):
             row.cells.append(Cell(""))
-        self._rows.append(row)
+        if self.from_bottom_left:
+            self._rows.insert(0, row)
+        else:
+            self._rows.append(row)
+        for index, current_row in enumerate(self._rows):
+            current_row.index = index
         return row
 
     def _ensure_grid_covers(
@@ -2096,20 +2362,22 @@ class Table:
     ) -> Self:
         """Fill a rectangle of body cells starting at ``(row, column)``.
 
-        All indices are 0-based. ``row`` and ``column`` match
-        :meth:`cell` (data rows only; the header row is not part of ``row``).
+        All indices are 0-based. ``row`` and ``column`` are **data-row**
+        indices (the header is not part of ``row``). :meth:`cell` counts the
+        header as row ``0`` when a header is shown.
         Items are placed in row-major order with ``columns`` cells per row—the
         same layout as :func:`~simetri.helpers.utilities.get_cell_pos`. When
         ``from_bottom_left`` is False, filling continues at ``row + 1``,
-        ``row + 2``, … (downward on the table). When True, it continues at
-        ``row - 1``, ``row - 2``, … (upward).
+        ``row + 2``, … in increasing data-row order. When True, it continues
+        toward ``row - 1``, ``row - 2``, … instead.
 
         Args:
             row: Starting data row index (0-based).
             column: Starting column index (0-based).
             columns: Number of columns in each filled row (band width, >= 1).
             items: Cell contents in fill order.
-            from_bottom_left: If True, advance upward; if False, downward.
+            from_bottom_left: If True, advance toward smaller data-row indices;
+                if False, advance toward larger ones.
 
         Returns:
             Self: This table.
@@ -2122,20 +2390,20 @@ class Table:
             >>> table = Table(columns=["A", "B"])
             >>> table.populate(0, 0, 2, [1, 2, 3]) is table
             True
-            >>> table.cell(0, 0).content
-            1
-            >>> table.cell(0, 1).content
-            2
             >>> table.cell(1, 0).content
+            1
+            >>> table.cell(1, 1).content
+            2
+            >>> table.cell(2, 0).content
             3
             >>> table2 = Table(columns=["A", "B"])
             >>> _ = table2.add_row("", "")
             >>> _ = table2.add_row("", "")
             >>> _ = table2.add_row("", "")
             >>> _ = table2.populate(2, 0, 2, ["a", "b", "c"], from_bottom_left=True)
-            >>> table2.cell(2, 0).content
+            >>> table2.cell(3, 0).content
             'a'
-            >>> table2.cell(1, 0).content
+            >>> table2.cell(2, 0).content
             'c'
         """
         if columns < 1:
@@ -2145,23 +2413,21 @@ class Table:
         if not items:
             return self
 
-        header_offset = (
-            1 if self.show_header and self._columns else 0
-        )
         item_count = len(items)
         local_rows = (item_count + columns - 1) // columns
         if from_bottom_left:
-            max_data_row = row
             min_data_row = row - (local_rows - 1)
+            max_data_row = row
         else:
             min_data_row = row
             max_data_row = row + (local_rows - 1)
         if min_data_row < 0:
             raise IndexError("row index out of range")
-        min_grid_row = min_data_row + header_offset
-        max_grid_row = max_data_row + header_offset
         max_grid_col = column + columns - 1
-        self._ensure_grid_covers(min_grid_row, max_grid_row, max_grid_col)
+        while len(self._columns) <= max_grid_col:
+            self._append_column("")
+        while len(self._rows) <= max_data_row:
+            self.add_row(*([""] * len(self._columns)))
 
         for index, item in enumerate(items):
             local_row = index // columns
@@ -2171,7 +2437,7 @@ class Table:
                 data_row = row - local_row
             else:
                 data_row = row + local_row
-            grid_row = data_row + header_offset
+            grid_row = _grid_row_from_data_row(self, data_row)
             self._cell_at_grid(grid_row, grid_col).content = item
         return self
 
@@ -2188,9 +2454,9 @@ class Table:
         if fmt.get("italic"):
             style_kwargs["italic"] = True
         if "font_color" in fmt:
-            style_kwargs["color"] = fmt["font_color"]
+            style_kwargs["color"] = _rich_color(fmt["font_color"])
         if bg.get("fill") and "fill_color" in bg:
-            style_kwargs["bgcolor"] = str(bg["fill_color"])
+            style_kwargs["bgcolor"] = _rich_color(bg["fill_color"])
         if not style_kwargs:
             return None
         return RichStyle(**style_kwargs)
@@ -2212,11 +2478,12 @@ class Table:
             padding=self.padding,
         )
         column_count = len(self._columns)
+        has_header = _has_header_row(self)
         for col_index, column in enumerate(self._columns):
             fmt = _resolve_cell_format(self, 0, col_index)
             justify = _align_to_rich_justify(fmt["align"])
             rich_table.add_column(column.header, justify=justify)
-        if self.show_header and self._columns:
+        if has_header:
             from rich.text import Text
 
             header_cells = []
@@ -2228,7 +2495,7 @@ class Table:
                 else:
                     header_cells.append(text)
             rich_table.add_row(*header_cells)
-        grid_header_rows = 1 if self.show_header and self._columns else 0
+        grid_header_rows = 1 if has_header else 0
         for row_index, row in enumerate(self._rows):
             grid_row = row_index + grid_header_rows
             rich_cells = []

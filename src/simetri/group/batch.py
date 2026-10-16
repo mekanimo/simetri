@@ -39,7 +39,7 @@ from ..base.core import (
     _next_xform_matrix,
     _Targets,
 )
-from ..config.settings import runtime_defaults, issue_warning
+from ..config.settings import issue_warning, runtime_defaults
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.points.point_utils import distance, fix_degen_points, round_point
 from ..geom.polygons.poly import get_polygons
@@ -88,7 +88,7 @@ def check_dist_tol(
         ... )
         >>> values == {40.0}
         True
-"""
+    """
     return Group(shapes_groups).check_dist_tol(n, n_round=n_round)
 
 
@@ -121,7 +121,7 @@ def check_angle_tol(
         ... )
         >>> values == {1.57}
         True
-"""
+    """
     return Group(shapes_groups).check_angle_tol(n, n_round=n_round)
 
 
@@ -147,7 +147,7 @@ class Group(Base):
         >>> _ = g.append(sg.Shape([(80, 0), (60, 0)]))
         >>> len(g)
         2
-"""
+    """
 
     # __slots__ = [
     #     "elements",
@@ -189,9 +189,7 @@ class Group(Base):
             _elements = []
             for element in elements[0]:
                 if isinstance(element, (list, tuple)):
-                    _elements.extend(
-                        elem for elem in flatten2(element) if elem
-                    )
+                    _elements.extend(elem for elem in flatten2(element) if elem)
                 else:
                     if element:
                         _elements.append(element)
@@ -202,9 +200,7 @@ class Group(Base):
             _elements = []
             for element in elements:
                 if isinstance(element, (list, tuple)):
-                    _elements.extend(
-                        elem for elem in flatten2(element) if elem
-                    )
+                    _elements.extend(elem for elem in flatten2(element) if elem)
                 else:
                     if element:
                         _elements.append(element)
@@ -361,9 +357,7 @@ class Group(Base):
         """
         return len(self.elements)
 
-    def __getitem__(
-        self, subscript: int | slice
-    ) -> Any | list[Any]:
+    def __getitem__(self, subscript: int | slice) -> Any | list[Any]:
         """
         Get the element(s) at the given subscript.
 
@@ -839,9 +833,7 @@ class Group(Base):
             2
         """
         elements = self.all_elements
-        return [
-            element for element in elements if element.type == Types.SHAPE
-        ]
+        return [element for element in elements if element.type == Types.SHAPE]
 
     @property
     def all_vertices(self) -> list[PointType]:
@@ -1287,9 +1279,7 @@ class Group(Base):
         intersection_ids = self_ids.intersection(other_ids)
 
         return Group(
-            [
-                item for item in self.elements if item.id in intersection_ids
-            ],
+            [item for item in self.elements if item.id in intersection_ids],
             modifiers=self.modifiers,
             subtype=self.subtype,
         )
@@ -1322,9 +1312,7 @@ class Group(Base):
         difference_ids = self_ids.difference(other_ids)
 
         return Group(
-            [
-                item for item in self.elements if item.id in difference_ids
-            ],
+            [item for item in self.elements if item.id in difference_ids],
             modifiers=self.modifiers,
             subtype=self.subtype,
         )

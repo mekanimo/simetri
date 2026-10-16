@@ -27,6 +27,7 @@ from colorsys import (
 )
 from dataclasses import dataclass
 import random
+from math import sin, pi
 from typing import TypeAlias
 
 import numpy as np
@@ -36,6 +37,34 @@ from colorspace import palette
 from ..base.all_enums import ColorSpace, Types
 
 PointType = Sequence[float]
+
+
+def shade_value(angle: float) -> float:
+    """Return a shade weight from an angle.
+
+    The weight is ``sin(angle)``. ``pi / 2`` returns 1. ``0`` and
+    ``pi`` return 0.
+
+    Args:
+        angle: Angle in radians. Must be between 0 and ``2 * pi``.
+
+    Returns:
+        float: ``sin(angle)``.
+
+    Raises:
+        ValueError: If ``angle`` is outside ``[0, 2 * pi]``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> shade_value(sg.pi / 2)
+        1.0
+        >>> shade_value(0)
+        0.0
+    """
+    if not 0 <= angle <= 2 * pi:
+        raise ValueError("Angle must be between 0 and 2 pi radians.")
+
+    return sin(angle)
 
 
 def get_lighter(
@@ -56,7 +85,7 @@ def get_lighter(
         (255, 255, 255)
         >>> sg.get_lighter((0, 0, 0), (10, 10, 10))
         (10, 10, 10)
-"""
+    """
     lightness1 = rgb2hls(*rgb255_color1)[1]
     lightness2 = rgb2hls(*rgb255_color2)[1]
     if lightness1 < lightness2:
@@ -80,7 +109,7 @@ def get_lightest(rgb255_palette: Sequence[Sequence[float]]) -> Sequence[float]:
         (255, 255, 255)
         >>> sg.get_lightest([(0, 0, 0)])
         (0, 0, 0)
-"""
+    """
     lightest = [0, 0, 0]
     for i, color in enumerate(rgb255_palette):
         lightest = get_lighter(color, lightest)
@@ -107,7 +136,7 @@ def change_hue(color: Color, delta: float) -> Color:
         (1.0, 0.0, 0.0)
         >>> color.rgb
         (1.0, 0.0, 0.0)
-"""
+    """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
     r, g, b = colorsys.hls_to_rgb(hls[0] + delta, hls[1], hls[2])
@@ -132,7 +161,7 @@ def change_lightness(color: Color, delta: float) -> Color:
         (1.0, 0.0, 0.0)
         >>> color.rgba
         (1.0, 0.0, 0.0, 1)
-"""
+    """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
     r, g, b = colorsys.hls_to_rgb(hls[0], hls[1] + delta, hls[2])
@@ -157,7 +186,7 @@ def change_saturation(color: Color, delta: float) -> Color:
         (1.0, 0.0, 0.0)
         >>> color.rgb
         (1.0, 0.0, 0.0)
-"""
+    """
     r, g, b, a = color.rgba
     hls = colorsys.rgb_to_hls(r, g, b)
     r, g, b = colorsys.hls_to_rgb(hls[0], hls[1], hls[2] + delta)
@@ -181,7 +210,7 @@ def change_alpha(color: Color, delta: float) -> Color:
         (1.0, 0.0, 0.0, 0.5)
         >>> color.alpha
         1
-"""
+    """
     r, g, b, a = color.rgba
     return Color(r, g, b, a + delta)
 
@@ -203,7 +232,7 @@ def change_red(color: Color, delta: float) -> Color:
         (1.0, 0.0, 0.0)
         >>> sg.change_red(color, -1.0).rgb
         (0.0, 0.0, 0.0)
-"""
+    """
     r, g, b, a = color.rgba
     return Color(r + delta, g, b, a)
 
@@ -225,7 +254,7 @@ def change_green(color: Color, delta: float) -> Color:
         (1.0, 0.0, 0.0)
         >>> color.green
         0.0
-"""
+    """
     r, g, b, a = color.rgba
     return Color(r, g + delta, b, a)
 
@@ -247,7 +276,7 @@ def change_blue(color: Color, delta: float) -> Color:
         (1.0, 0.0, 0.0)
         >>> color.blue
         0.0
-"""
+    """
     r, g, b, a = color.rgba
     return Color(r, g, b + delta, a)
 
@@ -267,7 +296,7 @@ def rgb255_to_1(rgb: Sequence[float]) -> list[float]:
         [1.0, 0.0, 0.5019607843137255]
         >>> sg.rgb255_to_1((0, 0, 0))
         [0.0, 0.0, 0.0]
-"""
+    """
     return [x / 255 for x in rgb]
 
 
@@ -286,7 +315,7 @@ def rgb1_to_255(rgb: Sequence[float]) -> list[int]:
         [255, 0, 127]
         >>> sg.rgb1_to_255((0, 0, 0))
         [0, 0, 0]
-"""
+    """
     return [int(x * 255) for x in rgb]
 
 
@@ -305,7 +334,7 @@ def hex_to_rgb(hex_val: str) -> tuple[float, float, float]:
         (0.0, 1.0, 0.0)
         >>> sg.hex_to_rgb("ff0000")
         (1.0, 0.0, 0.0)
-"""
+    """
     return hex2rgb(hex_val)
 
 
@@ -328,7 +357,7 @@ def rgb_to_hex(r: int, g: int, b: int) -> str:
         'FF0080'
         >>> sg.rgb_to_hex(255, 255, 255)
         'FFFFFF'
-"""
+    """
     return f"{r:02X}{g:02X}{b:02X}"
 
 
@@ -354,7 +383,7 @@ class Color:
         (1.0, 0.0, 0.5019607843137255)
         >>> sg.Color(0.0, 0.0, 1.0, 0.5).rgba
         (0.0, 0.0, 1.0, 0.5)
-"""
+    """
 
     red: int = 0
     green: int = 0
@@ -402,7 +431,7 @@ class Color:
             'Color(1.0, 0.0, 0.0)'
             >>> str(sg.Color(1.0, 0.0, 0.0, 0.5))
             'Color(1.0, 0.0, 0.0)'
-"""
+        """
         return f"Color({self.red}, {self.green}, {self.blue})"
 
     def __repr__(self) -> str:
@@ -433,7 +462,7 @@ class Color:
             (1.0, 0.0, 0.0, 0.5)
             >>> color.copy() == color
             True
-"""
+        """
         return Color(self.red, self.green, self.blue, self.alpha)
 
     @property
@@ -447,7 +476,7 @@ class Color:
             >>> import simetri.graphics as sg
             >>> sg.Color(1.0, 0.0, 0.0, 0.5).__key__
             (1.0, 0.0, 0.0)
-"""
+        """
         return (self.red, self.green, self.blue)
 
     def __hash__(self) -> int:
@@ -462,7 +491,7 @@ class Color:
             True
             >>> hash(sg.Color(1, 0, 0, 0.2)) == hash(sg.Color(1, 0, 0, 0.8))
             True
-"""
+        """
         return hash(self.__key__)
 
     @property
@@ -477,7 +506,7 @@ class Color:
             >>> sg.Color(1.0, 0.0, 0.0).name
             >>> sg.red.name is None
             True
-"""
+        """
         # search for the color in the named colors
 
     def __eq__(self, other: object) -> bool:
@@ -499,7 +528,7 @@ class Color:
             True
             >>> sg.Color(1, 0, 0) == (1.0, 0.0, 0.0)
             False
-"""
+        """
         if isinstance(other, Color):
             return self.__key__ == other.__key__
         else:
@@ -518,7 +547,7 @@ class Color:
             (1.0, 0.0, 0.0)
             >>> sg.Color(1.0, 0.0, 0.0).rgb
             (1.0, 0.0, 0.0)
-"""
+        """
         return (self.red, self.green, self.blue)
 
     @property
@@ -534,7 +563,7 @@ class Color:
             (1.0, 0.0, 0.0, 1)
             >>> sg.Color(1.0, 0.0, 0.0, 0.5).rgba
             (1.0, 0.0, 0.0, 0.5)
-"""
+        """
         return (self.red, self.green, self.blue, self.alpha)
 
     @property
@@ -550,7 +579,7 @@ class Color:
             (255, 0, 0)
             >>> sg.Color(0, 128, 255).rgb255
             (0, 128, 255)
-"""
+        """
         r, g, b = self.rgb
         if r > 1 or g > 1 or b > 1:
             return (r, g, b)
@@ -569,7 +598,7 @@ class Color:
             (255, 0, 0, 255)
             >>> sg.Color(1.0, 0.0, 0.0, 0.5).rgba255
             (255, 0, 0, 128)
-"""
+        """
         return tuple(round(i * 255) for i in self.rgba)
 
 
@@ -591,7 +620,7 @@ def hex_color(hex_value: str) -> Color:
         (0.0, 1.0, 0.0)
         >>> sg.hex_color("ff0000").rgb
         (1.0, 0.0, 0.0)
-"""
+    """
     return Color(*hex2rgb(hex_value))
 
 
@@ -617,7 +646,7 @@ def map_color(
         (128, 0, 0)
         >>> sg.map_color(0, 0, 0, 256, 256, 256).rgb255
         (0, 0, 0)
-"""
+    """
     i_range = range(256)
     r_range = np.arange(0, r_max, r_max / 256)
     g_range = np.arange(0, g_max, g_max / 256)
@@ -650,7 +679,7 @@ def blend(color1: Color, percent: int, color2: Color) -> Color:
         (0.5, 0.0, 0.5)
         >>> sg.blend(sg.Color(1, 0, 0), 100, sg.Color(0, 0, 1)).rgb
         (1.0, 0.0, 0.0)
-"""
+    """
     percent = percent / 100
     r1, g1, b1 = color1.rgb
     r2, g2, b2 = color2.rgb
@@ -687,7 +716,7 @@ def get_color(value: object) -> Color:
         True
         >>> sg.get_color("#ff0000").rgb
         (1.0, 0.0, 0.0)
-"""
+    """
     if isinstance(value, Color):
         return value
     elif isinstance(value, str):
@@ -722,7 +751,7 @@ def check_color(color: ColorLike) -> Color:
         (0.0, 1.0, 0.0)
         >>> sg.check_color((255, 0, 0)).rgb
         (1.0, 0.0, 0.0)
-"""
+    """
     if isinstance(color, Color):
         return color
     elif isinstance(color, str):
@@ -756,7 +785,7 @@ def rgb2hls(r: float, g: float, b: float) -> tuple[float, float, float]:
         (0.0, 0.5, 1.0)
         >>> sg.rgb2hls(0, 0, 0)
         (0.0, 0.0, 0.0)
-"""
+    """
     return rgb_to_hls(r, g, b)
 
 
@@ -777,7 +806,7 @@ def hls2rgb(h: float, l: float, s: float) -> tuple[float, float, float]:  # noqa
         (1.0, 0.0, 0.0)
         >>> sg.hls2rgb(0, 0, 0)
         (0, 0, 0)
-"""
+    """
     return hls_to_rgb(h, l, s)
 
 
@@ -798,7 +827,7 @@ def rgb2hsv(r: float, g: float, b: float) -> tuple[float, float, float]:
         (0.0, 1.0, 1)
         >>> sg.rgb2hsv(0, 0, 0)
         (0.0, 0.0, 0)
-"""
+    """
     return rgb_to_hsv(r, g, b)
 
 
@@ -819,7 +848,7 @@ def hsv2rgb(h: float, s: float, v: float) -> tuple[float, float, float]:
         (1, 0.0, 0.0)
         >>> sg.hsv2rgb(0, 0, 0)
         (0, 0, 0)
-"""
+    """
     return hsv_to_rgb(h, s, v)
 
 
@@ -840,7 +869,7 @@ def rgb2yiq(r: float, g: float, b: float) -> tuple[float, float, float]:
         (0.3, 0.599, 0.21299999999999997)
         >>> sg.rgb2yiq(0, 0, 0)
         (0.0, 0.0, 0.0)
-"""
+    """
     return rgb_to_yiq(r, g, b)
 
 
@@ -861,7 +890,7 @@ def yiq2rgb(y: float, i: float, q: float) -> tuple[float, float, float]:
         (1.0, 0.0, 1.1102230246251565e-16)
         >>> sg.yiq2rgb(0, 0, 0)
         (0.0, 0.0, 0.0)
-"""
+    """
     return yiq_to_rgb(y, i, q)
 
 
@@ -880,7 +909,7 @@ def rgb2hex(rgb: Sequence[float]) -> str:
         '#ff0080'
         >>> sg.rgb2hex((0, 0, 0))
         '#000000'
-"""
+    """
     r, g, b = rgb
     return f"#{r:02x}{g:02x}{b:02x}"
 
@@ -900,7 +929,7 @@ def hex2rgb(hex_val: str) -> tuple[float, float, float]:
         (1.0, 0.0, 0.0)
         >>> sg.hex2rgb("00ff00")
         (0.0, 1.0, 0.0)
-"""
+    """
     hex_val = hex_val.strip("#")
     return tuple(round(int(hex_val[i : i + 2], 16) / 255, 3) for i in (0, 2, 4))
 
@@ -933,7 +962,7 @@ def cmyk2rgb(
         (255, 0, 0)
         >>> sg.cmyk2rgb(0, 0, 0, 100)
         (0, 0, 0)
-"""
+    """
 
     # Normalize CMYK values to a 0-1 range
     c_norm = c / float(cmyk_scale)
@@ -971,7 +1000,7 @@ def rgb2cmyk(r: int, g: int, b: int) -> tuple[int, int, int, int]:
         (0, 100, 100, 0)
         >>> sg.rgb2cmyk(0, 0, 0)
         (0, 0, 0, 100)
-"""
+    """
     # Normalize RGB values to the range [0, 1]
     r_norm = r / 255.0
     g_norm = g / 255.0
@@ -1015,7 +1044,7 @@ def random_color(seed: int | None = None) -> Color:
         True
         >>> sg.random_color(seed=1) == sg.random_color(seed=1)
         True
-"""
+    """
     rng = random.Random(seed)
     return Color(rng.random(), rng.random(), rng.random())
 
@@ -1038,7 +1067,7 @@ def expand_palette(
         [(1.0, 0.0, 0.0), (0.549, 0.325, 0.635), (0.0, 0.0, 1.0)]
         >>> sg.expand_palette([(0, 0, 0), (255, 255, 255)], 2)
         [(0.0, 0.0, 0.0), (1.0, 1.0, 1.0)]
-"""
+    """
     hex_colors = [rgb2hex(c) for c in rgb255_palette]
     interp_func = Color_aide.interpolate(hex_colors)
     expanded = [interp_func(i / (n - 1)) for i in range(n)]
@@ -1140,7 +1169,7 @@ class LinearGradient:
         100
         >>> gradient.extend
         False
-"""
+    """
 
     x1: float = 0.0
     y1: float = 0.0
@@ -1190,7 +1219,7 @@ class RadialGradient:
         30
         >>> gradient.extend
         False
-"""
+    """
 
     x: float = 0.0
     y: float = 0.0
@@ -2087,12 +2116,6 @@ sickly_yellow = Color(0.816, 0.894, 0.161)
 sienna = Color(0.663, 0.337, 0.118)
 silver = Color(0.773, 0.788, 0.78)
 sky = Color(0.51, 0.792, 0.988)
-
-_named_colors = {
-    k: v
-    for k, v in globals().items()
-    if isinstance(v, Color) and not k.startswith("_")
-}
 sky_blue = Color(0.459, 0.733, 0.992)
 slate = Color(0.318, 0.396, 0.447)
 slate_blue = Color(0.357, 0.486, 0.6)
@@ -2225,3 +2248,10 @@ yellowish_orange = Color(1.0, 0.671, 0.059)
 yellowish_tan = Color(0.988, 0.988, 0.506)
 yellowy_brown = Color(0.682, 0.545, 0.047)
 yellowy_green = Color(0.749, 0.945, 0.157)
+
+
+_named_colors = {
+    k: v
+    for k, v in globals().items()
+    if isinstance(v, Color) and not k.startswith("_")
+}

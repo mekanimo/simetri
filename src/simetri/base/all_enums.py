@@ -44,7 +44,7 @@ def get_enum_value(enum_class: StrEnum, value: str) -> str:
         'SHAPE'
         >>> get_enum_value(sg.Types, "circle")
         'CIRCLE'
-"""
+    """
     if isinstance(value, enum_class):
         res = value.value
     else:
@@ -86,7 +86,8 @@ class Anchor(StrEnum):
     relative to the boundary box of shapes/groups or
     frames of tag objects.
 
-    Valid values are: BASE, BASE_EAST, BASE_WEST, BOTTOM, CENTER, EAST, LEFT, MID, MIDEAST, MIDWEST, NORTH,
+    Valid values are: BASE, BASE_EAST, BASE_WEST, BOTTOM, CENTER, EAST, LEFT, MID,
+    NORTH,
     NORTHEAST, NORTHWEST, RIGHT, SOUTH, SOUTHEAST, SOUTHWEST, TEXT, TOP, WEST.
 
     Examples:
@@ -1262,16 +1263,17 @@ class Placement(StrEnum):
 class PlaitStyle(StrEnum):
     """Visual styles for lace/plait drawings.
 
-    Valid values are: EMBOSS1, EMBOSS2, DIAMOND, INNERLINES, INNERLOOPS,
-    DOUBLE_LINES.
+    Valid values are: EMBOSS, EMBOSS2, FRUSTUM, DIAMOND, INNERLINES,
+    INNERLOOPS, DOUBLE_LINES.
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.PlaitStyle.EMBOSS1.value
-        'EMBOSS1'
+        >>> sg.PlaitStyle.EMBOSS.value
+        'EMBOSS'
     """
 
-    EMBOSS1 = "EMBOSS1"
+    EMBOSS = "EMBOSS"
     EMBOSS2 = "EMBOSS2"
+    FRUSTUM = "FRUSTUM"
     DIAMOND = "DIAMOND"
     INNERLINES = "INNERLINES"
     INNERLOOPS = "INNERLOOPS"

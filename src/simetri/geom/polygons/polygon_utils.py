@@ -43,7 +43,7 @@ def right_handed(
         False
         >>> sg.right_handed([(0, 0), (40, 0), (40, 40), (0, 40), (0, 0)])
         True
-"""
+    """
     if abs_tol is None:
         abs_tol = runtime_defaults["abs_tol"]
     abs_tol2 = abs_tol * abs_tol
@@ -89,7 +89,7 @@ def is_simple(
         True
         >>> square
         [(0, 0), (40, 0), (40, 40), (0, 40)]
-"""
+    """
     rel_tol, abs_tol = get_defaults(["rel_tol", "abs_tol"], [rel_tol, abs_tol])
 
     vertices = [point[:2] for point in polygon]
@@ -190,7 +190,7 @@ def get_polygon_grid_point(
         True
         >>> sg.get_polygon_grid_point(4, (0, 1), (1, 2), circumradius=100)[1]
         100.0
-"""
+    """
     points = reg_poly_points((0, 0), n, circumradius)
     p1 = points[line1[0]]
     p2 = points[line1[1]]
@@ -200,9 +200,7 @@ def get_polygon_grid_point(
     return intersection((p1, p2), (p3, p4))[1]
 
 
-def is_ccw(
-    vertices: Sequence[PointType], *, eps: float = 0.0
-) -> bool:
+def is_ccw(vertices: Sequence[PointType], *, eps: float = 0.0) -> bool:
     """Return True if polygon vertices are in counter-clockwise order.
 
     The test is the shoelace sum. The walk is counter-clockwise only
@@ -230,7 +228,7 @@ def is_ccw(
         Traceback (most recent call last):
         ...
         ValueError: Need at least 3 vertices
-"""
+    """
     n = len(vertices)
     if n < 3:
         raise ValueError("Need at least 3 vertices")
@@ -263,7 +261,7 @@ def calc_area(points: Sequence[PointType]) -> tuple[float, bool]:
         (1600.0, True)
         >>> sg.calc_area([(0, 0), (0, 40), (40, 40), (40, 0)])
         (1600.0, False)
-"""
+    """
     area_ = 0
     n_points = len(points)
     for i in range(n_points):
@@ -294,7 +292,7 @@ def is_convex(points: Sequence[PointType]) -> bool:
         True
         >>> sg.is_convex([(0, 0), (80, 0), (20, 20), (0, 80)])
         False
-"""
+    """
     points = points.copy()
     points = remove_bad_points(points)
     n_checks = len(points)
@@ -309,3 +307,15 @@ def is_convex(points: Sequence[PointType]) -> bool:
             )
     s = set(senses)
     return len(s) == 1
+
+
+def simplify_quad(points: Sequence[PointType]) -> Sequence[PointType]:
+    if is_simple(points):
+        res = points
+    else:
+        points = [points[0], points[2], points[1], points[3]]
+        if not is_simple(points):
+            points = [points[0], points[1], points[3], points[2]]
+        res = points
+
+    return res

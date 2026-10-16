@@ -9,4 +9,15 @@ Examples:
     1
 """
 
-from .lace import Lace, ParallelPolyline, Polyline
+from .lace import (
+    Lace,
+    ParallelPolyline,
+    Polyline,
+    shade_emboss,
+    shade_end_quad,
+    shade_triangle,
+    emboss,
+    shade_emboss2,
+    emboss2_quads,
+    get_frustum,
+)

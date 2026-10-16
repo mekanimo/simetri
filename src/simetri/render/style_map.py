@@ -1821,6 +1821,7 @@ draw_extra_kwargs = [
     "indices",
     "line_widths",
     "mask",
+    "midpoints",
     "non_zero",
     "palette",
     "percent_offsets",

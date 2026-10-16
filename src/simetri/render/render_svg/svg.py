@@ -16,6 +16,7 @@ from ...base.all_enums import (
     WarningType,
 )
 from ...coloring.colors import Color, black, check_color, white
+from ...config.settings import runtime_defaults
 from ...geom.bbox import bounding_box
 from ...geom.homogenize import homogenize
 from ...helpers.labels import (
@@ -58,7 +59,7 @@ def append_non_default_style_options(
         if attrib_name not in sketch_dict:
             continue
         value = sketch_dict[attrib_name]
-        default_value = defaults[default_key]
+        default_value = runtime_defaults[default_key]
         if value != default_value:
             options.append(f"{css_name}: {value};")
 
@@ -431,14 +432,14 @@ def svg_shape(
     if draw_double:
         line_width = sketch_attrib(sketch, "line_width")
         if line_width is None:
-            line_width = defaults["line_width"]
+            line_width = runtime_defaults["line_width"]
         double_distance = sketch_attrib(sketch, "double_distance")
         if double_distance is None:
-            double_distance = defaults["double_distance"]
+            double_distance = runtime_defaults["double_distance"]
         outer_stroke_width = 2 * line_width + double_distance
         line_color = sketch_attrib(sketch, "line_color")
         if line_color is None:
-            line_color = defaults["line_color"]
+            line_color = runtime_defaults["line_color"]
         outer_stroke = color_to_svg(check_color(line_color))
         fill_style = ""
         if not skip_fill_style:
@@ -469,7 +470,7 @@ def svg_shape(
         )
         double_color = sketch_attrib(sketch, "double_color")
         if double_color is None:
-            double_color = defaults["double_color"]
+            double_color = runtime_defaults["double_color"]
         gap_stroke = color_to_svg(check_color(double_color))
         gap_style = f"stroke: {gap_stroke}; stroke-width: {double_distance}; fill: none;"
         gap_element = (

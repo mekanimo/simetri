@@ -76,6 +76,7 @@ def _update_inplace(
     incr: float
     | tuple[float, float]
     | tuple[callable, Any]
+    | Callable[[], Any]
     | tuple[InPlace, Any]
     | NDArray
     | Sequence[Sequence[float]]
@@ -92,6 +93,8 @@ def _update_inplace(
     - a sequence of the mirror forms above, applied in that order
     - a 3x3 affine matrix (``ndarray`` or nested sequence), composed as
       ``xform_matrix @ incr``
+    - a callable with no parameters: called to produce one of the above
+      increment values
     - ``(callable, arg)``: callable returns one of the above increment values
     - ``(InPlace.OP, value)``: applies that operation to the current parameter
 
@@ -235,13 +238,20 @@ def _update_inplace(
         xform_matrix[:, :] = xform_matrix @ matrix
         return xform_matrix
 
-    if (
+    called = False
+    if callable(incr):
+        resolved = incr()
+        called = True
+    elif (
         isinstance(incr, Sequence)
         and not isinstance(incr, (str, bytes))
         and len(incr) == 2
         and callable(incr[0])
     ):
         resolved = incr[0](incr[1])
+        called = True
+
+    if called:
         matrix = _as_affine_incr(resolved)
         if matrix is not None:
             xform_matrix[:, :] = xform_matrix @ matrix
@@ -1250,6 +1260,7 @@ class Base:
         incr: float
         | tuple[float, float]
         | tuple[callable, Any]
+        | Callable[[], Any]
         | tuple[InPlace, Any]
         | NDArray
         | Sequence[Sequence[float]]
@@ -1342,6 +1353,7 @@ class Base:
         incr: float
         | tuple[float, float]
         | tuple[callable, Any]
+        | Callable[[], Any]
         | tuple[InPlace, Any]
         | NDArray
         | Sequence[Sequence[float]]
@@ -1497,6 +1509,7 @@ class Base:
         incr: float
         | tuple[float, float]
         | tuple[callable, Any]
+        | Callable[[], Any]
         | tuple[InPlace, Any]
         | NDArray
         | Sequence[Sequence[float]]
@@ -1514,6 +1527,8 @@ class Base:
             reps: Extra repetitions of the transform. Defaults to 0.
             take: Optional slice of group elements to transform.
             incr: Optional angle or operator increment between repetitions.
+                A callable with no parameters is called for each repetition
+                after the first, and its return value is that increment.
             merge: If True, merge results where supported.
 
         Returns:
@@ -1562,6 +1577,7 @@ class Base:
         incr: float
         | tuple[float, float]
         | tuple[callable, Any]
+        | Callable[[], Any]
         | tuple[InPlace, Any]
         | NDArray
         | Sequence[Sequence[float]]
@@ -1657,6 +1673,7 @@ class Base:
         incr: float
         | tuple[float, float]
         | tuple[callable, Any]
+        | Callable[[], Any]
         | tuple[InPlace, Any]
         | NDArray
         | Sequence[Sequence[float]]
@@ -1732,6 +1749,7 @@ class Base:
         incr: float
         | tuple[float, float]
         | tuple[callable, Any]
+        | Callable[[], Any]
         | tuple[InPlace, Any]
         | NDArray
         | Sequence[Sequence[float]]
@@ -1809,6 +1827,7 @@ class Base:
         incr: float
         | tuple[float, float]
         | tuple[callable, Any]
+        | Callable[[], Any]
         | tuple[InPlace, Any]
         | NDArray
         | Sequence[Sequence[float]]

@@ -33,7 +33,7 @@ from ..base.all_enums import (
     Types,
     get_enum_value,
 )
-from ..base.common import LineType, PointType, alias_argument
+from ..base.common import LineType, PointType, alias_argument, axis_x, axis_y
 from ..base.common_style import COLOR_ALPHA_ATTRS, STYLE_COPY_ATTRS, CommonStyle
 from ..base.core import DynRef, resolve_dyn_ref
 from ..geom.affine import *
@@ -88,10 +88,14 @@ class TransformMat:
         self._reps = self.reps
 
     def __repr__(self) -> str:
-        return f"TransformMat(xform_matrix={self.xform_matrix}, reps={self.reps})"
+        return (
+            f"TransformMat(xform_matrix={self.xform_matrix}, reps={self.reps})"
+        )
 
     def __str__(self) -> str:
-        return f"TransformMat(xform_matrix={self.xform_matrix}, reps={self.reps})"
+        return (
+            f"TransformMat(xform_matrix={self.xform_matrix}, reps={self.reps})"
+        )
 
     # @property
     # def reps(self) -> int:
@@ -447,9 +451,7 @@ class Pattern(Group, CommonStyle):
         validate_args(kwargs, valid_args)
         self._init_from_style_kwargs(kwargs)
         if kwargs:
-            raise TypeError(
-                f"Unexpected keyword arguments: {sorted(kwargs)}"
-            )
+            raise TypeError(f"Unexpected keyword arguments: {sorted(kwargs)}")
 
     def __repr__(self) -> str:
         return f"Pattern(kernel={self.kernel}, transformation={self.transformation})"
@@ -1100,3 +1102,22 @@ class PatternDef:
             transform_defs=[t_def.copy() for t_def in self.transform_defs],
             modifier=self.modifier,
         )
+
+
+def translate_xy(
+    item: Shape | Group, dx: float, dy: float, reps_x: int = 1, reps_y: int = 1
+):
+    if reps_x < 1 or reps_y < 1:
+        raise ValueError("reps_x and reps_y must be greater than one")
+
+    res = item.translate(dx, 0, reps=reps_x)
+    res.translate(0, dy, reps=reps_y)
+
+    return res
+
+
+def mirror_xy(item: Shape | Group):
+    res = item.mirror(about=axis_x, reps=1)
+    res.mirror(about=axis_y, reps=1)
+
+    return res

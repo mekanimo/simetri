@@ -122,7 +122,16 @@ from ..helpers.labels import *
 from ..helpers.modifiers import *
 from ..helpers.validation import check_version
 from ..images.image import Image, open_img
-from ..interlace import Lace
+from ..interlace import (
+    Lace,
+    emboss,
+    emboss2_quads,
+    get_frustum,
+    shade_emboss,
+    shade_emboss2,
+    shade_end_quad,
+    shade_triangle,
+)
 from ..patterns.lattice import *
 from ..patterns.pattern import *
 from ..render.canvas import *

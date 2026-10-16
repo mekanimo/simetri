@@ -20,6 +20,149 @@ from .arrows import ArcArrow, Arrow
 from .illustration import Tag
 
 
+_DIMENSION_STYLE_KEYS = frozenset(
+    {
+        "align",
+        "alpha",
+        "anchor",
+        "bold",
+        "color",
+        "ext_line_alpha",
+        "ext_line_color",
+        "ext_line_dash_array",
+        "ext_line_width",
+        "fill",
+        "fill_color",
+        "font_alpha",
+        "font_color",
+        "font_family",
+        "font_size",
+        "head_fill_alpha",
+        "head_fill_color",
+        "head_line_alpha",
+        "head_line_color",
+        "head_line_width",
+        "italic",
+        "shaft_line_alpha",
+        "shaft_line_color",
+        "shaft_line_dash_array",
+        "shaft_line_width",
+        "tag_bold",
+        "tag_fill",
+        "tag_fill_color",
+        "tag_font_alpha",
+        "tag_font_color",
+        "tag_font_family",
+        "tag_font_size",
+        "tag_italic",
+        "tag_line_color",
+        "tag_line_width",
+        "tag_stroke",
+    }
+)
+
+
+def _check_dimension_kwargs(kwargs: dict[str, object]) -> None:
+    """Raise when a dimension style keyword is not one of the known names."""
+    unknown = [
+        key for key in kwargs if key not in _DIMENSION_STYLE_KEYS
+    ]
+    if unknown:
+        names = ", ".join(sorted(unknown))
+        raise TypeError(
+            f"Unexpected dimension keyword argument(s): {names}"
+        )
+
+
+def _style_value(
+    style: dict[str, object], prefixed: str, plain: str
+) -> tuple[bool, object]:
+    """Return a prefixed style value, otherwise the unprefixed name."""
+    if prefixed in style and style[prefixed] is not None:
+        return True, style[prefixed]
+    if plain in style and style[plain] is not None:
+        return True, style[plain]
+    return False, None
+
+
+def _dimension_tag_kwargs(
+    style: dict[str, object],
+    font_size: float,
+    anchor: Anchor,
+    align: Align,
+) -> dict[str, object]:
+    """Label settings from dimension style kwargs."""
+    call: dict[str, object] = {
+        "fill": True,
+        "anchor": anchor,
+        "align": align,
+        "font_size": font_size,
+    }
+    stated, value = _style_value(style, "tag_font_size", "font_size")
+    if stated:
+        call["font_size"] = value
+    stated, value = _style_value(style, "tag_font_color", "font_color")
+    if stated:
+        call["font_color"] = value
+    elif "color" in style and style["color"] is not None:
+        call["font_color"] = style["color"]
+    stated, value = _style_value(style, "tag_font_family", "font_family")
+    if stated:
+        call["font_family"] = value
+    stated, value = _style_value(style, "tag_font_alpha", "font_alpha")
+    if stated:
+        call["font_alpha"] = value
+    elif "alpha" in style and style["alpha"] is not None:
+        call["font_alpha"] = style["alpha"]
+    stated, value = _style_value(style, "tag_bold", "bold")
+    if stated:
+        call["bold"] = value
+    stated, value = _style_value(style, "tag_italic", "italic")
+    if stated:
+        call["italic"] = value
+    stated, value = _style_value(style, "tag_fill", "fill")
+    if stated:
+        call["fill"] = value
+    stated, value = _style_value(style, "tag_fill_color", "fill_color")
+    if stated:
+        call["fill_color"] = value
+    if "anchor" in style and style["anchor"] is not None:
+        call["anchor"] = style["anchor"]
+    if "align" in style and style["align"] is not None:
+        call["align"] = style["align"]
+    return call
+
+
+def _apply_prefixed_line(
+    shape: object, style: dict[str, object], prefix: str
+) -> None:
+    """Set line attributes from ``prefix`` keys, then ``color`` and ``alpha``."""
+    if shape is None:
+        return
+    for attr in ("line_alpha", "line_color", "line_dash_array", "line_width"):
+        key = prefix + attr
+        if key in style and style[key] is not None:
+            setattr(shape, attr, style[key])
+        elif attr == "line_color" and "color" in style and style["color"] is not None:
+            setattr(shape, attr, style["color"])
+        elif attr == "line_alpha" and "alpha" in style and style["alpha"] is not None:
+            setattr(shape, attr, style["alpha"])
+
+
+def _apply_prefixed_head(shape: object, style: dict[str, object]) -> None:
+    """Set arrow-head attributes from ``head_`` keys, then ``color`` and ``alpha``."""
+    if shape is None:
+        return
+    for attr in ("fill_alpha", "fill_color", "line_alpha", "line_color", "line_width"):
+        key = "head_" + attr
+        if key in style and style[key] is not None:
+            setattr(shape, attr, style[key])
+        elif attr in ("fill_color", "line_color") and "color" in style and style["color"] is not None:
+            setattr(shape, attr, style["color"])
+        elif attr in ("fill_alpha", "line_alpha") and "alpha" in style and style["alpha"] is not None:
+            setattr(shape, attr, style["alpha"])
+
+
 def _format_dim_value(value: float) -> str:
     """Round a measured dimension value for its label.
 
@@ -49,7 +192,12 @@ class RadialDimension(Group):
         reverse_arrow (bool, optional): If True, an extension line is created.
             Defaults to False.
         keep_inside (bool, optional): Defaults to True.
-        **kwargs: Additional keyword arguments for radial dimension styling.
+        **kwargs: Label and line styles. Prefixed names match
+            ``canvas.draw_dimension`` (``ext_``, ``shaft_``, ``head_``,
+            ``tag_``). Unprefixed ``font_color``, ``font_family``,
+            ``font_alpha``, ``bold``, ``italic``, ``anchor``, ``align``,
+            ``fill``, ``fill_color``, ``color``, and ``alpha`` are also
+            accepted.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -96,7 +244,9 @@ class RadialDimension(Group):
         self.reverse_arrow = reverse_arrow
         self.keep_inside = keep_inside
         self.gap = gap
-        super().__init__(subtype=Types.RADIAL_DIMENSION, **kwargs)
+        _check_dimension_kwargs(kwargs)
+        self.kwargs = kwargs
+        super().__init__(subtype=Types.RADIAL_DIMENSION)
 
         p2 = polar_to_cartesian(self.radius, self.angle, self.center)
 
@@ -111,10 +261,20 @@ class RadialDimension(Group):
             else:
                 self.text = f"r = {_format_dim_value(distance(center, p2))}"
 
-        self.tag = Tag(self.text, midpoint(center, p2))
+        self.tag = Tag(
+            self.text,
+            midpoint(center, p2),
+            **_dimension_tag_kwargs(
+                kwargs, runtime_defaults["font_size"], Anchor.CENTER, Align.CENTER
+            ),
+        )
+        _apply_prefixed_line(self.arrow.line, kwargs, "shaft_")
+        for head in self.arrow.heads:
+            _apply_prefixed_head(head, kwargs)
+        _apply_prefixed_line(self.extension, kwargs, "ext_")
         self._items = [self.arrow, self.tag]
 
-        super().__init__(self._items, subtype=Types.RADIAL_DIMENSION, **kwargs)
+        super().__init__(self._items, subtype=Types.RADIAL_DIMENSION)
 
     def __repr__(self) -> str:
         """Return a RadialDimension string from this dimension's elements.
@@ -161,7 +321,14 @@ class AngularDimension(Group):
         text (str, optional): Label text. ``None`` uses the sweep in
             radians, rounded to ``runtime_defaults["n_dim_digits"]``.
             Defaults to None.
-        **kwargs: Additional keyword arguments for dimension styling.
+        font_size (float, optional): Label size. ``None`` uses
+            ``runtime_defaults["font_size"]``.
+        **kwargs: Label and line styles. Prefixed names match
+            ``canvas.draw_dimension`` (``ext_``, ``shaft_``, ``head_``,
+            ``tag_``). Unprefixed ``font_color``, ``font_family``,
+            ``font_alpha``, ``bold``, ``italic``, ``anchor``, ``align``,
+            ``fill``, ``fill_color``, ``color``, and ``alpha`` are also
+            accepted.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -198,6 +365,7 @@ class AngularDimension(Group):
         text_offset: float | None = None,
         gap: float | None = None,
         text: str | None = None,
+        font_size: float | None = None,
         **kwargs: object,
     ) -> None:
         """Create an angular dimension with extension lines and an arc.
@@ -206,7 +374,7 @@ class AngularDimension(Group):
         """
         text_offset, gap, ext_angle, gap_angle, font_size = get_defaults(
             ["text_offset", "gap", "ext_angle", "gap_angle", "font_size"],
-            [text_offset, gap, ext_angle, gap_angle, None],
+            [text_offset, gap, ext_angle, gap_angle, font_size],
         )
         if radius <= 0:
             raise ValueError("AngularDimension radius must be positive.")
@@ -246,6 +414,7 @@ class AngularDimension(Group):
         self.gap = gap
         self.text = text
         self.font_size = font_size
+        _check_dimension_kwargs(kwargs)
         self.kwargs = kwargs
         self.text_anchor = Anchor.CENTER
         self.text_align = Align.CENTER
@@ -277,15 +446,13 @@ class AngularDimension(Group):
         self.tag = Tag(
             text,
             pos=self.text_pos,
-            fill=True,
-            anchor=self.text_anchor,
-            align=self.text_align,
-            font_size=self.font_size,
+            **_dimension_tag_kwargs(
+                kwargs, self.font_size, self.text_anchor, self.text_align
+            ),
         )
         super().__init__(
             [self.ext1, self.ext2, self.dim_line],
             subtype=Types.ANGULAR_DIMENSION,
-            **kwargs,
         )
 
     def __repr__(self) -> str:
@@ -344,7 +511,14 @@ class Dimension(Group):
         orientation (str, optional): ``"horizontal"`` or ``"vertical"``.
             ``None`` uses the larger change in ``x`` or ``y``. An equal
             change is horizontal. Defaults to None.
-        **kwargs: Additional keyword arguments for dimension styling.
+        font_size (float, optional): Label size. ``None`` uses
+            ``runtime_defaults["font_size"]``.
+        **kwargs: Label and line styles. Prefixed names match
+            ``canvas.draw_dimension`` (``ext_``, ``shaft_``, ``head_``,
+            ``tag_``). Unprefixed ``font_color``, ``font_family``,
+            ``font_alpha``, ``bold``, ``italic``, ``anchor``, ``align``,
+            ``fill``, ``fill_color``, ``color``, and ``alpha`` are also
+            accepted.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -406,6 +580,7 @@ class Dimension(Group):
         stub_length: float | None = None,
         show_midline: bool = True,
         orientation: str | None = None,
+        font_size: float | None = None,
         **kwargs: object,
     ) -> None:
         """Create a linear dimension with extension lines and arrows.
@@ -434,7 +609,7 @@ class Dimension(Group):
                 ext_line_offset,
                 text_horiz_offset,
                 stub_length,
-                None,
+                font_size,
             ],
         )
         x1, y1 = p1[:2]
@@ -473,6 +648,7 @@ class Dimension(Group):
         self.show_midline = show_midline
         self.orientation = orientation
         self.font_size = font_size
+        _check_dimension_kwargs(kwargs)
         self.kwargs = kwargs
         self.ext1 = None
         self.ext2 = None
@@ -485,7 +661,7 @@ class Dimension(Group):
         self.text_anchor = Anchor.CENTER
         self.text_align = Align.CENTER
 
-        super().__init__(subtype=Types.DIMENSION, **kwargs)
+        super().__init__(subtype=Types.DIMENSION)
 
         if orientation == "horizontal":
             if side not in ("up", "down"):
@@ -589,10 +765,9 @@ class Dimension(Group):
         self.tag = Tag(
             text,
             pos=(text_x, text_y),
-            fill=True,
-            anchor=self.text_anchor,
-            align=self.text_align,
-            font_size=self.font_size,
+            **_dimension_tag_kwargs(
+                kwargs, self.font_size, self.text_anchor, self.text_align
+            ),
         )
         self.ext1 = Line(ext1_start, ext1_end)
         self.ext2 = Line(ext2_start, ext2_end)
@@ -689,7 +864,14 @@ class AlignedDimension(Group):
             ``None`` uses the direction from ``p1`` to ``p2``.
         show_midline (bool, optional): Draw the line between the side
             arrows. Defaults to True.
-        **kwargs: Additional keyword arguments for dimension styling.
+        font_size (float, optional): Label size. ``None`` uses
+            ``runtime_defaults["font_size"]``.
+        **kwargs: Label and line styles. Prefixed names match
+            ``canvas.draw_dimension`` (``ext_``, ``shaft_``, ``head_``,
+            ``tag_``). Unprefixed ``font_color``, ``font_family``,
+            ``font_alpha``, ``bold``, ``italic``, ``anchor``, ``align``,
+            ``fill``, ``fill_color``, ``color``, and ``alpha`` are also
+            accepted.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -744,6 +926,7 @@ class AlignedDimension(Group):
         stub_length: float | None = None,
         angle: float | None = None,
         show_midline: bool = True,
+        font_size: float | None = None,
         **kwargs: object,
     ) -> None:
         """Create an aligned dimension with extension lines and arrows.
@@ -772,7 +955,7 @@ class AlignedDimension(Group):
                 ext_line_offset,
                 text_horiz_offset,
                 stub_length,
-                None,
+                font_size,
             ],
         )
         x1, y1 = p1[:2]
@@ -834,6 +1017,7 @@ class AlignedDimension(Group):
         self.stub_length = stub_length
         self.show_midline = show_midline
         self.font_size = font_size
+        _check_dimension_kwargs(kwargs)
         self.kwargs = kwargs
         self.text_pos = (text_x, text_y)
         self.text_anchor = text_anchor
@@ -844,15 +1028,14 @@ class AlignedDimension(Group):
         self.dim_line = None
         self.midline = None
 
-        super().__init__(subtype=Types.ALIGNED_DIMENSION, **kwargs)
+        super().__init__(subtype=Types.ALIGNED_DIMENSION)
 
         self.tag = Tag(
             text,
             pos=(text_x, text_y),
-            fill=True,
-            anchor=self.text_anchor,
-            align=self.text_align,
-            font_size=self.font_size,
+            **_dimension_tag_kwargs(
+                kwargs, self.font_size, self.text_anchor, self.text_align
+            ),
         )
         self.ext1 = Line(
             (x1 + normal_x * ext_line_offset, y1 + normal_y * ext_line_offset),

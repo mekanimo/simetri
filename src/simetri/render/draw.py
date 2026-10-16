@@ -11,7 +11,6 @@ from ..base.all_enums import (
     Align,
     Anchor,
     BackStyle,
-    Connection,
     Drawable,
     FillMode,
     FragmentColoring,
@@ -26,7 +25,12 @@ from ..base.all_enums import (
 from ..base.common import PointType, alias_argument
 from ..base.common_style import coerce_style_overlay
 from ..coloring import colors
-from ..coloring.colors import Color, change_lightness
+from ..coloring.colors import (
+    Color,
+    avocado_green,
+    change_lightness,
+    shade_value,
+)
 from ..config.settings import runtime_defaults
 from ..geom.affine import (
     rotation_matrix,
@@ -52,11 +56,13 @@ from ..geom.polygons.polygon import offset_polygon, polygon_area
 from ..geom.segments.line_utils import (
     inclination_angle,
     intersect,
-    intersection,
 )
 from ..group.batch import Group
 from ..helpers.arrows import _style_annotation
-from ..helpers.illustration import Tag, TextPath
+from ..helpers.illustration import Tag, TextPath, convert_latex_font_size
+from ..helpers.labels import (
+    sketch_label_font_color,
+)
 from ..helpers.utilities import (
     decompose_transformations,
     group_into_bins,
@@ -84,14 +90,15 @@ from .sketch import (
     TagSketch,
     TextPathSketch,
 )
-
-DrawStyleKwargs = dict[str, object]
 from .style_map import (
     MarkerStyle,
     line_style_map,
     shape_style_map,
     tag_style_map,
 )
+
+DrawStyleKwargs = dict[str, object]
+
 
 if TYPE_CHECKING:
     from ..geom.bbox import BoundingBox
@@ -745,6 +752,7 @@ def _measure_latex_formula(
         "dejavuserif": "dejavuserif",
     }
     _TEXT_MODE_MAP = [
+        (r"\mbox", r"\mathrm"),
         (r"\texttt", r"\mathtt"),
         (r"\textrm", r"\mathrm"),
         (r"\textbf", r"\mathbf"),
@@ -756,8 +764,8 @@ def _measure_latex_formula(
         formula = rf"\boldsymbol{{{formula}}}"
     for src, dst in _TEXT_MODE_MAP:
         formula = formula.replace(src, dst)
-    if not font_family and (r"\mathbf" in formula or r"\boldsymbol" in formula):
-        font_family = "stix"
+    if not font_family:
+        font_family = "cm"
 
     fontset = _FONTSET_MAP.get((font_family or "").strip().lower())
     rc_overrides = {"mathtext.fontset": fontset} if fontset else {}
@@ -799,18 +807,19 @@ def draw_latex(
     Args:
         formula (str): LaTeX math string without surrounding $. E.g. r'\\frac{a}{b}'.
             Text-mode commands are silently mapped to their math-mode equivalents:
-            \\texttt → \\mathtt (monospace), \\textrm → \\mathrm, \\textbf → \\mathbf,
-            \\textit → \\mathit, \\textsf → \\mathsf.
+            \\mbox and \\textrm → \\mathrm, \\texttt → \\mathtt
+            (monospace), \\textbf → \\mathbf, \\textit → \\mathit,
+            \\textsf → \\mathsf.
         pos (PointType): Canvas position of the formula anchor.
         font_size (int): Font size in points. Defaults to 14.
         font_family (str, optional): Mathtext fontset — 'computer modern'/'cm', 'stix',
             'stix sans'/'stixsans', 'dejavu sans'/'dejavusans', 'dejavu serif'/'dejavuserif'.
-            If omitted and the formula contains \\mathbf{}, STIX is chosen automatically
-            (closest to LaTeX output). Otherwise matplotlib's current default is used.
+            If omitted, Computer Modern is used to match LaTeX's default
+            math font.
         font_color: Formula colour — simetri Color, (r,g,b) tuple, or matplotlib colour
             string (e.g. 'red', '#ff0000'). Defaults to black.
         bold (bool): Wrap the *entire* formula in \\mathbf{}. For partial bold, write
-            \\mathbf{} directly in the formula string — STIX is still selected automatically.
+            \\mathbf{} directly in the formula string.
             Defaults to False.
         anchor (Anchor, optional): Anchor point. Defaults to Anchor.SOUTHWEST.
         **kwargs: Style overrides applied to the formula sketch.
@@ -842,9 +851,7 @@ def draw_latex(
         setattr(sketch, name, value)
     # Measure the formula's rendered bounding box so we can register the
     # correct canvas extents in _all_vertices.
-    W, H = _measure_latex_formula(
-        formula, sketch.font_size, font_family, bold
-    )
+    W, H = _measure_latex_formula(formula, sketch.font_size, font_family, bold)
     sketch.formula_size = (W, H)
 
     # Compute the anchor offset within the formula box (same table as svg.py)
@@ -875,6 +882,15 @@ def draw_latex(
     )
     self.active_page.sketches.append(sketch)
     return self
+
+
+def _tag_latex_formula(text: object) -> str | None:
+    """Return the formula inside a dollar-delimited Tag, otherwise None."""
+    if not isinstance(text, str):
+        return None
+    if len(text) >= 2 and text.startswith("$") and text.endswith("$"):
+        return text[1:-1]
+    return None
 
 
 def insert_svg(self: Canvas, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
@@ -1362,6 +1378,20 @@ def _resolved_plait_fill_color(
     return runtime_defaults["plait_color"]
 
 
+def _emboss_base_color(
+    lace: Lace | None, kwargs: DrawStyleKwargs
+) -> Color | str | Sequence[float] | Sequence[int]:
+    """Return the shade base color for emboss and frustum plaits.
+
+    An omitted plait color is ``avocado_green``. A color passed on the
+    draw call or stored on the lace is kept.
+    """
+    color = _resolved_plait_fill_color(lace, kwargs)
+    if color is runtime_defaults["plait_color"]:
+        return avocado_green
+    return color
+
+
 def _resolved_shade_plaits(kwargs: DrawStyleKwargs) -> bool:
     """Return whether plaits should be shaded for this draw call.
 
@@ -1376,36 +1406,22 @@ def _resolved_shade_plaits(kwargs: DrawStyleKwargs) -> bool:
     return runtime_defaults["shade_plaits"]
 
 
-def shade_value(angle: float) -> float:
-    """Return a shade weight from an angle.
-
-    The weight is ``sin(angle)``. ``pi / 2`` returns 1. ``0`` and
-    ``pi`` return 0.
-
-    Args:
-        angle: Angle in radians. Must be between 0 and ``2 * pi``.
-
-    Returns:
-        float: ``sin(angle)``.
-
-    Raises:
-        ValueError: If ``angle`` is outside ``[0, 2 * pi]``.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> shade_value(sg.pi / 2)
-        1.0
-        >>> shade_value(0)
-        0.0
-    """
-    if not 0 <= angle <= 2 * pi:
-        raise ValueError("Angle must be between 0 and 2 pi radians.")
-
-    return sin(angle)
+def _lace_far_point(lace: Lace) -> tuple[float, float]:
+    """Return the shade light used by emboss and frustum plaits."""
+    dist = lace.width * 3
+    cx, cy = lace.midpoint
+    return cx - dist, cy + dist
 
 
-def plait_emboss1(self: Canvas, lace: Lace, **kwargs: object) -> None:
-    """Draw lace plaits with embossed quad shading (style 1).
+def _draw_fill(canvas: Canvas, shape, color, style_kwargs: dict) -> None:
+    """Draw one shape with a fill color and the lace style kwargs."""
+    draw_kwargs = dict(style_kwargs)
+    draw_kwargs["fill_color"] = color
+    draw(canvas, shape, **draw_kwargs)
+
+
+def plait_emboss(self: Canvas, lace: Lace, **kwargs: object) -> None:
+    """Draw lace plaits with ``emboss`` quads and open-end triangles.
 
     Args:
         lace: Lace object whose plaits are embossed (mutated).
@@ -1418,111 +1434,66 @@ def plait_emboss1(self: Canvas, lace: Lace, **kwargs: object) -> None:
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> lace = sg.Lace([(0, 0), (20, 0), (40, 40)], closed=True)  # doctest: +SKIP
-        >>> canvas.plait_emboss1(lace)  # doctest: +SKIP
+        >>> canvas.draw_lace(lace, plait_style=sg.PlaitStyle.EMBOSS)  # doctest: +SKIP
     """
-    if "fill_color" not in kwargs:
-        kwargs["fill_color"] = _resolved_plait_fill_color(lace, kwargs)
-    lace._set_plait_ends()
-    all_quads = []
-    for plait in lace.plaits:
-        vertices = plait.vertices
-        n = len(vertices)
-        ends = []
-        emboss_points = []
-        plait.emboss_quads = []
-        for i, overlap in enumerate(plait.overlaps):
-            quad = Shape([inter._point for inter in overlap[1].intersections])
-            ind1 = plait.ends[i]
-            ind2 = (ind1 + 1) % n
-            p1 = vertices[ind1]
-            p2 = vertices[ind2]
-            mp = midpoint(p1, p2)
-            emboss_points.append(((p1, ind1), (p2, ind2), mp))
-            ends.append(p1)
-            ends.append(p2)
-        j = plait.ends[0]
-        for i in range(1, int(n / 2) - 1):
-            ind1 = (j + i + 1) % n
-            ind2 = j - i
-            p1 = vertices[ind1]
-            p2 = vertices[ind2]
-            mp = midpoint(p1, p2)
-            emboss_points.append(((p1, ind1), (p2, ind2), mp))
+    from ..interlace.lace import emboss, shade_emboss, shade_triangle
 
-        ep = emboss_points
-        quads = plait.emboss_quads
-        (_, ind1), (p_2, ind2), mp_1 = ep[0]
-        (_, _), (p_4, ind4), mp_2 = ep[1]
-        (_, _), (p5, ind5), mp3 = ep[2]
-        p6 = vertices[(ind2 + 1) % n]
-        p7 = vertices[(ind5 + 1) % n]
-        quad1 = (mp_1, p_2, p6, mp3)
-        quad2 = (mp_1, mp3, p5, p7)
-        quads.append((quad1, quad2, (mp_1, mp3), (p_2, p6), (p5, p7)))
-        n_iter = len(ep)
-        for i in range(2, n_iter):
-            (p1, ind1), (p2, ind2), mp = ep[i]
-            if i == n_iter - 1:
-                p3 = vertices[(ind1 + 1) % n]
-                quad1 = (mp, p1, p3, mp_2)
-                quad2 = (mp, mp_2, p_4, p2)
-                quads.append((quad1, quad2, (mp, mp_2), (p1, p3), (p_4, p2)))
-            else:
-                (p3, _), (p4, ind4), mp_ = ep[(i + 1) % n]
-                p5 = vertices[(ind4 + 1) % n]
-                quad1 = (mp, p1, p3, mp_)
-                quad2 = (mp, mp_, p4, p5)
-                quads.append((quad1, quad2, (mp, mp_), (p1, p3), (p4, p5)))
-
-        all_quads.extend(quads)
-
+    emboss(lace)
     style_kwargs = _lace_style_kwargs(kwargs)
-    if _resolved_shade_plaits(kwargs):
-        dist = lace.width * 3
-        cx, cy = lace.midpoint
-        far_point = cx - dist, cy + dist
-        color = _resolved_plait_fill_color(lace, kwargs)
-        for quad in all_quads:
-            quad1 = Shape(quad[0], closed=True)
-            quad2 = Shape(quad[1], closed=True)
+    color = _emboss_base_color(lace, kwargs)
+    shade = _resolved_shade_plaits(kwargs)
+    far_point = _lace_far_point(lace)
+    for ppoly in lace.parallel_poly_list:
+        poly, poly2 = ppoly.offset_poly_list
+        for j, div in enumerate(poly.divisions):
+            for i, sect in enumerate(div.sections):
+                if sect.is_overlap:
+                    continue
+                sect2 = poly2.divisions[j].sections[i]
+                quad1 = sect.emboss
+                quad2 = sect2.emboss
+                if shade:
+                    color1, color2 = shade_emboss(
+                        quad1, quad2, color, far_point
+                    )
+                else:
+                    color1 = color2 = color
+                _draw_fill(self, quad1, color1, style_kwargs)
+                _draw_fill(self, quad2, color2, style_kwargs)
+                if sect.end_triangle is not None:
+                    tri_color = color
+                    if shade:
+                        tri_color = shade_triangle(
+                            sect.end_triangle, color, far_point
+                        )
+                    _draw_fill(self, sect.end_triangle, tri_color, style_kwargs)
 
-            angle = inclination_angle(*quad[2])
-            shade_angle = abs(radians(135) - angle)
-            shade_factor = shade_value(shade_angle)
 
-            mid1 = midpoint(*quad[2])
-            line1 = (far_point, mid1)
-            line2 = quad[3]
-            line3 = quad[4]
+def _draw_emboss_pair(
+    canvas: Canvas,
+    pair,
+    color,
+    far_point,
+    style_kwargs: dict,
+    shade: bool,
+) -> None:
+    """Draw one emboss quad pair, shaded when ``shade`` is true."""
+    from ..interlace.lace import shade_emboss
 
-            x1, _ = intersect(line1, line2)
-            x2, _ = intersect(line1, line3)
-            shade_step = 0.2
-
-            if x2 < x1:
-                color1 = change_lightness(color, shade_factor * -shade_step)
-                color2 = change_lightness(color, shade_factor * shade_step)
-            elif x1 < x2:
-                color1 = change_lightness(color, shade_factor * shade_step)
-                color2 = change_lightness(color, shade_factor * -shade_step)
-            else:
-                color1 = color2 = color
-            quad1_kwargs = dict(style_kwargs)
-            quad1_kwargs["fill_color"] = color1
-            quad2_kwargs = dict(style_kwargs)
-            quad2_kwargs["fill_color"] = color2
-            draw(self, quad1, **quad1_kwargs)
-            draw(self, quad2, **quad2_kwargs)
+    quad1 = Shape(pair[0], closed=True)
+    quad2 = Shape(pair[1], closed=True)
+    if shade:
+        color1, color2 = shade_emboss(quad1, quad2, color, far_point)
     else:
-        for quad in all_quads:
-            quad1 = Shape(quad[0], closed=True)
-            quad2 = Shape(quad[1], closed=True)
-            draw(self, quad1, **style_kwargs)
-            draw(self, quad2, **style_kwargs)
+        color1 = color2 = color
+    _draw_fill(canvas, quad1, color1, style_kwargs)
+    _draw_fill(canvas, quad2, color2, style_kwargs)
 
 
 def plait_emboss2(self: Canvas, lace: Lace, **kwargs: object) -> None:
-    """Draw lace plaits with embossed quad shading (style 2).
+    """Draw lace plaits with ``emboss2_quads``.
+
+    Triangles are drawn first, then end quad pairs, then interior pairs.
 
     Args:
         lace: Lace object whose plaits are embossed (mutated).
@@ -1535,91 +1506,58 @@ def plait_emboss2(self: Canvas, lace: Lace, **kwargs: object) -> None:
         >>> import simetri.graphics as sg
         >>> canvas = sg.Canvas()
         >>> lace = sg.Lace([(0, 0), (20, 0), (40, 40)], closed=True)  # doctest: +SKIP
-        >>> canvas.plait_emboss2(lace)  # doctest: +SKIP
+        >>> canvas.draw_lace(lace, plait_style=sg.PlaitStyle.EMBOSS2)  # doctest: +SKIP
     """
-    if "fill_color" not in kwargs:
-        kwargs["fill_color"] = _resolved_plait_fill_color(lace, kwargs)
-    quads = []
-    for ppoly in lace.parallel_poly_list:
-        for poly in ppoly.offset_poly_list:
-            n = len(poly.sections)
-            count = 0
-            for j, sect in enumerate(poly.sections):
-                if sect.is_overlap:
-                    break
-                count += 1
+    from ..interlace.lace import emboss2_quads, shade_triangle
 
-            if count:
-                poly_sections = poly.sections[count:] + poly.sections[:count]
-            else:
-                poly_sections = poly.sections
-            quad1 = []
-            for j, sect in enumerate(poly_sections):
-                overlap_sect = sect.is_overlap
-                if overlap_sect:
-                    mp = Shape(
-                        [x._point for x in sect.overlap.intersections]
-                    ).midpoint
-                    quad1.append(mp)
-                else:
-                    p1 = sect.start._point
-                    p2 = sect.end._point
-                    twin = sect.twin
-                    twin_p1 = twin.end._point
-                    twin_p2 = twin.start._point
-                    intersection_ = intersection((p1, twin_p1), (p2, twin_p2))
-                    if intersection_[0] != Connection.INTERSECT:
-                        twin_p1, twin_p2 = twin_p2, twin_p1
-                    if not quad1:
-                        quad1.append(midpoint(p1, twin_p2))
-                    quad1.extend([p1, p2])
-                    next_section = poly_sections[(j + 1) % n]
-                    if next_section.is_overlap:
-                        mp = Shape(
-                            [
-                                x._point
-                                for x in next_section.overlap.intersections
-                            ]
-                        ).midpoint
-                    else:
-                        mp = midpoint(p2, twin_p1)
-                    quad1.append(mp)
-                    quad2 = [quad1[0], mp, twin_p1, twin_p2]
-
-                    quads.append(
-                        (
-                            quad1,
-                            quad2,
-                            (quad1[0], mp),
-                            (p1, p2),
-                            (twin_p1, twin_p2),
-                        )
-                    )
-                    quad1 = []
+    interior, end_quads, triangles = emboss2_quads(lace)
     style_kwargs = _lace_style_kwargs(kwargs)
-    if _resolved_shade_plaits(kwargs):
-        dist = lace.width * 3
-        cx, cy = lace.midpoint
-        far_point = cx - dist, cy + dist
+    color = _emboss_base_color(lace, kwargs)
+    shade = _resolved_shade_plaits(kwargs)
+    far_point = _lace_far_point(lace)
+    for tri in triangles:
+        tri_color = color
+        if shade:
+            tri_color = shade_triangle(tri, color, far_point)
+        _draw_fill(self, tri, tri_color, style_kwargs)
+    for pair in end_quads:
+        _draw_emboss_pair(self, pair, color, far_point, style_kwargs, shade)
+    for pair in interior:
+        _draw_emboss_pair(self, pair, color, far_point, style_kwargs, shade)
 
-        color = _resolved_plait_fill_color(lace, kwargs)
-        for quad in quads:
-            quad1 = Shape(quad[0], closed=True)
-            quad2 = Shape(quad[1], closed=True)
 
-            angle = inclination_angle(*quad[2])
+def plait_frustum(self: Canvas, lace: Lace, **kwargs: object) -> None:
+    """Draw lace plaits with ``get_frustum``.
+
+    Args:
+        lace: Lace object whose plaits are drawn (mutated).
+        **kwargs: Style overrides such as ``fill_color``.
+
+    Returns:
+        None
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> lace = sg.Lace([(0, 0), (20, 0), (40, 40)], closed=True)  # doctest: +SKIP
+        >>> canvas.draw_lace(lace, plait_style=sg.PlaitStyle.FRUSTUM)  # doctest: +SKIP
+    """
+    from ..interlace.lace import get_frustum, shade_end_quad
+
+    pairs, end_quads, inner_loops = get_frustum(lace)
+    style_kwargs = _lace_style_kwargs(kwargs)
+    color = _emboss_base_color(lace, kwargs)
+    shade = _resolved_shade_plaits(kwargs)
+    far_point = _lace_far_point(lace)
+    for quad1, quad2 in pairs:
+        if shade:
+            angle = inclination_angle(*quad1[:2])
             shade_angle = abs(radians(135) - angle)
             shade_factor = shade_value(shade_angle)
-
-            mid1 = midpoint(*quad[2])
-            line1 = (far_point, mid1)
-            line2 = quad[3]
-            line3 = quad[4]
-
-            x1, _ = intersect(line1, line2)
-            x2, _ = intersect(line1, line3)
+            mid1 = midpoint(*quad1[:2])
+            x1, _ = intersect((far_point, mid1), quad1[:2])
+            x2, _ = intersect((far_point, mid1), quad2[:2])
             shade_step = 0.2
-
             if x2 < x1:
                 color1 = change_lightness(color, shade_factor * -shade_step)
                 color2 = change_lightness(color, shade_factor * shade_step)
@@ -1628,18 +1566,44 @@ def plait_emboss2(self: Canvas, lace: Lace, **kwargs: object) -> None:
                 color2 = change_lightness(color, shade_factor * -shade_step)
             else:
                 color1 = color2 = color
-            quad1_kwargs = dict(style_kwargs)
-            quad1_kwargs["fill_color"] = color1
-            quad2_kwargs = dict(style_kwargs)
-            quad2_kwargs["fill_color"] = color2
-            draw(self, quad1, **quad1_kwargs)
-            draw(self, quad2, **quad2_kwargs)
-    else:
-        for quad in quads:
-            quad1 = Shape(quad[0], closed=True)
-            quad2 = Shape(quad[1], closed=True)
-            draw(self, quad1, **style_kwargs)
-            draw(self, quad2, **style_kwargs)
+        else:
+            color1 = color2 = color
+        _draw_fill(self, quad1, color1, style_kwargs)
+        _draw_fill(self, quad2, color2, style_kwargs)
+    for quad in end_quads:
+        end_color = color
+        if shade:
+            end_color = shade_end_quad(quad, color, far_point)
+        _draw_fill(self, quad, end_color, style_kwargs)
+    for loop in inner_loops:
+        _draw_fill(self, loop, color, style_kwargs)
+
+
+def plait_innerloops(self: Canvas, lace: Lace, **kwargs: object) -> None:
+    loop_offsets = kwargs.get("loop_offsets", None)
+    loop_offset = kwargs.get("loop_offset", None)
+    loop_style = kwargs.get("loop_style", None)
+    plait_style = kwargs.get("plait_style", None)
+    if not plait_style:
+        plait_style = {"fill_color": runtime_defaults["plait_color"]}
+    if loop_offsets:
+        loop_styles = kwargs.get("loop_styles", None)
+        for plait in lace.plaits:
+            self.draw(plait, **plait_style)
+            for i, offset in enumerate(loop_offsets):
+                if offset > 0:
+                    offset *= -1
+                if loop_styles:
+                    loop_style = loop_styles[i]
+                else:
+                    loop_style = {"fill": False}
+                loop = Shape(offset_polygon(plait.vertices, offset))
+                self.draw(loop, **loop_style)
+    elif loop_offset:
+        for plait in lace.plaits:
+            self.draw(plait, **plait_style)
+            loop = Shape(offset_polygon(plait.vertices, offset))
+            self.draw(loop, **loop_style)
 
 
 def plait_diamond(self: Canvas, lace: Lace, **kwargs: object) -> None:
@@ -1963,13 +1927,15 @@ def _handle_plait_style(
     if p_style == PlaitStyle.INNERLINES:
         _handle_plait_innerlines(canvas, lace, **kwargs)
     elif p_style == PlaitStyle.INNERLOOPS:
-        raise ValueError("PlaitStyle.INNERLOOPS is not implemented.")
+        plait_innerloops(canvas, lace, **kwargs)
     elif p_style == PlaitStyle.DIAMOND:
         plait_diamond(canvas, lace, **kwargs)
-    elif p_style == PlaitStyle.EMBOSS1:
-        plait_emboss1(canvas, lace, **kwargs)
+    elif p_style == PlaitStyle.EMBOSS:
+        plait_emboss(canvas, lace, **kwargs)
     elif p_style == PlaitStyle.EMBOSS2:
         plait_emboss2(canvas, lace, **kwargs)
+    elif p_style == PlaitStyle.FRUSTUM:
+        plait_frustum(canvas, lace, **kwargs)
     elif p_style == PlaitStyle.DOUBLE_LINES:
         _handle_plait_double_lines(canvas, lace, kwargs)
     else:
@@ -2395,7 +2361,9 @@ def draw_pdf(
     return self
 
 
-def _pop_prefixed(draw_kwargs: dict[str, object], prefix: str) -> dict[str, object]:
+def _pop_prefixed(
+    draw_kwargs: dict[str, object], prefix: str
+) -> dict[str, object]:
     """Remove ``prefix`` keys and return them without the prefix."""
     part: dict[str, object] = {}
     for key in list(draw_kwargs):
@@ -2500,8 +2468,57 @@ def _apply_arrow_style(
         _apply_part_style(head, head_style)
 
 
+def _dimension_formula_frame(tag: Tag) -> Shape | None:
+    """Return the local background shape for a dimension formula label."""
+    formula = _tag_latex_formula(tag.text)
+    if formula is None or not tag.draw_frame:
+        return None
+    if not tag.fill and not tag.stroke:
+        return None
+    if isinstance(tag.font_size, (int, float)):
+        font_size = tag.font_size
+    else:
+        font_size = convert_latex_font_size(tag.font_size)
+    font_family = tag.font_family
+    if font_family == runtime_defaults["font_family"]:
+        font_family = None
+    width, height = _measure_latex_formula(
+        formula, font_size, font_family, tag.bold
+    )
+    offsets = {
+        Anchor.SOUTHWEST: (0, 0),
+        Anchor.SOUTH: (width / 2, 0),
+        Anchor.SOUTHEAST: (width, 0),
+        Anchor.WEST: (0, height / 2),
+        Anchor.CENTER: (width / 2, height / 2),
+        Anchor.EAST: (width, height / 2),
+        Anchor.NORTHWEST: (0, height),
+        Anchor.NORTH: (width / 2, height),
+        Anchor.NORTHEAST: (width, height),
+    }
+    offset_x, offset_y = offsets[tag.anchor]
+    x, y = tag.pos[:2]
+    inner_sep = tag.frame_inner_sep
+    left = x - offset_x - inner_sep
+    bottom = y - offset_y - inner_sep
+    right = x + width - offset_x + inner_sep
+    top = y + height - offset_y + inner_sep
+    return Shape(
+        [(left, bottom), (right, bottom), (right, top), (left, top)],
+        closed=True,
+        fill=tag.fill,
+        fill_color=tag.fill_color,
+        stroke=tag.stroke,
+        line_color=tag.line_color,
+        line_width=tag.line_width,
+    )
+
+
 def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     """Draw the dimension object.
+
+    Constructor style keywords stored on ``item.kwargs`` are used first.
+    Keywords passed to this call replace those.
 
     Args:
         item: Dimension object to be drawn.
@@ -2517,8 +2534,8 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
             ``tag_fill_color``, ``tag_font_alpha``, ``tag_font_color``,
             ``tag_font_family``, ``tag_font_size``, ``tag_line_color``,
             ``tag_line_width``, and ``tag_stroke`` style the label.
-            ``tag_stroke`` defaults to False. ``color`` and ``alpha``
-            set every part; a prefixed name wins.
+            The label defaults to a white fill with no stroke. ``color``
+            and ``alpha`` set every part; a prefixed name wins.
 
     Returns:
         Self: The canvas object.
@@ -2538,6 +2555,11 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
         >>> dim.dim_line.head.fill_color == sg.colors.dark_gray
         True
     """
+    if item.kwargs:
+        merged = dict(item.kwargs)
+        merged.update(kwargs)
+        kwargs = merged
+
     for shape in item.all_shapes:
         _extend_canvas_space_points(self, shape.corners)
 
@@ -2568,6 +2590,18 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
         _pop_prefixed(draw_kwargs, "head_"), common_color, common_alpha
     )
     tag_part = _pop_prefixed(draw_kwargs, "tag_")
+    for name in (
+        "bold",
+        "font_alpha",
+        "font_color",
+        "font_family",
+        "italic",
+    ):
+        if name not in draw_kwargs:
+            continue
+        if name not in tag_part:
+            tag_part[name] = draw_kwargs[name]
+        del draw_kwargs[name]
 
     for ext in [item.ext1, item.ext2, item.ext3]:
         if ext:
@@ -2607,7 +2641,7 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     elif "fill" in draw_kwargs:
         tag_kwargs["fill"] = draw_kwargs["fill"]
     else:
-        tag_kwargs["fill"] = runtime_defaults["fill"]
+        tag_kwargs["fill"] = True
     if "stroke" in tag_part and tag_part["stroke"] is not None:
         tag_kwargs["stroke"] = tag_part["stroke"]
     else:
@@ -2631,9 +2665,16 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     stated, value = _stated(tag_part, "bold")
     if stated:
         tag_kwargs["bold"] = value
+    stated, value = _stated(tag_part, "italic")
+    if stated:
+        tag_kwargs["italic"] = value
     stated, value = _stated(tag_part, "fill_color")
     if stated:
         tag_kwargs["fill_color"] = value
+    elif "fill_color" in draw_kwargs:
+        tag_kwargs["fill_color"] = draw_kwargs["fill_color"]
+    else:
+        tag_kwargs["fill_color"] = colors.white
     stated, value = _stated(tag_part, "line_color")
     if stated:
         tag_kwargs["line_color"] = value
@@ -2647,6 +2688,10 @@ def draw_dimension(self: Canvas, item: Dimension, **kwargs: object) -> Self:
     tag = Tag(item.text, (x, y), **tag_kwargs)
     if font_alpha is not None:
         tag.font_alpha = font_alpha
+    formula_frame = _dimension_formula_frame(tag)
+    if formula_frame is not None:
+        _extend_canvas_space_points(self, formula_frame.corners)
+        self.active_page.sketches.append(create_sketch(formula_frame, self))
     extend_vertices(self, tag)
     self.active_page.sketches.append(create_sketch(tag, self))
 
@@ -2901,7 +2946,10 @@ def draw(
 
     active_sketches = self.active_page.sketches
     subtype = item.subtype
-    if item.type is not Types.CLIPPING:
+    tag_formula = (
+        _tag_latex_formula(item.text) if subtype == Types.TAG else None
+    )
+    if item.type is not Types.CLIPPING and tag_formula is None:
         extend_vertices(self, item)
 
     if subtype in _GEOMETRIC_GRID_TYPES:
@@ -3010,6 +3058,33 @@ def draw(
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
             active_sketches.extend(sketches)
+            if (
+                "midpoints" in kwargs
+                and kwargs["midpoints"]
+                and isinstance(item, Shape)
+            ):
+                midpoint_indices = "indices" in kwargs and bool(
+                    kwargs["indices"]
+                )
+                edge_midpoints = item.edge_midpoints
+                if edge_midpoints and midpoint_indices:
+                    label_source = sketches[0]
+                    marker_radius = runtime_defaults["midpoint_radius"]
+                    midpoint_markers = Shape(
+                        edge_midpoints,
+                        closed=False,
+                        draw_markers=True,
+                        markers_only=True,
+                        marker_type=MarkerType.CIRCLE,
+                        marker_radius=marker_radius,
+                        marker_size=marker_radius,
+                        marker_color=sketch_label_font_color(
+                            label_source, "index"
+                        ),
+                        fill=False,
+                        stroke=True,
+                    )
+                    draw(self, midpoint_markers)
     elif subtype == Types.IMAGE:
         draw_image(self, item, **kwargs)
     elif subtype == Types.PATTERN:
@@ -3182,6 +3257,7 @@ _NON_STYLE_KEYS = frozenset(
         "_style_id",
         "_tikz_style_id",
         "vertices",
+        "midpoints",
         "index_font_size",
         "vertex_font_size",
         "index_offset",
@@ -3288,6 +3364,9 @@ def set_shape_sketch_style(
     elif "indices" in item.__dict__:
         sketch.indices = item.indices
 
+    if "midpoints" in kwargs:
+        sketch.midpoints = kwargs["midpoints"]
+
     if "index_font_size" in kwargs:
         sketch.index_font_size = kwargs["index_font_size"]
     elif "index_font_size" in item.__dict__:
@@ -3390,8 +3469,8 @@ def get_verts_in_new_pos(item: Shape, **kwargs: object) -> list[PointType]:
 
 def _get_tag_sketch(
     item: Drawable, canvas: Canvas, **kwargs: object
-) -> TagSketch:
-    """Create a TagSketch from the given item.
+) -> TagSketch | LatexSketch:
+    """Create a text or LaTeX sketch from the given Tag.
 
     Args:
         item: Item to be sketched.
@@ -3399,9 +3478,64 @@ def _get_tag_sketch(
         **kwargs: Additional keyword arguments.
 
     Returns:
-        TagSketch: Created TagSketch.
+        TagSketch | LatexSketch: Created sketch.
     """
     pos = kwargs.get("pos", item.pos)
+    formula = _tag_latex_formula(item.text)
+    if formula is not None:
+        _, item_rotation, _ = decompose_transformations(item.xform_matrix)
+        font_size = canvas.resolve_property(item, "font_size")
+        font_family = canvas.resolve_property(item, "font_family")
+        if font_family == runtime_defaults["font_family"]:
+            font_family = None
+        font_color = canvas.resolve_property(item, "font_color")
+        bold = canvas.resolve_property(item, "bold")
+        anchor = kwargs["anchor"] if "anchor" in kwargs else item.anchor
+        sketch = LatexSketch(
+            formula=formula,
+            pos=pos,
+            font_size=font_size,
+            font_family=font_family,
+            font_color=font_color,
+            bold=bold,
+            anchor=anchor,
+            angle=item_rotation,
+            xform_matrix=canvas._sketch_xform_matrix,
+        )
+        for name, value in kwargs.items():
+            if name == "pos":
+                continue
+            setattr(sketch, name, value)
+        width, height = _measure_latex_formula(
+            formula,
+            sketch.font_size,
+            sketch.font_family,
+            sketch.bold,
+        )
+        sketch.formula_size = (width, height)
+        anchor_offsets = {
+            Anchor.SOUTHWEST: (0, 0),
+            Anchor.SOUTH: (width / 2, 0),
+            Anchor.SOUTHEAST: (width, 0),
+            Anchor.WEST: (0, height / 2),
+            Anchor.CENTER: (width / 2, height / 2),
+            Anchor.EAST: (width, height / 2),
+            Anchor.NORTHWEST: (0, height),
+            Anchor.NORTH: (width / 2, height),
+            Anchor.NORTHEAST: (width, height),
+        }
+        offset_x, offset_y = anchor_offsets[sketch.anchor]
+        x, y = sketch.pos[:2]
+        canvas._all_vertices.extend(
+            [
+                (x - offset_x, y - offset_y),
+                (x + width - offset_x, y - offset_y),
+                (x - offset_x, y + height - offset_y),
+                (x + width - offset_x, y + height - offset_y),
+            ]
+        )
+        return sketch
+
     _, rotation, _ = decompose_transformations(item.xform_matrix)
 
     sketch = TagSketch(

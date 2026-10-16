@@ -1381,8 +1381,8 @@ _CANVAS_DRAW_LACE_HELP_NOTES = (
     "Lace-specific options belong on canvas.draw_lace, not canvas.draw.\n"
     "None on a named argument means use the matching defaults entry.\n"
     "fragment_coloring uses FragmentColoring.AREA or FragmentColoring.RADIUS.\n"
-    "plait_style uses PlaitStyle.EMBOSS1, EMBOSS2, DIAMOND, INNERLINES, or "
-    "DOUBLE_LINES; INNERLOOPS raises until implemented.\n"
+    "plait_style uses PlaitStyle.EMBOSS, EMBOSS2, FRUSTUM, DIAMOND, "
+    "INNERLINES, or DOUBLE_LINES; INNERLOOPS raises until implemented.\n"
     "Generic shape styles in **kwargs are forwarded to fragment and plait draws."
 )
 

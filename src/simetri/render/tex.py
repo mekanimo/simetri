@@ -414,9 +414,9 @@ class Tex:
             if canvas_uses_label_halos(canvas):
                 packages += label_halo_preamble_line()
             if "fontspec" in packages:
-                fonts_section = f"""\\setmainfont{{{defaults["main_font"]}}}
-\\setsansfont{{{defaults["sans_font"]}}}
-\\setmonofont{{{defaults["mono_font"]}}}\n"""
+                fonts_section = f"""\\setmainfont{{{runtime_defaults["main_font"]}}}
+\\setsansfont{{{runtime_defaults["sans_font"]}}}
+\\setmonofont{{{runtime_defaults["mono_font"]}}}\n"""
         else:
             packages = ""
 

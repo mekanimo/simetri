@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from collections.abc import Callable, Iterator, Sequence
 from itertools import combinations
-from math import ceil, isclose, log10, pi, sqrt
+from math import ceil, isclose, log10, pi, radians, sqrt
 from typing import Any, Self
 
 import networkx as nx
@@ -28,8 +28,9 @@ from ..base.all_enums import Connection, InPlace, TransformationType, Types
 from ..base.common import PointType, d_id_obj, get_defaults
 from ..base.core import _next_xform_matrix, _Targets, _update_inplace
 from ..coloring import colors
+from ..coloring.colors import Color, change_lightness
 from ..config.settings import runtime_defaults
-from ..geom.geom_utils import close_points_square, connected_pairs
+from ..geom.geom_utils import close_points_square, connected_pairs, midpoint
 from ..geom.points.point_utils import distance, lerp_point, round_point
 from ..geom.polygons.convex_hull import convex_hull
 from ..geom.polygons.poly import get_polygons
@@ -42,11 +43,18 @@ from ..geom.polygons.polygon import (
     polygon_cg,
     polygon_internal_angles,
 )
-from ..geom.polygons.polygon_utils import right_handed
-from ..geom.segments.line_utils import equal_lines, segment_connection
+from ..geom.polygons.polygon_utils import right_handed, simplify_quad
+from ..geom.segments.line_utils import (
+    equal_lines,
+    inclination_angle,
+    intersect,
+    perp_bisector,
+    segment_connection,
+)
 from ..group.batch import Group
 from ..helpers.graph import get_cycles
 from ..helpers.utilities import flatten, group_into_bins
+from ..coloring.colors import shade_value
 from ..render.style_map import shape_style_map
 from ..shapes.geom_items import fillet_shape_corners
 from ..shapes.shape import Shape, custom_attributes
@@ -216,6 +224,8 @@ class Intersection(Shape):
         division2 (Division, optional): Second division. Defaults to None.
         endpoint (bool, optional): If the intersection is at the end of a division,
         then endpoint is True. Defaults to False.
+        open_end (bool, optional): If the intersection is a free end of an open
+        polyline. Defaults to False.
         **kwargs: Additional attributes for cosmetic/drawing purposes.
 
     Examples:
@@ -226,6 +236,8 @@ class Intersection(Shape):
         20.0
         >>> x == x.copy()
         True
+        >>> x.open_end
+        False
     """
 
     def __init__(
@@ -234,6 +246,7 @@ class Intersection(Shape):
         division1: "Division",
         division2: Division | None = None,
         endpoint: bool = False,
+        open_end: bool = False,
         **kwargs: Any,
     ) -> None:
         """Create an intersection at ``point`` between one or two divisions."""
@@ -245,6 +258,7 @@ class Intersection(Shape):
         self.division2 = division2
         self.overlap = None
         self.endpoint = endpoint
+        self.open_end = open_end
         self.division = None  # used for fragment divisions' DCEL structure
 
     def _update(
@@ -333,7 +347,7 @@ class Intersection(Shape):
             str: String representation.
         """
         return (
-            f"Intersection({[round(x, defaults['n_round']) for x in self.point]}, "
+            f"Intersection({[round(x, runtime_defaults['n_round']) for x in self.point]}, "
             f"{(self.division1, self.division2)}"
         )
 
@@ -402,8 +416,7 @@ class Partition(Shape):
 class Fragment(Shape):
     """A Fragment is a collection of section objects that are connected
     to each other. These sections are already defined. They belong to
-    the polyline objects in a lace. Fragments can be open or closed.
-    They are created by the lace object.
+    the polyline objects in a lace. They are created by the lace object.
 
     Args:
         points (list): List of points defining the fragment.
@@ -550,6 +563,8 @@ class Section(Shape):
         40.0
         >>> section.is_endpoint
         True
+        >>> section.open_end
+        (True, True)
     """
 
     def __init__(
@@ -632,6 +647,15 @@ class Section(Shape):
             bool: True if either intersection is an endpoint.
         """
         return self.start.endpoint or self.end.endpoint
+
+    @property
+    def open_end(self) -> bool:
+        """Return whether each end of the section is an open polyline end.
+
+        Returns:
+            tuple[bool, bool]: ``(start.open_end, end.open_end)``.
+        """
+        return self.start.open_end and self.end.open_end
 
 
 class Overlap(Group):
@@ -1070,9 +1094,9 @@ class Polyline(Shape):
         """Create endpoint intersections for an open polyline."""
         division1 = self.divisions[0]
         division2 = self.divisions[-1]
-        x1 = Intersection(division1.p1, division1, None, True)
+        x1 = Intersection(division1.p1, division1, None, True, open_end=True)
         division1.intersections = [x1]
-        x2 = Intersection(division2.p2, division2, None, True)
+        x2 = Intersection(division2.p2, division2, None, True, open_end=True)
         if division1.id == division2.id:
             division1.intersections.append(x2)
         else:
@@ -1620,6 +1644,21 @@ class Lace(Group):
                 sec2 = poly2.sections[i]
                 sec1.twin = sec2
                 sec2.twin = sec1
+
+    def _set_section_offset_midpoints(self) -> None:
+        """Set the midpoints between sections and their twins' start and end points.
+        This is used for emboss drawing."""
+        for par_poly in self.parallel_poly_list:
+            poly1, poly2 = par_poly.offset_poly_list
+            for i, sec in enumerate(poly1.iter_sections()):
+                sec1 = sec
+                sec2 = poly2.sections[i]
+                mp1 = midpoint(sec.start.point, sec2.start.point)
+                mp2 = midpoint(sec.end.point, sec2.end.point)
+                sec1.offset_mp1 = mp1
+                sec1.offset_mp2 = mp2
+                sec2.offset_mp1 = mp1
+                sec2.offset_mp2 = mp2
 
     def _set_partitions(self) -> None:
         """Populate partition shapes by offsetting each fragment polygon."""
@@ -2873,3 +2912,370 @@ def merge_nodes(
     for division in division_list:
         division._sort_intersections()
     return intersections
+
+
+def _point_is_open(plait, point) -> bool:
+    """Return whether a plait vertex is an open polyline end."""
+    px, py = point[:2]
+    for inter in plait.intersections:
+        ix, iy = inter.point[:2]
+        if ix == px and iy == py:
+            return inter.open_end
+    return False
+
+
+def _both_open(plait, p1, p2) -> bool:
+    """Return whether both ends of an edge are open polyline ends."""
+    return _point_is_open(plait, p1) and _point_is_open(plait, p2)
+
+
+def emboss2_quads(lace: Lace):
+    """Build emboss-2 quad pairs and open-end triangles.
+
+    A plait with fewer than three emboss points gets one end quad pair.
+    When that far edge is an open end, the pair meets the triangle tip.
+    Longer plaits keep the original interior and end pairs.
+
+    Returns:
+        tuple: ``(interior_quads, end_quads, triangles)``.
+    """
+    lace._set_plait_ends()
+    all_quads = []
+    end_quads = []
+    all_triangles = []
+    for plait in lace.plaits:
+        if not plait.ends:
+            continue
+        vertices = plait.vertices
+        n = len(vertices)
+        emboss_points = []
+
+        for i in range(len(plait.overlaps)):
+            ind1 = plait.ends[i]
+            ind2 = (ind1 + 1) % n
+            p1 = vertices[ind1]
+            p2 = vertices[ind2]
+            mp = midpoint(p1, p2)
+            emboss_points.append(((p1, ind1), (p2, ind2), mp))
+        open_tips = {}
+        for i, p1 in enumerate(vertices):
+            p2 = vertices[(i + 1) % n]
+            if _both_open(plait, p1, p2):
+                tip = perp_bisector([p1, p2])[1]
+                open_tips[i] = tip
+                all_triangles.append(Shape([p1, tip, p2], closed=True))
+        j = plait.ends[0]
+        for i in range(1, int(n / 2) - 1):
+            ind1 = (j + i + 1) % n
+            ind2 = j - i
+            p1 = vertices[ind1]
+            p2 = vertices[ind2]
+            mp = midpoint(p1, p2)
+            emboss_points.append(((p1, ind1), (p2, ind2), mp))
+
+        ep = emboss_points
+        if len(ep) < 3:
+            (_, _), (p_2, ind2), mp_1 = ep[0]
+            far1 = (j + 2) % n
+            far2 = (j - 1) % n
+            if (far2 - far1) % n == 1 and far1 in open_tips:
+                mp_far = open_tips[far1]
+            elif (far1 - far2) % n == 1 and far2 in open_tips:
+                mp_far = open_tips[far2]
+            else:
+                mp_far = midpoint(vertices[far1], vertices[far2])
+            p6 = vertices[(ind2 + 1) % n]
+            p5 = vertices[far2]
+            p7 = vertices[(far2 + 1) % n]
+            quad1 = (mp_1, p_2, p6, mp_far)
+            quad2 = (mp_1, mp_far, p5, p7)
+            end_quads.append(
+                (quad1, quad2, (mp_1, mp_far), (p_2, p6), (p5, p7))
+            )
+        else:
+            (_, ind1), (p_2, ind2), mp_1 = ep[0]
+            _, (p_4, ind4), mp_2 = ep[1]
+            (p5, ind5), (p5, ind5), mp3 = ep[2]
+            p6 = vertices[(ind2 + 1) % n]
+            p7 = vertices[(ind5 + 1) % n]
+            quad1 = (mp_1, p_2, p6, mp3)
+            quad2 = (mp_1, mp3, p5, p7)
+            end_quads.append(
+                (quad1, quad2, (mp_1, mp3), (p_2, p6), (p5, p7))
+            )
+            n_iter = len(ep)
+            for i in range(2, n_iter):
+                (p1, ind1), (p2, ind2), mp = ep[i]
+                if i == n_iter - 1:
+                    p3 = vertices[(ind1 + 1) % n]
+                    quad1 = (mp, p1, p3, mp_2)
+                    quad2 = (mp, mp_2, p_4, p2)
+                    end_quads.append(
+                        (quad1, quad2, (mp, mp_2), (p1, p3), (p_4, p2))
+                    )
+                else:
+                    (p3, _), (p4, ind4), mp_ = ep[(i + 1) % n]
+                    p5 = vertices[(ind4 + 1) % n]
+                    quad1 = (mp, p1, p3, mp_)
+                    quad2 = (mp, mp_, p4, p5)
+                    all_quads.append(
+                        (quad1, quad2, (mp, mp_), (p1, p3), (p4, p5))
+                    )
+
+    return all_quads, end_quads, all_triangles
+
+
+def get_frustum(lace: Lace, offset: float = -5):
+    """Build frustum quad pairs, end quads, and inner loops.
+
+    Each plait is rotated so the walk starts after an overlap end, then
+    inset by ``offset``. One quad is built per outer edge.
+
+    Returns:
+        tuple: ``(quad_pairs, end_quads, inner_loops)``.
+    """
+    lace._set_plait_ends()
+    quad_pairs = []
+    end_quads = []
+    inner_loops = []
+    for plait in lace.plaits:
+        vertices = list(plait.vertices)
+        ends = [e + 1 for e in plait.ends]
+
+        count = 0
+        for j, vert in enumerate(vertices):
+            if j in ends:
+                break
+            count += 1
+
+        if count:
+            vertices = vertices[count:] + vertices[:count]
+
+        n = len(vertices)
+        inner_loop = Shape(offset_polygon(vertices, offset), closed=True)
+        inner_loops.append(inner_loop)
+        quads = []
+
+        for i, vert in enumerate(vertices):
+            quad = (
+                vert,
+                vertices[(i + 1) % n],
+                inner_loop[(i + 1) % n],
+                inner_loop[i],
+            )
+            quads.append(Shape(quad, closed=True))
+        n2 = int(len(quads) / 2) - 1
+        for i in range(n2):
+            quad_pairs.append((quads[i], quads[-(i + 2)]))
+        end_quads.extend([quads[-1], quads[n2]])
+
+    return quad_pairs, end_quads, inner_loops
+
+
+def shade_emboss2(lace: Lace, color: Color) -> Sequence[Shape]:
+    interior, end_quads, triangles = emboss2_quads(lace)
+
+    dist = lace.width * 3
+    cx, cy = lace.midpoint
+    far_point = cx - dist, cy + dist
+
+    res = []
+    for tri in triangles:
+        tri.fill_color = shade_triangle(tri, color, far_point)
+        res.append(tri)
+    for quad in end_quads + interior:
+        quad1 = Shape(quad[0], closed=True)
+        quad2 = Shape(quad[1], closed=True)
+
+        angle = inclination_angle(*quad[2])
+        shade_angle = abs(radians(135) - angle)
+        shade_factor = shade_value(shade_angle)
+
+        mid1 = midpoint(*quad[2])
+        line1 = (far_point, mid1)
+        line2 = quad[3]
+        line3 = quad[4]
+
+        x1, _ = intersect(line1, line2)
+        x2, _ = intersect(line1, line3)
+        shade_step = 0.2
+
+        if x2 < x1:
+            color1 = change_lightness(color, shade_factor * -shade_step)
+            color2 = change_lightness(color, shade_factor * shade_step)
+        elif x1 < x2:
+            color1 = change_lightness(color, shade_factor * shade_step)
+            color2 = change_lightness(color, shade_factor * -shade_step)
+        else:
+            color1 = color2 = color
+        quad1.fill_color = color1
+        quad2.fill_color = color2
+        res.extend([quad1, quad2])
+
+    return res
+
+
+def emboss(lace: Lace) -> list[Shape]:
+    """Create emboss quads, and a triangle at each end of an open polyline.
+
+    Each non-overlap section gets ``section.emboss``. An open start uses
+    ``perp_bisector([start, other start])``. An open end uses
+    ``perp_bisector([other end, end])``. That point replaces the outer
+    corner of the two neighboring quads. The triangle is the two end
+    points and that inside point, stored on ``section.end_triangle``.
+
+    Returns:
+        list[Shape]: The quads and end triangles, in walk order.
+    """
+    lace._set_section_offset_midpoints()
+    pieces: list[Shape] = []
+    for ppoly in lace.parallel_poly_list:
+        poly_a, poly_b = ppoly.offset_poly_list
+        if len(poly_a.divisions) != len(poly_b.divisions):
+            raise ValueError("Offset polylines have different divisions.")
+        for div_a, div_b in zip(poly_a.divisions, poly_b.divisions):
+            sections_a = div_a.sections
+            sections_b = div_b.sections
+            n_sect = len(sections_a)
+            if len(sections_b) != n_sect:
+                raise ValueError("Offset polylines have different sections.")
+            for i, sect in enumerate(sections_a):
+                other = sections_b[i]
+                open_start = sect.start.open_end
+                open_finish = sect.end.open_end
+                sect.end_triangle = None
+                other.end_triangle = None
+                start_tip = None
+                end_tip = None
+                if open_start:
+                    a = sect.start.point
+                    b = other.start.point
+                    start_tip = perp_bisector([a, b])[1]
+                    triangle = Shape([a, start_tip, b], closed=True)
+                    sect.end_triangle = triangle
+                    other.end_triangle = triangle
+                    pieces.append(triangle)
+                if open_finish:
+                    a = other.end.point
+                    b = sect.end.point
+                    end_tip = perp_bisector([a, b])[1]
+                    triangle = Shape([a, end_tip, b], closed=True)
+                    sect.end_triangle = triangle
+                    other.end_triangle = triangle
+                    pieces.append(triangle)
+                for section, sections in (
+                    (sect, sections_a),
+                    (other, sections_b),
+                ):
+                    if section.is_overlap:
+                        continue
+                    prev_section = sections[i - 1]
+                    next_section = sections[(i + 1) % n_sect]
+                    if open_start:
+                        p1 = start_tip
+                    elif prev_section.is_overlap:
+                        p1 = prev_section.overlap.center
+                    else:
+                        p1 = section.offset_mp1
+                    p2 = section.start.point
+                    p3 = section.end.point
+                    if open_finish:
+                        p4 = end_tip
+                    elif next_section.is_overlap:
+                        p4 = next_section.overlap.center
+                    else:
+                        p4 = section.offset_mp2
+                    piece = Shape(
+                        simplify_quad([p1, p2, p3, p4]), closed=True
+                    )
+                    section.emboss = piece
+                    pieces.append(piece)
+    return pieces
+
+
+def shade_emboss(
+    quad1: Shape,
+    quad2: Shape,
+    color: Color,
+    far_point: PointType,
+    shade_step: float = 0.2,
+) -> tuple[Color, Color]:
+    """Compute shade tones for adjacent quadrilateral shapes.
+    edge1 and edge3 of the quads must be parallel to each other.
+    lace._set_section_offset_midpoints must be already called.
+    """
+    edge1 = quad1.edges[1]
+    edge2 = quad2.edges[1]
+
+    angle = inclination_angle(*edge1)
+    shade_angle = abs(radians(135) - angle)
+    shade_factor = shade_value(shade_angle)
+
+    mid1 = midpoint(midpoint(*edge1), midpoint(*edge2))
+    far_line = (far_point, mid1)
+    x1, _ = intersect(far_line, edge1)
+    x2, _ = intersect(far_line, edge2)
+
+    if x2 < x1:
+        color1 = change_lightness(color, shade_factor * -shade_step)
+        color2 = change_lightness(color, shade_factor * shade_step)
+    elif x1 < x2:
+        color1 = change_lightness(color, shade_factor * shade_step)
+        color2 = change_lightness(color, shade_factor * -shade_step)
+    else:
+        color1 = color2 = color
+
+    return (color1, color2)
+
+
+def shade_triangle(
+    triangle: Shape,
+    color: Color,
+    far_point: PointType,
+    shade_step: float = 0.2,
+) -> Color:
+    """Shade one emboss end triangle.
+
+    Vertex 1 is the inside point. Vertices 0 and 2 are the outside edge.
+    That edge is 90 degrees from the quad rails, so the quad shade-angle
+    formula is applied to it.     The triangle is lighter when the outside edge faces ``far_point``,
+    which is when the inside point is farther from ``far_point``.
+    """
+    outside = (triangle.vertices[0], triangle.vertices[2])
+    inside = triangle.vertices[1]
+    angle = inclination_angle(*outside)
+    shade_angle = abs(radians(135) - angle)
+    shade_factor = shade_value(shade_angle)
+    edge_mid = midpoint(*outside)
+    if distance(inside, far_point) > distance(edge_mid, far_point):
+        result = change_lightness(color, shade_factor * shade_step)
+    else:
+        result = change_lightness(color, shade_factor * -shade_step)
+    return result
+
+
+def shade_end_quad(
+    quad: Shape,
+    color: Color,
+    far_point: PointType,
+    shade_step: float = 0.2,
+) -> Color:
+    """Shade one emboss end quad.
+
+    Vertices 0 and 1 are the outside edge. Vertices 2 and 3 are the
+    inside edge. The outside edge is 90 degrees from the quad rails, so
+    the quad shade-angle formula is applied to it. The quad is lighter
+    when the outside edge faces ``far_point``, which is when the inside
+    edge is farther from ``far_point``.
+    """
+    outside = (quad.vertices[0], quad.vertices[1])
+    inside = midpoint(quad.vertices[2], quad.vertices[3])
+    angle = inclination_angle(*outside)
+    shade_angle = abs(radians(135) - angle)
+    shade_factor = shade_value(shade_angle)
+    edge_mid = midpoint(*outside)
+    if distance(inside, far_point) > distance(edge_mid, far_point):
+        result = change_lightness(color, shade_factor * shade_step)
+    else:
+        result = change_lightness(color, shade_factor * -shade_step)
+    return result

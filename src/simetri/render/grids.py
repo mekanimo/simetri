@@ -1,9 +1,8 @@
-"""Provides facilities for working with grids of cells."""
+"""Provides facilities for working with geometric grids of cells."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from itertools import product
 from math import cos, isclose, pi, sin, sqrt
 
 from ..base.all_enums import GridType, Types
@@ -90,11 +89,12 @@ def _extreme_vertex_index(
     ``plus`` True uses ``x + y`` (NE / SW). False uses ``x - y``
     (SE / NW).
     """
-    first = points[0]
-    best_value = (first[0] + first[1]) if plus else (first[0] - first[1])
+    first_x, first_y = points[0][:2]
+    best_value = (first_x + first_y) if plus else (first_x - first_y)
     best_index = 0
     for index, point in enumerate(points[1:], start=1):
-        value = (point[0] + point[1]) if plus else (point[0] - point[1])
+        point_x, point_y = point[:2]
+        value = (point_x + point_y) if plus else (point_x - point_y)
         if maximize:
             if value > best_value:
                 best_value = value
@@ -105,11 +105,25 @@ def _extreme_vertex_index(
     return best_index
 
 
-def _square_corner_indices(points: Sequence[PointType]) -> list[int]:
-    """Return the four geometric corner indices of a square point set, sorted."""
+def _polar_angle(point: PointType) -> float:
+    """Return the polar angle of ``point`` measured from the origin."""
+    point_x, point_y = point[:2]
+    _, theta = cartesian_to_polar(point_x, point_y)
+    return theta
+
+
+def _polar_radius(point: PointType) -> float:
+    """Return the polar radius of ``point`` measured from the origin."""
+    point_x, point_y = point[:2]
+    radius, _ = cartesian_to_polar(point_x, point_y)
+    return radius
+
+
+def _rectangular_corner_indices(points: Sequence[PointType]) -> list[int]:
+    """Return the four geometric corner indices of a rectangular point set."""
     if len(points) < 4:
         raise ValueError(
-            "corners_only requires a square grid with four distinct corners"
+            "corners_only requires a rectangular grid with four distinct corners"
         )
     corners = [
         _extreme_vertex_index(points, True, True),
@@ -120,9 +134,56 @@ def _square_corner_indices(points: Sequence[PointType]) -> list[int]:
     unique = sorted(set(corners))
     if len(unique) != 4:
         raise ValueError(
-            "corners_only requires four distinct square corners"
+            "corners_only requires four distinct rectangular corners"
         )
     return unique
+
+
+def _rect_grid_points(
+    n_x: int,
+    n_y: int,
+    cell_size_x: float,
+    cell_size_y: float,
+) -> list[PointType]:
+    """Return rectangular perimeter grid points ordered by polar angle."""
+    x_values = [cell_size_x * (index - n_x / 2) for index in range(n_x + 1)]
+    y_values = [cell_size_y * (index - n_y / 2) for index in range(n_y + 1)]
+    points: list[PointType] = []
+    for x_index, x_value in enumerate(x_values):
+        for y_index, y_value in enumerate(y_values):
+            if x_index in (0, n_x) or y_index in (0, n_y):
+                points.append((x_value, y_value))
+    points.sort(key=_polar_angle)
+    return points
+
+
+def _square_grid_points(
+    center: PointType,
+    n: int,
+    cell_size: float,
+) -> list[PointType]:
+    """Return square-perimeter points counterclockwise from the right midpoint."""
+    if type(n) is not int or n <= 0 or n % 8 != 0:
+        raise ValueError("n must be a positive multiple of 8")
+
+    center_x, center_y = center[:2]
+    side_cells = n // 4
+    half_cells = side_cells // 2
+    half_extent = half_cells * cell_size
+
+    points: list[PointType] = [(center_x + half_extent, center_y)]
+    for y_index in range(1, half_cells + 1):
+        points.append((center_x + half_extent, center_y + y_index * cell_size))
+    for x_index in range(half_cells - 1, -half_cells - 1, -1):
+        points.append((center_x + x_index * cell_size, center_y + half_extent))
+    for y_index in range(half_cells - 1, -half_cells - 1, -1):
+        points.append((center_x - half_extent, center_y + y_index * cell_size))
+    for x_index in range(-half_cells + 1, half_cells + 1):
+        points.append((center_x + x_index * cell_size, center_y - half_extent))
+    for y_index in range(-half_cells + 1, 0):
+        points.append((center_x + half_extent, center_y + y_index * cell_size))
+
+    return points
 
 
 class Grid(Group):
@@ -136,17 +197,18 @@ class Grid(Group):
     the index wraps to ``i``. If ``corners_only`` is True, those start
     indices are only the geometric corner vertices (on a ``SquareGrid``
     with index ``0`` on +x, ``n=16``: ``2``, ``6``, ``10``, ``14``).
-    On a circular or hexagonal grid every vertex is a corner, so the
-    chords are unchanged. ``border``, ``centerlines``, ``orthogonals``,
+    ``RectGrid`` uses its four rectangular corners the same way. On a
+    circular or hexagonal grid every vertex is a corner, so the chords
+    are unchanged. ``border``, ``centerlines``, ``orthogonals``,
     and ``diagonals`` are ``False``, ``True`` (default line color and
     width), or a style dict, like ``canvas.draw_bbox``. ``orthogonals``
     defaults to True and strokes adjacent horizontal and vertical
     segments between vertices that share an x- or y-coordinate.
     ``centerlines`` defaults to False and strokes the horizontal and
     vertical midlines of the grid's axis-aligned bounding box.
-    ``diagonals`` defaults to False and, on a ``SquareGrid`` only,
-    strokes the two main diagonals of the square (opposite geometric
-    corners).
+    ``diagonals`` defaults to False and, on a ``SquareGrid`` or
+    ``RectGrid``, strokes the two main diagonals between opposite
+    geometric corners.
 
     Examples:
         >>> from simetri.base.all_enums import GridType
@@ -223,7 +285,7 @@ class Grid(Group):
         if not self.corners_only:
             return list(range(n_vertices))
         if self.subtype == Types.SQUARE_GRID:
-            return _square_corner_indices(self.points)
+            return _rectangular_corner_indices(self.points)
         return list(range(n_vertices))
 
     def line_index_pairs(self) -> list[tuple[int, int]]:
@@ -290,7 +352,9 @@ class Grid(Group):
                 raise TypeError("connections must be a sequence of integers")
             for offset in connections:
                 if type(offset) is not int:
-                    raise TypeError("connections must be a sequence of integers")
+                    raise TypeError(
+                        "connections must be a sequence of integers"
+                    )
                 for index in starts:
                     add_pair(index, index + offset)
 
@@ -338,10 +402,10 @@ class Grid(Group):
         return pairs
 
     def diagonal_index_pairs(self) -> list[tuple[int, int]]:
-        """Return the two main-diagonal vertex pairs of a square grid.
+        """Return the two main-diagonal vertex pairs of a rectangular grid.
 
-        Only a ``SquareGrid`` has these pairs. Other grid types return
-        an empty list. The pairs are opposite geometric corners:
+        ``SquareGrid`` and ``RectGrid`` have these pairs. Other grid
+        types return an empty list. The pairs are opposite geometric corners:
         northeast–southwest (max ``x+y`` to min ``x+y``) and
         southeast–northwest (max ``x-y`` to min ``x-y``).
 
@@ -589,44 +653,20 @@ class SquareGrid(Grid):
     def __init__(
         self, center: PointType = (0, 0), n: int = 16, cell_size: float = 25
     ) -> None:
-        """
-        Initializes the grid with the given center, number of rows, number of columns, and cell size.
+        """Initialize a square-perimeter grid.
 
         Args:
-            center (PointType): The center point of the grid.
-            n (int): The number of points in the grid. Square of an even integer.
-            cell_size (float): The size of each cell in the grid.
+            center: The center point of the grid.
+            n: Number of perimeter points. Must be a positive multiple of 8.
+            cell_size: Distance between adjacent perimeter points.
+
+        Raises:
+            ValueError: If ``n`` is not a positive multiple of 8.
         """
         self.cell_size = cell_size
         self.width = cell_size * n / 4
-        hs = int(sqrt(n) // 2)  # half size
-        c = cell_size
-        vals = [c * x for x in range(-hs, hs + 1)]
-        coords = list(product(vals, repeat=2))
-
-        def sort_key(coord: PointType) -> float:
-            """Polar radius used to sort grid candidate points.
-
-            Examples:
-                >>> pass  # doctest: +SKIP
-            """
-            r, _ = cartesian_to_polar(*coord)
-            return r
-
-        def sort_key2(coord: PointType) -> float:
-            """Polar angle used to order the selected grid points.
-
-            Examples:
-                >>> pass  # doctest: +SKIP
-            """
-            _, theta = cartesian_to_polar(*coord)
-            return theta
-
-        coords.sort(key=sort_key, reverse=True)
-        coords = coords[:n]
-        coords.sort(key=sort_key2)
-        points = coords
-        radius = (2 * (cell_size * sqrt(n)) ** 2) ** 0.5
+        points = _square_grid_points(center, n, cell_size)
+        radius = self.width / sqrt(2)
         super().__init__(GridType.SQUARE, center, n, radius, points)
 
     def __repr__(self) -> str:
@@ -645,6 +685,81 @@ class SquareGrid(Grid):
         if len(self.elements) in [1, 2]:
             return f"SquareGrid({self.elements})"
         return f"SquareGrid({self.elements[0]}...{self.elements[-1]})"
+
+
+class RectGrid(Grid):
+    """A grid formed by connections of rectangular-cell perimeter points.
+
+    Examples:
+        >>> from simetri.render.grids import RectGrid
+        >>> grid = RectGrid(n_x=4, n_y=2, cell_size_x=25)
+        >>> grid.n
+        12
+        >>> grid.width, grid.height
+        (100, 50)
+    """
+
+    def __init__(
+        self,
+        center: PointType = (0, 0),
+        n_x: int = 4,
+        n_y: int = 4,
+        cell_size_x: float = 25,
+        cell_size_y: float | None = None,
+    ) -> None:
+        """Initialize a rectangular perimeter grid.
+
+        Args:
+            center: The center point of the grid.
+            n_x: Number of rectangular cells along the x-axis.
+            n_y: Number of rectangular cells along the y-axis.
+            cell_size_x: The x-axis size of each cell in the grid.
+            cell_size_y: The y-axis size of each cell in the grid. If ``None``,
+                uses ``cell_size_x``.
+
+        Raises:
+            ValueError: If ``n_x`` or ``n_y`` is not a positive integer.
+        """
+        if type(n_x) is not int or n_x <= 0:
+            raise ValueError("n_x must be a positive integer")
+        if type(n_y) is not int or n_y <= 0:
+            raise ValueError("n_y must be a positive integer")
+        if cell_size_y is None:
+            cell_size_y = cell_size_x
+
+        self.cell_size_x = cell_size_x
+        self.cell_size_y = cell_size_y
+        self.n_x = n_x
+        self.n_y = n_y
+        self.width = cell_size_x * n_x
+        self.height = cell_size_y * n_y
+        center_x, center_y = center[:2]
+        points = [
+            (point_x + center_x, point_y + center_y)
+            for point_x, point_y in _rect_grid_points(
+                n_x, n_y, cell_size_x, cell_size_y
+            )
+        ]
+        n = len(points)
+        radius = ((self.width / 2) ** 2 + (self.height / 2) ** 2) ** 0.5
+        super().__init__(GridType.SQUARE, center, n, radius, points)
+
+    def __repr__(self) -> str:
+        """Return a RectGrid string from this grid's elements.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> grid = sg.RectGrid(n_x=4, n_y=2, cell_size_x=25)
+            >>> repr(grid).startswith("RectGrid(")
+            True
+            >>> str(grid).startswith("Group")
+            True
+        """
+        if self.elements is None or len(self.elements) == 0:
+            return "RectGrid()"
+        if len(self.elements) in [1, 2]:
+            return f"RectGrid({self.elements})"
+        return f"RectGrid({self.elements[0]}...{self.elements[-1]})"
 
 
 # change of basis conversion

@@ -525,14 +525,17 @@ class LatexSketch:
     """LatexSketch renders a LaTeX math formula inline in SVG via matplotlib mathtext.
 
     Attributes:
-        formula (str): LaTeX math string, e.g. r'\frac{a}{b}'.  Do NOT wrap in $..$.            Text-mode commands are silently mapped to their math-mode equivalents:
-            \\texttt → \\mathtt, \\textrm → \\mathrm, \\textbf → \\mathbf,
-            \\textit → \\mathit, \\textsf → \\mathsf.        pos (PointType): Canvas-space position (x, y) of the formula's anchor point.
+        formula (str): LaTeX math string, e.g. r'\frac{a}{b}'. Do not wrap
+            it in dollar signs. Text-mode commands are mapped to math-mode
+            equivalents: \\mbox and \\textrm → \\mathrm,
+            \\texttt → \\mathtt, \\textbf → \\mathbf,
+            \\textit → \\mathit, and \\textsf → \\mathsf.
+        pos (PointType): Canvas-space position of the formula's anchor point.
         font_size (int): Font size in points. Defaults to 14.
         font_family (str, optional): Mathtext fontset name. Accepted values (case-insensitive):
             'computer modern'/'cm', 'stix', 'stix sans'/'stixsans',
-            'dejavu sans'/'dejavusans' (default), 'dejavu serif'/'dejavuserif'.
-            When bold=True and font_family is omitted, defaults to 'stix'.
+            'dejavu sans'/'dejavusans', 'dejavu serif'/'dejavuserif'.
+            When omitted, Computer Modern is used.
         font_color: Formula colour — a simetri Color, an (r,g,b) tuple, or any
             matplotlib-accepted colour string (e.g. 'red', '#ff0000'). Defaults to black.
         bold (bool): If True, wraps the entire formula in \\mathbf{}. Defaults to False.

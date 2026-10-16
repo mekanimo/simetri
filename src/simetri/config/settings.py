@@ -1811,8 +1811,8 @@ def set_defaults() -> None:
     default_types["lace_plait_style"] = object
     defaults_help["lace_plait_style"] = (
         "Default PlaitStyle for canvas.draw_lace. None means filled plaits "
-        "with no special plait style. Valid values: EMBOSS1, EMBOSS2, "
-        "DIAMOND, INNERLINES, DOUBLE_LINES."
+        "with no special plait style. Valid values: EMBOSS, EMBOSS2, "
+        "FRUSTUM, DIAMOND, INNERLINES, DOUBLE_LINES."
     )
 
     _default_store.factory["landing_length"] = 20
@@ -2072,6 +2072,13 @@ def set_defaults() -> None:
     default_types["merge_tol"] = float
     defaults_help["merge_tol"] = (
         "Merge tolerance. Positive float. Length in <points>."
+    )
+
+    _default_store.factory["midpoint_radius"] = 1.0
+    default_types["midpoint_radius"] = float
+    defaults_help["midpoint_radius"] = (
+        "Edge midpoint circle radius in points when canvas.draw uses "
+        "indices=True and midpoints=True."
     )
 
     # defaults['min_height'] = 10

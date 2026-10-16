@@ -630,11 +630,29 @@ def _build_shape_label_rects(sketch: Any) -> list[LabelRect]:
         return []
     vertices = sketch.vertices
     n = len(vertices)
+    midpoint_points = []
+    if "midpoints" in sketch.__dict__ and sketch.midpoints:
+        midpoint_points = [
+            midpoint(start[:2], end[:2])
+            for start, end in zip(vertices, vertices[1:])
+        ]
+        if sketch.closed and n > 1:
+            midpoint_points.append(
+                midpoint(vertices[-1][:2], vertices[0][:2])
+            )
+    label_count = n + len(midpoint_points)
     index_pairs = _index_label_pairs(sketch, n) if has_index else []
+    if has_index:
+        index_pairs.extend(
+            (n + edge_index, f"e{edge_index}")
+            for edge_index in range(len(midpoint_points))
+        )
     index_label_indices = [vertex for vertex, _ in index_pairs]
     coord_label_indices = (
         _coord_label_vertex_indices(sketch, n) if has_vertex else []
     )
+    if has_vertex:
+        coord_label_indices.extend(range(n, label_count))
 
     entries: list[
         tuple[str, int, tuple[float, float], tuple[float, float]]
@@ -644,24 +662,37 @@ def _build_shape_label_rects(sketch: Any) -> list[LabelRect]:
 
     if has_index:
         index_offset = sketch_label_offset(sketch, "index")
-        index_layout = vert_label_layout(sketch, index_offset)
-        index_labels = [None] * n
+        index_positions = [
+            entry["position"]
+            for entry in vert_label_layout(sketch, index_offset)
+        ]
+        if midpoint_points:
+            index_positions.extend(edge_label_positions(sketch, index_offset))
+        index_labels = [None] * label_count
         index_font = sketch_label_font_size_pt(sketch, "index")
         index_family = sketch_label_font_family(sketch, "index")
         for vertex, label in index_pairs:
-            pos = index_layout[vertex]["position"]
+            pos = index_positions[vertex]
             size = estimate_index_label_bbox(label, index_font, index_family)
             entries.append(("index", vertex, pos, size))
             index_labels[vertex] = label
 
     if has_vertex:
         vertex_offset = sketch_label_offset(sketch, "vertex")
-        vertex_layout = vert_label_layout(sketch, vertex_offset)
-        coord_texts = [format_vertex_coord(*vertices[i]) for i in range(n)]
+        coord_positions = [
+            entry["position"]
+            for entry in vert_label_layout(sketch, vertex_offset)
+        ]
+        if midpoint_points:
+            coord_positions.extend(edge_label_positions(sketch, vertex_offset))
+        coord_texts = [
+            format_vertex_coord(*point[:2])
+            for point in [*vertices, *midpoint_points]
+        ]
         vertex_font = sketch_label_font_size_pt(sketch, "vertex")
         vertex_family = sketch_label_font_family(sketch, "vertex")
         for i in coord_label_indices:
-            pos = vertex_layout[i]["position"]
+            pos = coord_positions[i]
             size = estimate_vertex_coord_label_bbox(
                 coord_texts[i], vertex_font, vertex_family
             )
@@ -676,7 +707,7 @@ def _build_shape_label_rects(sketch: Any) -> list[LabelRect]:
         sketch,
         _LABEL_META_KEY,
         {
-            "n": n,
+            "n": label_count,
             "index_labels": index_labels,
             "coord_texts": coord_texts,
             "has_index": has_index,
@@ -728,7 +759,10 @@ def _apply_label_rects_to_sketch(sketch: Any) -> None:
 
 
 def resolve_page_vertex_labels(sketches: object) -> None:
-    """Resolve overlaps for all vertex/index labels on a sketch list.
+    """Resolve overlaps for all vertex and midpoint labels on a sketch list.
+
+    Each pass starts from the original layout anchors and measured sizes,
+    so exporting the same sketches repeatedly does not move labels again.
 
     Args:
         sketches: Sketches belonging to one page (or comparable group).
@@ -739,11 +773,25 @@ def resolve_page_vertex_labels(sketches: object) -> None:
     Examples:
         >>> import simetri.graphics as sg
         >>> sg.resolve_page_vertex_labels([])
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(sg.letter_F(), vertices=True, indices=True, midpoints=True) is canvas
+        True
+        >>> sg.resolve_page_vertex_labels(canvas.active_page.sketches)
+        >>> sketch = canvas.active_page.sketches[0]
+        >>> positions = sg.prepare_shape_vertex_coord_labels(sketch)[0]
+        >>> sg.resolve_page_vertex_labels(canvas.active_page.sketches)
+        >>> sg.prepare_shape_vertex_coord_labels(sketch)[0] == positions
+        True
     """
     label_sketches = list(_iter_label_sketches(sketches))
     all_rects: list[LabelRect] = []
     for sketch in label_sketches:
-        all_rects.extend(_build_shape_label_rects(sketch))
+        rects = _build_shape_label_rects(sketch)
+        entries = sketch.__dict__[_LABEL_META_KEY]["entries"]
+        for rect, entry in zip(rects, entries):
+            rect.x, rect.y = entry[2]
+            rect.width, rect.height = entry[3]
+        all_rects.extend(rects)
 
     if runtime_defaults["vertices_label_avoid_overlap"] and len(all_rects) > 1:
         gap = float(runtime_defaults["vertices_label_overlap_gap"])
@@ -882,6 +930,8 @@ def prepare_shape_index_labels(
 
     Uses ``index_offset`` from the sketch or defaults. When coordinate labels
     are also shown, overlap resolution considers both label types together.
+    With ``midpoints=True``, edge labels ``e0``, ``e1``, ... follow the
+    vertex indices and participate in the same overlap resolution.
 
     Args:
         sketch: Shape sketch that may request index labels.
@@ -907,6 +957,8 @@ def prepare_shape_vertex_coord_labels(
 
     Uses ``vertex_offset`` from the sketch or defaults. When index labels are
     also shown, overlap resolution considers both label types together.
+    With ``midpoints=True``, midpoint coordinates follow vertex coordinates
+    and participate in the same overlap resolution.
 
     Args:
         sketch: Shape sketch that may request coordinate labels.

@@ -967,6 +967,7 @@ _FONTSET_MAP = {
 
 _TEXT_MODE_MAP = frozenset(
     (
+        (r"\mbox", r"\mathrm"),  # roman text
         (r"\texttt", r"\mathtt"),  # monospace / typewriter
         (r"\textrm", r"\mathrm"),  # roman (serif)
         (r"\textbf", r"\mathbf"),  # bold
@@ -1021,12 +1022,10 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
     for src, dst in _TEXT_MODE_MAP:
         formula = formula.replace(src, dst)
 
-    # Auto-select STIX when \mathbf or \boldsymbol appears anywhere in the
-    # formula and no font_family has been explicitly set.
-    if not font_family and (r"\mathbf" in formula or r"\boldsymbol" in formula):
-        font_family = "stix"
+    if not font_family:
+        font_family = "cm"
 
-    # Resolve the matplotlib fontset name (default: leave rcParams unchanged)
+    # Resolve the matplotlib fontset name.
     fontset = _FONTSET_MAP.get((font_family or "").strip().lower())
     rc_overrides = {"mathtext.fontset": fontset} if fontset else {}
 

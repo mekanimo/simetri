@@ -80,7 +80,7 @@ from simetri.geom.affine import (
     scale_matrix,
     translation_matrix,
 )
-from simetri.geom.bbox import bounding_box
+from simetri.geom.bbox import BoundingBox, bounding_box
 from simetri.geom.homogenize import homogenize
 from simetri.geom.matrices import identity_matrix
 from simetri.geom.nonlinear.path import Path2D
@@ -100,14 +100,14 @@ from simetri.helpers.validation import (
     validate_args,
     warn_unknown_kwargs,
 )
-from simetri.images.image import Image, draw_on_image as draw_sketches_on_image
+from simetri.images.image import Image
+from simetri.images.image import draw_on_image as draw_sketches_on_image
 from simetri.interlace.lace import Lace
 from simetri.notebook import display
-from simetri.render import draw
-from simetri.render import vector_draw
+from simetri.render import draw, vector_draw
+from simetri.render.mask import Mask
 from simetri.render.render_tikz.tikz import get_tex_code
 from simetri.render.render_tikz.tikz_sketch import TexSketch
-from simetri.render.mask import Mask
 from simetri.render.sketch import MaskedSketch
 from simetri.render.style_map import canvas_args, get_draw_valid_kwargs
 from simetri.render.tex import Tex, remove_aux_files, run_job
@@ -2017,13 +2017,14 @@ class Canvas:
 
     def draw(
         self,
-        *item_s: "Drawable | Sequence",
+        *item_s: Drawable | Sequence,
         pos: PointType = None,
         angle: float = 0,
         rotocenter: PointType = (0, 0),
         scale: VecType | float = (1, 1),
         about: PointType = (0, 0),
         show: bool = False,
+        midpoints: bool = False,
         **kwargs: object,
     ) -> Self:
         """
@@ -2067,6 +2068,14 @@ class Canvas:
             scale (tuple, optional): The scale factors for the x and y axes, defaults to (1, 1).
             about (tuple, optional): The point about which to scale, defaults to (0, 0).
             show (bool, optional): If True, draws the canvas in a Jupyter cell.
+            midpoints (bool, optional): With ``vertices=True``, label edge
+                midpoint coordinates as well as vertex coordinates. With
+                ``indices=True``, draw circles of radius 1 point at edge
+                midpoints and label them ``e0``, ``e1``, ... in edge order.
+                Both flags show both kinds of midpoint labels. Closed shapes
+                include the closing edge. Midpoint labels use the same
+                positioning and overlap avoidance as vertex labels.
+                Defaults to False.
             filter (SVG_Filter, optional): SVG filter object to apply to the drawn item(s).
             kwargs (dict): Additional keyword arguments.
 
@@ -2083,6 +2092,20 @@ class Canvas:
             Canvas()
             >>> scaled.active_page.sketches[0].vertices[1]
             (20.0, 0.0)
+            >>> labeled = sg.Canvas()
+            >>> labeled.draw(triangle, indices=True, midpoints=True) is labeled
+            True
+            >>> sg.prepare_shape_index_labels(labeled.active_page.sketches[0])[1]
+            [0, 1, 2, 'e0', 'e1', 'e2']
+            >>> labeled.active_page.sketches[1].vertices
+            [(20.0, 0.0), (40.0, 20.0), (20.0, 20.0)]
+            >>> labeled.active_page.sketches[1].marker_size
+            1.0
+            >>> coordinates = sg.Canvas()
+            >>> coordinates.draw(triangle, vertices=True, midpoints=True) is coordinates
+            True
+            >>> sg.prepare_shape_vertex_coord_labels(coordinates.active_page.sketches[0])[1]
+            ['(0.0, 0.0)', '(40.0, 0.0)', '(40.0, 40.0)', '(20.0, 0.0)', '(40.0, 20.0)', '(20.0, 20.0)']
         """
         warn_unknown_kwargs(
             kwargs,
@@ -2097,6 +2120,8 @@ class Canvas:
         else:
             items = item_s
 
+        if midpoints:
+            kwargs["midpoints"] = midpoints
         vector_draw.prepare_vector_batch(items, kwargs, pos)
         if isinstance(scale, (int, float)):
             scale = (float(scale), float(scale))
@@ -2117,9 +2142,7 @@ class Canvas:
                 )
                 continue
 
-            drawable, part_kwargs = vector_draw.drawable_for_item(
-                item, kwargs
-            )
+            drawable, part_kwargs = vector_draw.drawable_for_item(item, kwargs)
             sketch_xform = base_sketch_xform
             if pos is not None:
                 mid_x, mid_y = drawable.midpoint[:2]
@@ -2132,9 +2155,7 @@ class Canvas:
                     scale_in_place_matrix(*scale[:2], about) @ sketch_xform
                 )
             if angle != 0:
-                sketch_xform = (
-                    rotation_matrix(angle, rotocenter) @ sketch_xform
-                )
+                sketch_xform = rotation_matrix(angle, rotocenter) @ sketch_xform
             self._sketch_xform_matrix = self._xform_matrix @ sketch_xform
             draw.draw(self, drawable, **part_kwargs)
 
@@ -2373,18 +2394,19 @@ class Canvas:
         Args:
             formula (str): LaTeX math string without surrounding $. E.g. r'\\frac{a}{b}'.
                 Text-mode commands are silently mapped to their math-mode equivalents:
-                \\texttt → \\mathtt (monospace), \\textrm → \\mathrm, \\textbf → \\mathbf,
-                \\textit → \\mathit, \\textsf → \\mathsf.
+                \\mbox and \\textrm → \\mathrm, \\texttt → \\mathtt
+                (monospace), \\textbf → \\mathbf, \\textit → \\mathit,
+                \\textsf → \\mathsf.
             pos (PointType): Canvas position for the formula anchor.
             font_size (int): Font size in points. Defaults to 14.
             font_family (str, optional): Mathtext fontset — 'computer modern'/'cm', 'stix',
                 'stix sans'/'stixsans', 'dejavu sans'/'dejavusans', 'dejavu serif'/'dejavuserif'.
-                If omitted and the formula contains \\mathbf{}, STIX is chosen automatically
-                (closest to LaTeX output). Otherwise matplotlib's current default is used.
+                If omitted, Computer Modern is used to match LaTeX's
+                default math font.
             font_color: Formula colour — simetri Color, (r,g,b) tuple, or matplotlib colour
                 string (e.g. 'red', '#ff0000'). Defaults to black.
             bold (bool): Wrap the *entire* formula in \\mathbf{}. For partial bold, write
-                \\mathbf{} directly in the formula string — STIX is still selected automatically.
+                \\mathbf{} directly in the formula string.
                 Defaults to False.
             anchor: Anchor point for the formula box. Defaults to Anchor.SOUTHWEST.
             **kwargs: Additional keyword arguments.

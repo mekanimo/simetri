@@ -7,11 +7,11 @@ import base64
 import cmath
 import collections
 import inspect
+import logging
 import os
 import random
 import re
 import string
-import logging
 import sys
 import types
 from bisect import bisect_left
