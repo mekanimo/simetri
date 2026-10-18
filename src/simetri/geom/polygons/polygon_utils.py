@@ -319,3 +319,67 @@ def simplify_quad(points: Sequence[PointType]) -> Sequence[PointType]:
         res = points
 
     return res
+
+
+def polygon_interior_angles(points: Sequence[PointType]) -> Sequence[float]:
+    """
+    Return the interior angle at each vertex of a polygon, in radians.
+
+    Parameters
+    ----------
+    points : array-like of shape (n, 2) or (n, 3)
+        Polygon vertices in clockwise or counterclockwise order.
+        The first point may optionally be repeated at the end.
+
+    Returns
+    -------
+    numpy.ndarray
+        Interior angles in radians, in the same order as the vertices.
+        Convex angles are less than pi; reflex angles are greater than pi.
+
+    Raises
+    ------
+    ValueError
+        If there are fewer than three vertices, consecutive vertices
+        coincide, or the polygon has zero signed area.
+    """
+    points = [p[:2] for p in points]
+    vertices = np.asarray(points, dtype=float)
+
+    # Remove an optional repeated closing vertex.
+    if len(vertices) > 1 and np.allclose(vertices[0], vertices[-1]):
+        vertices = vertices[:-1]
+
+    if len(vertices) < 3:
+        raise ValueError("A polygon must have at least three vertices.")
+
+    # Reject zero-length edges.
+    edges = np.roll(vertices, -1, axis=0) - vertices
+    if np.any(np.linalg.norm(edges, axis=1) == 0):
+        raise ValueError("Consecutive polygon vertices must be distinct.")
+
+    # Shoelace formula determines polygon orientation.
+    x = vertices[:, 0]
+    y = vertices[:, 1]
+    signed_area_twice = np.sum(x * np.roll(y, -1) - y * np.roll(x, -1))
+
+    if np.isclose(signed_area_twice, 0):
+        raise ValueError("The polygon has zero signed area.")
+
+    orientation = np.sign(signed_area_twice)  # +1 CCW, -1 CW
+    angles = np.empty(len(vertices))
+
+    for i in range(len(vertices)):
+        current = vertices[i]
+        to_previous = vertices[i - 1] - current
+        to_next = vertices[(i + 1) % len(vertices)] - current
+
+        cross = to_previous[0] * to_next[1] - to_previous[1] * to_next[0]
+        dot = np.dot(to_previous, to_next)
+
+        signed_angle = np.arctan2(cross, dot)
+
+        # Correct for polygon orientation and map to [0, 2*pi).
+        angles[i] = np.mod(-orientation * signed_angle, 2 * np.pi)
+
+    return angles

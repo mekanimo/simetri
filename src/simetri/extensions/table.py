@@ -47,7 +47,11 @@ from ..coloring.colors import Color, gray, white
 from ..geom.bbox import BoundingBox, bounding_box
 from ..geom.affine import translation_matrix
 from ..helpers.illustration import Tag
-from ..render.draw import get_sketches
+from ..render.draw import (
+    _measure_latex_formula,
+    _tag_latex_formula,
+    get_sketches,
+)
 from ..render.sketch import TableSketch
 from ..shapes.shape import Shape
 
@@ -208,9 +212,17 @@ class Cell:
             >>> Cell(42).content
             42
         """
+        object.__setattr__(self, "_layout_revision", 0)
         self.content = content
         self._format: dict[str, Any] = {}
         self._background: dict[str, Any] = {}
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        object.__setattr__(self, name, value)
+        if name == "content" and "_layout_revision" in vars(self):
+            object.__setattr__(
+                self, "_layout_revision", self._layout_revision + 1
+            )
 
     def set_format(self, **kwargs: Any) -> Self:
         """Set cell styling (merged on top of row/column/table).
@@ -233,6 +245,10 @@ class Cell:
         format_kwargs, background_kwargs = _split_style_kwargs(kwargs)
         self._format.update(format_kwargs)
         self._background.update(background_kwargs)
+        if format_kwargs:
+            object.__setattr__(
+                self, "_layout_revision", self._layout_revision + 1
+            )
         return self
 
     def set_background(self, **kwargs: Any) -> Self:
@@ -912,6 +928,7 @@ class Range:
             else:
                 data_row = grid_row - (1 if _has_header_row(self._table) else 0)
                 self._table._rows[data_row]._height = row_height
+        self._table._invalidate_layout()
 
     def _common_column_width(self) -> float | None:
         first = None
@@ -1059,6 +1076,51 @@ def _grid_dimensions(table: Table) -> tuple[int, int]:
     return column_count, row_count
 
 
+def _layout_content_cache_key(content: Any) -> tuple[Any, ...]:
+    if isinstance(content, Cell):
+        return (
+            Cell,
+            content._layout_revision,
+            _layout_content_cache_key(content.content),
+        )
+    if isinstance(content, SplitCell):
+        return (
+            SplitCell,
+            content.kind,
+            content.first,
+            content.second,
+            tuple(content.offset1),
+            tuple(content.offset2),
+        )
+    if _is_drawable_content(content):
+        box = content.b_box
+        return type(content), id(content), box.width, box.height
+    if content is None or isinstance(content, (str, int, float, bool)):
+        return type(content), content
+    return type(content), str(content)
+
+
+def _table_layout_cache_key(table: Table) -> tuple[Any, ...]:
+    cell_keys: list[tuple[Any, ...]] = []
+    for column in table._columns:
+        header_cell = column.header_cell
+        cell_keys.append(
+            (
+                header_cell._layout_revision,
+                _layout_content_cache_key(header_cell.content),
+            )
+        )
+    for row in table._rows:
+        cell_keys.extend(
+            (
+                cell._layout_revision,
+                _layout_content_cache_key(cell.content),
+            )
+            for cell in row.cells
+        )
+    return table._layout_revision, tuple(cell_keys)
+
+
 def _has_header_row(table: Table) -> bool:
     return table.show_header and table._explicit_headers and bool(table._columns)
 
@@ -1098,26 +1160,38 @@ def _empty_grid_range(table: Table) -> Range:
     return Range(table, 0, 0, -1, -1)
 
 
-def _cell_content_size(content: Any, font_size: float) -> tuple[float, float]:
+def _cell_content_size(
+    content: Any, fmt: dict[str, Any]
+) -> tuple[float, float]:
     if isinstance(content, Cell):
         content = content.content
     if isinstance(content, SplitCell):
-        first_w, first_h = _cell_content_size(content.first, font_size)
-        second_w, second_h = _cell_content_size(content.second, font_size)
+        first_w, first_h = _cell_content_size(content.first, fmt)
+        second_w, second_h = _cell_content_size(content.second, fmt)
         if content.kind == SplitCell.VERTICAL:
             return first_w + second_w, max(first_h, second_h)
         if content.kind == SplitCell.HORIZONTAL:
             return max(first_w, second_w), first_h + second_h
         return first_w + second_w, first_h + second_h
     if isinstance(content, (str, int, float, bool)):
-        tag = Tag(str(content), (0.0, 0.0), font_size=font_size)
+        text = str(content)
+        formula = _tag_latex_formula(text)
+        if formula is not None:
+            font_family = (
+                fmt["font_family"] if "font_family" in fmt else None
+            )
+            bold = fmt["bold"] if "bold" in fmt else False
+            return _measure_latex_formula(
+                formula, fmt["font_size"], font_family, bold
+            )
+        tag = Tag(text, (0.0, 0.0), font_size=fmt["font_size"])
         box = tag.b_box
         return box.width, box.height
     if _is_drawable_content(content):
         box = content.b_box
         return box.width, box.height
     text = str(content)
-    tag = Tag(text, (0.0, 0.0), font_size=font_size)
+    tag = Tag(text, (0.0, 0.0), font_size=fmt["font_size"])
     box = tag.b_box
     return box.width, box.height
 
@@ -1170,6 +1244,20 @@ def compute_table_layout(
         >>> compute_table_layout(square)
         ([30, 30], [30, 30], 2)
     """
+    cache_key = _table_layout_cache_key(table)
+    if (
+        table._layout_cache_key == cache_key
+        and table._layout_cache is not None
+    ):
+        cached_widths, cached_heights, cached_column_count = (
+            table._layout_cache
+        )
+        return (
+            list(cached_widths),
+            list(cached_heights),
+            cached_column_count,
+        )
+
     column_count, grid_row_count = _grid_dimensions(table)
     if column_count == 0:
         return [], [], 0
@@ -1185,13 +1273,12 @@ def compute_table_layout(
     for grid_row in range(grid_row_count):
         for col_index in range(column_count):
             fmt = _resolve_cell_format(table, grid_row, col_index)
-            font_size = fmt["font_size"]
             if has_header and grid_row == 0:
                 content = table._columns[col_index].header_cell.content
             else:
                 data_row = grid_row - (1 if has_header else 0)
                 content = table._rows[data_row].cells[col_index].content
-            content_w, content_h = _cell_content_size(content, font_size)
+            content_w, content_h = _cell_content_size(content, fmt)
             col_widths[col_index] = max(
                 col_widths[col_index], content_w + pad_x
             )
@@ -1222,6 +1309,13 @@ def compute_table_layout(
         if total < table.min_width and column_count:
             extra = (table.min_width - total) / column_count
             col_widths = [width + extra for width in col_widths]
+
+    table._layout_cache_key = cache_key
+    table._layout_cache = (
+        tuple(col_widths),
+        tuple(row_heights),
+        column_count,
+    )
 
     return col_widths, row_heights, column_count
 
@@ -1770,6 +1864,11 @@ class Table:
             >>> sized.column_headers
             ['A', 'B', '']
         """
+        self._layout_cache: (
+            tuple[tuple[float, ...], tuple[float, ...], int] | None
+        ) = None
+        self._layout_cache_key: tuple[Any, ...] | None = None
+        self._layout_revision = 0
         self.title = title
         self.pos = pos
         self.type = Types.TABLE
@@ -2019,6 +2118,7 @@ class Table:
             strict=True,
         ):
             self._columns[col_index]._width = width
+        self._invalidate_layout()
 
     def _apply_grid_row_heights(
         self,
@@ -2039,10 +2139,10 @@ class Table:
             else:
                 data_row = grid_row - (1 if _has_header_row(self) else 0)
                 self._rows[data_row]._height = height
+        self._invalidate_layout()
 
     def _cell_at_grid(self, grid_row: int, col_index: int) -> Cell:
-        _, row_heights, column_count = compute_table_layout(self)
-        grid_row_count = len(row_heights)
+        column_count, grid_row_count = _grid_dimensions(self)
         if col_index < 0 or col_index >= column_count:
             raise IndexError(f"column index {col_index} out of range")
         if grid_row < 0 or grid_row >= grid_row_count:
@@ -2110,6 +2210,7 @@ class Table:
             column.set_format(**kwargs)
         for row in self._rows:
             row.set_format(**kwargs)
+        self._invalidate_layout()
         return self
 
     def set_background(self, **kwargs: Any) -> Self:
@@ -2174,7 +2275,13 @@ class Table:
                 cell._format = {}
                 cell._background = {}
 
+        self._invalidate_layout()
         return self
+
+    def _invalidate_layout(self) -> None:
+        object.__setattr__(self, "_layout_revision", self._layout_revision + 1)
+        object.__setattr__(self, "_layout_cache_key", None)
+        object.__setattr__(self, "_layout_cache", None)
 
     def __getattr__(self, name: str) -> Any:
         target = _range_style_target(name)
@@ -2198,6 +2305,8 @@ class Table:
         target = _range_style_target(name)
         if target is None:
             object.__setattr__(self, name, value)
+            if name in {"min_width", "padding", "show_header"}:
+                self._invalidate_layout()
             return
         kind, storage_name = target
         if storage_name in ("align", "v_align"):
@@ -2288,6 +2397,7 @@ class Table:
         for row in self._rows:
             while len(row.cells) < len(self._columns):
                 row.cells.append(Cell(""))
+        self._invalidate_layout()
         return column
 
     def add_column(
@@ -2335,6 +2445,7 @@ class Table:
             self._rows.append(row)
         for index, current_row in enumerate(self._rows):
             current_row.index = index
+        self._invalidate_layout()
         return row
 
     def _ensure_grid_covers(

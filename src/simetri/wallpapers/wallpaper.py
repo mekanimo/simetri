@@ -138,7 +138,7 @@ def hex_grid_pointy(
     # create the second row by translating the first row
     two_rows = row.translate(width, height + edge_length, reps=1)
     # create the grid by translating the first and second row in the y direction
-    grid = two_rows.translate(0, 2 * size + edge_length, reps=n_rows / 2 - 1)
+    grid = two_rows.translate(0, 2 * size + edge_length, reps=n_rows // 2 - 1)
 
     return grid
 

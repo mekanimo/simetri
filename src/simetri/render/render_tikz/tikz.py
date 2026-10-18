@@ -213,11 +213,15 @@ _STYLEABLE_SUBTYPES = frozenset(
 )
 
 
-def get_tex_code(canvas: Canvas) -> str:
+def get_tex_code(
+    canvas: Canvas,
+    image_paths: dict[int, str] | None = None,
+) -> str:
     """Convert the sketches in the Canvas to TikZ code.
 
     Args:
         canvas (Canvas): The canvas object (mutated).
+        image_paths: Export-time image paths keyed by sketch identity.
 
     Returns:
         str: The TikZ code.
@@ -272,7 +276,10 @@ def get_tex_code(canvas: Canvas) -> str:
         elif sketch.subtype == Types.TABLE_SKETCH:
             code, ind = draw_table_sketch(sketch, render_sketches, ind)
         elif sketch.subtype == Types.IMAGE_SKETCH:
-            code = draw_image_sketch(sketch)
+            image_path = None
+            if image_paths is not None and id(sketch) in image_paths:
+                image_path = image_paths[id(sketch)]
+            code = draw_image_sketch(sketch, file_path=image_path)
         elif sketch.subtype == Types.HELPLINES_SKETCH:
             code = draw_helplines_sketch(sketch)
         elif sketch.subtype == Types.PDF_SKETCH:

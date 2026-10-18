@@ -18,6 +18,7 @@ Examples:
 
 from __future__ import annotations
 
+import io
 import os
 import sys
 import tempfile
@@ -27,6 +28,7 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Self
 
+import matplotlib.pyplot as matplotlib_pyplot
 import networkx as nx
 import numpy as np
 import pymupdf as fitz
@@ -308,6 +310,45 @@ def _oriented_page_points(
         "page_orientation must be PageOrientation.PORTRAIT "
         "or PageOrientation.LANDSCAPE."
     )
+
+
+def _matplotlib_plot_image(*, close_fig: bool) -> Image:
+    """Snapshot the active pyplot figure as a 72-DPI Simetri image."""
+    buffer = io.BytesIO()
+    figure = matplotlib_pyplot.gcf()
+    try:
+        figure.savefig(buffer, format="png", dpi=72)
+        buffer.seek(0)
+        with PIL_Image.open(buffer) as pil_image:
+            return Image(img=pil_image.copy())
+    finally:
+        buffer.close()
+        if close_fig:
+            matplotlib_pyplot.close(figure)
+
+
+def _materialize_tex_image_assets(
+    canvas: Canvas,
+    parent_dir: str,
+    file_name: str,
+) -> tuple[dict[int, str], list[str]]:
+    """Write in-memory top-level image sketches beside a TeX output."""
+    image_paths: dict[int, str] = {}
+    generated_paths: list[str] = []
+    image_index = 0
+    for page in canvas.pages:
+        for sketch in page.sketches:
+            if (
+                sketch.subtype is Types.IMAGE_SKETCH
+                and sketch.file_path is None
+            ):
+                asset_name = f"{file_name}_image_{image_index}.png"
+                asset_path = os.path.join(parent_dir, asset_name)
+                sketch.image.pil_img.save(asset_path, format="PNG")
+                image_paths[id(sketch)] = asset_name
+                generated_paths.append(asset_path)
+                image_index += 1
+    return image_paths, generated_paths
 
 
 class Canvas:
@@ -2017,7 +2058,7 @@ class Canvas:
 
     def draw(
         self,
-        *item_s: Drawable | Sequence,
+        *item_s: Drawable | Sequence | Any,
         pos: PointType = None,
         angle: float = 0,
         rotocenter: PointType = (0, 0),
@@ -2025,13 +2066,16 @@ class Canvas:
         about: PointType = (0, 0),
         show: bool = False,
         midpoints: bool = False,
+        close_fig: bool = True,
         **kwargs: object,
     ) -> Self:
         """
         Draw the item_s. Pass items individually or as one sequence.
 
         Args:
-            *item_s (Drawable | Sequence): Item(s) to draw. Use
+            *item_s (Drawable | Sequence): Item(s) to draw. Passing
+                ``matplotlib.pyplot`` snapshots its current figure as an image.
+                Use
                 ``draw(a, b)`` or ``draw([a, b])``. A ``Vector`` is
                 drawn as a line with an arrow head from the origin to
                 ``(x, y)``. ``vec_start`` places the tail; ``vec_end``
@@ -2076,6 +2120,9 @@ class Canvas:
                 include the closing edge. Midpoint labels use the same
                 positioning and overlap avoidance as vertex labels.
                 Defaults to False.
+            close_fig: Close the active Matplotlib figure after
+                ``draw(plt)`` snapshots it. Defaults to True. Set False to
+                keep editing or draw the same figure again.
             filter (SVG_Filter, optional): SVG filter object to apply to the drawn item(s).
             kwargs (dict): Additional keyword arguments.
 
@@ -2129,6 +2176,8 @@ class Canvas:
         base_sketch_xform = self._sketch_xform_matrix
 
         for item in items:
+            if item is matplotlib_pyplot:
+                item = _matplotlib_plot_image(close_fig=close_fig)
             if vector_draw.is_vector_marker_shape(item, kwargs):
                 vector_draw.draw_vector_marker_shape(
                     self,
@@ -3498,16 +3547,25 @@ class Canvas:
                 with open(filepath, "w", encoding="utf-8") as f:
                     f.write(svg_code)
         else:
-            tex_code = get_tex_code(self)
-            tex_path = os.path.join(parent_dir, file_name + ".tex")
-            with open(tex_path, "w", encoding="utf-8") as f:
-                f.write(tex_code)
-            if extension == ".tex":
-                return self
+            image_paths, generated_image_paths = (
+                _materialize_tex_image_assets(self, parent_dir, file_name)
+            )
+            try:
+                tex_code = get_tex_code(self, image_paths=image_paths)
+                tex_path = os.path.join(parent_dir, file_name + ".tex")
+                with open(tex_path, "w", encoding="utf-8") as f:
+                    f.write(tex_code)
+                if extension == ".tex":
+                    return self
 
-            run_job(parent_dir, file_name, extension, tex_path)
-            if remove_aux:
-                remove_aux_files(filepath)
+                run_job(parent_dir, file_name, extension, tex_path)
+                if remove_aux:
+                    remove_aux_files(filepath)
+            finally:
+                if extension != ".tex":
+                    for image_path in generated_image_paths:
+                        if os.path.isfile(image_path):
+                            os.remove(image_path)
 
         self._show_browser(
             filepath=filepath, show_browser=show, multi_page_svg=multi_page_svg

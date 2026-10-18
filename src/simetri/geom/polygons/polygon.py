@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from simetri.group.batch import Group
     from simetri.shapes.shape import Shape
 
-from .polygon_utils import right_handed
+from .polygon_utils import polygon_interior_angles, right_handed
 
 
 def _shape(*args: Any, **kwargs: Any) -> Shape:
@@ -2327,60 +2327,27 @@ def polyline_length(
 def polygon_internal_angles(vertices: Sequence[PointType]) -> Sequence[float]:
     """Return the interior angle at each vertex.
 
-    Vertices are expected in counter-clockwise order. A clockwise ring is
-    reversed first, and a warning is issued. Each value is in radians.
+    This delegates to :func:`polygon_interior_angles`. Each value is in
+    radians.
 
     Args:
         vertices (Sequence[PointType]): Polygon vertices.
 
     Returns:
-        Sequence[float]: Interior angles, or an empty list if fewer than
-        three vertices are given.
+        Sequence[float]: Interior angles in vertex order.
+
+    Raises:
+        ValueError: If the vertices do not define a valid polygon.
 
     Examples:
         >>> import simetri.graphics as sg
-        >>> sg.polygon_internal_angles([(0, 0), (40, 0), (40, 40), (0, 40)])
-        [1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966]
-        >>> sg.polygon_internal_angles([(0, 0), (40, 0)])
-        []
+        >>> angles = sg.polygon_internal_angles(
+        ...     [(0, 0), (40, 0), (40, 40), (0, 40)]
+        ... )
+        >>> all(sg.isclose(angle, sg.pi / 2) for angle in angles)
+        True
 """
-    n = len(vertices)
-    if n < 3:
-        return []
-
-    # 1. Determine Winding Order (Signed Area)
-    # Positive = CCW, Negative = CW
-    area = polygon_area(vertices)
-    is_ccw_ = area > 0
-    if not is_ccw_:
-        issue_warning(
-            """Vertices are not in counterclockwise positive order!
-                         Result is for the reversed sequence of the given vertices.""",
-            warning_type=WarningType.geometry.not_ccw,
-        )
-        vertices = list(vertices)[:]
-        vertices.reverse()
-    angles = []
-    for i in range(n):
-        # Define three consecutive points
-        p_prev = vertices[(i - 1) % n]
-        p_curr = vertices[i]
-        p_next = vertices[(i + 1) % n]
-
-        # Vector 1: Incoming (from previous to current)
-        v1 = v_from_points(p_prev, p_curr)
-        # Vector 2: Outgoing (from current to next)
-        v2 = v_from_points(p_curr, p_next)
-
-        cross_prod = v1.cross(v2)
-        dot_prod = v1.dot(v2)
-
-        turning_angle = atan2(cross_prod, dot_prod)
-        # Convert Turning Angle to Internal Angle
-        internal_angle = pi - turning_angle
-        angles.append(internal_angle)
-
-    return angles
+    return polygon_interior_angles(vertices)
 
 
 # with cProfile.Profile() as pr:

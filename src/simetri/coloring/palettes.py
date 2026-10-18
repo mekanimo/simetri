@@ -20,6 +20,28 @@ import random
 
 from simetri.coloring.colors import Color
 
+# nature palette is based on:
+# From NATURE’S PALETTE. A color reference system from the Natural world.
+# Princeton University Press, Princeton and Oxford
+# ISBN 978-0-691-21704-8
+# Which is based on Werner's Nomenclature of Colours by  Patrick Syme (1821)
+#
+# "In 1774, in order to help identify and describe minerals, German
+# geologist Abraham Gottlob Werner devised a classification system
+# based on the external properties of minerals. He considered colour
+# to be one of the key characteristics for mineral identification and
+# devised a nomenclature of 54 colours for that purpose, assembling
+# a collection of minerals as physical examples of each. Werner revised
+# and expanded his nomenclature during the next 40 or so years, and
+# periodically gave updated lists to his students, who used and added
+# to them in their own works. In 1814 Scottish artist Patrick Syme
+# expanded Werner’s nomenclature to 108 colour terms and then in
+# 1821 to 110. He supplemented Werner’s references to mineral
+# examples with references to animal and vegetable species, and
+# added a painted swatch for each of the colour standards named."
+
+################################################################################
+
 # Some palettes are prefixed with div, qual, or seq for diverging, qualitative,
 # an sequential, respectively. The name of the palette is the original name from
 # the indicated sources. The number of colors is appended to the end of the name.
@@ -17942,6 +17964,118 @@ d_name_palette_type[PaletteType.SEQUENTIAL] = [
     "seq_TURKU_256",
 ]
 
+nature = [
+    [245, 245, 224],
+    [247, 245, 230],
+    [242, 245, 230],
+    [245, 245, 222],
+    [247, 245, 224],
+    [242, 245, 224],
+    [240, 242, 224],
+    [235, 240, 224],
+    [212, 222, 210],
+    [203, 215, 205],
+    [200, 215, 208],
+    [196, 208, 203],
+    [192, 199, 164],
+    [169, 186, 181],
+    [144, 163, 150],
+    [79, 93, 109],
+    [72, 83, 96],
+    [55, 66, 88],
+    [57, 76, 79],
+    [54, 61, 78],
+    [54, 58, 74],
+    [28, 40, 56],
+    [29, 40, 55],
+    [16, 23, 75],
+    [10, 19, 97],
+    [86, 115, 183],
+    [42, 51, 146],
+    [98, 124, 186],
+    [121, 167, 237],
+    [135, 173, 223],
+    [149, 185, 223],
+    [157, 223, 208],
+    [135, 180, 182],
+    [155, 188, 193],
+    [224, 240, 245],
+    [150, 182, 220],
+    [41, 50, 130],
+    [42, 54, 109],
+    [118, 139, 211],
+    [83, 72, 184],
+    [65, 55, 131],
+    [54, 59, 139],
+    [207, 220, 235],
+    [125, 144, 169],
+    [62, 80, 131],
+    [210, 232, 210],
+    [200, 217, 197],
+    [175, 197, 180],
+    [87, 125, 120],
+    [160, 232, 182],
+    [192, 222, 210],
+    [182, 232, 165],
+    [141, 228, 116],
+    [132, 161, 93],
+    [45, 67, 36],
+    [125, 147, 55],
+    [146, 171, 78],
+    [196, 211, 159],
+    [107, 134, 103],
+    [159, 153, 81],
+    [205, 222, 120],
+    [199, 209, 104],
+    [232, 232, 177],
+    [169, 165, 93],
+    [213, 206, 125],
+    [220, 218, 115],
+    [227, 225, 132],
+    [193, 166, 73],
+    [145, 101, 51],
+    [151, 130, 60],
+    [230, 222, 167],
+    [208, 208, 147],
+    [227, 217, 157],
+    [225, 212, 147],
+    [237, 232, 186],
+    [213, 173, 74],
+    [222, 191, 107],
+    [203, 141, 61],
+    [130, 67, 70],
+    [182, 91, 31],
+    [169, 96, 82],
+    [182, 91, 78],
+    [153, 71, 61],
+    [164, 42, 67],
+    [167, 57, 75],
+    [189, 99, 101],
+    [92, 3, 57],
+    [225, 200, 170],
+    [232, 224, 207],
+    [232, 214, 209],
+    [184, 69, 158],
+    [159, 56, 171],
+    [186, 127, 179],
+    [68, 24, 101],
+    [98, 58, 92],
+    [40, 39, 61],
+    [129, 119, 133],
+    [50, 42, 62],
+    [81, 44, 62],
+    [110, 58, 66],
+    [70, 43, 67],
+    [61, 50, 63],
+    [99, 64, 70],
+    [132, 101, 72],
+    [184, 163, 120],
+    [57, 52, 59],
+    [128, 124, 98],
+    [146, 140, 121],
+    [103, 93, 93],
+    [48, 51, 58],
+]
 
 # def get_all_variables():
 #     # setLen = set()

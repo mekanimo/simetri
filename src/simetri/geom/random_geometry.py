@@ -9,9 +9,11 @@ from math import atan2, cos, isclose, pi, sin, tau
 
 import numpy as np
 
+from ..base.common import PointType
 from ..config.settings import runtime_defaults
 from ..group.batch import Group
-from ..shapes.geom_items import Circle, Square
+from ..helpers.utilities import polar_offset
+from ..shapes.geom_items import Circle, Square, reg_poly_shape
 from ..shapes.shape import Shape
 from .geometry import double_area3, normalize_angle
 from .nonlinear.ellipse import Ellipse
@@ -125,6 +127,44 @@ def random_angle(
         res = normalize_angle(res)
 
     return float(res)
+
+
+def random_polar_offset(
+    min_r: float,
+    max_r: float,
+    min_angle: float,
+    max_angle: float,
+    center: PointType,
+) -> PointType:
+    """Return a random polar offset from ``center``.
+
+    Args:
+        min_r: Minimum radius.
+        max_r: Maximum radius.
+        min_angle: Minimum angle in radians.
+        max_angle: Maximum angle in radians.
+        center: Center coordinates.
+
+    Returns:
+        PointType: The offset point.
+
+    Raises:
+        ValueError: If either minimum exceeds its corresponding maximum.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> point = sg.random_polar_offset(2, 2, 0, 0, (1, 1))
+        >>> point
+        (3.0, 1.0)
+    """
+    if min_r > max_r:
+        raise ValueError(f"min_r ({min_r}) > max_r ({max_r})")
+    if min_angle > max_angle:
+        raise ValueError(f"min_angle ({min_angle}) > max_angle ({max_angle})")
+
+    radius = random.uniform(min_r, max_r)
+    angle = random.uniform(min_angle, max_angle)
+    return polar_offset(radius, angle, center)
 
 
 def random_point(
@@ -774,6 +814,61 @@ def random_rectangles(
     )
 
 
+def random_reg_poly(
+    n: int,
+    min_size: float,
+    max_size: float,
+    axis_aligned: bool,
+    seed: int | None,
+) -> Shape:
+    """Return a regular polygon with a random circumradius.
+
+    The polygon is centered at the origin. Its circumradius is sampled
+    uniformly from ``[min_size, max_size]``. When ``axis_aligned`` is True,
+    one edge is horizontal; otherwise the polygon has a random rotation.
+
+    Args:
+        n: Number of polygon sides.
+        min_size: Minimum circumradius.
+        max_size: Maximum circumradius.
+        axis_aligned: Make one polygon edge horizontal.
+        seed: Seed for a local random-number generator.
+
+    Returns:
+        Shape: A closed regular polygon centered at the origin.
+
+    Raises:
+        ValueError: If ``n`` is not an integer of at least 3 or if
+            ``min_size`` exceeds ``max_size``.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> polygon = sg.random_reg_poly(5, 20, 40, True, seed=1)
+        >>> len(polygon.vertices)
+        5
+        >>> polygon.closed
+        True
+        >>> sg.isclose(polygon.vertices[0][1], polygon.vertices[1][1])
+        True
+        >>> polygon.vertices == sg.random_reg_poly(
+        ...     5, 20, 40, True, seed=1
+        ... ).vertices
+        True
+    """
+    if type(n) is not int or n < 3:
+        raise ValueError("n must be an integer of at least 3")
+    if min_size > max_size:
+        raise ValueError(f"min_size ({min_size}) > max_size ({max_size})")
+
+    rng = _resolve_rng(seed)
+    size = rng.uniform(min_size, max_size)
+    if axis_aligned:
+        angle = pi / 2 - pi / n
+    else:
+        angle = rng.uniform(0, tau)
+    return reg_poly_shape(n, size, angle=angle)
+
+
 def random_square(
     min_edge_length: float = MIN_EDGE_LENGTH,
     max_edge_length: float = MAX_EDGE_LENGTH,
@@ -1098,7 +1193,7 @@ def random_triangles(
 
 def random_polygon(
     n_min_edges: int = N_MIN_EDGES,
-    n_max_edges: int = N_MAX_EDGES,
+    n_max_edges: int | None = None,
     min_edge_length: float = MIN_EDGE_LENGTH,
     max_edge_length: float = MAX_EDGE_LENGTH,
     min_x: float = MIN_X,
@@ -1132,7 +1227,7 @@ def random_polygon(
         n_min_edges (int, optional): Minimum number of edges (and vertices).
             Defaults to ``N_MIN_EDGES``.
         n_max_edges (int, optional): Maximum number of edges (and vertices).
-            Defaults to ``N_MAX_EDGES``.
+            Defaults to ``n_min_edges``.
         min_edge_length (float, optional): Minimum polygon edge length.
             Defaults to ``MIN_EDGE_LENGTH``.
         max_edge_length (float, optional): Maximum polygon edge length.
@@ -1200,6 +1295,8 @@ def random_polygon(
     rng = _resolve_rng(seed, rng)
     if n_min_edges < 3:
         raise ValueError(f"n_min_edges ({n_min_edges}) must be >= 3")
+    if n_max_edges is None:
+        n_max_edges = n_min_edges
     if n_min_edges > n_max_edges:
         raise ValueError(
             f"n_min_edges ({n_min_edges}) > n_max_edges ({n_max_edges})"

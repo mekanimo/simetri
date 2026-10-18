@@ -874,12 +874,17 @@ def draw_tex_sketch(sketch: TexSketch) -> str | None:
 
 
 def draw_image_sketch(
-    sketch: Any, exceptions: Collection[str] | None = None
+    sketch: Any,
+    exceptions: Collection[str] | None = None,
+    file_path: str | None = None,
 ) -> str:
     """Draws an image sketch.
 
     Args:
         sketch: The image sketch object.
+        exceptions: Style keys omitted from the generated options.
+        file_path: Export-time image path. The sketch path is used when
+            omitted.
 
     Returns:
         str: The TikZ code for the image sketch.
@@ -908,7 +913,8 @@ def draw_image_sketch(
         options.append(f"anchor = {anchor_to_tikz(sketch.anchor)}")
 
     # res = f"\\node[draw, {', '.join(options)}]at({x}, {y}) {{\\includegraphics{{{sketch.file_path}}}}};\n"
-    file_path = sketch.file_path
+    if file_path is None:
+        file_path = sketch.file_path
     if file_path is not None:
         file_path = forward_slash_path(file_path)
     width, height = sketch.size

@@ -1530,6 +1530,7 @@ def rel_polar(r: float, angle: float, center: PointType) -> PointType:
     return x1, y1
 
 
+polar_offset = rel_polar  # alias for rel_polar
 rc = rel_coord  # alias for rel_coord
 rp = rel_polar  # alias for rel_polar
 

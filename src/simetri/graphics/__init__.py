@@ -51,6 +51,7 @@ from random import choice, choices, randint, random, shuffle, uniform
 
 from numpy import arange, array, diag, eye, full, linspace, ones, zeros
 
+
 from ..base.common import *
 from ..base.core import *
 from ..config.settings import *
@@ -215,6 +216,8 @@ from ..render.render_svg.svg_utils import (
     extract_glyph_svg_path,
 )
 from typing import Never
+
+rng = np.random.default_rng()
 
 
 def __getattr__(name: str) -> Never:
